@@ -110,12 +110,25 @@ data class DeepSeekChoice(
 )
 
 /**
+ * 完成令牌的详细信息。
+ * 包含推理模型产生的思维链令牌数量。
+ */
+@Serializable
+data class CompletionTokensDetails(
+    val reasoningTokens: Int? = null
+)
+
+/**
  * 表示令牌使用情况。
  * 统计本次API调用消耗的令牌数量。
+ * 参考：https://api-docs.deepseek.com/zh-cn/api/create-chat-completion
  */
 @Serializable
 data class DeepSeekUsage(
     val promptTokens: Int,
     val completionTokens: Int,
-    val totalTokens: Int
+    val totalTokens: Int,
+    val promptCacheHitTokens: Int? = null,
+    val promptCacheMissTokens: Int? = null,
+    val completionTokensDetails: CompletionTokensDetails? = null
 )
