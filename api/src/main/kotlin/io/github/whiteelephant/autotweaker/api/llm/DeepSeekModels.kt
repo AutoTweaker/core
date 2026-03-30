@@ -65,3 +65,17 @@ data class DeepSeekFunction(
 data class DeepSeekResponseFormat(
     val type: String = "json_object"
 )
+
+/**
+ * DeepSeek聊天补全API的响应体。
+ * API返回的JSON会被反序列化为这个类的实例。
+ */
+@Serializable
+data class DeepSeekChatResponse(
+    val id: String,
+    val choices: List<DeepSeekChoice>,
+    val created: Long,
+    val model: String,
+    val usage: DeepSeekUsage,
+    val systemFingerprint: String? = null
+)
