@@ -132,3 +132,25 @@ data class DeepSeekUsage(
     val promptCacheMissTokens: Int? = null,
     val completionTokensDetails: CompletionTokensDetails? = null
 )
+
+/**
+ * 流式输出中每个数据块的增量内容。
+ * 与非流式响应中的完整消息不同，流式响应返回的是增量内容。
+ */
+@Serializable
+data class ChatDelta(
+    val content: String? = null,
+    val reasoningContent: String? = null,
+    val role: String? = null
+)
+
+/**
+ * 流式输出中的一个选择（completion chunk）。
+ * 每个数据块包含部分生成的内容。
+ */
+@Serializable
+data class DeepSeekChunkChoice(
+    val index: Int,
+    val delta: ChatDelta,
+    val finishReason: String? = null
+)
