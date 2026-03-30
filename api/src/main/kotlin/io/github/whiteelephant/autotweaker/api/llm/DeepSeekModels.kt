@@ -56,3 +56,12 @@ data class DeepSeekFunction(
     val description: String? = null,
     val parameters: JsonElement? = null
 )
+
+/**
+ * 响应格式定义，如JSON模式。
+ * 通过responseFormat参数，可以要求模型返回特定格式的响应。
+ */
+@Serializable
+data class DeepSeekResponseFormat(
+    val type: String = "json_object"
+)
