@@ -136,6 +136,7 @@ data class DeepSeekUsage(
 /**
  * 流式输出中每个数据块的增量内容。
  * 与非流式响应中的完整消息不同，流式响应返回的是增量内容。
+ * 参考：https://api-docs.deepseek.com/zh-cn/api/create-chat-completion
  */
 @Serializable
 data class ChatDelta(
@@ -153,4 +154,19 @@ data class DeepSeekChunkChoice(
     val index: Int,
     val delta: ChatDelta,
     val finishReason: String? = null
+)
+
+/**
+ * 流式输出的一个数据块（chunk）。
+ * 当stream参数设置为true时，API返回一系列这样的数据块。
+ * 参考：https://api-docs.deepseek.com/zh-cn/api/create-chat-completion
+ */
+@Serializable
+data class DeepSeekChatChunk(
+    val id: String? = null,
+    val choices: List<DeepSeekChunkChoice>,
+    val created: Long? = null,
+    val model: String? = null,
+    val systemFingerprint: String? = null,
+    val `object`: String = "chat.completion.chunk"
 )
