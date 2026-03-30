@@ -78,4 +78,44 @@ data class DeepSeekChatResponse(
     val model: String,
     val usage: DeepSeekUsage,
     val systemFingerprint: String? = null
+) {
+    /**
+     * 提取第一个选择的内容。
+     * 这是一个便捷方法，通常我们只关心第一个回复。
+     */
+    fun firstChoiceContent(): String? = choices.firstOrNull()?.message?.content
+}
+
+/**
+ * 表示模型停止生成的原因。
+ * 参考：https://api-docs.deepseek.com/zh-cn/api/create-chat-completion
+ */
+enum class FinishReason {
+    STOP,
+    LENGTH,
+    CONTENT_FILTER,
+    TOOL_CALLS,
+    INSUFFICIENT_SYSTEM_RESOURCE
+}
+
+/**
+ * 表示一个回复选项。
+ * 包含消息内容、索引和停止原因。
+ */
+@Serializable
+data class DeepSeekChoice(
+    val index: Int,
+    val message: ChatMessage,
+    val finishReason: String? = null
+)
+
+/**
+ * 表示令牌使用情况。
+ * 统计本次API调用消耗的令牌数量。
+ */
+@Serializable
+data class DeepSeekUsage(
+    val promptTokens: Int,
+    val completionTokens: Int,
+    val totalTokens: Int
 )
