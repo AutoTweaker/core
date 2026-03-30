@@ -35,3 +35,13 @@ data class DeepSeekChatRequest(
     val tools: List<DeepSeekTool>? = null,
     val responseFormat: DeepSeekResponseFormat? = null
 )
+
+/**
+ * DeepSeek工具定义。
+ * 用于工具调用的功能描述。
+ */
+@Serializable
+data class DeepSeekTool(
+    val type: String = "function",
+    val function: DeepSeekFunction
+)
