@@ -1,0 +1,38 @@
+# Bazel output directories
+bazel-*
+.bazel/
+.bazelrc.user
+
+# Temporary folder
+.temp/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+out/
+target/
+dist/
+
+# Logs
+logs/
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Local configuration files
+*.local
+.env
+
+# Gradle build files
+.gradle/
+.gradle
+build/
+.gradle.properties
+.gradle-wrapper.jar
+.gradle-wrapper.properties

@@ -1,0 +1,41 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.3.20' apply false
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'org.jetbrains.kotlin.jvm'
+    apply plugin: 'java-library'
+
+    group = 'io.github.whiteelephant.autotweaker'
+    version = '1.0.0'
+
+    dependencies {
+        implementation platform('org.jetbrains.kotlin:kotlin-bom')
+        implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    kotlin {
+        jvmToolchain {
+            languageVersion.set(JavaLanguageVersion.of(25))
+        }
+    }
+}
