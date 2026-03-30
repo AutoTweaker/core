@@ -45,3 +45,14 @@ data class DeepSeekTool(
     val type: String = "function",
     val function: DeepSeekFunction
 )
+
+/**
+ * 工具函数定义。
+ * 描述函数名称、描述和参数。
+ */
+@Serializable
+data class DeepSeekFunction(
+    val name: String,
+    val description: String? = null,
+    val parameters: JsonElement? = null
+)
