@@ -1,17 +1,19 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
+// 1. 业务核心模型 (ChatMessage, ChatRequest, ChatResult 等)
 import io.github.whiteelephant.autotweaker.core.llm.*
+
+// 2. Ktor 客户端核心 (HttpClient, POST, Body 等)
 import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import io.ktor.client.call.* // 解决 .body<T>() 报错
+import io.ktor.client.request.* // 解决 .post, .header, .setBody 报错
+import io.ktor.client.statement.* // 解决 .bodyAsText, HttpResponse 报错
+
+// 3. 网络协议与工具 (ContentType, Flow, Json)
 import io.ktor.http.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.json.Json
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.*
+import kotlinx.serialization.json.Json
 
 abstract class AbstractOpenAiClient(
     protected val apiKey: String,
@@ -39,4 +41,59 @@ abstract class AbstractOpenAiClient(
     protected abstract fun mapChunkToChatResult(chunk: OpenAiStreamChunk): ChatResult
 
 
+    override suspend fun chat(request: ChatRequest): ChatResult {
+        val response = httpClient.post("$baseUrl/v1/chat/completions") {
+            header(HttpHeaders.Authorization, "Bearer $apiKey")
+            contentType(ContentType.Application.Json)
+            // 调用钩子：让子类决定具体的 JSON 结构
+            setBody(createRequestBody(request))
+        }
+
+        if (!response.status.isSuccess()) {
+            val errorBody = response.bodyAsText()
+            throw IllegalStateException("LLM API Error (${response.status}): $errorBody")
+        }
+
+        // 解析为 OpenAI 标准响应
+        val openAiResponse = response.body<OpenAiResponse>()
+
+        // 调用钩子：将标准响应转为你的 ChatResult
+        return mapToChatResult(openAiResponse)
+    }
+
+
+    override suspend fun chatStream(request: ChatRequest): Flow<ChatResult> = flow {
+        // 强制开启 stream 模式
+        val body = createRequestBody(request.copy(stream = true))
+
+        httpClient.preparePost("$baseUrl/v1/chat/completions") {
+            header(HttpHeaders.Authorization, "Bearer $apiKey")
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.execute { response ->
+            if (!response.status.isSuccess()) {
+                throw IllegalStateException("LLM Stream Error: ${response.status}")
+            }
+
+            val channel = response.bodyAsChannel()
+            while (!channel.isClosedForRead) {
+                // 逐行读取 SSE 数据
+                val line = channel.readUTF8Line() ?: break
+
+                if (line.startsWith("data: ")) {
+                    val data = line.removePrefix("data: ").trim()
+
+                    // 结束信号
+                    if (data == "[DONE]") break
+
+                    if (data.isNotEmpty()) {
+                        // 解析当前的小块数据
+                        val chunk = json.decodeFromString<OpenAiStreamChunk>(data)
+                        // 调用钩子：转换为 ChatResult 并发射出去
+                        emit(mapChunkToChatResult(chunk))
+                    }
+                }
+            }
+        }
+    }
 }

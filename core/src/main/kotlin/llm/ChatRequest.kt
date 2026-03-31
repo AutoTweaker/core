@@ -19,5 +19,6 @@ data class ChatRequest(
     val thinking: Boolean? = null,
     val temperature: Double? = null,
     val maxTokens: Int? = null,
-    val tools: List<Tool>? = null
+    val tools: List<Tool>? = null,
+    val stream: Boolean = true
 )
