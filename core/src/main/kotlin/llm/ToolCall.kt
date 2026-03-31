@@ -8,6 +8,7 @@ package io.github.whiteelephant.autotweaker.core.llm
  * @property arguments 调用参数（JSON字符串）
  */
 data class ToolCall(
+    val id: String,
     val name: String,
     val arguments: String
 )

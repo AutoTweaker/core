@@ -13,17 +13,8 @@ package io.github.whiteelephant.autotweaker.core.llm
  * @property usage 本次调用的令牌用量统计
  */
 data class ChatResult(
-    val message: ChatMessage,
-    val reasoningContent: String? = null,
+    val message: ChatMessage.AssistantMessage? = null,
     val toolCalls: List<ToolCall>? = null,
     val finishReason: String? = null,
-    val created: Long,
-    val model: String,
-    val usage: Usage
-) {
-    /**
-     * 提取回复的内容。
-     * 这是一个便捷方法。
-     */
-    fun content(): String? = message.content.chatContent
-}
+    val usage: Usage? = null
+)

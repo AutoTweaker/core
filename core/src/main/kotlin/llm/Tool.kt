@@ -12,6 +12,6 @@ import kotlinx.serialization.json.JsonElement
  */
 data class Tool(
     val name: String,
-    val description: String? = null,
+    val description: String,
     val parameters: JsonElement
 )

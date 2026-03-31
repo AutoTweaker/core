@@ -22,7 +22,7 @@ interface LlmClient {
      * 当需要实时接收模型输出时使用此方法。
      *
      * @param request 聊天请求配置
-     * @return 返回ChatChunk的流，每个chunk包含部分生成的内容
+     * @return 返回ChatResult的流，每个chunk包含部分生成的内容
      */
-    suspend fun chatStream(request: ChatRequest): Flow<ChatChunk>
+    suspend fun chatStream(request: ChatRequest): Flow<ChatResult>
 }
