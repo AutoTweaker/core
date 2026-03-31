@@ -8,12 +8,11 @@ import kotlinx.serialization.SerialName
 data class OpenAiMessage(
     val role: String,
     val content: String? = null,
-    // 模型请求调用工具时，会返回这个列表
+    // 关键：确保请求发送给 DS 时，这个字段能被正确序列化
+    @SerialName("reasoning_content") val reasoningContent: String? = null,
     @SerialName("tool_calls") val toolCalls: List<OpenAiToolCall>? = null,
-    // 当你作为 "tool" 角色回复结果时，需要关联对应的 id
     @SerialName("tool_call_id") val toolCallId: String? = null
 )
-
 @Serializable
 data class OpenAiToolCall(
     val id: String,

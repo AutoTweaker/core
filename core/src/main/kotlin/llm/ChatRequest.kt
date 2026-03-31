@@ -1,6 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.llm
 
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.Serializable
 
 /**
  * 聊天请求的配置。
@@ -13,6 +14,7 @@ import kotlinx.serialization.json.JsonElement
  * @property maxTokens 最大生成令牌数，限制模型输出的长度
  * @property tools 工具调用定义，允许模型调用外部函数
  */
+@Serializable
 data class ChatRequest(
     val model: String,
     val messages: List<ChatMessage>,

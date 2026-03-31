@@ -1,6 +1,8 @@
 package io.github.whiteelephant.autotweaker.core.llm
 
+import kotlinx.serialization.Serializable
 
+@Serializable
 sealed class ChatMessage {
     abstract val content: String
     abstract val createdAt: Long

@@ -21,5 +21,7 @@ data class OpenAiChunkChoice(
 data class OpenAiDelta(
     val role: String? = null,
     val content: String? = null,
+    // 添加这一行
+    @SerialName("reasoning_content") val reasoningContent: String? = null,
     @SerialName("tool_calls") val toolCalls: List<OpenAiStreamToolCall>? = null
 )
