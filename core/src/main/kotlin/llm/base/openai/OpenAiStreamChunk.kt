@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 @Serializable
-data class OpenAiStreamChunk(
-    val id: String? = null,
-    val choices: List<OpenAiChunkChoice>,
-    val model: String? = null
-)
+abstract class OpenAiStreamChunk {
+    abstract val id: String?
+    abstract val choices: List<OpenAiChunkChoice>
+    abstract val model: String?
+}
 
 @Serializable
 data class OpenAiChunkChoice(

@@ -3,16 +3,14 @@ package io.github.whiteelephant.autotweaker.core.llm.base.openai
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
+abstract class OpenAiMessage {
+    abstract val role: String
+    abstract val content: String?
+    abstract val reasoningContent: String?
+    abstract val toolCalls: List<OpenAiToolCall>?
+    abstract val toolCallId: String?
+}
 
-@Serializable
-data class OpenAiMessage(
-    val role: String,
-    val content: String? = null,
-    // 关键：确保请求发送给 DS 时，这个字段能被正确序列化
-    @SerialName("reasoning_content") val reasoningContent: String? = null,
-    @SerialName("tool_calls") val toolCalls: List<OpenAiToolCall>? = null,
-    @SerialName("tool_call_id") val toolCallId: String? = null
-)
 @Serializable
 data class OpenAiToolCall(
     val id: String,

@@ -3,20 +3,19 @@ package io.github.whiteelephant.autotweaker.core.llm.base.openai
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-@Serializable
-data class OpenAiResponse(
-    val id: String? = null,
-    val choices: List<OpenAiChoice>,
-    val usage: OpenAiUsage? = null,
-    val created: Long? = null,
-    val model: String? = null
-)
+abstract class OpenAiResponse<Message : OpenAiMessage> {
+    abstract val id: String?
+    abstract val choices: List<OpenAiChoice<Message>>
+    abstract val usage: OpenAiUsage?
+    abstract val created: Long?
+    abstract val model: String?
+}
 
 @Serializable
-data class OpenAiChoice(
+data class OpenAiChoice<Message : OpenAiMessage>(
     val index: Int,
-    val message: OpenAiMessage,
-    @SerialName("finish_reason") val finishReason: String? = null
+    val message: Message,
+    val finishReason: String? = null,
 )
 
 @Serializable

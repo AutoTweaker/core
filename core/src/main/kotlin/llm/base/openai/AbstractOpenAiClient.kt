@@ -12,33 +12,43 @@ import io.ktor.client.statement.* // 解决 .bodyAsText, HttpResponse 报错
 // 3. 网络协议与工具 (ContentType, Flow, Json)
 import io.ktor.http.*
 import io.ktor.utils.io.*
+import io.ktor.util.reflect.TypeInfo
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.KSerializer
 
-abstract class AbstractOpenAiClient(
+abstract class AbstractOpenAiClient<
+        Request : OpenAiRequest<*>,
+        Response : OpenAiResponse<*>,
+        Chunk : OpenAiStreamChunk>(
     protected val apiKey: String,
     protected val baseUrl: String,
     protected val httpClient: HttpClient,
-    // 忽略未知字段的 Json 实例，应对不同厂商的冗余返回
-    protected val json: Json = Json {
-        ignoreUnknownKeys = true
-        coerceInputValues = true
-    }
+    private val requestTypeInfo: TypeInfo,
+    private val responseTypeInfo: TypeInfo,
+    private val chunkSerializer: KSerializer<Chunk>,
 ) : LlmClient {
+    companion object {
+        private val json: Json = Json {
+            ignoreUnknownKeys = true
+            coerceInputValues = true
+        }
+    }
+
     /** * 钩子 1：将业务层的 ChatRequest 转换为发送给 API 的数据对象。
      * 返回 Any 是为了灵活性，子类可以返回一个专门的 Data Class。
      */
-    protected abstract fun createRequestBody(request: ChatRequest): Any
+    protected abstract fun createRequestBody(request: ChatRequest): Request
 
     /** * 钩子 2：处理非流式响应。
      * 将 API 返回的标准响应（OpenAiResponse）转换为你接口定义的 ChatResult。
      */
-    protected abstract fun mapToChatResult(response: OpenAiResponse): ChatResult
+    protected abstract fun mapToChatResult(response: Response): ChatResult
 
     /** * 钩子 3：处理流式响应。
      * 将流中返回的每一个数据切片（OpenAiStreamChunk）转换为 ChatResult。
      */
-    protected abstract fun mapChunkToChatResult(chunk: OpenAiStreamChunk): ChatResult
+    protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
 
 
     override suspend fun chat(request: ChatRequest): ChatResult {
@@ -46,7 +56,7 @@ abstract class AbstractOpenAiClient(
             header(HttpHeaders.Authorization, "Bearer $apiKey")
             contentType(ContentType.Application.Json)
             // 调用钩子：让子类决定具体的 JSON 结构
-            setBody(createRequestBody(request))
+            setBody(createRequestBody(request), requestTypeInfo)
         }
 
         if (!response.status.isSuccess()) {
@@ -55,7 +65,7 @@ abstract class AbstractOpenAiClient(
         }
 
         // 解析为 OpenAI 标准响应
-        val openAiResponse = response.body<OpenAiResponse>()
+        val openAiResponse = response.body<Response>(responseTypeInfo)
 
         // 调用钩子：将标准响应转为你的 ChatResult
         return mapToChatResult(openAiResponse)
@@ -69,7 +79,7 @@ abstract class AbstractOpenAiClient(
         httpClient.preparePost("$baseUrl/v1/chat/completions") {
             header(HttpHeaders.Authorization, "Bearer $apiKey")
             contentType(ContentType.Application.Json)
-            setBody(body)
+            setBody(body, requestTypeInfo)
         }.execute { response ->
             if (!response.status.isSuccess()) {
                 throw IllegalStateException("LLM Stream Error: ${response.status}")
@@ -88,7 +98,7 @@ abstract class AbstractOpenAiClient(
 
                     if (data.isNotEmpty()) {
                         // 解析当前的小块数据
-                        val chunk = json.decodeFromString<OpenAiStreamChunk>(data)
+                        val chunk = json.decodeFromString(chunkSerializer, data)
                         // 调用钩子：转换为 ChatResult 并发射出去
                         emit(mapChunkToChatResult(chunk))
                     }

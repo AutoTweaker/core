@@ -4,42 +4,68 @@ import io.github.whiteelephant.autotweaker.core.llm.*
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import io.ktor.client.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.serializer
 import kotlinx.serialization.SerialName
+import io.ktor.util.reflect.typeInfo
+
+@Serializable
+data class DeepSeekRequest(
+    override val model: String,
+    override val messages: List<DeepSeekMessage>,
+    val thinking: ThinkingConfig? = null,
+    override val temperature: Double? = null,
+    override val stream: Boolean = false,
+    override val tools: List<Tool>? = null,
+) : OpenAiRequest<DeepSeekMessage>()
+
+@Serializable
+data class DeepSeekResponse(
+    override val id: String? = null,
+    override val choices: List<OpenAiChoice<DeepSeekMessage>>,
+    override val usage: OpenAiUsage? = null,
+    override val created: Long? = null,
+    override val model: String? = null,
+) : OpenAiResponse<DeepSeekMessage>()
+
+@Serializable
+data class DeepSeekMessage(
+    override val role: String,
+    override val content: String? = null,
+    @SerialName("reasoning_content")
+    override val reasoningContent: String? = null,
+    @SerialName("tool_calls")
+    override val toolCalls: List<OpenAiToolCall>? = null,
+    @SerialName("tool_call_id")
+    override val toolCallId: String? = null
+) : OpenAiMessage()
+
+@Serializable
+data class DeepSeekStreamChunk(
+    override val id: String? = null,
+    override val choices: List<OpenAiChunkChoice>,
+    override val model: String? = null,
+) : OpenAiStreamChunk()
+
+@Serializable
+data class ThinkingConfig(val type: String)
 
 class DeepSeekClient(
     apiKey: String,
     httpClient: HttpClient,
     baseUrl: String = "https://api.deepseek.com"
-) : AbstractOpenAiClient(apiKey, baseUrl, httpClient) {
+) : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
+    apiKey = apiKey,
+    baseUrl = baseUrl,
+    httpClient = httpClient,
+    requestTypeInfo = typeInfo<DeepSeekRequest>(),
+    responseTypeInfo = typeInfo<DeepSeekResponse>(),
+    chunkSerializer = serializer<DeepSeekStreamChunk>(),
+) {
 
-    // --- 1. 适配 DeepSeek 特有的请求结构 ---
-
-    @Serializable
-    private data class DeepSeekRequest(
-        val model: String,
-        val messages: List<DeepSeekMessage>,
-        val thinking: ThinkingConfig? = null,
-        val temperature: Double? = null,
-        val stream: Boolean = false,
-        val tools: List<Tool>? = null
-    )
-
-    @Serializable
-    private data class DeepSeekMessage(
-        val role: String,
-        val content: String? = null,
-        @SerialName("reasoning_content") val reasoningContent: String? = null,
-        @SerialName("tool_calls") val toolCalls: List<OpenAiToolCall>? = null,
-        @SerialName("tool_call_id") val toolCallId: String? = null
-    )
-
-    @Serializable
-    private data class ThinkingConfig(val type: String)
-
-    override fun createRequestBody(request: ChatRequest): Any {
+    override fun createRequestBody(request: ChatRequest): DeepSeekRequest {
         // 1. 将业务层消息映射为 DeepSeek 协议层消息
         // 这一步至关重要：它确保了 Assistant 消息中的 reasoning_content 和工具调用能被正确回传
-        val mappedMessages = request.messages.map { msg ->
+        val mappedMessages = request.messages.mapNotNull { msg ->
             when (msg) {
                 is ChatMessage.SystemMessage -> DeepSeekMessage(
                     role = "system",
@@ -62,11 +88,8 @@ class DeepSeekClient(
                     content = msg.content,
                     toolCallId = msg.toolId // 重要：工具结果必须关联 tool_call_id
                 )
-                // 默认处理
-                else -> DeepSeekMessage(
-                    role = "user",
-                    content = msg.content
-                )
+
+                is ChatMessage.ErrorMessage -> null
             }
         }
 
@@ -88,7 +111,7 @@ class DeepSeekClient(
 
     // --- 2. 映射全量响应 (支持思维链 & 工具调用) ---
 
-    override fun mapToChatResult(response: OpenAiResponse): ChatResult {
+    override fun mapToChatResult(response: DeepSeekResponse): ChatResult {
         val choice = response.choices.firstOrNull()
         val msg = choice?.message
 
@@ -113,7 +136,7 @@ class DeepSeekClient(
 
     // --- 3. 映射流式切片 (支持思维链增量) ---
 
-    override fun mapChunkToChatResult(chunk: OpenAiStreamChunk): ChatResult {
+    override fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult {
         val choice = chunk.choices.firstOrNull()
         val delta = choice?.delta
 
