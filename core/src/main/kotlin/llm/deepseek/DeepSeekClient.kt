@@ -17,7 +17,7 @@ class DeepSeekClient(
     @Serializable
     private data class DeepSeekRequest(
         val model: String,
-        val messages: List<ChatMessage>,
+        val messages: List<DeepSeekMessage>,
         val thinking: ThinkingConfig? = null,
         val temperature: Double? = null,
         val stream: Boolean = false,
@@ -37,14 +37,52 @@ class DeepSeekClient(
     private data class ThinkingConfig(val type: String)
 
     override fun createRequestBody(request: ChatRequest): Any {
+        // 1. 将业务层消息映射为 DeepSeek 协议层消息
+        // 这一步至关重要：它确保了 Assistant 消息中的 reasoning_content 和工具调用能被正确回传
+        val mappedMessages = request.messages.map { msg ->
+            when (msg) {
+                is ChatMessage.SystemMessage -> DeepSeekMessage(
+                    role = "system",
+                    content = msg.content
+                )
+
+                is ChatMessage.UserMessage -> DeepSeekMessage(
+                    role = "user",
+                    content = msg.content
+                )
+
+                is ChatMessage.AssistantMessage -> DeepSeekMessage(
+                    role = "assistant",
+                    content = msg.content,
+                    reasoningContent = msg.reasoningContent // 重要：回传上一轮的思考过程
+                )
+
+                is ChatMessage.ToolMessage -> DeepSeekMessage(
+                    role = "tool",
+                    content = msg.content,
+                    toolCallId = msg.toolId // 重要：工具结果必须关联 tool_call_id
+                )
+                // 默认处理
+                else -> DeepSeekMessage(
+                    role = "user",
+                    content = msg.content
+                )
+            }
+        }
+
+        // 2. 检查是否开启了思考模式
+        val isThinkingEnabled = request.thinking == true
+
+        // 3. 构建请求体
         return DeepSeekRequest(
             model = request.model,
-            messages = request.messages,
-            temperature = request.temperature,
+            messages = mappedMessages,
             stream = request.stream,
             tools = request.tools,
-            // 翻译：将 Boolean 转换为 DeepSeek 的对象格式
-            thinking = if (request.thinking == true) ThinkingConfig("enabled") else null
+            // 根据文档：开启思考模式时，必须设置 thinking 对象
+            thinking = if (isThinkingEnabled) ThinkingConfig("enabled") else null,
+            // 根据文档：开启思考模式时，不支持 temperature 参数，必须设为 null
+            temperature = if (isThinkingEnabled) null else request.temperature
         )
     }
 
