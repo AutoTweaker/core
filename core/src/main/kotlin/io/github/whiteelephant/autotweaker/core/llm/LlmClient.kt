@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.api.llm
+package io.github.whiteelephant.autotweaker.core.llm
 
 /**
  * 大模型（LLM）客户端的接口。

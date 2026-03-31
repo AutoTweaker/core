@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.api.llm
+package io.github.whiteelephant.autotweaker.core.llm
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
