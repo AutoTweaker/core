@@ -15,7 +15,7 @@ abstract class OpenAiResponse<Message : OpenAiMessage> {
 data class OpenAiChoice<Message : OpenAiMessage>(
     val index: Int,
     val message: Message,
-    val finishReason: String? = null,
+    @SerialName("finish_reason") val finishReason: String? = null,
 )
 
 @Serializable
