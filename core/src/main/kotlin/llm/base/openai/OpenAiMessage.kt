@@ -20,6 +20,8 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+import kotlinx.serialization.serializer
+
 sealed class OpenAiMessage {
     abstract val role: String
 
@@ -27,17 +29,33 @@ sealed class OpenAiMessage {
     open class OpenAiDeveloperMessage(
         override val role: String = "developer",
         val name: String? = null,
-        val content: String,
+        val content: OpenAiMessageContent,
     ) : OpenAiMessage()
 
     @Serializable
     open class OpenAiSystemMessage(
         override val role: String = "system",
         val name: String? = null,
-        val content: String,
+        val content: OpenAiMessageContent,
+    ) : OpenAiMessage()
+
+    @Serializable
+    open class OpenAiUserMessage(
+        override val role: String = "user",
+        val name: String? = null,
+        val content: OpenAiMessageContent,
+    ) : OpenAiMessage()
+
+    //TODO 待完善
+    @Serializable
+    open class OpenAiAssistantMessage(
+        override val role: String = "assistant",
+        val name: String? = null,
+        val content: OpenAiMessageContent,
     ) : OpenAiMessage()
 }
 
+//string或list二选一，用于OpenAiMessage
 @Serializable(with = MessageContentSerializer::class)
 sealed class OpenAiMessageContent {
     @Serializable
@@ -51,25 +69,74 @@ sealed class OpenAiMessageContent {
     ) : OpenAiMessageContent()
 }
 
+//多模态使用，可包含多种格式
+@Serializable
 sealed class OpenAiMessageContentPart {
-    TODO
+
+    @Serializable
+    @SerialName("type")
+    data class TextPart(
+        val text: String
+    ) : OpenAiMessageContentPart()
+
+    @Serializable
+    @SerialName("image_url")
+    data class ImagePart(
+        @SerialName("image_url") val imageUrl: ImageUrl
+    ) : OpenAiMessageContentPart() {
+        @Serializable
+        data class ImageUrl(
+            val url: String,
+            val detail: Detail? = null
+        ) {
+            @Serializable
+            enum class Detail {
+                @SerialName("auto")
+                AUTO,
+
+                @SerialName("low")
+                LOW,
+
+                @SerialName("high")
+                HIGH
+            }
+        }
+    }
+
+    @Serializable
+    @SerialName("input_audio")
+    data class InputAudioPart(
+        @SerialName("input_audio") val inputAudio: InputAudio
+    ) : OpenAiMessageContentPart() {
+        @Serializable
+        data class InputAudio(
+            val data: String,
+            val format: Format
+        ) {
+            @Serializable
+            enum class Format {
+                @SerialName("waw")
+                WAW,
+
+                @SerialName("mp3")
+                MP3
+            }
+        }
+    }
+
+    @Serializable
+    @SerialName("file")
+    data class File(
+        val file: File
+    ) {
+        @Serializable
+        data class File(
+            @SerialName("file_data") val fileData: String? = null,
+            @SerialName("file_id") val fileId: String? = null,
+            @SerialName("filename") val fileName: String? = null
+        )
+    }
 }
-
-@Serializable
-data class OpenAiToolCall(
-    val id: String,
-    val type: String = "function",
-    val function: OpenAiFunctionCall
-)
-
-@Serializable
-data class OpenAiFunctionCall(
-    val name: String,
-    /** * 注意：API 返回的 arguments 是一个 JSON 字符串，
-     * 而不是解析好的对象，所以这里用 String。
-     */
-    val arguments: String
-)
 
 
 //自定义序列化器
