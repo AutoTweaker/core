@@ -38,7 +38,7 @@ abstract class AbstractOpenAiClient<
     /** * 钩子 1：将业务层的 ChatRequest 转换为发送给 API 的数据对象。
      * 返回 Any 是为了灵活性，子类可以返回一个专门的 Data Class。
      */
-    protected abstract fun createRequestBody(request: ChatRequest): Request
+    protected abstract fun createRequestBody(request: ChatRequest, stream: Boolean): Request
 
     /** * 钩子 2：处理非流式响应。
      * 将 API 返回的标准响应（OpenAiResponse）转换为你接口定义的 ChatResult。
@@ -56,7 +56,7 @@ abstract class AbstractOpenAiClient<
             header(HttpHeaders.Authorization, "Bearer $apiKey")
             contentType(ContentType.Application.Json)
             // 调用钩子：让子类决定具体的 JSON 结构
-            setBody(createRequestBody(request), requestTypeInfo)
+            setBody(createRequestBody(request, stream = false), requestTypeInfo)
         }
 
         if (!response.status.isSuccess()) {
@@ -74,7 +74,7 @@ abstract class AbstractOpenAiClient<
 
     override suspend fun chatStream(request: ChatRequest): Flow<ChatResult> = flow {
         // 强制开启 stream 模式
-        val body = createRequestBody(request.copy(stream = true))
+        val body = createRequestBody(request, stream = true)
 
         httpClient.preparePost("$baseUrl/v1/chat/completions") {
             header(HttpHeaders.Authorization, "Bearer $apiKey")

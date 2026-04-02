@@ -1,6 +1,11 @@
 plugins {
     kotlin("jvm")
     id("org.jetbrains.kotlin.plugin.serialization")
+    application
+}
+
+application {
+    mainClass = "io.github.whiteelephant.autotweaker.core.MainKt"
 }
 
 sourceSets {

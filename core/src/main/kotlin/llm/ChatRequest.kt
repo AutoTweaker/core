@@ -1,6 +1,5 @@
 package io.github.whiteelephant.autotweaker.core.llm
 
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.Serializable
 
 /**
@@ -22,5 +21,4 @@ data class ChatRequest(
     val temperature: Double? = null,
     val maxTokens: Int? = null,
     val tools: List<Tool>? = null,
-    val stream: Boolean = true
 )
