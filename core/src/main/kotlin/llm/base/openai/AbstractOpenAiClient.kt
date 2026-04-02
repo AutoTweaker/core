@@ -1,21 +1,19 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
-// 1. 业务核心模型 (ChatMessage, ChatRequest, ChatResult 等)
-import io.github.whiteelephant.autotweaker.core.llm.*
-
-// 2. Ktor 客户端核心 (HttpClient, POST, Body 等)
+import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
+import io.github.whiteelephant.autotweaker.core.llm.ChatResult
+import io.github.whiteelephant.autotweaker.core.llm.LlmClient
 import io.ktor.client.*
-import io.ktor.client.call.* // 解决 .body<T>() 报错
-import io.ktor.client.request.* // 解决 .post, .header, .setBody 报错
-import io.ktor.client.statement.* // 解决 .bodyAsText, HttpResponse 报错
-
-// 3. 网络协议与工具 (ContentType, Flow, Json)
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
-import io.ktor.util.reflect.TypeInfo
-import kotlinx.coroutines.flow.*
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
 
 abstract class AbstractOpenAiClient<
         Request : OpenAiRequest<*>,
@@ -88,7 +86,7 @@ abstract class AbstractOpenAiClient<
             val channel = response.bodyAsChannel()
             while (!channel.isClosedForRead) {
                 // 逐行读取 SSE 数据
-                val line = channel.readUTF8Line() ?: break
+                val line = channel.readLine() ?: break
 
                 if (line.startsWith("data: ")) {
                     val data = line.removePrefix("data: ").trim()

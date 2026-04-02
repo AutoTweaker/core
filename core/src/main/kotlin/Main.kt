@@ -22,18 +22,19 @@ fun main() {
         apiKey = System.getenv("DEEPSEEK_API_KEY") ?: throw IllegalStateException("Please set your DeepSeek API key as an environment variable."),
         httpClient = httpClient,
     )
-    val result = runBlocking {
-        client.chat(
+    runBlocking {
+        client.chatStream(
             ChatRequest(
                 model = "deepseek-chat",
                 messages = listOf(
                     ChatMessage.UserMessage(
-                        content = "Please reply the word 'Hello' exactly.",
+                        content = "你好！",
                         createdAt = System.currentTimeMillis(),
                     )
                 ),
             )
-        )
+        ).collect { result ->
+            println(result)
+        }
     }
-    println(result)
 }
