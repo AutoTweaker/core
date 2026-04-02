@@ -8,6 +8,7 @@ import kotlinx.serialization.serializer
 import kotlinx.serialization.SerialName
 import io.ktor.util.reflect.typeInfo
 
+// 继承自openai
 @Serializable
 data class DeepSeekRequest(
     override val model: String,
