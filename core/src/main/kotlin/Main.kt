@@ -15,6 +15,7 @@ fun main() {
             json(Json {
                 ignoreUnknownKeys = true
                 isLenient = true
+                explicitNulls = false
             })
         }
     }
