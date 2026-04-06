@@ -8,48 +8,6 @@ import kotlinx.serialization.serializer
 import kotlinx.serialization.SerialName
 import io.ktor.util.reflect.typeInfo
 
-// 继承自openai
-@Serializable
-data class DeepSeekRequest(
-    override val model: String,
-    override val messages: List<DeepSeekMessage>,
-    val thinking: ThinkingConfig? = null,
-    override val temperature: Double? = null,
-    override val stream: Boolean = false,
-    override val tools: List<Tool>? = null,
-) : OpenAiRequest<DeepSeekMessage>()
-
-@Serializable
-data class DeepSeekResponse(
-    override val id: String? = null,
-    override val choices: List<OpenAiChoice<DeepSeekMessage>>,
-    override val usage: OpenAiUsage? = null,
-    override val created: Long? = null,
-    override val model: String? = null,
-) : OpenAiResponse<DeepSeekMessage>()
-
-@Serializable
-data class DeepSeekMessage(
-    override val role: String,
-    override val content: String? = null,
-    @SerialName("reasoning_content")
-    override val reasoningContent: String? = null,
-    @SerialName("tool_calls")
-    override val toolCalls: List<OpenAiToolCall>? = null,
-    @SerialName("tool_call_id")
-    override val toolCallId: String? = null
-) : OpenAiMessage()
-
-@Serializable
-data class DeepSeekStreamChunk(
-    override val id: String? = null,
-    override val choices: List<OpenAiChunkChoice>,
-    override val model: String? = null,
-) : OpenAiStreamChunk()
-
-@Serializable
-data class ThinkingConfig(val type: String)
-
 class DeepSeekClient(
     apiKey: String,
     httpClient: HttpClient,

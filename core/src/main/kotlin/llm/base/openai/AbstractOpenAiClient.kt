@@ -16,8 +16,8 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
 abstract class AbstractOpenAiClient<
-        Request : OpenAiRequest<*>,
-        Response : OpenAiResponse<*>,
+        Request : OpenAiRequest,
+        Response : OpenAiResponse,
         Chunk : OpenAiStreamChunk>(
     protected val apiKey: String,
     protected val baseUrl: String,
