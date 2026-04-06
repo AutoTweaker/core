@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.llm.deepseek
+package io.github.whiteelephant.autotweaker.core.llm.provider.deepseek
 
 //TODO io.github.whiteelephant.autotweaker.core.llm.deepseek改io.github.whiteelephant.autotweaker.core.llm.provider.deepseek
 
