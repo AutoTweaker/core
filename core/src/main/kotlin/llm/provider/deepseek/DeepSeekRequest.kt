@@ -11,7 +11,7 @@ import kotlinx.serialization.json.*
 
 @Serializable
 data class DeepSeekRequest(
-    val messages: List<Message>,
+    val messages: List<DeepSeekMessage>,
     @SerialName("max_tokens")
     val maxTokens: Int? = null,
     @SerialName("stream_options")
@@ -34,42 +34,6 @@ data class DeepSeekRequest(
     override val topP: Double? = null
 
 ) : OpenAiRequest() {
-    @Serializable
-    sealed class Message {
-        abstract val role: String
-
-        @Serializable
-        data class SystemMessage(
-            override val role: String = "system",
-            val content: String,
-            val name: String? = null
-        ) : Message()
-
-        @Serializable
-        data class UserMessage(
-            override val role: String = "user",
-            val content: String,
-            val name: String? = null
-        ) : Message()
-
-        @Serializable
-        data class AssistantMessage(
-            override val role: String = "assistant",
-            val content: String,
-            @SerialName("reasoning_content")
-            val reasoningContent: String? = null,
-            val name: String? = null
-        ) : Message()
-
-        @Serializable
-        data class ToolMessage(
-            override val role: String = "tool",
-            val content: String,
-            @SerialName("tool_call_id")
-            val toolCallId: String
-        ) : Message()
-    }
-
     @Serializable
     data class StreamOptions(
         @SerialName("include_usage")
@@ -129,7 +93,9 @@ data class DeepSeekRequest(
 
     @Serializable(with = ToolChoice.Serializer::class)
     sealed class ToolChoice {
-        data class Simple(val mode: Mode) : ToolChoice() {
+        data class Simple(
+            val mode: Mode
+        ) : ToolChoice() {
             @Serializable
             enum class Mode {
                 @SerialName("none")
@@ -149,7 +115,9 @@ data class DeepSeekRequest(
             val function: NamedFunction
         ) : ToolChoice() {
             @Serializable
-            data class NamedFunction(val name: String)
+            data class NamedFunction(
+                val name: String
+            )
         }
 
         companion object {
