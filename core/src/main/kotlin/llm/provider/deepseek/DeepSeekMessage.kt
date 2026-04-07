@@ -31,7 +31,20 @@ sealed class DeepSeekMessage {
         val name: String? = null,
         @SerialName("tool_calls")
         val toolCalls: List<ToolCall>? = null
-    ) : DeepSeekMessage()
+    ) : DeepSeekMessage() {
+        @Serializable
+        data class ToolCall(
+            val id: String,
+            val type: String = "function",
+            val function: Function
+        ) {
+            @Serializable
+            data class Function(
+                val name: String,
+                val arguments: String
+            )
+        }
+    }
 
     @Serializable
     data class ToolMessage(
