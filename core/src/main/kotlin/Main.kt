@@ -30,12 +30,49 @@ fun main() {
                 model = "deepseek-chat",
                 messages = listOf(
                     ChatMessage.UserMessage(
-                        content = "你好！",
+                        content = "北京现在的天气怎么样？",
                         createdAt = System.currentTimeMillis(),
+                    ),
+                    ChatMessage.AssistantMessage(
+                        content = null,
+                        createdAt = System.currentTimeMillis(),
+                        model = "deepseek-chat",
+                        toolCalls = listOf(
+                            ChatMessage.AssistantMessage.ToolCall(
+                                id = "call_00_yMw2dEIygMrG8UXM9NQ7A44u",
+                                name = "get_weather",
+                                arguments = """{"city": "北京", "unit": "celsius"}"""
+                            )
+                        )
+                    ),
+                    ChatMessage.ToolMessage(
+                        content = """{"temperature": 22, "unit": "celsius", "condition": "晴", "humidity": 45}""",
+                        createdAt = System.currentTimeMillis(),
+                        toolCallId = "call_00_yMw2dEIygMrG8UXM9NQ7A44u"
                     )
                 ),
                 stream = true,
-                thinking = true
+                thinking = true,
+                tools = listOf(
+                    ChatRequest.Tool(
+                        name = "get_weather",
+                        description = "获取指定城市的当前天气信息",
+                        parameters = ChatRequest.Tool.Parameters(
+                            properties = mapOf(
+                                "city" to ChatRequest.Tool.Parameters.Property(
+                                    type = ChatRequest.Tool.Parameters.Property.Type.STRING,
+                                    description = "城市名称，例如：北京、上海"
+                                ),
+                                "unit" to ChatRequest.Tool.Parameters.Property(
+                                    type = ChatRequest.Tool.Parameters.Property.Type.STRING,
+                                    description = "温度单位",
+                                    enum = listOf("celsius", "fahrenheit")
+                                )
+                            ),
+                            required = listOf("city")
+                        )
+                    )
+                ),
             )
         ).collect { result ->
             println(result)
