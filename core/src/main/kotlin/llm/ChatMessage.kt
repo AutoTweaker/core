@@ -14,20 +14,28 @@ sealed class ChatMessage {
 
     data class UserMessage(
         override val content: String,
-        override val createdAt: Long
+        override val createdAt: Long,
+        val pictureBase64: String? = null
     ) : ChatMessage()
 
     data class AssistantMessage(
         override val content: String,
         override val createdAt: Long,
         val reasoningContent: String? = null,
+        val toolCalls: List<ToolCall>? = null,
         val model: String
-    ) : ChatMessage()
+    ) : ChatMessage() {
+        data class ToolCall(
+            val id: String,
+            val name: String,
+            val arguments: String
+        )
+    }
 
     data class ToolMessage(
         override val content: String,
         override val createdAt: Long,
-        val toolId: String
+        val toolCallId: String
     ) : ChatMessage()
 
     data class ErrorMessage(
