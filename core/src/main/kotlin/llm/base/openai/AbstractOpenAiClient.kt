@@ -36,7 +36,7 @@ abstract class AbstractOpenAiClient<
     /** * 钩子 1：将业务层的 ChatRequest 转换为发送给 API 的数据对象。
      * 返回 Any 是为了灵活性，子类可以返回一个专门的 Data Class。
      */
-    protected abstract fun createRequestBody(request: ChatRequest, stream: Boolean): Request
+    protected abstract fun createRequestBody(request: ChatRequest): Request
 
     /** * 钩子 2：处理非流式响应。
      * 将 API 返回的标准响应（OpenAiResponse）转换为你接口定义的 ChatResult。
@@ -49,59 +49,61 @@ abstract class AbstractOpenAiClient<
     protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
 
 
-    override suspend fun chat(request: ChatRequest): ChatResult {
-        val response = httpClient.post("$baseUrl/v1/chat/completions") {
-            header(HttpHeaders.Authorization, "Bearer $apiKey")
-            contentType(ContentType.Application.Json)
-            // 调用钩子：让子类决定具体的 JSON 结构
-            setBody(createRequestBody(request, stream = false), requestTypeInfo)
-        }
+    override suspend fun chat(request: ChatRequest): Flow<ChatResult> = flow {
+        if (request.stream) {
+            // 流式逻辑
+            val body = createRequestBody(request)
 
-        if (!response.status.isSuccess()) {
-            val errorBody = response.bodyAsText()
-            throw IllegalStateException("LLM API Error (${response.status}): $errorBody")
-        }
+            httpClient.preparePost("$baseUrl/v1/chat/completions") {
+                header(HttpHeaders.Authorization, "Bearer $apiKey")
+                contentType(ContentType.Application.Json)
+                setBody(body, requestTypeInfo)
+            }.execute { response ->
+                if (!response.status.isSuccess()) {
+                    throw IllegalStateException("LLM Stream Error: ${response.status}")
+                }
 
-        // 解析为 OpenAI 标准响应
-        val openAiResponse = response.body<Response>(responseTypeInfo)
+                val channel = response.bodyAsChannel()
+                while (!channel.isClosedForRead) {
+                    // 逐行读取 SSE 数据
+                    val line = channel.readLine() ?: break
 
-        // 调用钩子：将标准响应转为你的 ChatResult
-        return mapToChatResult(openAiResponse)
-    }
+                    if (line.startsWith("data: ")) {
+                        val data = line.removePrefix("data: ").trim()
 
+                        // 结束信号
+                        if (data == "[DONE]") break
 
-    override suspend fun chatStream(request: ChatRequest): Flow<ChatResult> = flow {
-        // 强制开启 stream 模式
-        val body = createRequestBody(request, stream = true)
-
-        httpClient.preparePost("$baseUrl/v1/chat/completions") {
-            header(HttpHeaders.Authorization, "Bearer $apiKey")
-            contentType(ContentType.Application.Json)
-            setBody(body, requestTypeInfo)
-        }.execute { response ->
-            if (!response.status.isSuccess()) {
-                throw IllegalStateException("LLM Stream Error: ${response.status}")
-            }
-
-            val channel = response.bodyAsChannel()
-            while (!channel.isClosedForRead) {
-                // 逐行读取 SSE 数据
-                val line = channel.readLine() ?: break
-
-                if (line.startsWith("data: ")) {
-                    val data = line.removePrefix("data: ").trim()
-
-                    // 结束信号
-                    if (data == "[DONE]") break
-
-                    if (data.isNotEmpty()) {
-                        // 解析当前的小块数据
-                        val chunk = json.decodeFromString(chunkSerializer, data)
-                        // 调用钩子：转换为 ChatResult 并发射出去
-                        emit(mapChunkToChatResult(chunk))
+                        if (data.isNotEmpty()) {
+                            // 解析当前的小块数据
+                            val chunk = json.decodeFromString(chunkSerializer, data)
+                            // 调用钩子：转换为 ChatResult 并发射出去
+                            emit(mapChunkToChatResult(chunk))
+                        }
                     }
                 }
             }
+        } else {
+            // 非流式逻辑
+            val response = httpClient.post("$baseUrl/v1/chat/completions") {
+                header(HttpHeaders.Authorization, "Bearer $apiKey")
+                contentType(ContentType.Application.Json)
+                // 调用钩子：让子类决定具体的 JSON 结构
+                setBody(createRequestBody(request), requestTypeInfo)
+            }
+
+            if (!response.status.isSuccess()) {
+                val errorBody = response.bodyAsText()
+                throw IllegalStateException("LLM API Error (${response.status}): $errorBody")
+            }
+
+            // 解析为 OpenAI 标准响应
+            val openAiResponse = response.body<Response>(responseTypeInfo)
+
+            // 调用钩子：将标准响应转为你的 ChatResult
+            emit(mapToChatResult(openAiResponse))
         }
     }
+
+
 }

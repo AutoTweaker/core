@@ -21,7 +21,7 @@ class DeepSeekClient(
     chunkSerializer = serializer<DeepSeekStreamChunk>(),
 ) {
 
-    override fun createRequestBody(request: ChatRequest, stream: Boolean): DeepSeekRequest {
+    override fun createRequestBody(request: ChatRequest): DeepSeekRequest {
         // 1. 将业务层消息映射为 DeepSeek 协议层消息
         // 这一步至关重要：它确保了 Assistant 消息中的 reasoning_content 和工具调用能被正确回传
         val mappedMessages = request.messages.mapNotNull { msg ->
@@ -59,7 +59,7 @@ class DeepSeekClient(
         return DeepSeekRequest(
             model = request.model,
             messages = mappedMessages,
-            stream = stream,
+            stream = request.stream,
             tools = request.tools,
             // 根据文档：开启思考模式时，必须设置 thinking 对象
             thinking = if (isThinkingEnabled) ThinkingConfig("enabled") else null,

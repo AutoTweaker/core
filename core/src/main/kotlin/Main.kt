@@ -24,7 +24,7 @@ fun main() {
         httpClient = httpClient,
     )
     runBlocking {
-        client.chatStream(
+        client.chat(
             ChatRequest(
                 model = "deepseek-chat",
                 messages = listOf(
@@ -33,6 +33,7 @@ fun main() {
                         createdAt = System.currentTimeMillis(),
                     )
                 ),
+                stream = true,
             )
         ).collect { result ->
             println(result)
