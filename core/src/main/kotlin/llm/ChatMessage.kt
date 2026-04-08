@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 sealed class ChatMessage {
-    abstract val content: String
+    abstract val content: String?
     abstract val createdAt: Long
 
     data class SystemMessage(
@@ -19,7 +19,7 @@ sealed class ChatMessage {
     ) : ChatMessage()
 
     data class AssistantMessage(
-        override val content: String,
+        override val content: String?,
         override val createdAt: Long,
         val reasoningContent: String? = null,
         val toolCalls: List<ToolCall>? = null,
@@ -39,7 +39,7 @@ sealed class ChatMessage {
     ) : ChatMessage()
 
     data class ErrorMessage(
-        override val content: String,
+        override val content: String?,
         override val createdAt: Long,
         val error: Error,
     ) : ChatMessage() {

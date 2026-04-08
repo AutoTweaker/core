@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
+import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.LlmClient
@@ -50,58 +51,113 @@ abstract class AbstractOpenAiClient<
 
 
     override suspend fun chat(request: ChatRequest): Flow<ChatResult> = flow {
-        if (request.stream) {
-            // 流式逻辑
-            val body = createRequestBody(request)
+        try {
+            if (request.stream) {
+                // 流式逻辑
+                val body = createRequestBody(request)
 
-            httpClient.preparePost("$baseUrl/v1/chat/completions") {
-                header(HttpHeaders.Authorization, "Bearer $apiKey")
-                contentType(ContentType.Application.Json)
-                setBody(body, requestTypeInfo)
-            }.execute { response ->
-                if (!response.status.isSuccess()) {
-                    throw IllegalStateException("LLM Stream Error: ${response.status}")
-                }
+                httpClient.preparePost("$baseUrl/v1/chat/completions") {
+                    header(HttpHeaders.Authorization, "Bearer $apiKey")
+                    contentType(ContentType.Application.Json)
+                    setBody(body, requestTypeInfo)
+                }.execute { response ->
+                    if (!response.status.isSuccess()) {
+                        emit(ChatResult(
+                            message = ChatMessage.ErrorMessage(
+                                content = "LLM Stream Error: ${response.status}",
+                                createdAt = System.currentTimeMillis(),
+                                error = ChatMessage.ErrorMessage.Error.StatusCode(response.status.value)
+                            ),
+                            finishReason = null,
+                            usage = null
+                        ))
+                        return@execute
+                    }
 
-                val channel = response.bodyAsChannel()
-                while (!channel.isClosedForRead) {
-                    // 逐行读取 SSE 数据
-                    val line = channel.readLine() ?: break
+                    val channel = response.bodyAsChannel()
+                    try {
+                        while (!channel.isClosedForRead) {
+                            // 逐行读取 SSE 数据
+                            val line = channel.readLine() ?: break
 
-                    if (line.startsWith("data: ")) {
-                        val data = line.removePrefix("data: ").trim()
+                            if (line.startsWith("data: ")) {
+                                val data = line.removePrefix("data: ").trim()
 
-                        // 结束信号
-                        if (data == "[DONE]") break
+                                // 结束信号
+                                if (data == "[DONE]") break
 
-                        if (data.isNotEmpty()) {
-                            // 解析当前的小块数据
-                            val chunk = json.decodeFromString(chunkSerializer, data)
-                            // 调用钩子：转换为 ChatResult 并发射出去
-                            emit(mapChunkToChatResult(chunk))
+                                if (data.isNotEmpty()) {
+                                    try {
+                                        // 解析当前的小块数据
+                                        val chunk = json.decodeFromString(chunkSerializer, data)
+                                        // 调用钩子：转换为 ChatResult 并发射出去
+                                        emit(mapChunkToChatResult(chunk))
+                                    } catch (e: Throwable) {
+                                        emit(ChatResult(
+                                            message = ChatMessage.ErrorMessage(
+                                                content = e.message ?: "Failed to parse stream chunk",
+                                                createdAt = System.currentTimeMillis(),
+                                                error = ChatMessage.ErrorMessage.Error.from(e)
+                                            ),
+                                            finishReason = null,
+                                            usage = null
+                                        ))
+                                        break
+                                    }
+                                }
+                            }
                         }
+                    } catch (e: Throwable) {
+                        emit(ChatResult(
+                            message = ChatMessage.ErrorMessage(
+                                content = e.message ?: "Stream read error",
+                                createdAt = System.currentTimeMillis(),
+                                error = ChatMessage.ErrorMessage.Error.from(e)
+                            ),
+                            finishReason = null,
+                            usage = null
+                        ))
                     }
                 }
-            }
-        } else {
-            // 非流式逻辑
-            val response = httpClient.post("$baseUrl/v1/chat/completions") {
-                header(HttpHeaders.Authorization, "Bearer $apiKey")
-                contentType(ContentType.Application.Json)
-                // 调用钩子：让子类决定具体的 JSON 结构
-                setBody(createRequestBody(request), requestTypeInfo)
-            }
+            } else {
+                // 非流式逻辑
+                val response = httpClient.post("$baseUrl/v1/chat/completions") {
+                    header(HttpHeaders.Authorization, "Bearer $apiKey")
+                    contentType(ContentType.Application.Json)
+                    // 调用钩子：让子类决定具体的 JSON 结构
+                    setBody(createRequestBody(request), requestTypeInfo)
+                }
 
-            if (!response.status.isSuccess()) {
-                val errorBody = response.bodyAsText()
-                throw IllegalStateException("LLM API Error (${response.status}): $errorBody")
+                if (!response.status.isSuccess()) {
+                    val errorBody = response.bodyAsText()
+                    emit(ChatResult(
+                        message = ChatMessage.ErrorMessage(
+                            content = "LLM API Error (${response.status}): $errorBody",
+                            createdAt = System.currentTimeMillis(),
+                            error = ChatMessage.ErrorMessage.Error.StatusCode(response.status.value)
+                        ),
+                        finishReason = null,
+                        usage = null
+                    ))
+                    return@flow
+                }
+
+                // 解析为 OpenAI 标准响应
+                val openAiResponse = response.body<Response>(responseTypeInfo)
+
+                // 调用钩子：将标准响应转为你的 ChatResult
+                emit(mapToChatResult(openAiResponse))
             }
-
-            // 解析为 OpenAI 标准响应
-            val openAiResponse = response.body<Response>(responseTypeInfo)
-
-            // 调用钩子：将标准响应转为你的 ChatResult
-            emit(mapToChatResult(openAiResponse))
+        } catch (e: Throwable) {
+            emit(ChatResult(
+                message = ChatMessage.ErrorMessage(
+                    content = e.message ?: "Unknown error",
+                    createdAt = System.currentTimeMillis(),
+                    error = ChatMessage.ErrorMessage.Error.from(e)
+                ),
+                finishReason = null,
+                usage = null
+            ))
         }
     }
 
