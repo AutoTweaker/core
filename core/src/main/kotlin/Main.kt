@@ -16,6 +16,7 @@ fun main() {
                 ignoreUnknownKeys = true
                 isLenient = true
                 explicitNulls = false
+                encodeDefaults = true
             })
         }
     }
@@ -34,6 +35,7 @@ fun main() {
                     )
                 ),
                 stream = true,
+                thinking = true
             )
         ).collect { result ->
             println(result)

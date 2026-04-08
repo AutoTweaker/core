@@ -3,8 +3,11 @@ package io.github.whiteelephant.autotweaker.core.llm.provider.deepseek
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.json.JsonContentPolymorphicSerializer
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
-@Serializable
+@Serializable(with = DeepSeekMessageSerializer::class)
 sealed class DeepSeekMessage {
     abstract val role: String
 
@@ -53,4 +56,13 @@ sealed class DeepSeekMessage {
         @SerialName("tool_call_id")
         val toolCallId: String
     ) : DeepSeekMessage()
+}
+
+object DeepSeekMessageSerializer : JsonContentPolymorphicSerializer<DeepSeekMessage>(DeepSeekMessage::class) {
+    override fun selectDeserializer(element: kotlinx.serialization.json.JsonElement) = when {
+        "tool_call_id" in element.jsonObject -> DeepSeekMessage.ToolMessage.serializer()
+        element.jsonObject["role"]?.jsonPrimitive?.content == "assistant" -> DeepSeekMessage.AssistantMessage.serializer()
+        element.jsonObject["role"]?.jsonPrimitive?.content == "system" -> DeepSeekMessage.SystemMessage.serializer()
+        else -> DeepSeekMessage.UserMessage.serializer()
+    }
 }
