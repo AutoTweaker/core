@@ -3,8 +3,6 @@ package io.github.whiteelephant.autotweaker.core.llm.base.openai
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-import io.github.whiteelephant.autotweaker.core.llm.Tool
-
 abstract class OpenAiRequest {
     abstract val model: String?
     abstract val thinking: Thinking?

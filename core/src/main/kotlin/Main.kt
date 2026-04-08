@@ -2,7 +2,7 @@ package io.github.whiteelephant.autotweaker.core
 
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
-import io.github.whiteelephant.autotweaker.core.llm.deepseek.DeepSeekClient
+import io.github.whiteelephant.autotweaker.core.llm.provider.deepseek.DeepSeekClient
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json

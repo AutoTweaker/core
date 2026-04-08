@@ -3,9 +3,7 @@ package io.github.whiteelephant.autotweaker.core.llm.provider.deepseek
 import io.github.whiteelephant.autotweaker.core.llm.*
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import io.ktor.client.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.serializer
-import kotlinx.serialization.SerialName
 import io.ktor.util.reflect.typeInfo
 
 class DeepSeekClient(
@@ -20,55 +18,63 @@ class DeepSeekClient(
     responseTypeInfo = typeInfo<DeepSeekResponse>(),
     chunkSerializer = serializer<DeepSeekStreamChunk>(),
 ) {
-
     override fun createRequestBody(request: ChatRequest): DeepSeekRequest {
-        // 1. 将业务层消息映射为 DeepSeek 协议层消息
-        // 这一步至关重要：它确保了 Assistant 消息中的 reasoning_content 和工具调用能被正确回传
         val mappedMessages = request.messages.mapNotNull { msg ->
             when (msg) {
-                is ChatMessage.SystemMessage -> DeepSeekMessage(
-                    role = "system",
+                is ChatMessage.SystemMessage -> DeepSeekMessage.SystemMessage(
                     content = msg.content
                 )
 
-                is ChatMessage.UserMessage -> DeepSeekMessage(
-                    role = "user",
+                is ChatMessage.UserMessage -> DeepSeekMessage.UserMessage(
                     content = msg.content
                 )
 
-                is ChatMessage.AssistantMessage -> DeepSeekMessage(
-                    role = "assistant",
+                is ChatMessage.AssistantMessage -> DeepSeekMessage.AssistantMessage(
                     content = msg.content,
-                    reasoningContent = msg.reasoningContent // 重要：回传上一轮的思考过程
+                    reasoningContent = msg.reasoningContent,
+                    toolCalls = msg.toolCalls?.map { tc ->
+                        DeepSeekMessage.AssistantMessage.ToolCall(
+                            id = tc.id,
+                            function = DeepSeekMessage.AssistantMessage.ToolCall.Function(
+                                name = tc.name,
+                                arguments = tc.arguments
+                            )
+                        )
+                    }
                 )
 
-                is ChatMessage.ToolMessage -> DeepSeekMessage(
-                    role = "tool",
+                is ChatMessage.ToolMessage -> DeepSeekMessage.ToolMessage(
                     content = msg.content,
-                    toolCallId = msg.toolId // 重要：工具结果必须关联 tool_call_id
+                    toolCallId = msg.toolCallId
                 )
 
                 is ChatMessage.ErrorMessage -> null
             }
         }
 
-        // 2. 检查是否开启了思考模式
         val isThinkingEnabled = request.thinking == true
 
-        // 3. 构建请求体
         return DeepSeekRequest(
             model = request.model,
             messages = mappedMessages,
             stream = request.stream,
-            tools = request.tools,
-            // 根据文档：开启思考模式时，必须设置 thinking 对象
-            thinking = if (isThinkingEnabled) ThinkingConfig("enabled") else null,
-            // 根据文档：开启思考模式时，不支持 temperature 参数，必须设为 null
-            temperature = if (isThinkingEnabled) null else request.temperature
+            tools = request.tools?.map { tool ->
+                DeepSeekRequest.Tool(
+                    function = DeepSeekRequest.Tool.Function(
+                        name = tool.name,
+                        description = tool.description,
+                        parameters = tool.parameters
+                    )
+                )
+            },
+            thinking = if (isThinkingEnabled) OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED) else null,
+            temperature = if (isThinkingEnabled) null else request.temperature,
+            maxTokens = request.maxTokens,
+            topP = request.topP,
+            frequencyPenalty = request.frequencyPenalty,
+            presencePenalty = request.presencePenalty
         )
     }
-
-    // --- 2. 映射全量响应 (支持思维链 & 工具调用) ---
 
     override fun mapToChatResult(response: DeepSeekResponse): ChatResult {
         val choice = response.choices.firstOrNull()
@@ -76,24 +82,31 @@ class DeepSeekClient(
 
         return ChatResult(
             message = ChatMessage.AssistantMessage(
-                content = msg?.content ?: "",
-                // 这里的 reasoningContent 需要你在 OpenAiMessage 类里预先定义好
+                content = msg?.content,
                 reasoningContent = msg?.reasoningContent,
-                createdAt = response.created ?: (System.currentTimeMillis() / 1000),
-                model = response.model ?: "deepseek-chat"
+                toolCalls = msg?.toolCalls?.map { tc ->
+                    ChatMessage.AssistantMessage.ToolCall(
+                        id = tc.id,
+                        name = tc.function.name,
+                        arguments = tc.function.arguments
+                    )
+                },
+                createdAt = response.created,
+                model = response.model
             ),
-            // 映射工具调用
-            toolCalls = msg?.toolCalls?.map {
-                ToolCall(it.id, it.function.name, it.function.arguments)
-            },
-            usage = response.usage?.let { u ->
-                Usage(u.totalTokens, 0.0, 0.0, 0.0, 0.0)
+            usage = response.usage.let { u ->
+                Usage(
+                    totalTokens = u.totalTokens,
+                    promptTokens = u.promptTokens,
+                    completionTokens = u.completionTokens,
+                    reasoningTokens = u.completionTokensDetails?.reasoningTokens,
+                    cacheHitTokens = u.promptCacheHitTokens,
+                    cacheMissTokens = u.promptCacheMissTokens
+                )
             },
             finishReason = choice?.finishReason
         )
     }
-
-    // --- 3. 映射流式切片 (支持思维链增量) ---
 
     override fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult {
         val choice = chunk.choices.firstOrNull()
@@ -101,17 +114,33 @@ class DeepSeekClient(
 
         return ChatResult(
             message = ChatMessage.AssistantMessage(
-                content = delta?.content ?: "",
-                // 映射流式返回的思维链内容
+                content = delta?.content,
                 reasoningContent = delta?.reasoningContent,
                 createdAt = System.currentTimeMillis() / 1000,
-                model = chunk.model ?: "deepseek-chat"
+                model = chunk.model
             ),
-            // 映射流式工具调用碎片
-            toolCalls = delta?.toolCalls?.map {
-                ToolCall(it.id ?: "", it.function?.name ?: "", it.function?.arguments ?: "")
+            usage = chunk.usage?.let { u ->
+                Usage(
+                    totalTokens = u.totalTokens,
+                    promptTokens = u.promptTokens,
+                    completionTokens = u.completionTokens,
+                    reasoningTokens = u.completionTokensDetails?.reasoningTokens,
+                    cacheHitTokens = u.promptCacheHitTokens,
+                    cacheMissTokens = u.promptCacheMissTokens
+                )
             },
             finishReason = choice?.finishReason
         )
+    }
+
+    override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ToolCallFragment>? {
+        return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
+            ToolCallFragment(
+                index = tc.index,
+                id = tc.id,
+                name = tc.function?.name,
+                arguments = tc.function?.arguments
+            )
+        }
     }
 }

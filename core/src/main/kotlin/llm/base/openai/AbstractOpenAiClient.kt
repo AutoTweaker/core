@@ -32,22 +32,45 @@ abstract class AbstractOpenAiClient<
             ignoreUnknownKeys = true
             coerceInputValues = true
         }
+
+        private fun buildToolCalls(
+            pendingToolCalls: Map<Int, PendingToolCall>
+        ): List<ChatMessage.AssistantMessage.ToolCall>? {
+            if (pendingToolCalls.isEmpty()) return null
+            return pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
+        }
     }
 
-    /** * 钩子 1：将业务层的 ChatRequest 转换为发送给 API 的数据对象。
-     * 返回 Any 是为了灵活性，子类可以返回一个专门的 Data Class。
-     */
+    // ---------- 流式 tool call 累积的中间表示 ----------
+
+    data class ToolCallFragment(
+        val index: Int,
+        val id: String?,
+        val name: String?,
+        val arguments: String?
+    )
+
+    class PendingToolCall(
+        var id: String = "",
+        var name: String = "",
+        val arguments: StringBuilder = StringBuilder()
+    ) {
+        fun toToolCall() = ChatMessage.AssistantMessage.ToolCall(id, name, arguments.toString())
+    }
+
+    // ---------- 子类需实现的抽象方法 ----------
+
+    /** 将业务层的 ChatRequest 转换为发送给 API 的数据对象 */
     protected abstract fun createRequestBody(request: ChatRequest): Request
 
-    /** * 钩子 2：处理非流式响应。
-     * 将 API 返回的标准响应（OpenAiResponse）转换为你接口定义的 ChatResult。
-     */
+    /** 处理非流式响应，将 API 返回的完整响应转换为 ChatResult */
     protected abstract fun mapToChatResult(response: Response): ChatResult
 
-    /** * 钩子 3：处理流式响应。
-     * 将流中返回的每一个数据切片（OpenAiStreamChunk）转换为 ChatResult。
-     */
+    /** 处理流式响应中的单个 chunk，提取 content/reasoningContent（不含 tool call） */
     protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
+
+    /** 从流式 chunk 中提取 tool call 碎片列表，供基类拼接 */
+    protected abstract fun extractToolCalls(chunk: Chunk): List<ToolCallFragment>?
 
 
     override suspend fun chat(request: ChatRequest): Flow<ChatResult> = flow {
@@ -75,23 +98,46 @@ abstract class AbstractOpenAiClient<
                     }
 
                     val channel = response.bodyAsChannel()
+                    val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
+
                     try {
                         while (!channel.isClosedForRead) {
-                            // 逐行读取 SSE 数据
                             val line = channel.readLine() ?: break
 
                             if (line.startsWith("data: ")) {
                                 val data = line.removePrefix("data: ").trim()
 
-                                // 结束信号
                                 if (data == "[DONE]") break
 
                                 if (data.isNotEmpty()) {
                                     try {
-                                        // 解析当前的小块数据
                                         val chunk = json.decodeFromString(chunkSerializer, data)
-                                        // 调用钩子：转换为 ChatResult 并发射出去
-                                        emit(mapChunkToChatResult(chunk))
+
+                                        // 累积 tool call 碎片
+                                        extractToolCalls(chunk)?.forEach { fragment ->
+                                            val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
+                                            if (fragment.id != null) pending.id = fragment.id
+                                            if (fragment.name != null) pending.name = fragment.name
+                                            if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
+                                        }
+
+                                        // 构建 ChatResult（content/reasoningContent 由子类处理，finishReason 也由子类提取）
+                                        var result = mapChunkToChatResult(chunk)
+
+                                        // 当 finishReason 不为空时，将累积的 toolCalls 附加到消息上
+                                        if (result.finishReason != null) {
+                                            val toolCalls = buildToolCalls(pendingToolCalls)
+                                            if (toolCalls != null) {
+                                                val msg = result.message as? ChatMessage.AssistantMessage
+                                                if (msg != null) {
+                                                    result = result.copy(
+                                                        message = msg.copy(toolCalls = toolCalls)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        emit(result)
                                     } catch (e: Throwable) {
                                         emit(ChatResult(
                                             message = ChatMessage.ErrorMessage(
@@ -124,7 +170,6 @@ abstract class AbstractOpenAiClient<
                 val response = httpClient.post("$baseUrl/v1/chat/completions") {
                     header(HttpHeaders.Authorization, "Bearer $apiKey")
                     contentType(ContentType.Application.Json)
-                    // 调用钩子：让子类决定具体的 JSON 结构
                     setBody(createRequestBody(request), requestTypeInfo)
                 }
 
@@ -142,10 +187,7 @@ abstract class AbstractOpenAiClient<
                     return@flow
                 }
 
-                // 解析为 OpenAI 标准响应
                 val openAiResponse = response.body<Response>(responseTypeInfo)
-
-                // 调用钩子：将标准响应转为你的 ChatResult
                 emit(mapToChatResult(openAiResponse))
             }
         } catch (e: Throwable) {
@@ -160,6 +202,4 @@ abstract class AbstractOpenAiClient<
             ))
         }
     }
-
-
 }
