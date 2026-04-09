@@ -9,5 +9,7 @@ data class Usage(
 
     val reasoningTokens: Int? = null,
     val cacheHitTokens: Int? = null,
-    val cacheMissTokens: Int? = null
+    val cacheMissTokens: Int? = null,
+
+    val imageTokens: Int? = null
 )

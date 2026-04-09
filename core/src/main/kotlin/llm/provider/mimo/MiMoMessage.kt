@@ -17,19 +17,18 @@ sealed class MiMoMessage {
 
     @Serializable
     sealed class Content {
-
         @Serializable
         @SerialName("text")
         data class TextPart(
             val text: String
-        )
+        ) : Content()
 
         @Serializable
         @SerialName("image_url")
         data class ImagePart(
             @SerialName("image_url")
             val imageUrl: Url
-        ) {
+        ) : Content() {
             @Serializable
             data class Url(
                 val url: String
@@ -41,7 +40,7 @@ sealed class MiMoMessage {
         data class AudioPart(
             @SerialName("input_audio")
             val inputAudio: Data
-        ) {
+        ) : Content() {
             @Serializable
             data class Data(
                 val data: String
@@ -56,7 +55,7 @@ sealed class MiMoMessage {
             val fps: Int? = null,
             @SerialName("media_resolution")
             val mediaResolution: MediaResolution? = MediaResolution.DEFAULT
-        ) {
+        ) : Content() {
             @Serializable
             data class Url(
                 val url: String
@@ -102,21 +101,8 @@ sealed class MiMoMessage {
         val reasoningContent: String? = null,
         val name: String? = null,
         @SerialName("tool_calls")
-        val toolCalls: List<ToolCall>? = null
-    ) : MiMoMessage() {
-        @Serializable
-        data class ToolCall(
-            val id: String,
-            val type: String = "function",
-            val function: Function
-        ) {
-            @Serializable
-            data class Function(
-                val name: String,
-                val arguments: String
-            )
-        }
-    }
+        val toolCalls: List<MiMoToolCall>? = null
+    ) : MiMoMessage()
 
     @Serializable
     data class ToolMessage(

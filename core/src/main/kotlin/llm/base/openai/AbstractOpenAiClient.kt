@@ -79,7 +79,7 @@ abstract class AbstractOpenAiClient<
                 // 流式逻辑
                 val body = createRequestBody(request)
 
-                httpClient.preparePost("$baseUrl/v1/chat/completions") {
+                httpClient.preparePost("$baseUrl/chat/completions") {
                     header(HttpHeaders.Authorization, "Bearer $apiKey")
                     contentType(ContentType.Application.Json)
                     setBody(body, requestTypeInfo)
@@ -167,7 +167,7 @@ abstract class AbstractOpenAiClient<
                 }
             } else {
                 // 非流式逻辑
-                val response = httpClient.post("$baseUrl/v1/chat/completions") {
+                val response = httpClient.post("$baseUrl/chat/completions") {
                     header(HttpHeaders.Authorization, "Bearer $apiKey")
                     contentType(ContentType.Application.Json)
                     setBody(createRequestBody(request), requestTypeInfo)

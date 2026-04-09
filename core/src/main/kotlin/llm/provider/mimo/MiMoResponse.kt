@@ -15,8 +15,17 @@ data class MiMoResponse(
     @Serializable
     data class Choice(
         val index: Int,
-        val message: MiMoMessage.AssistantMessage,
+        val message: Message,
         @SerialName("finish_reason")
         val finishReason: String,
-    )
+    ) {
+        @Serializable
+        data class Message(
+            val content: String?,
+            @SerialName("reasoning_content")
+            val reasoningContent: String? = null,
+            @SerialName("tool_calls")
+            val toolCalls: List<MiMoToolCall>? = null
+        )
+    }
 }

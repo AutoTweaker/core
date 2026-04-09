@@ -4,7 +4,6 @@ import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
-
 @Serializable
 data class MiMoUsage(
     @SerialName("completion_tokens")

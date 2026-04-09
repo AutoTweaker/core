@@ -15,7 +15,7 @@ sealed class ChatMessage {
     data class UserMessage(
         override val content: String,
         override val createdAt: Long,
-        val pictureBase64: String? = null
+        val pictureBase64: List<String>? = null
     ) : ChatMessage()
 
     data class AssistantMessage(

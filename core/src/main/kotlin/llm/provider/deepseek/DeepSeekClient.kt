@@ -9,7 +9,7 @@ import io.ktor.util.reflect.typeInfo
 class DeepSeekClient(
     apiKey: String,
     httpClient: HttpClient,
-    baseUrl: String = "https://api.deepseek.com"
+    baseUrl: String = "https://api.deepseek.com/v1"
 ) : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
     apiKey = apiKey,
     baseUrl = baseUrl,
@@ -68,7 +68,7 @@ class DeepSeekClient(
                 )
             },
             thinking = if (isThinkingEnabled) OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED) else null,
-            temperature = if (isThinkingEnabled) null else request.temperature,
+            temperature = request.temperature,
             maxCompletionTokens = request.maxTokens,
             topP = request.topP,
             frequencyPenalty = request.frequencyPenalty,
