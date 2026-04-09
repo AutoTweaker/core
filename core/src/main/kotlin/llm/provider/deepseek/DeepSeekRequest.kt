@@ -1,7 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.provider.deepseek
 
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
-import io.github.whiteelephant.autotweaker.core.llm.ChatRequest.Tool.Parameters
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -14,15 +13,15 @@ import kotlinx.serialization.json.*
 @Serializable
 data class DeepSeekRequest(
     val messages: List<DeepSeekMessage>,
-    @SerialName("max_tokens")
-    val maxTokens: Int? = null,
     @SerialName("stream_options")
     val streamOptions: StreamOptions? = null,
-    val tools: List<Tool>? = null,
+    override val tools: List<Tool>? = null,
     @SerialName("tool_choice")
     val toolChoice: ToolChoice? = null,
     override val model: String,
     override val thinking: Thinking? = null,
+    @SerialName("max_tokens")
+    override val maxCompletionTokens: Int? = null,
     @SerialName("frequency_penalty")
     override val frequencyPenalty: Double? = null,
     @SerialName("presence_penalty")
@@ -41,20 +40,6 @@ data class DeepSeekRequest(
         @SerialName("include_usage")
         val includeUsage: Boolean?
     )
-
-    @Serializable
-    data class Tool(
-        val type: String = "function",
-        val function: Function
-    ) {
-        @Serializable
-        data class Function(
-            val name: String,
-            val description: String?,
-            val parameters: Parameters,
-            val strict: Boolean? = null
-        )
-    }
 }
 
 

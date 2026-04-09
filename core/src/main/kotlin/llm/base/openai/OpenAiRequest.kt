@@ -1,5 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
+import io.github.whiteelephant.autotweaker.core.llm.ChatRequest.Tool.Parameters
+
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
@@ -13,6 +15,8 @@ abstract class OpenAiRequest {
     abstract val stream: Boolean?
     abstract val temperature: Double?
     abstract val topP: Double?
+    abstract val maxCompletionTokens: Int?
+    abstract val tools: List<Tool>?
 
     @Serializable
     data class Thinking(
@@ -40,5 +44,19 @@ abstract class OpenAiRequest {
             @SerialName("json_object")
             JSON_OBJECT
         }
+    }
+
+    @Serializable
+    data class Tool(
+        val type: String = "function",
+        val function: Function
+    ) {
+        @Serializable
+        data class Function(
+            val name: String,
+            val description: String?,
+            val parameters: Parameters,
+            val strict: Boolean? = null
+        )
     }
 }

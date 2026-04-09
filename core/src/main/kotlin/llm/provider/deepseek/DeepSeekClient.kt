@@ -59,8 +59,8 @@ class DeepSeekClient(
             messages = mappedMessages,
             stream = request.stream,
             tools = request.tools?.map { tool ->
-                DeepSeekRequest.Tool(
-                    function = DeepSeekRequest.Tool.Function(
+                OpenAiRequest.Tool(
+                    function = OpenAiRequest.Tool.Function(
                         name = tool.name,
                         description = tool.description,
                         parameters = tool.parameters
@@ -69,7 +69,7 @@ class DeepSeekClient(
             },
             thinking = if (isThinkingEnabled) OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED) else null,
             temperature = if (isThinkingEnabled) null else request.temperature,
-            maxTokens = request.maxTokens,
+            maxCompletionTokens = request.maxTokens,
             topP = request.topP,
             frequencyPenalty = request.frequencyPenalty,
             presencePenalty = request.presencePenalty

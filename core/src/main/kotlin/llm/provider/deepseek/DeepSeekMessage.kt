@@ -10,25 +10,26 @@ import kotlinx.serialization.json.jsonPrimitive
 @Serializable(with = DeepSeekMessageSerializer::class)
 sealed class DeepSeekMessage {
     abstract val role: String
+    abstract val content: String?
 
     @Serializable
     data class SystemMessage(
         override val role: String = "system",
-        val content: String,
+        override val content: String,
         val name: String? = null
     ) : DeepSeekMessage()
 
     @Serializable
     data class UserMessage(
         override val role: String = "user",
-        val content: String,
+        override val content: String,
         val name: String? = null
     ) : DeepSeekMessage()
 
     @Serializable
     data class AssistantMessage(
         override val role: String = "assistant",
-        val content: String?,
+        override val content: String?,
         @SerialName("reasoning_content")
         val reasoningContent: String? = null,
         val name: String? = null,
@@ -52,7 +53,7 @@ sealed class DeepSeekMessage {
     @Serializable
     data class ToolMessage(
         override val role: String = "tool",
-        val content: String,
+        override val content: String,
         @SerialName("tool_call_id")
         val toolCallId: String
     ) : DeepSeekMessage()
