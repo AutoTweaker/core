@@ -2,7 +2,7 @@ package io.github.whiteelephant.autotweaker.core
 
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
-import io.github.whiteelephant.autotweaker.core.llm.provider.deepseek.DeepSeekClient
+import io.github.whiteelephant.autotweaker.core.llm.provider.mimo.MiMoClient
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -20,14 +20,14 @@ fun main() {
             })
         }
     }
-    val client = DeepSeekClient(
-        apiKey = System.getenv("DEEPSEEK_API_KEY") ?: throw IllegalStateException("Please set your DeepSeek API key as an environment variable."),
+    val client = MiMoClient(
+        apiKey = System.getenv("MIMO_API_KEY") ?: throw IllegalStateException("Please set your MiMo API key as an environment variable."),
         httpClient = httpClient,
     )
     runBlocking {
         client.chat(
             ChatRequest(
-                model = "deepseek-chat",
+                model = "mimo-v2-flash",
                 messages = listOf(
                     ChatMessage.UserMessage(
                         content = "北京现在的天气怎么样？",
@@ -46,7 +46,7 @@ fun main() {
                         )
                     ),
                     ChatMessage.ToolMessage(
-                        content = """{"temperature": 22, "unit": "celsius", "condition": "晴", "humidity": 45}""",
+                        content = """{"temperature": 19, "unit": "celsius", "condition": "晴", "humidity": 45}""",
                         createdAt = System.currentTimeMillis(),
                         toolCallId = "call_00_yMw2dEIygMrG8UXM9NQ7A44u"
                     )
