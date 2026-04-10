@@ -4,7 +4,9 @@ import io.github.whiteelephant.autotweaker.core.Base64
 import java.time.Instant
 
 data class AgentContext(
+    val compactedRounds: List<CompactedRound>,
     val systemPrompt: String,
+    val summarizedMessages: String,
     val historyRounds: List<CompletedRound>,
     val currentRound: CurrentRound?,
 ) {
@@ -18,7 +20,7 @@ data class AgentContext(
         data class Assistant(
             val reasoning: String? = null,
             val content: String? = null,
-            val model: String,
+            val model: Model,
             val timestamp: Instant,
         ) : Message()
 
@@ -31,6 +33,7 @@ data class AgentContext(
             data class Call(
                 val arguments: String,
                 val timestamp: Instant,
+                val model: Model,
             )
 
             data class Result(
@@ -39,6 +42,12 @@ data class AgentContext(
             )
         }
     }
+
+    data class CompactedRound(
+        val compactedAt: Instant,
+        val rounds: List<CompletedRound>,
+        val incompleteRound: CurrentRound?,
+    )
 
     data class CompletedRound(
         val userMessage: Message.User,

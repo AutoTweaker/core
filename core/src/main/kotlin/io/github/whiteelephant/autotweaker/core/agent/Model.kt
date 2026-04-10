@@ -39,11 +39,10 @@ data class Provider(
         val strategy: RecoveryStrategy
     ) {
         enum class RecoveryStrategy {
-            Retry,
-            Fallback,
-            ImageFallback,
-            ContextFallback,
-            ProviderFallback,
+            RETRY,
+            FALLBACK,
+            CONTEXT_FALLBACK,
+            PROVIDER_FALLBACK,
         }
     }
 }
