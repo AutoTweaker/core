@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.agent.llm
+package io.github.whiteelephant.autotweaker.core.agent
 
 import java.math.BigDecimal
 

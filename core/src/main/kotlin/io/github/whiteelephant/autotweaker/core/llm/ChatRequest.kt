@@ -17,6 +17,7 @@ data class ChatRequest(
     val topP: Double? = null,
     val frequencyPenalty: Double? = null,
     val presencePenalty: Double? = null,
+    val responseFormat: ResponseFormat? = null
 ) {
     data class Tool(
         val name: String,
@@ -57,6 +58,20 @@ data class ChatRequest(
                     OBJECT
                 }
             }
+        }
+    }
+
+    @Serializable
+    data class ResponseFormat(
+        val type: Type
+    ) {
+        @Serializable
+        enum class Type {
+            @SerialName("text")
+            TEXT,
+
+            @SerialName("json_object")
+            JSON_OBJECT
         }
     }
 }

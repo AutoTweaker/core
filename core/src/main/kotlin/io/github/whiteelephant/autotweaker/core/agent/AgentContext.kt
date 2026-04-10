@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.agent.llm
+package io.github.whiteelephant.autotweaker.core.agent
 
 import io.github.whiteelephant.autotweaker.core.Base64
 
@@ -41,7 +41,7 @@ data class AgentContext(
 
     data class CompletedRound(
         val userMessage: Message.User,
-        val turns: List<Turn>,
+        val turns: List<Turn>?,
         val finalAssistantMessage: Message.Assistant?,
     )
 

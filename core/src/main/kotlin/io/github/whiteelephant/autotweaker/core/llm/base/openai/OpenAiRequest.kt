@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
+import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest.Tool.Parameters
 
 import kotlinx.serialization.Serializable
@@ -10,7 +11,7 @@ abstract class OpenAiRequest {
     abstract val thinking: Thinking?
     abstract val frequencyPenalty: Double?
     abstract val presencePenalty: Double?
-    abstract val responseFormat: ResponseFormat?
+    abstract val responseFormat: ChatRequest.ResponseFormat?
     abstract val stop: List<String>?
     abstract val stream: Boolean?
     abstract val temperature: Double?
@@ -29,20 +30,6 @@ abstract class OpenAiRequest {
 
             @SerialName("disabled")
             DISABLED
-        }
-    }
-
-    @Serializable
-    data class ResponseFormat(
-        val type: Type
-    ) {
-        @Serializable
-        enum class Type {
-            @SerialName("text")
-            TEXT,
-
-            @SerialName("json_object")
-            JSON_OBJECT
         }
     }
 
