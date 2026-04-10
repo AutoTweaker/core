@@ -89,7 +89,7 @@ suspend fun chatStream(request: AgentChatRequest): Flow<AgentChatStreamResult> =
 
         if (msg.reasoningContent != null) {
             reasoningContent += msg.reasoningContent
-            emit(AgentChatStreamResult.Reasoning(msg.reasoningContent))
+            emit(AgentChatStreamResult.Reasoning(reasoningContent))
         }
 
         if (msg.content != null) {
@@ -97,7 +97,7 @@ suspend fun chatStream(request: AgentChatRequest): Flow<AgentChatStreamResult> =
             emit(
                 AgentChatStreamResult.Outputting(
                     reasoningContent = reasoningContent.ifEmpty { null },
-                    content = msg.content,
+                    content = content,
                 )
             )
         }

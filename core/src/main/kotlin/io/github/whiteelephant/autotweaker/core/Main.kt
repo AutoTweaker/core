@@ -80,8 +80,8 @@ fun main() {
     runBlocking {
         chatStream(request).collect { result ->
             when (result) {
-                is AgentChatStreamResult.Reasoning -> print("[Reasoning] ${result.reasoningContent}")
-                is AgentChatStreamResult.Outputting -> print(result.content)
+                is AgentChatStreamResult.Reasoning -> println("[Reasoning] ${result.reasoningContent}")
+                is AgentChatStreamResult.Outputting -> println(result.content)
                 is AgentChatStreamResult.Finished -> println("\n[Finished] ${result.result}")
             }
         }
