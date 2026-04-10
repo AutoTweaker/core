@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.provider.deepseek
 
+import io.github.whiteelephant.autotweaker.core.Url
 import io.github.whiteelephant.autotweaker.core.llm.*
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import io.ktor.client.*
@@ -10,7 +11,7 @@ import java.time.Instant
 class DeepSeekClient(
     apiKey: String,
     httpClient: HttpClient,
-    baseUrl: String = "https://api.deepseek.com/v1"
+    baseUrl: Url = Url("https://api.deepseek.com/v1")
 ) : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
     apiKey = apiKey,
     baseUrl = baseUrl,

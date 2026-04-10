@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.agent.llm
 
+import io.github.whiteelephant.autotweaker.core.Url
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.LlmClientLoader
@@ -33,7 +34,7 @@ private val defaultHttpClient by lazy {
 suspend fun chat(
     provider: String,
     apiKey: String,
-    baseUrl: String? = null,
+    baseUrl: Url? = null,
     request: ChatRequest,
 ): Flow<ChatResult> {
     val client = LlmClientLoader.load(

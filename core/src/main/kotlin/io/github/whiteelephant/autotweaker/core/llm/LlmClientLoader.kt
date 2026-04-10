@@ -1,10 +1,11 @@
 package io.github.whiteelephant.autotweaker.core.llm
 
+import io.github.whiteelephant.autotweaker.core.Url
 import io.ktor.client.*
 import java.util.ServiceLoader
 
 object LlmClientLoader {
-    fun load(name: String, apiKey: String, httpClient: HttpClient, baseUrl: String? = null): LlmClient {
+    fun load(name: String, apiKey: String, httpClient: HttpClient, baseUrl: Url? = null): LlmClient {
         val factory = ServiceLoader.load(LlmClientFactory::class.java)
             .firstOrNull { it.name == name }
             ?: throw IllegalArgumentException("Unknown LLM provider: $name")

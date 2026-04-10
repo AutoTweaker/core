@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.agent.llm
 
+import io.github.whiteelephant.autotweaker.core.Url
 import java.math.BigDecimal
 
 data class Model(
@@ -30,7 +31,7 @@ data class TokenPrice(
 
 data class Provider(
     val name: String,
-    val baseUrl: String,
+    val baseUrl: Url,
     val apiKey: String,
     val errorHandlingRules: List<ErrorHandlingRule>
 ) {

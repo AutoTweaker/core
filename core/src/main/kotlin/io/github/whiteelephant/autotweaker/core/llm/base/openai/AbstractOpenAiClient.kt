@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
+import io.github.whiteelephant.autotweaker.core.Url
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
@@ -22,7 +23,7 @@ abstract class AbstractOpenAiClient<
         Response : OpenAiResponse,
         Chunk : OpenAiStreamChunk>(
     protected val apiKey: String,
-    protected val baseUrl: String,
+    protected val baseUrl: Url,
     protected val httpClient: HttpClient,
     private val requestTypeInfo: TypeInfo,
     private val responseTypeInfo: TypeInfo,
@@ -80,7 +81,7 @@ abstract class AbstractOpenAiClient<
                 // 流式逻辑
                 val body = createRequestBody(request)
 
-                httpClient.preparePost("$baseUrl/chat/completions") {
+                httpClient.preparePost("${baseUrl.value}/chat/completions") {
                     header(HttpHeaders.Authorization, "Bearer $apiKey")
                     contentType(ContentType.Application.Json)
                     setBody(body, requestTypeInfo)
@@ -168,7 +169,7 @@ abstract class AbstractOpenAiClient<
                 }
             } else {
                 // 非流式逻辑
-                val response = httpClient.post("$baseUrl/chat/completions") {
+                val response = httpClient.post("${baseUrl.value}/chat/completions") {
                     header(HttpHeaders.Authorization, "Bearer $apiKey")
                     contentType(ContentType.Application.Json)
                     setBody(createRequestBody(request), requestTypeInfo)

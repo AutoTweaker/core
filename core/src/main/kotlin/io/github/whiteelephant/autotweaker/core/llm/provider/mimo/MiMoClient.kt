@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.provider.mimo
 
+import io.github.whiteelephant.autotweaker.core.Url
 import io.github.whiteelephant.autotweaker.core.llm.*
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import io.ktor.client.*
@@ -9,7 +10,7 @@ import io.ktor.util.reflect.typeInfo
 class MiMoClient(
     apiKey: String,
     httpClient: HttpClient,
-    baseUrl: String = "https://api.xiaomimimo.com/v1"
+    baseUrl: Url = Url("https://api.xiaomimimo.com/v1")
 ) : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChunk>(
     apiKey = apiKey,
     baseUrl = baseUrl,

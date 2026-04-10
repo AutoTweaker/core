@@ -21,7 +21,7 @@ fun main() {
             name = "mimo-v2-flash",
             provider = Provider(
                 name = "mimo",
-                baseUrl = "https://api.xiaomimimo.com/v1",
+                baseUrl = Url("https://api.xiaomimimo.com/v1"),
                 apiKey = apiKey,
                 errorHandlingRules = emptyList(),
             ),
