@@ -26,14 +26,14 @@ data class AgentChatResult(
 sealed class AgentChatStreamResult {
     data class Reasoning(
         val reasoningContent: String
-    )
+    ) : AgentChatStreamResult()
 
     data class Outputting(
         val reasoningContent: String?,
         val content: String
-    )
+    ) : AgentChatStreamResult()
 
     data class Finished(
         val result: AgentChatResult
-    )
+    ) : AgentChatStreamResult()
 }

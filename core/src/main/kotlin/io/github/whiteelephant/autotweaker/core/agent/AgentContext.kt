@@ -65,6 +65,7 @@ data class AgentContext(
         data class PendingToolCall(
             val callId: String,
             val name: String,
+            val model: Model,
             val arguments: String,
             val timestamp: Instant,
         )

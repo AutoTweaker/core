@@ -13,6 +13,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
             val lastTurn = current.turns.last()
             lastTurn.tools.lastOrNull() ?: lastTurn.assistantMessage
         }
+
         else -> null
     }
 
@@ -64,13 +65,15 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
         )
     }
     if (toolCalls.isNotEmpty()) {
-        add(turn.assistantMessage?.toChatMessage(toolCalls)
-            ?: ChatMessage.AssistantMessage(
-                content = null,
-                createdAt = turn.tools.first().call.timestamp,
-                model = turn.tools.first().call.model.name,
-                toolCalls = toolCalls,
-            ))
+        add(
+            turn.assistantMessage?.toChatMessage(toolCalls)
+                ?: ChatMessage.AssistantMessage(
+                    content = null,
+                    createdAt = turn.tools.first().call.timestamp,
+                    model = turn.tools.first().call.model.name,
+                    toolCalls = toolCalls,
+                )
+        )
     } else {
         turn.assistantMessage?.let { add(it.toChatMessage()) }
     }
