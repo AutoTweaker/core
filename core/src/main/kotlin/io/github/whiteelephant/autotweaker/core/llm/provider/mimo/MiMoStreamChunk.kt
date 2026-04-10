@@ -1,15 +1,17 @@
 package io.github.whiteelephant.autotweaker.core.llm.provider.mimo
 
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import java.time.Instant
 
 @Serializable
 data class MiMoStreamChunk(
     val choices: List<Choice>,
     val usage: MiMoUsage? = null,
     override val id: String,
-    override val created: Long,
+    @Serializable(with = InstantAsLongSerializer::class)
+    override val created: Instant,
     override val model: String,
 ) : OpenAiStreamChunk() {
     @Serializable

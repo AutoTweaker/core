@@ -1,6 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.agent
 
 import io.github.whiteelephant.autotweaker.core.Base64
+import java.time.Instant
 
 data class AgentContext(
     val systemPrompt: String,
@@ -11,14 +12,14 @@ data class AgentContext(
         data class User(
             val content: String,
             val images: List<Base64>? = null,
-            val timestamp: Long,
+            val timestamp: Instant,
         ) : Message()
 
         data class Assistant(
             val reasoning: String? = null,
             val content: String? = null,
             val model: String,
-            val timestamp: Long,
+            val timestamp: Instant,
         ) : Message()
 
         data class Tool(
@@ -29,12 +30,12 @@ data class AgentContext(
         ) : Message() {
             data class Call(
                 val arguments: String,
-                val timestamp: Long,
+                val timestamp: Instant,
             )
 
             data class Result(
                 val content: String,
-                val timestamp: Long,
+                val timestamp: Instant,
             )
         }
     }
@@ -55,7 +56,7 @@ data class AgentContext(
             val callId: String,
             val name: String,
             val arguments: String,
-            val timestamp: Long,
+            val timestamp: Instant,
         )
     }
 

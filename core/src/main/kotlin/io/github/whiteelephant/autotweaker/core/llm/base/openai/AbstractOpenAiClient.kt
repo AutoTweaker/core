@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import java.time.Instant
 
 abstract class AbstractOpenAiClient<
         Request : OpenAiRequest,
@@ -88,7 +89,7 @@ abstract class AbstractOpenAiClient<
                         emit(ChatResult(
                             message = ChatMessage.ErrorMessage(
                                 content = "LLM Stream Error: ${response.status}",
-                                createdAt = System.currentTimeMillis(),
+                                createdAt = Instant.now(),
                                 statusCode = response.status
                             ),
                             finishReason = null,
@@ -142,7 +143,7 @@ abstract class AbstractOpenAiClient<
                                         emit(ChatResult(
                                             message = ChatMessage.ErrorMessage(
                                                 content = e.message ?: "Failed to parse stream chunk",
-                                                createdAt = System.currentTimeMillis(),
+                                                createdAt = Instant.now(),
                                                 statusCode = null
                                             ),
                                             finishReason = null,
@@ -157,7 +158,7 @@ abstract class AbstractOpenAiClient<
                         emit(ChatResult(
                             message = ChatMessage.ErrorMessage(
                                 content = e.message ?: "Stream read error",
-                                createdAt = System.currentTimeMillis(),
+                                createdAt = Instant.now(),
                                 statusCode = null
                             ),
                             finishReason = null,
@@ -178,7 +179,7 @@ abstract class AbstractOpenAiClient<
                     emit(ChatResult(
                         message = ChatMessage.ErrorMessage(
                             content = "LLM API Error (${response.status}): $errorBody",
-                            createdAt = System.currentTimeMillis(),
+                            createdAt = Instant.now(),
                             statusCode = response.status
                         ),
                         finishReason = null,
@@ -194,7 +195,7 @@ abstract class AbstractOpenAiClient<
             emit(ChatResult(
                 message = ChatMessage.ErrorMessage(
                     content = e.message ?: "Unknown error",
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = Instant.now(),
                     statusCode = null
                 ),
                 finishReason = null,

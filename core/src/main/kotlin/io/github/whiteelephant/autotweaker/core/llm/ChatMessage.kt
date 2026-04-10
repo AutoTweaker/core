@@ -3,26 +3,27 @@ package io.github.whiteelephant.autotweaker.core.llm
 import io.github.whiteelephant.autotweaker.core.Base64
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
+import java.time.Instant
 
 @Serializable
 sealed class ChatMessage {
     abstract val content: String?
-    abstract val createdAt: Long
+    abstract val createdAt: Instant
 
     data class SystemMessage(
         override val content: String,
-        override val createdAt: Long
+        override val createdAt: Instant
     ) : ChatMessage()
 
     data class UserMessage(
         override val content: String,
-        override val createdAt: Long,
+        override val createdAt: Instant,
         val pictures: List<Base64>? = null
     ) : ChatMessage()
 
     data class AssistantMessage(
         override val content: String?,
-        override val createdAt: Long,
+        override val createdAt: Instant,
         val reasoningContent: String? = null,
         val toolCalls: List<ToolCall>? = null,
         val model: String
@@ -36,13 +37,13 @@ sealed class ChatMessage {
 
     data class ToolMessage(
         override val content: String,
-        override val createdAt: Long,
+        override val createdAt: Instant,
         val toolCallId: String
     ) : ChatMessage()
 
     data class ErrorMessage(
         override val content: String?,
-        override val createdAt: Long,
+        override val createdAt: Instant,
         val statusCode: HttpStatusCode?,
     ) : ChatMessage()
 }

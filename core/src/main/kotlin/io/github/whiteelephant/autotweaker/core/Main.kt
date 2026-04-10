@@ -8,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import java.time.Instant
 
 fun main() {
     val httpClient = HttpClient {
@@ -32,11 +33,11 @@ fun main() {
                 messages = listOf(
                     ChatMessage.UserMessage(
                         content = "北京现在的天气怎么样？",
-                        createdAt = System.currentTimeMillis(),
+                        createdAt = Instant.now(),
                     ),
                     ChatMessage.AssistantMessage(
                         content = null,
-                        createdAt = System.currentTimeMillis(),
+                        createdAt = Instant.now(),
                         model = "deepseek-chat",
                         toolCalls = listOf(
                             ChatMessage.AssistantMessage.ToolCall(
@@ -48,7 +49,7 @@ fun main() {
                     ),
                     ChatMessage.ToolMessage(
                         content = """{"temperature": 19, "unit": "celsius", "condition": "晴", "humidity": 45}""",
-                        createdAt = System.currentTimeMillis(),
+                        createdAt = Instant.now(),
                         toolCallId = "call_00_yMw2dEIygMrG8UXM9NQ7A44u"
                     )
                 ),

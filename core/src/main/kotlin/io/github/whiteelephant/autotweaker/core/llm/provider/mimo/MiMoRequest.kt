@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.provider.mimo
 
+import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest.Tool.Parameters
 
@@ -21,7 +22,7 @@ data class MiMoRequest(
     @SerialName("presence_penalty")
     override val presencePenalty: Double? = null,
     @SerialName("response_format")
-    override val responseFormat: ResponseFormat? = null,
+    override val responseFormat: ChatRequest.ResponseFormat? = null,
     override val stop: List<String>? = null,
     override val stream: Boolean? = null,
     override val temperature: Double? = null,
