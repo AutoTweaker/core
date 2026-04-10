@@ -27,15 +27,17 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 
     val messages = buildList {
         // System prompt
-        add(ChatMessage.SystemMessage(context.systemPrompt, java.time.Instant.now()))
+        context.systemPrompt?.let {
+            add(ChatMessage.SystemMessage(it, java.time.Instant.now()))
+        }
 
         // Summarized messages (compacted context)
-        if (context.summarizedMessages.isNotEmpty()) {
-            add(ChatMessage.SystemMessage(context.summarizedMessages, java.time.Instant.now()))
+        context.summarizedMessages?.takeIf { it.isNotEmpty() }?.let {
+            add(ChatMessage.SystemMessage(it, java.time.Instant.now()))
         }
 
         // History rounds
-        for (round in context.historyRounds) {
+        for (round in context.historyRounds.orEmpty()) {
             add(round.userMessage.toChatMessage())
             round.turns?.forEach { addTurn(it) }
             round.finalAssistantMessage?.let { add(it.toChatMessage()) }

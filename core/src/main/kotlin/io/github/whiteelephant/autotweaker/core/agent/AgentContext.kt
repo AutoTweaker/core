@@ -5,10 +5,10 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import java.time.Instant
 
 data class AgentContext(
-    val compactedRounds: List<CompactedRound>,
-    val systemPrompt: String,
-    val summarizedMessages: String,
-    val historyRounds: List<CompletedRound>,
+    val compactedRounds: List<CompactedRound>?,
+    val systemPrompt: String?,
+    val summarizedMessages: String?,
+    val historyRounds: List<CompletedRound>?,
     val currentRound: CurrentRound?,
 ) {
     sealed class Message {
