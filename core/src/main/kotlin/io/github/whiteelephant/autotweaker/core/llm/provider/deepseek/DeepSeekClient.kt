@@ -105,7 +105,7 @@ class DeepSeekClient(
                     cacheMissTokens = u.promptCacheMissTokens
                 )
             },
-            finishReason = choice?.finishReason
+            finishReason = choice?.finishReason?.toFinishReason()
         )
     }
 
@@ -130,9 +130,20 @@ class DeepSeekClient(
                     cacheMissTokens = u.promptCacheMissTokens
                 )
             },
-            finishReason = choice?.finishReason
+            finishReason = choice?.finishReason?.toFinishReason()
         )
     }
+
+    private fun DeepSeekFinishReason.toFinishReason() = ChatResult.FinishReason(
+        reason = value,
+        type = when (this) {
+            DeepSeekFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
+            DeepSeekFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
+            DeepSeekFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
+            DeepSeekFinishReason.LENGTH -> ChatResult.FinishReason.Type.LENGTH
+            DeepSeekFinishReason.INSUFFICIENT_SYSTEM_RESOURCE -> ChatResult.FinishReason.Type.ERROR
+        }
+    )
 
     override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ToolCallFragment>? {
         return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->

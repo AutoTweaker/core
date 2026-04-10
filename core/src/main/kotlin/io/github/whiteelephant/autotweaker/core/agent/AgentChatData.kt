@@ -1,6 +1,8 @@
 package io.github.whiteelephant.autotweaker.core.agent
 
+import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
+import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.Usage
 
 data class AgentChatRequest(
@@ -17,13 +19,9 @@ data class AgentChatRequest(
 data class AgentChatResult(
     val context: AgentContext.Message.Assistant,
     val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
-    val usage: Usage,
-    val finishReason: FinishReason,
-) {
-    enum class FinishReason {
-        STOP, TOOL, ERROR, FILTER, LENGTH
-    }
-}
+    val usage: Usage?,
+    val finishReason: ChatResult.FinishReason?,
+)
 
 sealed class AgentChatStreamResult {
     data class Reasoning(

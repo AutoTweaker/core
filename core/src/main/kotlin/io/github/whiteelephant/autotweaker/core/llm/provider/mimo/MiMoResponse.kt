@@ -19,7 +19,7 @@ data class MiMoResponse(
         val index: Int,
         val message: Message,
         @SerialName("finish_reason")
-        val finishReason: String,
+        val finishReason: MiMoFinishReason,
     ) {
         @Serializable
         data class Message(

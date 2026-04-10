@@ -19,7 +19,7 @@ data class MiMoStreamChunk(
         val index: Int,
         val delta: Delta,
         @SerialName("finish_reason")
-        val finishReason: String? = null
+        val finishReason: MiMoFinishReason? = null
     ) {
         @Serializable
         data class Delta(

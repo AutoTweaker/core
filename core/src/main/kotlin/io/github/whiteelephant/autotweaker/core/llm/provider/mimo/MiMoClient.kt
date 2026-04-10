@@ -108,7 +108,7 @@ class MiMoClient(
                     imageTokens = u.promptTokensDetails?.imageTokens
                 )
             },
-            finishReason = choice?.finishReason
+            finishReason = choice?.finishReason?.toFinishReason()
         )
     }
 
@@ -134,9 +134,20 @@ class MiMoClient(
                     imageTokens = u.promptTokensDetails?.imageTokens
                 )
             },
-            finishReason = choice?.finishReason
+            finishReason = choice?.finishReason?.toFinishReason()
         )
     }
+
+    private fun MiMoFinishReason.toFinishReason() = ChatResult.FinishReason(
+        reason = value,
+        type = when (this) {
+            MiMoFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
+            MiMoFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
+            MiMoFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
+            MiMoFinishReason.LENGTH -> ChatResult.FinishReason.Type.LENGTH
+            MiMoFinishReason.REPETITION_TRUNCATION -> ChatResult.FinishReason.Type.ERROR
+        }
+    )
 
     override fun extractToolCalls(chunk: MiMoStreamChunk): List<ToolCallFragment>? {
         return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->

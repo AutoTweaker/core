@@ -19,6 +19,6 @@ data class DeepSeekResponse(
         val index: Int,
         val message: DeepSeekMessage.AssistantMessage,
         @SerialName("finish_reason")
-        val finishReason: String,
+        val finishReason: DeepSeekFinishReason,
     )
 }
