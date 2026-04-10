@@ -26,10 +26,10 @@ class MiMoClient(
                 )
 
                 is ChatMessage.UserMessage -> MiMoMessage.UserMessage(
-                    content = listOf(MiMoMessage.Content.TextPart(text = msg.content)) + msg.pictureBase64.orEmpty()
-                        .map { url ->
+                    content = listOf(MiMoMessage.Content.TextPart(text = msg.content)) + msg.pictures.orEmpty()
+                        .map { base64 ->
                             MiMoMessage.Content.ImagePart(
-                                imageUrl = MiMoMessage.Content.ImagePart.Url(url)
+                                imageUrl = MiMoMessage.Content.ImagePart.Url(base64.value)
                             )
                         }
                 )

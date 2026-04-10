@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm
 
+import io.github.whiteelephant.autotweaker.core.Base64
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
 
@@ -16,7 +17,7 @@ sealed class ChatMessage {
     data class UserMessage(
         override val content: String,
         override val createdAt: Long,
-        val pictureBase64: List<String>? = null
+        val pictures: List<Base64>? = null
     ) : ChatMessage()
 
     data class AssistantMessage(
