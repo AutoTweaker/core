@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm
 
+import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -41,25 +42,6 @@ sealed class ChatMessage {
     data class ErrorMessage(
         override val content: String?,
         override val createdAt: Long,
-        val error: Error,
-    ) : ChatMessage() {
-        sealed class Error {
-            data class Message(
-                val message: String
-            ) : Error()
-
-            data class StatusCode(
-                val statusCode: Int
-            ) : Error()
-
-            object Unknown : Error()
-
-            companion object {
-                fun from(throwable: Throwable) = throwable.message?.let {
-                    Message(it)
-                } ?: Unknown
-            }
-        }
-    }
-
+        val statusCode: HttpStatusCode?,
+    ) : ChatMessage()
 }

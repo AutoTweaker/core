@@ -89,7 +89,7 @@ abstract class AbstractOpenAiClient<
                             message = ChatMessage.ErrorMessage(
                                 content = "LLM Stream Error: ${response.status}",
                                 createdAt = System.currentTimeMillis(),
-                                error = ChatMessage.ErrorMessage.Error.StatusCode(response.status.value)
+                                statusCode = response.status
                             ),
                             finishReason = null,
                             usage = null
@@ -143,7 +143,7 @@ abstract class AbstractOpenAiClient<
                                             message = ChatMessage.ErrorMessage(
                                                 content = e.message ?: "Failed to parse stream chunk",
                                                 createdAt = System.currentTimeMillis(),
-                                                error = ChatMessage.ErrorMessage.Error.from(e)
+                                                statusCode = null
                                             ),
                                             finishReason = null,
                                             usage = null
@@ -158,7 +158,7 @@ abstract class AbstractOpenAiClient<
                             message = ChatMessage.ErrorMessage(
                                 content = e.message ?: "Stream read error",
                                 createdAt = System.currentTimeMillis(),
-                                error = ChatMessage.ErrorMessage.Error.from(e)
+                                statusCode = null
                             ),
                             finishReason = null,
                             usage = null
@@ -179,7 +179,7 @@ abstract class AbstractOpenAiClient<
                         message = ChatMessage.ErrorMessage(
                             content = "LLM API Error (${response.status}): $errorBody",
                             createdAt = System.currentTimeMillis(),
-                            error = ChatMessage.ErrorMessage.Error.StatusCode(response.status.value)
+                            statusCode = response.status
                         ),
                         finishReason = null,
                         usage = null
@@ -195,7 +195,7 @@ abstract class AbstractOpenAiClient<
                 message = ChatMessage.ErrorMessage(
                     content = e.message ?: "Unknown error",
                     createdAt = System.currentTimeMillis(),
-                    error = ChatMessage.ErrorMessage.Error.from(e)
+                    statusCode = null
                 ),
                 finishReason = null,
                 usage = null
