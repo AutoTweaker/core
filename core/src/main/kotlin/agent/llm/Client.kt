@@ -12,4 +12,4 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 
-//TODO fun chat
+//TODO fun llmChat
