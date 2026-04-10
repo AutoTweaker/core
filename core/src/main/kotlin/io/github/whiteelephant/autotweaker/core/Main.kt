@@ -2,7 +2,7 @@ package io.github.whiteelephant.autotweaker.core
 
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
-import io.github.whiteelephant.autotweaker.core.llm.provider.mimo.MiMoClient
+import io.github.whiteelephant.autotweaker.core.llm.LlmClientLoader
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -20,7 +20,8 @@ fun main() {
             })
         }
     }
-    val client = MiMoClient(
+    val client = LlmClientLoader.load(
+        name = "mimo",
         apiKey = System.getenv("MIMO_API_KEY") ?: throw IllegalStateException("Please set your MiMo API key as an environment variable."),
         httpClient = httpClient,
     )
