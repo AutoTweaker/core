@@ -8,14 +8,6 @@ application {
     mainClass = "io.github.whiteelephant.autotweaker.core.MainKt"
 }
 
-sourceSets {
-    main {
-        kotlin {
-            srcDirs("src/main/kotlin/io/github/whiteelephant/autotweaker/core")
-        }
-    }
-}
-
 dependencies {
     implementation("io.ktor:ktor-client-core:3.4.2")
     implementation("io.ktor:ktor-client-java:3.4.2")
