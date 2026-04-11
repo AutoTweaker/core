@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core
 
+import io.github.whiteelephant.autotweaker.core.Price
 import io.github.whiteelephant.autotweaker.core.agent.AgentChatRequest
 import io.github.whiteelephant.autotweaker.core.agent.AgentChatStreamResult
 import io.github.whiteelephant.autotweaker.core.agent.AgentContext
@@ -8,9 +9,10 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
 import io.github.whiteelephant.autotweaker.core.agent.llm.TokenPrice
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
-import java.math.BigDecimal
 import kotlinx.coroutines.runBlocking
+import java.math.BigDecimal
 import java.time.Instant
+import java.util.Currency
 
 fun main() {
     val apiKey = System.getenv("MIMO_API_KEY")
@@ -29,12 +31,18 @@ fun main() {
             maxOutputTokens = 64_000,
             price = TokenPrice(
                 inputPrice = listOf(
-                    TokenPrice.Price(fromTokens = 0, price = BigDecimal("0.70"), cachedPrice = BigDecimal("0.07")),
+                    TokenPrice.PriceTier(
+                        fromTokens = 0,
+                        price = Price(BigDecimal("0.70"), Currency.getInstance("CNY")),
+                        cachedPrice = Price(BigDecimal("0.07"), Currency.getInstance("CNY")),
+                    ),
                 ),
                 outputPrice = listOf(
-                    TokenPrice.Price(fromTokens = 0, price = BigDecimal("2.10")),
+                    TokenPrice.PriceTier(
+                        fromTokens = 0,
+                        price = Price(BigDecimal("2.10"), Currency.getInstance("CNY")),
+                    ),
                 ),
-                currency = "CNY",
             ),
             supportsStreaming = true,
             supportsToolCalls = true,

@@ -1,7 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.agent.llm
 
+import io.github.whiteelephant.autotweaker.core.Price
 import io.github.whiteelephant.autotweaker.core.Url
-import java.math.BigDecimal
 
 data class Model(
     val name: String,
@@ -17,15 +17,14 @@ data class Model(
 )
 
 data class TokenPrice(
-    val inputPrice: List<Price>,
-    val outputPrice: List<Price>,
-    val currency: String = "USD",
+    val inputPrice: List<PriceTier>,
+    val outputPrice: List<PriceTier>,
 ) {
-    data class Price(
+    data class PriceTier(
         val fromTokens: Int,
         val toTokens: Int? = null,
-        val price: BigDecimal,
-        val cachedPrice: BigDecimal? = null
+        val price: Price,
+        val cachedPrice: Price? = null
     )
 }
 
