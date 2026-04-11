@@ -1,7 +1,6 @@
-package io.github.whiteelephant.autotweaker.core.agent
+package io.github.whiteelephant.autotweaker.core.agent.llm
 
 import io.github.whiteelephant.autotweaker.core.Base64
-import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import java.time.Instant
 
 data class AgentContext(

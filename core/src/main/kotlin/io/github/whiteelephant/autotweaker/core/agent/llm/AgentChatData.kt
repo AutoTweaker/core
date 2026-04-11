@@ -1,6 +1,5 @@
-package io.github.whiteelephant.autotweaker.core.agent
+package io.github.whiteelephant.autotweaker.core.agent.llm
 
-import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.Usage

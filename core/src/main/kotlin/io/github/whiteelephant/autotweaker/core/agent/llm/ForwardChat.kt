@@ -31,7 +31,7 @@ private val defaultHttpClient by lazy {
  * @param baseUrl 自定义 base URL（可选）
  * @param request 动态构造的 [ChatRequest]
  */
-suspend fun chat(
+suspend fun forwardChat(
     provider: String,
     apiKey: String,
     baseUrl: Url? = null,

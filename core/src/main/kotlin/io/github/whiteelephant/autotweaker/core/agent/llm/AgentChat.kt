@@ -1,7 +1,5 @@
-package io.github.whiteelephant.autotweaker.core.agent
+package io.github.whiteelephant.autotweaker.core.agent.llm
 
-import io.github.whiteelephant.autotweaker.core.agent.llm.Model
-import io.github.whiteelephant.autotweaker.core.agent.llm.chat
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.Usage
@@ -29,10 +27,10 @@ private fun toPendingToolCalls(
 /**
  * 非流式调用。返回最终的 [AgentChatResult]。
  */
-suspend fun chat(request: AgentChatRequest): AgentChatResult {
+suspend fun agentChat(request: AgentChatRequest): AgentChatResult {
     val chatRequest = request.toChatRequest().copy(stream = false)
 
-    val results = chat(
+    val results = forwardChat(
         provider = request.model.provider.name,
         apiKey = request.model.provider.apiKey,
         baseUrl = request.model.provider.baseUrl,
@@ -71,10 +69,10 @@ suspend fun chat(request: AgentChatRequest): AgentChatResult {
  * 流式调用。返回 [Flow]，依次 emit [AgentChatStreamResult.Reasoning]、
  * [AgentChatStreamResult.Outputting]、[AgentChatStreamResult.Finished]。
  */
-suspend fun chatStream(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
+suspend fun agentChatStream(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
     val chatRequest = request.toChatRequest().copy(stream = true)
 
-    val results = chat(
+    val results = forwardChat(
         provider = request.model.provider.name,
         apiKey = request.model.provider.apiKey,
         baseUrl = request.model.provider.baseUrl,

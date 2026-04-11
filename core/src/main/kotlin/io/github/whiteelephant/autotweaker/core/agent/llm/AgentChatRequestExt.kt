@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.agent
+package io.github.whiteelephant.autotweaker.core.agent.llm
 
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest

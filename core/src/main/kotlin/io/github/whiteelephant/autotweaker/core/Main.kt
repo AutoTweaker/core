@@ -1,10 +1,10 @@
 package io.github.whiteelephant.autotweaker.core
 
 import io.github.whiteelephant.autotweaker.core.Price
-import io.github.whiteelephant.autotweaker.core.agent.AgentChatRequest
-import io.github.whiteelephant.autotweaker.core.agent.AgentChatStreamResult
-import io.github.whiteelephant.autotweaker.core.agent.AgentContext
-import io.github.whiteelephant.autotweaker.core.agent.chatStream
+import io.github.whiteelephant.autotweaker.core.agent.llm.AgentChatRequest
+import io.github.whiteelephant.autotweaker.core.agent.llm.AgentChatStreamResult
+import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
+import io.github.whiteelephant.autotweaker.core.agent.llm.agentChatStream
 import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
 import io.github.whiteelephant.autotweaker.core.agent.llm.TokenPrice
@@ -117,7 +117,7 @@ fun main() {
     )
 
     runBlocking {
-        chatStream(request).collect { result ->
+        agentChatStream(request).collect { result ->
             when (result) {
                 is AgentChatStreamResult.Reasoning -> println("[Reasoning] ${result.reasoningContent}\n==========\n\n")
                 is AgentChatStreamResult.Outputting -> println(result.content)
