@@ -10,97 +10,99 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
 import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
 
 class Read : Tool {
+    private val config by DataModule
 
-    val config by DataModule
+    private val readConfig get() = config.toolsConfig.tools.read
 
     override val name: String = "read_file"
 
-    override val description: String =
-        "按行号范围读取文件内容（使用绝对路径）。一次最多读取 ${config.toolsConfig.read.maxReadLines} 行，总字符数不超过 ${config.toolsConfig.read.maxReadSize}。" +
-                "起始行号和结束行号均从1开始，包含两端。"
+    override val description: String
+        get() = String.format(readConfig.toolDescription, readConfig.maxReadLines, readConfig.maxReadSize)
 
-    override val functions: List<ChatRequest.Tool.Parameters> = listOf(
-        ChatRequest.Tool.Parameters(
-            properties = mapOf(
-                "file_path" to ChatRequest.Tool.Parameters.Property(
-                    type = ChatRequest.Tool.Parameters.Property.Type.STRING,
-                    description = "要读取的文件的绝对路径",
+    override val functions: List<ChatRequest.Tool.Parameters>
+        get() = listOf(
+            ChatRequest.Tool.Parameters(
+                properties = mapOf(
+                    "file_path" to ChatRequest.Tool.Parameters.Property(
+                        type = ChatRequest.Tool.Parameters.Property.Type.STRING,
+                        description = readConfig.filePathDescription,
+                    ),
+                    "start_line" to ChatRequest.Tool.Parameters.Property(
+                        type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
+                        description = readConfig.startLineDescription,
+                    ),
+                    "end_line" to ChatRequest.Tool.Parameters.Property(
+                        type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
+                        description = readConfig.endLineDescription,
+                    ),
                 ),
-                "start_line" to ChatRequest.Tool.Parameters.Property(
-                    type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
-                    description = "起始行号（从1开始）",
-                ),
-                "end_line" to ChatRequest.Tool.Parameters.Property(
-                    type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
-                    description = "结束行号（从1开始，包含该行）",
-                ),
-            ),
-            required = listOf("file_path", "start_line", "end_line"),
+                required = listOf("file_path", "start_line", "end_line"),
+            )
         )
-    )
 
     override suspend fun execute(
         context: AgentContext,
     ): String {
         val pendingCall = context.currentRound?.pendingToolCalls
             ?.firstOrNull { it.name == name }
-            ?: return "错误：未找到 '$name' 的待执行调用"
+            ?: throw IllegalStateException("No pending tool call found for '$name'")
+
+        val toolsConfig = config.toolsConfig
 
         val args = try {
             Json.parseToJsonElement(pendingCall.arguments).jsonObject
         } catch (e: Exception) {
-            return "错误：参数解析失败，期望 JSON 对象，收到：${pendingCall.arguments}"
+            return String.format(toolsConfig.errorJsonParseFailed, pendingCall.arguments)
         }
 
         val filePath = args["file_path"]?.jsonPrimitive?.content
-            ?: return "错误：缺少必需参数 'file_path'"
+            ?: return String.format(toolsConfig.errorMissingParameter, "file_path")
         val startLine = args["start_line"]?.jsonPrimitive?.intOrNull
-            ?: return "错误：缺少或无效的必需参数 'start_line'（期望整数）"
+            ?: return String.format(toolsConfig.errorInvalidParameter, "start_line", "integer")
         val endLine = args["end_line"]?.jsonPrimitive?.intOrNull
-            ?: return "错误：缺少或无效的必需参数 'end_line'（期望整数）"
+            ?: return String.format(toolsConfig.errorInvalidParameter, "end_line", "integer")
 
         if (startLine < 1) {
-            return "错误：start_line 必须大于等于 1"
+            return readConfig.errorStartLineTooSmall
         }
         if (endLine < startLine) {
-            return "错误：end_line 必须大于等于 start_line"
+            return readConfig.errorEndLineBeforeStart
         }
         val requestedLines = endLine - startLine + 1
-        if (requestedLines > config.toolsConfig.read.maxReadLines) {
-            return "错误：一次最多读取 ${config.toolsConfig.read.maxReadLines} 行（当前请求 $requestedLines 行）"
+        if (requestedLines > readConfig.maxReadLines) {
+            return String.format(readConfig.errorTooManyLines, readConfig.maxReadLines, requestedLines)
         }
 
         val path = Path(filePath)
 
         if (!path.isAbsolute) {
-            return "错误：文件路径必须为绝对路径，收到的是 '$filePath'"
+            return String.format(readConfig.errorNotAbsolute, filePath)
         }
 
         val normalizedPath = path.normalize()
 
         if (!normalizedPath.exists()) {
-            return "错误：文件不存在 '$filePath'"
+            return String.format(readConfig.errorFileNotFound, filePath)
         }
 
         if (!normalizedPath.isRegularFile()) {
-            return "错误：'$filePath' 不是一个普通文件"
+            return String.format(readConfig.errorNotRegularFile, filePath)
         }
 
         val allLines: List<String> = try {
             Files.readAllLines(normalizedPath)
         } catch (e: Exception) {
-            return "错误：无法读取文件 '$filePath': ${e.message}"
+            return String.format(readConfig.errorReadFailed, filePath, e.message)
         }
 
         val totalLines = allLines.size
 
         if (startLine > totalLines) {
-            return "错误：起始行号 $startLine 超出文件总行数 $totalLines"
+            return String.format(readConfig.errorStartLineExceeds, startLine, totalLines)
         }
 
         val actualEndLine = minOf(endLine, totalLines)
@@ -111,18 +113,17 @@ class Read : Tool {
             val lineNum = startLine + i
             sb.appendLine("$lineNum\t${selectedLines[i]}")
 
-            if (sb.length > config.toolsConfig.read.maxReadSize) {
+            if (sb.length > readConfig.maxReadSize) {
                 sb.appendLine()
-                sb.appendLine("... [已截断：达到最大字符数限制 ${config.toolsConfig.read.maxReadSize}]")
+                sb.appendLine(String.format(readConfig.errorTruncated, readConfig.maxReadSize))
                 break
             }
         }
 
         val content = sb.toString().trimEnd()
 
-        // 检查历史中是否有相同文件路径+行号范围+内容的读取
         if (isDuplicateRead(context, filePath, startLine, actualEndLine, content)) {
-            return "文件 '$filePath' 第 ${startLine}-${actualEndLine} 行的内容与之前读取的结果相同。"
+            return String.format(readConfig.infoDuplicateRead, filePath, startLine, actualEndLine)
         }
 
         return content
@@ -173,7 +174,6 @@ class Read : Tool {
                 return true
             }
         }
-
         return false
     }
 }
