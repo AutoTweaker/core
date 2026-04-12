@@ -7,7 +7,7 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 import io.github.whiteelephant.autotweaker.core.agent.llm.agentChatStream
 import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
-import io.github.whiteelephant.autotweaker.core.agent.llm.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.model.Provider.Model.TokenPrice
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
