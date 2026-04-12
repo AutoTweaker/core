@@ -1,6 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.tool.impl
 
 import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
+import io.github.whiteelephant.autotweaker.core.data.DataModule
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.Json
@@ -15,16 +16,13 @@ import kotlin.io.path.isRegularFile
 
 class Read : Tool {
 
-    companion object {
-        const val MAX_LINES = 500
-        const val MAX_CHARACTERS = 50_000
-    }
+    val config by DataModule
 
     override val name: String = "read_file"
 
     override val description: String =
-        "按行号范围读取文件内容（使用绝对路径）。一次最多读取 $MAX_LINES 行，总字符数不超过 $MAX_CHARACTERS。" +
-        "起始行号和结束行号均从1开始，包含两端。"
+        "按行号范围读取文件内容（使用绝对路径）。一次最多读取 ${config.toolsConfig.read.maxReadLines} 行，总字符数不超过 ${config.toolsConfig.read.maxReadSize}。" +
+                "起始行号和结束行号均从1开始，包含两端。"
 
     override val functions: List<ChatRequest.Tool.Parameters> = listOf(
         ChatRequest.Tool.Parameters(
@@ -73,8 +71,8 @@ class Read : Tool {
             return "错误：end_line 必须大于等于 start_line"
         }
         val requestedLines = endLine - startLine + 1
-        if (requestedLines > MAX_LINES) {
-            return "错误：一次最多读取 $MAX_LINES 行（当前请求 $requestedLines 行）"
+        if (requestedLines > config.toolsConfig.read.maxReadLines) {
+            return "错误：一次最多读取 ${config.toolsConfig.read.maxReadLines} 行（当前请求 $requestedLines 行）"
         }
 
         val path = Path(filePath)
@@ -113,9 +111,9 @@ class Read : Tool {
             val lineNum = startLine + i
             sb.appendLine("$lineNum\t${selectedLines[i]}")
 
-            if (sb.length > MAX_CHARACTERS) {
+            if (sb.length > config.toolsConfig.read.maxReadSize) {
                 sb.appendLine()
-                sb.appendLine("... [已截断：达到最大字符数限制 $MAX_CHARACTERS]")
+                sb.appendLine("... [已截断：达到最大字符数限制 ${config.toolsConfig.read.maxReadSize}]")
                 break
             }
         }
@@ -130,10 +128,6 @@ class Read : Tool {
         return content
     }
 
-    /**
-     * 检查 AgentContext 历史中是否已有相同文件路径、行号范围且内容相同的读取结果。
-     * 仅检查 historyRounds 和 currentRound，不检查 compactedRounds。
-     */
     private fun isDuplicateRead(
         context: AgentContext,
         filePath: String,
@@ -143,7 +137,6 @@ class Read : Tool {
     ): Boolean {
         val currentKey = "$filePath:$startLine-$endLine"
 
-        // 收集历史中所有 read_file 的 tool 调用
         val historyTools = mutableListOf<AgentContext.Message.Tool>()
 
         context.historyRounds?.forEach { round ->
@@ -160,7 +153,7 @@ class Read : Tool {
             turn.tools.forEach { tool ->
                 if (tool.name == name) {
                     historyTools.add(tool)
-                    }
+                }
             }
         }
 
