@@ -6,8 +6,13 @@ import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 
 interface Tool {
     val name: String
-    val description: String
-    val functions: List<ChatRequest.Tool.Parameters>
+    val functions: List<Function>
+
+    data class Function(
+        val name: String,
+        val description: String,
+        val parameters: ChatRequest.Tool.Parameters,
+    )
 
     suspend fun execute(
         context: AgentContext,

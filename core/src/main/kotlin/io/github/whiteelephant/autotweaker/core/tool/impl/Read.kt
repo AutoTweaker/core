@@ -1,7 +1,9 @@
 package io.github.whiteelephant.autotweaker.core.tool.impl
 
 import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
+import io.github.whiteelephant.autotweaker.core.agent.llm.forwardChat
 import io.github.whiteelephant.autotweaker.core.data.DataModule
+import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.Json
@@ -9,40 +11,70 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
+import java.time.Instant
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
+
+//TODO 根据错误处理策略进行重试（同时需要从配置读取fallback模型）
 
 class Read : Tool {
     private val config by DataModule
 
     private val readConfig get() = config.toolsConfig.tools.read
 
-    override val name: String = "read_file"
+    override val name: String = "Read"
 
-    override val description: String
-        get() = String.format(readConfig.toolDescription, readConfig.maxReadLines, readConfig.maxReadSize)
+    override val functions: List<Tool.Function>
+        get() {
+            val commonProperties = mapOf(
+                "file_path" to ChatRequest.Tool.Parameters.Property(
+                    type = ChatRequest.Tool.Parameters.Property.Type.STRING,
+                    description = readConfig.filePathDescription,
+                ),
+                "start_line" to ChatRequest.Tool.Parameters.Property(
+                    type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
+                    description = readConfig.startLineDescription,
+                ),
+                "end_line" to ChatRequest.Tool.Parameters.Property(
+                    type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
+                    description = readConfig.endLineDescription,
+                ),
+            )
+            val commonRequired = listOf("file_path", "start_line", "end_line")
 
-    override val functions: List<ChatRequest.Tool.Parameters>
-        get() = listOf(
-            ChatRequest.Tool.Parameters(
-                properties = mapOf(
-                    "file_path" to ChatRequest.Tool.Parameters.Property(
-                        type = ChatRequest.Tool.Parameters.Property.Type.STRING,
-                        description = readConfig.filePathDescription,
-                    ),
-                    "start_line" to ChatRequest.Tool.Parameters.Property(
-                        type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
-                        description = readConfig.startLineDescription,
-                    ),
-                    "end_line" to ChatRequest.Tool.Parameters.Property(
-                        type = ChatRequest.Tool.Parameters.Property.Type.INTEGER,
-                        description = readConfig.endLineDescription,
+            return listOf(
+                Tool.Function(
+                    name = "read_read",
+                    description = readConfig.readFileDescription,
+                    parameters = ChatRequest.Tool.Parameters(
+                        properties = commonProperties,
+                        required = commonRequired,
                     ),
                 ),
-                required = listOf("file_path", "start_line", "end_line"),
+                Tool.Function(
+                    name = "read_summarize",
+                    description = readConfig.summarizeFileDescription,
+                    parameters = ChatRequest.Tool.Parameters(
+                        properties = commonProperties + mapOf(
+                            "summarize" to ChatRequest.Tool.Parameters.Property(
+                                type = ChatRequest.Tool.Parameters.Property.Type.STRING,
+                                description = readConfig.summarizeDescription,
+                            ),
+                        ),
+                        required = commonRequired,
+                    ),
+                ),
+                Tool.Function(
+                    name = "read_unicode_codes",
+                    description = readConfig.unicodeCodesDescription,
+                    parameters = ChatRequest.Tool.Parameters(
+                        properties = commonProperties,
+                        required = commonRequired,
+                    ),
+                ),
             )
-        )
+        }
 
     override suspend fun execute(
         context: AgentContext,
@@ -65,6 +97,7 @@ class Read : Tool {
             ?: return String.format(toolsConfig.errorInvalidParameter, "start_line", "integer")
         val endLine = args["end_line"]?.jsonPrimitive?.intOrNull
             ?: return String.format(toolsConfig.errorInvalidParameter, "end_line", "integer")
+        val summarizeRequest = args["summarize"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
 
         if (startLine < 1) {
             return readConfig.errorStartLineTooSmall
@@ -72,9 +105,12 @@ class Read : Tool {
         if (endLine < startLine) {
             return readConfig.errorEndLineBeforeStart
         }
-        val requestedLines = endLine - startLine + 1
-        if (requestedLines > readConfig.maxReadLines) {
-            return String.format(readConfig.errorTooManyLines, readConfig.maxReadLines, requestedLines)
+
+        if (summarizeRequest == null) {
+            val requestedLines = endLine - startLine + 1
+            if (requestedLines > readConfig.maxReadLines) {
+                return String.format(readConfig.errorTooManyLines, readConfig.maxReadLines, requestedLines)
+            }
         }
 
         val path = Path(filePath)
@@ -108,14 +144,16 @@ class Read : Tool {
         val actualEndLine = minOf(endLine, totalLines)
         val selectedLines = allLines.subList(startLine - 1, actualEndLine)
 
+        val charLimit = if (summarizeRequest != null) readConfig.summarizeMaxSize else readConfig.maxReadSize
+
         val sb = StringBuilder()
         for (i in selectedLines.indices) {
             val lineNum = startLine + i
             sb.appendLine("$lineNum\t${selectedLines[i]}")
 
-            if (sb.length > readConfig.maxReadSize) {
+            if (sb.length > charLimit) {
                 sb.appendLine()
-                sb.appendLine(String.format(readConfig.errorTruncated, readConfig.maxReadSize))
+                sb.appendLine(String.format(readConfig.errorTruncated, charLimit))
                 break
             }
         }
@@ -126,7 +164,56 @@ class Read : Tool {
             return String.format(readConfig.infoDuplicateRead, filePath, startLine, actualEndLine)
         }
 
-        return content
+        if (summarizeRequest == null) {
+            return content
+        }
+
+        // 总结功能
+        val modelSpec = readConfig.summarizeModel
+        val model = if (modelSpec != null) {
+            try {
+                DataModule.resolveModel(modelSpec)
+            } catch (e: Exception) {
+                pendingCall.model
+            }
+        } else {
+            pendingCall.model
+        }
+
+        val now = Instant.now()
+        val chatRequest = ChatRequest(
+            model = model.name,
+            messages = listOf(
+                ChatMessage.SystemMessage(
+                    content = "${readConfig.summarizeSystemPrompt}\n$summarizeRequest",
+                    createdAt = now,
+                ),
+                ChatMessage.UserMessage(
+                    content = content,
+                    createdAt = now,
+                ),
+            ),
+            thinking = false,
+        )
+
+        var summary: String? = null
+        try {
+            forwardChat(
+                provider = model.provider.name,
+                apiKey = model.provider.apiKey,
+                baseUrl = model.provider.baseUrl,
+                request = chatRequest,
+            ).collect { result ->
+                val msg = result.message as? ChatMessage.AssistantMessage
+                if (msg?.content != null) {
+                    summary = msg.content
+                }
+            }
+        } catch (e: Exception) {
+            return String.format(readConfig.errorSummarizeFailed, e.message)
+        }
+
+        return summary ?: readConfig.errorSummarizeEmpty
     }
 
     private fun isDuplicateRead(
