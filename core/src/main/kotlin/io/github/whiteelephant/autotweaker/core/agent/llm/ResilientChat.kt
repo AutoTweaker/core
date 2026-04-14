@@ -13,6 +13,11 @@ import kotlin.time.Duration.Companion.seconds
 private const val DEFAULT_MAX_RETRIES = 3
 private val RETRY_BASE_DELAY = 1.seconds
 
+data class ResilientChatResult(
+    val result: ChatResult,
+    val retrying: Model?,
+)
+
 /**
  * 带重试与 fallback 策略的 [forwardChat] 封装。
  *
@@ -44,7 +49,7 @@ fun resilientChat(
     fallbackModels: List<Model>,
     request: ChatRequest,
     maxRetries: Int = DEFAULT_MAX_RETRIES,
-): Flow<ChatResult> = flow {
+): Flow<ResilientChatResult> = flow {
     var candidates = buildList {
         add(model)
         addAll(fallbackModels)
@@ -89,18 +94,19 @@ fun resilientChat(
                 request = chatRequest,
             )
 
-            var hasError = false
+            var lastError: ChatResult? = null
             var lastStatusCode: Int? = null
 
             results.collect { result ->
-                emit(result)
                 if (result.message is ChatMessage.ErrorMessage) {
-                    hasError = true
+                    lastError = result
                     lastStatusCode = result.message.statusCode?.value
+                } else {
+                    emit(ResilientChatResult(result, retrying = null))
                 }
             }
 
-            if (!hasError) return@flow
+            val error = lastError ?: return@flow
 
             // 匹配错误处理规则
             val matchedRule = if (lastStatusCode != null) {
@@ -112,6 +118,7 @@ fun resilientChat(
             when (matchedRule?.strategy) {
                 RecoveryStrategy.RETRY -> {
                     if (retryAttempt < maxRetries - 1) {
+                        emit(ResilientChatResult(error, retrying = current))
                         delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
                         continue
                     }
@@ -134,6 +141,8 @@ fun resilientChat(
                     candidates = candidates.drop(1)
                 }
             }
+
+            emit(ResilientChatResult(error, retrying = candidates.firstOrNull()))
 
             break // 跳出当前模型的重试循环，回到外层取下一个候选
         }

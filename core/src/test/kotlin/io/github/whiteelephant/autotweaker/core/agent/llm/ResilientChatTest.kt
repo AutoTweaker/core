@@ -109,7 +109,7 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(1, results.size)
-        assertEquals("hello", results[0].message?.content)
+        assertEquals("hello", results[0].result.message?.content)
         coVerify(exactly = 1) { forwardChat(any(), any(), any(), any()) }
     }
 
@@ -129,8 +129,9 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(2, results.size)
-        assertTrue(results[0].message is ChatMessage.ErrorMessage)
-        assertEquals("retried", results[1].message?.content)
+        assertTrue(results[0].result.message is ChatMessage.ErrorMessage)
+        assertEquals("m1", results[0].retrying?.name)
+        assertEquals("retried", results[1].result.message?.content)
         coVerify(exactly = 2) { forwardChat(any(), any(), any(), any()) }
     }
 
@@ -151,7 +152,9 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(3, results.size)
-        assertEquals("fallback-ok", results[2].message?.content)
+        assertEquals("m1", results[0].retrying?.name)   // RETRY 重试当前模型
+        assertEquals("m2", results[1].retrying?.name)   // 耗尽后切换到 m2
+        assertEquals("fallback-ok", results[2].result.message?.content)
     }
 
     @Test
@@ -169,7 +172,8 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(2, results.size)
-        assertEquals("fallback-model-ok", results[1].message?.content)
+        assertEquals("m2", results[0].retrying?.name)
+        assertEquals("fallback-model-ok", results[1].result.message?.content)
     }
 
     @Test
@@ -192,7 +196,8 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(2, results.size)
-        assertEquals("big-context-ok", results[1].message?.content)
+        assertEquals("m3", results[0].retrying?.name)
+        assertEquals("big-context-ok", results[1].result.message?.content)
         // m2 被屏蔽了，直接用 m3
         coVerify(exactly = 2) { forwardChat(any(), any(), any(), any()) }
     }
@@ -216,7 +221,8 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(2, results.size)
-        assertEquals("other-provider-ok", results[1].message?.content)
+        assertEquals("m3", results[0].retrying?.name)
+        assertEquals("other-provider-ok", results[1].result.message?.content)
     }
 
     @Test
@@ -233,7 +239,8 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(2, results.size)
-        assertEquals("no-rule-fallback", results[1].message?.content)
+        assertEquals("m2", results[0].retrying?.name)
+        assertEquals("no-rule-fallback", results[1].result.message?.content)
     }
 
     @Test
@@ -266,7 +273,7 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(1, results.size)
-        assertEquals("image-ok", results[0].message?.content)
+        assertEquals("image-ok", results[0].result.message?.content)
         // 应该只调用了 m2（图像模型），m1 被屏蔽
         coVerify(exactly = 1) { forwardChat(any(), any(), any(), any()) }
     }
@@ -291,7 +298,7 @@ class ResilientChatTest {
         ).toList()
 
         assertEquals(1, results.size)
-        assertEquals("stripped", results[0].message?.content)
+        assertEquals("stripped", results[0].result.message?.content)
         assertNotNull(capturedRequest)
         val userMsg = capturedRequest!!.messages.first() as ChatMessage.UserMessage
         assertEquals(null, userMsg.pictures)
