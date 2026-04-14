@@ -8,9 +8,10 @@ import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlin.time.Duration.Companion.seconds
 
 private const val DEFAULT_MAX_RETRIES = 3
-private const val RETRY_BASE_DELAY_MS = 1000L
+private val RETRY_BASE_DELAY = 1.seconds
 
 /**
  * 带重试与 fallback 策略的 [forwardChat] 封装。
@@ -111,8 +112,7 @@ fun resilientChat(
             when (matchedRule?.strategy) {
                 RecoveryStrategy.RETRY -> {
                     if (retryAttempt < maxRetries - 1) {
-                        val delayMs = RETRY_BASE_DELAY_MS * (1 shl retryAttempt)
-                        delay(delayMs)
+                        delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
                         continue
                     }
                     // 重试耗尽，屏蔽当前模型

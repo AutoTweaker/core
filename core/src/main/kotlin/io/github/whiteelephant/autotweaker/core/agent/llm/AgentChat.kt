@@ -7,8 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.time.Instant
 
-//TODO 根据错误处理策略进行重试（同时需要从配置读取fallback模型）
-//TODO 不支持图像的模型剔除掉图片数据
+//TODO 改为调用resilientChat方法
 
 private fun toPendingToolCalls(
     toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
