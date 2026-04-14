@@ -20,8 +20,15 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.32")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.16")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation("com.google.auto.service:auto-service-annotations:1.1.1")
     kapt("com.google.auto.service:auto-service:1.1.1")
+}
+
+tasks.test {
+    jvmArgs("-Dnet.bytebuddy.experimental=true")
 }
