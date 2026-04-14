@@ -1,5 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.tool.impl
 
+import com.google.auto.service.AutoService
 import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 import io.github.whiteelephant.autotweaker.core.agent.llm.forwardChat
 import io.github.whiteelephant.autotweaker.core.data.DataModule
@@ -18,6 +19,7 @@ import kotlin.io.path.isRegularFile
 
 //TODO 根据错误处理策略进行重试（同时需要从配置读取fallback模型）
 
+@AutoService(Tool::class)
 class Read : Tool {
     private val config by DataModule
 

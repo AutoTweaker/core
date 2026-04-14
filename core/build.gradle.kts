@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    kotlin("kapt")
     id("org.jetbrains.kotlin.plugin.serialization")
     application
 }
@@ -20,4 +21,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    implementation("com.google.auto.service:auto-service-annotations:1.1.1")
+    kapt("com.google.auto.service:auto-service:1.1.1")
 }
