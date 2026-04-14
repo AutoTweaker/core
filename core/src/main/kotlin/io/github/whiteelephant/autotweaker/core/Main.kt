@@ -51,10 +51,42 @@ fun main() {
         supportsImage = false,
     )
 
+        val wrongModel = Model(
+        name = "mimo-v2-flash",
+        provider = Provider(
+            name = "mimo",
+            baseUrl = Url("https://api.xiaomimimo.com/v1"),
+            apiKey = "1111111",
+            errorHandlingRules = emptyList(),
+        ),
+        contextWindow = 256_000,
+        maxOutputTokens = 64_000,
+        price = TokenPrice(
+            inputPrice = listOf(
+                TokenPrice.PriceTier(
+                    fromTokens = 0,
+                    price = Price(BigDecimal("0.70"), Currency.getInstance("CNY")),
+                    cachedPrice = Price(BigDecimal("0.07"), Currency.getInstance("CNY")),
+                ),
+            ),
+            outputPrice = listOf(
+                TokenPrice.PriceTier(
+                    fromTokens = 0,
+                    price = Price(BigDecimal("2.10"), Currency.getInstance("CNY")),
+                ),
+            ),
+        ),
+        supportsStreaming = true,
+        supportsToolCalls = true,
+        supportsReasoning = true,
+        supportsImage = false,
+    )
+
     val toolCallTimestamp = Instant.parse("2026-04-11T09:03:33Z")
 
     val request = AgentChatRequest(
-        model = model,
+        model = wrongModel,
+        fallbackModels = listOf(model),
         thinking = true,
         tools = listOf(
             ChatRequest.Tool(
@@ -123,6 +155,7 @@ fun main() {
                 is AgentChatStreamResult.Reasoning -> println("[Reasoning] ${result.reasoningContent}\n==========\n\n")
                 is AgentChatStreamResult.Outputting -> println(result.content)
                 is AgentChatStreamResult.Finished -> println("\n\n[Finished] ${result.result}")
+                is AgentChatStreamResult.Failing -> println("[Error] ${result.error}")
             }
         }
     }

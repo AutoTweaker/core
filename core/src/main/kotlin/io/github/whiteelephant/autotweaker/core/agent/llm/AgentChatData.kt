@@ -8,6 +8,7 @@ import kotlin.time.Instant
 
 data class AgentChatRequest(
     val model: Model,
+    val fallbackModels: List<Model>?,
     val thinking: Boolean?,
     val tools: List<ChatRequest.Tool>?,
 
@@ -17,14 +18,24 @@ data class AgentChatRequest(
     val context: AgentContext
 )
 
-data class AgentChatResult(
-    val context: AgentContext.Message.Assistant,
-    val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
-    val usage: Usage?,
-    val finishReason: ChatResult.FinishReason?,
-)
+sealed class AgentChatResult {
+    data class Failed(
+        val error: Error
+    ) : AgentChatResult()
+
+    data class Success(
+        val context: AgentContext.Message.Assistant,
+        val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
+        val usage: Usage?,
+        val finishReason: ChatResult.FinishReason?,
+    ) : AgentChatResult()
+}
 
 sealed class AgentChatStreamResult {
+    data class Failing(
+        val error: List<Error>
+    ) : AgentChatStreamResult()
+
     data class Reasoning(
         val reasoningContent: String
     ) : AgentChatStreamResult()

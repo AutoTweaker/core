@@ -8,8 +8,6 @@ import kotlinx.coroutines.flow.flow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-//TODO 改为调用resilientChat方法
-
 private fun toPendingToolCalls(
     toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
     timestamp: Instant,
@@ -28,43 +26,63 @@ private fun toPendingToolCalls(
 }
 
 /**
- * 非流式调用。返回最终的 [AgentChatResult]。
+ * 非流式调用。返回 [Flow]，每次遇到错误时 emit [AgentChatResult.Failed]，
+ * 最终成功时 emit [AgentChatResult.Success]。
  */
-suspend fun agentChat(request: AgentChatRequest): AgentChatResult {
+suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatResult> = flow {
     val chatRequest = request.toChatRequest().copy(stream = false)
 
-    val results = forwardChat(
-        provider = request.model.provider.name,
-        apiKey = request.model.provider.apiKey,
-        baseUrl = request.model.provider.baseUrl,
+    val results = resilientChat(
+        model = request.model,
+        fallbackModels = request.fallbackModels,
         request = chatRequest,
     )
 
     var lastMessage: ChatMessage.AssistantMessage? = null
     var lastFinishReason: ChatResult.FinishReason? = null
     var lastUsage: Usage? = null
+    val errors = mutableListOf<Error>()
 
-    results.collect { result ->
-        val msg = result.message
-        if (msg is ChatMessage.AssistantMessage) {
-            lastMessage = msg
+    try {
+        results.collect { resilientResult ->
+            val result = resilientResult.result
+            val msg = result.message
+
+            if (msg is ChatMessage.ErrorMessage) {
+                errors += Error(
+                    content = msg.content,
+                    statusCode = msg.statusCode,
+                    retrying = resilientResult.retrying,
+                    timestamp = msg.createdAt,
+                )
+                emit(AgentChatResult.Failed(error = errors.last()))
+                return@collect
+            }
+
+            if (msg is ChatMessage.AssistantMessage) {
+                lastMessage = msg
+            }
+            result.finishReason?.let { lastFinishReason = it }
+            result.usage?.let { lastUsage = it }
         }
-        result.finishReason?.let { lastFinishReason = it }
-        result.usage?.let { lastUsage = it }
+    } catch (_: IllegalStateException) {
+        // 所有候选模型耗尽
     }
 
     val msg = lastMessage
 
-    return AgentChatResult(
-        context = AgentContext.Message.Assistant(
-            reasoning = msg?.reasoningContent,
-            content = msg?.content,
-            model = request.model,
-            timestamp = msg?.createdAt ?: Clock.System.now(),
-        ),
-        toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), request.model),
-        usage = lastUsage,
-        finishReason = lastFinishReason,
+    emit(
+        AgentChatResult.Success(
+            context = AgentContext.Message.Assistant(
+                reasoning = msg?.reasoningContent,
+                content = msg?.content,
+                model = request.model,
+                timestamp = msg?.createdAt ?: Clock.System.now(),
+            ),
+            toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), request.model),
+            usage = lastUsage,
+            finishReason = lastFinishReason,
+        )
     )
 }
 
@@ -75,26 +93,40 @@ suspend fun agentChat(request: AgentChatRequest): AgentChatResult {
 suspend fun agentChatStream(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
     val chatRequest = request.toChatRequest().copy(stream = true)
 
-    val results = forwardChat(
-        provider = request.model.provider.name,
-        apiKey = request.model.provider.apiKey,
-        baseUrl = request.model.provider.baseUrl,
+    val results = resilientChat(
+        model = request.model,
+        fallbackModels = request.fallbackModels,
         request = chatRequest,
     )
 
     var reasoningContent = ""
     var content = ""
+    val errors = mutableListOf<Error>()
 
-    results.collect { result: ChatResult ->
-        val msg = result.message as? ChatMessage.AssistantMessage ?: return@collect
+    results.collect { resilientResult ->
+        val result = resilientResult.result
+        val msg = result.message
 
-        if (msg.reasoningContent != null) {
-            reasoningContent += msg.reasoningContent
+        if (msg is ChatMessage.ErrorMessage) {
+            errors += Error(
+                content = msg.content,
+                statusCode = msg.statusCode,
+                retrying = resilientResult.retrying,
+                timestamp = msg.createdAt,
+            )
+            emit(AgentChatStreamResult.Failing(error = errors.toList()))
+            return@collect
+        }
+
+        val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
+
+        if (assistantMsg.reasoningContent != null) {
+            reasoningContent += assistantMsg.reasoningContent
             emit(AgentChatStreamResult.Reasoning(reasoningContent))
         }
 
-        if (msg.content != null) {
-            content += msg.content
+        if (assistantMsg.content != null) {
+            content += assistantMsg.content
             emit(
                 AgentChatStreamResult.Outputting(
                     reasoningContent = reasoningContent.ifEmpty { null },
@@ -108,14 +140,14 @@ suspend fun agentChatStream(request: AgentChatRequest): Flow<AgentChatStreamResu
                 reasoning = reasoningContent.ifEmpty { null },
                 content = content.ifEmpty { null },
                 model = request.model,
-                timestamp = msg.createdAt,
+                timestamp = assistantMsg.createdAt,
             )
 
             emit(
                 AgentChatStreamResult.Finished(
-                    result = AgentChatResult(
+                    result = AgentChatResult.Success(
                         context = finalMsg,
-                        toolCalls = toPendingToolCalls(msg.toolCalls, msg.createdAt, request.model),
+                        toolCalls = toPendingToolCalls(assistantMsg.toolCalls, assistantMsg.createdAt, request.model),
                         usage = result.usage,
                         finishReason = result.finishReason,
                     )

@@ -46,13 +46,13 @@ data class ResilientChatResult(
  */
 fun resilientChat(
     model: Model,
-    fallbackModels: List<Model>,
+    fallbackModels: List<Model>?,
     request: ChatRequest,
     maxRetries: Int = DEFAULT_MAX_RETRIES,
 ): Flow<ResilientChatResult> = flow {
     var candidates = buildList {
         add(model)
-        addAll(fallbackModels)
+        addAll(fallbackModels.orEmpty())
     }
 
     // 图像兼容性预处理：检查请求是否包含 pictures
