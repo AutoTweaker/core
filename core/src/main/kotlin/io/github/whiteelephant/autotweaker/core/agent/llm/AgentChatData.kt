@@ -3,6 +3,8 @@ package io.github.whiteelephant.autotweaker.core.agent.llm
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.Usage
+import io.ktor.http.HttpStatusCode
+import java.time.Instant
 
 data class AgentChatRequest(
     val model: Model,
@@ -36,3 +38,10 @@ sealed class AgentChatStreamResult {
         val result: AgentChatResult
     ) : AgentChatStreamResult()
 }
+
+data class Error(
+    val content: String?,
+    val statusCode: HttpStatusCode?,
+    val retrying: Model?,
+    val timestamp: Instant,
+)
