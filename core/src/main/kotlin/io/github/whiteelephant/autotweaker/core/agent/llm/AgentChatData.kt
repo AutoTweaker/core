@@ -15,26 +15,20 @@ data class AgentChatRequest(
     val maxTokens: Int? = null,
     val temperature: Double? = null,
 
-    val context: AgentContext
+    val context: AgentContext,
 )
-
-sealed class AgentChatResult {
-    data class Failed(
-        val error: Error
-    ) : AgentChatResult()
-
-    data class Success(
-        val context: AgentContext.Message.Assistant,
-        val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
-        val usage: Usage?,
-        val finishReason: ChatResult.FinishReason?,
-    ) : AgentChatResult()
-}
 
 sealed class AgentChatStreamResult {
     data class Failing(
-        val error: List<Error>
-    ) : AgentChatStreamResult()
+        val errors: List<Error>
+    ) : AgentChatStreamResult() {
+        data class Error(
+            val content: String?,
+            val statusCode: HttpStatusCode?,
+            val retrying: Model?,
+            val timestamp: Instant,
+        )
+    }
 
     data class Reasoning(
         val reasoningContent: String
@@ -46,13 +40,13 @@ sealed class AgentChatStreamResult {
     ) : AgentChatStreamResult()
 
     data class Finished(
-        val result: AgentChatResult
-    ) : AgentChatStreamResult()
+        val result: Result
+    ) : AgentChatStreamResult() {
+        data class Result(
+            val context: AgentContext.Message.Assistant,
+            val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
+            val usage: Usage?,
+            val finishReason: ChatResult.FinishReason?,
+        )
+    }
 }
-
-data class Error(
-    val content: String?,
-    val statusCode: HttpStatusCode?,
-    val retrying: Model?,
-    val timestamp: Instant,
-)

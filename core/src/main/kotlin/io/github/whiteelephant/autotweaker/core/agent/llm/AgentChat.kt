@@ -26,11 +26,16 @@ private fun toPendingToolCalls(
 }
 
 /**
- * 非流式调用。返回 [Flow]，每次遇到错误时 emit [AgentChatResult.Failed]，
- * 最终成功时 emit [AgentChatResult.Success]。
+ * 调用 LLM，根据 [Model.supportsStreaming] 决定是否流式。
+ *
+ * 流式时依次 emit [AgentChatStreamResult.Reasoning]、[AgentChatStreamResult.Outputting]、
+ * [AgentChatStreamResult.Finished]；非流式时直接 emit [AgentChatStreamResult.Finished]。
+ *
+ * 任何错误均通过 [AgentChatStreamResult.Failing] 实时 emit。
  */
-suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatResult> = flow {
-    val chatRequest = request.toChatRequest().copy(stream = false)
+suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
+    val stream = request.model.supportsStreaming
+    val chatRequest = request.toChatRequest().copy(stream = stream)
 
     val results = resilientChat(
         model = request.model,
@@ -38,10 +43,12 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatResult> = flow {
         request = chatRequest,
     )
 
+    var reasoningContent = ""
+    var content = ""
     var lastMessage: ChatMessage.AssistantMessage? = null
     var lastFinishReason: ChatResult.FinishReason? = null
     var lastUsage: Usage? = null
-    val errors = mutableListOf<Error>()
+    val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
 
     try {
         results.collect { resilientResult ->
@@ -49,19 +56,36 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatResult> = flow {
             val msg = result.message
 
             if (msg is ChatMessage.ErrorMessage) {
-                errors += Error(
+                errors += AgentChatStreamResult.Failing.Error(
                     content = msg.content,
                     statusCode = msg.statusCode,
                     retrying = resilientResult.retrying,
                     timestamp = msg.createdAt,
                 )
-                emit(AgentChatResult.Failed(error = errors.last()))
+                emit(AgentChatStreamResult.Failing(errors = errors.toList()))
                 return@collect
             }
 
-            if (msg is ChatMessage.AssistantMessage) {
-                lastMessage = msg
+            val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
+            lastMessage = assistantMsg
+
+            if (stream) {
+                if (assistantMsg.reasoningContent != null) {
+                    reasoningContent += assistantMsg.reasoningContent
+                    emit(AgentChatStreamResult.Reasoning(reasoningContent))
+                }
+
+                if (assistantMsg.content != null) {
+                    content += assistantMsg.content
+                    emit(
+                        AgentChatStreamResult.Outputting(
+                            reasoningContent = reasoningContent.ifEmpty { null },
+                            content = content,
+                        )
+                    )
+                }
             }
+
             result.finishReason?.let { lastFinishReason = it }
             result.usage?.let { lastUsage = it }
         }
@@ -72,87 +96,18 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatResult> = flow {
     val msg = lastMessage
 
     emit(
-        AgentChatResult.Success(
-            context = AgentContext.Message.Assistant(
-                reasoning = msg?.reasoningContent,
-                content = msg?.content,
-                model = request.model,
-                timestamp = msg?.createdAt ?: Clock.System.now(),
-            ),
-            toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), request.model),
-            usage = lastUsage,
-            finishReason = lastFinishReason,
+        AgentChatStreamResult.Finished(
+            result = AgentChatStreamResult.Finished.Result(
+                context = AgentContext.Message.Assistant(
+                    reasoning = msg?.reasoningContent ?: reasoningContent.ifEmpty { null },
+                    content = msg?.content ?: content.ifEmpty { null },
+                    model = request.model,
+                    timestamp = msg?.createdAt ?: Clock.System.now(),
+                ),
+                toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), request.model),
+                usage = lastUsage,
+                finishReason = lastFinishReason,
+            )
         )
     )
-}
-
-/**
- * 流式调用。返回 [Flow]，依次 emit [AgentChatStreamResult.Reasoning]、
- * [AgentChatStreamResult.Outputting]、[AgentChatStreamResult.Finished]。
- */
-suspend fun agentChatStream(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
-    val chatRequest = request.toChatRequest().copy(stream = true)
-
-    val results = resilientChat(
-        model = request.model,
-        fallbackModels = request.fallbackModels,
-        request = chatRequest,
-    )
-
-    var reasoningContent = ""
-    var content = ""
-    val errors = mutableListOf<Error>()
-
-    results.collect { resilientResult ->
-        val result = resilientResult.result
-        val msg = result.message
-
-        if (msg is ChatMessage.ErrorMessage) {
-            errors += Error(
-                content = msg.content,
-                statusCode = msg.statusCode,
-                retrying = resilientResult.retrying,
-                timestamp = msg.createdAt,
-            )
-            emit(AgentChatStreamResult.Failing(error = errors.toList()))
-            return@collect
-        }
-
-        val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
-
-        if (assistantMsg.reasoningContent != null) {
-            reasoningContent += assistantMsg.reasoningContent
-            emit(AgentChatStreamResult.Reasoning(reasoningContent))
-        }
-
-        if (assistantMsg.content != null) {
-            content += assistantMsg.content
-            emit(
-                AgentChatStreamResult.Outputting(
-                    reasoningContent = reasoningContent.ifEmpty { null },
-                    content = content,
-                )
-            )
-        }
-
-        if (result.finishReason != null) {
-            val finalMsg = AgentContext.Message.Assistant(
-                reasoning = reasoningContent.ifEmpty { null },
-                content = content.ifEmpty { null },
-                model = request.model,
-                timestamp = assistantMsg.createdAt,
-            )
-
-            emit(
-                AgentChatStreamResult.Finished(
-                    result = AgentChatResult.Success(
-                        context = finalMsg,
-                        toolCalls = toPendingToolCalls(assistantMsg.toolCalls, assistantMsg.createdAt, request.model),
-                        usage = result.usage,
-                        finishReason = result.finishReason,
-                    )
-                )
-            )
-        }
-    }
 }
