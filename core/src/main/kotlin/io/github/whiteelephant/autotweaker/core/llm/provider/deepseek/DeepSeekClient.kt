@@ -6,7 +6,8 @@ import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import io.ktor.client.*
 import kotlinx.serialization.serializer
 import io.ktor.util.reflect.typeInfo
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class DeepSeekClient(
     apiKey: String,
@@ -118,7 +119,7 @@ class DeepSeekClient(
             message = ChatMessage.AssistantMessage(
                 content = delta?.content,
                 reasoningContent = delta?.reasoningContent,
-                createdAt = Instant.now(),
+                createdAt = Clock.System.now(),
                 model = chunk.model
             ),
             usage = chunk.usage?.let { u ->

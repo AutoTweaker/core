@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 abstract class AbstractOpenAiClient<
         Request : OpenAiRequest,
@@ -87,15 +88,17 @@ abstract class AbstractOpenAiClient<
                     setBody(body, requestTypeInfo)
                 }.execute { response ->
                     if (!response.status.isSuccess()) {
-                        emit(ChatResult(
-                            message = ChatMessage.ErrorMessage(
-                                content = "LLM Stream Error: ${response.status}",
-                                createdAt = Instant.now(),
-                                statusCode = response.status
-                            ),
-                            finishReason = null,
-                            usage = null
-                        ))
+                        emit(
+                            ChatResult(
+                                message = ChatMessage.ErrorMessage(
+                                    content = "LLM Stream Error: ${response.status}",
+                                    createdAt = Clock.System.now(),
+                                    statusCode = response.status
+                                ),
+                                finishReason = null,
+                                usage = null
+                            )
+                        )
                         return@execute
                     }
 
@@ -117,7 +120,8 @@ abstract class AbstractOpenAiClient<
 
                                         // 累积 tool call 碎片
                                         extractToolCalls(chunk)?.forEach { fragment ->
-                                            val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
+                                            val pending =
+                                                pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
                                             if (fragment.id != null) pending.id = fragment.id
                                             if (fragment.name != null) pending.name = fragment.name
                                             if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
@@ -141,30 +145,34 @@ abstract class AbstractOpenAiClient<
 
                                         emit(result)
                                     } catch (e: Throwable) {
-                                        emit(ChatResult(
-                                            message = ChatMessage.ErrorMessage(
-                                                content = e.message ?: "Failed to parse stream chunk",
-                                                createdAt = Instant.now(),
-                                                statusCode = null
-                                            ),
-                                            finishReason = null,
-                                            usage = null
-                                        ))
+                                        emit(
+                                            ChatResult(
+                                                message = ChatMessage.ErrorMessage(
+                                                    content = e.message ?: "Failed to parse stream chunk",
+                                                    createdAt = Clock.System.now(),
+                                                    statusCode = null
+                                                ),
+                                                finishReason = null,
+                                                usage = null
+                                            )
+                                        )
                                         break
                                     }
                                 }
                             }
                         }
                     } catch (e: Throwable) {
-                        emit(ChatResult(
-                            message = ChatMessage.ErrorMessage(
-                                content = e.message ?: "Stream read error",
-                                createdAt = Instant.now(),
-                                statusCode = null
-                            ),
-                            finishReason = null,
-                            usage = null
-                        ))
+                        emit(
+                            ChatResult(
+                                message = ChatMessage.ErrorMessage(
+                                    content = e.message ?: "Stream read error",
+                                    createdAt = Clock.System.now(),
+                                    statusCode = null
+                                ),
+                                finishReason = null,
+                                usage = null
+                            )
+                        )
                     }
                 }
             } else {
@@ -177,15 +185,17 @@ abstract class AbstractOpenAiClient<
 
                 if (!response.status.isSuccess()) {
                     val errorBody = response.bodyAsText()
-                    emit(ChatResult(
-                        message = ChatMessage.ErrorMessage(
-                            content = "LLM API Error (${response.status}): $errorBody",
-                            createdAt = Instant.now(),
-                            statusCode = response.status
-                        ),
-                        finishReason = null,
-                        usage = null
-                    ))
+                    emit(
+                        ChatResult(
+                            message = ChatMessage.ErrorMessage(
+                                content = "LLM API Error (${response.status}): $errorBody",
+                                createdAt = Clock.System.now(),
+                                statusCode = response.status
+                            ),
+                            finishReason = null,
+                            usage = null
+                        )
+                    )
                     return@flow
                 }
 
@@ -193,15 +203,17 @@ abstract class AbstractOpenAiClient<
                 emit(mapToChatResult(openAiResponse))
             }
         } catch (e: Throwable) {
-            emit(ChatResult(
-                message = ChatMessage.ErrorMessage(
-                    content = e.message ?: "Unknown error",
-                    createdAt = Instant.now(),
-                    statusCode = null
-                ),
-                finishReason = null,
-                usage = null
-            ))
+            emit(
+                ChatResult(
+                    message = ChatMessage.ErrorMessage(
+                        content = e.message ?: "Unknown error",
+                        createdAt = Clock.System.now(),
+                        statusCode = null
+                    ),
+                    finishReason = null,
+                    usage = null
+                )
+            )
         }
     }
 }

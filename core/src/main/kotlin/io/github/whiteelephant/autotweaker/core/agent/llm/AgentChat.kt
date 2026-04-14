@@ -5,7 +5,8 @@ import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.Usage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 //TODO 改为调用resilientChat方法
 
@@ -59,9 +60,9 @@ suspend fun agentChat(request: AgentChatRequest): AgentChatResult {
             reasoning = msg?.reasoningContent,
             content = msg?.content,
             model = request.model,
-            timestamp = msg?.createdAt ?: Instant.now(),
+            timestamp = msg?.createdAt ?: Clock.System.now(),
         ),
-        toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Instant.now(), request.model),
+        toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), request.model),
         usage = lastUsage,
         finishReason = lastFinishReason,
     )

@@ -18,7 +18,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import java.math.BigDecimal
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import java.util.Currency
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -68,7 +69,7 @@ class ResilientChatTest {
     private fun successResult(content: String = "ok") = ChatResult(
         message = ChatMessage.AssistantMessage(
             content = content,
-            createdAt = Instant.now(),
+            createdAt = Clock.System.now(),
             model = "test",
         ),
         finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
@@ -77,14 +78,16 @@ class ResilientChatTest {
     private fun errorResult(statusCode: Int) = ChatResult(
         message = ChatMessage.ErrorMessage(
             content = "error $statusCode",
-            createdAt = Instant.now(),
+            createdAt = Clock.System.now(),
             statusCode = io.ktor.http.HttpStatusCode.fromValue(statusCode),
         ),
     )
 
-    private fun request(messages: List<ChatMessage> = listOf(
-        ChatMessage.UserMessage("hi", Instant.now())
-    )) = ChatRequest(model = "dummy", messages = messages)
+    private fun request(
+        messages: List<ChatMessage> = listOf(
+            ChatMessage.UserMessage("hi", Clock.System.now())
+        )
+    ) = ChatRequest(model = "dummy", messages = messages)
 
     /** 设置 forwardChat mock 按顺序返回指定的 Flow 列表 */
     private fun mockForwardSequence(vararg flows: Flow<ChatResult>) {
@@ -260,9 +263,11 @@ class ResilientChatTest {
     @Test
     fun `图像存在支持模型时屏蔽不支持的`() = runTest {
         val pic = Base64("dGVzdA==")
-        val req = request(messages = listOf(
-            ChatMessage.UserMessage("hi", Instant.now(), pictures = listOf(pic))
-        ))
+        val req = request(
+            messages = listOf(
+                ChatMessage.UserMessage("hi", Clock.System.now(), pictures = listOf(pic))
+            )
+        )
         // m1: 不支持图像, m2: 支持图像
         mockForwardSequence(flowOf(successResult("image-ok")))
 
@@ -281,9 +286,11 @@ class ResilientChatTest {
     @Test
     fun `图像无支持模型时剔除 pictures`() = runTest {
         val pic = Base64("dGVzdA==")
-        val req = request(messages = listOf(
-            ChatMessage.UserMessage("hi", Instant.now(), pictures = listOf(pic))
-        ))
+        val req = request(
+            messages = listOf(
+                ChatMessage.UserMessage("hi", Clock.System.now(), pictures = listOf(pic))
+            )
+        )
 
         var capturedRequest: ChatRequest? = null
         coEvery { forwardChat(any(), any(), any(), any()) } answers {

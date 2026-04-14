@@ -4,7 +4,7 @@ import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult
 import io.github.whiteelephant.autotweaker.core.llm.Usage
 import io.ktor.http.HttpStatusCode
-import java.time.Instant
+import kotlin.time.Instant
 
 data class AgentChatRequest(
     val model: Model,

@@ -6,7 +6,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * 序列化器：将 [Instant] 与 Unix 秒时间戳（Long）互转。
@@ -16,10 +16,10 @@ object InstantAsLongSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.LONG)
 
     override fun serialize(encoder: Encoder, value: Instant) {
-        encoder.encodeLong(value.epochSecond)
+        encoder.encodeLong(value.epochSeconds)
     }
 
     override fun deserialize(decoder: Decoder): Instant {
-        return Instant.ofEpochSecond(decoder.decodeLong())
+        return Instant.fromEpochSeconds(decoder.decodeLong())
     }
 }

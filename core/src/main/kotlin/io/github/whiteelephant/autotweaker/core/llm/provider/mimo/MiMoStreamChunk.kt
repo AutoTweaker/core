@@ -3,7 +3,7 @@ package io.github.whiteelephant.autotweaker.core.llm.provider.mimo
 import io.github.whiteelephant.autotweaker.core.llm.base.openai.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.time.Instant
+import kotlin.time.Instant
 
 @Serializable
 data class MiMoStreamChunk(

@@ -1,7 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.agent.llm
 
 import io.github.whiteelephant.autotweaker.core.Base64
-import java.time.Instant
+import kotlin.time.Instant
 
 data class AgentContext(
     val compactedRounds: List<CompactedRound>?,

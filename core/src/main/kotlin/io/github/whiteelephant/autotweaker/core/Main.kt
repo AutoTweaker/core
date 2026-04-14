@@ -11,7 +11,8 @@ import io.github.whiteelephant.autotweaker.core.data.model.Provider.Model.TokenP
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import java.time.ZoneId
 import java.util.Currency
 
@@ -83,7 +84,7 @@ fun main() {
             currentRound = AgentContext.CurrentRound(
                 userMessage = AgentContext.Message.User(
                     content = "北京现在的天气怎么样？",
-                    timestamp = Instant.now(),
+                    timestamp = Clock.System.now(),
                 ),
                 turns = listOf(
                     AgentContext.Turn(
@@ -104,7 +105,7 @@ fun main() {
                                 ),
                                 result = AgentContext.Message.Tool.Result(
                                     content = """{"city": "北京", "temperature": 22, "unit": "celsius", "condition": "晴", "humidity": 35, "wind": "南风 3级"}""",
-                                    timestamp = Instant.now(),
+                                    timestamp = Clock.System.now(),
                                 ),
                             )
                         ),

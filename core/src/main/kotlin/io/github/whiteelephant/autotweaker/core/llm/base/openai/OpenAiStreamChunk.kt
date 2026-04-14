@@ -1,6 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.llm.base.openai
 
-import java.time.Instant
+import kotlin.time.Instant
 
 abstract class OpenAiStreamChunk {
     abstract val id: String?

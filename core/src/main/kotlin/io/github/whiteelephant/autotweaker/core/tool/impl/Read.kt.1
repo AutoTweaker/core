@@ -12,7 +12,8 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
@@ -182,7 +183,7 @@ class Read : Tool {
             pendingCall.model
         }
 
-        val now = Instant.now()
+        val now = Clock.System.now()
         val chatRequest = ChatRequest(
             model = model.name,
             messages = listOf(

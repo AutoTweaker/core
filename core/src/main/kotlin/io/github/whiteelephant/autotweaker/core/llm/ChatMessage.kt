@@ -3,7 +3,7 @@ package io.github.whiteelephant.autotweaker.core.llm
 import io.github.whiteelephant.autotweaker.core.Base64
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
-import java.time.Instant
+import kotlin.time.Instant
 
 @Serializable
 sealed class ChatMessage {
