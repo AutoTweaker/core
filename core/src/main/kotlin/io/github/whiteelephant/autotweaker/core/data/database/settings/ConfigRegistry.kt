@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.data.database
+package io.github.whiteelephant.autotweaker.core.data.database.settings
 
 object CoreConfigRegistry {
     private val _items = mutableMapOf<String, SettingItem<*>>()
@@ -6,6 +6,7 @@ object CoreConfigRegistry {
     init {
         // 注册全部配置项
         register("core.tool.read", "example")
+        register("core.tool.write", "example")
     }
 
     private fun <T : Any> register(key: String, default: T) {

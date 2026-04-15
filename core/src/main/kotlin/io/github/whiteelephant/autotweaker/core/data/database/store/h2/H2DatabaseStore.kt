@@ -1,0 +1,14 @@
+package io.github.whiteelephant.autotweaker.core.data.database.store.h2
+
+import io.github.whiteelephant.autotweaker.core.data.database.store.DatabaseStore
+import java.nio.file.Files
+import java.nio.file.Path
+import org.jetbrains.exposed.sql.Database
+
+class H2DatabaseStore : DatabaseStore {
+    override fun connect(dbName: String) {
+        val dbDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database")
+        Files.createDirectories(dbDir)
+        Database.connect("jdbc:h2:${dbDir.resolve(dbName)};DB_CLOSE_DELAY=-1", "org.h2.Driver")
+    }
+}

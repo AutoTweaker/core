@@ -1,8 +1,6 @@
-package io.github.whiteelephant.autotweaker.core.data.database
+package io.github.whiteelephant.autotweaker.core.data.database.settings
 
-import java.nio.file.Files
-import java.nio.file.Path
-import org.jetbrains.exposed.sql.Database
+import io.github.whiteelephant.autotweaker.core.data.database.store.h2.H2DatabaseStore
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -10,11 +8,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 
 object Settings {
+    private val store = H2DatabaseStore()
+
     fun init() {
-        // 连接
-        val dbDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database")
-        Files.createDirectories(dbDir)
-        Database.connect("jdbc:h2:${dbDir.resolve("AppConfig")};DB_CLOSE_DELAY=-1", "org.h2.Driver")
+        store.connect("AppConfig")
 
         transaction {
             // 建表
