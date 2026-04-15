@@ -26,10 +26,11 @@ private fun toPendingToolCalls(
 }
 
 /**
- * 调用 LLM，根据 [Model.supportsStreaming] 决定是否流式。
+ * 调用 LLM，根据 [Model.supportsStreaming] 决定是否流式请求。
  *
- * 流式时依次 emit [AgentChatStreamResult.Reasoning]、[AgentChatStreamResult.Outputting]、
- * [AgentChatStreamResult.Finished]；非流式时直接 emit [AgentChatStreamResult.Finished]。
+ * emit 事件时根据 [ChatResult.finishReason] 判断：当 finishReason 为空时视为中间产出，
+ * 依次 emit [AgentChatStreamResult.Reasoning]、[AgentChatStreamResult.Outputting]；
+ * 最终 emit [AgentChatStreamResult.Finished]。
  *
  * 任何错误均通过 [AgentChatStreamResult.Failing] 实时 emit。
  */
@@ -48,12 +49,17 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = 
     var lastMessage: ChatMessage.AssistantMessage? = null
     var lastFinishReason: ChatResult.FinishReason? = null
     var lastUsage: Usage? = null
+    var lastRetrying: Model? = null
     val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
 
     try {
         results.collect { resilientResult ->
             val result = resilientResult.result
             val msg = result.message
+
+            if (resilientResult.retrying != null) {
+                lastRetrying = resilientResult.retrying
+            }
 
             if (msg is ChatMessage.ErrorMessage) {
                 errors += AgentChatStreamResult.Failing.Error(
@@ -69,7 +75,7 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = 
             val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
             lastMessage = assistantMsg
 
-            if (stream) {
+            if (result.finishReason == null) {
                 if (assistantMsg.reasoningContent != null) {
                     reasoningContent += assistantMsg.reasoningContent
                     emit(AgentChatStreamResult.Reasoning(reasoningContent))
@@ -94,6 +100,7 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = 
     }
 
     val msg = lastMessage
+    val resultModel = lastRetrying ?: request.model
 
     emit(
         AgentChatStreamResult.Finished(
@@ -101,10 +108,10 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = 
                 context = AgentContext.Message.Assistant(
                     reasoning = msg?.reasoningContent ?: reasoningContent.ifEmpty { null },
                     content = msg?.content ?: content.ifEmpty { null },
-                    model = request.model,
+                    model = resultModel,
                     timestamp = msg?.createdAt ?: Clock.System.now(),
                 ),
-                toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), request.model),
+                toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), resultModel),
                 usage = lastUsage,
                 finishReason = lastFinishReason,
             )
