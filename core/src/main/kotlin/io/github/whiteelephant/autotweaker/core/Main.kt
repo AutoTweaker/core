@@ -138,6 +138,7 @@ fun main() {
                                 result = AgentContext.Message.Tool.Result(
                                     content = """{"city": "北京", "temperature": 22, "unit": "celsius", "condition": "晴", "humidity": 35, "wind": "南风 3级"}""",
                                     timestamp = Clock.System.now(),
+                                    status = AgentContext.Message.Tool.Result.Status.SUCCESS
                                 ),
                             )
                         ),

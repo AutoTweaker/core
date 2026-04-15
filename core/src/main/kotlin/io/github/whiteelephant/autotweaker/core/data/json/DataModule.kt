@@ -6,10 +6,11 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
 
 import io.github.whiteelephant.autotweaker.core.data.json.model.AppConfig
 import io.github.whiteelephant.autotweaker.core.data.json.store.ConfigFileStore
+import java.nio.file.Path
 import kotlin.reflect.KProperty
 
 object DataModule {
-    private val store = ConfigFileStore("${System.getProperty("user.home")}/.config/autotweaker/settings.json")
+    private val store = ConfigFileStore(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "settings.json").toString())
 
     var current: AppConfig = load()
         private set
