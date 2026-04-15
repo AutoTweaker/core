@@ -2,10 +2,11 @@ package io.github.whiteelephant.autotweaker.core.tool
 
 import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 import io.github.whiteelephant.autotweaker.core.agent.llm.Model
+import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingItem
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import kotlinx.serialization.json.JsonObject
 
-interface Tool<C : Any> {
+interface Tool {
     val name: String
     val description: String
     val functions: List<Function>
@@ -18,7 +19,8 @@ interface Tool<C : Any> {
 
     suspend fun execute(
         arguments: JsonObject,
-        context: C,
+        context: AgentContext,
+        settings: List<SettingItem<*>>,
         provider: DependencyProvider
     ): ToolResult
 }

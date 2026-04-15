@@ -1,21 +1,36 @@
 package io.github.whiteelephant.autotweaker.core.agent
 
+import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
+import io.github.whiteelephant.autotweaker.core.agent.llm.Model
+import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingItem
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 
 class Agent(
-    val id: String,
-    val systemPrompt: String?,
-    // TODO context、tools 等
+    context: AgentContext,
+    model: Model,
+    fallbackModels: List<Model>?,
+    settings: List<SettingItem<*>>,
+    // TODO tools 等
 ) {
+    //上下文
+    private var currentContext: AgentContext = context
+
+    //活动协程
+    private var reasoningJob: Job? = null
+
+    //状态
     private val _status = MutableStateFlow(AgentStatus.FREE)
     val status: StateFlow<AgentStatus> = _status.asStateFlow()
 
+    //输出
     private val _output = MutableSharedFlow<AgentOutput>(replay = 1)
     val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 
+    //输入
     private val commandChannel = Channel<AgentCommand>(Channel.UNLIMITED)
+
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -36,16 +51,19 @@ class Agent(
             is AgentCommand.SendMessage -> {
                 processUserMessage(command.content)
             }
+
             is AgentCommand.ApproveToolCall -> {
                 // 处理工具审批逻辑
             }
+
             AgentCommand.Stop -> {
                 _status.value = AgentStatus.FREE
                 // 取消所有正在运行的子任务
                 scope.coroutineContext.cancelChildren()
             }
             // ... 处理其他命令
-            else -> { /* 暂未实现 */ }
+            else -> { /* 暂未实现 */
+            }
         }
     }
 
