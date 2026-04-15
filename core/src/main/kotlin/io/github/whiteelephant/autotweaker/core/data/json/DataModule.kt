@@ -1,26 +1,35 @@
-package io.github.whiteelephant.autotweaker.core.data
+package io.github.whiteelephant.autotweaker.core.data.json
 
 import io.github.whiteelephant.autotweaker.core.Url
 import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
 
-import io.github.whiteelephant.autotweaker.core.data.model.AppConfig
-import io.github.whiteelephant.autotweaker.core.data.store.ConfigFileStore
+import io.github.whiteelephant.autotweaker.core.data.json.model.AppConfig
+import io.github.whiteelephant.autotweaker.core.data.json.store.ConfigFileStore
 import kotlin.reflect.KProperty
 
 object DataModule {
     private val store = ConfigFileStore("${System.getProperty("user.home")}/.config/autotweaker/settings.json")
 
-    private val configManager = ConfigManager(store)
+    var current: AppConfig = load()
+        private set
 
-    val current: AppConfig get() = configManager.current
+    private fun load(): AppConfig = try {
+        store.read(AppConfig.serializer()) ?: AppConfig()
+    } catch (_: Exception) {
+        AppConfig()
+    }
 
-    fun update(block: AppConfig.() -> AppConfig) = configManager.update(block)
+    fun update(block: AppConfig.() -> AppConfig) {
+        current = current.block()
+        store.write(current, AppConfig.serializer())
+    }
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>): AppConfig = current
 
     operator fun setValue(thisRef: Any?, property: KProperty<*>, value: AppConfig) {
-        configManager.save(value)
+        current = value
+        store.write(value, AppConfig.serializer())
     }
 
     /**

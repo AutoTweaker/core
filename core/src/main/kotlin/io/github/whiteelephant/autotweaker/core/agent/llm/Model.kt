@@ -3,8 +3,8 @@ package io.github.whiteelephant.autotweaker.core.agent.llm
 import io.github.whiteelephant.autotweaker.core.Price
 import io.github.whiteelephant.autotweaker.core.Url
 
-import io.github.whiteelephant.autotweaker.core.data.model.Provider.ErrorHandlingRule
-import io.github.whiteelephant.autotweaker.core.data.model.Provider.Model.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.ErrorHandlingRule
+import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.Model.TokenPrice
 
 data class Model(
     val name: String,

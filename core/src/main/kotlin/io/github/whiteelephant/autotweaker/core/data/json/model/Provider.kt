@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.data.model
+package io.github.whiteelephant.autotweaker.core.data.json.model
 
 import io.github.whiteelephant.autotweaker.core.Price
 import kotlinx.serialization.Serializable
