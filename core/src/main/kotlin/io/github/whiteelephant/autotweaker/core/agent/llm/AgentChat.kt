@@ -96,7 +96,8 @@ suspend fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = 
             result.usage?.let { lastUsage = it }
         }
     } catch (_: IllegalStateException) {
-        // 所有候选模型耗尽
+        // 所有候选模型耗尽，之前已通过 Failing emit 错误
+        return@flow
     }
 
     val msg = lastMessage
