@@ -27,6 +27,15 @@ dependencies {
 
     implementation("com.google.auto.service:auto-service-annotations:1.1.1")
     kapt("com.google.auto.service:auto-service:1.1.1")
+
+    implementation("org.jetbrains.exposed:exposed-core:0.50.1")
+    implementation("org.jetbrains.exposed:exposed-dao:0.50.1")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.50.1")
+
+    implementation("com.h2database:h2:2.2.224")
+
+    implementation("org.slf4j:slf4j-api:2.0.12")
+    implementation("ch.qos.logback:logback-classic:1.5.3")
 }
 
 tasks.test {
