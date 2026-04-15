@@ -4,7 +4,7 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 
 sealed class AgentOutput {
-    data class SteamMessage(
+    data class StreamMessage(
         val status: Status,
         val content: AgentChatStreamResult,
     ) : AgentOutput() {
