@@ -20,5 +20,10 @@ interface Tool<C : Any> {
         arguments: JsonObject,
         context: C,
         provider: DependencyProvider
-    ): String
+    ): ToolResult
 }
+
+data class ToolResult(
+    val result: String,
+    val success: Boolean,
+)

@@ -39,7 +39,15 @@ data class AgentContext(
             data class Result(
                 val content: String,
                 val timestamp: Instant,
-            )
+                val status: Status,
+            ) {
+                enum class Status {
+                    SUCCESS,
+                    FAILURE,
+                    TIMEOUT,
+                    CANCELLED,
+                }
+            }
         }
     }
 

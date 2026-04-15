@@ -1,21 +1,40 @@
 package io.github.whiteelephant.autotweaker.core.agent
 
+import io.github.whiteelephant.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 
 sealed class AgentOutput {
-    data class Messages(
-        val compactedRounds: List<CompactedRound>?,
-        val messages: List<AgentContext.Message>,
+    data class SteamMessage(
+        val status: Status,
+        val content: AgentChatStreamResult,
     ) : AgentOutput() {
-        data class CompactedRound(
-            val messages: List<AgentContext.Message>,
-            val summarizedMessages: String?,
-        )
+        enum class Status {
+            RETRYING,
+            REASONING,
+            OUTPUTTING,
+            FINISHED,
+        }
     }
+
+    data class ToolResult(
+        val name: String,
+        val callId: String,
+        val content: String,
+    ) : AgentOutput()
 
     data class ToolCallRequest(
         val pendingToolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
     ) : AgentOutput()
+
+    data class ContextUpdate(
+        val context: AgentContext,
+        val reason: UpdateReason?,
+    ) : AgentOutput() {
+        enum class UpdateReason {
+            COMPACTED,
+            LLM_ERROR,
+        }
+    }
 
     data class Error(
         val message: String,
