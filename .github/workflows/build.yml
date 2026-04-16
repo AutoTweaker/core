@@ -15,12 +15,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
-        with:
-          validate-wrappers: false
+
+      - name: Enable toolchain auto-download
+        run: sed -i 's/org.gradle.java.installations.auto-download=false/org.gradle.java.installations.auto-download=true/' gradle.properties
 
       - name: Build
-        run: >
-          ./gradlew build
-          -Dhttp.proxyHost= -Dhttp.proxyPort=
-          -Dhttps.proxyHost= -Dhttps.proxyPort=
-          -Dorg.gradle.java.installations.auto-download=true
+        run: ./gradlew build
