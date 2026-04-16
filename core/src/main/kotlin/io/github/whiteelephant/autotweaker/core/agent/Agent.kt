@@ -84,8 +84,8 @@ class Agent(
                 _status.value = AgentStatus.FREE
             }
 
-            //else -> { /* 其他指令 */
-            //}
+            else -> { /* 其他指令 */
+            }
         }
     }
 

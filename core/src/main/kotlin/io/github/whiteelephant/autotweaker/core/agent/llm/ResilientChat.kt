@@ -55,21 +55,9 @@ fun resilientChat(
         addAll(fallbackModels.orEmpty())
     }
 
-    // 图像兼容性预处理：检查请求是否包含 pictures
-    val hasPictures = request.messages.any { msg ->
-        msg is ChatMessage.UserMessage && !msg.pictures.isNullOrEmpty()
-    }
-    var stripPictures = false
-
-    if (hasPictures) {
-        val hasImageModel = candidates.any { it.supportsImage }
-        if (hasImageModel) {
-            // 存在支持图像的模型，屏蔽所有不支持的
-            candidates = candidates.filter { it.supportsImage }
-        } else {
-            // 不存在支持图像的模型，标记剔除 pictures
-            stripPictures = true
-        }
+    // 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
+    if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
+        candidates = candidates.filter { it.supportsImage }.ifEmpty { candidates }
     }
 
     while (candidates.isNotEmpty()) {
@@ -77,16 +65,7 @@ fun resilientChat(
         val rules = current.provider.errorHandlingRules
 
         for (retryAttempt in 0 until maxRetries) {
-            val chatRequest = request.copy(
-                model = current.name,
-                messages = if (stripPictures) {
-                    request.messages.map { msg ->
-                        if (msg is ChatMessage.UserMessage) msg.copy(pictures = null) else msg
-                    }
-                } else {
-                    request.messages
-                },
-            )
+            val chatRequest = request.adapt(current)
             val results = forwardChat(
                 provider = current.provider.name,
                 apiKey = current.provider.apiKey,
@@ -149,4 +128,31 @@ fun resilientChat(
     }
 
     throw IllegalStateException("All candidate models exhausted without success")
+}
+
+private fun ChatRequest.adapt(model: Model): ChatRequest {
+    val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
+    val stripPictures = !model.supportsImage &&
+            messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
+
+    return copy(
+        model = model.name,
+        messages = messages.mapIndexed { index, msg ->
+            var result = msg
+            if (stripPictures && result is ChatMessage.UserMessage) {
+                result = result.copy(pictures = null)
+            }
+            if (result is ChatMessage.AssistantMessage && result.reasoningContent != null) {
+                val stripReasoning = when {
+                    !model.supportsReasoning -> true
+                    thinking == true && index < lastUserMessageIndex -> true
+                    else -> false
+                }
+                if (stripReasoning) {
+                    result = result.copy(reasoningContent = null)
+                }
+            }
+            result
+        },
+    )
 }
