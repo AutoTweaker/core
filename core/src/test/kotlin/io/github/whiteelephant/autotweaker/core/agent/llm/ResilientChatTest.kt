@@ -48,6 +48,7 @@ class ResilientChatTest {
         providerName: String = "test",
         contextWindow: Int = 4096,
         supportsImage: Boolean = false,
+        supportsReasoning: Boolean = false,
         rules: List<ErrorHandlingRule> = emptyList(),
     ) = Model(
         name = name,
@@ -62,7 +63,7 @@ class ResilientChatTest {
         price = TokenPrice(emptyList(), emptyList()),
         supportsStreaming = true,
         supportsToolCalls = false,
-        supportsReasoning = false,
+        supportsReasoning = supportsReasoning,
         supportsImage = supportsImage,
     )
 
@@ -310,4 +311,101 @@ class ResilientChatTest {
         val userMsg = capturedRequest!!.messages.first() as ChatMessage.UserMessage
         assertEquals(null, userMsg.pictures)
     }
+
+    // region 思维链过滤测试
+
+    private fun assistantMsg(
+        content: String = "reply",
+        reasoningContent: String? = null,
+    ) = ChatMessage.AssistantMessage(
+        content = content,
+        createdAt = Clock.System.now(),
+        reasoningContent = reasoningContent,
+        model = "test",
+    )
+
+    private fun userMsg(text: String) = ChatMessage.UserMessage(text, Clock.System.now())
+
+    private suspend fun capturedMessages(
+        model: Model,
+        messages: List<ChatMessage>,
+        thinking: Boolean? = null,
+    ): List<ChatMessage> {
+        var captured: ChatRequest? = null
+        coEvery { forwardChat(any(), any(), any(), any()) } answers {
+            captured = arg(3)
+            flowOf(successResult())
+        }
+        resilientChat(
+            model = model,
+            fallbackModels = emptyList(),
+            request = ChatRequest(model = "dummy", messages = messages, thinking = thinking),
+        ).toList()
+        return captured!!.messages
+    }
+
+    @Test
+    fun `不支持思考的模型完全剔除思维链`() = runTest {
+        val msgs = capturedMessages(
+            model = model("m1", supportsReasoning = false),
+            messages = listOf(
+                userMsg("first"),
+                assistantMsg("r1", reasoningContent = "think1"),
+                userMsg("second"),
+                assistantMsg("r2", reasoningContent = "think2"),
+            ),
+        )
+
+        assertEquals(null, (msgs[1] as ChatMessage.AssistantMessage).reasoningContent)
+        assertEquals(null, (msgs[3] as ChatMessage.AssistantMessage).reasoningContent)
+    }
+
+    @Test
+    fun `支持思考的模型仅保留最新用户消息后的思维链`() = runTest {
+        val msgs = capturedMessages(
+            model = model("m1", supportsReasoning = true),
+            thinking = true,
+            messages = listOf(
+                userMsg("first"),
+                assistantMsg("r1", reasoningContent = "think1"),
+                userMsg("second"),
+                assistantMsg("r2", reasoningContent = "think2"),
+            ),
+        )
+
+        assertEquals(null, (msgs[1] as ChatMessage.AssistantMessage).reasoningContent)
+        assertEquals("think2", (msgs[3] as ChatMessage.AssistantMessage).reasoningContent)
+    }
+
+    @Test
+    fun `支持思考但未启用时剔除全部思维链`() = runTest {
+        val msgs = capturedMessages(
+            model = model("m1", supportsReasoning = true),
+            thinking = false,
+            messages = listOf(
+                userMsg("first"),
+                assistantMsg("r1", reasoningContent = "think1"),
+                userMsg("second"),
+                assistantMsg("r2", reasoningContent = "think2"),
+            ),
+        )
+
+        assertEquals(null, (msgs[1] as ChatMessage.AssistantMessage).reasoningContent)
+        assertEquals(null, (msgs[3] as ChatMessage.AssistantMessage).reasoningContent)
+    }
+
+    @Test
+    fun `无思维链的消息不受影响`() = runTest {
+        val msgs = capturedMessages(
+            model = model("m1", supportsReasoning = false),
+            messages = listOf(
+                userMsg("first"),
+                assistantMsg("r1"),
+            ),
+        )
+
+        assertEquals("r1", msgs[1].content)
+    }
+
+    // endregion
 }

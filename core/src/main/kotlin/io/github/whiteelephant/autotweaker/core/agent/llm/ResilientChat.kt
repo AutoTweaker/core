@@ -144,8 +144,8 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
             }
             if (result is ChatMessage.AssistantMessage && result.reasoningContent != null) {
                 val stripReasoning = when {
-                    !model.supportsReasoning -> true
-                    thinking == true && index < lastUserMessageIndex -> true
+                    !model.supportsReasoning || thinking != true -> true
+                    index < lastUserMessageIndex -> true
                     else -> false
                 }
                 if (stripReasoning) {
