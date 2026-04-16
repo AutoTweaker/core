@@ -47,6 +47,12 @@ class Agent(
     //控制输入
     private val commandChannel = Channel<AgentCommand>(Channel.UNLIMITED)
 
+    //llm输出转agentOutput
+    private val streamProcessor = AgentStreamProcessor(
+        output = _output,
+        onStatusChange = { _status.value = it },
+        onContextUpdate = { currentContext = it },
+    )
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -104,98 +110,23 @@ class Agent(
 
         //调用LLM
         reasoningJob = scope.launch {
-            try {
-                //更新状态
-                _status.value = AgentStatus.PROCESSING
-                //准备请求
-                val request = AgentChatRequest(
-                    model = currentModel,
-                    fallbackModels = currentFallbackModels,
-                    thinking = currentThinking,
-                    tools = null,
-                    context = currentContext
-                )
-                //调用LLM并收集输出
-                agentChat(request).collect { result ->
-                    when (result) {
-                        is AgentChatStreamResult.Reasoning -> {
-                            _output.emit(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, result))
-                        }
-
-                        is AgentChatStreamResult.Outputting -> {
-                            _output.emit(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, result))
-                        }
-
-                        is AgentChatStreamResult.Failing -> {
-                            val retrying = result.errors.lastOrNull()?.retrying
-                            if (retrying != null) {
-                                //即将重试
-                                _status.value = AgentStatus.RETRYING
-                                _output.emit(
-                                    AgentOutput.StreamMessage(
-                                        AgentOutput.StreamMessage.Status.RETRYING,
-                                        result
-                                    )
-                                )
-                            } else {
-                                //重试次数耗尽
-                                _status.value = AgentStatus.ERROR
-                                _output.emit(
-                                    AgentOutput.Error(
-                                        result.errors.lastOrNull()?.content ?: "All retries exhausted",
-                                        AgentOutput.Error.Type.LLM
-                                    )
-                                )
-                            }
-                        }
-
-                        is AgentChatStreamResult.Finished -> {
-                            handleFinished(result.result)
-                        }
-                    }
-                }
-            } catch (e: CancellationException) {
-                //协程取消
-                _status.value = AgentStatus.FREE
-            } catch (e: Exception) {
-                //捕获错误
-                _status.value = AgentStatus.ERROR
-                _output.emit(AgentOutput.Error(buildString {
-                    append(e::class.simpleName ?: e::class.qualifiedName ?: "UnknownException")
-                    e.message?.let { append(": ").append(it) }
-                    val cause = e.cause
-                    if (cause != null) append(" (caused by ").append(
-                        cause::class.simpleName ?: cause::class.qualifiedName
-                    ).append(")")
-                }, AgentOutput.Error.Type.LLM))
-            } finally {
-                //重置状态
-                if (_status.value == AgentStatus.PROCESSING || _status.value == AgentStatus.RETRYING) {
-                    _status.value = AgentStatus.FREE
-                }
-            }
-        }
-    }
-
-    private suspend fun handleFinished(result: AgentChatStreamResult.Finished.Result) {
-        val updatedRound = currentContext.currentRound?.copy(
-            assistantMessage = result.context,
-            pendingToolCalls = result.toolCalls
-        )
-        currentContext = currentContext.copy(currentRound = updatedRound)
-
-        _output.emit(
-            AgentOutput.StreamMessage(
-                AgentOutput.StreamMessage.Status.FINISHED,
-                AgentChatStreamResult.Finished(result)
+            //更新状态
+            _status.value = AgentStatus.PROCESSING
+            //准备请求
+            val request = AgentChatRequest(
+                model = currentModel,
+                fallbackModels = currentFallbackModels,
+                thinking = currentThinking,
+                tools = null,
+                context = currentContext
             )
-        )
-
-        if (!result.toolCalls.isNullOrEmpty()) {
-            _status.value = AgentStatus.TOOL_CALLING
-            _output.emit(AgentOutput.ToolCallRequest(result.toolCalls))
-        } else {
-            _status.value = AgentStatus.FREE
+            //调用LLM并收集输出
+            when (val result = streamProcessor.process(request, currentContext)) {
+                is StreamProcessResult.Completed -> _status.value = AgentStatus.FREE
+                is StreamProcessResult.ToolCallsRequired -> _status.value = AgentStatus.TOOL_CALLING
+                is StreamProcessResult.Cancelled -> _status.value = AgentStatus.FREE
+                is StreamProcessResult.Failed -> _status.value = AgentStatus.ERROR
+            }
         }
     }
 
