@@ -1,6 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.data.database.settings
 
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.*
 
 object ConfigTable : Table("core_settings") {
     val keyName = varchar("key_name", 255)

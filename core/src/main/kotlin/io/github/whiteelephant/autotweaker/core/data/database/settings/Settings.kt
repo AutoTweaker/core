@@ -1,11 +1,10 @@
 package io.github.whiteelephant.autotweaker.core.data.database.settings
 
 import io.github.whiteelephant.autotweaker.core.data.database.store.h2.H2DatabaseStore
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.upsert
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 
 object Settings {
     private val store = H2DatabaseStore()

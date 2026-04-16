@@ -3,7 +3,7 @@ package io.github.whiteelephant.autotweaker.core.data.database.store.h2
 import io.github.whiteelephant.autotweaker.core.data.database.store.DatabaseStore
 import java.nio.file.Files
 import java.nio.file.Path
-import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.v1.jdbc.Database
 
 class H2DatabaseStore : DatabaseStore {
     override fun connect(dbName: String) {

@@ -1,7 +1,7 @@
 package io.github.whiteelephant.autotweaker.core.data.database.settings
 
-import org.jetbrains.exposed.sql.statements.UpdateBuilder
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 
 fun ConfigTable.fillColumn(it: UpdateBuilder<*>, value: Any) {
     it[valString] = null
