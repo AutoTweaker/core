@@ -22,7 +22,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation(kotlin("test"))
-    testImplementation("io.mockk:mockk:1.13.16")
+    testImplementation("io.mockk:mockk:1.14.9")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     implementation("com.google.auto.service:auto-service-annotations:1.1.1")
