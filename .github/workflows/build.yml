@@ -16,8 +16,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Enable toolchain auto-download
-        run: sed -i 's/org.gradle.java.installations.auto-download=false/org.gradle.java.installations.auto-download=true/' gradle.properties
-
       - name: Build
         run: ./gradlew build
