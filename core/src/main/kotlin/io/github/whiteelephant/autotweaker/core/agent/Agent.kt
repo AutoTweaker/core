@@ -3,12 +3,12 @@ package io.github.whiteelephant.autotweaker.core.agent
 import io.github.whiteelephant.autotweaker.core.Base64
 import io.github.whiteelephant.autotweaker.core.agent.llm.*
 import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingItem
+import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingKey
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlin.time.Clock
 
-//TODO 在任何状态变为FREE之前，确保currentRound移动到historyRounds
 //TODO 完善handleCommand处理全部指令
 //TODO Stop应为终止并回到FREE，Cancel应为中断工具运行或compact但继续推理
 //TODO 通过Retry重试出错时消息，明确区分出ERROR与FREE状态
@@ -87,6 +87,7 @@ class Agent(
 
             AgentCommand.Stop -> {
                 reasoningJob?.cancel()
+                archiveCurrentRound()
                 _status.value = AgentStatus.FREE
             }
 
@@ -122,9 +123,17 @@ class Agent(
             )
             //调用LLM并收集输出
             when (val result = streamProcessor.process(request, currentContext)) {
-                is StreamProcessResult.Completed -> _status.value = AgentStatus.FREE
+                is StreamProcessResult.Completed -> {
+                    archiveCurrentRound()
+                    _status.value = AgentStatus.FREE
+                }
+
                 is StreamProcessResult.ToolCallsRequired -> _status.value = AgentStatus.TOOL_CALLING
-                is StreamProcessResult.Cancelled -> _status.value = AgentStatus.FREE
+                is StreamProcessResult.Cancelled -> {
+                    archiveCurrentRound()
+                    _status.value = AgentStatus.FREE
+                }
+
                 is StreamProcessResult.Failed -> _status.value = AgentStatus.ERROR
             }
         }
@@ -132,5 +141,78 @@ class Agent(
 
     fun dispatch(command: AgentCommand) {
         commandChannel.trySend(command)
+    }
+
+    private fun archiveCurrentRound() {
+        val round = currentContext.currentRound ?: return
+
+        //LLM推理时
+        if (round.assistantMessage == null) {
+            //新round
+            if (round.turns.isNullOrEmpty()) {
+                currentContext = currentContext.copy(currentRound = null)
+                return
+            }
+            //已有工具调用（请求-响应）的round
+            val completed = AgentContext.CompletedRound(
+                userMessage = round.userMessage,
+                turns = round.turns,
+                finalAssistantMessage = null,
+            )
+            currentContext = currentContext.copy(
+                currentRound = null,
+                historyRounds = currentContext.historyRounds.orEmpty() + completed,
+            )
+            return
+        }
+
+        //有未处理工具调用
+        val canceledToolTurns = round.pendingToolCalls?.map { call ->
+            AgentContext.Turn(
+                assistantMessage = null,
+                tools = listOf(
+                    AgentContext.Message.Tool(
+                        name = call.name,
+                        call = AgentContext.Message.Tool.Call(
+                            arguments = call.arguments,
+                            timestamp = call.timestamp,
+                            model = call.model,
+                        ),
+                        callId = call.callId,
+                        result = AgentContext.Message.Tool.Result(
+                            content = toolCanceledResponse,
+                            timestamp = Clock.System.now(),
+                            status = AgentContext.Message.Tool.Result.Status.CANCELLED,
+                        ),
+                    )
+                ),
+            )
+        }
+
+        val allTurns = buildList {
+            round.turns?.let { addAll(it) }
+            canceledToolTurns?.let { addAll(it) }
+        }.ifEmpty { null }
+
+        val completed = AgentContext.CompletedRound(
+            userMessage = round.userMessage,
+            turns = allTurns,
+            finalAssistantMessage = round.assistantMessage,
+        )
+        currentContext = currentContext.copy(
+            currentRound = null,
+            historyRounds = currentContext.historyRounds.orEmpty() + completed,
+        )
+    }
+
+    private val toolCanceledResponse: String by lazy {
+        val item = settings.find { it.key == TOOL_CANCELED_KEY }
+            ?: throw IllegalStateException("Setting not found: $TOOL_CANCELED_KEY")
+        @Suppress("UNCHECKED_CAST")
+        (item as SettingItem<String>).value
+    }
+
+    companion object {
+        private val TOOL_CANCELED_KEY = SettingKey("core.agent.tool.response.canceled")
     }
 }

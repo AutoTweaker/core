@@ -4,9 +4,7 @@ object CoreConfigRegistry {
     private val _items = mutableMapOf<String, SettingItem<*>>()
 
     init {
-        // 注册全部配置项
-        register("core.tool.read", "example")
-        register("core.tool.write", "example")
+        register("core.agent.tool.response.canceled", "工具调用已取消")
     }
 
     private fun <T : Any> register(key: String, default: T) {
