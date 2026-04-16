@@ -15,6 +15,8 @@ import kotlin.time.Clock
 //TODO for (command in commandChannel) 应该区分优先级，例如新的Stop比正在等待的SendMessage优先级高，另外确保Stop/Cancel类指令能立即响应不被阻塞
 //TODO 实现工具调用相关支持，分离出agent.tool模块专门准备工具依赖，实现工具自动审批
 //TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
+//TODO AgentContext的生命周期管理，应该抽成一个独立组件AgentContextManager
+//TODO 封装从settings取值的逻辑
 
 class Agent(
     context: AgentContext,
@@ -69,6 +71,7 @@ class Agent(
         }
     }
 
+    //处理输入
     private suspend fun handleCommand(command: AgentCommand) {
         when (command) {
             is AgentCommand.SendMessage -> {
@@ -96,6 +99,7 @@ class Agent(
         }
     }
 
+    //处理用户消息
     private suspend fun processUserMessage(content: String, images: List<Base64>? = null) {
         if (_status.value != AgentStatus.FREE) return
 
@@ -205,6 +209,7 @@ class Agent(
         )
     }
 
+    //TODO 在data模块实现从列表快速取值的方法
     private val toolCanceledResponse: String by lazy {
         val item = settings.find { it.key == TOOL_CANCELED_KEY }
             ?: throw IllegalStateException("Setting not found: $TOOL_CANCELED_KEY")
