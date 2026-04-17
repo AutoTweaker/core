@@ -10,6 +10,6 @@ allprojects {
 }
 
 subprojects {
-    group = "io.github.whiteelephant.autotweaker"
+    group = "io.github.autotweaker"
     version = "1.0.0"
 }

@@ -6,7 +6,7 @@ plugins {
 }
 
 application {
-    mainClass = "io.github.whiteelephant.autotweaker.core.MainKt"
+    mainClass = "io.github.autotweaker.core.MainKt"
 }
 
 dependencies {
