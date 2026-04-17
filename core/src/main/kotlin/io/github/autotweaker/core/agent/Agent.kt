@@ -5,6 +5,7 @@ import io.github.autotweaker.core.agent.llm.*
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.data.settings.getValue
+import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -25,6 +26,7 @@ class Agent(
     fallbackModels: List<Model>?,
     thinking: Boolean,
     settings: List<SettingItem>,
+    tools: List<Tool<*, *>>
 ) {
     //上下文
     private var currentContext: AgentContext = context
@@ -116,34 +118,65 @@ class Agent(
             currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null)
         )
 
-        //调用LLM
+        //从当前状态继续工作
+        resumeFromCurrentState()
+    }
+
+    /**
+     * 从当前上下文状态继续工作
+     * 判断下一步动作（请求LLM或执行工具）并分发
+     */
+    private fun resumeFromCurrentState() {
+        when (val action = detectNextAction()) {
+            NextAction.IDLE -> {
+                _status.value = AgentStatus.FREE
+            }
+
+            NextAction.REQUEST_LLM -> requestLlm()
+            NextAction.EXECUTE_TOOLS -> executeTools()
+        }
+    }
+
+    /** 根据当前上下文状态判断下一步动作 */
+    private fun detectNextAction(): NextAction {
+        val round = currentContext.currentRound ?: return NextAction.IDLE
+        if (round.pendingToolCalls != null) return NextAction.EXECUTE_TOOLS
+        if (round.turns?.lastOrNull()?.tools?.isNotEmpty() == true) return NextAction.REQUEST_LLM
+        if (round.turns == null) return NextAction.REQUEST_LLM
+        error("Unknown context state")
+    }
+
+    /** 请求LLM */
+    private fun requestLlm() {
         reasoningJob = scope.launch {
-            //更新状态
             _status.value = AgentStatus.PROCESSING
-            //准备请求
             val request = AgentChatRequest(
                 model = currentModel,
                 fallbackModels = currentFallbackModels,
                 thinking = currentThinking,
-                tools = null,
+                tools = null, // TODO 根据上下文状态判断是否需要携带tools
                 context = currentContext
             )
-            //调用LLM并收集输出
-            when (val result = streamProcessor.process(request, currentContext)) {
-                is StreamProcessResult.Completed -> {
-                    archiveCurrentRound()
-                    _status.value = AgentStatus.FREE
-                }
-
-                is StreamProcessResult.ToolCallsRequired -> _status.value = AgentStatus.TOOL_CALLING
-                is StreamProcessResult.Cancelled -> {
-                    archiveCurrentRound()
-                    _status.value = AgentStatus.FREE
-                }
-
-                is StreamProcessResult.Failed -> _status.value = AgentStatus.ERROR
-            }
+            // TODO 调用streamProcessor处理请求
+            // TODO 处理LLM响应：更新上下文，然后resumeFromCurrentState()
         }
+    }
+
+    /** 执行工具调用 */
+    private fun executeTools() {
+        scope.launch {
+            _status.value = AgentStatus.TOOL_CALLING
+            // TODO 执行pendingToolCalls
+            // TODO 将结果写入Turn.tools，清空pendingToolCalls
+            // TODO 然后resumeFromCurrentState()
+        }
+    }
+
+    /** 下一步动作枚举 */
+    private enum class NextAction {
+        IDLE,
+        REQUEST_LLM,
+        EXECUTE_TOOLS,
     }
 
     fun dispatch(command: AgentCommand) {
