@@ -59,6 +59,9 @@ class Agent(
     //控制输入
     private val commandChannel = Channel<AgentCommand>(Channel.UNLIMITED)
 
+    //工作触发信号
+    private val workTrigger = Channel<Unit>(Channel.CONFLATED)
+
     //llm输出转agentOutput
     private val streamProcessor = AgentStreamProcessor(
         output = _output,
@@ -73,10 +76,16 @@ class Agent(
     }
 
     private fun startEventLoop() {
+        // 监控输入
         scope.launch {
-            //监控输入
             for (command in commandChannel) {
                 handleCommand(command)
+            }
+        }
+        // 监控工作触发信号
+        scope.launch {
+            for (signal in workTrigger) {
+                resumeFromCurrentState()
             }
         }
     }
@@ -124,7 +133,7 @@ class Agent(
         )
 
         //从当前状态继续工作
-        resumeFromCurrentState()
+        workTrigger.trySend(Unit)
     }
 
     /**
@@ -174,8 +183,26 @@ class Agent(
                 },
                 context = currentContext
             )
-            // TODO 调用streamProcessor处理请求
-            // TODO 处理LLM响应：更新上下文，然后resumeFromCurrentState()
+            when (val result = streamProcessor.process(request, currentContext)) {
+                is StreamProcessResult.Completed -> {
+                    archiveCurrentRound()
+                    _status.value = AgentStatus.FREE
+                }
+
+                is StreamProcessResult.ToolCallsRequired -> {
+                    // 状态由executeTools根据是否需要审批决定
+                    workTrigger.trySend(Unit)
+                }
+
+                is StreamProcessResult.Cancelled -> {
+                    archiveCurrentRound()
+                    _status.value = AgentStatus.FREE
+                }
+
+                is StreamProcessResult.Failed -> {
+                    _status.value = AgentStatus.ERROR
+                }
+            }
         }
     }
 
@@ -207,7 +234,7 @@ class Agent(
             _status.value = AgentStatus.TOOL_CALLING
             // TODO 执行pendingToolCalls
             // TODO 将结果写入Turn.tools，清空pendingToolCalls
-            // TODO 然后resumeFromCurrentState()
+            // TODO 然后workTrigger.trySend(Unit)
         }
     }
 
@@ -225,30 +252,16 @@ class Agent(
     private fun archiveCurrentRound() {
         val round = currentContext.currentRound ?: return
 
-        //LLM推理时
-        if (round.assistantMessage == null) {
-            //新round
-            if (round.turns.isNullOrEmpty()) {
-                currentContext = currentContext.copy(currentRound = null)
-                return
-            }
-            //已有工具调用（请求-响应）的round
-            val completed = AgentContext.CompletedRound(
-                userMessage = round.userMessage,
-                turns = round.turns,
-                finalAssistantMessage = null,
-            )
-            currentContext = currentContext.copy(
-                currentRound = null,
-                historyRounds = currentContext.historyRounds.orEmpty() + completed,
-            )
+        //新round，无任何内容（无assistantMessage、无turns、无pendingToolCalls）
+        if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
+            currentContext = currentContext.copy(currentRound = null)
             return
         }
 
-        //有未处理工具调用
+        //将未处理的pendingToolCalls转为CANCELLED的Turn
         val canceledToolTurns = round.pendingToolCalls?.map { call ->
             AgentContext.Turn(
-                assistantMessage = null,
+                assistantMessage = round.assistantMessage,
                 tools = listOf(
                     AgentContext.Message.Tool(
                         name = call.name,

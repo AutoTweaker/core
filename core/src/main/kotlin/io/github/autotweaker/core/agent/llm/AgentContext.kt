@@ -79,7 +79,7 @@ data class AgentContext(
     }
 
     data class Turn(
-        val assistantMessage: Message.Assistant,
+        val assistantMessage: Message.Assistant?,
         val tools: List<Message.Tool>,
     )
 }
