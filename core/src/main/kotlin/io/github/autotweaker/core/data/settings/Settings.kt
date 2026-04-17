@@ -33,16 +33,28 @@ object Settings {
         }
     }
 
-    fun get(key: String): SettingItem.Value {
-        CoreConfigRegistry.getItem(key)
-            ?: throw IllegalArgumentException("Key '$key' is not registered")
+    fun get(key: SettingKey): SettingItem.Value {
+        CoreConfigRegistry.getItem(key.value)
+            ?: throw IllegalArgumentException("Key '${key.value}' is not registered")
 
         return transaction {
             val row = ConfigTable.selectAll()
-                .where { ConfigTable.keyName eq key }
+                .where { ConfigTable.keyName eq key.value }
                 .single()
             ConfigTable.getValueFromRow(row)
-                ?: throw IllegalStateException("Failed to parse value for key '$key'")
+                ?: throw IllegalStateException("Failed to parse value for key '${key.value}'")
+        }
+    }
+
+    fun getAll(): List<SettingItem> {
+        return transaction {
+            ConfigTable.selectAll().map { row ->
+                val key = SettingKey(row[ConfigTable.keyName])
+                val value = ConfigTable.getValueFromRow(row)
+                    ?: throw IllegalStateException("Failed to parse value for key '${key.value}'")
+                val description = row[ConfigTable.description]
+                SettingItem(key, value, description)
+            }
         }
     }
 

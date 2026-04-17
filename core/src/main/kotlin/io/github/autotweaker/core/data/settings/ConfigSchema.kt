@@ -14,6 +14,7 @@ object ConfigTable : Table("core_settings") {
     override val primaryKey = PrimaryKey(keyName)
 }
 
+@Serializable
 data class SettingItem(
     val key: SettingKey,
     val value: Value,
@@ -126,4 +127,9 @@ data class SettingItem(
             }
         }
     }
+}
+
+fun List<SettingItem>.getValue(key: SettingKey): SettingItem.Value {
+    return find { it.key == key }?.value
+        ?: throw IllegalArgumentException("Setting not found: ${key.value}")
 }

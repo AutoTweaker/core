@@ -20,8 +20,3 @@ object CoreConfigRegistry {
     fun getItem(key: String): SettingItem? = _items.find { it.key.value == key }
     fun getAllItems(): Collection<SettingItem> = _items
 }
-
-fun List<SettingItem>.getValue(key: SettingKey): SettingItem.Value {
-    return find { it.key == key }?.value
-        ?: throw IllegalArgumentException("Setting not found: ${key.value}")
-}

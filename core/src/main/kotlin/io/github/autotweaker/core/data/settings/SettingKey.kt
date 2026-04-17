@@ -1,6 +1,9 @@
 package io.github.autotweaker.core.data.settings
 
+import kotlinx.serialization.Serializable
+
 @JvmInline
+@Serializable
 value class SettingKey private constructor(val value: String) {
     companion object {
         private val SEGMENT_PATTERN = Regex("^[a-z0-9]{2,}$")
