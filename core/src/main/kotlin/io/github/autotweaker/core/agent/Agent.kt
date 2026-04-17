@@ -3,6 +3,7 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.*
 import io.github.autotweaker.core.data.settings.SettingItem
+import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.data.settings.getValue
 import io.github.autotweaker.core.tool.Tool
@@ -26,12 +27,13 @@ class Agent(
     fallbackModels: List<Model>?,
     thinking: Boolean,
     settings: List<SettingItem>,
-    tools: List<Tool<*, *>>
+    tools: List<Tool<*, *>>,
 ) {
     //上下文
     private var currentContext: AgentContext = context
 
     private val _settings = settings
+    private val _tools = tools
 
     //模型
     private var currentModel: Model = model
@@ -154,12 +156,44 @@ class Agent(
                 model = currentModel,
                 fallbackModels = currentFallbackModels,
                 thinking = currentThinking,
-                tools = null, // TODO 根据上下文状态判断是否需要携带tools
+                tools = _tools.takeIf { it.isNotEmpty() }?.let { toolList ->
+                    toolList.flatMap<Tool<*, *>, ChatRequest.Tool> { tool ->
+                        tool.functions.map { func ->
+                            ChatRequest.Tool(
+                                name = func.name,
+                                description = func.description,
+                                parameters = func.parameters.toChatRequestParameters(),
+                            )
+                        }
+                    }
+                },
                 context = currentContext
             )
             // TODO 调用streamProcessor处理请求
             // TODO 处理LLM响应：更新上下文，然后resumeFromCurrentState()
         }
+    }
+
+    /** 将Tool.Function的parameters转换为ChatRequest.Tool.Parameters */
+    private fun Map<String, Tool.Function.Property>.toChatRequestParameters(): ChatRequest.Tool.Parameters {
+        val properties = mapValues { (_, prop) ->
+            ChatRequest.Tool.Parameters.Property(
+                type = when (prop.value) {
+                    is Tool.Function.Property.Value.StringValue -> ChatRequest.Tool.Parameters.Property.Type.STRING
+                    is Tool.Function.Property.Value.NumberValue -> ChatRequest.Tool.Parameters.Property.Type.NUMBER
+                    is Tool.Function.Property.Value.IntegerValue -> ChatRequest.Tool.Parameters.Property.Type.INTEGER
+                    is Tool.Function.Property.Value.BooleanValue -> ChatRequest.Tool.Parameters.Property.Type.BOOLEAN
+                    is Tool.Function.Property.Value.ArrayValue -> ChatRequest.Tool.Parameters.Property.Type.ARRAY
+                    is Tool.Function.Property.Value.ObjectValue -> ChatRequest.Tool.Parameters.Property.Type.OBJECT
+                },
+                description = prop.description,
+                enum = when (val v = prop.value) {
+                    is Tool.Function.Property.Value.StringValue -> v.enum
+                },
+            )
+        }
+        val required = filter { it.value.required }.keys.toList().ifEmpty { null }
+        return ChatRequest.Tool.Parameters(properties = properties, required = required)
     }
 
     /** 执行工具调用 */
