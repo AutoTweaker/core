@@ -29,6 +29,8 @@ class Agent(
     //上下文
     private var currentContext: AgentContext = context
 
+    private val _settings = settings
+
     //模型
     private var currentModel: Model = model
     private var currentFallbackModels: List<Model>? = fallbackModels
@@ -185,7 +187,7 @@ class Agent(
                         ),
                         callId = call.callId,
                         result = AgentContext.Message.Tool.Result(
-                            content = toolCanceledResponse,
+                            content = (_settings.getValue(TOOL_CANCELED_KEY) as SettingItem.Value.ValString).value,
                             timestamp = Clock.System.now(),
                             status = AgentContext.Message.Tool.Result.Status.CANCELLED,
                         ),
@@ -208,10 +210,6 @@ class Agent(
             currentRound = null,
             historyRounds = currentContext.historyRounds.orEmpty() + completed,
         )
-    }
-
-    private val toolCanceledResponse by lazy {
-        (settings.getValue(TOOL_CANCELED_KEY) as SettingItem.Value.ValString).value
     }
 
     companion object {
