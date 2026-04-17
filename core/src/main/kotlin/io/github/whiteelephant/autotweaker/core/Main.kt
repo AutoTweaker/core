@@ -10,13 +10,17 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
 import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.Model.TokenPrice
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import kotlin.time.Clock
 import kotlin.time.Instant
 import java.time.ZoneId
 import java.util.Currency
 
+private val logger = LoggerFactory.getLogger("io.github.whiteelephant.autotweaker.core.MainKt")
+
 fun main() {
+    logger.info("AutoTweaker 启动中...")
     val apiKey = System.getenv("MIMO_API_KEY")
         ?: throw IllegalStateException("Please set your MiMo API key as an environment variable.")
 
@@ -160,4 +164,5 @@ fun main() {
             }
         }
     }
+    logger.info("AutoTweaker 执行完成")
 }
