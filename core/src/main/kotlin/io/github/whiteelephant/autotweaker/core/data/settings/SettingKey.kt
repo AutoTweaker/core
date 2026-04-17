@@ -1,4 +1,4 @@
-package io.github.whiteelephant.autotweaker.core.data.database.settings
+package io.github.whiteelephant.autotweaker.core.data.settings
 
 @JvmInline
 value class SettingKey private constructor(val value: String) {

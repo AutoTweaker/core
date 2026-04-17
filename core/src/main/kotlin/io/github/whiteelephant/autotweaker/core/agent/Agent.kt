@@ -2,8 +2,9 @@ package io.github.whiteelephant.autotweaker.core.agent
 
 import io.github.whiteelephant.autotweaker.core.Base64
 import io.github.whiteelephant.autotweaker.core.agent.llm.*
-import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingItem
-import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingKey
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingKey
+import io.github.whiteelephant.autotweaker.core.data.settings.getValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -23,7 +24,7 @@ class Agent(
     model: Model,
     fallbackModels: List<Model>?,
     thinking: Boolean,
-    settings: List<SettingItem<*>>,
+    settings: List<SettingItem>,
 ) {
     //上下文
     private var currentContext: AgentContext = context
@@ -209,12 +210,8 @@ class Agent(
         )
     }
 
-    //TODO 在data模块实现从列表快速取值的方法
-    private val toolCanceledResponse: String by lazy {
-        val item = settings.find { it.key == TOOL_CANCELED_KEY }
-            ?: throw IllegalStateException("Setting not found: $TOOL_CANCELED_KEY")
-        @Suppress("UNCHECKED_CAST")
-        (item as SettingItem<String>).value
+    private val toolCanceledResponse by lazy {
+        (settings.getValue(TOOL_CANCELED_KEY) as SettingItem.Value.ValString).value
     }
 
     companion object {

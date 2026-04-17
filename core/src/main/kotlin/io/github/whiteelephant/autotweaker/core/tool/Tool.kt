@@ -1,6 +1,6 @@
 package io.github.whiteelephant.autotweaker.core.tool
 
-import io.github.whiteelephant.autotweaker.core.data.database.settings.SettingItem
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 
 interface Tool<in I : ToolInput, out O : ToolOutput> {

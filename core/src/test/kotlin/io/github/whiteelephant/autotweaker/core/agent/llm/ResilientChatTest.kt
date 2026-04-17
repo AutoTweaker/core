@@ -3,9 +3,10 @@ package io.github.whiteelephant.autotweaker.core.agent.llm
 import io.github.whiteelephant.autotweaker.core.Base64
 import io.github.whiteelephant.autotweaker.core.Price
 import io.github.whiteelephant.autotweaker.core.Url
-import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.ErrorHandlingRule
-import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.ErrorHandlingRule.RecoveryStrategy
-import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.Model.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.ErrorHandlingRule
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.ErrorHandlingRule.RecoveryStrategy
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.Model.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.Model.TokenPrice.PriceTier
 import io.github.whiteelephant.autotweaker.core.llm.ChatMessage
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import io.github.whiteelephant.autotweaker.core.llm.ChatResult

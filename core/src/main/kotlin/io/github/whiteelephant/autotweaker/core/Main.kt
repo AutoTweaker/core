@@ -7,7 +7,8 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 import io.github.whiteelephant.autotweaker.core.agent.llm.agentChat
 import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
-import io.github.whiteelephant.autotweaker.core.data.json.model.Provider.Model.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.Model.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.Model.TokenPrice.PriceTier
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -36,14 +37,14 @@ fun main() {
         maxOutputTokens = 64_000,
         price = TokenPrice(
             inputPrice = listOf(
-                TokenPrice.PriceTier(
+                PriceTier(
                     fromTokens = 0,
                     price = Price(BigDecimal("0.70"), Currency.getInstance("CNY")),
                     cachedPrice = Price(BigDecimal("0.07"), Currency.getInstance("CNY")),
                 ),
             ),
             outputPrice = listOf(
-                TokenPrice.PriceTier(
+                PriceTier(
                     fromTokens = 0,
                     price = Price(BigDecimal("2.10"), Currency.getInstance("CNY")),
                 ),
@@ -67,14 +68,14 @@ fun main() {
         maxOutputTokens = 64_000,
         price = TokenPrice(
             inputPrice = listOf(
-                TokenPrice.PriceTier(
+                PriceTier(
                     fromTokens = 0,
                     price = Price(BigDecimal("0.70"), Currency.getInstance("CNY")),
                     cachedPrice = Price(BigDecimal("0.07"), Currency.getInstance("CNY")),
                 ),
             ),
             outputPrice = listOf(
-                TokenPrice.PriceTier(
+                PriceTier(
                     fromTokens = 0,
                     price = Price(BigDecimal("2.10"), Currency.getInstance("CNY")),
                 ),
