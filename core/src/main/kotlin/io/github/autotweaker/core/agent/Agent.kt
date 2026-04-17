@@ -221,6 +221,7 @@ class Agent(
                 description = prop.description,
                 enum = when (val v = prop.value) {
                     is Tool.Function.Property.Value.StringValue -> v.enum
+                    else -> {}
                 },
             )
         }
