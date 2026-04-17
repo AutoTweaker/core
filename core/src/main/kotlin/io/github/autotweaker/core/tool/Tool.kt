@@ -1,7 +1,6 @@
 package io.github.autotweaker.core.tool
 
 import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.llm.ChatRequest
 
 interface Tool<in I : ToolInput, out O : ToolOutput> {
     val name: String
@@ -11,8 +10,25 @@ interface Tool<in I : ToolInput, out O : ToolOutput> {
     data class Function(
         val name: String,
         val description: String,
-        val parameters: ChatRequest.Tool.Parameters,
-    )
+        val parameters: Map<String, Property>,
+    ) {
+        data class Property(
+            val description: String,
+            val required: Boolean,
+            val value: Value
+        ) {
+            sealed class Value {
+                data class StringValue(val enum: List<String>? = null) : Value()
+                data class NumberValue(val enum: List<Double>? = null) : Value()
+                data class IntegerValue(val enum: List<Int>? = null) : Value()
+                data object BooleanValue : Value()
+                data class ArrayValue(val items: Value) : Value()
+                data class ObjectValue(
+                    val properties: Map<String, Property>,
+                ) : Value()
+            }
+        }
+    }
 
     suspend fun execute(
         input: I
