@@ -42,17 +42,10 @@ tasks.test {
 }
 
 // 添加序列化配置的任务
-tasks.register("serializeConfig") {
+tasks.register<JavaExec>("serializeConfig") {
     dependsOn("classes")
 
-    doLast {
-        val classpath = sourceSets.main.get().runtimeClasspath
-        val scriptFile = File(rootDir, "scripts/serialize-config.kts")
-
-        javaexec {
-            classpath = classpath
-            mainClass.set("kotlin.script.cli.MainKt")
-            args(scriptFile.absolutePath)
-        }
-    }
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("io.github.autotweaker.core.data.settings.SerializeConfigKt")
+    args("${rootDir}/AppConfig.json")
 }

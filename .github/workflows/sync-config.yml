@@ -33,17 +33,22 @@ jobs:
                   echo "${{ secrets.WEBSITE_DEPLOY_KEY }}" > ~/.ssh/deploy_key
                   chmod 600 ~/.ssh/deploy_key
                   ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+              env:
+                  GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key"
 
             - name: Clone website repository
               run: |
+                  cd .temp
                   git clone git@github.com:AutoTweaker/website.git website-repo
                   cd website-repo
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
+              env:
+                  GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key"
 
             - name: Copy config to website
               run: |
-                  cp AppConfig.json website-repo/default_config/AppConfig.json
+                  cp .temp/default_config/AppConfig.json .temp/website-repo/default_config/AppConfig.json
 
             - name: Commit and push changes
               run: |
@@ -55,3 +60,5 @@ jobs:
                     git commit -m "Update config from AutoTweaker/core"
                     git push origin main
                   fi
+              env:
+                  GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key"
