@@ -1,16 +1,23 @@
 package io.github.autotweaker.core.data.settings
 
+import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
+
 object CoreConfigRegistry {
+    private val logger = LoggerFactory.getLogger(CoreConfigRegistry::class.java)
     private val _items = mutableSetOf<SettingItem>()
 
     init {
-        register(
-            SettingItem(
-                SettingKey("core.agent.tool.response.canceled"),
-                SettingItem.Value.ValString("工具调用已取消"),
-                "工具调用被取消时的ToolResult"
-            )
-        )
+        loadDefaultConfig()
+    }
+
+    /**
+     * 从远程加载默认配置，失败时抛出异常
+     */
+    private fun loadDefaultConfig() {
+        val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
+        items.forEach { register(it) }
+        logger.info("Loaded ${items.size} config items from remote")
     }
 
     private fun register(item: SettingItem) {
