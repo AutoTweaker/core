@@ -38,6 +38,7 @@ jobs:
 
             - name: Clone website repository
               run: |
+                  mkdir .temp
                   cd .temp
                   git clone git@github.com:AutoTweaker/website.git website-repo
                   cd website-repo
