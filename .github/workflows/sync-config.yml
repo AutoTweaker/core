@@ -1,0 +1,57 @@
+name: Sync Config to Website
+
+on:
+    push:
+        branches: [ main ]
+        paths:
+            - "core/src/main/kotlin/io/github/autotweaker/core/data/settings/**"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    sync-config:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v6
+
+            - name: Build project
+              run: ./gradlew build
+
+            - name: Serialize config
+              run: ./gradlew :core:serializeConfig
+
+            - name: Setup SSH key
+              run: |
+                  mkdir -p ~/.ssh
+                  echo "${{ secrets.WEBSITE_DEPLOY_KEY }}" > ~/.ssh/deploy_key
+                  chmod 600 ~/.ssh/deploy_key
+                  ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
+            - name: Clone website repository
+              run: |
+                  git clone git@github.com:AutoTweaker/website.git website-repo
+                  cd website-repo
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            - name: Copy config to website
+              run: |
+                  cp AppConfig.json website-repo/default_config/AppConfig.json
+
+            - name: Commit and push changes
+              run: |
+                  cd website-repo
+                  git add default_config/AppConfig.json
+                  if git diff --staged --quiet; then
+                    echo "No changes to commit"
+                  else
+                    git commit -m "Update config from AutoTweaker/core"
+                    git push origin main
+                  fi

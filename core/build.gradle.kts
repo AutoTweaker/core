@@ -40,3 +40,19 @@ dependencies {
 tasks.test {
     jvmArgs("-Dnet.bytebuddy.experimental=true")
 }
+
+// 添加序列化配置的任务
+tasks.register("serializeConfig") {
+    dependsOn("classes")
+
+    doLast {
+        val classpath = sourceSets.main.get().runtimeClasspath
+        val scriptFile = File(rootDir, "scripts/serialize-config.kts")
+
+        javaexec {
+            classpath = classpath
+            mainClass.set("kotlin.script.cli.MainKt")
+            args(scriptFile.absolutePath)
+        }
+    }
+}
