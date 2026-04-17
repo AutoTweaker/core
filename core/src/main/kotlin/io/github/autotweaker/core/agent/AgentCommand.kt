@@ -24,6 +24,8 @@ sealed class AgentCommand {
         val model: Model,
         val fallbackModels: List<Model>? = null,
         val thinking: Boolean? = null,
+        val maxTokens: Int? = null,
+        val temperature: Double? = null,
     ) : AgentCommand()
 
     object Pause : AgentCommand()
