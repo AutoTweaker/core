@@ -7,8 +7,8 @@ import io.github.whiteelephant.autotweaker.core.agent.llm.AgentContext
 import io.github.whiteelephant.autotweaker.core.agent.llm.agentChat
 import io.github.whiteelephant.autotweaker.core.agent.llm.Model
 import io.github.whiteelephant.autotweaker.core.agent.llm.Provider
-import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.Model.TokenPrice
-import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Provider.Model.TokenPrice.PriceTier
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
+import io.github.whiteelephant.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier
 import io.github.whiteelephant.autotweaker.core.llm.ChatRequest
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory

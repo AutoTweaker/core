@@ -69,7 +69,7 @@ data class SettingItem(
         @Serializable
         data class Providers(
             val providers: List<Provider>
-        ) {
+        ) : Value() {
             @Serializable
             data class Provider(
                 val name: String,
