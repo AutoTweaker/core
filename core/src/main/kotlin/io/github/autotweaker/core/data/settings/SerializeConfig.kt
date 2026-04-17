@@ -3,7 +3,7 @@ package io.github.autotweaker.core.data.settings
 import kotlinx.serialization.json.*
 import java.io.File
 
-fun main() {
+fun main(args: Array<String>) {
     val items = CoreConfigRegistry.getAllItems()
     val json = Json {
         prettyPrint = false
@@ -18,7 +18,7 @@ fun main() {
         }
     })
 
-    val outputPath = ".temp/default_config/AppConfig.json"
+    val outputPath = args.firstOrNull() ?: ".temp/default_config/AppConfig.json"
     val outputFile = File(outputPath)
     outputFile.parentFile.mkdirs()
     outputFile.writeText(json.encodeToString(JsonArray.serializer(), jsonArray))

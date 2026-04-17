@@ -47,4 +47,5 @@ tasks.register<JavaExec>("serializeConfig") {
 
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("io.github.autotweaker.core.data.settings.SerializeConfigKt")
+    args("${rootProject.rootDir}/.temp/default_config/AppConfig.json")
 }

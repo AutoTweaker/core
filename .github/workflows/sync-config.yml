@@ -38,10 +38,9 @@ jobs:
 
             - name: Clone website repository
               run: |
-                  mkdir .temp
-                  cd .temp
-                  git clone git@github.com:AutoTweaker/website.git website-repo
-                  cd website-repo
+                  mkdir -p .temp
+                  git clone git@github.com:AutoTweaker/website.git .temp/website-repo
+                  cd .temp/website-repo
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
               env:
@@ -49,11 +48,12 @@ jobs:
 
             - name: Copy config to website
               run: |
+                  mkdir -p .temp/website-repo/default_config
                   cp .temp/default_config/AppConfig.json .temp/website-repo/default_config/AppConfig.json
 
             - name: Commit and push changes
               run: |
-                  cd website-repo
+                  cd .temp/website-repo
                   git add default_config/AppConfig.json
                   if git diff --staged --quiet; then
                     echo "No changes to commit"
