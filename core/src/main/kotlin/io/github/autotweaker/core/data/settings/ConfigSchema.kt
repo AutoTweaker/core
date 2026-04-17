@@ -9,13 +9,15 @@ import kotlinx.serialization.Serializable
 object ConfigTable : Table("core_settings") {
     val keyName = varchar("key_name", 255)
     val valJson = text("val_json")
+    val description = text("description")
 
     override val primaryKey = PrimaryKey(keyName)
 }
 
 data class SettingItem(
     val key: SettingKey,
-    val value: Value
+    val value: Value,
+    val description: String
 ) {
     @Serializable
     sealed class Value {

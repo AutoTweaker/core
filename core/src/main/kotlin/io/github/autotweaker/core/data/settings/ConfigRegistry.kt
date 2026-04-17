@@ -1,19 +1,24 @@
 package io.github.autotweaker.core.data.settings
 
 object CoreConfigRegistry {
-    private val _items = mutableMapOf<String, SettingItem>()
+    private val _items = mutableSetOf<SettingItem>()
 
     init {
-        register("core.agent.tool.response.canceled", SettingItem.Value.ValString("工具调用已取消"))
+        register(
+            SettingItem(
+                SettingKey("core.agent.tool.response.canceled"),
+                SettingItem.Value.ValString("工具调用已取消"),
+                "工具调用被取消时的ToolResult"
+            )
+        )
     }
 
-    private fun register(key: String, default: SettingItem.Value) {
-        val item = SettingItem(SettingKey(key), default)
-        _items[key] = item
+    private fun register(item: SettingItem) {
+        _items.add(item)
     }
 
-    fun getItem(key: String): SettingItem? = _items[key]
-    fun getAllItems(): Collection<SettingItem> = _items.values
+    fun getItem(key: String): SettingItem? = _items.find { it.key.value == key }
+    fun getAllItems(): Collection<SettingItem> = _items
 }
 
 fun List<SettingItem>.getValue(key: SettingKey): SettingItem.Value {

@@ -25,6 +25,7 @@ object Settings {
                 if (!exists) {
                     ConfigTable.insert {
                         it[keyName] = item.key.value
+                        it[description] = item.description
                         fillColumn(it, item.value)
                     }
                 }
@@ -33,31 +34,34 @@ object Settings {
     }
 
     fun get(key: String): SettingItem.Value {
-        val item = CoreConfigRegistry.getItem(key)
+        CoreConfigRegistry.getItem(key)
             ?: throw IllegalArgumentException("Key '$key' is not registered")
 
         return transaction {
             val row = ConfigTable.selectAll()
                 .where { ConfigTable.keyName eq key }
-                .singleOrNull()
-
-            // 库里面有就解析，没就返回默认值
-            if (row != null) {
-                ConfigTable.getValueFromRow(row) ?: item.value
-            } else {
-                item.value
-            }
+                .single()
+            ConfigTable.getValueFromRow(row)
+                ?: throw IllegalStateException("Failed to parse value for key '$key'")
         }
     }
 
-    fun set(key: String, value: SettingItem.Value) {
-        // 校验是否在注册表里
-        CoreConfigRegistry.getItem(key) ?: throw IllegalArgumentException("Writing to unregistered key: $key")
+    fun set(item: SettingItem) {
+        // 校验是否在注册表里且数据类型匹配
+        val registered = CoreConfigRegistry.getItem(item.key.value)
+            ?: throw IllegalArgumentException("Writing to unregistered key: ${item.key.value}")
+
+        if (item.value::class != registered.value::class) {
+            throw IllegalArgumentException(
+                "Type mismatch for key '${item.key.value}': expected ${registered.value::class.simpleName}, got ${item.value::class.simpleName}"
+            )
+        }
 
         transaction {
             ConfigTable.upsert {
-                it[keyName] = key
-                fillColumn(it, value)
+                it[keyName] = item.key.value
+                it[description] = item.description
+                fillColumn(it, item.value)
             }
         }
     }
