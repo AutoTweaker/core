@@ -52,9 +52,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
         model = model.name,
         messages = messages,
         thinking = thinking,
-        maxTokens = maxTokens,
         tools = tools,
-        temperature = temperature,
     )
 }
 

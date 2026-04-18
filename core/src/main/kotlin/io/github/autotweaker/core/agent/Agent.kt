@@ -28,9 +28,6 @@ class Agent(
     thinking: Boolean,
     settings: List<SettingItem>,
     tools: List<Tool<*, *>>,
-
-    maxTokens: Int? = null,
-    temperature: Double? = null,
 ) {
     //上下文
     private var currentContext: AgentContext = context
@@ -41,8 +38,6 @@ class Agent(
     //模型
     private var currentModel = model
     private var currentFallbackModels = fallbackModels
-    private var currentMaxTokens = maxTokens
-    private var currentTemperature = temperature
     private var currentThinking: Boolean = thinking
 
     //当前推理协程
@@ -168,8 +163,6 @@ class Agent(
                 model = currentModel,
                 fallbackModels = currentFallbackModels,
                 thinking = currentThinking,
-                temperature = currentTemperature,
-                maxTokens = currentMaxTokens,
                 tools = _tools.takeIf { it.isNotEmpty() }?.let { toolList ->
                     toolList.flatMap<Tool<*, *>, ChatRequest.Tool> { tool ->
                         tool.functions.map { func ->

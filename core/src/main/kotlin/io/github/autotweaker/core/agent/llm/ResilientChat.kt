@@ -133,9 +133,13 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
     val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
     val stripPictures = !model.supportsImage &&
             messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
+    val stripThinking = !model.supportsReasoning && thinking == true
 
     return copy(
         model = model.name,
+        thinking = if (stripThinking) null else thinking,
+        temperature = model.config.temperature,
+        maxTokens = model.config.maxTokens,
         messages = messages.mapIndexed { index, msg ->
             var result = msg
             if (stripPictures && result is ChatMessage.UserMessage) {

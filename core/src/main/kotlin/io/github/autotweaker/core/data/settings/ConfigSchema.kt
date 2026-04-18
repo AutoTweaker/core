@@ -71,7 +71,7 @@ data class SettingItem(
         //数据类
         @Serializable
         data class Providers(
-            val providers: List<Provider>
+            val providers: List<Provider>?
         ) : Value() {
             @Serializable
             data class Provider(
@@ -108,6 +108,8 @@ data class SettingItem(
                     val supportsToolCalls: Boolean,
                     val supportsReasoning: Boolean,
                     val supportsImage: Boolean,
+
+                    val config: Config?,
                 ) {
                     @Serializable
                     data class TokenPrice(
@@ -123,6 +125,13 @@ data class SettingItem(
                         )
                     }
 
+                    @Serializable
+                    data class Config(
+                        val temperature: Double?,
+                        val maxTokens: Int?,
+                        val compactContextUsage: Double?,
+                        val compactTotalTokens: Double?,
+                    )
                 }
             }
         }

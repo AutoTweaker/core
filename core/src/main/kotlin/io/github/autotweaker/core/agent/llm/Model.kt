@@ -1,6 +1,7 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.core.Url
+import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.Config
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
 
@@ -15,6 +16,8 @@ data class Model(
     val supportsToolCalls: Boolean,
     val supportsReasoning: Boolean,
     val supportsImage: Boolean,
+
+    val config: Config,
 )
 
 data class Provider(

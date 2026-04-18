@@ -12,9 +12,6 @@ data class AgentChatRequest(
     val thinking: Boolean?,
     val tools: List<ChatRequest.Tool>?,
 
-    val maxTokens: Int? = null,
-    val temperature: Double? = null,
-
     val context: AgentContext,
 )
 

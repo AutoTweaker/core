@@ -5,6 +5,7 @@ import io.github.autotweaker.core.Price
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.Config
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatMessage
@@ -66,6 +67,12 @@ class ResilientChatTest {
         supportsToolCalls = false,
         supportsReasoning = supportsReasoning,
         supportsImage = supportsImage,
+        config = Config(
+            temperature = null,
+            maxTokens = null,
+            compactContextUsage = null,
+            compactTotalTokens = null,
+        ),
     )
 
     private fun successResult(content: String = "ok") = ChatResult(
@@ -331,7 +338,13 @@ class ResilientChatTest {
         model: Model,
         messages: List<ChatMessage>,
         thinking: Boolean? = null,
-    ): List<ChatMessage> {
+    ): List<ChatMessage> = capturedRequest(model, messages, thinking).messages
+
+    private suspend fun capturedRequest(
+        model: Model,
+        messages: List<ChatMessage>,
+        thinking: Boolean? = null,
+    ): ChatRequest {
         var captured: ChatRequest? = null
         coEvery { forwardChat(any(), any(), any(), any()) } answers {
             captured = arg(3)
@@ -342,7 +355,7 @@ class ResilientChatTest {
             fallbackModels = emptyList(),
             request = ChatRequest(model = "dummy", messages = messages, thinking = thinking),
         ).toList()
-        return captured!!.messages
+        return captured!!
     }
 
     @Test
@@ -406,6 +419,50 @@ class ResilientChatTest {
         )
 
         assertEquals("r1", msgs[1].content)
+    }
+
+    @Test
+    fun `不支持思考的模型剔除thinking字段`() = runTest {
+        val req = capturedRequest(
+            model = model("m1", supportsReasoning = false),
+            thinking = true,
+            messages = listOf(userMsg("hello")),
+        )
+
+        assertEquals(null, req.thinking)
+    }
+
+    @Test
+    fun `支持思考的模型保留thinking字段`() = runTest {
+        val req = capturedRequest(
+            model = model("m1", supportsReasoning = true),
+            thinking = true,
+            messages = listOf(userMsg("hello")),
+        )
+
+        assertEquals(true, req.thinking)
+    }
+
+    @Test
+    fun `thinking为false时不剔除`() = runTest {
+        val req = capturedRequest(
+            model = model("m1", supportsReasoning = false),
+            thinking = false,
+            messages = listOf(userMsg("hello")),
+        )
+
+        assertEquals(false, req.thinking)
+    }
+
+    @Test
+    fun `thinking为null时不剔除`() = runTest {
+        val req = capturedRequest(
+            model = model("m1", supportsReasoning = false),
+            thinking = null,
+            messages = listOf(userMsg("hello")),
+        )
+
+        assertEquals(null, req.thinking)
     }
 
     // endregion
