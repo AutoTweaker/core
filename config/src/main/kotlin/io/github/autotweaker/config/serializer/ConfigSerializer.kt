@@ -19,8 +19,8 @@ val defaultItems: List<SettingItem> = listOf(
         "工具调用缺少属性时的ToolResult"
     ),
     SettingItem(
-        SettingKey("core.agent.tool.response.property.missing"),
-        SettingItem.Value.ValString("%s工具的属性%s必须为%s"),
+        SettingKey("core.agent.tool.response.property.error"),
+        SettingItem.Value.ValString("%s工具的属性%s必须为%s类型"),
         "工具调用属性格式错误时的ToolResult"
     ),
     //read工具相关配置
@@ -136,22 +136,22 @@ val defaultItems: List<SettingItem> = listOf(
         "read工具最大允许字符数，超出会截断"
     ),
     SettingItem(
-        SettingKey("core.tool.read.setting.max.lines"),
+        SettingKey("core.tool.read.function.summarize.setting.max.lines"),
         SettingItem.Value.ValInt(5000),
         "read_summarize工具最大允许行数"
     ),
     SettingItem(
-        SettingKey("core.tool.read.setting.max.chars"),
+        SettingKey("core.tool.read.function.summarize.setting.max.chars"),
         SettingItem.Value.ValInt(200000),
         "read_summarize工具最大允许字符数，超出会截断"
     ),
     SettingItem(
-        SettingKey("core.tool.read.setting.max.chars"),
+        SettingKey("core.tool.read.function.summarize.setting.min.chars"),
         SettingItem.Value.ValInt(500),
         "read_summarize工具最小允许字符数，小于此会返回错误消息"
     ),
     SettingItem(
-        SettingKey("core.tool.read.setting.max.chars"),
+        SettingKey("core.tool.read.function.unicode.setting.max.chars"),
         SettingItem.Value.ValInt(200000),
         "read_unicode工具最大允许字符数，超出会返回错误消息"
     ),
