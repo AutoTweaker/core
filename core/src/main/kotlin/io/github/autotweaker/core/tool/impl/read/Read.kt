@@ -27,7 +27,10 @@ class Read(
             Tool.Function(
                 name = "file",
                 description = str("core.tool.read.function.description.file")
-                    .format(int("core.tool.read.setting.max.chars"), int("core.tool.read.setting.max.lines")),
+                    .format(
+                        int("core.tool.read.function.file.setting.max.chars"),
+                        int("core.tool.read.function.file.setting.max.lines")
+                    ),
                 parameters = commonProperties + mapOf(
                     "line_number" to Tool.Function.Property(
                         description = str("core.tool.read.function.description.file.property.line.number"),
@@ -133,7 +136,8 @@ class Read(
                 val maxChars = args["max_chars"]!!.jsonPrimitive.int
                 if (maxChars > defaultMaxChars) {
                     return ReadOutput(
-                        str("core.tool.read.message.error.too.many.chars").format(defaultMaxChars), false
+                        str("core.tool.read.function.message.error.unicode.too.many.chars").format(defaultMaxChars),
+                        false
                     )
                 }
                 executeUnicode(fs, normalizedPath, maxChars)
@@ -217,7 +221,7 @@ class Read(
                 normalizedPath,
                 startLine,
                 endLine,
-                maxChars = int("core.tool.read.function.summarize.setting.max.chars"),
+                maxChars = maxChars,
                 truncateMessage = str("core.tool.read.function.message.summarize.input.truncate"),
                 lineNumber = false,
             )
@@ -240,7 +244,7 @@ class Read(
         val output = try {
             summarizeService.summarize(content, prompt)
         } catch (e: Exception) {
-            return ReadOutput(str("core.tool.read.function.message.error.summarize.failed"), false)
+            return ReadOutput(str("core.tool.read.function.message.error.summarize.failed").format(e.message), false)
         }
 
         val truncateMsg = str("core.tool.read.function.message.summarize.output.truncate")
