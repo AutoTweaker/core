@@ -1,4 +1,4 @@
-name: Sync Config to Website
+name: Upload Config to Website
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Serialize config
         run: ./gradlew :config:serializeConfig
 
-      - name: Sync to website
+      - name: Upload to website
         run: |
           # Setup SSH
           mkdir -p ~/.ssh
