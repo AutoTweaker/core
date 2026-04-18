@@ -1,44 +1,40 @@
 package io.github.autotweaker.core.tool.impl.read
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.core.Unicode
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.data.settings.getValue
 import io.github.autotweaker.core.tool.Tool
+import io.github.autotweaker.core.tool.get
 import kotlinx.serialization.json.*
-import java.nio.file.Files
-import java.security.MessageDigest
-import kotlin.io.path.Path
-import kotlin.io.path.exists
-import kotlin.io.path.isRegularFile
 
 @AutoService(Tool::class)
 class Read(
     private val settings: List<SettingItem>
 ) : Tool<ReadInput, ReadOutput> {
-
-    // ── Setting 便捷访问 ──────────────────────────────────────────────
-
     private inline fun <reified T : SettingItem.Value> setting(key: String): T =
         settings.getValue<T>(SettingKey(key))
 
     private fun str(key: String): String = setting<SettingItem.Value.ValString>(key).value
     private fun int(key: String): Int = setting<SettingItem.Value.ValInt>(key).value
 
-    // ── Tool 基本属性 ─────────────────────────────────────────────────
-
     override val name: String = "read"
-
     override val description: String
         get() = str("core.tool.read.description")
-
     override val functions: List<Tool.Function>
         get() = listOf(
             Tool.Function(
                 name = "file",
                 description = str("core.tool.read.function.description.file")
                     .format(int("core.tool.read.setting.max.chars"), int("core.tool.read.setting.max.lines")),
-                parameters = commonProperties,
+                parameters = commonProperties + mapOf(
+                    "line_number" to Tool.Function.Property(
+                        description = str("core.tool.read.function.description.file.property.line.number"),
+                        required = false,
+                        value = Tool.Function.Property.Value.BooleanValue,
+                    ),
+                ),
             ),
             Tool.Function(
                 name = "summarize",
@@ -60,7 +56,13 @@ class Read(
                 name = "unicode",
                 description = str("core.tool.read.function.description.unicode")
                     .format(int("core.tool.read.function.unicode.setting.max.chars")),
-                parameters = commonProperties,
+                parameters = mapOf(
+                    "file_path" to Tool.Function.Property(
+                        description = str("core.tool.read.property.description.file.path"),
+                        required = true,
+                        value = Tool.Function.Property.Value.StringValue(),
+                    ),
+                ),
             ),
         )
 
@@ -83,36 +85,82 @@ class Read(
             ),
         )
 
-    // ── 执行入口 ──────────────────────────────────────────────────────
-
     override suspend fun execute(input: ReadInput): ReadOutput {
-        val functionName = input.arguments["function_name"]?.jsonPrimitive?.content ?: "file"
+        val args = input.arguments
+        val functionName = args["function_name"]!!.jsonPrimitive.content
+        val filePath = args["file_path"]!!.jsonPrimitive.content
+        val fs = input.provider.get<FileSystemService>()
+        val normalizedPath = try {
+            fs.normalize(filePath)
+        } catch (e: Exception) {
+            return ReadOutput(str("core.tool.message.path.error"), false)
+        }
+
+        if (!fs.exists(normalizedPath)) {
+            return ReadOutput(str("core.tool.read.message.error.file.not.found"), false)
+        }
+        if (!fs.isRegularFile(normalizedPath)) {
+            return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
+        }
+
         return when (functionName) {
-            "file" -> executeFile(input)
-            "summarize" -> executeSummarize(input)
-            "unicode" -> executeUnicode(input)
-            else -> ReadOutput("Unknown function: $functionName", false)
+            "file", "summarize" -> {
+                val startLine = args["start_line"]!!.jsonPrimitive.int
+                val endLine = args["end_line"]!!.jsonPrimitive.int
+
+                if (startLine < 1) {
+                    return ReadOutput(str("core.tool.read.message.error.start.line"), false)
+                }
+                if (endLine < startLine) {
+                    return ReadOutput(str("core.tool.read.message.error.start.line.bigger.than.end.line"), false)
+                }
+
+                when (functionName) {
+                    "file" -> executeFile(input, fs, normalizedPath, startLine, endLine)
+                    "summarize" -> executeSummarize(input, fs, normalizedPath, startLine, endLine)
+                    else -> throw IllegalArgumentException("Unknown function: $functionName")
+                }
+            }
+
+            "unicode" -> executeUnicode(fs, normalizedPath)
+            else -> throw IllegalArgumentException("Unknown function: $functionName")
         }
     }
 
-    // ── file 函数 ─────────────────────────────────────────────────────
+    //read_file
+    private suspend fun executeFile(
+        input: ReadInput,
+        fs: FileSystemService,
+        normalizedPath: java.nio.file.Path,
+        startLine: Int,
+        endLine: Int,
+    ): ReadOutput {
+        val args = input.arguments
+        val lineNumber = args["line_number"]?.jsonPrimitive?.booleanOrNull ?: true
+        val content = try {
+            readFileContent(
+                fs,
+                normalizedPath,
+                startLine,
+                endLine,
+                maxChars = int("core.tool.read.setting.max.chars"),
+                truncateMessage = str("core.tool.read.function.message.file.truncate"),
+                lineNumber = lineNumber,
+            )
+        } catch (e: IllegalStateException) {
+            return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
+        }
 
-    private suspend fun executeFile(input: ReadInput): ReadOutput {
-        val result = readFileContent(
-            input,
-            maxLinesKey = "core.tool.read.setting.max.lines",
-            maxCharsKey = "core.tool.read.setting.max.chars",
-            truncateKey = "core.tool.read.function.message.file.truncate",
-        ) ?: return ReadOutput(
-            str("core.tool.read.message.error.file.can.not.read"),
-            false
-        )
+        //计算SHA256
+        val sha256 = try {
+            fs.sha256(normalizedPath)
+        } catch (e: Exception) {
+            return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
+        }
 
-        val (content, sha256, normalizedPath, startLine, endLine) = result
-
-        // 重复读取检测：文件未变更且读取范围相同或更小
+        //重复读取检测
         for (prev in input.previousReads) {
-            if (prev.filePath == normalizedPath.toString()
+            if (prev.filePath == normalizedPath
                 && prev.fileSha256 == sha256
                 && startLine >= prev.startLine
                 && endLine <= prev.endLine
@@ -121,221 +169,127 @@ class Read(
             }
         }
 
-        // 第一行为SHA256，第二行开始是文件内容
         return ReadOutput("$sha256\n$content", true)
     }
 
-    // ── summarize 函数 ────────────────────────────────────────────────
-
-    private suspend fun executeSummarize(input: ReadInput): ReadOutput {
+    //TODO read_summarize
+    private suspend fun executeSummarize(
+        input: ReadInput,
+        fs: FileSystemService,
+        normalizedPath: java.nio.file.Path,
+        startLine: Int,
+        endLine: Int,
+    ): ReadOutput {
         val maxChars = int("core.tool.read.function.summarize.setting.max.chars")
         val minChars = int("core.tool.read.function.summarize.setting.min.chars")
+        val args = input.arguments
 
-        val result = readFileContent(
-            input,
-            maxLinesKey = "core.tool.read.function.summarize.setting.max.lines",
-            maxCharsKey = "core.tool.read.function.summarize.setting.max.chars",
-            truncateKey = "core.tool.read.function.message.summarize.input.truncate",
-        ) ?: return ReadOutput(
-            str("core.tool.read.message.error.file.can.not.read"),
-            false
-        )
-
-        val (content, _, _, _, _) = result
-
-        // 文件太小，无需总结，直接返回内容
-        if (content.length < minChars) {
-            return ReadOutput(content, true)
+        //读取内容
+        val content = try {
+            readFileContent(
+                fs,
+                normalizedPath,
+                startLine,
+                endLine,
+                maxChars = int("core.tool.read.function.summarize.setting.max.chars"),
+                truncateMessage = str("core.tool.read.function.message.summarize.input.truncate"),
+                lineNumber = false,
+            )
+        } catch (e: IllegalStateException) {
+            return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
         }
 
-        val prompt = input.arguments["prompt"]?.jsonPrimitive?.content
-            ?: "请总结这个文件的内容"
+        //文件太小，无法总结
+        if (content.length < minChars) {
+            return ReadOutput(
+                str("core.tool.read.function.message.error.summarize.too.small").format(content.length, minChars),
+                false
+            )
+        }
 
-        val systemPrompt = str("core.tool.read.summarize.prompt")
+        val defaultPrompt = str("core.tool.read.summarize.prompt")
+        val prompt = args["prompt"]?.jsonPrimitive?.content?.let { "$defaultPrompt\n$it" } ?: defaultPrompt
 
-        // TODO: 接入 LLM 进行总结（当前 LlmChatService 尚未实现）
+        // TODO: 接入 LLM 进行总结（LlmChatService 接口待定义）
         // val llmChat = input.provider.get<LlmChatService>()
-        // val chatRequest = ChatRequest(
-        //     model = "",
-        //     messages = listOf(
-        //         ChatMessage.SystemMessage(content = "$systemPrompt\n\n$prompt", createdAt = Clock.System.now()),
-        //         ChatMessage.UserMessage(content = content, createdAt = Clock.System.now()),
-        //     ),
-        //     thinking = false,
-        // )
-        // var summary: String? = null
-        // try {
-        //     llmChat.chat(chatRequest).collect { r ->
-        //         val msg = r.message as? ChatMessage.AssistantMessage
-        //         if (msg?.content != null) summary = msg.content
-        //     }
-        // } catch (e: Exception) {
-        //     return ReadOutput("Summarize failed: ${e.message}", false)
-        // }
-        // val output = summary ?: ""
+        // ...
 
         // 临时回退：直接返回截断内容
         val output = content
 
         val truncateMsg = str("core.tool.read.function.message.summarize.output.truncate")
         return if (output.length > maxChars) {
-            ReadOutput(output.take(maxChars) + "\n" + truncateMsg.format(output.length), true)
+            ReadOutput(output.take(maxChars) + truncateMsg.format(output.length), true)
         } else {
             ReadOutput(output, true)
         }
     }
 
-    // ── unicode 函数 ──────────────────────────────────────────────────
-
-    private suspend fun executeUnicode(input: ReadInput): ReadOutput {
-        val args = input.arguments
-        val filePath = args["file_path"]?.jsonPrimitive?.content
-            ?: return ReadOutput(
-                str("core.agent.tool.response.property.missing").format("read", "file_path"),
-                false
-            )
-        val startLine = args["start_line"]?.jsonPrimitive?.intOrNull
-            ?: return ReadOutput(
-                str("core.agent.tool.response.property.error").format("read", "start_line", "integer"),
-                false
-            )
-        val endLine = args["end_line"]?.jsonPrimitive?.intOrNull
-            ?: return ReadOutput(
-                str("core.agent.tool.response.property.error").format("read", "end_line", "integer"),
-                false
-            )
-
-        if (startLine < 1) {
-            return ReadOutput(str("core.tool.read.message.error.start.line"), false)
-        }
-        if (endLine < startLine) {
-            return ReadOutput(str("core.tool.read.message.error.end.line"), false)
-        }
-
+    //read_unicode
+    private suspend fun executeUnicode(
+        fs: FileSystemService,
+        normalizedPath: java.nio.file.Path,
+    ): ReadOutput {
         val maxChars = int("core.tool.read.function.unicode.setting.max.chars")
 
-        val path = Path(filePath)
-        if (!path.isAbsolute) {
-            return ReadOutput(str("core.tool.read.message.error.file.not.found"), false)
-        }
-
-        val normalizedPath = path.normalize()
-        if (!normalizedPath.exists()) {
-            return ReadOutput(str("core.tool.read.message.error.file.not.found"), false)
-        }
-        if (!normalizedPath.isRegularFile()) {
-            return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
-        }
-
-        val allLines: List<String> = try {
-            Files.readAllLines(normalizedPath)
+        //读取内容
+        val allUnicode: List<Unicode> = try {
+            fs.readUnicode(normalizedPath)
         } catch (e: Exception) {
             return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
         }
 
-        val totalLines = allLines.size
-        if (startLine > totalLines) {
-            return ReadOutput(str("core.tool.read.message.error.start.line"), false)
+        val truncateMsg = str("core.tool.read.function.message.error.unicode.too.many.chars").format(maxChars)
+        val selected = if (allUnicode.size > maxChars) allUnicode.take(maxChars) else allUnicode
+        val content = selected.joinToString("") { it.value }
+        return if (allUnicode.size > maxChars) {
+            ReadOutput(content + truncateMsg, true)
+        } else {
+            ReadOutput(content, true)
         }
-
-        val actualEndLine = minOf(endLine, totalLines)
-        val selectedLines = allLines.subList(startLine - 1, actualEndLine)
-
-        val sb = StringBuilder()
-        for (i in selectedLines.indices) {
-            val lineNum = startLine + i
-            sb.appendLine("Line $lineNum:")
-            for (ch in selectedLines[i]) {
-                sb.append("U+%04X ".format(ch.code))
-            }
-            sb.appendLine()
-
-            if (sb.length > maxChars) {
-                sb.appendLine(
-                    str("core.tool.read.function.message.error.unicode.too.many.chars").format(maxChars)
-                )
-                break
-            }
-        }
-
-        return ReadOutput(sb.toString().trimEnd(), true)
     }
 
-    // ── 文件读取核心 ──────────────────────────────────────────────────
-
-    /**
-     * 读取文件内容，返回 (内容, SHA256, 规范化路径, startLine, endLine) 或 null。
-     *
-     * null 表示参数缺失、文件不存在、或行数超限等不可恢复的错误。
-     * 截断属于正常行为，会在内容末尾追加截断提示。
-     */
+    //按照行号读取文件并处理截断
     private fun readFileContent(
-        input: ReadInput,
-        maxLinesKey: String,
-        maxCharsKey: String,
-        truncateKey: String,
-    ): FileReadResult? {
-        val args = input.arguments
-        val filePath = args["file_path"]?.jsonPrimitive?.content ?: return null
-        val startLine = args["start_line"]?.jsonPrimitive?.intOrNull ?: return null
-        val endLine = args["end_line"]?.jsonPrimitive?.intOrNull ?: return null
-
-        if (startLine !in 1..endLine) return null
-
-        val maxLines = int(maxLinesKey)
-        val maxChars = int(maxCharsKey)
-
-        val requestedLines = endLine - startLine + 1
-        if (requestedLines > maxLines) return null
-
-        val path = Path(filePath)
-        if (!path.isAbsolute) return null
-
-        val normalizedPath = path.normalize()
-        if (!normalizedPath.exists() || !normalizedPath.isRegularFile()) return null
-
+        fs: FileSystemService,
+        path: java.nio.file.Path,
+        startLine: Int,
+        endLine: Int,
+        maxChars: Int,
+        truncateMessage: String,
+        lineNumber: Boolean,
+    ): String {
         val allLines: List<String> = try {
-            Files.readAllLines(normalizedPath)
+            fs.readAllLines(path)
         } catch (e: Exception) {
-            return null
+            throw IllegalStateException("Failed to read", e)
         }
 
-        val fileBytes = try {
-            Files.readAllBytes(normalizedPath)
-        } catch (e: Exception) {
-            return null
-        }
-        val sha256 = MessageDigest.getInstance("SHA-256")
-            .digest(fileBytes)
-            .joinToString("") { "%02x".format(it) }
-
-        val totalLines = allLines.size
-        if (startLine > totalLines) return null
-
-        val actualEndLine = minOf(endLine, totalLines)
+        val actualEndLine = minOf(endLine, allLines.size)
         val selectedLines = allLines.subList(startLine - 1, actualEndLine)
 
         val sb = StringBuilder()
         for (i in selectedLines.indices) {
-            val lineNum = startLine + i
-            sb.appendLine("$lineNum\t${selectedLines[i]}")
+            val line = if (lineNumber) "${startLine + i}\t${selectedLines[i]}" else selectedLines[i]
+            sb.appendLine(line)
 
             if (sb.length > maxChars) {
-                sb.appendLine()
-                sb.appendLine(str(truncateKey).format(sb.length))
+                sb.append(truncateMessage.format(sb.length))
                 break
             }
         }
 
-        return FileReadResult(sb.toString().trimEnd(), sha256, normalizedPath, startLine, endLine)
+        return sb.toString().trimEnd()
     }
+}
 
-    /** readFileContent 的返回类型 */
-    private data class FileReadResult(
-        val content: String,
-        val sha256: String,
-        val normalizedPath: java.nio.file.Path,
-        val startLine: Int,
-        val endLine: Int,
-    )
+/** 文件系统服务接口，由 SimpleContainer 注入 */
+interface FileSystemService {
+    fun normalize(filePath: String): java.nio.file.Path
+    fun exists(path: java.nio.file.Path): Boolean
+    fun isRegularFile(path: java.nio.file.Path): Boolean
+    fun readUnicode(path: java.nio.file.Path): List<Unicode>
+    fun readAllLines(path: java.nio.file.Path): List<String>
+    fun readAllBytes(path: java.nio.file.Path): ByteArray
+    fun sha256(path: java.nio.file.Path): String
 }

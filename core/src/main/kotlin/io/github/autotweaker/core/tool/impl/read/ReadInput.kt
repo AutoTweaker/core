@@ -11,7 +11,7 @@ data class ReadInput(
     val previousReads: List<PreviousRead>,
 ) : ToolInput() {
     data class PreviousRead(
-        val filePath: String,
+        val filePath: java.nio.file.Path,
         val fileSha256: String,
         val startLine: Int,
         val endLine: Int,
