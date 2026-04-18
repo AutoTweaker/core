@@ -18,6 +18,8 @@ object SerializeConfig {
 
     private var cachedItems: List<SettingItem>? = null
 
+    const val SETTINGS_VERSION = "dev"
+
     /**
      * 配置项定义（配置的唯一来源）
      */
@@ -83,6 +85,9 @@ object SerializeConfig {
         HttpClient(Java).use { client ->
             val indexResponse: String = client.get(INDEX_URL).body()
             val index = json.decodeFromString<List<WebsiteIndex>>(indexResponse).first()
+            require(index.version == SETTINGS_VERSION) {
+                "Expected version '$SETTINGS_VERSION', but got '${index.version}'"
+            }
             val configResponse: String = client.get(index.defaultAppConfig).body()
             val items = json.decodeFromString(ListSerializer(SettingItem.serializer()), configResponse)
             cachedItems = items
