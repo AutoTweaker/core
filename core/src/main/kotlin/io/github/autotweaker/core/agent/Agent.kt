@@ -213,7 +213,9 @@ class Agent(
                 },
                 description = prop.description,
                 enum = when (val v = prop.value) {
-                    is Tool.Function.Property.Value.StringValue -> v.enum
+                    is Tool.Function.Property.Value.StringValue -> v.enum?.map { kotlinx.serialization.json.JsonPrimitive(it) }
+                    is Tool.Function.Property.Value.NumberValue -> v.enum?.map { kotlinx.serialization.json.JsonPrimitive(it) }
+                    is Tool.Function.Property.Value.IntegerValue -> v.enum?.map { kotlinx.serialization.json.JsonPrimitive(it) }
                     else -> null
                 },
             )

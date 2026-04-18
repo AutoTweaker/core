@@ -2,6 +2,7 @@ package io.github.autotweaker.core.llm
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.json.JsonElement
 
 data class ChatRequest(
     val model: String,
@@ -34,7 +35,7 @@ data class ChatRequest(
             data class Property(
                 val type: Type,
                 val description: String? = null,
-                val enum: List<String>? = null,
+                val enum: List<JsonElement>? = null,
                 val items: Property? = null
             ) {
                 @Serializable

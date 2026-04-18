@@ -11,6 +11,7 @@ import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Prov
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatRequest
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import kotlin.time.Clock
@@ -106,7 +107,7 @@ fun main() {
                         "unit" to ChatRequest.Tool.Parameters.Property(
                             type = ChatRequest.Tool.Parameters.Property.Type.STRING,
                             description = "温度单位",
-                            enum = listOf("celsius", "fahrenheit")
+                            enum = listOf(JsonPrimitive("celsius"), JsonPrimitive("fahrenheit"))
                         )
                     ),
                     required = listOf("city")

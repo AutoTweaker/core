@@ -29,6 +29,12 @@ val defaultItems: List<SettingItem> = listOf(
         SettingItem.Value.ValString("%s工具的属性%s必须为%s类型"),
         "工具调用属性格式错误时的ToolResult"
     ),
+    //工具模块相关配置
+    SettingItem(
+        SettingKey("core.tool.message.path.error"),
+        SettingItem.Value.ValString("提供的路径不合法，请检查提供的路径参数"),
+        "路径解析失败时的描述"
+    ),
     //read工具相关配置
     SettingItem(
         SettingKey("core.tool.read.summarize.prompt"),
@@ -60,7 +66,7 @@ val defaultItems: List<SettingItem> = listOf(
     //属性描述
     SettingItem(
         SettingKey("core.tool.read.property.description.file.path"),
-        SettingItem.Value.ValString("文件的路径，必须为**绝对路径**"),
+        SettingItem.Value.ValString("文件的路径，支持绝对路径或相对路径"),
         "read工具file_path参数的描述"
     ),
     SettingItem(
@@ -74,6 +80,11 @@ val defaultItems: List<SettingItem> = listOf(
         "read工具end_line参数的描述"
     ),
     //特定function的属性描述
+    SettingItem(
+        SettingKey("core.tool.read.function.description.file.property.line.number"),
+        SettingItem.Value.ValString("是否启用行号，默认为true，启用行号后会在每行的开头添加[行号][制表符]作为前缀，注意区分"),
+        "read_summarize工具line_number参数的描述"
+    ),
     SettingItem(
         SettingKey("core.tool.read.function.description.summarize.property.prompt"),
         SettingItem.Value.ValString("用于总结文件的提示词，调整此字段来要求总结器关注不同细节"),
@@ -107,18 +118,23 @@ val defaultItems: List<SettingItem> = listOf(
     ),
     SettingItem(
         SettingKey("core.tool.read.message.error.start.line"),
-        SettingItem.Value.ValString("start_line必须大于或等于1且为整数"),
+        SettingItem.Value.ValString("start_line必须大于或等于1"),
         "read工具start_line不合法的描述"
     ),
     SettingItem(
-        SettingKey("core.tool.read.message.error.end.line"),
-        SettingItem.Value.ValString("end_line必须大于或等于start_line且为整数"),
-        "read工具end_line不合法的描述"
+        SettingKey("core.tool.read.message.error.start.line.bigger.than.end.line"),
+        SettingItem.Value.ValString("start_line不能大于end_line"),
+        "read工具start_line大于end_line的描述"
     ),
     SettingItem(
         SettingKey("core.tool.read.function.message.error.unicode.too.many.chars"),
         SettingItem.Value.ValString("读取的字符数过多，上限为%s"),
         "read_unicode工具读取过多内容时的描述"
+    ),
+    SettingItem(
+        SettingKey("core.tool.read.function.message.error.summarize.too.small"),
+        SettingItem.Value.ValString("用于总结的字符数过少（%s），必须大于%s"),
+        "read_summarize工具总结内容过少时的描述"
     ),
     SettingItem(
         SettingKey("core.tool.read.function.message.file.truncate"),
@@ -163,7 +179,7 @@ val defaultItems: List<SettingItem> = listOf(
     ),
     SettingItem(
         SettingKey("core.tool.read.function.unicode.setting.max.chars"),
-        SettingItem.Value.ValInt(200000),
+        SettingItem.Value.ValInt(500),
         "read_unicode工具最大允许字符数，超出会返回错误消息"
     ),
 )
