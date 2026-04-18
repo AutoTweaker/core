@@ -84,7 +84,8 @@ object SerializeConfig {
 
         HttpClient(Java).use { client ->
             val indexResponse: String = client.get(INDEX_URL).body()
-            val index = json.decodeFromString<List<WebsiteIndex>>(indexResponse).first()
+            val index = json.decodeFromString<List<WebsiteIndex>>(indexResponse)
+                .first { it.defaultAppConfig.isNotBlank() }
             require(index.version == SETTINGS_VERSION) {
                 "Expected version '$SETTINGS_VERSION', but got '${index.version}'"
             }
