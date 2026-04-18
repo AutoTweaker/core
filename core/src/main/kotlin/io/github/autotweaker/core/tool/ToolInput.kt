@@ -5,5 +5,5 @@ import kotlinx.serialization.json.JsonObject
 
 abstract class ToolInput {
     abstract val arguments: JsonObject
-    abstract val provider: DependencyProvider
+    abstract val provider: SimpleContainer
 }

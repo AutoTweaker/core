@@ -109,7 +109,7 @@ data class SettingItem(
                     val supportsReasoning: Boolean,
                     val supportsImage: Boolean,
 
-                    val config: Config?,
+                    val config: Config? = null,
                 ) {
                     @Serializable
                     data class TokenPrice(

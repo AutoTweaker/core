@@ -138,8 +138,8 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
     return copy(
         model = model.name,
         thinking = if (stripThinking) null else thinking,
-        temperature = model.config.temperature,
-        maxTokens = model.config.maxTokens,
+        temperature = model.config?.temperature,
+        maxTokens = model.config?.maxTokens,
         messages = messages.mapIndexed { index, msg ->
             var result = msg
             if (stripPictures && result is ChatMessage.UserMessage) {

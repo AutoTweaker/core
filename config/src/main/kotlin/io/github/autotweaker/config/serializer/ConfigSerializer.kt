@@ -30,6 +30,11 @@ val defaultItems: List<SettingItem> = listOf(
         "工具调用属性格式错误时的ToolResult"
     ),
     //read工具相关配置
+    SettingItem(
+        SettingKey("core.tool.read.summarize.prompt"),
+        SettingItem.Value.ValString("你是文件总结助手，请根据用户输入和以下指令生成关于文件内容的摘要"),
+        "summarize功能使用的系统提示词，这段文本被安置在llm自定义指令之前"
+    ),
     //工具描述
     SettingItem(
         SettingKey("core.tool.read.description"),

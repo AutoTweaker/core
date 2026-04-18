@@ -17,7 +17,7 @@ data class Model(
     val supportsReasoning: Boolean,
     val supportsImage: Boolean,
 
-    val config: Config,
+    val config: Config? = null,
 )
 
 data class Provider(
