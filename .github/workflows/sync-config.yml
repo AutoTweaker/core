@@ -22,7 +22,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Serialize config
-        run: ./gradlew :core:serializeConfig
+        run: ./gradlew :config:serializeConfig
 
       - name: Sync to website
         run: |

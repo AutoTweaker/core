@@ -40,12 +40,3 @@ dependencies {
 tasks.test {
     jvmArgs("-Dnet.bytebuddy.experimental=true")
 }
-
-// 添加序列化配置的任务
-tasks.register<JavaExec>("serializeConfig") {
-    dependsOn("classes")
-
-    classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("io.github.autotweaker.core.data.settings.SerializeConfigKt")
-    args("${rootProject.rootDir}/.temp/default_config/AppConfig.json")
-}

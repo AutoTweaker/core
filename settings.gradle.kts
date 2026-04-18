@@ -11,4 +11,4 @@ plugins {
 rootProject.name = "AutoTweaker"
 
 include("core")
-
+include("config")
