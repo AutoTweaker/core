@@ -16,20 +16,32 @@ object Settings {
             // 建表
             SchemaUtils.create(ConfigTable)
 
-            // 写入默认值
+            // 写入默认值，类型不匹配时强制重置
+            val registeredKeys = CoreConfigRegistry.getAllItems().map { it.key.value }.toSet()
             CoreConfigRegistry.getAllItems().forEach { item ->
-                val exists = ConfigTable.selectAll()
+                val row = ConfigTable.selectAll()
                     .where { ConfigTable.keyName eq item.key.value }
-                    .any()
+                    .singleOrNull()
 
-                if (!exists) {
+                if (row == null) {
                     ConfigTable.insert {
                         it[keyName] = item.key.value
                         it[description] = item.description
                         fillColumn(it, item.value)
                     }
+                } else {
+                    val existingValue = ConfigTable.getValueFromRow(row)
+                    if (existingValue == null || existingValue::class != item.value::class) {
+                        ConfigTable.update({ ConfigTable.keyName eq item.key.value }) {
+                            it[description] = item.description
+                            fillColumn(it, item.value)
+                        }
+                    }
                 }
             }
+
+            // 删除注册表中不存在的多余行
+            ConfigTable.deleteWhere { ConfigTable.keyName notInList registeredKeys }
         }
     }
 
