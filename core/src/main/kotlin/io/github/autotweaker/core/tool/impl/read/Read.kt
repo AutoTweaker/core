@@ -135,6 +135,11 @@ class Read(
         startLine: Int,
         endLine: Int,
     ): ReadOutput {
+        val maxLines = int("core.tool.read.function.file.setting.max.lines")
+        if (endLine - startLine + 1 > maxLines) {
+            return ReadOutput(str("core.tool.read.message.error.too.many.lines").format(maxLines), false)
+        }
+
         val args = input.arguments
         val lineNumber = args["line_number"]?.jsonPrimitive?.booleanOrNull ?: true
         val content = try {
@@ -143,7 +148,7 @@ class Read(
                 normalizedPath,
                 startLine,
                 endLine,
-                maxChars = int("core.tool.read.setting.max.chars"),
+                maxChars = int("core.tool.read.function.file.setting.max.chars"),
                 truncateMessage = str("core.tool.read.function.message.file.truncate"),
                 lineNumber = lineNumber,
             )
@@ -172,7 +177,7 @@ class Read(
         return ReadOutput("$sha256\n$content", true)
     }
 
-    //TODO read_summarize
+    //read_summarize
     private suspend fun executeSummarize(
         input: ReadInput,
         fs: FileSystemService,
@@ -180,6 +185,11 @@ class Read(
         startLine: Int,
         endLine: Int,
     ): ReadOutput {
+        val maxLines = int("core.tool.read.function.summarize.setting.max.lines")
+        if (endLine - startLine + 1 > maxLines) {
+            return ReadOutput(str("core.tool.read.message.error.too.many.lines").format(maxLines), false)
+        }
+
         val maxChars = int("core.tool.read.function.summarize.setting.max.chars")
         val minChars = int("core.tool.read.function.summarize.setting.min.chars")
         val args = input.arguments
@@ -210,12 +220,12 @@ class Read(
         val defaultPrompt = str("core.tool.read.summarize.prompt")
         val prompt = args["prompt"]?.jsonPrimitive?.content?.let { "$defaultPrompt\n$it" } ?: defaultPrompt
 
-        // TODO: 接入 LLM 进行总结（LlmChatService 接口待定义）
-        // val llmChat = input.provider.get<LlmChatService>()
-        // ...
-
-        // 临时回退：直接返回截断内容
-        val output = content
+        val summarizeService = input.provider.get<SummarizeService>()
+        val output = try {
+            summarizeService.summarize(content, prompt)
+        } catch (e: Exception) {
+            return ReadOutput(str("core.tool.read.function.message.error.summarize.failed"), false)
+        }
 
         val truncateMsg = str("core.tool.read.function.message.summarize.output.truncate")
         return if (output.length > maxChars) {
@@ -283,7 +293,6 @@ class Read(
     }
 }
 
-/** 文件系统服务接口，由 SimpleContainer 注入 */
 interface FileSystemService {
     fun normalize(filePath: String): java.nio.file.Path
     fun exists(path: java.nio.file.Path): Boolean
@@ -292,4 +301,8 @@ interface FileSystemService {
     fun readAllLines(path: java.nio.file.Path): List<String>
     fun readAllBytes(path: java.nio.file.Path): ByteArray
     fun sha256(path: java.nio.file.Path): String
+}
+
+interface SummarizeService {
+    suspend fun summarize(content: String, prompt: String): String
 }

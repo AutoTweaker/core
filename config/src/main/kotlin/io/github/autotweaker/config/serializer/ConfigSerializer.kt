@@ -137,6 +137,11 @@ val defaultItems: List<SettingItem> = listOf(
         "read_summarize工具总结内容过少时的描述"
     ),
     SettingItem(
+        SettingKey("core.tool.read.function.message.error.summarize.failed"),
+        SettingItem.Value.ValString("总结器出错，请及时告知用户：%s"),
+        "read_summarize总结llm出错时的描述"
+    ),
+    SettingItem(
         SettingKey("core.tool.read.function.message.file.truncate"),
         SettingItem.Value.ValString("<字符数过多，后续内容已被截断（共%s字符），请尝试使用read_summarize工具>"),
         "read_file工具截断位置的描述"
@@ -153,14 +158,14 @@ val defaultItems: List<SettingItem> = listOf(
     ),
     //数值参数
     SettingItem(
-        SettingKey("core.tool.read.setting.max.lines"),
+        SettingKey("core.tool.read.function.file.setting.max.lines"),
         SettingItem.Value.ValInt(500),
-        "read工具最大允许行数"
+        "read_file工具最大允许行数"
     ),
     SettingItem(
-        SettingKey("core.tool.read.setting.max.chars"),
+        SettingKey("core.tool.read.function.file.setting.max.chars"),
         SettingItem.Value.ValInt(20000),
-        "read工具最大允许字符数，超出会截断"
+        "read_file工具最大允许字符数，超出会截断"
     ),
     SettingItem(
         SettingKey("core.tool.read.function.summarize.setting.max.lines"),
