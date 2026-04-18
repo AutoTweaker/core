@@ -273,7 +273,7 @@ class Agent(
                         ),
                         callId = call.callId,
                         result = AgentContext.Message.Tool.Result(
-                            content = (_settings.getValue(TOOL_CANCELED_KEY) as SettingItem.Value.ValString).value,
+                            content = (_settings.getValue<SettingItem.Value.ValString>(TOOL_CANCELED_KEY).value),
                             timestamp = Clock.System.now(),
                             status = AgentContext.Message.Tool.Result.Status.CANCELLED,
                         ),

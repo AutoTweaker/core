@@ -129,7 +129,9 @@ data class SettingItem(
     }
 }
 
-fun List<SettingItem>.getValue(key: SettingKey): SettingItem.Value {
-    return find { it.key == key }?.value
+inline fun <reified T : SettingItem.Value> List<SettingItem>.getValue(key: SettingKey): T {
+    val value = find { it.key == key }?.value
         ?: throw IllegalArgumentException("Setting not found: ${key.value}")
+    return value as? T
+        ?: throw IllegalArgumentException("Setting type mismatch for ${key.value}: expected ${T::class.simpleName}, got ${value::class.simpleName}")
 }
