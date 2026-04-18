@@ -62,6 +62,12 @@ class Read(
                         required = true,
                         value = Tool.Function.Property.Value.StringValue(),
                     ),
+                    "max_chars" to Tool.Function.Property(
+                        description = str("core.tool.read.function.description.unicode.property.max.chars")
+                            .format(int("core.tool.read.function.unicode.setting.max.chars")),
+                        required = true,
+                        value = Tool.Function.Property.Value.IntegerValue(),
+                    ),
                 ),
             ),
         )
@@ -122,7 +128,17 @@ class Read(
                 }
             }
 
-            "unicode" -> executeUnicode(fs, normalizedPath)
+            "unicode" -> {
+                val defaultMaxChars = int("core.tool.read.function.unicode.setting.max.chars")
+                val maxChars = args["max_chars"]!!.jsonPrimitive.int
+                if (maxChars > defaultMaxChars) {
+                    return ReadOutput(
+                        str("core.tool.read.message.error.too.many.chars").format(defaultMaxChars), false
+                    )
+                }
+                executeUnicode(fs, normalizedPath, maxChars)
+            }
+
             else -> throw IllegalArgumentException("Unknown function: $functionName")
         }
     }
@@ -239,9 +255,8 @@ class Read(
     private suspend fun executeUnicode(
         fs: FileSystemService,
         normalizedPath: java.nio.file.Path,
+        maxChars: Int,
     ): ReadOutput {
-        val maxChars = int("core.tool.read.function.unicode.setting.max.chars")
-
         //读取内容
         val allUnicode: List<Unicode> = try {
             fs.readUnicode(normalizedPath)
@@ -249,14 +264,13 @@ class Read(
             return ReadOutput(str("core.tool.read.message.error.file.can.not.read"), false)
         }
 
-        val truncateMsg = str("core.tool.read.function.message.error.unicode.too.many.chars").format(maxChars)
-        val selected = if (allUnicode.size > maxChars) allUnicode.take(maxChars) else allUnicode
-        val content = selected.joinToString("") { it.value }
-        return if (allUnicode.size > maxChars) {
-            ReadOutput(content + truncateMsg, true)
-        } else {
-            ReadOutput(content, true)
+        if (allUnicode.size > maxChars) {
+            return ReadOutput(
+                str("core.tool.read.function.message.error.unicode.too.many.chars").format(maxChars), false
+            )
         }
+
+        return ReadOutput(allUnicode.joinToString("") { it.value }, true)
     }
 
     //按照行号读取文件并处理截断
