@@ -43,7 +43,7 @@ jobs:
           # Update index.json version
           SETTINGS_VERSION=$(grep -oP 'const val SETTINGS_VERSION = "\K[^"]+' \
             "$GITHUB_WORKSPACE/core/src/main/kotlin/io/github/autotweaker/core/data/settings/SerializeConfig.kt")
-          jq 'map(if .default_app_config != "" then .version = "'"$SETTINGS_VERSION"'" else . end)' index.json > index.json.tmp
+          jq -c 'map(if .default_app_config != "" then .version = "'"$SETTINGS_VERSION"'" else . end)' index.json > index.json.tmp
           mv index.json.tmp index.json
 
           # Copy config
