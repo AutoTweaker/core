@@ -2,8 +2,8 @@
 
 package io.github.autotweaker.core
 
-import kotlin.io.encoding.Base64 as KBase64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.io.encoding.Base64 as KBase64
 
 @JvmInline
 value class Base64(val value: String) {
