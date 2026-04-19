@@ -4,23 +4,23 @@ import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.LlmClientLoader
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.client.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 
 private val defaultHttpClient by lazy {
-    HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-                explicitNulls = false
-                encodeDefaults = true
-            })
-        }
-    }
+	HttpClient {
+		install(ContentNegotiation) {
+			json(Json {
+				ignoreUnknownKeys = true
+				isLenient = true
+				explicitNulls = false
+				encodeDefaults = true
+			})
+		}
+	}
 }
 
 /**
@@ -32,16 +32,16 @@ private val defaultHttpClient by lazy {
  * @param request 动态构造的 [ChatRequest]
  */
 suspend fun forwardChat(
-    provider: String,
-    apiKey: String,
-    baseUrl: Url? = null,
-    request: ChatRequest,
+	provider: String,
+	apiKey: String,
+	baseUrl: Url? = null,
+	request: ChatRequest,
 ): Flow<ChatResult> {
-    val client = LlmClientLoader.load(
-        name = provider,
-        apiKey = apiKey,
-        httpClient = defaultHttpClient,
-        baseUrl = baseUrl,
-    )
-    return client.chat(request)
+	val client = LlmClientLoader.load(
+		name = provider,
+		apiKey = apiKey,
+		httpClient = defaultHttpClient,
+		baseUrl = baseUrl,
+	)
+	return client.chat(request)
 }

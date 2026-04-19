@@ -1,28 +1,28 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.core.Url
+import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.Config
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
 
 data class Model(
-    val name: String,
-    val provider: Provider,
-    val contextWindow: Int,
-    val maxOutputTokens: Int,
-    val price: TokenPrice,
-
-    val supportsStreaming: Boolean,
-    val supportsToolCalls: Boolean,
-    val supportsReasoning: Boolean,
-    val supportsImage: Boolean,
-
-    val config: Config? = null,
+	val name: String,
+	val provider: Provider,
+	val contextWindow: Int,
+	val maxOutputTokens: Int,
+	val price: TokenPrice,
+	
+	val supportsStreaming: Boolean,
+	val supportsToolCalls: Boolean,
+	val supportsReasoning: Boolean,
+	val supportsImage: Boolean,
+	
+	val config: Config? = null,
 )
 
 data class Provider(
-    val name: String,
-    val baseUrl: Url,
-    val apiKey: String,
-    val errorHandlingRules: List<ErrorHandlingRule>
+	val name: String,
+	val baseUrl: Url,
+	val apiKey: String,
+	val errorHandlingRules: List<ErrorHandlingRule>
 )

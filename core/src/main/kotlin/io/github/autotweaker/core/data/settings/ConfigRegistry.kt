@@ -4,26 +4,26 @@ import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 object CoreConfigRegistry {
-    private val logger = LoggerFactory.getLogger(CoreConfigRegistry::class.java)
-    private val _items = mutableSetOf<SettingItem>()
-
-    init {
-        loadDefaultConfig()
-    }
-
-    /**
-     * 从远程加载默认配置，失败时抛出异常
-     */
-    private fun loadDefaultConfig() {
-        val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
-        items.forEach { register(it) }
-        logger.info("Loaded ${items.size} config items from remote")
-    }
-
-    private fun register(item: SettingItem) {
-        _items.add(item)
-    }
-
-    fun getItem(key: String): SettingItem? = _items.find { it.key.value == key }
-    fun getAllItems(): Collection<SettingItem> = _items
+	private val logger = LoggerFactory.getLogger(CoreConfigRegistry::class.java)
+	private val _items = mutableSetOf<SettingItem>()
+	
+	init {
+		loadDefaultConfig()
+	}
+	
+	/**
+	 * 从远程加载默认配置，失败时抛出异常
+	 */
+	private fun loadDefaultConfig() {
+		val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
+		items.forEach { register(it) }
+		logger.info("Loaded ${items.size} config items from remote")
+	}
+	
+	private fun register(item: SettingItem) {
+		_items.add(item)
+	}
+	
+	fun getItem(key: String): SettingItem? = _items.find { it.key.value == key }
+	fun getAllItems(): Collection<SettingItem> = _items
 }

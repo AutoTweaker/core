@@ -1,6 +1,5 @@
 package io.github.autotweaker.core.tool.impl.read
 
-import com.google.auto.service.AutoService
 import io.github.autotweaker.core.Unicode
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
@@ -10,7 +9,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 
-@AutoService(Tool::class)
+@Suppress("unused")
 class Read(
 	settings: List<SettingItem>
 ) : Tool<ReadInput, ReadOutput> {
@@ -145,7 +144,7 @@ class Read(
 		//解析路径
 		val normalizedPath = try {
 			fs.normalize(filePath)
-		} catch (e: Exception) {
+		} catch (_: Exception) {
 			return ReadOutput(messagePathError, false)
 		}
 		//检测是否存在

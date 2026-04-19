@@ -13,8 +13,8 @@ private const val DEFAULT_MAX_RETRIES = 3
 private val RETRY_BASE_DELAY = 1.seconds
 
 data class ResilientChatResult(
-    val result: ChatResult,
-    val retrying: Model?,
+	val result: ChatResult,
+	val retrying: Model?,
 )
 
 /**
@@ -24,7 +24,7 @@ data class ResilientChatResult(
  * 调用方可实时观察每次尝试。当某次尝试成功（不含 [ChatMessage.ErrorMessage]）或
  * 所有候选模型耗尽时，Flow 结束。
  *
- * 策略匹配规则（基于 [ErrorHandlingRule]）：
+ * 策略匹配规则（基于 [RecoveryStrategy]）：
  * - [RecoveryStrategy.RETRY]：指数退避重试当前模型，重试耗尽后屏蔽当前模型
  * - [RecoveryStrategy.FALLBACK]：屏蔽当前模型，从剩余候选头部取下一个
  * - [RecoveryStrategy.CONTEXT_FALLBACK]：
@@ -44,118 +44,118 @@ data class ResilientChatResult(
  * @throws IllegalStateException 候选模型全部耗尽仍失败
  */
 fun resilientChat(
-    model: Model,
-    fallbackModels: List<Model>?,
-    request: ChatRequest,
-    maxRetries: Int = DEFAULT_MAX_RETRIES,
+	model: Model,
+	fallbackModels: List<Model>?,
+	request: ChatRequest,
+	maxRetries: Int = DEFAULT_MAX_RETRIES,
 ): Flow<ResilientChatResult> = flow {
-    var candidates = buildList {
-        add(model)
-        addAll(fallbackModels.orEmpty())
-    }
-
-    // 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
-    if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
-        candidates = candidates.filter { it.supportsImage }.ifEmpty { candidates }
-    }
-
-    while (candidates.isNotEmpty()) {
-        val current = candidates.first()
-        val rules = current.provider.errorHandlingRules
-
-        for (retryAttempt in 0 until maxRetries) {
-            val chatRequest = request.adapt(current)
-            val results = forwardChat(
-                provider = current.provider.name,
-                apiKey = current.provider.apiKey,
-                baseUrl = current.provider.baseUrl,
-                request = chatRequest,
-            )
-
-            var lastError: ChatResult? = null
-            var lastStatusCode: Int? = null
-
-            results.collect { result ->
-                if (result.message is ChatMessage.ErrorMessage) {
-                    lastError = result
-                    lastStatusCode = result.message.statusCode?.value
-                } else {
-                    emit(ResilientChatResult(result, retrying = null))
-                }
-            }
-
-            val error = lastError ?: return@flow
-
-            // 匹配错误处理规则
-            val matchedRule = if (lastStatusCode != null) {
-                rules.find { it.statusCode == lastStatusCode }
-            } else {
-                null
-            }
-
-            when (matchedRule?.strategy) {
-                RecoveryStrategy.RETRY -> {
-                    if (retryAttempt < maxRetries - 1) {
-                        emit(ResilientChatResult(error, retrying = current))
-                        delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
-                        continue
-                    }
-                    // 重试耗尽，屏蔽当前模型
-                    candidates = candidates.drop(1)
-                }
-
-                RecoveryStrategy.CONTEXT_FALLBACK -> {
-                    // 屏蔽上下文窗口 <= 当前模型的候选模型
-                    candidates = candidates.filter { it.contextWindow > current.contextWindow }
-                }
-
-                RecoveryStrategy.PROVIDER_FALLBACK -> {
-                    // 屏蔽与当前模型同 provider 的候选模型
-                    candidates = candidates.filter { it.provider.name != current.provider.name }
-                }
-
-                RecoveryStrategy.FALLBACK, null -> {
-                    // 屏蔽当前模型
-                    candidates = candidates.drop(1)
-                }
-            }
-
-            emit(ResilientChatResult(error, retrying = candidates.firstOrNull()))
-
-            break // 跳出当前模型的重试循环，回到外层取下一个候选
-        }
-    }
-
-    throw IllegalStateException("All candidate models exhausted without success")
+	var candidates = buildList {
+		add(model)
+		addAll(fallbackModels.orEmpty())
+	}
+	
+	// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
+	if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
+		candidates = candidates.filter { it.supportsImage }.ifEmpty { candidates }
+	}
+	
+	while (candidates.isNotEmpty()) {
+		val current = candidates.first()
+		val rules = current.provider.errorHandlingRules
+		
+		for (retryAttempt in 0 until maxRetries) {
+			val chatRequest = request.adapt(current)
+			val results = forwardChat(
+				provider = current.provider.name,
+				apiKey = current.provider.apiKey,
+				baseUrl = current.provider.baseUrl,
+				request = chatRequest,
+			)
+			
+			var lastError: ChatResult? = null
+			var lastStatusCode: Int? = null
+			
+			results.collect { result ->
+				if (result.message is ChatMessage.ErrorMessage) {
+					lastError = result
+					lastStatusCode = result.message.statusCode?.value
+				} else {
+					emit(ResilientChatResult(result, retrying = null))
+				}
+			}
+			
+			val error = lastError ?: return@flow
+			
+			// 匹配错误处理规则
+			val matchedRule = if (lastStatusCode != null) {
+				rules.find { it.statusCode == lastStatusCode }
+			} else {
+				null
+			}
+			
+			when (matchedRule?.strategy) {
+				RecoveryStrategy.RETRY -> {
+					if (retryAttempt < maxRetries - 1) {
+						emit(ResilientChatResult(error, retrying = current))
+						delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
+						continue
+					}
+					// 重试耗尽，屏蔽当前模型
+					candidates = candidates.drop(1)
+				}
+				
+				RecoveryStrategy.CONTEXT_FALLBACK -> {
+					// 屏蔽上下文窗口 <= 当前模型的候选模型
+					candidates = candidates.filter { it.contextWindow > current.contextWindow }
+				}
+				
+				RecoveryStrategy.PROVIDER_FALLBACK -> {
+					// 屏蔽与当前模型同 provider 的候选模型
+					candidates = candidates.filter { it.provider.name != current.provider.name }
+				}
+				
+				RecoveryStrategy.FALLBACK, null -> {
+					// 屏蔽当前模型
+					candidates = candidates.drop(1)
+				}
+			}
+			
+			emit(ResilientChatResult(error, retrying = candidates.firstOrNull()))
+			
+			break // 跳出当前模型的重试循环，回到外层取下一个候选
+		}
+	}
+	
+	throw IllegalStateException("All candidate models exhausted without success")
 }
 
 private fun ChatRequest.adapt(model: Model): ChatRequest {
-    val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
-    val stripPictures = !model.supportsImage &&
-            messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
-    val stripThinking = !model.supportsReasoning && thinking == true
-
-    return copy(
-        model = model.name,
-        thinking = if (stripThinking) null else thinking,
-        temperature = model.config?.temperature,
-        maxTokens = model.config?.maxTokens,
-        messages = messages.mapIndexed { index, msg ->
-            var result = msg
-            if (stripPictures && result is ChatMessage.UserMessage) {
-                result = result.copy(pictures = null)
-            }
-            if (result is ChatMessage.AssistantMessage && result.reasoningContent != null) {
-                val stripReasoning = when {
-                    !model.supportsReasoning || thinking != true -> true
-                    index < lastUserMessageIndex -> true
-                    else -> false
-                }
-                if (stripReasoning) {
-                    result = result.copy(reasoningContent = null)
-                }
-            }
-            result
-        },
-    )
+	val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
+	val stripPictures = !model.supportsImage &&
+			messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
+	val stripThinking = !model.supportsReasoning && thinking == true
+	
+	return copy(
+		model = model.name,
+		thinking = if (stripThinking) null else thinking,
+		temperature = model.config?.temperature,
+		maxTokens = model.config?.maxTokens,
+		messages = messages.mapIndexed { index, msg ->
+			var result = msg
+			if (stripPictures && result is ChatMessage.UserMessage) {
+				result = result.copy(pictures = null)
+			}
+			if (result is ChatMessage.AssistantMessage && result.reasoningContent != null) {
+				val stripReasoning = when {
+					!model.supportsReasoning || thinking != true -> true
+					index < lastUserMessageIndex -> true
+					else -> false
+				}
+				if (stripReasoning) {
+					result = result.copy(reasoningContent = null)
+				}
+			}
+			result
+		},
+	)
 }
