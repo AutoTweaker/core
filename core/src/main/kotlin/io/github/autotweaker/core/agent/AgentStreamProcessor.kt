@@ -2,7 +2,6 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
-import io.github.autotweaker.core.agent.llm.AgentContext
 import io.github.autotweaker.core.agent.llm.agentChat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow

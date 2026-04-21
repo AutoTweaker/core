@@ -1,5 +1,6 @@
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage

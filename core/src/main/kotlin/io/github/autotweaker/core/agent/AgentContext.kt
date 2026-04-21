@@ -1,6 +1,7 @@
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.Base64
+import io.github.autotweaker.core.agent.llm.Model
 import kotlin.time.Instant
 
 data class AgentContext(

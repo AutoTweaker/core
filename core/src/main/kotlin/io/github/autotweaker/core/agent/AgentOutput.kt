@@ -1,7 +1,6 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
-import io.github.autotweaker.core.agent.llm.AgentContext
 
 @Suppress("unused")
 sealed class AgentOutput {

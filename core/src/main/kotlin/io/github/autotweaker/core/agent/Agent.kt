@@ -2,7 +2,6 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
-import io.github.autotweaker.core.agent.llm.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
