@@ -1,29 +1,98 @@
 package io.github.autotweaker.core.llm.provider.deepseek
 
+import com.google.auto.service.AutoService
+import io.github.autotweaker.core.Price
 import io.github.autotweaker.core.Url
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
+import io.github.autotweaker.core.data.settings.SettingItem
+import io.github.autotweaker.core.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
-import io.ktor.client.*
 import io.ktor.util.reflect.*
 import kotlinx.serialization.serializer
+import java.math.BigDecimal
+import java.util.*
 import kotlin.time.Clock
 
-class DeepSeekClient(
-	apiKey: String,
-	httpClient: HttpClient,
-	baseUrl: Url = Url("https://api.deepseek.com/v1")
-) : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
-	apiKey = apiKey,
-	baseUrl = baseUrl,
-	httpClient = httpClient,
+@AutoService(LlmClient::class)
+class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
 	requestTypeInfo = typeInfo<DeepSeekRequest>(),
 	responseTypeInfo = typeInfo<DeepSeekResponse>(),
 	chunkSerializer = serializer<DeepSeekStreamChunk>(),
 ) {
+	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
+		name = "deepseek",
+		baseUrl = Url("https://api.deepseek.com/v1"),
+		models = listOf(
+			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+				id = "deepseek-chat",
+				contextWindow = 128_000,
+				maxOutputTokens = 64_000,
+				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+					inputPrice = listOf(
+						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal(2),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal(0.2),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							)
+						)
+					),
+					outputPrice = listOf(
+						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal(3),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							)
+						)
+					),
+				),
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = false,
+				supportsJsonOutput = true
+			)
+		),
+		errorHandlingRules = listOf(
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 400,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+			),
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 401,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+			),
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 402,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+			),
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 422,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+			),
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 429,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.RETRY,
+			),
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 500,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+			),
+			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+				statusCode = 503,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.RETRY,
+			),
+		)
+	)
+	
 	override fun createRequestBody(request: ChatRequest): DeepSeekRequest {
 		val mappedMessages = request.messages.mapNotNull { msg ->
 			when (msg) {

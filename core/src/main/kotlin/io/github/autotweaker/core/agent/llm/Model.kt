@@ -3,20 +3,12 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.Config
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
+import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.ModelInfo
 
 data class Model(
 	val name: String,
 	val provider: Provider,
-	val contextWindow: Int,
-	val maxOutputTokens: Int,
-	val price: TokenPrice,
-	
-	val supportsStreaming: Boolean,
-	val supportsToolCalls: Boolean,
-	val supportsReasoning: Boolean,
-	val supportsImage: Boolean,
-	
+	val modelInfo: ModelInfo,
 	val config: Config? = null,
 )
 

@@ -4,15 +4,9 @@ import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.Config
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
+import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.*
+import io.github.autotweaker.core.llm.*
+import io.mockk.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -23,14 +17,17 @@ import kotlin.time.Clock
 @Suppress("UnusedFlow", "TestFunctionName")
 class ResilientChatTest {
 	
+	private val mockClient = mockk<LlmClient>()
+	
 	@BeforeTest
 	fun setUp() {
-		mockkStatic("io.github.autotweaker.core.agent.llm.ForwardChatKt")
+		mockkObject(LlmClientLoader)
+		every { LlmClientLoader.load(any()) } returns mockClient
 	}
 	
 	@AfterTest
 	fun tearDown() {
-		unmockkStatic("io.github.autotweaker.core.agent.llm.ForwardChatKt")
+		unmockkObject(LlmClientLoader)
 	}
 	
 	// region helpers
@@ -50,13 +47,17 @@ class ResilientChatTest {
 			apiKey = "key-$providerName",
 			errorHandlingRules = rules,
 		),
-		contextWindow = contextWindow,
-		maxOutputTokens = 4096,
-		price = TokenPrice(emptyList(), emptyList()),
-		supportsStreaming = true,
-		supportsToolCalls = false,
-		supportsReasoning = supportsReasoning,
-		supportsImage = supportsImage,
+		modelInfo = ModelInfo(
+			id = name,
+			contextWindow = contextWindow,
+			maxOutputTokens = 4096,
+			price = TokenPrice(emptyList(), emptyList()),
+			supportsStreaming = true,
+			supportsToolCalls = false,
+			supportsReasoning = supportsReasoning,
+			supportsImage = supportsImage,
+			supportsJsonOutput = true,
+		),
 		config = Config(
 			temperature = null,
 			maxTokens = null,
@@ -88,10 +89,10 @@ class ResilientChatTest {
 		)
 	) = ChatRequest(model = "dummy", messages = messages)
 	
-	/** 设置 forwardChat mock 按顺序返回指定的 Flow 列表 */
-	private fun mockForwardSequence(vararg flows: Flow<ChatResult>) {
+	/** 设置 mockClient.chat 按顺序返回指定的 Flow 列表 */
+	private fun mockChatSequence(vararg flows: Flow<ChatResult>) {
 		var callIndex = 0
-		coEvery { forwardChat(any(), any(), any(), any()) } answers {
+		coEvery { mockClient.chat(any(), any(), any()) } answers {
 			val flow = flows.getOrElse(callIndex) { flows.last() }
 			callIndex++
 			flow
@@ -102,7 +103,7 @@ class ResilientChatTest {
 	
 	@Test
 	fun 直接成功不重试() = runTest {
-		mockForwardSequence(flowOf(successResult("hello")))
+		mockChatSequence(flowOf(successResult("hello")))
 		
 		val results = resilientChat(
 			model = model("m1"),
@@ -112,13 +113,13 @@ class ResilientChatTest {
 		
 		assertEquals(1, results.size)
 		assertEquals("hello", results[0].result.message?.content)
-		coVerify(exactly = 1) { forwardChat(any(), any(), any(), any()) }
+		coVerify(exactly = 1) { mockClient.chat(any(), any(), any()) }
 	}
 	
 	@Test
 	fun `RETRY 策略重试后成功`() = runTest {
 		val rules = listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY))
-		mockForwardSequence(
+		mockChatSequence(
 			flowOf(errorResult(429)),
 			flowOf(successResult("retried")),
 		)
@@ -134,13 +135,13 @@ class ResilientChatTest {
 		assertTrue(results[0].result.message is ChatMessage.ErrorMessage)
 		assertEquals("m1", results[0].retrying?.name)
 		assertEquals("retried", results[1].result.message?.content)
-		coVerify(exactly = 2) { forwardChat(any(), any(), any(), any()) }
+		coVerify(exactly = 2) { mockClient.chat(any(), any(), any()) }
 	}
 	
 	@Test
 	fun `RETRY 耗尽后切换到 fallback 模型`() = runTest {
 		val rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.RETRY))
-		mockForwardSequence(
+		mockChatSequence(
 			flowOf(errorResult(500)),
 			flowOf(errorResult(500)),
 			flowOf(successResult("fallback-ok")),
@@ -162,7 +163,7 @@ class ResilientChatTest {
 	@Test
 	fun `FALLBACK 策略屏蔽当前模型`() = runTest {
 		val rules = listOf(ErrorHandlingRule(503, RecoveryStrategy.FALLBACK))
-		mockForwardSequence(
+		mockChatSequence(
 			flowOf(errorResult(503)),
 			flowOf(successResult("fallback-model-ok")),
 		)
@@ -183,7 +184,7 @@ class ResilientChatTest {
 		val rules = listOf(ErrorHandlingRule(413, RecoveryStrategy.CONTEXT_FALLBACK))
 		// m1: 4096, m2: 2048, m3: 8192
 		// CONTEXT_FALLBACK 会过滤掉 contextWindow <= 4096 的，剩下 m3
-		mockForwardSequence(
+		mockChatSequence(
 			flowOf(errorResult(413)),
 			flowOf(successResult("big-context-ok")),
 		)
@@ -201,14 +202,14 @@ class ResilientChatTest {
 		assertEquals("m3", results[0].retrying?.name)
 		assertEquals("big-context-ok", results[1].result.message?.content)
 		// m2 被屏蔽了，直接用 m3
-		coVerify(exactly = 2) { forwardChat(any(), any(), any(), any()) }
+		coVerify(exactly = 2) { mockClient.chat(any(), any(), any()) }
 	}
 	
 	@Test
 	fun `PROVIDER_FALLBACK 屏蔽同 provider 的模型`() = runTest {
 		val rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.PROVIDER_FALLBACK))
 		// m1: providerA, m2: providerA, m3: providerB
-		mockForwardSequence(
+		mockChatSequence(
 			flowOf(errorResult(500)),
 			flowOf(successResult("other-provider-ok")),
 		)
@@ -229,7 +230,7 @@ class ResilientChatTest {
 	
 	@Test
 	fun `无匹配规则视为 FALLBACK`() = runTest {
-		mockForwardSequence(
+		mockChatSequence(
 			flowOf(errorResult(999)),
 			flowOf(successResult("no-rule-fallback")),
 		)
@@ -247,7 +248,7 @@ class ResilientChatTest {
 	
 	@Test
 	fun 所有候选耗尽抛异常() = runTest {
-		mockForwardSequence(flowOf(errorResult(500)))
+		mockChatSequence(flowOf(errorResult(500)))
 		
 		assertFailsWith<IllegalStateException> {
 			resilientChat(
@@ -268,7 +269,7 @@ class ResilientChatTest {
 			)
 		)
 		// m1: 不支持图像, m2: 支持图像
-		mockForwardSequence(flowOf(successResult("image-ok")))
+		mockChatSequence(flowOf(successResult("image-ok")))
 		
 		val results = resilientChat(
 			model = model("m1", supportsImage = false),
@@ -279,7 +280,7 @@ class ResilientChatTest {
 		assertEquals(1, results.size)
 		assertEquals("image-ok", results[0].result.message?.content)
 		// 应该只调用了 m2（图像模型），m1 被屏蔽
-		coVerify(exactly = 1) { forwardChat(any(), any(), any(), any()) }
+		coVerify(exactly = 1) { mockClient.chat(any(), any(), any()) }
 	}
 	
 	@Test
@@ -292,8 +293,8 @@ class ResilientChatTest {
 		)
 		
 		var capturedRequest: ChatRequest? = null
-		coEvery { forwardChat(any(), any(), any(), any()) } answers {
-			capturedRequest = arg(3)
+		coEvery { mockClient.chat(any(), any(), any()) } answers {
+			capturedRequest = arg(0)
 			flowOf(successResult("stripped"))
 		}
 		
@@ -336,8 +337,8 @@ class ResilientChatTest {
 		thinking: Boolean? = null,
 	): ChatRequest {
 		var captured: ChatRequest? = null
-		coEvery { forwardChat(any(), any(), any(), any()) } answers {
-			captured = arg(3)
+		coEvery { mockClient.chat(any(), any(), any()) } answers {
+			captured = arg(0)
 			flowOf(successResult())
 		}
 		resilientChat(

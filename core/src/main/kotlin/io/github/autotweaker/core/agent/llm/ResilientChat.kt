@@ -4,6 +4,7 @@ import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Prov
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.ChatResult
+import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -17,32 +18,6 @@ data class ResilientChatResult(
 	val retrying: Model?,
 )
 
-/**
- * 带重试与 fallback 策略的 [forwardChat] 封装。
- *
- * 返回一个连续的 [Flow]，每次尝试的结果都会被 emit（包括失败的 [ChatResult]），
- * 调用方可实时观察每次尝试。当某次尝试成功（不含 [ChatMessage.ErrorMessage]）或
- * 所有候选模型耗尽时，Flow 结束。
- *
- * 策略匹配规则（基于 [RecoveryStrategy]）：
- * - [RecoveryStrategy.RETRY]：指数退避重试当前模型，重试耗尽后屏蔽当前模型
- * - [RecoveryStrategy.FALLBACK]：屏蔽当前模型，从剩余候选头部取下一个
- * - [RecoveryStrategy.CONTEXT_FALLBACK]：
- *   屏蔽上下文窗口 <= 当前模型的候选模型，从剩余头部取下一个
- * - [RecoveryStrategy.PROVIDER_FALLBACK]：
- *   屏蔽与当前模型同 provider 的候选模型，从剩余头部取下一个
- * - 无匹配规则：视为 FALLBACK
- *
- * 图像兼容性处理：若请求消息包含 pictures，当前模型不支持图像时，
- * 若候选列表中存在支持图像的模型则屏蔽所有不支持的模型；
- * 若不存在则在请求中剔除 pictures 字段继续发送。
- *
- * @param model           主模型
- * @param fallbackModels  备选模型列表（按优先级排列）
- * @param request         原始请求
- * @param maxRetries      每个模型的最大重试次数（默认 [DEFAULT_MAX_RETRIES]）
- * @throws IllegalStateException 候选模型全部耗尽仍失败
- */
 fun resilientChat(
 	model: Model,
 	fallbackModels: List<Model>?,
@@ -56,7 +31,7 @@ fun resilientChat(
 	
 	// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
 	if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
-		candidates = candidates.filter { it.supportsImage }.ifEmpty { candidates }
+		candidates = candidates.filter { it.modelInfo.supportsImage }.ifEmpty { candidates }
 	}
 	
 	while (candidates.isNotEmpty()) {
@@ -65,11 +40,11 @@ fun resilientChat(
 		
 		for (retryAttempt in 0 until maxRetries) {
 			val chatRequest = request.adapt(current)
-			val results = forwardChat(
-				provider = current.provider.name,
+			val client = LlmClientLoader.load(current.provider.name)
+			val results = client.chat(
+				request = chatRequest,
 				apiKey = current.provider.apiKey,
 				baseUrl = current.provider.baseUrl,
-				request = chatRequest,
 			)
 			
 			var lastError: ChatResult? = null
@@ -106,7 +81,7 @@ fun resilientChat(
 				
 				RecoveryStrategy.CONTEXT_FALLBACK -> {
 					// 屏蔽上下文窗口 <= 当前模型的候选模型
-					candidates = candidates.filter { it.contextWindow > current.contextWindow }
+					candidates = candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
 				}
 				
 				RecoveryStrategy.PROVIDER_FALLBACK -> {
@@ -131,9 +106,9 @@ fun resilientChat(
 
 private fun ChatRequest.adapt(model: Model): ChatRequest {
 	val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
-	val stripPictures = !model.supportsImage &&
+	val stripPictures = !model.modelInfo.supportsImage &&
 			messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
-	val stripThinking = !model.supportsReasoning && thinking == true
+	val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
 	
 	return copy(
 		model = model.name,
@@ -147,7 +122,7 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
 			}
 			if (result is ChatMessage.AssistantMessage && result.reasoningContent != null) {
 				val stripReasoning = when {
-					!model.supportsReasoning || thinking != true -> true
+					!model.modelInfo.supportsReasoning || thinking != true -> true
 					index < lastUserMessageIndex -> true
 					else -> false
 				}

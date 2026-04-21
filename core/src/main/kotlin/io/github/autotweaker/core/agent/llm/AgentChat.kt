@@ -25,17 +25,8 @@ private fun toPendingToolCalls(
 	}
 }
 
-/**
- * 调用 LLM，根据 [Model.supportsStreaming] 决定是否流式请求。
- *
- * emit 事件时根据 [ChatResult.finishReason] 判断：当 finishReason 为空时视为中间产出，
- * 依次 emit [AgentChatStreamResult.Reasoning]、[AgentChatStreamResult.Outputting]；
- * 最终 emit [AgentChatStreamResult.Finished]。
- *
- * 任何错误均通过 [AgentChatStreamResult.Failing] 实时 emit。
- */
 fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
-	val stream = request.model.supportsStreaming
+	val stream = request.model.modelInfo.supportsStreaming
 	val chatRequest = request.toChatRequest().copy(stream = stream)
 	
 	val results = resilientChat(

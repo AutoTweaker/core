@@ -7,9 +7,11 @@ import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.LlmClient
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.Flow
@@ -22,9 +24,6 @@ abstract class AbstractOpenAiClient<
 		Request : OpenAiRequest,
 		Response : OpenAiResponse,
 		Chunk : OpenAiStreamChunk>(
-	protected val apiKey: String,
-	protected val baseUrl: Url,
-	protected val httpClient: HttpClient,
 	private val requestTypeInfo: TypeInfo,
 	private val responseTypeInfo: TypeInfo,
 	private val chunkSerializer: KSerializer<Chunk>,
@@ -32,7 +31,16 @@ abstract class AbstractOpenAiClient<
 	companion object {
 		private val json: Json = Json {
 			ignoreUnknownKeys = true
+			isLenient = true
+			explicitNulls = false
+			encodeDefaults = true
 			coerceInputValues = true
+		}
+		
+		private val sharedHttpClient: HttpClient = HttpClient {
+			install(ContentNegotiation) {
+				json(json)
+			}
 		}
 		
 		private fun buildToolCalls(
@@ -42,8 +50,6 @@ abstract class AbstractOpenAiClient<
 			return pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
 		}
 	}
-	
-	// ---------- 流式 tool call 累积的中间表示 ----------
 	
 	data class ToolCallFragment(
 		val index: Int,
@@ -60,28 +66,18 @@ abstract class AbstractOpenAiClient<
 		fun toToolCall() = ChatMessage.AssistantMessage.ToolCall(id, name, arguments.toString())
 	}
 	
-	// ---------- 子类需实现的抽象方法 ----------
-	
-	/** 将业务层的 ChatRequest 转换为发送给 API 的数据对象 */
 	protected abstract fun createRequestBody(request: ChatRequest): Request
-	
-	/** 处理非流式响应，将 API 返回的完整响应转换为 ChatResult */
 	protected abstract fun mapToChatResult(response: Response): ChatResult
-	
-	/** 处理流式响应中的单个 chunk，提取 content/reasoningContent（不含 tool call） */
 	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
-	
-	/** 从流式 chunk 中提取 tool call 碎片列表，供基类拼接 */
 	protected abstract fun extractToolCalls(chunk: Chunk): List<ToolCallFragment>?
 	
-	
-	override suspend fun chat(request: ChatRequest): Flow<ChatResult> = flow {
+	override suspend fun chat(request: ChatRequest, apiKey: String, baseUrl: Url?): Flow<ChatResult> = flow {
+		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
 		try {
 			if (request.stream) {
-				// 流式逻辑
 				val body = createRequestBody(request)
 				
-				httpClient.preparePost("${baseUrl.value}/chat/completions") {
+				sharedHttpClient.preparePost("${effectiveBaseUrl.value}/chat/completions") {
 					header(HttpHeaders.Authorization, "Bearer $apiKey")
 					contentType(ContentType.Application.Json)
 					setBody(body, requestTypeInfo)
@@ -117,7 +113,6 @@ abstract class AbstractOpenAiClient<
 									try {
 										val chunk = json.decodeFromString(chunkSerializer, data)
 										
-										// 累积 tool call 碎片
 										extractToolCalls(chunk)?.forEach { fragment ->
 											val pending =
 												pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
@@ -126,10 +121,8 @@ abstract class AbstractOpenAiClient<
 											if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
 										}
 										
-										// 构建 ChatResult（content/reasoningContent 由子类处理，finishReason 也由子类提取）
 										var result = mapChunkToChatResult(chunk)
 										
-										// 当 finishReason 不为空时，将累积的 toolCalls 附加到消息上
 										if (result.finishReason != null) {
 											val toolCalls = buildToolCalls(pendingToolCalls)
 											if (toolCalls != null) {
@@ -175,8 +168,7 @@ abstract class AbstractOpenAiClient<
 					}
 				}
 			} else {
-				// 非流式逻辑
-				val response = httpClient.post("${baseUrl.value}/chat/completions") {
+				val response = sharedHttpClient.post("${effectiveBaseUrl.value}/chat/completions") {
 					header(HttpHeaders.Authorization, "Bearer $apiKey")
 					contentType(ContentType.Application.Json)
 					setBody(createRequestBody(request), requestTypeInfo)

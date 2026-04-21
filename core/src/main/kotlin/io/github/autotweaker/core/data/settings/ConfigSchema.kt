@@ -1,6 +1,7 @@
 package io.github.autotweaker.core.data.settings
 
 import io.github.autotweaker.core.Price
+import io.github.autotweaker.core.Url
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Table
 
@@ -78,7 +79,7 @@ data class SettingItem(
 				val name: String,
 				val providerType: String,
 				val apiKey: String,
-				val baseUrl: String,
+				val baseUrl: Url,
 				val models: List<Model>,
 				val errorHandlingRules: List<ErrorHandlingRule>
 			) {
@@ -99,18 +100,24 @@ data class SettingItem(
 				@Serializable
 				data class Model(
 					val name: String,
-					
-					val contextWindow: Int,
-					val maxOutputTokens: Int,
-					val price: TokenPrice,
-					
-					val supportsStreaming: Boolean,
-					val supportsToolCalls: Boolean,
-					val supportsReasoning: Boolean,
-					val supportsImage: Boolean,
-					
+					val modelInfo: ModelInfo,
 					val config: Config? = null,
 				) {
+					@Serializable
+					data class ModelInfo(
+						val id: String,
+						
+						val contextWindow: Int,
+						val maxOutputTokens: Int,
+						val price: TokenPrice,
+						
+						val supportsStreaming: Boolean,
+						val supportsToolCalls: Boolean,
+						val supportsReasoning: Boolean,
+						val supportsImage: Boolean,
+						val supportsJsonOutput: Boolean,
+					)
+					
 					@Serializable
 					data class TokenPrice(
 						val inputPrice: List<PriceTier>,

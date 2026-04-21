@@ -1,84 +1,34 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.core.agent.llm.*
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
-import org.slf4j.LoggerFactory
-import java.math.BigDecimal
-import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-private val logger = LoggerFactory.getLogger("io.github.autotweaker.core.MainKt")
-
 fun main() {
-	logger.info("AutoTweaker 启动中...")
 	val apiKey = System.getenv("MIMO_API_KEY")
 		?: throw IllegalStateException("Please set your MiMo API key as an environment variable.")
 	
+	val mimoProviderInfo = LlmClientLoader.load("mimo").providerInfo
 	val model = Model(
-		name = "mimo-v2-flash",
+		name = mimoProviderInfo.models.first().id,
 		provider = Provider(
-			name = "mimo",
-			baseUrl = Url("https://api.xiaomimimo.com/v1"),
+			name = mimoProviderInfo.name,
+			baseUrl = mimoProviderInfo.baseUrl,
 			apiKey = apiKey,
-			errorHandlingRules = emptyList(),
+			errorHandlingRules = mimoProviderInfo.errorHandlingRules,
 		),
-		contextWindow = 256_000,
-		maxOutputTokens = 64_000,
-		price = TokenPrice(
-			inputPrice = listOf(
-				PriceTier(
-					fromTokens = 0,
-					price = Price(BigDecimal("0.70"), Currency.getInstance("CNY")),
-					cachedPrice = Price(BigDecimal("0.07"), Currency.getInstance("CNY")),
-				),
-			),
-			outputPrice = listOf(
-				PriceTier(
-					fromTokens = 0,
-					price = Price(BigDecimal("2.10"), Currency.getInstance("CNY")),
-				),
-			),
-		),
-		supportsStreaming = true,
-		supportsToolCalls = true,
-		supportsReasoning = true,
-		supportsImage = false,
+		modelInfo = mimoProviderInfo.models.first(),
+		config = null
 	)
-	
 	val wrongModel = Model(
-		name = "mimo-v2-flash",
-		provider = Provider(
-			name = "mimo",
-			baseUrl = Url("https://api.xiaomimimo.com/v1"),
-			apiKey = "1111111",
-			errorHandlingRules = emptyList(),
-		),
-		contextWindow = 256_000,
-		maxOutputTokens = 64_000,
-		price = TokenPrice(
-			inputPrice = listOf(
-				PriceTier(
-					fromTokens = 0,
-					price = Price(BigDecimal("0.70"), Currency.getInstance("CNY")),
-					cachedPrice = Price(BigDecimal("0.07"), Currency.getInstance("CNY")),
-				),
-			),
-			outputPrice = listOf(
-				PriceTier(
-					fromTokens = 0,
-					price = Price(BigDecimal("2.10"), Currency.getInstance("CNY")),
-				),
-			),
-		),
-		supportsStreaming = true,
-		supportsToolCalls = true,
-		supportsReasoning = true,
-		supportsImage = false,
+		name = "??",
+		provider = model.provider,
+		modelInfo = model.modelInfo,
+		config = null
 	)
 	
 	val toolCallTimestamp = Instant.parse("2026-04-11T09:03:33Z")
@@ -159,5 +109,4 @@ fun main() {
 			}
 		}
 	}
-	logger.info("AutoTweaker 执行完成")
 }
