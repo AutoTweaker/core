@@ -24,6 +24,8 @@ fun resilientChat(
 	request: ChatRequest,
 	maxRetries: Int = DEFAULT_MAX_RETRIES,
 ): Flow<ResilientChatResult> = flow {
+	require(maxRetries > 0) { "maxRetries must be positive" }
+
 	var candidates = buildList {
 		add(model)
 		addAll(fallbackModels.orEmpty())

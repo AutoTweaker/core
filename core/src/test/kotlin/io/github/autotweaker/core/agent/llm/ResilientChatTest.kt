@@ -39,6 +39,8 @@ class ResilientChatTest {
 		supportsImage: Boolean = false,
 		supportsReasoning: Boolean = false,
 		rules: List<ErrorHandlingRule> = emptyList(),
+		temperature: Double? = null,
+		maxTokens: Int? = null,
 	) = Model(
 		name = name,
 		provider = Provider(
@@ -59,8 +61,8 @@ class ResilientChatTest {
 			supportsJsonOutput = true,
 		),
 		config = Config(
-			temperature = null,
-			maxTokens = null,
+			temperature = temperature,
+			maxTokens = maxTokens,
 			compactContextUsage = null,
 			compactTotalTokens = null,
 		),
@@ -80,6 +82,14 @@ class ResilientChatTest {
 			content = "error $statusCode",
 			createdAt = Clock.System.now(),
 			statusCode = io.ktor.http.HttpStatusCode.fromValue(statusCode),
+		),
+	)
+	
+	private fun errorResultWithoutStatusCode() = ChatResult(
+		message = ChatMessage.ErrorMessage(
+			content = "network error",
+			createdAt = Clock.System.now(),
+			statusCode = null,
 		),
 	)
 	
@@ -454,6 +464,73 @@ class ResilientChatTest {
 		)
 		
 		assertEquals(null, req.thinking)
+	}
+	
+	// endregion
+	
+	// region 分支覆盖测试
+	
+	@Test
+	fun 错误无状态码时按FALLBACK处理() = runTest {
+		mockChatSequence(
+			flowOf(errorResultWithoutStatusCode()),
+			flowOf(successResult("no-status-fallback")),
+		)
+		
+		val results = resilientChat(
+			model = model("m1"),
+			fallbackModels = listOf(model("m2")),
+			request = request(),
+		).toList()
+		
+		assertEquals(2, results.size)
+		assertEquals("m2", results[0].retrying?.name)
+		assertEquals("no-status-fallback", results[1].result.message?.content)
+	}
+	
+	@Test
+	fun config非null时传递temperature和maxTokens() = runTest {
+		var captured: ChatRequest? = null
+		coEvery { mockClient.chat(any(), any(), any()) } answers {
+			captured = arg(0)
+			flowOf(successResult())
+		}
+		
+		resilientChat(
+			model = model("m1", temperature = 0.7, maxTokens = 1000),
+			fallbackModels = emptyList(),
+			request = request(),
+		).toList()
+		
+		assertNotNull(captured)
+		assertEquals(0.7, captured!!.temperature)
+		assertEquals(1000, captured!!.maxTokens)
+	}
+	
+	@Test
+	fun fallbackModels为null时正常工作() = runTest {
+		mockChatSequence(flowOf(successResult("ok")))
+		
+		val results = resilientChat(
+			model = model("m1"),
+			fallbackModels = null,
+			request = request(),
+		).toList()
+		
+		assertEquals(1, results.size)
+		assertEquals("ok", results[0].result.message?.content)
+	}
+	
+	@Test
+	fun maxRetries为0时抛出参数异常() = runTest {
+		assertFailsWith<IllegalArgumentException> {
+			resilientChat(
+				model = model("m1"),
+				fallbackModels = emptyList(),
+				request = request(),
+				maxRetries = 0,
+			).toList()
+		}
 	}
 	
 	// endregion

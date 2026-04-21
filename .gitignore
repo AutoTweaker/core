@@ -36,3 +36,5 @@ build/
 CLAUDE.md
 bin/
 .claude
+.kotlin
+/htmlReport
