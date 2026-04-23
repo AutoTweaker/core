@@ -43,12 +43,12 @@ fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
 	var lastUsage: Usage? = null
 	var lastRetrying: Model? = null
 	val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
-	
+
 	try {
 		results.collect { resilientResult ->
 			val result = resilientResult.result
 			val msg = result.message
-			
+
 			if (resilientResult.retrying != null) {
 				lastRetrying = resilientResult.retrying
 			}
@@ -65,30 +65,33 @@ fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
 			}
 			
 			val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
-			lastMessage = assistantMsg
 			
-			if (result.finishReason == null) {
-				if (assistantMsg.reasoningContent != null) {
-					reasoningContent += assistantMsg.reasoningContent
-					emit(AgentChatStreamResult.Reasoning(reasoningContent))
-				}
-				
-				if (assistantMsg.content != null) {
-					content += assistantMsg.content
-					emit(
-						AgentChatStreamResult.Outputting(
-							reasoningContent = reasoningContent.ifEmpty { null },
-							content = content,
-						)
-					)
-				}
+			lastMessage = if (assistantMsg.toolCalls.isNullOrEmpty() && !lastMessage?.toolCalls.isNullOrEmpty()) {
+				assistantMsg.copy(toolCalls = lastMessage?.toolCalls)
+			} else {
+				assistantMsg
 			}
 			
+			if (!assistantMsg.reasoningContent.isNullOrEmpty()) {
+				reasoningContent += assistantMsg.reasoningContent
+				emit(AgentChatStreamResult.Reasoning(reasoningContent))
+			}
+			
+			if (!assistantMsg.content.isNullOrEmpty()) {
+				content += assistantMsg.content
+				emit(
+					AgentChatStreamResult.Outputting(
+						reasoningContent = reasoningContent.ifEmpty { null },
+						content = content,
+					)
+				)
+			}
+
 			result.finishReason?.let { lastFinishReason = it }
 			result.usage?.let { lastUsage = it }
 		}
 	} catch (_: IllegalStateException) {
-		// 所有候选模型耗尽，之前已通过 Failing emit 错误
+		//所有候选模型耗尽
 		return@flow
 	}
 	
