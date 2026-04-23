@@ -4,6 +4,8 @@ on:
   push:
     branches: [ main ]
     paths:
+      - ".github/workflows/upload-config.yml"
+      - "config/src/main/kotlin/io/github/autotweaker/config/serializer/**"
       - "core/src/main/kotlin/io/github/autotweaker/core/data/settings/**"
   workflow_dispatch:
 
