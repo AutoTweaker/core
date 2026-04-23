@@ -64,7 +64,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		errorHandlingRules = listOf(
 			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
 				statusCode = 400,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.CONTEXT_FALLBACK,
 			),
 			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
 				statusCode = 401,
