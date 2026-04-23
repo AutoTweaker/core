@@ -160,7 +160,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		errorHandlingRules = listOf(
 			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
 				statusCode = 400,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.CONTEXT_FALLBACK
+				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK
 			),
 			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
 				statusCode = 401,
