@@ -10,10 +10,10 @@ application {
 }
 
 dependencies {
-	implementation("io.ktor:ktor-client-core:3.4.2")
-	implementation("io.ktor:ktor-client-java:3.4.2")
-	implementation("io.ktor:ktor-client-content-negotiation:3.4.2")
-	implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.2")
+	implementation("io.ktor:ktor-client-core:3.4.3")
+	implementation("io.ktor:ktor-client-java:3.4.3")
+	implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
+	implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	
