@@ -12,6 +12,7 @@ application {
 dependencies {
 	implementation("io.ktor:ktor-client-core:3.4.3")
 	implementation("io.ktor:ktor-client-java:3.4.3")
+	implementation("io.ktor:ktor-client-cio:3.4.3")
 	implementation("io.ktor:ktor-client-content-negotiation:3.4.3")
 	implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
 	
