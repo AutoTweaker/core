@@ -3,9 +3,9 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.agent.tool.ToolAssembler
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
-import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -31,10 +31,11 @@ class Agent(
 	tools: List<Tool<*, *>>,
 ) {
 	private val toolCancelledMessage: String = settings.find("core.agent.tool.response.canceled")
-	
+	private val _settings: List<SettingItem> = settings
+
 	//上下文
 	private var currentContext: AgentContext = context
-	
+
 	private val _tools = tools
 	
 	//模型
@@ -165,17 +166,7 @@ class Agent(
 				model = currentModel,
 				fallbackModels = currentFallbackModels,
 				thinking = currentThinking,
-				tools = _tools.takeIf { it.isNotEmpty() }?.let { toolList ->
-					toolList.flatMap { tool ->
-						tool.functions.map { func ->
-							ChatRequest.Tool(
-								name = func.name,
-								description = func.description,
-								parameters = func.parameters.toChatRequestParameters(),
-							)
-						}
-					}
-				},
+				tools = ToolAssembler.assemble(_tools, _settings),
 				context = currentContext
 			)
 			when (val result = streamProcessor.process(request, currentContext)) {
@@ -185,7 +176,6 @@ class Agent(
 				}
 				
 				is StreamProcessResult.ToolCallsRequired -> {
-					// 状态由executeTools根据是否需要审批决定
 					workTrigger.trySend(Unit)
 				}
 				
@@ -199,46 +189,6 @@ class Agent(
 				}
 			}
 		}
-	}
-	
-	/** 将Tool.Function的parameters转换为ChatRequest.Tool.Parameters */
-	private fun Map<String, Tool.Function.Property>.toChatRequestParameters(): ChatRequest.Tool.Parameters {
-		val properties = mapValues { (_, prop) ->
-			ChatRequest.Tool.Parameters.Property(
-				type = when (prop.value) {
-					is Tool.Function.Property.Value.StringValue -> ChatRequest.Tool.Parameters.Property.Type.STRING
-					is Tool.Function.Property.Value.NumberValue -> ChatRequest.Tool.Parameters.Property.Type.NUMBER
-					is Tool.Function.Property.Value.IntegerValue -> ChatRequest.Tool.Parameters.Property.Type.INTEGER
-					is Tool.Function.Property.Value.BooleanValue -> ChatRequest.Tool.Parameters.Property.Type.BOOLEAN
-					is Tool.Function.Property.Value.ArrayValue -> ChatRequest.Tool.Parameters.Property.Type.ARRAY
-					is Tool.Function.Property.Value.ObjectValue -> ChatRequest.Tool.Parameters.Property.Type.OBJECT
-				},
-				description = prop.description,
-				enum = when (val v = prop.value) {
-					is Tool.Function.Property.Value.StringValue -> v.enum?.map {
-						kotlinx.serialization.json.JsonPrimitive(
-							it
-						)
-					}
-					
-					is Tool.Function.Property.Value.NumberValue -> v.enum?.map {
-						kotlinx.serialization.json.JsonPrimitive(
-							it
-						)
-					}
-					
-					is Tool.Function.Property.Value.IntegerValue -> v.enum?.map {
-						kotlinx.serialization.json.JsonPrimitive(
-							it
-						)
-					}
-					
-					else -> null
-				},
-			)
-		}
-		val required = filter { it.value.required }.keys.toList().ifEmpty { null }
-		return ChatRequest.Tool.Parameters(properties = properties, required = required)
 	}
 	
 	/** 执行工具调用 */

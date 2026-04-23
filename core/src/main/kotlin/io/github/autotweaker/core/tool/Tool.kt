@@ -4,7 +4,7 @@ interface Tool<in I : ToolInput, out O : ToolOutput> {
 	val name: String
 	val description: String
 	val functions: List<Function>
-	
+
 	data class Function(
 		val name: String,
 		val description: String,
@@ -20,10 +20,8 @@ interface Tool<in I : ToolInput, out O : ToolOutput> {
 				data class NumberValue(val enum: List<Double>? = null) : Value()
 				data class IntegerValue(val enum: List<Int>? = null) : Value()
 				data object BooleanValue : Value()
-				data class ArrayValue(val items: Value) : Value()
-				data class ObjectValue(
-					val properties: Map<String, Property>,
-				) : Value()
+				data object ArrayValue : Value()
+				data object ObjectValue : Value()
 			}
 		}
 	}

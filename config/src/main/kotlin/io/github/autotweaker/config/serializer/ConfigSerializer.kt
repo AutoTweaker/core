@@ -29,6 +29,11 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("%s工具的属性%s必须为%s类型"),
 		"工具调用属性格式错误时的ToolResult"
 	),
+	SettingItem(
+		SettingKey("core.agent.tool.description.reason"),
+		SettingItem.Value.ValString("简要描述调用此工具的目的"),
+		"工具调用的reason属性描述"
+	),
 	//工具模块相关配置
 	SettingItem(
 		SettingKey("core.tool.message.path.error"),
@@ -199,6 +204,7 @@ private val json = Json {
 	ignoreUnknownKeys = true
 }
 
+@Suppress("ReplacePrintlnWithLogging")
 fun serializeToFile(items: List<SettingItem>, outputPath: String) {
 	val content = json.encodeToString(ListSerializer(SettingItem.serializer()), items)
 	val outputFile = File(outputPath)
