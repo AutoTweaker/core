@@ -31,7 +31,7 @@ dependencies {
 	implementation("org.jetbrains.exposed:exposed-dao:1.2.0")
 	implementation("org.jetbrains.exposed:exposed-jdbc:1.2.0")
 	
-	implementation("com.h2database:h2:2.2.224")
+	implementation("com.h2database:h2:2.4.240")
 	
 	implementation("org.slf4j:slf4j-api:2.0.12")
 	implementation("ch.qos.logback:logback-classic:1.5.32")
