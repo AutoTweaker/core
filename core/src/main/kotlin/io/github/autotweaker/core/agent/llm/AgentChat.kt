@@ -27,8 +27,7 @@ private fun toPendingToolCalls(
 }
 
 fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
-	val stream = request.model.modelInfo.supportsStreaming
-	val chatRequest = request.toChatRequest().copy(stream = stream)
+	val chatRequest = request.toChatRequest().copy(stream = true)
 	
 	val results = resilientChat(
 		model = request.model,

@@ -57,7 +57,7 @@ fun resilientChat(
 					lastError = result
 					lastStatusCode = result.message.statusCode?.value
 				} else {
-					emit(ResilientChatResult(result, retrying = null))
+					emit(ResilientChatResult(result.normalizeEmptyStrings(), retrying = null))
 				}
 			}
 			
@@ -106,6 +106,20 @@ fun resilientChat(
 	throw IllegalStateException("All candidate models exhausted without success")
 }
 
+private fun ChatResult.normalizeEmptyStrings(): ChatResult {
+	val msg = message
+	if (msg !is ChatMessage.AssistantMessage) return this
+	val content = msg.content
+	val reasoningContent = msg.reasoningContent
+	if (content != "" && reasoningContent != "") return this
+	return copy(
+		message = msg.copy(
+			content = if (content == "") null else content,
+			reasoningContent = if (reasoningContent == "") null else reasoningContent
+		)
+	)
+}
+
 private fun ChatRequest.adapt(model: Model): ChatRequest {
 	val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
 	val stripPictures = !model.modelInfo.supportsImage &&
@@ -114,6 +128,7 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
 	
 	return copy(
 		model = model.name,
+		stream = stream && model.modelInfo.supportsStreaming,
 		thinking = if (stripThinking) null else thinking,
 		temperature = model.config?.temperature,
 		maxTokens = model.config?.maxTokens,
