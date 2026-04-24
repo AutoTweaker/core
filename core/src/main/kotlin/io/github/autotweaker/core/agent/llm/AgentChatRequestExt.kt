@@ -82,9 +82,9 @@ private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
 private fun AgentContext.Message.Assistant.toChatMessage(
 	toolCalls: List<ChatMessage.AssistantMessage.ToolCall>? = null,
 ) = ChatMessage.AssistantMessage(
-	content = content,
+	content = content ?: "",
 	createdAt = timestamp,
-	reasoningContent = reasoning,
+	reasoningContent = reasoning ?: "",
 	model = model.name,
 	toolCalls = toolCalls,
 )
