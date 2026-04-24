@@ -224,7 +224,7 @@ class Agent(
 		//将未处理的pendingToolCalls转为CANCELLED的Turn
 		val canceledToolTurns = round.pendingToolCalls?.map { call ->
 			AgentContext.Turn(
-				assistantMessage = round.assistantMessage,
+				assistantMessage = requireNotNull(round.assistantMessage) { "round.assistantMessage must not be null when archiving" },
 				tools = listOf(
 					AgentContext.Message.Tool(
 						name = call.name,
@@ -252,7 +252,7 @@ class Agent(
 		val completed = AgentContext.CompletedRound(
 			userMessage = round.userMessage,
 			turns = allTurns,
-			finalAssistantMessage = round.assistantMessage,
+			finalAssistantMessage = requireNotNull(round.assistantMessage) { "round.assistantMessage must not be null when archiving" },
 		)
 		currentContext = currentContext.copy(
 			currentRound = null,

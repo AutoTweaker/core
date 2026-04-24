@@ -41,7 +41,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 		for (round in context.historyRounds.orEmpty()) {
 			add(round.userMessage.toChatMessage())
 			round.turns?.forEach { addTurn(it) }
-			round.finalAssistantMessage?.let { add(it.toChatMessage()) }
+			add(round.finalAssistantMessage.toChatMessage())
 		}
 		
 		// Current round
@@ -66,17 +66,9 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 		)
 	}
 	if (toolCalls.isNotEmpty()) {
-		add(
-			turn.assistantMessage?.toChatMessage(toolCalls)
-				?: ChatMessage.AssistantMessage(
-					content = null,
-					createdAt = turn.tools.first().call.timestamp,
-					model = turn.tools.first().call.model.name,
-					toolCalls = toolCalls,
-				)
-		)
+		add(turn.assistantMessage.toChatMessage(toolCalls))
 	} else {
-		turn.assistantMessage?.let { add(it.toChatMessage()) }
+		add(turn.assistantMessage.toChatMessage())
 	}
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
