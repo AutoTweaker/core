@@ -376,7 +376,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 支持思考的模型仅保留最新用户消息后的思维链() = runTest {
+	fun 思考模式下保留所有思维链() = runTest {
 		val msgs = capturedMessages(
 			model = model("m1", supportsReasoning = true),
 			thinking = true,
@@ -387,8 +387,8 @@ class ResilientChatTest {
 				assistantMsg("r2", reasoningContent = "think2"),
 			),
 		)
-		
-		assertEquals(null, (msgs[1] as ChatMessage.AssistantMessage).reasoningContent)
+
+		assertEquals("think1", (msgs[1] as ChatMessage.AssistantMessage).reasoningContent)
 		assertEquals("think2", (msgs[3] as ChatMessage.AssistantMessage).reasoningContent)
 	}
 	

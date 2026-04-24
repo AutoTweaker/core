@@ -121,10 +121,10 @@ private fun ChatResult.normalizeEmptyStrings(): ChatResult {
 }
 
 private fun ChatRequest.adapt(model: Model): ChatRequest {
-	val lastUserMessageIndex = messages.indexOfLast { it is ChatMessage.UserMessage }
 	val stripPictures = !model.modelInfo.supportsImage &&
 			messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
 	val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
+	val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
 	
 	return copy(
 		model = model.name,
@@ -132,19 +132,16 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
 		thinking = if (stripThinking) null else thinking,
 		temperature = model.config?.temperature,
 		maxTokens = model.config?.maxTokens,
-		messages = messages.mapIndexed { index, msg ->
+		messages = messages.mapIndexed { _, msg ->
 			var result = msg
 			if (stripPictures && result is ChatMessage.UserMessage) {
 				result = result.copy(pictures = null)
 			}
-			if (result is ChatMessage.AssistantMessage && result.reasoningContent != null) {
-				val stripReasoning = when {
-					!model.modelInfo.supportsReasoning || thinking != true -> true
-					index < lastUserMessageIndex -> true
-					else -> false
-				}
-				if (stripReasoning) {
-					result = result.copy(reasoningContent = null)
+			if (result is ChatMessage.AssistantMessage) {
+				result = when {
+					shouldStripReasoning -> result.copy(reasoningContent = null)
+					result.reasoningContent == null -> result.copy(reasoningContent = "")
+					else -> result
 				}
 			}
 			result
