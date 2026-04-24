@@ -11,7 +11,6 @@ import io.ktor.util.reflect.*
 import kotlinx.serialization.serializer
 import java.math.BigDecimal
 import java.util.*
-import kotlin.time.Clock
 
 @AutoService(LlmClient::class)
 class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
@@ -127,7 +126,6 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			}
 		}
 		
-		val isThinkingEnabled = request.thinking == true
 		
 		return DeepSeekRequest(
 			model = request.model,
@@ -142,12 +140,22 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 					)
 				)
 			},
-			thinking = if (isThinkingEnabled) OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED) else null,
+			thinking = when (request.thinking) {
+				true -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED)
+				false -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.DISABLED)
+				null -> null
+			},
 			temperature = request.temperature,
 			maxCompletionTokens = request.maxTokens,
 			topP = request.topP,
 			frequencyPenalty = request.frequencyPenalty,
-			presencePenalty = request.presencePenalty
+			presencePenalty = request.presencePenalty,
+			responseFormat = request.responseFormat,
+			toolChoice = when (request.toolCallRequired) {
+				true -> ToolChoice.REQUIRED
+				false -> ToolChoice.NONE
+				null -> null
+			},
 		)
 	}
 	
@@ -191,7 +199,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			message = ChatMessage.AssistantMessage(
 				content = delta?.content,
 				reasoningContent = delta?.reasoningContent,
-				createdAt = Clock.System.now(),
+				createdAt = chunk.created,
 				model = chunk.model
 			),
 			usage = chunk.usage?.let { u ->

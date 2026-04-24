@@ -5,6 +5,7 @@ import io.github.autotweaker.core.tool.ToolInput
 import kotlinx.serialization.json.JsonObject
 
 data class ReadInput(
+	override val functionName: String,
 	override val arguments: JsonObject,
 	override val provider: SimpleContainer,
 	val previousReads: List<PreviousRead>,

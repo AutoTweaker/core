@@ -1,9 +1,9 @@
 package io.github.autotweaker.core.llm.base.openai
 
 import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatRequest.Tool.Parameters
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 abstract class OpenAiRequest {
 	abstract val model: String?
@@ -41,7 +41,7 @@ abstract class OpenAiRequest {
 		data class Function(
 			val name: String,
 			val description: String?,
-			val parameters: Parameters,
+			val parameters: JsonElement,
 			val strict: Boolean? = null
 		)
 	}

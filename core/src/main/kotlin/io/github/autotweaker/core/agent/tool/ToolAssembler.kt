@@ -4,13 +4,12 @@ import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.Tool
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 
 object ToolAssembler {
-	//入口方法
 	fun assemble(tools: List<Tool<*, *>>, settings: List<SettingItem>): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
-		
+
 		val reasonDescription: String = settings.find("core.agent.tool.description.reason")
 		
 		return tools.flatMap { tool ->
@@ -24,50 +23,64 @@ object ToolAssembler {
 		}
 	}
 	
-	//扩展方法，逐个转换
 	private fun Map<String, Tool.Function.Property>.toChatRequestParameters(
 		reasonDescription: String
-	): ChatRequest.Tool.Parameters {
-		val properties = mapValues { (_, prop) ->
-			ChatRequest.Tool.Parameters.Property(
-				//映射字段类型
-				type = when (prop.value) {
-					is Tool.Function.Property.Value.StringValue -> ChatRequest.Tool.Parameters.Property.Type.STRING
-					is Tool.Function.Property.Value.NumberValue -> ChatRequest.Tool.Parameters.Property.Type.NUMBER
-					is Tool.Function.Property.Value.IntegerValue -> ChatRequest.Tool.Parameters.Property.Type.INTEGER
-					is Tool.Function.Property.Value.BooleanValue -> ChatRequest.Tool.Parameters.Property.Type.BOOLEAN
-					is Tool.Function.Property.Value.ArrayValue -> ChatRequest.Tool.Parameters.Property.Type.ARRAY
-					is Tool.Function.Property.Value.ObjectValue -> ChatRequest.Tool.Parameters.Property.Type.OBJECT
-				},
-				//映射描述
-				description = prop.description,
-				//映射枚举选项
-				enum = when (val v = prop.value) {
-					is Tool.Function.Property.Value.StringValue -> v.enum?.map {
-						JsonPrimitive(it)
-					}
-					
-					is Tool.Function.Property.Value.NumberValue -> v.enum?.map {
-						JsonPrimitive(it)
-					}
-					
-					is Tool.Function.Property.Value.IntegerValue -> v.enum?.map {
-						JsonPrimitive(it)
-					}
-					
-					else -> null
-				},
-			)
+	): JsonElement = buildJsonObject {
+		put("type", "object")
+		putJsonObject("properties") {
+			forEach { (name, prop) ->
+				put(name, prop.toPropertyJson())
+			}
+			put("reason", buildJsonObject {
+				put("type", "string")
+				put("description", reasonDescription)
+			})
 		}
-		
-		//注入reason字段
-		val allProperties = properties + ("reason" to ChatRequest.Tool.Parameters.Property(
-			type = ChatRequest.Tool.Parameters.Property.Type.STRING,
-			description = reasonDescription,
-		))
-		
-		//reason字段required
-		val required = filter { it.value.required }.keys.toList() + "reason"
-		return ChatRequest.Tool.Parameters(properties = allProperties, required = required)
+		putJsonArray("required") {
+			filter { it.value.required }.keys.forEach { add(it) }
+			add("reason")
+		}
+	}
+	
+	private fun Tool.Function.Property.toPropertyJson(): JsonElement = buildJsonObject {
+		put("description", description)
+		valueType.fillJsonObject(this)
+	}
+	
+	private fun Tool.Function.Property.ValueType.fillJsonObject(builder: JsonObjectBuilder) {
+		when (this) {
+			is Tool.Function.Property.ValueType.StringValue -> {
+				builder.put("type", "string")
+				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
+			}
+			
+			is Tool.Function.Property.ValueType.NumberValue -> {
+				builder.put("type", "number")
+				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
+			}
+			
+			is Tool.Function.Property.ValueType.IntegerValue -> {
+				builder.put("type", "integer")
+				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
+			}
+			
+			is Tool.Function.Property.ValueType.BooleanValue -> {
+				builder.put("type", "boolean")
+			}
+			
+			is Tool.Function.Property.ValueType.ArrayValue -> {
+				builder.put("type", "array")
+				builder.put("items", buildJsonObject { items.fillJsonObject(this) })
+			}
+			
+			is Tool.Function.Property.ValueType.ObjectValue -> {
+				builder.put("type", "object")
+				builder.putJsonObject("properties") {
+					properties.forEach { (name, vt) ->
+						put(name, buildJsonObject { vt.fillJsonObject(this) })
+					}
+				}
+			}
+		}
 	}
 }

@@ -46,7 +46,7 @@ object SerializeConfig {
 			val index = jsonArray.mapNotNull { element ->
 				try {
 					json.decodeFromJsonElement<WebsiteIndex>(element)
-				} catch (e: Exception) {
+				} catch (_: Exception) {
 					null
 				}
 			}.first { it.defaultAppConfig.isNotBlank() }

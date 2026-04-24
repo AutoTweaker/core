@@ -82,7 +82,7 @@ class Read(
 					"line_number" to Tool.Function.Property(
 						description = fileDescriptionLineNumber,
 						required = false,
-						value = Tool.Function.Property.Value.BooleanValue,
+						valueType = Tool.Function.Property.ValueType.BooleanValue,
 					),
 				),
 			),
@@ -94,7 +94,7 @@ class Read(
 					"prompt" to Tool.Function.Property(
 						description = summarizeDescriptionPrompt,
 						required = false,
-						value = Tool.Function.Property.Value.StringValue(),
+						valueType = Tool.Function.Property.ValueType.StringValue(),
 					),
 				),
 			),
@@ -105,12 +105,12 @@ class Read(
 					"file_path" to Tool.Function.Property(
 						description = descriptionFilePath,
 						required = true,
-						value = Tool.Function.Property.Value.StringValue(),
+						valueType = Tool.Function.Property.ValueType.StringValue(),
 					),
 					"max_chars" to Tool.Function.Property(
 						description = unicodeDescriptionMaxChars.format(unicodeMaxChars),
 						required = true,
-						value = Tool.Function.Property.Value.IntegerValue(),
+						valueType = Tool.Function.Property.ValueType.IntegerValue(),
 					),
 				),
 			),
@@ -121,24 +121,24 @@ class Read(
 			"file_path" to Tool.Function.Property(
 				description = descriptionFilePath,
 				required = true,
-				value = Tool.Function.Property.Value.StringValue(),
+				valueType = Tool.Function.Property.ValueType.StringValue(),
 			),
 			"start_line" to Tool.Function.Property(
 				description = descriptionStartLine,
 				required = true,
-				value = Tool.Function.Property.Value.IntegerValue(),
+				valueType = Tool.Function.Property.ValueType.IntegerValue(),
 			),
 			"end_line" to Tool.Function.Property(
 				description = descriptionEndLine,
 				required = true,
-				value = Tool.Function.Property.Value.IntegerValue(),
+				valueType = Tool.Function.Property.ValueType.IntegerValue(),
 			),
 		)
 	
 	//入口方法
 	override suspend fun execute(input: ReadInput): ReadOutput {
 		val args = input.arguments
-		val functionName = args["function_name"]!!.jsonPrimitive.content
+		val functionName = input.functionName
 		val filePath = args["file_path"]!!.jsonPrimitive.content
 		val fs = input.provider.get<FileSystemService>()
 		//解析路径

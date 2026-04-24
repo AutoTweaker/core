@@ -6,7 +6,7 @@ import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -75,20 +75,26 @@ fun main() {
 			ChatRequest.Tool(
 				name = "get_weather",
 				description = "获取指定城市的当前天气信息",
-				parameters = ChatRequest.Tool.Parameters(
-					properties = mapOf(
-						"city" to ChatRequest.Tool.Parameters.Property(
-							type = ChatRequest.Tool.Parameters.Property.Type.STRING,
-							description = "城市名称，例如：北京、上海"
-						),
-						"unit" to ChatRequest.Tool.Parameters.Property(
-							type = ChatRequest.Tool.Parameters.Property.Type.STRING,
-							description = "温度单位",
-							enum = listOf(JsonPrimitive("celsius"), JsonPrimitive("fahrenheit"))
-						)
-					),
-					required = listOf("city")
-				)
+				parameters = buildJsonObject {
+					put("type", "object")
+					putJsonObject("properties") {
+						put("city", buildJsonObject {
+							put("type", "string")
+							put("description", "城市名称，例如：北京、上海")
+						})
+						put("unit", buildJsonObject {
+							put("type", "string")
+							put("description", "温度单位")
+							putJsonArray("enum") {
+								add("celsius")
+								add("fahrenheit")
+							}
+						})
+					}
+					putJsonArray("required") {
+						add("city")
+					}
+				}
 			)
 		),
 		context = AgentContext(

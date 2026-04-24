@@ -23,50 +23,15 @@ data class ChatRequest(
 	data class Tool(
 		val name: String,
 		val description: String,
-		val parameters: Parameters
-	) {
-		@Serializable
-		data class Parameters(
-			val type: Property.Type = Property.Type.OBJECT,
-			val properties: Map<String, Property> = emptyMap(),
-			val required: List<String>? = null
-		) {
-			@Serializable
-			data class Property(
-				val type: Type,
-				val description: String? = null,
-				val enum: List<JsonElement>? = null,
-				val items: Property? = null
-			) {
-				@Serializable
-				enum class Type {
-					@SerialName("string")
-					STRING,
-					
-					@SerialName("number")
-					NUMBER,
-					
-					@SerialName("integer")
-					INTEGER,
-					
-					@SerialName("boolean")
-					BOOLEAN,
-					
-					@SerialName("array")
-					ARRAY,
-					
-					@SerialName("object")
-					OBJECT
-				}
-			}
-		}
-	}
+		val parameters: JsonElement
+	)
 	
 	@Serializable
 	data class ResponseFormat(
 		val type: Type
 	) {
 		@Serializable
+		@Suppress("unused")
 		enum class Type {
 			@SerialName("text")
 			TEXT,

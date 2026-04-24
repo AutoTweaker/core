@@ -13,15 +13,15 @@ interface Tool<in I : ToolInput, out O : ToolOutput> {
 		data class Property(
 			val description: String,
 			val required: Boolean,
-			val value: Value
+			val valueType: ValueType
 		) {
-			sealed class Value {
-				data class StringValue(val enum: List<String>? = null) : Value()
-				data class NumberValue(val enum: List<Double>? = null) : Value()
-				data class IntegerValue(val enum: List<Int>? = null) : Value()
-				data object BooleanValue : Value()
-				data object ArrayValue : Value()
-				data object ObjectValue : Value()
+			sealed class ValueType {
+				data class StringValue(val enum: List<String>? = null) : ValueType()
+				data class NumberValue(val enum: List<Double>? = null) : ValueType()
+				data class IntegerValue(val enum: List<Int>? = null) : ValueType()
+				data object BooleanValue : ValueType()
+				data class ArrayValue(val items: ValueType) : ValueType()
+				data class ObjectValue(val properties: Map<String, ValueType>) : ValueType()
 			}
 		}
 	}

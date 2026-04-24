@@ -30,6 +30,16 @@ val defaultItems: List<SettingItem> = listOf(
 		"工具调用属性格式错误时的ToolResult"
 	),
 	SettingItem(
+		SettingKey("core.agent.tool.response.function.name.error"),
+		SettingItem.Value.ValString("%s工具不存在，请检查工具是否已激活"),
+		"调用工具不存在时的ToolResult"
+	),
+	SettingItem(
+		SettingKey("core.agent.tool.response.json.error"),
+		SettingItem.Value.ValString("调用参数不是一个有效的JSON对象：%s"),
+		"工具调用参数无法解析时的ToolResult"
+	),
+	SettingItem(
 		SettingKey("core.agent.tool.description.reason"),
 		SettingItem.Value.ValString("简要描述调用此工具的目的"),
 		"工具调用的reason属性描述"

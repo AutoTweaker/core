@@ -245,12 +245,18 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					)
 				)
 			},
-			thinking = if (request.thinking == true) OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED) else null,
+			thinking = when (request.thinking) {
+				true -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED)
+				false -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.DISABLED)
+				null -> null
+			},
 			temperature = request.temperature,
 			maxCompletionTokens = request.maxTokens,
 			topP = request.topP,
 			frequencyPenalty = request.frequencyPenalty,
-			presencePenalty = request.presencePenalty
+			presencePenalty = request.presencePenalty,
+			responseFormat = request.responseFormat,
+			toolChoice = if (request.toolCallRequired == true) "auto" else null,
 		)
 	}
 	
