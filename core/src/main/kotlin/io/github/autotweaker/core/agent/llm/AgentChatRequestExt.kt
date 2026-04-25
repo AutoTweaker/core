@@ -27,24 +27,19 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 	}
 	
 	val messages = buildList {
-		// System prompt
+		//系统提示
 		context.systemPrompt?.let {
 			add(ChatMessage.SystemMessage(it, kotlin.time.Clock.System.now()))
 		}
 		
-		// Summarized messages (compacted context)
-		context.summarizedMessages?.takeIf { it.isNotEmpty() }?.let {
-			add(ChatMessage.SystemMessage(it, kotlin.time.Clock.System.now()))
-		}
-		
-		// History rounds
+		//历史轮次
 		for (round in context.historyRounds.orEmpty()) {
 			add(round.userMessage.toChatMessage())
 			round.turns?.forEach { addTurn(it) }
 			add(round.finalAssistantMessage.toChatMessage())
 		}
 		
-		// Current round
+		//当前轮次
 		add(current.userMessage.toChatMessage())
 		current.turns?.forEach { addTurn(it) }
 	}
@@ -74,7 +69,7 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 }
 
 private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
-	content = content,
+	content = summarizedMessage + "\n\n" + content,
 	createdAt = timestamp,
 	pictures = images,
 )

@@ -122,6 +122,7 @@ class Agent(
 		
 		//更新上下文
 		val userMsg = AgentContext.Message.User(
+			summarizedMessage = null,
 			content = content,
 			images = images,
 			timestamp = Clock.System.now()

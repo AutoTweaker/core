@@ -7,13 +7,14 @@ import kotlin.time.Instant
 data class AgentContext(
 	val compactedRounds: List<CompactedRound>?,
 	val systemPrompt: String?,
-	val summarizedMessages: String?,
 	val historyRounds: List<CompletedRound>?,
 	val currentRound: CurrentRound?,
 ) {
 	sealed class Message {
 		data class User(
-			val content: String,
+			//总结消息挂在前方
+			val summarizedMessage: String?,
+			val content: String?,
 			val images: List<Base64>? = null,
 			val timestamp: Instant,
 		) : Message()
