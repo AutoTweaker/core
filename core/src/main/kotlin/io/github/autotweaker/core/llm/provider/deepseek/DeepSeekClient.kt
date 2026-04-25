@@ -23,15 +23,15 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		baseUrl = Url("https://api.deepseek.com/v1"),
 		models = listOf(
 			SettingItem.Value.Providers.Provider.Model.ModelInfo(
-				id = "deepseek-chat",
-				contextWindow = 128_000,
-				maxOutputTokens = 64_000,
+				id = "deepseek-v4-flash",
+				contextWindow = 100_0000,
+				maxOutputTokens = 384_000,
 				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
 					inputPrice = listOf(
 						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(2),
+								amount = BigDecimal(1),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -46,7 +46,44 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(3),
+								amount = BigDecimal(2),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							)
+						)
+					),
+				),
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = false,
+				supportsJsonOutput = true
+			),
+			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+				id = "deepseek-v4-pro",
+				contextWindow = 100_0000,
+				maxOutputTokens = 384_000,
+				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+					inputPrice = listOf(
+						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal(12),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal(1),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							)
+						)
+					),
+					outputPrice = listOf(
+						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal(24),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							)
