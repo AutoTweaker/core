@@ -33,6 +33,7 @@ data class AgentContext(
 		) : Message() {
 			data class Call(
 				val arguments: String,
+				val reason: String?,
 				val timestamp: Instant,
 				val model: Model,
 			)
@@ -76,6 +77,7 @@ data class AgentContext(
 			val name: String,
 			val model: Model,
 			val arguments: String,
+			val reason: String?,
 			val timestamp: Instant,
 		)
 	}

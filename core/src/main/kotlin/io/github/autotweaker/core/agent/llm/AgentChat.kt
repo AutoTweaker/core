@@ -22,6 +22,7 @@ private fun toPendingToolCalls(
 			arguments = it.arguments,
 			timestamp = timestamp,
 			model = model,
+			reason = null
 		)
 	}
 }

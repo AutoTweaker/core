@@ -56,6 +56,7 @@ fun main() {
 						arguments = """{"city": "北京", "unit": "celsius"}""",
 						timestamp = toolCallTimestamp,
 						model = model,
+						reason = "获取北京的天气情况"
 					),
 					result = AgentContext.Message.Tool.Result(
 						content = """{"city": "北京", "temperature": 22, "unit": "celsius", "condition": "晴", "humidity": 35, "wind": "南风 3级"}""",

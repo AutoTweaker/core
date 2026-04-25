@@ -232,6 +232,7 @@ class Agent(
 							arguments = call.arguments,
 							timestamp = call.timestamp,
 							model = call.model,
+							reason = call.reason,
 						),
 						callId = call.callId,
 						result = AgentContext.Message.Tool.Result(
