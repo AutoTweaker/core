@@ -11,13 +11,14 @@ object CoreConfigRegistry {
 		loadDefaultConfig()
 	}
 	
-	/**
-	 * 从远程加载默认配置，失败时抛出异常
-	 */
 	private fun loadDefaultConfig() {
-		val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
-		items.forEach { register(it) }
-		logger.info("Loaded ${items.size} config items from remote")
+		try {
+			val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
+			items.forEach { register(it) }
+			logger.info("Loaded ${items.size} config items from remote")
+		} catch (e: Exception) {
+			logger.warn("Failed to load default config, use local config only", e)
+		}
 	}
 	
 	private fun register(item: SettingItem) {

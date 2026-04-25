@@ -41,8 +41,10 @@ object Settings {
 				}
 			}
 			
-			// 删除注册表中不存在的多余行
-			ConfigTable.deleteWhere { ConfigTable.keyName notInList registeredKeys }
+			// 删除注册表中不存在的多余行（注册表为空时跳过，防止远程配置拉取失败时清空本地数据）
+			if (registeredKeys.isNotEmpty()) {
+				ConfigTable.deleteWhere { ConfigTable.keyName notInList registeredKeys }
+			}
 		}
 	}
 	
