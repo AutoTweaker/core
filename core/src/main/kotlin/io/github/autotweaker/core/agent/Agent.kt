@@ -3,6 +3,7 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.agent.tool.AutoApprovalRules
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
@@ -28,6 +29,7 @@ class Agent(
 	thinking: Boolean,
 	settings: List<SettingItem>,
 	tools: List<Tool<*, *>>,
+	autoApprovalRules: AutoApprovalRules,
 ) {
 	private val toolCancelledMessage: String = settings.find("core.agent.tool.response.canceled")
 	private val _settings: List<SettingItem> = settings
@@ -36,7 +38,8 @@ class Agent(
 	private var currentContext: AgentContext = context
 	
 	private val _tools = Tools(settings).also { t -> tools.forEach { t.add(it) } }
-
+	private val _autoApprovalRules = autoApprovalRules
+	
 	//模型
 	private var currentModel = model
 	private var currentFallbackModels = fallbackModels
