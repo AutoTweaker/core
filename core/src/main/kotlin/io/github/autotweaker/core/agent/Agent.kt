@@ -3,7 +3,7 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.agent.tool.ToolAssembler
+import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.tool.Tool
@@ -19,7 +19,6 @@ import kotlin.time.Clock
 //TODO 实现工具调用相关支持，分离出agent.tool模块专门准备工具依赖，实现工具自动审批
 //TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
 //TODO AgentContext的生命周期管理，应该抽成一个独立组件AgentContextManager
-//TODO 封装从settings取值的逻辑
 
 @Suppress("unused")
 class Agent(
@@ -35,9 +34,9 @@ class Agent(
 
 	//上下文
 	private var currentContext: AgentContext = context
-
-	private val _tools = tools
 	
+	private val _tools = Tools(settings).also { t -> tools.forEach { t.add(it) } }
+
 	//模型
 	private var currentModel = model
 	private var currentFallbackModels = fallbackModels
@@ -74,13 +73,13 @@ class Agent(
 	}
 	
 	private fun startEventLoop() {
-		// 监控输入
+		//监控输入
 		scope.launch {
 			for (command in commandChannel) {
 				handleCommand(command)
 			}
 		}
-		// 监控工作触发信号
+		//监控工作触发信号
 		scope.launch {
 			for (signal in workTrigger) {
 				resumeFromCurrentState()
@@ -91,20 +90,24 @@ class Agent(
 	//处理输入
 	private fun handleCommand(command: AgentCommand) {
 		when (command) {
+			//接收用户消息
 			is AgentCommand.SendMessage -> {
 				processUserMessage(command.content, command.images)
 			}
 			
+			//更新模型
 			is AgentCommand.UpdateModel -> {
 				this.currentModel = command.model
 				command.fallbackModels?.let { this.currentFallbackModels = it }
 				command.thinking?.let { this.currentThinking = it }
 			}
 			
+			//工具批准
 			is AgentCommand.ApproveToolCall -> {
 				// TODO 处理工具审批
 			}
 			
+			//停止
 			AgentCommand.Stop -> {
 				reasoningJob?.cancel()
 				archiveCurrentRound()
@@ -135,10 +138,7 @@ class Agent(
 		workTrigger.trySend(Unit)
 	}
 	
-	/**
-	 * 从当前上下文状态继续工作
-	 * 判断下一步动作（请求LLM或执行工具）并分发
-	 */
+	//从当前状态继续
 	private fun resumeFromCurrentState() {
 		when (val action = detectNextAction()) {
 			NextAction.IDLE -> {
@@ -150,7 +150,7 @@ class Agent(
 		}
 	}
 	
-	/** 根据当前上下文状态判断下一步动作 */
+	//根据AgentContext判断下一步动作
 	private fun detectNextAction(): NextAction {
 		val round = currentContext.currentRound ?: return NextAction.IDLE
 		if (round.pendingToolCalls != null) return NextAction.EXECUTE_TOOLS
@@ -159,17 +159,20 @@ class Agent(
 		error("Unknown context state")
 	}
 	
-	/** 请求LLM */
+	//调用llm
 	private fun requestLlm() {
 		reasoningJob = scope.launch {
+			//更新状态
 			_status.value = AgentStatus.PROCESSING
+			//构建请求
 			val request = AgentChatRequest(
 				model = currentModel,
 				fallbackModels = currentFallbackModels,
 				thinking = currentThinking,
-				tools = ToolAssembler.assemble(_tools, _settings),
+				tools = _tools.assembleTools(),
 				context = currentContext
 			)
+			//处理响应
 			when (val result = streamProcessor.process(request, currentContext)) {
 				is StreamProcessResult.Completed -> {
 					archiveCurrentRound()
@@ -192,31 +195,69 @@ class Agent(
 		}
 	}
 	
-	/** 执行工具调用 */
+	//调用工具
 	private fun executeTools() {
 		scope.launch {
 			_status.value = AgentStatus.TOOL_CALLING
-			// TODO 执行pendingToolCalls
-			// TODO 将结果写入Turn.tools，清空pendingToolCalls
-			// TODO 然后workTrigger.trySend(Unit)
+			
+			//获取当前轮次
+			val round = currentContext.currentRound ?: return@launch
+			//获取待处理工具调用
+			val pendingCalls = round.pendingToolCalls ?: return@launch
+			
+			val turns = pendingCalls.map { call ->
+				// TODO 通过 ToolInput 和 SimpleContainer 执行工具
+				val toolMessage = AgentContext.Message.Tool(
+					name = call.name,
+					call = AgentContext.Message.Tool.Call(
+						arguments = call.arguments,
+						reason = call.reason,
+						timestamp = call.timestamp,
+						model = call.model,
+					),
+					callId = call.callId,
+					result = AgentContext.Message.Tool.Result(
+						content = "Tool execution not yet implemented",
+						timestamp = Clock.System.now(),
+						status = AgentContext.Message.Tool.Result.Status.FAILURE,
+					),
+				)
+				
+				AgentContext.Turn(
+					assistantMessage = requireNotNull(round.assistantMessage) { "assistantMessage must not be null when executing tools" },
+					tools = listOf(toolMessage),
+				)
+			}
+			
+			//更新上下文
+			currentContext = currentContext.copy(
+				currentRound = round.copy(
+					turns = (round.turns ?: emptyList()) + turns,
+					pendingToolCalls = null,
+				)
+			)
+			
+			workTrigger.trySend(Unit)
 		}
 	}
 	
-	/** 下一步动作枚举 */
+	//下一步动作
 	private enum class NextAction {
 		IDLE,
 		REQUEST_LLM,
 		EXECUTE_TOOLS,
 	}
 	
+	//外部发送命令
 	fun dispatch(command: AgentCommand) {
 		commandChannel.trySend(command)
 	}
 	
+	//存档currentRound
 	private fun archiveCurrentRound() {
 		val round = currentContext.currentRound ?: return
 		
-		//新round，无任何内容（无assistantMessage、无turns、无pendingToolCalls）
+		//新round，回退用户消息
 		if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
 			currentContext = currentContext.copy(currentRound = null)
 			return
@@ -246,16 +287,20 @@ class Agent(
 			)
 		}
 		
+		//构建turns列表
 		val allTurns = buildList {
 			round.turns?.let { addAll(it) }
 			canceledToolTurns?.let { addAll(it) }
 		}.ifEmpty { null }
 		
+		//构建CompletedRound
 		val completed = AgentContext.CompletedRound(
 			userMessage = round.userMessage,
 			turns = allTurns,
 			finalAssistantMessage = requireNotNull(round.assistantMessage) { "round.assistantMessage must not be null when archiving" },
 		)
+		
+		//更新上下文
 		currentContext = currentContext.copy(
 			currentRound = null,
 			historyRounds = currentContext.historyRounds.orEmpty() + completed,

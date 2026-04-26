@@ -1,6 +1,7 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
+import io.github.autotweaker.core.tool.Tool
 
 @Suppress("unused")
 sealed class AgentOutput {
@@ -35,6 +36,10 @@ sealed class AgentOutput {
 			LLM_ERROR,
 		}
 	}
+	
+	data class ToolListUpdate(
+		val activeTools: List<Tool<*, *>>,
+	) : AgentOutput()
 	
 	data class Error(
 		val message: String,

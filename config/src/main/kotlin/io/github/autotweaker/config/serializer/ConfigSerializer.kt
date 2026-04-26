@@ -44,6 +44,17 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("简要描述调用此工具的目的"),
 		"工具调用的reason属性描述"
 	),
+	//工具激活相关的属性和描述
+	SettingItem(
+		SettingKey("core.agent.tool.description.enable"),
+		SettingItem.Value.ValString("激活此工具以开始使用"),
+		"未激活工具的enable属性描述"
+	),
+	SettingItem(
+		SettingKey("core.agent.tool.response.active"),
+		SettingItem.Value.ValString("工具%s已激活，包含%s个function，检查你的工具列表来了解如何使用"),
+		"激活工具后的ToolResult"
+	),
 	//工具模块相关配置
 	SettingItem(
 		SettingKey("core.tool.message.path.error"),
