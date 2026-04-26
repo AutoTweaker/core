@@ -1,5 +1,6 @@
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
@@ -25,6 +26,55 @@ class Tools(settings: List<SettingItem>) {
 		_entries.add(Entry(tool))
 	}
 	
+	
+	private val _validator = ToolCallValidator(
+		_entries.filter { it.active }.map { it.tool },
+		_settings,
+	)
+	
+	@Suppress("unused")
+	fun resolveToolCalls(
+		calls: List<AgentContext.CurrentRound.PendingToolCall>
+	): ToolCallResolveResult {
+		if (calls.isEmpty()) return ToolCallResolveResult.AutoApproved(emptyList())
+		
+		val results = calls.map { call ->
+			call to _validator.validate(call.name, call.arguments)
+		}
+		
+		val failures = results
+			.filter { it.second is ToolCallValidator.ValidationResult.Failure }
+			.map { it.first to (it.second as ToolCallValidator.ValidationResult.Failure).errorMessage }
+		if (failures.isNotEmpty()) return ToolCallResolveResult.ParseFailure(failures)
+		
+		val validated = results.map {
+			(it.second as ToolCallValidator.ValidationResult.Success)
+		}
+		
+		// TODO 自动批准校验
+		val (autoApproved, needsApproval) = validated.partition { false }
+		
+		return if (needsApproval.isEmpty()) {
+			ToolCallResolveResult.AutoApproved(autoApproved)
+		} else {
+			ToolCallResolveResult.NeedsApproval(needsApproval)
+		}
+	}
+	
+	sealed class ToolCallResolveResult {
+		data class ParseFailure(
+			val errors: List<Pair<AgentContext.CurrentRound.PendingToolCall, String>>
+		) : ToolCallResolveResult()
+		
+		data class NeedsApproval(
+			val validated: List<ToolCallValidator.ValidationResult.Success>
+		) : ToolCallResolveResult()
+		
+		data class AutoApproved(
+			val validated: List<ToolCallValidator.ValidationResult.Success>
+		) : ToolCallResolveResult()
+	}
+
 	fun assembleTools(): List<ChatRequest.Tool>? {
 		val activeTools = _entries.filter { it.active }.map { it.tool }
 		val active = ToolAssembler.assemble(activeTools, _settings)
