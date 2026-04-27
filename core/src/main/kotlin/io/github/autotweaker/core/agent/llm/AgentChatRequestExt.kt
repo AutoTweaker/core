@@ -69,7 +69,7 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 }
 
 private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
-	content = summarizedMessage + "\n\n" + content,
+	content = if (summarizedMessage != null) summarizedMessage + "\n\n" + content else content ?: "",
 	createdAt = timestamp,
 	pictures = images,
 )
