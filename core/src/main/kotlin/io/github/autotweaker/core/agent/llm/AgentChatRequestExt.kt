@@ -7,7 +7,7 @@ import io.github.autotweaker.core.llm.ChatRequest
 fun AgentChatRequest.toChatRequest(): ChatRequest {
 	val current = context.currentRound
 		?: throw IllegalStateException("No current round available")
-	
+
 	val lastMessage = when {
 		current.assistantMessage != null -> current.assistantMessage
 		current.turns?.isNotEmpty() == true -> {
@@ -69,7 +69,15 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 }
 
 private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
-	content = if (summarizedMessage != null) summarizedMessage + "\n\n" + content else content ?: "",
+	content = buildString {
+		appendLine("<time>${kotlin.time.Clock.System.now()}</time>")
+		if (summarizedMessage != null) {
+			appendLine("<summary>")
+			appendLine(summarizedMessage)
+			appendLine("</summary>")
+		}
+		append(content ?: "")
+	}.trimEnd(),
 	createdAt = timestamp,
 	pictures = images,
 )
