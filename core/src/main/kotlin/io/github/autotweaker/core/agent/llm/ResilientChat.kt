@@ -1,6 +1,6 @@
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.core.Provider.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.ChatResult

@@ -1,9 +1,9 @@
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.core.Provider.ErrorHandlingRule
+import io.github.autotweaker.core.Provider.Model.Config
+import io.github.autotweaker.core.Provider.Model.ModelInfo
 import io.github.autotweaker.core.Url
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.Config
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.ModelInfo
 
 data class Model(
 	val name: String,

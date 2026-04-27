@@ -2,8 +2,8 @@ package io.github.autotweaker.core.llm.provider.mimo
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.core.Price
+import io.github.autotweaker.core.Provider
 import io.github.autotweaker.core.Url
-import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
@@ -18,9 +18,9 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 	responseTypeInfo = typeInfo<MiMoResponse>(),
 	chunkSerializer = serializer<MiMoStreamChunk>(),
 ) {
-	private val mimoProPrice = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+	private val mimoProPrice = Provider.Model.TokenPrice(
 		inputPrice = listOf(
-			SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+			Provider.Model.TokenPrice.PriceTier(
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
@@ -34,7 +34,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					unit = 100_0000
 				),
 			),
-			SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+			Provider.Model.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
 					amount = BigDecimal(14),
@@ -49,7 +49,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			)
 		),
 		outputPrice = listOf(
-			SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+			Provider.Model.TokenPrice.PriceTier(
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
@@ -58,7 +58,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					unit = 100_0000
 				),
 			),
-			SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+			Provider.Model.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
 					amount = BigDecimal(42),
@@ -73,7 +73,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		name = "mimo",
 		baseUrl = Url("https://api.xiaomimimo.com/v1"),
 		models = listOf(
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "mimo-v2-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -84,7 +84,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "mimo-v2.5-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -95,13 +95,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "mimo-v2-omni",
 				contextWindow = 256_000,
 				maxOutputTokens = 128_000,
-				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+				price = Provider.Model.TokenPrice(
 					inputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(2.8),
@@ -116,7 +116,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						),
 					),
 					outputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(14),
@@ -132,13 +132,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = true,
 				supportsJsonOutput = true
 			),
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "mimo-v2.5",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
-				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+				price = Provider.Model.TokenPrice(
 					inputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
@@ -152,7 +152,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								unit = 100_0000
 							),
 						),
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal(5.6),
@@ -167,7 +167,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						)
 					),
 					outputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
@@ -176,7 +176,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								unit = 100_0000
 							),
 						),
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal(28),
@@ -192,13 +192,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = true,
 				supportsJsonOutput = true
 			),
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "mimo-v2-flash",
 				contextWindow = 256_000,
 				maxOutputTokens = 64_000,
-				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+				price = Provider.Model.TokenPrice(
 					inputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(0.7),
@@ -213,7 +213,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						),
 					),
 					outputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(2.1),
@@ -231,37 +231,37 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			)
 		),
 		errorHandlingRules = listOf(
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 400,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 401,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 402,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 403,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 421,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 429,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.RETRY
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.RETRY
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 500,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 503,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.RETRY
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.RETRY
 			)
 		),
 	)

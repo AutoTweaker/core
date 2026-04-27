@@ -7,12 +7,6 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 val defaultItems: List<SettingItem> = listOf(
-	//模型相关配置
-	SettingItem(
-		SettingKey("core.agent.model.provider"),
-		SettingItem.Value.Providers(null),
-		"模型提供商设置，包含提供商和模型的基本信息"
-	),
 	//agent模块的tool相关配置
 	SettingItem(
 		SettingKey("core.agent.tool.response.canceled"),

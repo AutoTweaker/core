@@ -1,10 +1,10 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.core.Base64
+import io.github.autotweaker.core.Provider.ErrorHandlingRule
+import io.github.autotweaker.core.Provider.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.core.Provider.Model.*
 import io.github.autotweaker.core.Url
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy
-import io.github.autotweaker.core.data.settings.SettingItem.Value.Providers.Provider.Model.*
 import io.github.autotweaker.core.llm.*
 import io.mockk.*
 import kotlinx.coroutines.flow.Flow

@@ -2,8 +2,8 @@ package io.github.autotweaker.core.llm.provider.deepseek
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.core.Price
+import io.github.autotweaker.core.Provider
 import io.github.autotweaker.core.Url
-import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
@@ -22,13 +22,13 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		name = "deepseek",
 		baseUrl = Url("https://api.deepseek.com/v1"),
 		models = listOf(
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "deepseek-v4-flash",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
-				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+				price = Provider.Model.TokenPrice(
 					inputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(1),
@@ -43,7 +43,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						)
 					),
 					outputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(2),
@@ -59,13 +59,13 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			SettingItem.Value.Providers.Provider.Model.ModelInfo(
+			Provider.Model.ModelInfo(
 				id = "deepseek-v4-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
-				price = SettingItem.Value.Providers.Provider.Model.TokenPrice(
+				price = Provider.Model.TokenPrice(
 					inputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(12),
@@ -80,7 +80,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						)
 					),
 					outputPrice = listOf(
-						SettingItem.Value.Providers.Provider.Model.TokenPrice.PriceTier(
+						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal(24),
@@ -98,33 +98,33 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			)
 		),
 		errorHandlingRules = listOf(
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 400,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK,
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 401,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 402,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 422,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 429,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.RETRY,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.RETRY,
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 500,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
 			),
-			SettingItem.Value.Providers.Provider.ErrorHandlingRule(
+			Provider.ErrorHandlingRule(
 				statusCode = 503,
-				strategy = SettingItem.Value.Providers.Provider.ErrorHandlingRule.RecoveryStrategy.RETRY,
+				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.RETRY,
 			),
 		)
 	)
