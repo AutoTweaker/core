@@ -2,6 +2,8 @@ package io.github.autotweaker.core.tool
 
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.settings.SettingItem
+import io.github.autotweaker.core.workspace.Workspace
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 interface Tool {
@@ -34,18 +36,24 @@ interface Tool {
 		}
 	}
 	
+	data class ToolInput(
+		val functionName: String,
+		val arguments: JsonObject,
+		val provider: SimpleContainer,
+		val context: AgentContext,
+		val settings: List<SettingItem>,
+		val workspace: Workspace,
+	)
+	
+	data class ToolOutput(
+		val result: String,
+		val success: Boolean
+	)
+	
+	
 	suspend fun execute(input: ToolInput): ToolOutput
+	fun isAutoApproval(functionName: String, arguments: JsonObject, workspace: Workspace): Boolean
+	fun getRules(): JsonElement? = null
+	fun setRules(rules: JsonElement) = Unit
 }
 
-data class ToolInput(
-	val functionName: String,
-	val arguments: JsonObject,
-	val provider: SimpleContainer,
-	val context: AgentContext,
-	val settings: List<SettingItem>,
-)
-
-data class ToolOutput(
-	val result: String,
-	val success: Boolean
-)

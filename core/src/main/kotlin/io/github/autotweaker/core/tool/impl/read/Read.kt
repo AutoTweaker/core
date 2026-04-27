@@ -3,16 +3,64 @@ package io.github.autotweaker.core.tool.impl.read
 import com.google.auto.service.AutoService
 import io.github.autotweaker.core.Unicode
 import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.tool.Tool
-import io.github.autotweaker.core.tool.ToolInput
-import io.github.autotweaker.core.tool.ToolOutput
+import io.github.autotweaker.core.tool.Tool.ToolInput
+import io.github.autotweaker.core.tool.Tool.ToolOutput
 import io.github.autotweaker.core.tool.get
+import io.github.autotweaker.core.workspace.Workspace
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 
 @AutoService(Tool::class)
 class Read : Tool {
+	val jsonEntry = JsonStore.namespace(this::class.java.name)
+	
+	init {
+		if (jsonEntry.get() == null) {
+			jsonEntry.set(
+				buildJsonArray {
+					add(buildJsonObject {
+						put("workspaceName", JsonNull)
+						put("globPattern", buildJsonArray { add("**") })
+						put("excludeGlob", buildJsonArray {
+							add(".env"); add(".env.*"); add(".git/**"); add("**/.git/**")
+							add("*.key"); add("*.pem"); add("*.p12"); add("*.cer")
+							add("credentials*"); add("secrets*"); add("**/node_modules/**")
+						})
+					})
+				},
+			)
+		}
+	}
+	
+	override fun isAutoApproval(functionName: String, arguments: JsonObject, workspace: Workspace): Boolean {
+		val filePath = arguments["file_path"]?.jsonPrimitive?.content ?: return false
+		val json = jsonEntry.get() ?: return false
+		val rules = Json.decodeFromJsonElement(ListSerializer(AutoApprovalRule.serializer()), json)
+		val relPath = try {
+			workspace.path.relativize(java.nio.file.Paths.get(filePath)).toString()
+		} catch (_: Exception) {
+			return false
+		}
+		val matchedRule = rules.firstOrNull { it.workspaceName == workspace.name }
+			?: rules.firstOrNull { it.workspaceName == null }
+			?: return false
+		val inWhitelist = matchedRule.globPattern.isEmpty() || matchedRule.globPattern.any { relPath.matchesGlob(it) }
+		val inBlacklist = matchedRule.excludeGlob.any { relPath.matchesGlob(it) }
+		return inWhitelist && !inBlacklist
+	}
+	
+	override fun getRules(): JsonElement? = jsonEntry.get()
+	override fun setRules(rules: JsonElement) = jsonEntry.set(rules)
+	
+	private fun String.matchesGlob(pattern: String): Boolean {
+		val matcher = java.nio.file.FileSystems.getDefault().getPathMatcher("glob:$pattern")
+		return matcher.matches(java.nio.file.Paths.get(this))
+	}
+	
 	private data class Runtime(
 		//数值
 		val fileMaxChars: Int,
@@ -440,17 +488,4 @@ class Read : Tool {
 		
 		return sb.toString().trimEnd()
 	}
-}
-
-interface FileSystemService {
-	fun normalize(filePath: String): java.nio.file.Path
-	fun exists(path: java.nio.file.Path): Boolean
-	fun isRegularFile(path: java.nio.file.Path): Boolean
-	fun readUnicode(path: java.nio.file.Path): List<Unicode>
-	fun readAllLines(path: java.nio.file.Path): List<String>
-	fun sha256(path: java.nio.file.Path): String
-}
-
-interface SummarizeService {
-	suspend fun summarize(content: String, prompt: String): String
 }
