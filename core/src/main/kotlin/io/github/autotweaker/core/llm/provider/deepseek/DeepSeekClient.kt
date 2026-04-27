@@ -36,7 +36,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 								unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal(0.2),
+								amount = BigDecimal(0.02),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							)
@@ -68,12 +68,12 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(12),
+								amount = BigDecimal(3),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal(1),
+								amount = BigDecimal(0.025),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							)
@@ -83,7 +83,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(24),
+								amount = BigDecimal(6),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							)
