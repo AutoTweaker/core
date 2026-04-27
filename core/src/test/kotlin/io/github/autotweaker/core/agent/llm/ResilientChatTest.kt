@@ -14,7 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 import kotlin.time.Clock
 
-@Suppress("UnusedFlow", "TestFunctionName")
+@Suppress("UnusedFlow", "TestFunctionName", "NonAsciiCharacters")
 class ResilientChatTest {
 	
 	private val mockClient = mockk<LlmClient>()
@@ -387,7 +387,7 @@ class ResilientChatTest {
 				assistantMsg("r2", reasoningContent = "think2"),
 			),
 		)
-
+		
 		assertEquals("think1", (msgs[1] as ChatMessage.AssistantMessage).reasoningContent)
 		assertEquals("think2", (msgs[3] as ChatMessage.AssistantMessage).reasoningContent)
 	}

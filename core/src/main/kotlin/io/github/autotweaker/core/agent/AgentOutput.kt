@@ -38,7 +38,7 @@ sealed class AgentOutput {
 	}
 	
 	data class ToolListUpdate(
-		val activeTools: List<Tool<*, *>>,
+		val activeTools: List<Tool>,
 	) : AgentOutput()
 	
 	data class Error(

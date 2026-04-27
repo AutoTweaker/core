@@ -13,7 +13,7 @@ class Tools(settings: List<SettingItem>) {
 	private val enableDescription: String = settings.find("core.agent.tool.description.enable")
 	
 	data class Entry(
-		val tool: Tool<*, *>,
+		val tool: Tool,
 		val active: Boolean = false,
 	)
 	
@@ -22,7 +22,7 @@ class Tools(settings: List<SettingItem>) {
 	@Suppress("unused")
 	val entries: List<Entry> get() = _entries
 	
-	fun add(tool: Tool<*, *>) {
+	fun add(tool: Tool) {
 		_entries.add(Entry(tool))
 	}
 	
@@ -74,7 +74,7 @@ class Tools(settings: List<SettingItem>) {
 			val validated: List<ToolCallValidator.ValidationResult.Success>
 		) : ToolCallResolveResult()
 	}
-
+	
 	fun assembleTools(): List<ChatRequest.Tool>? {
 		val activeTools = _entries.filter { it.active }.map { it.tool }
 		val active = ToolAssembler.assemble(activeTools, _settings)
@@ -84,9 +84,10 @@ class Tools(settings: List<SettingItem>) {
 			.map { it.tool }
 			.takeIf { it.isNotEmpty() }
 			?.map { tool ->
+				val meta = tool.resolveMeta(_settings)
 				ChatRequest.Tool(
-					name = tool.name,
-					description = tool.description,
+					name = meta.name,
+					description = meta.description,
 					parameters = buildJsonObject {
 						put("type", "object")
 						put("properties", buildJsonObject {

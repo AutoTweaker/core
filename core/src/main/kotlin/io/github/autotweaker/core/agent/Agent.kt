@@ -28,12 +28,12 @@ class Agent(
 	fallbackModels: List<Model>?,
 	thinking: Boolean,
 	settings: List<SettingItem>,
-	tools: List<Tool<*, *>>,
+	tools: List<Tool>,
 	autoApprovalRules: AutoApprovalRules,
 ) {
 	private val toolCancelledMessage: String = settings.find("core.agent.tool.response.canceled")
 	private val _settings: List<SettingItem> = settings
-
+	
 	//上下文
 	private var currentContext: AgentContext = context
 	

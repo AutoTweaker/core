@@ -43,12 +43,12 @@ fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
 	var lastUsage: Usage? = null
 	var lastRetrying: Model? = null
 	val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
-
+	
 	try {
 		results.collect { resilientResult ->
 			val result = resilientResult.result
 			val msg = result.message
-
+			
 			if (resilientResult.retrying != null) {
 				lastRetrying = resilientResult.retrying
 			}
@@ -86,7 +86,7 @@ fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
 					)
 				)
 			}
-
+			
 			result.finishReason?.let { lastFinishReason = it }
 			result.usage?.let { lastUsage = it }
 		}

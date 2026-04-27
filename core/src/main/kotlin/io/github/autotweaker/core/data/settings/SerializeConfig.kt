@@ -14,9 +14,9 @@ import java.net.URI
 
 object SerializeConfig {
 	private const val INDEX_URL = "https://autotweaker.github.io/website/"
-
+	
 	private const val SETTINGS_VERSION = "dev"
-
+	
 	private val json = Json {
 		prettyPrint = false
 		ignoreUnknownKeys = true
@@ -50,7 +50,7 @@ object SerializeConfig {
 					null
 				}
 			}.first { it.defaultAppConfig.isNotBlank() }
-
+			
 			require(index.version == SETTINGS_VERSION) {
 				"Expected version '$SETTINGS_VERSION', but got '${index.version}'"
 			}

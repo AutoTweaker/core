@@ -7,8 +7,8 @@ import kotlinx.serialization.json.*
 
 @Suppress("unused")
 class ToolCallValidator(
-	private val tools: List<Tool<*, *>>,
-	settings: List<SettingItem>,
+	private val tools: List<Tool>,
+	private val settings: List<SettingItem>,
 ) {
 	private val jsonErrorMessage: String = settings.find("core.agent.tool.response.json.error")
 	private val propertyMissingMessage: String = settings.find("core.agent.tool.response.property.missing")
@@ -51,12 +51,13 @@ class ToolCallValidator(
 		val functionName = parts[1]
 		
 		//检查工具是否存在
-		val tool = tools.find { it.name == toolName }
+		val tool = tools.find { it.resolveMeta(settings).name == toolName }
 			?: return ValidationResult.Failure(
 				functionNotFoundMessage.format(toolCallName)
 			)
+		val meta = tool.resolveMeta(settings)
 		
-		val function = tool.functions.find { it.name == functionName }
+		val function = meta.functions.find { it.name == functionName }
 			?: return ValidationResult.Failure(
 				functionNotFoundMessage.format(toolCallName)
 			)

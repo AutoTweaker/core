@@ -15,7 +15,7 @@ private val logger = LoggerFactory.getLogger(object {}::class.java.enclosingClas
 
 fun main() {
 	Settings.init()
-
+	
 	val apiKey = System.getenv("MIMO_API_KEY")
 		?: throw IllegalStateException("Please set your MiMo API key as an environment variable.")
 	

@@ -149,7 +149,7 @@ val defaultItems: List<SettingItem> = listOf(
 	),
 	SettingItem(
 		SettingKey("core.tool.read.function.message.error.file.duplicate"),
-		SettingItem.Value.ValString("读取的文件自上次读取以来未更改，且此次读取范围比上次更小或相同"),
+		SettingItem.Value.ValString("读取的文件内容与文件哈希%s时的读取相同"),
 		"read_file工具读取重复内容时的描述"
 	),
 	SettingItem(

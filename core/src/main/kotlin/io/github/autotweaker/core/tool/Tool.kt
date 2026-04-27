@@ -1,10 +1,18 @@
 package io.github.autotweaker.core.tool
 
-interface Tool<in I : ToolInput, out O : ToolOutput> {
-	val name: String
-	val description: String
-	val functions: List<Function>
+import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.data.settings.SettingItem
+import kotlinx.serialization.json.JsonObject
 
+interface Tool {
+	fun resolveMeta(settings: List<SettingItem>): Meta
+	
+	data class Meta(
+		val name: String,
+		val description: String,
+		val functions: List<Function>,
+	)
+	
 	data class Function(
 		val name: String,
 		val description: String,
@@ -26,7 +34,18 @@ interface Tool<in I : ToolInput, out O : ToolOutput> {
 		}
 	}
 	
-	suspend fun execute(
-		input: I
-	): O
+	suspend fun execute(input: ToolInput): ToolOutput
 }
+
+data class ToolInput(
+	val functionName: String,
+	val arguments: JsonObject,
+	val provider: SimpleContainer,
+	val context: AgentContext,
+	val settings: List<SettingItem>,
+)
+
+data class ToolOutput(
+	val result: String,
+	val success: Boolean
+)

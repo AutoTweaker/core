@@ -7,15 +7,16 @@ import io.github.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.*
 
 object ToolAssembler {
-	fun assemble(tools: List<Tool<*, *>>, settings: List<SettingItem>): List<ChatRequest.Tool>? {
+	fun assemble(tools: List<Tool>, settings: List<SettingItem>): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
-
-		val reasonDescription: String = settings.find("core.agent.tool.description.reason")
 		
-		return tools.flatMap { tool ->
-			tool.functions.map { func ->
+		val reasonDescription: String = settings.find("core.agent.tool.description.reason")
+		val metas = tools.map { it.resolveMeta(settings) }
+		
+		return metas.flatMap { meta ->
+			meta.functions.map { func ->
 				ChatRequest.Tool(
-					name = "${tool.name}_${func.name}",
+					name = "${meta.name}_${func.name}",
 					description = func.description,
 					parameters = func.parameters.toChatRequestParameters(reasonDescription),
 				)
