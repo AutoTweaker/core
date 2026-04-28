@@ -1,6 +1,5 @@
 package io.github.autotweaker.core.tool
 
-import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.workspace.Workspace
 import kotlinx.serialization.json.JsonElement
@@ -40,7 +39,6 @@ interface Tool {
 		val functionName: String,
 		val arguments: JsonObject,
 		val provider: SimpleContainer,
-		val context: AgentContext,
 		val settings: List<SettingItem>,
 		val workspace: Workspace,
 	)

@@ -2,7 +2,6 @@ package io.github.autotweaker.core.tool.impl.read
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.core.Unicode
-import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
@@ -18,20 +17,25 @@ import kotlinx.serialization.json.*
 class Read : Tool {
 	val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
+	private val defaultAutoApprovalRules = listOf(
+		AutoApprovalRule(
+			workspaceName = null,
+			globPattern = listOf("**"),
+			excludeGlob = listOf(
+				".env", ".env.*", ".git/**", "**/.git/**",
+				"*.key", "*.pem", "*.p12", "*.cer",
+				"credentials*", "secrets*", "**/node_modules/**",
+			),
+		),
+	)
+	
 	init {
 		if (jsonEntry.get() == null) {
 			jsonEntry.set(
-				buildJsonArray {
-					add(buildJsonObject {
-						put("workspaceName", JsonNull)
-						put("globPattern", buildJsonArray { add("**") })
-						put("excludeGlob", buildJsonArray {
-							add(".env"); add(".env.*"); add(".git/**"); add("**/.git/**")
-							add("*.key"); add("*.pem"); add("*.p12"); add("*.cer")
-							add("credentials*"); add("secrets*"); add("**/node_modules/**")
-						})
-					})
-				},
+				Json.encodeToJsonElement(
+					ListSerializer(AutoApprovalRule.serializer()),
+					defaultAutoApprovalRules,
+				),
 			)
 		}
 	}
@@ -307,43 +311,24 @@ class Read : Tool {
 		val previousReads = buildList {
 			data class PrevRead(val path: String, val sha256: String, val startLine: Int, val endLine: Int)
 			
-			//解析Read历史
-			fun collect(tools: List<AgentContext.Message.Tool>) {
-				//遍历
-				for (tool in tools) {
-					//匹配file函数
-					if (tool.name != "read_file") continue
-					//参数可被解析
-					val toolArgs = try {
-						Json.parseToJsonElement(tool.call.arguments).jsonObject
-					} catch (_: Exception) {
-						continue
-					}
-					
-					//提取开始、结束行号
-					val toolStartLine = toolArgs["start_line"]?.jsonPrimitive?.int ?: continue
-					val toolEndLine = toolArgs["end_line"]?.jsonPrimitive?.int ?: continue
-					//提取行号是否启用
-					val toolLineNumber = toolArgs["line_number"]?.jsonPrimitive?.booleanOrNull ?: true
-					//跳过行号启用状态与当前不匹配的
-					if (toolLineNumber != lineNumber) continue
-					
-					//提取文件路径
-					val toolPath = toolArgs["file_path"]?.jsonPrimitive?.content ?: continue
-					//提取文件sha256
-					val toolSha256 = tool.result.content.substringBefore('\n')
-					if (toolSha256.length != 64) continue
-					
-					add(PrevRead(toolPath, toolSha256, toolStartLine, toolEndLine))
+			for (entry in input.provider.get<ToolCallHistory>().getAll()) {
+				if (entry.name != "read_file") continue
+				val toolArgs = try {
+					Json.parseToJsonElement(entry.arguments).jsonObject
+				} catch (_: Exception) {
+					continue
 				}
-			}
-			//遍历AgentContext历史轮次
-			input.context.historyRounds?.forEach { round ->
-				round.turns?.forEach { turn -> collect(turn.tools) }
-			}
-			//遍历当前轮次
-			input.context.currentRound?.turns?.forEach { turn ->
-				collect(turn.tools)
+				
+				val toolStartLine = toolArgs["start_line"]?.jsonPrimitive?.int ?: continue
+				val toolEndLine = toolArgs["end_line"]?.jsonPrimitive?.int ?: continue
+				val toolLineNumber = toolArgs["line_number"]?.jsonPrimitive?.booleanOrNull ?: true
+				if (toolLineNumber != lineNumber) continue
+				
+				val toolPath = toolArgs["file_path"]?.jsonPrimitive?.content ?: continue
+				val toolSha256 = entry.resultContent.substringBefore('\n')
+				if (toolSha256.length != 64) continue
+				
+				add(PrevRead(toolPath, toolSha256, toolStartLine, toolEndLine))
 			}
 		}
 		

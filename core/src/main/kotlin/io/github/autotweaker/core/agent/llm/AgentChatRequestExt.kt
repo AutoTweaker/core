@@ -7,7 +7,7 @@ import io.github.autotweaker.core.llm.ChatRequest
 fun AgentChatRequest.toChatRequest(): ChatRequest {
 	val current = context.currentRound
 		?: throw IllegalStateException("No current round available")
-
+	
 	val lastMessage = when {
 		current.assistantMessage != null -> current.assistantMessage
 		current.turns?.isNotEmpty() == true -> {
