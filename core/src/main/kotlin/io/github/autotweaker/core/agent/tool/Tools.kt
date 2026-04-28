@@ -112,7 +112,34 @@ class Tools(settings: List<SettingItem>) {
 					),
 				)
 			} else {
-				TODO("Active tool execution not yet implemented")
+				val toolInput = Tool.ToolInput(
+					functionName = result.functionName,
+					arguments = result.arguments,
+					provider = provider,
+					settings = _settings,
+					workspace = workspace,
+				)
+				val output = try {
+					entry.tool.execute(toolInput)
+				} catch (e: Exception) {
+					Tool.ToolOutput(e.message ?: "Unknown error", false)
+				}
+				AgentContext.Message.Tool(
+					name = call.name,
+					call = AgentContext.Message.Tool.Call(
+						arguments = call.arguments,
+						reason = call.reason,
+						timestamp = call.timestamp,
+						model = call.model,
+					),
+					callId = call.callId,
+					result = AgentContext.Message.Tool.Result(
+						content = output.result,
+						timestamp = Clock.System.now(),
+						status = if (output.success) AgentContext.Message.Tool.Result.Status.SUCCESS
+						else AgentContext.Message.Tool.Result.Status.FAILURE,
+					),
+				)
 			}
 		}
 	}
