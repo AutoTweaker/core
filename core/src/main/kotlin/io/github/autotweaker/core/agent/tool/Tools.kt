@@ -5,6 +5,7 @@ import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.Tool
+import io.github.autotweaker.core.workspace.Workspace
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -34,7 +35,8 @@ class Tools(settings: List<SettingItem>) {
 	
 	@Suppress("unused")
 	fun resolveToolCalls(
-		calls: List<AgentContext.CurrentRound.PendingToolCall>
+		calls: List<AgentContext.CurrentRound.PendingToolCall>,
+		workspace: Workspace,
 	): ToolCallResolveResult {
 		if (calls.isEmpty()) return ToolCallResolveResult.AutoApproved(emptyList())
 		
@@ -51,8 +53,11 @@ class Tools(settings: List<SettingItem>) {
 			(it.second as ToolCallValidator.ValidationResult.Success)
 		}
 		
-		// TODO 自动批准校验
-		val (autoApproved, needsApproval) = validated.partition { false }
+		val toolByName = _entries.associate { it.tool.resolveMeta(_settings).name to it.tool }
+		val (autoApproved, needsApproval) = validated.partition { result ->
+			val tool = toolByName[result.toolName] ?: return@partition false
+			tool.isAutoApproval(result.functionName, result.arguments, workspace)
+		}
 		
 		return if (needsApproval.isEmpty()) {
 			ToolCallResolveResult.AutoApproved(autoApproved)
