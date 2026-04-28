@@ -70,7 +70,7 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 
 private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
 	content = buildString {
-		appendLine("<time>${kotlin.time.Clock.System.now()}</time>")
+		appendLine("<time>$timestamp</time>")
 		if (summarizedMessage != null) {
 			appendLine("<summary>")
 			appendLine(summarizedMessage)

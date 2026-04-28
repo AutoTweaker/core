@@ -36,6 +36,13 @@ dependencies {
 	
 	implementation("org.slf4j:slf4j-api:2.0.12")
 	implementation("ch.qos.logback:logback-classic:1.5.32")
+	
+	implementation("com.github.docker-java:docker-java-core:3.7.1")
+	implementation("com.github.docker-java:docker-java-transport-httpclient5:3.7.1")
+	implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
+	implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+	implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
+	implementation("com.fasterxml.jackson.core:jackson-databind:2.21.2")
 }
 
 tasks.test {
