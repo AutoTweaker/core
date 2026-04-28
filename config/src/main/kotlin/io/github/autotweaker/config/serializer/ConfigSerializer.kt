@@ -41,7 +41,7 @@ val defaultItems: List<SettingItem> = listOf(
 	//工具激活相关的属性和描述
 	SettingItem(
 		SettingKey("core.agent.tool.description.enable"),
-		SettingItem.Value.ValString("激活此工具以开始使用"),
+		SettingItem.Value.ValString("激活此工具以开始使用，无论将此值设为true或false都将启用工具"),
 		"未激活工具的enable属性描述"
 	),
 	SettingItem(
