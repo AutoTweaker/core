@@ -5,9 +5,9 @@ import java.nio.file.Path
 
 interface FileSystemService {
 	fun normalize(filePath: String): Path
-	fun exists(path: Path): Boolean
-	fun isRegularFile(path: Path): Boolean
-	fun readUnicode(path: Path): List<Unicode>
-	fun readAllLines(path: Path): List<String>
-	fun sha256(path: Path): String
+	suspend fun exists(path: Path): Boolean
+	suspend fun isRegularFile(path: Path): Boolean
+	suspend fun readUnicode(path: Path): List<Unicode>
+	suspend fun readAllLines(path: Path): List<String>
+	suspend fun sha256(path: Path): String
 }

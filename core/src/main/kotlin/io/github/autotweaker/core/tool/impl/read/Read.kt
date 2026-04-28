@@ -45,7 +45,9 @@ class Read : Tool {
 		val json = jsonEntry.get() ?: return false
 		val rules = Json.decodeFromJsonElement(ListSerializer(AutoApprovalRule.serializer()), json)
 		val relPath = try {
-			workspace.path.relativize(java.nio.file.Paths.get(filePath)).toString()
+			val path = java.nio.file.Paths.get(filePath)
+			val resolved = if (path.isAbsolute) path else workspace.path.resolve(path)
+			workspace.path.relativize(resolved).toString()
 		} catch (_: Exception) {
 			return false
 		}
@@ -269,7 +271,7 @@ class Read : Tool {
 	}
 	
 	//read_file
-	private fun executeFile(
+	private suspend fun executeFile(
 		input: ToolInput,
 		fs: FileSystemService,
 		r: Runtime,
@@ -422,7 +424,7 @@ class Read : Tool {
 	}
 	
 	//read_unicode
-	private fun executeUnicode(
+	private suspend fun executeUnicode(
 		fs: FileSystemService,
 		r: Runtime,
 		normalizedPath: java.nio.file.Path,
@@ -442,7 +444,7 @@ class Read : Tool {
 	}
 	
 	//按照行号读取文件并处理截断
-	private fun readFileContent(
+	private suspend fun readFileContent(
 		fs: FileSystemService,
 		path: java.nio.file.Path,
 		startLine: Int,

@@ -116,7 +116,7 @@ class Tools(settings: List<SettingItem>) {
 			}
 		}
 	}
-
+	
 	fun assembleTools(): List<ChatRequest.Tool>? {
 		val activeTools = _entries.filter { it.active }.map { it.tool }
 		val active = ToolAssembler.assemble(activeTools, _settings)
