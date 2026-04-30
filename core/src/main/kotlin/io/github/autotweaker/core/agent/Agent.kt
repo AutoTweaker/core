@@ -138,7 +138,10 @@ class Agent(
 			
 			is AgentCommand.Directive.Pause -> TODO("Pause")
 			is AgentCommand.Directive.Resume -> TODO("Resume")
-			is AgentCommand.Directive.Cancel -> TODO("Cancel")
+			is AgentCommand.Directive.Cancel -> {
+				if (_status.value != AgentStatus.TOOL_CALLING) return
+				currentJob?.cancel()
+			}
 			is AgentCommand.Directive.Retry -> {
 				if (_status.value != AgentStatus.ERROR) return
 				updateStatus(AgentStatus.FREE)
@@ -149,7 +152,7 @@ class Agent(
 	}
 	
 	//处理消息
-	private fun handleMessage(message: AgentCommand.Message) {
+	private suspend fun handleMessage(message: AgentCommand.Message) {
 		when (message) {
 			is AgentCommand.Message.SendMessage -> {
 				//如果非空闲丢弃消息
@@ -166,15 +169,16 @@ class Agent(
 				}
 				//没有待批准的了，丢弃消息
 				if (agentState.pendingApproval == null) return
-				//启动协程
-				currentJob = scope.launch {
-					//处理批准
-					val result = handleApprovalPhase(this@Agent, message.approvals)
-					when (result) {
-						PhaseResult.Continue -> workTrigger.trySend(Unit)
-						PhaseResult.Done -> {}
-						PhaseResult.Error -> {}
-					}
+				//处理批准，工具调用时启动协程
+				val result = handleApprovalPhase(this@Agent, message.approvals) { result, call ->
+					scope.async {
+						executeApprovedToolPhase(this@Agent, result, call)
+					}.also { currentJob = it }.await()
+				}
+				when (result) {
+					PhaseResult.Continue -> workTrigger.trySend(Unit)
+					PhaseResult.Done -> {}
+					PhaseResult.Error -> {}
 				}
 			}
 		}

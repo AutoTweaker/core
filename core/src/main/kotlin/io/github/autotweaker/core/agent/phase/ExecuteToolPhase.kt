@@ -23,6 +23,8 @@ internal suspend fun executeApprovedToolPhase(
 		}
 	} catch (_: kotlinx.coroutines.TimeoutCancellationException) {
 		buildToolResult(call, timeoutMessage.format(timeoutSeconds), AgentContext.Message.Tool.Result.Status.TIMEOUT)
+	} catch (_: kotlinx.coroutines.CancellationException) {
+		buildToolResult(call, env.toolCancelledMessage, AgentContext.Message.Tool.Result.Status.CANCELLED)
 	} catch (e: Exception) {
 		buildErrorTool(call, e.message ?: "Tool execution failed")
 	}

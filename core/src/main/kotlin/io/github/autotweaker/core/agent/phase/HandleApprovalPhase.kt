@@ -1,17 +1,20 @@
 package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.core.agent.AgentCommand
+import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentStatus
+import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
 
 //处理工具批准
 internal suspend fun handleApprovalPhase(
 	env: AgentEnvironment,
 	approvals: List<AgentCommand.Message.ApproveToolCall.Approve>,
+	executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,
 ): PhaseResult {
 	env.updateStatus(AgentStatus.PROCESSING)
-	
+
 	//读取上下文
 	val needs = env.agentState.pendingApproval ?: return PhaseResult.Done
 	val round = env.context.currentRound ?: return PhaseResult.Done
@@ -21,11 +24,11 @@ internal suspend fun handleApprovalPhase(
 	//读取toolCall
 	val callById = pendingCalls.associateBy { it.callId }
 	val approvalByCallId = approvals.associateBy { it.callId }
-	
+
 	//存储未处理和已处理toolCall
 	val remaining = mutableListOf<Tools.ToolCallResolveResult.NeedsApproval>()
-	val processed = mutableListOf<io.github.autotweaker.core.agent.AgentContext.Message.Tool>()
-	
+	val processed = mutableListOf<AgentContext.Message.Tool>()
+
 	//遍历pendingApproval
 	for (n in needs) {
 		val call = callById.getValue(n.callId)
@@ -37,7 +40,7 @@ internal suspend fun handleApprovalPhase(
 		}
 		//当前pendingApproval被批准或拒绝
 		processed.add(
-			if (a.approved) executeApprovedToolPhase(env, n.result, call)
+			if (a.approved) executeTool(n.result, call)
 			else buildRejectedTool(call, a.reason, env)
 		)
 	}
