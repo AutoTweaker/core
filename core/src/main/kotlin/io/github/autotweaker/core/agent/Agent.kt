@@ -54,8 +54,8 @@ class Agent(
 	private var currentFallbackModels = fallbackModels
 	private var currentThinking: Boolean = thinking
 	
-	//当前推理协程
-	private var reasoningJob: Job? = null
+	//当前工作协程
+	private var currentJob: Job? = null
 	
 	//状态
 	private val _status = MutableStateFlow(AgentStatus.FREE)
@@ -130,7 +130,8 @@ class Agent(
 			
 			//停止
 			AgentCommand.Stop -> {
-				reasoningJob?.cancel()
+				currentJob?.cancel()
+				currentJob = null
 				archiveCurrentRound()
 				_status.value = AgentStatus.FREE
 			}
@@ -185,7 +186,7 @@ class Agent(
 	
 	//调用llm
 	private fun requestLlm() {
-		reasoningJob = scope.launch {
+		currentJob = scope.launch {
 			//更新状态
 			_status.value = AgentStatus.PROCESSING
 			//构建请求
@@ -221,7 +222,7 @@ class Agent(
 	
 	//处理工具调用
 	private fun executeTools() {
-		scope.launch {
+		currentJob = scope.launch {
 			//更新状态
 			_status.value = AgentStatus.PROCESSING
 			
@@ -277,7 +278,7 @@ class Agent(
 		val needs = pendingApproval ?: return
 		
 		//启动协程
-		scope.launch {
+		currentJob = scope.launch {
 			//读取上下文
 			val round = currentContext.currentRound ?: return@launch
 			val pendingCalls = round.pendingToolCalls ?: return@launch
