@@ -80,7 +80,7 @@ internal fun keepPendingCalls(env: AgentEnvironment, callIds: Set<String>) {
 }
 
 //构建工具消息
-private fun buildToolResult(
+internal fun buildToolResult(
 	call: AgentContext.CurrentRound.PendingToolCall,
 	content: String,
 	status: AgentContext.Message.Tool.Result.Status,

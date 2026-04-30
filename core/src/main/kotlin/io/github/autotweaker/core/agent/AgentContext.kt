@@ -44,7 +44,6 @@ data class AgentContext(
 				val timestamp: Instant,
 				val status: Status,
 			) {
-				@Suppress("unused")
 				enum class Status {
 					SUCCESS,
 					FAILURE,

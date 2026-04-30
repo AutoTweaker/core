@@ -3,7 +3,6 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
 
-@Suppress("unused")
 sealed class AgentCommand {
 	sealed class Directive : AgentCommand() {
 		//终止Agent当前任何任务并令Agent空闲

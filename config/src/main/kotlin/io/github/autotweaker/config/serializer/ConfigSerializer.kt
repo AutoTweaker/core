@@ -48,6 +48,17 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("简要描述调用此工具的目的"),
 		"工具调用的reason属性描述"
 	),
+	//工具调用超时
+	SettingItem(
+		SettingKey("core.agent.tool.timeout.seconds"),
+		SettingItem.Value.ValInt(600),
+		"工具调用超时时间，单位秒"
+	),
+	SettingItem(
+		SettingKey("core.agent.tool.response.timeout"),
+		SettingItem.Value.ValString("工具调用超时（%s秒）"),
+		"工具调用超时后的ToolResult"
+	),
 	//工具激活相关的属性和描述
 	SettingItem(
 		SettingKey("core.agent.tool.description.enable"),
