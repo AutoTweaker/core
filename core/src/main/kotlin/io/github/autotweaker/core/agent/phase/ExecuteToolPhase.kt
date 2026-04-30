@@ -13,7 +13,7 @@ internal suspend fun executeApprovedToolPhase(
 ): AgentContext.Message.Tool {
 	env.updateStatus(AgentStatus.TOOL_CALLING)
 	return try {
-		env.tools.executeTool(result, call, env.provider, env.workspace)
+		env.tools.executeTool(result, call, buildToolProvider(env), env.workspace)
 	} catch (e: Exception) {
 		buildErrorTool(call, e.message ?: "Tool execution failed")
 	}

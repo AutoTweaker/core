@@ -4,9 +4,9 @@ import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.phase.*
 import io.github.autotweaker.core.agent.tool.Tools
+import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
-import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.workspace.Workspace
 import kotlinx.coroutines.*
@@ -28,9 +28,10 @@ class Agent(
 	model: Model,
 	fallbackModels: List<Model>?,
 	thinking: Boolean,
+	override val summarizeModel: Model,
+	override val containerConfig: ContainerConfig,
 	override val settings: List<SettingItem>,
 	tools: List<Tool>,
-	override val provider: SimpleContainer,
 ) : AgentEnvironment {
 	override val toolCancelledMessage: String = settings.find("core.agent.tool.response.canceled")
 	override val toolRejectedMessage: String = settings.find("core.agent.tool.response.rejected")

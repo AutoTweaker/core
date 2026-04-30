@@ -17,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
 class DockerJavaService : ContainerService {
@@ -36,20 +35,20 @@ class DockerJavaService : ContainerService {
 					.awaitCompletion()
 				
 				val workspaceHostPath = config.workspaceHostPath
-				Files.createDirectories(Paths.get(workspaceHostPath))
-				
+				Files.createDirectories(workspaceHostPath)
+
 				val hostConfig = HostConfig()
 					.withBinds(
 						com.github.dockerjava.api.model.Bind(
-							workspaceHostPath,
-							com.github.dockerjava.api.model.Volume(config.workDir)
+							workspaceHostPath.toString(),
+							com.github.dockerjava.api.model.Volume(config.workDir.toString())
 						)
 					)
-				
+
 				logger.info("Creating container: ${config.name}")
 				val createResponse = client.createContainerCmd(image)
 					.withName(config.name)
-					.withWorkingDir(config.workDir)
+					.withWorkingDir(config.workDir.toString())
 					.withEnv(config.env.map { "${it.key}=${it.value}" })
 					.withHostConfig(hostConfig)
 					.withEntrypoint("tail", "-f", "/dev/null")
