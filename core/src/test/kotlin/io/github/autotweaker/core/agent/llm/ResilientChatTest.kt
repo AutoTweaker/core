@@ -14,7 +14,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 import kotlin.time.Clock
 
-@Suppress("UnusedFlow", "TestFunctionName", "NonAsciiCharacters")
+@Suppress("UnusedFlow")
 class ResilientChatTest {
 	
 	private val mockClient = mockk<LlmClient>()
@@ -112,7 +112,7 @@ class ResilientChatTest {
 	// endregion
 	
 	@Test
-	fun 直接成功不重试() = runTest {
+	fun `direct success no retry`() = runTest {
 		mockChatSequence(flowOf(successResult("hello")))
 		
 		val results = resilientChat(
@@ -127,7 +127,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `RETRY 策略重试后成功`() = runTest {
+	fun `RETRY strategy then success`() = runTest {
 		val rules = listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY))
 		mockChatSequence(
 			flowOf(errorResult(429)),
@@ -149,7 +149,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `RETRY 耗尽后切换到 fallback 模型`() = runTest {
+	fun `RETRY exhausted switch to fallback model`() = runTest {
 		val rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.RETRY))
 		mockChatSequence(
 			flowOf(errorResult(500)),
@@ -171,7 +171,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `FALLBACK 策略屏蔽当前模型`() = runTest {
+	fun `FALLBACK strategy blocks current model`() = runTest {
 		val rules = listOf(ErrorHandlingRule(503, RecoveryStrategy.FALLBACK))
 		mockChatSequence(
 			flowOf(errorResult(503)),
@@ -190,7 +190,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `CONTEXT_FALLBACK 屏蔽上下文小的模型`() = runTest {
+	fun `CONTEXT_FALLBACK blocks smaller context models`() = runTest {
 		val rules = listOf(ErrorHandlingRule(413, RecoveryStrategy.CONTEXT_FALLBACK))
 		// m1: 4096, m2: 2048, m3: 8192
 		// CONTEXT_FALLBACK 会过滤掉 contextWindow <= 4096 的，剩下 m3
@@ -216,7 +216,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `PROVIDER_FALLBACK 屏蔽同 provider 的模型`() = runTest {
+	fun `PROVIDER_FALLBACK blocks same provider models`() = runTest {
 		val rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.PROVIDER_FALLBACK))
 		// m1: providerA, m2: providerA, m3: providerB
 		mockChatSequence(
@@ -239,7 +239,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `无匹配规则视为 FALLBACK`() = runTest {
+	fun `no matching rule treated as FALLBACK`() = runTest {
 		mockChatSequence(
 			flowOf(errorResult(999)),
 			flowOf(successResult("no-rule-fallback")),
@@ -257,7 +257,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 所有候选耗尽抛异常() = runTest {
+	fun `all candidates exhausted throws exception`() = runTest {
 		mockChatSequence(flowOf(errorResult(500)))
 		
 		assertFailsWith<IllegalStateException> {
@@ -271,7 +271,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 图像存在支持模型时屏蔽不支持的() = runTest {
+	fun `image with capable model blocks incapable ones`() = runTest {
 		val pic = Base64("dGVzdA==")
 		val req = request(
 			messages = listOf(
@@ -294,7 +294,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun `图像无支持模型时剔除 pictures`() = runTest {
+	fun `image no capable model strips pictures`() = runTest {
 		val pic = Base64("dGVzdA==")
 		val req = request(
 			messages = listOf(
@@ -360,7 +360,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 不支持思考的模型完全剔除思维链() = runTest {
+	fun `non-reasoning model strips all reasoning content`() = runTest {
 		val msgs = capturedMessages(
 			model = model("m1", supportsReasoning = false),
 			messages = listOf(
@@ -376,7 +376,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 思考模式下保留所有思维链() = runTest {
+	fun `thinking mode preserves all reasoning content`() = runTest {
 		val msgs = capturedMessages(
 			model = model("m1", supportsReasoning = true),
 			thinking = true,
@@ -393,7 +393,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 支持思考但未启用时剔除全部思维链() = runTest {
+	fun `reasoning capable but disabled strips all`() = runTest {
 		val msgs = capturedMessages(
 			model = model("m1", supportsReasoning = true),
 			thinking = false,
@@ -410,7 +410,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 无思维链的消息不受影响() = runTest {
+	fun `messages without reasoning unaffected`() = runTest {
 		val msgs = capturedMessages(
 			model = model("m1", supportsReasoning = false),
 			messages = listOf(
@@ -423,7 +423,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 不支持思考的模型剔除thinking字段() = runTest {
+	fun `non-reasoning model strips thinking field`() = runTest {
 		val req = capturedRequest(
 			model = model("m1", supportsReasoning = false),
 			thinking = true,
@@ -434,7 +434,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun 支持思考的模型保留thinking字段() = runTest {
+	fun `reasoning capable model preserves thinking field`() = runTest {
 		val req = capturedRequest(
 			model = model("m1", supportsReasoning = true),
 			thinking = true,
@@ -445,7 +445,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun thinking为false时不剔除() = runTest {
+	fun `thinking false does not strip`() = runTest {
 		val req = capturedRequest(
 			model = model("m1", supportsReasoning = false),
 			thinking = false,
@@ -456,7 +456,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun thinking为null时不剔除() = runTest {
+	fun `thinking null does not strip`() = runTest {
 		val req = capturedRequest(
 			model = model("m1", supportsReasoning = false),
 			thinking = null,
@@ -471,7 +471,7 @@ class ResilientChatTest {
 	// region 分支覆盖测试
 	
 	@Test
-	fun 错误无状态码时按FALLBACK处理() = runTest {
+	fun `error without status code treated as FALLBACK`() = runTest {
 		mockChatSequence(
 			flowOf(errorResultWithoutStatusCode()),
 			flowOf(successResult("no-status-fallback")),
@@ -489,7 +489,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun config非null时传递temperature和maxTokens() = runTest {
+	fun `config non-null passes temperature and maxTokens`() = runTest {
 		var captured: ChatRequest? = null
 		coEvery { mockClient.chat(any(), any(), any()) } answers {
 			captured = arg(0)
@@ -508,7 +508,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun fallbackModels为null时正常工作() = runTest {
+	fun `fallbackModels null works normally`() = runTest {
 		mockChatSequence(flowOf(successResult("ok")))
 		
 		val results = resilientChat(
@@ -522,7 +522,7 @@ class ResilientChatTest {
 	}
 	
 	@Test
-	fun maxRetries为0时抛出参数异常() = runTest {
+	fun `maxRetries 0 throws IllegalArgumentException`() = runTest {
 		assertFailsWith<IllegalArgumentException> {
 			resilientChat(
 				model = model("m1"),

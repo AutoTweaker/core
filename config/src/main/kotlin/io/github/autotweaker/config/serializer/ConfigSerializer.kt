@@ -14,6 +14,16 @@ val defaultItems: List<SettingItem> = listOf(
 		"工具调用被取消时的ToolResult"
 	),
 	SettingItem(
+		SettingKey("core.agent.tool.response.rejected"),
+		SettingItem.Value.ValString("工具调用已被用户拒绝"),
+		"工具调用被拒绝时的ToolResult"
+	),
+	SettingItem(
+		SettingKey("core.agent.tool.response.rejected.with.feedback"),
+		SettingItem.Value.ValString("用户拒绝了工具调用，并留言：%s"),
+		"工具调用被拒绝时的ToolResult"
+	),
+	SettingItem(
 		SettingKey("core.agent.tool.response.property.missing"),
 		SettingItem.Value.ValString("%s工具需要属性：%s"),
 		"工具调用缺少属性时的ToolResult"

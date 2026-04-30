@@ -2,6 +2,7 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.tool.Tool
+import kotlin.time.Instant
 
 @Suppress("unused")
 sealed class AgentOutput {
@@ -21,6 +22,7 @@ sealed class AgentOutput {
 		val name: String,
 		val callId: String,
 		val content: String,
+		val timestamp: Instant,
 	) : AgentOutput()
 	
 	data class ToolCallRequest(
