@@ -43,6 +43,11 @@ internal suspend fun handleApprovalPhase(
 			if (a.approved) executeTool(n.result, call)
 			else buildRejectedTool(call, a.reason, env)
 		)
+		//如果已暂停，放弃剩余ToolCall
+		if (env.status == AgentStatus.PAUSED) {
+			needs.drop(needs.indexOf(n) + 1).forEach { remaining.add(it) }
+			break
+		}
 	}
 	
 	//更新已处理/未处理列表

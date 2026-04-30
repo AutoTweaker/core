@@ -7,7 +7,7 @@ enum class AgentStatus {
 	RETRYING,
 	TOOL_CALLING,
 	WAITING,
-	
+	PAUSED,
 	@Suppress("unused")
 	COMPACTING,
 	ERROR

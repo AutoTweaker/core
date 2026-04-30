@@ -24,6 +24,7 @@ internal interface AgentEnvironment {
 	val toolRejectedMessage: String
 	val toolRejectedWithFeedbackMessage: String
 	
+	val status: AgentStatus
 	suspend fun emitOutput(output: AgentOutput)
 	fun updateStatus(status: AgentStatus)
 }

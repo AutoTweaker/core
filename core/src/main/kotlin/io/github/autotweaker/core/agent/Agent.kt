@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.selects.select
 import kotlin.time.Clock
 
-//TODO 完善handleCommand处理全部指令
 //TODO Stop应为终止并回到FREE，Cancel应为中断工具运行或compact但继续推理
 //TODO 通过Retry重试出错时消息，明确区分出ERROR与FREE状态
 //TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
@@ -38,7 +37,7 @@ class Agent(
 	override val toolRejectedWithFeedbackMessage: String =
 		settings.find("core.agent.tool.response.rejected.with.feedback")
 	
-	//可变状态
+	//工具状态
 	override val agentState = MutableAgentState()
 	
 	//工具列表
@@ -54,7 +53,7 @@ class Agent(
 	
 	//状态
 	private val _status = MutableStateFlow(AgentStatus.FREE)
-	val status: StateFlow<AgentStatus> = _status.asStateFlow()
+	val statusFlow: StateFlow<AgentStatus> = _status.asStateFlow()
 	
 	//输出
 	private val _output = MutableSharedFlow<AgentOutput>()
@@ -77,6 +76,9 @@ class Agent(
 	//协程
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
+	//状态
+	override val status: AgentStatus get() = _status.value
+
 	//输出
 	override suspend fun emitOutput(output: AgentOutput) {
 		_output.emit(output)
@@ -136,8 +138,16 @@ class Agent(
 				directive.thinking?.let { currentThinking = it }
 			}
 			
-			is AgentCommand.Directive.Pause -> TODO("Pause")
-			is AgentCommand.Directive.Resume -> TODO("Resume")
+			is AgentCommand.Directive.Pause -> {
+				if (_status.value == AgentStatus.FREE || _status.value == AgentStatus.ERROR || _status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
+				updateStatus(AgentStatus.PAUSED)
+			}
+			
+			is AgentCommand.Directive.Resume -> {
+				if (_status.value != AgentStatus.PAUSED) return
+				updateStatus(AgentStatus.FREE)
+				workTrigger.trySend(Unit)
+			}
 			is AgentCommand.Directive.Cancel -> {
 				if (_status.value != AgentStatus.TOOL_CALLING) return
 				currentJob?.cancel()
@@ -203,6 +213,7 @@ class Agent(
 	
 	//从当前状态继续
 	private fun resumeFromCurrentState() {
+		if (_status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
 		when (detectNextAction()) {
 			NextAction.IDLE -> updateStatus(AgentStatus.FREE)
 			NextAction.REQUEST_LLM -> requestLlm()
