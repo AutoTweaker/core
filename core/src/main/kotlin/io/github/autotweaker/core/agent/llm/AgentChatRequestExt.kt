@@ -36,7 +36,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 		for (round in context.historyRounds.orEmpty()) {
 			add(round.userMessage.toChatMessage())
 			round.turns?.forEach { addTurn(it) }
-			add(round.finalAssistantMessage.toChatMessage())
+			round.finalAssistantMessage?.let { add(it.toChatMessage()) }
 		}
 		
 		//当前轮次

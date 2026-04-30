@@ -7,6 +7,7 @@ import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.workspace.Workspace
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.time.Clock
@@ -120,6 +121,8 @@ class Tools(settings: List<SettingItem>) {
 		//调用工具
 		val output = try {
 			entry.tool.execute(toolInput)
+		} catch (e: CancellationException) {
+			throw e
 		} catch (e: Exception) {
 			Tool.ToolOutput(e.message ?: "Unknown error", false)
 		}

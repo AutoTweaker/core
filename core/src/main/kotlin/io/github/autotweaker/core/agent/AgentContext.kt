@@ -64,7 +64,7 @@ data class AgentContext(
 	data class CompletedRound(
 		val userMessage: Message.User,
 		val turns: List<Turn>?,
-		val finalAssistantMessage: Message.Assistant,
+		val finalAssistantMessage: Message.Assistant?,
 	)
 	
 	data class CurrentRound(

@@ -4,7 +4,6 @@ import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.agent.llm.agentChat
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 sealed class StreamProcessResult {
 	data object Completed : StreamProcessResult()
@@ -17,7 +16,7 @@ sealed class StreamProcessResult {
 }
 
 class AgentStreamProcessor(
-	private val output: MutableSharedFlow<AgentOutput>,
+	private val emitOutput: suspend (AgentOutput) -> Unit,
 	private val onStatusChange: (AgentStatus) -> Unit,
 	private val onContextUpdate: (AgentContext) -> Unit,
 ) {
@@ -31,21 +30,21 @@ class AgentStreamProcessor(
 			agentChat(request).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Reasoning -> {
-						output.emit(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, result))
+						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, result))
 					}
 					
 					is AgentChatStreamResult.Outputting -> {
-						output.emit(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, result))
+						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, result))
 					}
 					
 					is AgentChatStreamResult.Failing -> {
 						val retrying = result.errors.lastOrNull()?.retrying
 						if (retrying != null) {
 							onStatusChange(AgentStatus.RETRYING)
-							output.emit(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.RETRYING, result))
+							emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.RETRYING, result))
 						} else {
 							val errorMessage = result.errors.lastOrNull()?.content ?: "All retries exhausted"
-							output.emit(AgentOutput.Error(errorMessage, AgentOutput.Error.Type.LLM))
+							emitOutput(AgentOutput.Error(errorMessage, AgentOutput.Error.Type.LLM))
 							earlyResult = StreamProcessResult.Failed(errorMessage)
 							return@collect
 						}
@@ -58,7 +57,7 @@ class AgentStreamProcessor(
 						)
 						onContextUpdate(currentContext.copy(currentRound = updatedRound))
 						
-						output.emit(
+						emitOutput(
 							AgentOutput.StreamMessage(
 								AgentOutput.StreamMessage.Status.FINISHED,
 								result,
@@ -66,7 +65,7 @@ class AgentStreamProcessor(
 						)
 						
 						if (!result.result.toolCalls.isNullOrEmpty()) {
-							output.emit(AgentOutput.ToolCallRequest(result.result.toolCalls))
+							emitOutput(AgentOutput.ToolCallRequest(result.result.toolCalls))
 							earlyResult = StreamProcessResult.ToolCallsRequired(result.result.toolCalls)
 						} else {
 							earlyResult = StreamProcessResult.Completed
@@ -87,7 +86,7 @@ class AgentStreamProcessor(
 					cause::class.simpleName ?: cause::class.qualifiedName
 				).append(")")
 			}
-			output.emit(AgentOutput.Error(message, AgentOutput.Error.Type.LLM))
+			emitOutput(AgentOutput.Error(message, AgentOutput.Error.Type.LLM))
 			return StreamProcessResult.Failed(message)
 		}
 	}
