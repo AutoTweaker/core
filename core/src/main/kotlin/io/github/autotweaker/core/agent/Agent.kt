@@ -139,7 +139,11 @@ class Agent(
 			is AgentCommand.Directive.Pause -> TODO("Pause")
 			is AgentCommand.Directive.Resume -> TODO("Resume")
 			is AgentCommand.Directive.Cancel -> TODO("Cancel")
-			is AgentCommand.Directive.Retry -> TODO("Retry")
+			is AgentCommand.Directive.Retry -> {
+				if (_status.value != AgentStatus.ERROR) return
+				updateStatus(AgentStatus.FREE)
+				workTrigger.trySend(Unit)
+			}
 			is AgentCommand.Directive.Compact -> TODO("Compact")
 		}
 	}
