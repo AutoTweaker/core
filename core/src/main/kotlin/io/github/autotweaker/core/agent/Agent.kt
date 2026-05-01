@@ -15,10 +15,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.selects.select
 import kotlin.time.Clock
 
-//TODO Stop应为终止并回到FREE，Cancel应为中断工具运行或compact但继续推理
-//TODO 通过Retry重试出错时消息，明确区分出ERROR与FREE状态
 //TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
-//TODO AgentContext的生命周期管理，应该抽成一个独立组件AgentContextManager
 
 @Suppress("unused")
 class Agent(
@@ -104,7 +101,7 @@ class Agent(
 					handleDirective(directive)
 					continue
 				}
-				select<Unit> {
+				select {
 					directiveChannel.onReceive { handleDirective(it) }
 					messageChannel.onReceive { handleMessage(it) }
 				}

@@ -18,6 +18,7 @@ sealed class AgentOutput {
 		}
 	}
 	
+	//TODO 通过ContextUpdate，并增加单独的工具运行时输出通道
 	data class ToolResult(
 		val name: String,
 		val callId: String,
@@ -39,6 +40,7 @@ sealed class AgentOutput {
 		}
 	}
 	
+	//TODO
 	data class ToolListUpdate(
 		val activeTools: List<Tool>,
 	) : AgentOutput()
