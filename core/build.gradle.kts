@@ -41,8 +41,8 @@ dependencies {
 	implementation("com.github.docker-java:docker-java-transport-httpclient5:3.7.1")
 	implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.84")
-	implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
-	implementation("com.fasterxml.jackson.core:jackson-databind:2.21.2")
+	implementation("com.fasterxml.jackson.core:jackson-core:2.21.3")
+	implementation("com.fasterxml.jackson.core:jackson-databind:2.21.3")
 }
 
 tasks.test {
