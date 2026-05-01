@@ -8,7 +8,6 @@ import io.github.autotweaker.core.tool.impl.read.SummarizeService
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Clock
 
-@Suppress("unused")
 class SummarizeServiceImpl(
 	private val model: Model,
 	private val fallbackModels: List<Model>? = null,
