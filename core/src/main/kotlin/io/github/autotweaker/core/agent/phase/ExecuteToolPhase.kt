@@ -20,9 +20,15 @@ internal suspend fun executeApprovedToolPhase(
 	val timeoutMessage: String = env.settings.find("core.agent.tool.response.timeout")
 	return try {
 		withTimeout((timeoutSeconds * 1000L).milliseconds) {
-			env.tools.executeTool(result, call, buildToolProvider(env), env.workspace) { activeTools ->
-				env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
-			}
+			env.tools.executeTool(
+				result, call, buildToolProvider(env), env.workspace,
+				onToolActivated = { activeTools ->
+					env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
+				},
+				onToolOutput = { output ->
+					env.emitOutput(output)
+				},
+			)
 		}
 	} catch (_: kotlinx.coroutines.TimeoutCancellationException) {
 		buildToolResult(call, timeoutMessage.format(timeoutSeconds), AgentContext.Message.Tool.Result.Status.TIMEOUT)

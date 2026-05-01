@@ -1,6 +1,7 @@
 package io.github.autotweaker.core.agent.tool
 
 import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
@@ -8,6 +9,9 @@ import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.workspace.Workspace
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.time.Clock
@@ -80,10 +84,11 @@ class Tools(settings: List<SettingItem>) {
 		provider: SimpleContainer,
 		workspace: Workspace,
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
+		onToolOutput: (suspend (AgentOutput.ToolOutput) -> Unit)? = null,
 	): AgentContext.Message.Tool {
 		//匹配工具实现
 		val entry = _entries.first { it.tool.resolveMeta(_settings).name == result.toolName }
-		
+
 		//工具未激活
 		if (!entry.active) {
 			//激活
@@ -109,6 +114,9 @@ class Tools(settings: List<SettingItem>) {
 			)
 		}
 		
+		//创建运行时输出通道
+		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)
+
 		//构建工具请求
 		val toolInput = Tool.ToolInput(
 			functionName = result.functionName,
@@ -116,16 +124,29 @@ class Tools(settings: List<SettingItem>) {
 			provider = provider,
 			settings = _settings,
 			workspace = workspace,
+			outputChannel = outputChannel,
 		)
 		
-		//调用工具
-		val output = try {
-			entry.tool.execute(toolInput)
-		} catch (e: CancellationException) {
-			throw e
-		} catch (e: Exception) {
-			Tool.ToolOutput(e.message ?: "Unknown error", false)
+		//调用工具并消费运行时输出
+		val output = coroutineScope {
+			//启动drain协程
+			val drainJob = launch {
+				for (msg in outputChannel) {
+					onToolOutput?.invoke(AgentOutput.ToolOutput(call.name, call.callId, msg.content))
+				}
+			}
+			val result = try {
+				entry.tool.execute(toolInput)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Tool.ToolOutput(e.message ?: "Unknown error", false)
+			}
+			outputChannel.close()
+			drainJob.join()
+			result
 		}
+
 		//返回结果
 		return AgentContext.Message.Tool(
 			name = call.name,

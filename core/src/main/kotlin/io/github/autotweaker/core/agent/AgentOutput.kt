@@ -29,8 +29,12 @@ sealed class AgentOutput {
 		}
 	}
 	
-	//TODO 增加单独的工具运行时输出通道
-	
+	data class ToolOutput(
+		val name: String,
+		val callId: String,
+		val content: String,
+	) : AgentOutput()
+
 	data class ToolCallRequest(
 		val pendingToolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
 	) : AgentOutput()
