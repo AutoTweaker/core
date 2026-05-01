@@ -233,6 +233,67 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValInt(500),
 		"read_unicode工具最大允许字符数，超出会返回错误消息"
 	),
+	//bash工具相关配置
+	SettingItem(
+		SettingKey("core.tool.bash.description"),
+		SettingItem.Value.ValString("运行一条bash命令，可选设置超时时间并按id注入一次性环境变量"),
+		"bash工具的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.function.description.run"),
+		SettingItem.Value.ValString("运行一条bash命令并获取输出"),
+		"bash_run工具的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.property.description.command"),
+		SettingItem.Value.ValString("要执行的bash命令内容"),
+		"bash_run工具command参数的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.property.description.timeout.seconds"),
+		SettingItem.Value.ValString("命令超时时间（秒），必须大于0，默认%s秒"),
+		"bash_run工具timeout_seconds参数的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.property.description.env.ids"),
+		SettingItem.Value.ValString(
+			"要注入的环境变量列表，对于敏感信息，" +
+					"严禁令环境变量以任何形式打印到输出或写入文件中。可用列表：%s"
+		),
+		"bash_run工具env_ids参数的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.message.error.invalid.timeout"),
+		SettingItem.Value.ValString("timeout_seconds必须大于0"),
+		"bash_run工具timeout_seconds非法时的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.message.error.invalid.command"),
+		SettingItem.Value.ValString("command参数不能为空"),
+		"bash_run工具command非法时的描述"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.message.result.template"),
+		SettingItem.Value.ValString(
+			"""
+			命令已执行，退出码：%s，执行时间：%s秒
+			标准输出：
+			<stdout>
+			%s
+			</stdout>
+			标准错误：
+			<stderr>
+			%s
+			</stderr>
+			""".trimIndent()
+		),
+		"bash_run工具执行结果模板，参数依次为退出码、执行时间（秒）、标准输出、标准错误"
+	),
+	SettingItem(
+		SettingKey("core.tool.bash.setting.default.timeout.seconds"),
+		SettingItem.Value.ValInt(60),
+		"bash_run工具默认超时时间（秒）"
+	),
 	//agent模块compact相关配置
 	SettingItem(
 		SettingKey("core.agent.compact.prompt"),
