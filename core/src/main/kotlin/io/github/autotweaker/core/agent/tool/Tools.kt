@@ -79,6 +79,7 @@ class Tools(settings: List<SettingItem>) {
 		call: AgentContext.CurrentRound.PendingToolCall,
 		provider: SimpleContainer,
 		workspace: Workspace,
+		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 	): AgentContext.Message.Tool {
 		//匹配工具实现
 		val entry = _entries.first { it.tool.resolveMeta(_settings).name == result.toolName }
@@ -87,6 +88,7 @@ class Tools(settings: List<SettingItem>) {
 		if (!entry.active) {
 			//激活
 			entry.active = true
+			onToolActivated?.invoke(_entries.filter { it.active }.map { it.tool })
 			//读取工具参数
 			val meta = entry.tool.resolveMeta(_settings)
 			//返回激活成功的消息

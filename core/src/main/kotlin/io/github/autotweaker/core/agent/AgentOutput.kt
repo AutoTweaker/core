@@ -54,8 +54,6 @@ sealed class AgentOutput {
 		}
 	}
 	
-	//TODO
-	@Suppress("unused")
 	data class ToolListUpdate(
 		val activeTools: List<Tool>,
 	) : AgentOutput()
@@ -65,11 +63,8 @@ sealed class AgentOutput {
 		val type: Type,
 	) : AgentOutput() {
 		enum class Type {
-			//TODO NETWORK,
 			LLM,
 			COMPACT,
-			//TODO TOOL,
-			//TODO UNKNOWN
 		}
 	}
 }
