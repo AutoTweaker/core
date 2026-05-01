@@ -195,7 +195,6 @@ class Agent(
 	private fun processUserMessage(content: String, images: List<Base64>? = null) {
 		//构建Message.User
 		val userMsg = AgentContext.Message.User(
-			summarizedMessage = null,
 			content = content,
 			images = images,
 			timestamp = Clock.System.now()

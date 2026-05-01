@@ -14,7 +14,7 @@ internal suspend fun handleApprovalPhase(
 	executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,
 ): PhaseResult {
 	env.updateStatus(AgentStatus.PROCESSING)
-
+	
 	//读取上下文
 	val needs = env.agentState.pendingApproval ?: return PhaseResult.Done
 	val round = env.context.currentRound ?: return PhaseResult.Done
@@ -24,11 +24,11 @@ internal suspend fun handleApprovalPhase(
 	//读取toolCall
 	val callById = pendingCalls.associateBy { it.callId }
 	val approvalByCallId = approvals.associateBy { it.callId }
-
+	
 	//存储未处理和已处理toolCall
 	val remaining = mutableListOf<Tools.ToolCallResolveResult.NeedsApproval>()
 	val processed = mutableListOf<AgentContext.Message.Tool>()
-
+	
 	//遍历pendingApproval
 	for (n in needs) {
 		val call = callById.getValue(n.callId)

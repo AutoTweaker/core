@@ -8,6 +8,7 @@ enum class AgentStatus {
 	TOOL_CALLING,
 	WAITING,
 	PAUSED,
+	
 	@Suppress("unused")
 	COMPACTING,
 	ERROR

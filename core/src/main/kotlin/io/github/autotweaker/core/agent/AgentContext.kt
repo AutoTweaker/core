@@ -8,12 +8,11 @@ data class AgentContext(
 	val compactedRounds: List<CompactedRound>?,
 	val systemPrompt: String?,
 	val historyRounds: List<CompletedRound>?,
+	val summarizedMessage: String?,
 	val currentRound: CurrentRound?,
 ) {
 	sealed class Message {
 		data class User(
-			//总结消息挂在前方
-			val summarizedMessage: String?,
 			val content: String?,
 			val images: List<Base64>? = null,
 			val timestamp: Instant,

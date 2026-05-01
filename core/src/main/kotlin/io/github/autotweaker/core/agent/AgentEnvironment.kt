@@ -9,17 +9,17 @@ import io.github.autotweaker.core.workspace.Workspace
 internal interface AgentEnvironment {
 	var context: AgentContext
 	val agentState: MutableAgentState
-
+	
 	val tools: Tools
 	val settings: List<SettingItem>
 	val workspace: Workspace
 	val containerConfig: ContainerConfig
-
+	
 	val currentModel: Model
 	val currentFallbackModels: List<Model>?
 	val currentThinking: Boolean
 	val summarizeModel: Model
-
+	
 	val toolCancelledMessage: String
 	val toolRejectedMessage: String
 	val toolRejectedWithFeedbackMessage: String

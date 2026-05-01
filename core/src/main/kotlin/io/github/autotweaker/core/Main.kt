@@ -103,9 +103,10 @@ fun main() {
 			systemPrompt = "你是MiMo（中文名称也是MiMo），是小米公司研发的AI智能助手。\n今天的日期：{date} {week}，你的知识截止日期是2024年12月。",
 			compactedRounds = null,
 			historyRounds = null,
+			summarizedMessage = null,
 			currentRound = AgentContext.CurrentRound(
 				userMessage = AgentContext.Message.User(
-					summarizedMessage = null,
+					
 					content = "北京现在的天气怎么样？",
 					timestamp = Clock.System.now(),
 				),

@@ -36,7 +36,7 @@ class DockerJavaService : ContainerService {
 				
 				val workspaceHostPath = config.workspaceHostPath
 				Files.createDirectories(workspaceHostPath)
-
+				
 				val hostConfig = HostConfig()
 					.withBinds(
 						com.github.dockerjava.api.model.Bind(
@@ -44,7 +44,7 @@ class DockerJavaService : ContainerService {
 							com.github.dockerjava.api.model.Volume(config.workDir.toString())
 						)
 					)
-
+				
 				logger.info("Creating container: ${config.name}")
 				val createResponse = client.createContainerCmd(image)
 					.withName(config.name)

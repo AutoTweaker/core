@@ -40,7 +40,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 		}
 		
 		//当前轮次
-		add(current.userMessage.toChatMessage())
+		add(current.userMessage.toChatMessage(context.summarizedMessage))
 		current.turns?.forEach { addTurn(it) }
 	}
 	
@@ -68,7 +68,7 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
 
-private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
+private fun AgentContext.Message.User.toChatMessage(summarizedMessage: String? = null) = ChatMessage.UserMessage(
 	content = buildString {
 		appendLine("<time>$timestamp</time>")
 		if (summarizedMessage != null) {
