@@ -34,7 +34,7 @@ dependencies {
 	
 	implementation("com.h2database:h2:2.4.240")
 	
-	implementation("org.slf4j:slf4j-api:2.0.12")
+	implementation("org.slf4j:slf4j-api:2.0.17")
 	implementation("ch.qos.logback:logback-classic:1.5.32")
 	
 	implementation("com.github.docker-java:docker-java-core:3.7.1")
