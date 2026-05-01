@@ -9,7 +9,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.security.MessageDigest
 
-@Suppress("unused")
 class FileSystemServiceImpl(
 	workspaceRoot: Path,
 	private val inContainer: Boolean = false,

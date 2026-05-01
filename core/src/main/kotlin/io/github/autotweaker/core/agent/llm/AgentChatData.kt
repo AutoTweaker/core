@@ -3,7 +3,6 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
 import io.ktor.http.*
 import kotlin.time.Instant
 
@@ -43,7 +42,6 @@ sealed class AgentChatStreamResult {
 		data class Result(
 			val context: AgentContext.Message.Assistant,
 			val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
-			val usage: Usage?,
 			val finishReason: ChatResult.FinishReason?,
 		)
 	}

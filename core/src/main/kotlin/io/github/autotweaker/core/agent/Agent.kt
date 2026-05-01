@@ -16,6 +16,7 @@ import kotlinx.coroutines.selects.select
 import kotlin.time.Clock
 
 //TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
+//TODO 读写Context专门管理
 
 @Suppress("unused")
 class Agent(
@@ -47,6 +48,7 @@ class Agent(
 	
 	//当前工作协程
 	private var currentJob: Job? = null
+	private var compactJob: Job? = null
 	
 	//状态
 	private val _status = MutableStateFlow(AgentStatus.FREE)
@@ -122,6 +124,8 @@ class Agent(
 				//取消协程
 				currentJob?.cancel()
 				currentJob = null
+				compactJob?.cancel()
+				compactJob = null
 				//归档上下文
 				archiveCurrentRound(this)
 				//更新状态
@@ -146,15 +150,18 @@ class Agent(
 				workTrigger.trySend(Unit)
 			}
 			is AgentCommand.Directive.Cancel -> {
-				if (_status.value != AgentStatus.TOOL_CALLING) return
-				currentJob?.cancel()
+				if (_status.value == AgentStatus.TOOL_CALLING) {
+					currentJob?.cancel()
+				}
+				compactJob?.cancel()
+				compactJob = null
 			}
 			is AgentCommand.Directive.Retry -> {
 				if (_status.value != AgentStatus.ERROR) return
 				updateStatus(AgentStatus.FREE)
 				workTrigger.trySend(Unit)
 			}
-			is AgentCommand.Directive.Compact -> TODO("Compact")
+			is AgentCommand.Directive.Compact -> launchCompact()
 		}
 	}
 	
@@ -232,6 +239,10 @@ class Agent(
 		currentJob = scope.launch {
 			//调用对应方法
 			val result = requestLlmPhase(this@Agent, streamProcessor)
+			//compact检查
+			if (result == PhaseResult.Done || result == PhaseResult.Continue) {
+				checkAutoCompact()
+			}
 			//处理结果
 			when (result) {
 				PhaseResult.Continue -> workTrigger.trySend(Unit)
@@ -239,6 +250,31 @@ class Agent(
 				PhaseResult.Error -> {}
 			}
 		}
+	}
+	
+	//启动compact
+	private fun launchCompact() {
+		if (compactJob?.isActive == true) return
+		val rounds = context.historyRounds
+		if (rounds.isNullOrEmpty()) return
+		compactJob = scope.launch {
+			compactPhase(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
+		}
+	}
+	
+	//compact检查
+	private fun checkAutoCompact() {
+		if (compactJob?.isActive == true) return
+		val rounds = context.historyRounds
+		if (rounds.isNullOrEmpty()) return
+		val config = currentModel.config ?: return
+		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usage ?: return
+		val contextWindow = currentModel.modelInfo.contextWindow
+		val shouldCompact = (config.compactContextUsage != null &&
+				usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage) ||
+				(config.compactTotalTokens != null &&
+						usage.totalTokens >= config.compactTotalTokens)
+		if (shouldCompact) launchCompact()
 	}
 	
 	//处理工具调用

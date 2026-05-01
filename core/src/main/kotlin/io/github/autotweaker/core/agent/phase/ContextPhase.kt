@@ -41,7 +41,7 @@ internal fun archiveCurrentRound(env: AgentEnvironment) {
 	val completed = AgentContext.CompletedRound(
 		userMessage = round.userMessage,
 		turns = allTurns,
-		finalAssistantMessage = assistantMsg,
+		finalAssistantMessage = if (archivedTurn != null) null else assistantMsg,
 	)
 	
 	//更新AgentContext

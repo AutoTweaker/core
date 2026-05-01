@@ -14,6 +14,7 @@ dependencies {
 }
 
 tasks.register<JavaExec>("serializeConfig") {
+	description = "序列化默认配置到 JSON 文件"
 	dependsOn("classes")
 	
 	classpath = sourceSets.main.get().runtimeClasspath

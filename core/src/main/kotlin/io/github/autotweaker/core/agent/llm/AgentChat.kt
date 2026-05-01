@@ -106,9 +106,9 @@ fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
 					content = msg?.content ?: content.ifEmpty { null },
 					model = resultModel,
 					timestamp = msg?.createdAt ?: Clock.System.now(),
+					usage = lastUsage,
 				),
 				toolCalls = toPendingToolCalls(msg?.toolCalls, msg?.createdAt ?: Clock.System.now(), resultModel),
-				usage = lastUsage,
 				finishReason = lastFinishReason,
 			)
 		)

@@ -168,6 +168,9 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			model = request.model,
 			messages = mappedMessages,
 			stream = request.stream,
+			streamOptions = if (request.stream) {
+				DeepSeekRequest.StreamOptions(includeUsage = true)
+			} else null,
 			tools = request.tools?.map { tool ->
 				OpenAiRequest.Tool(
 					function = OpenAiRequest.Tool.Function(

@@ -88,7 +88,6 @@ private fun AgentContext.Message.Assistant.toChatMessage(
 	content = content ?: "",
 	createdAt = timestamp,
 	reasoningContent = reasoning ?: "",
-	model = model.name,
 	toolCalls = toolCalls,
 )
 

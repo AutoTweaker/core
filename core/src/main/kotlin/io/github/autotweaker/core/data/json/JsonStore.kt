@@ -28,7 +28,6 @@ object JsonStore {
 		if (!initialized) init()
 	}
 	
-	@Suppress("unused")
 	fun namespace(name: String): JsonEntry {
 		ensureInit()
 		return JsonEntry(name)

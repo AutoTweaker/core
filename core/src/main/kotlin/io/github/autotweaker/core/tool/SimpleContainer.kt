@@ -5,7 +5,6 @@ import kotlin.reflect.KClass
 class SimpleContainer : DependencyProvider {
 	private val services = mutableMapOf<KClass<*>, Any>()
 	
-	@Suppress("unused")
 	fun <T : Any> register(serviceClass: KClass<T>, instance: T) {
 		services[serviceClass] = instance
 	}

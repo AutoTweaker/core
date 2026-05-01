@@ -2,6 +2,7 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.llm.Usage
 import kotlin.time.Instant
 
 data class AgentContext(
@@ -23,6 +24,7 @@ data class AgentContext(
 			val content: String? = null,
 			val model: Model,
 			val timestamp: Instant,
+			val usage: Usage?,
 		) : Message()
 		
 		data class Tool(

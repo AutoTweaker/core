@@ -1,10 +1,10 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
+import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
 import kotlin.time.Instant
 
-@Suppress("unused")
 sealed class AgentOutput {
 	data class StreamMessage(
 		val status: Status,
@@ -18,7 +18,20 @@ sealed class AgentOutput {
 		}
 	}
 	
+	data class CompactOutput(
+		val status: Status,
+		val content: String,
+		val usage: Usage?,
+	) : AgentOutput() {
+		enum class Status {
+			OUTPUTTING,
+			FINISHED,
+			FAILED,
+		}
+	}
+	
 	//TODO 通过ContextUpdate，并增加单独的工具运行时输出通道
+	@Suppress("unused")
 	data class ToolResult(
 		val name: String,
 		val callId: String,
@@ -36,11 +49,13 @@ sealed class AgentOutput {
 	) : AgentOutput() {
 		enum class UpdateReason {
 			COMPACTED,
-			LLM_ERROR,
+			//TODO LLM_ERROR,
+			//TODO ARCHIVED
 		}
 	}
 	
 	//TODO
+	@Suppress("unused")
 	data class ToolListUpdate(
 		val activeTools: List<Tool>,
 	) : AgentOutput()
@@ -50,10 +65,11 @@ sealed class AgentOutput {
 		val type: Type,
 	) : AgentOutput() {
 		enum class Type {
-			NETWORK,
+			//TODO NETWORK,
 			LLM,
-			TOOL,
-			UNKNOWN
+			COMPACT,
+			//TODO TOOL,
+			//TODO UNKNOWN
 		}
 	}
 }

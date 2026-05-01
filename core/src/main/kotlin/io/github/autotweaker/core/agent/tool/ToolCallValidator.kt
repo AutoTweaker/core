@@ -5,7 +5,6 @@ import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.*
 
-@Suppress("unused")
 class ToolCallValidator(
 	private val tools: List<Tool>,
 	private val settings: List<SettingItem>,
@@ -87,7 +86,7 @@ class ToolCallValidator(
 		//检查属性类型
 		for ((paramName, paramDef) in function.parameters) {
 			val paramValue = otherArguments[paramName] ?: continue
-			if (!validateParameterType(paramName, paramValue, paramDef.valueType)) {
+			if (!validateParameterType(paramValue, paramDef.valueType)) {
 				val expectedType = getExpectedTypeName(paramDef.valueType)
 				return ValidationResult.Failure(
 					propertyErrorMessage.format(toolCallName, paramName, expectedType)
@@ -105,7 +104,6 @@ class ToolCallValidator(
 	
 	//检查属性类型
 	private fun validateParameterType(
-		paramName: String,
 		value: JsonElement,
 		expectedType: Tool.Function.Property.ValueType
 	): Boolean {
@@ -123,14 +121,14 @@ class ToolCallValidator(
 				if (value !is JsonObject) return false
 				expectedType.properties.all { (name, type) ->
 					val fieldValue = value[name] ?: return false
-					validateParameterType(name, fieldValue, type)
+					validateParameterType(fieldValue, type)
 				}
 			}
 		}
 	}
 	
 	private fun validateElementType(value: JsonElement, expectedType: Tool.Function.Property.ValueType): Boolean {
-		return validateParameterType("", value, expectedType)
+		return validateParameterType(value, expectedType)
 	}
 	
 	private fun getExpectedTypeName(type: Tool.Function.Property.ValueType): String {

@@ -3,7 +3,6 @@ package io.github.autotweaker.core.agent.tool.service
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.tool.impl.read.ToolCallHistory
 
-@Suppress("unused")
 class ToolCallHistoryImpl(
 	context: AgentContext,
 ) : ToolCallHistory {

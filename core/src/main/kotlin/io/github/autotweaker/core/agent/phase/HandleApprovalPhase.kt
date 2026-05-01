@@ -60,6 +60,8 @@ internal suspend fun handleApprovalPhase(
 		//都处理完，创建Turn并继续
 		writeToolTurn(env, assistantMsg)
 	} else {
+		//还有未处理的，恢复状态
+		env.updateStatus(AgentStatus.WAITING)
 		PhaseResult.Done
 	}
 }

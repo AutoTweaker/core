@@ -26,7 +26,7 @@ sealed class ChatMessage {
 		override val createdAt: Instant,
 		val reasoningContent: String? = null,
 		val toolCalls: List<ToolCall>? = null,
-		val model: String
+		val model: String? = null
 	) : ChatMessage() {
 		data class ToolCall(
 			val id: String,

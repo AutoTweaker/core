@@ -42,7 +42,6 @@ class Tools(settings: List<SettingItem>) {
 		)
 	
 	//解析工具调用
-	@Suppress("unused")
 	fun resolveToolCalls(
 		calls: List<AgentContext.CurrentRound.PendingToolCall>,
 	): List<ToolCallResolveResult> {
@@ -75,7 +74,6 @@ class Tools(settings: List<SettingItem>) {
 	}
 	
 	//调用工具
-	@Suppress("unused")
 	suspend fun executeTool(
 		result: ToolCallValidator.ValidationResult.Success,
 		call: AgentContext.CurrentRound.PendingToolCall,

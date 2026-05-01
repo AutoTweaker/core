@@ -5,17 +5,18 @@ package io.github.autotweaker.core
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.io.encoding.Base64 as KBase64
 
-@Suppress("unused")
 @JvmInline
 value class Base64(val value: String) {
 	init {
 		require(isValid(value)) { "Invalid Base64 string" }
 	}
 	
+	@Suppress("unused")
 	@OptIn(ExperimentalEncodingApi::class)
 	fun decode(): ByteArray = KBase64.decode(value)
 	
 	companion object {
+		@Suppress("unused")
 		@OptIn(ExperimentalEncodingApi::class)
 		fun encode(bytes: ByteArray): Base64 = Base64(KBase64.encode(bytes))
 		
