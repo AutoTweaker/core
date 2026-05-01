@@ -3,7 +3,6 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
-import kotlin.time.Instant
 
 sealed class AgentOutput {
 	data class StreamMessage(
@@ -30,14 +29,7 @@ sealed class AgentOutput {
 		}
 	}
 	
-	//TODO 通过ContextUpdate，并增加单独的工具运行时输出通道
-	@Suppress("unused")
-	data class ToolResult(
-		val name: String,
-		val callId: String,
-		val content: String,
-		val timestamp: Instant,
-	) : AgentOutput()
+	//TODO 增加单独的工具运行时输出通道
 	
 	data class ToolCallRequest(
 		val pendingToolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
@@ -49,8 +41,8 @@ sealed class AgentOutput {
 	) : AgentOutput() {
 		enum class UpdateReason {
 			COMPACTED,
-			//TODO LLM_ERROR,
-			//TODO ARCHIVED
+			ARCHIVED,
+			TOOL
 		}
 	}
 	

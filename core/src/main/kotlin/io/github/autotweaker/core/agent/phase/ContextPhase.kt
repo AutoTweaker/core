@@ -2,6 +2,7 @@ package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
+import io.github.autotweaker.core.agent.AgentOutput
 import kotlin.time.Clock
 
 //归档当前round
@@ -52,6 +53,7 @@ internal suspend fun archiveCurrentRound(
 			historyRounds = ctx.historyRounds.orEmpty() + completed,
 		)
 	}
+	env.emitOutput(AgentOutput.ContextUpdate(env.context, AgentOutput.ContextUpdate.UpdateReason.ARCHIVED))
 }
 
 //将处理完的工具连同assistantMessage转为一个Turn并继续
@@ -75,6 +77,7 @@ internal suspend fun writeToolTurn(
 			)
 		)
 	}
+	env.emitOutput(AgentOutput.ContextUpdate(env.context, AgentOutput.ContextUpdate.UpdateReason.TOOL))
 	return PhaseResult.Continue
 }
 

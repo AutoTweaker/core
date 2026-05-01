@@ -17,8 +17,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 
-//TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
-
 @Suppress("unused")
 class Agent(
 	override var context: AgentContext,
