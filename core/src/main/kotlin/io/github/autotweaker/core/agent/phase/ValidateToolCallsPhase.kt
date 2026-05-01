@@ -27,7 +27,7 @@ internal suspend fun validateToolCallsPhase(env: AgentEnvironment): PhaseResult 
 	
 	//清理pendingToolCalls
 	if (errorTools.isNotEmpty()) {
-		keepPendingCalls(env, needsApproval.map { it.callId }.toSet())
+		keepPendingCalls(needsApproval.map { it.callId }.toSet(), env::updateContext)
 	}
 	
 	return if (needsApproval.isNotEmpty()) {
@@ -39,6 +39,6 @@ internal suspend fun validateToolCallsPhase(env: AgentEnvironment): PhaseResult 
 		PhaseResult.Done
 	} else {
 		//没有待处理的，直接继续
-		writeToolTurn(env, assistantMsg)
+		writeToolTurn(env, assistantMsg, env::updateContext)
 	}
 }

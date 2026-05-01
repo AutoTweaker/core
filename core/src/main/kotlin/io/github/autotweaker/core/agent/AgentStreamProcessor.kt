@@ -18,21 +18,20 @@ sealed class StreamProcessResult {
 class AgentStreamProcessor(
 	private val emitOutput: suspend (AgentOutput) -> Unit,
 	private val onStatusChange: (AgentStatus) -> Unit,
-	private val onContextUpdate: (AgentContext) -> Unit,
+	private val onContextUpdate: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
 ) {
 	suspend fun process(
 		request: AgentChatRequest,
-		currentContext: AgentContext,
 	): StreamProcessResult {
 		var earlyResult: StreamProcessResult? = null
-		
+
 		try {
 			agentChat(request).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Reasoning -> {
 						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, result))
 					}
-					
+
 					is AgentChatStreamResult.Outputting -> {
 						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, result))
 					}
@@ -51,12 +50,16 @@ class AgentStreamProcessor(
 					}
 					
 					is AgentChatStreamResult.Finished -> {
-						val updatedRound = currentContext.currentRound?.copy(
-							assistantMessage = result.result.context,
-							pendingToolCalls = result.result.toolCalls,
-						)
-						onContextUpdate(currentContext.copy(currentRound = updatedRound))
-						
+						val resultContext = result.result.context
+						val resultToolCalls = result.result.toolCalls
+						onContextUpdate { ctx ->
+							val updatedRound = ctx.currentRound?.copy(
+								assistantMessage = resultContext,
+								pendingToolCalls = resultToolCalls,
+							)
+							ctx.copy(currentRound = updatedRound)
+						}
+
 						emitOutput(
 							AgentOutput.StreamMessage(
 								AgentOutput.StreamMessage.Status.FINISHED,
@@ -64,9 +67,9 @@ class AgentStreamProcessor(
 							)
 						)
 						
-						if (!result.result.toolCalls.isNullOrEmpty()) {
-							emitOutput(AgentOutput.ToolCallRequest(result.result.toolCalls))
-							earlyResult = StreamProcessResult.ToolCallsRequired(result.result.toolCalls)
+						if (!resultToolCalls.isNullOrEmpty()) {
+							emitOutput(AgentOutput.ToolCallRequest(resultToolCalls))
+							earlyResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
 						} else {
 							earlyResult = StreamProcessResult.Completed
 						}

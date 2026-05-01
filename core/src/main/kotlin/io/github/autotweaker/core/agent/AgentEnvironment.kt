@@ -5,9 +5,12 @@ import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.workspace.Workspace
+import kotlinx.coroutines.sync.Mutex
 
 internal interface AgentEnvironment {
 	var context: AgentContext
+	val contextMutex: Mutex
+	suspend fun updateContext(transform: suspend (AgentContext) -> AgentContext)
 	val agentState: MutableAgentState
 	
 	val tools: Tools

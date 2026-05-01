@@ -13,10 +13,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 
 //TODO 实现上下文更新输出，区分自动更新、上下文压缩、LLM出错导致用户消息被回退
-//TODO 读写Context专门管理
 
 @Suppress("unused")
 class Agent(
@@ -38,6 +39,15 @@ class Agent(
 	//工具状态
 	override val agentState = MutableAgentState()
 	
+	//上下文锁
+	override val contextMutex = Mutex()
+	
+	override suspend fun updateContext(transform: suspend (AgentContext) -> AgentContext) {
+		contextMutex.withLock {
+			context = transform(context)
+		}
+	}
+
 	//工具列表
 	override val tools = Tools(settings).also { t -> tools.forEach { t.add(it) } }
 	
@@ -69,7 +79,7 @@ class Agent(
 	private val streamProcessor = AgentStreamProcessor(
 		emitOutput = { _output.emit(it) },
 		onStatusChange = { _status.value = it },
-		onContextUpdate = { this.context = it },
+		onContextUpdate = { transform -> updateContext(transform) },
 	)
 	
 	//协程
@@ -118,7 +128,7 @@ class Agent(
 	}
 	
 	//处理指令（即时
-	private fun handleDirective(directive: AgentCommand.Directive) {
+	private suspend fun handleDirective(directive: AgentCommand.Directive) {
 		when (directive) {
 			is AgentCommand.Directive.Stop -> {
 				//取消协程
@@ -127,7 +137,7 @@ class Agent(
 				compactJob?.cancel()
 				compactJob = null
 				//归档上下文
-				archiveCurrentRound(this)
+				archiveCurrentRound(this, this::updateContext)
 				//更新状态
 				updateStatus(AgentStatus.FREE)
 			}
@@ -199,7 +209,7 @@ class Agent(
 	}
 	
 	//处理用户消息
-	private fun processUserMessage(content: String, images: List<Base64>? = null) {
+	private suspend fun processUserMessage(content: String, images: List<Base64>? = null) {
 		//构建Message.User
 		val userMsg = AgentContext.Message.User(
 			content = content,
@@ -207,9 +217,9 @@ class Agent(
 			timestamp = Clock.System.now()
 		)
 		//更新上下文
-		context = context.copy(
-			currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null)
-		)
+		updateContext {
+			it.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
+		}
 		//开始迭代
 		workTrigger.trySend(Unit)
 	}
@@ -258,7 +268,7 @@ class Agent(
 		val rounds = context.historyRounds
 		if (rounds.isNullOrEmpty()) return
 		compactJob = scope.launch {
-			compactPhase(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
+			compactPhase(this@Agent, rounds, rounds.size, summarizeModel, currentFallbackModels, settings)
 		}
 	}
 	

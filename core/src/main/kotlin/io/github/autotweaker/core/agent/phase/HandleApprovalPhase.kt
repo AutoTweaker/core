@@ -54,11 +54,11 @@ internal suspend fun handleApprovalPhase(
 	env.agentState.pendingApproval = remaining.ifEmpty { null }
 	env.agentState.processedTools = (env.agentState.processedTools.orEmpty() + processed)
 	//清理pendingToolCalls
-	keepPendingCalls(env, remaining.map { it.callId }.toSet())
+	keepPendingCalls(remaining.map { it.callId }.toSet(), env::updateContext)
 	
 	return if (remaining.isEmpty()) {
 		//都处理完，创建Turn并继续
-		writeToolTurn(env, assistantMsg)
+		writeToolTurn(env, assistantMsg, env::updateContext)
 	} else {
 		//还有未处理的，恢复状态
 		env.updateStatus(AgentStatus.WAITING)

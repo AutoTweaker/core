@@ -5,23 +5,26 @@ import io.github.autotweaker.core.agent.AgentEnvironment
 import kotlin.time.Clock
 
 //归档当前round
-internal fun archiveCurrentRound(env: AgentEnvironment) {
+internal suspend fun archiveCurrentRound(
+	env: AgentEnvironment,
+	updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
+) {
 	//读取当前round
 	val round = env.context.currentRound ?: return
-	
+
 	//当前round啥也没有（只有用户消息），直接丢弃
 	if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
-		env.context = env.context.copy(currentRound = null)
+		updateContext { it.copy(currentRound = null) }
 		return
 	}
-	
+
 	val assistantMsg = round.assistantMessage
 	//处理pendingToolCalls
 	val canceledTools = round.pendingToolCalls?.map { call ->
 		buildCancelledTool(call, env.toolCancelledMessage)
 	}
 	env.agentState.pendingApproval = null
-	
+
 	//将已处理和已取消的工具打包为Turn
 	val archivedTurn = if (assistantMsg != null) {
 		val archivedTools = (env.agentState.processedTools.orEmpty() + canceledTools.orEmpty())
@@ -30,53 +33,65 @@ internal fun archiveCurrentRound(env: AgentEnvironment) {
 		}
 	} else null
 	env.agentState.processedTools = null
-	
+
 	//收集所有Turns
 	val allTurns = buildList {
 		round.turns?.let { addAll(it) }
 		archivedTurn?.let { add(it) }
 	}.ifEmpty { null }
 	
-	//构建CompletedRound
-	val completed = AgentContext.CompletedRound(
-		userMessage = round.userMessage,
-		turns = allTurns,
-		finalAssistantMessage = if (archivedTurn != null) null else assistantMsg,
-	)
-	
 	//更新AgentContext
-	env.context = env.context.copy(
-		currentRound = null,
-		historyRounds = env.context.historyRounds.orEmpty() + completed,
-	)
+	updateContext { ctx ->
+		val completed = AgentContext.CompletedRound(
+			userMessage = round.userMessage,
+			turns = allTurns,
+			finalAssistantMessage = if (archivedTurn != null) null else assistantMsg,
+		)
+		ctx.copy(
+			currentRound = null,
+			historyRounds = ctx.historyRounds.orEmpty() + completed,
+		)
+	}
 }
 
 //将处理完的工具连同assistantMessage转为一个Turn并继续
-internal fun writeToolTurn(env: AgentEnvironment, assistantMsg: AgentContext.Message.Assistant): PhaseResult {
+internal suspend fun writeToolTurn(
+	env: AgentEnvironment,
+	assistantMsg: AgentContext.Message.Assistant,
+	updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
+): PhaseResult {
 	//读取并清空已处理工具的列表
 	val tools = env.agentState.processedTools.orEmpty()
 	env.agentState.processedTools = null
 	if (tools.isEmpty()) return PhaseResult.Done
-	val round = env.context.currentRound ?: return PhaseResult.Done
+	env.context.currentRound ?: return PhaseResult.Done
 	//更新上下文
-	env.context = env.context.copy(
-		currentRound = round.copy(
-			assistantMessage = null,
-			turns = (round.turns ?: emptyList()) + AgentContext.Turn(assistantMsg, tools),
+	updateContext { ctx ->
+		val cr = ctx.currentRound ?: return@updateContext ctx
+		ctx.copy(
+			currentRound = cr.copy(
+				assistantMessage = null,
+				turns = (cr.turns ?: emptyList()) + AgentContext.Turn(assistantMsg, tools),
+			)
 		)
-	)
+	}
 	return PhaseResult.Continue
 }
 
 //清理已处理的pendingToolCalls
-internal fun keepPendingCalls(env: AgentEnvironment, callIds: Set<String>) {
-	val round = env.context.currentRound ?: return
-	val pending = round.pendingToolCalls ?: return
-	env.context = env.context.copy(
-		currentRound = round.copy(
-			pendingToolCalls = pending.filter { it.callId in callIds }.ifEmpty { null }
+internal suspend fun keepPendingCalls(
+	callIds: Set<String>,
+	updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
+) {
+	updateContext { ctx ->
+		val cr = ctx.currentRound ?: return@updateContext ctx
+		val pending = cr.pendingToolCalls ?: return@updateContext ctx
+		ctx.copy(
+			currentRound = cr.copy(
+				pendingToolCalls = pending.filter { it.callId in callIds }.ifEmpty { null }
+			)
 		)
-	)
+	}
 }
 
 //构建工具消息

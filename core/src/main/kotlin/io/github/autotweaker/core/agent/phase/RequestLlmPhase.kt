@@ -21,19 +21,19 @@ internal suspend fun requestLlmPhase(
 		context = env.context,
 	)
 	
-	return when (streamProcessor.process(request, env.context)) {
+	return when (streamProcessor.process(request)) {
 		is StreamProcessResult.Completed -> {
-			archiveCurrentRound(env)
+			archiveCurrentRound(env, env::updateContext)
 			env.updateStatus(AgentStatus.FREE)
 			PhaseResult.Done
 		}
-		
+
 		is StreamProcessResult.ToolCallsRequired -> {
 			PhaseResult.Continue
 		}
 		
 		is StreamProcessResult.Cancelled -> {
-			archiveCurrentRound(env)
+			archiveCurrentRound(env, env::updateContext)
 			env.updateStatus(AgentStatus.FREE)
 			PhaseResult.Done
 		}
