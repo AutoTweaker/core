@@ -45,7 +45,7 @@ internal suspend fun requestLlmPhase(
 			env.updateStatus(AgentStatus.FREE)
 			PhaseResult.Done
 		}
-
+		
 		is StreamProcessResult.ToolCallsRequired -> {
 			PhaseResult.Continue
 		}

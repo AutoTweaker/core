@@ -52,7 +52,7 @@ sealed class AgentOutput {
 		val callId: String,
 		val content: String,
 	) : AgentOutput()
-
+	
 	data class ToolCallRequest(
 		val pendingToolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
 	) : AgentOutput()

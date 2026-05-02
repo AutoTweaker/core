@@ -24,20 +24,23 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class H2DatabaseStoreTest {
-    
-    @Test
-    fun `connect creates database directory and file`() {
-        val tmpHome = Files.createTempDirectory("autotweaker_test")
-        try {
-            System.setProperty("user.home", tmpHome.toString())
-            val store = H2DatabaseStore()
-            store.connect("TestDb")
-            
-            val dbDir = Path.of(tmpHome.toString(), ".config", "autotweaker", "database")
-            assertTrue(Files.exists(dbDir))
-        } finally {
-            System.clearProperty("user.home")
-            tmpHome.toFile().deleteRecursively()
-        }
-    }
+	
+	@Test
+	fun `connect creates database directory and file`() {
+		val tmpHome = Files.createTempDirectory("autotweaker_test")
+		val originalHome = System.getProperty("user.home")
+		try {
+			System.setProperty("user.home", tmpHome.toString())
+			val store = H2DatabaseStore()
+			store.connect("TestDb")
+			
+			val dbDir = Path.of(tmpHome.toString(), ".config", "autotweaker", "database")
+			assertTrue(Files.exists(dbDir))
+		} finally {
+			if (originalHome != null) {
+				System.setProperty("user.home", originalHome)
+			}
+			tmpHome.toFile().deleteRecursively()
+		}
+	}
 }

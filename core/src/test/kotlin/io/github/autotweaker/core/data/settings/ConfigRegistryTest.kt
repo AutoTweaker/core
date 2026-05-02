@@ -24,31 +24,31 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ConfigRegistryTest {
-    
-    // This test class doesn't mock CoreConfigRegistry, so the real init runs.
-    // SerializeConfig caches results across tests; the cache was populated by
-    // a previous Gradle task, so loadDefaultConfig() succeeds (try branch).
-    // getItem/getAllItems are tested with real cached data.
-    
-    @Test
-    fun `getItem returns null for unknown key`() {
-        val result = CoreConfigRegistry.getItem("nonexistent.zz99")
-        assertNull(result)
-    }
-    
-    @Test
-    fun `getAllItems returns items loaded from cache`() {
-        val all = CoreConfigRegistry.getAllItems()
-        assertTrue(all.isNotEmpty())
-    }
-    
-    @Test
-    fun `getItem finds item by key`() {
-        val all = CoreConfigRegistry.getAllItems()
-        if (all.isNotEmpty()) {
-            val first = all.first()
-            val result = CoreConfigRegistry.getItem(first.key.value)
-            assertNotNull(result)
-        }
-    }
+	
+	// This test class doesn't mock CoreConfigRegistry, so the real init runs.
+	// SerializeConfig caches results across tests; the cache was populated by
+	// a previous Gradle task, so loadDefaultConfig() succeeds (try branch).
+	// getItem/getAllItems are tested with real cached data.
+	
+	@Test
+	fun `getItem returns null for unknown key`() {
+		val result = CoreConfigRegistry.getItem("nonexistent.zz99")
+		assertNull(result)
+	}
+	
+	@Test
+	fun `getAllItems returns items loaded from cache`() {
+		val all = CoreConfigRegistry.getAllItems()
+		assertTrue(all.isNotEmpty())
+	}
+	
+	@Test
+	fun `getItem finds item by key`() {
+		val all = CoreConfigRegistry.getAllItems()
+		if (all.isNotEmpty()) {
+			val first = all.first()
+			val result = CoreConfigRegistry.getItem(first.key.value)
+			assertNotNull(result)
+		}
+	}
 }

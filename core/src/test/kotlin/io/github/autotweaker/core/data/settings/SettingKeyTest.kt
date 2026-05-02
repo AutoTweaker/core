@@ -24,65 +24,65 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 
 class SettingKeyTest {
-    
-    @Test
-    fun `valid key with two segments`() {
-        val key = SettingKey("core.debug")
-        assertEquals("core.debug", key.value)
-    }
-    
-    @Test
-    fun `valid key with multiple segments`() {
-        val key = SettingKey("aa.bb.cc.dd99")
-        assertEquals("aa.bb.cc.dd99", key.value)
-    }
-    
-    @Test
-    fun `valid key with single segment`() {
-        val key = SettingKey("hello")
-        assertEquals("hello", key.value)
-    }
-    
-    @Test
-    fun `valid key with numbers`() {
-        val key = SettingKey("section123.sub456")
-        assertEquals("section123.sub456", key.value)
-    }
-    
-    @Test
-    fun `reject blank key`() {
-        assertFailsWith<IllegalArgumentException> { SettingKey("") }
-        assertFailsWith<IllegalArgumentException> { SettingKey("  ") }
-    }
-    
-    @Test
-    fun `reject key starting with dot`() {
-        assertFailsWith<IllegalArgumentException> { SettingKey(".invalid") }
-    }
-    
-    @Test
-    fun `reject key ending with dot`() {
-        assertFailsWith<IllegalArgumentException> { SettingKey("invalid.") }
-    }
-    
-    @Test
-    fun `reject key with single char segment`() {
-        assertFailsWith<IllegalArgumentException> { SettingKey("a.bc") }
-    }
-    
-    @Test
-    fun `reject key with uppercase segment`() {
-        assertFailsWith<IllegalArgumentException> { SettingKey("Valid.key") }
-    }
-    
-    @Test
-    fun `reject key with special chars in segment`() {
-        assertFailsWith<IllegalArgumentException> { SettingKey("ab.cd_ef") }
-    }
-    
-    @Test
-    fun `equality works by value`() {
-        assertEquals(SettingKey("ab.cd"), SettingKey("ab.cd"))
-        assertNotEquals(SettingKey("ab.cd"), SettingKey("ef.gh"))
-    }
+	
+	@Test
+	fun `valid key with two segments`() {
+		val key = SettingKey("core.debug")
+		assertEquals("core.debug", key.value)
+	}
+	
+	@Test
+	fun `valid key with multiple segments`() {
+		val key = SettingKey("aa.bb.cc.dd99")
+		assertEquals("aa.bb.cc.dd99", key.value)
+	}
+	
+	@Test
+	fun `valid key with single segment`() {
+		val key = SettingKey("hello")
+		assertEquals("hello", key.value)
+	}
+	
+	@Test
+	fun `valid key with numbers`() {
+		val key = SettingKey("section123.sub456")
+		assertEquals("section123.sub456", key.value)
+	}
+	
+	@Test
+	fun `reject blank key`() {
+		assertFailsWith<IllegalArgumentException> { SettingKey("") }
+		assertFailsWith<IllegalArgumentException> { SettingKey("  ") }
+	}
+	
+	@Test
+	fun `reject key starting with dot`() {
+		assertFailsWith<IllegalArgumentException> { SettingKey(".invalid") }
+	}
+	
+	@Test
+	fun `reject key ending with dot`() {
+		assertFailsWith<IllegalArgumentException> { SettingKey("invalid.") }
+	}
+	
+	@Test
+	fun `reject key with single char segment`() {
+		assertFailsWith<IllegalArgumentException> { SettingKey("a.bc") }
+	}
+	
+	@Test
+	fun `reject key with uppercase segment`() {
+		assertFailsWith<IllegalArgumentException> { SettingKey("Valid.key") }
+	}
+	
+	@Test
+	fun `reject key with special chars in segment`() {
+		assertFailsWith<IllegalArgumentException> { SettingKey("ab.cd_ef") }
+	}
+	
+	@Test
+	fun `equality works by value`() {
+		assertEquals(SettingKey("ab.cd"), SettingKey("ab.cd"))
+		assertNotEquals(SettingKey("ab.cd"), SettingKey("ef.gh"))
+	}
 }

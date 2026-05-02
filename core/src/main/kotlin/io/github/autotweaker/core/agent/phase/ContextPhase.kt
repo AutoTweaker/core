@@ -30,20 +30,20 @@ internal suspend fun archiveCurrentRound(
 ) {
 	//读取当前round
 	val round = env.context.currentRound ?: return
-
+	
 	//当前round啥也没有（只有用户消息），直接丢弃
 	if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
 		updateContext { it.copy(currentRound = null) }
 		return
 	}
-
+	
 	val assistantMsg = round.assistantMessage
 	//处理pendingToolCalls
 	val canceledTools = round.pendingToolCalls?.map { call ->
 		buildCancelledTool(call, env.toolCancelledMessage)
 	}
 	env.agentState.pendingApproval = null
-
+	
 	//将已处理和已取消的工具打包为Turn
 	val archivedTurn = if (assistantMsg != null) {
 		val archivedTools = (env.agentState.processedTools.orEmpty() + canceledTools.orEmpty())
@@ -52,7 +52,7 @@ internal suspend fun archiveCurrentRound(
 		}
 	} else null
 	env.agentState.processedTools = null
-
+	
 	//收集所有Turns
 	val allTurns = buildList {
 		round.turns?.let { addAll(it) }

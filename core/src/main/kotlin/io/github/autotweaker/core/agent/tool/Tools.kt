@@ -106,7 +106,7 @@ class Tools(settings: List<SettingItem>) {
 	): AgentContext.Message.Tool {
 		//匹配工具实现
 		val entry = _entries.first { it.tool.resolveMeta(_settings).name == result.toolName }
-
+		
 		//工具未激活
 		if (!entry.active) {
 			//激活
@@ -134,7 +134,7 @@ class Tools(settings: List<SettingItem>) {
 		
 		//创建运行时输出通道
 		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)
-
+		
 		//构建工具请求
 		val toolInput = Tool.ToolInput(
 			functionName = result.functionName,
@@ -164,7 +164,7 @@ class Tools(settings: List<SettingItem>) {
 			drainJob.join()
 			result
 		}
-
+		
 		//返回结果
 		return AgentContext.Message.Tool(
 			name = call.name,

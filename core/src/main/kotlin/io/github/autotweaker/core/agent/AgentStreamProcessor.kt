@@ -42,14 +42,14 @@ class AgentStreamProcessor(
 		request: AgentChatRequest,
 	): StreamProcessResult {
 		var earlyResult: StreamProcessResult? = null
-
+		
 		try {
 			agentChat(request).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Reasoning -> {
 						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, result))
 					}
-
+					
 					is AgentChatStreamResult.Outputting -> {
 						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, result))
 					}
@@ -77,7 +77,7 @@ class AgentStreamProcessor(
 							)
 							ctx.copy(currentRound = updatedRound)
 						}
-
+						
 						emitOutput(
 							AgentOutput.StreamMessage(
 								AgentOutput.StreamMessage.Status.FINISHED,

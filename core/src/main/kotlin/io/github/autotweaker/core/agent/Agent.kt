@@ -63,7 +63,7 @@ class Agent(
 			context = transform(context)
 		}
 	}
-
+	
 	//工具列表
 	override val tools = Tools(settings).also { t -> tools.forEach { t.add(it) } }
 	
@@ -103,7 +103,7 @@ class Agent(
 	
 	//状态
 	override val status: AgentStatus get() = _status.value
-
+	
 	//输出
 	override suspend fun emitOutput(output: AgentOutput) {
 		_output.emit(output)
@@ -175,6 +175,7 @@ class Agent(
 				updateStatus(AgentStatus.FREE)
 				workTrigger.trySend(Unit)
 			}
+			
 			is AgentCommand.Directive.Cancel -> {
 				if (_status.value == AgentStatus.TOOL_CALLING) {
 					currentJob?.cancel()
@@ -182,11 +183,13 @@ class Agent(
 				compactJob?.cancel()
 				compactJob = null
 			}
+			
 			is AgentCommand.Directive.Retry -> {
 				if (_status.value != AgentStatus.ERROR) return
 				updateStatus(AgentStatus.FREE)
 				workTrigger.trySend(Unit)
 			}
+			
 			is AgentCommand.Directive.Compact -> launchCompact()
 		}
 	}
