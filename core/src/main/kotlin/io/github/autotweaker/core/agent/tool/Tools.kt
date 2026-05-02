@@ -23,9 +23,9 @@ import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.core.session.workspace.Workspace
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
-import io.github.autotweaker.core.workspace.Workspace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope

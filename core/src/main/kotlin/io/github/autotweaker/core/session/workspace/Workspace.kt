@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.workspace
+package io.github.autotweaker.core.session.workspace
 
 import java.nio.file.Path
 
