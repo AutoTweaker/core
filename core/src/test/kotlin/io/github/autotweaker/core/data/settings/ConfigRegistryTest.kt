@@ -18,17 +18,34 @@
 
 package io.github.autotweaker.core.data.settings
 
-import kotlin.test.Test
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class ConfigRegistryTest {
-	
-	// This test class doesn't mock CoreConfigRegistry, so the real init runs.
-	// SerializeConfig caches results across tests; the cache was populated by
-	// a previous Gradle task, so loadDefaultConfig() succeeds (try branch).
-	// getItem/getAllItems are tested with real cached data.
+    
+    private val testItem = SettingItem(
+        SettingKey("test.key.abc"),
+        SettingItem.Value.ValString("test value"),
+        "test description"
+    )
+    
+    @BeforeTest
+    fun setUp() {
+        val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
+        field.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
+        items.clear()
+        items.add(testItem)
+    }
+    
+    @AfterTest
+    fun tearDown() {
+        val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
+        field.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
+        items.clear()
+    }
 	
 	@Test
 	fun `getItem returns null for unknown key`() {
@@ -40,15 +57,12 @@ class ConfigRegistryTest {
 	fun `getAllItems returns items loaded from cache`() {
 		val all = CoreConfigRegistry.getAllItems()
 		assertTrue(all.isNotEmpty())
+        assertTrue(all.contains(testItem))
 	}
 	
 	@Test
 	fun `getItem finds item by key`() {
-		val all = CoreConfigRegistry.getAllItems()
-		if (all.isNotEmpty()) {
-			val first = all.first()
-			val result = CoreConfigRegistry.getItem(first.key.value)
-			assertNotNull(result)
-		}
+        val result = CoreConfigRegistry.getItem("test.key.abc")
+        assertNotNull(result)
 	}
 }
