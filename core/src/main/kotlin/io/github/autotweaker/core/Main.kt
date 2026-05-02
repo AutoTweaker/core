@@ -15,6 +15,8 @@ import kotlin.time.Instant
 private val logger = LoggerFactory.getLogger(object {}::class.java.enclosingClass)
 
 fun main() {
+	logger.info("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc")
+	
 	Settings.init()
 	
 	val apiKey = System.getenv("MIMO_API_KEY")
