@@ -23,7 +23,6 @@ import kotlinx.coroutines.sync.withLock
 
 @Suppress("unused")
 object ContainerManager {
-	
 	private val mutex = Mutex()
 	
 	@Volatile

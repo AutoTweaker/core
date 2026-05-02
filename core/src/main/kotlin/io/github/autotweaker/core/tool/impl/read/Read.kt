@@ -210,10 +210,10 @@ class Read : Tool {
 					return ToolOutput(r.messageStartBiggerThanEnd, false)
 				}
 				
-				when (functionName) {
-					"file" -> executeFile(input, fs, r, normalizedPath, startLine, endLine)
-					"summarize" -> executeSummarize(input, fs, r, normalizedPath, startLine, endLine)
-					else -> throw IllegalArgumentException("Unknown function: $functionName")
+				if (functionName == "file") {
+					executeFile(input, fs, r, normalizedPath, startLine, endLine)
+				} else {
+					executeSummarize(input, fs, r, normalizedPath, startLine, endLine)
 				}
 			}
 			
