@@ -228,6 +228,60 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
         assertTrue(results.isEmpty())
     }
     
+    @Test
+    fun `streaming chat handles readLine returning null`() = runTest {
+        val sseData =
+            "data: {\"id\":\"c1\",\"created\":1715678901,\"model\":\"m\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"partial\"},\"finish_reason\":null}]}"
+        injectHttpClient(createMockHttpClientEngine(sseData))
+        
+        val client = DeepSeekClient()
+        val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+        assertEquals(1, results.size)
+        assertEquals("partial", results[0].message?.content)
+    }
+    
+    @Test
+    fun `streaming tool call fragment with null id`() = runTest {
+        val sseData = buildStreamResponse(
+            """{"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function","function":{"name":"f1","arguments":"a1"}}]},"finish_reason":"tool_calls"}],"usage":{"completion_tokens":1,"prompt_tokens":1,"total_tokens":2}}"""
+        )
+        injectHttpClient(createMockHttpClientEngine(sseData))
+        
+        val client = DeepSeekClient()
+        val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+        val last = results.last()
+        val tc = (last.message as ChatMessage.AssistantMessage).toolCalls
+        assertNotNull(tc)
+        assertEquals("f1", tc[0].name)
+    }
+    
+    @Test
+    fun `streaming tool call fragment with null name`() = runTest {
+        val sseData = buildStreamResponse(
+            """{"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"tc1","type":"function","function":{"arguments":"a1"}}]},"finish_reason":"tool_calls"}],"usage":{"completion_tokens":1,"prompt_tokens":1,"total_tokens":2}}"""
+        )
+        injectHttpClient(createMockHttpClientEngine(sseData))
+        
+        val client = DeepSeekClient()
+        val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+        val last = results.last()
+        val tc = (last.message as ChatMessage.AssistantMessage).toolCalls
+        assertNotNull(tc)
+        assertEquals("tc1", tc[0].id)
+    }
+    
+    @Test
+    fun `streaming chunk parse error with null exception message`() = runTest {
+        val sseData = "data: {\"invalid\"\r\n\r\n"
+        injectHttpClient(createMockHttpClientEngine(sseData))
+        
+        val client = DeepSeekClient()
+        val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+        
+        assertEquals(1, results.size)
+        assertIs<ChatMessage.ErrorMessage>(results[0].message)
+    }
+
     // endregion
     
     companion object {
