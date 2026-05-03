@@ -362,7 +362,7 @@ class ToolsTest {
 		
 		assertNotNull(result)
 		assertEquals(2, result.size)
-		// All should have enable boolean schema
+		// All should have enabled boolean schema
 		result.forEach { tool ->
 			val params = tool.parameters
 			val props = params.jsonObject["properties"]?.jsonObject
