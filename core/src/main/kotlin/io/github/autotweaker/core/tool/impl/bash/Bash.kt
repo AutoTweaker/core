@@ -109,20 +109,20 @@ class Bash : Tool {
 		messageResultTemplate = settings.find("core.tool.bash.message.result.template"),
 	)
 	
-	@Suppress("unused")
+	
 	fun getEnv(id: String): String? {
 		val obj = jsonEntry.get() as? JsonObject ?: return null
 		return obj[id]?.jsonPrimitive?.contentOrNull
 	}
 	
-	@Suppress("unused")
+	
 	fun setEnv(id: String, value: String) {
 		val obj = jsonEntry.get() as? JsonObject ?: buildJsonObject { }
 		val updated = JsonObject(obj + (id to JsonPrimitive(value)))
 		jsonEntry.set(updated)
 	}
 	
-	@Suppress("unused")
+	
 	fun removeEnv(id: String) {
 		val obj = jsonEntry.get() as? JsonObject ?: return
 		val updated = JsonObject(obj - id)

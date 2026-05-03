@@ -29,12 +29,10 @@ value class Base64(val value: String) {
 		require(isValid(value)) { "Invalid Base64 string" }
 	}
 	
-	@Suppress("unused")
 	@OptIn(ExperimentalEncodingApi::class)
 	fun decode(): ByteArray = KBase64.decode(value)
 	
 	companion object {
-		@Suppress("unused")
 		@OptIn(ExperimentalEncodingApi::class)
 		fun encode(bytes: ByteArray): Base64 = Base64(KBase64.encode(bytes))
 		

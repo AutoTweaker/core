@@ -21,31 +21,31 @@ package io.github.autotweaker.core.data.settings
 import kotlin.test.*
 
 class ConfigRegistryTest {
-    
-    private val testItem = SettingItem(
-        SettingKey("test.key.abc"),
-        SettingItem.Value.ValString("test value"),
-        "test description"
-    )
-    
-    @BeforeTest
-    fun setUp() {
-        val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
-        field.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
-        items.clear()
-        items.add(testItem)
-    }
-    
-    @AfterTest
-    fun tearDown() {
-        val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
-        field.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
-        items.clear()
-    }
+	
+	private val testItem = SettingItem(
+		SettingKey("test.key.abc"),
+		SettingItem.Value.ValString("test value"),
+		"test description"
+	)
+	
+	@BeforeTest
+	fun setUp() {
+		val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
+		field.isAccessible = true
+		@Suppress("UNCHECKED_CAST")
+		val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
+		items.clear()
+		items.add(testItem)
+	}
+	
+	@AfterTest
+	fun tearDown() {
+		val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
+		field.isAccessible = true
+		@Suppress("UNCHECKED_CAST")
+		val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
+		items.clear()
+	}
 	
 	@Test
 	fun `getItem returns null for unknown key`() {
@@ -57,12 +57,12 @@ class ConfigRegistryTest {
 	fun `getAllItems returns items loaded from cache`() {
 		val all = CoreConfigRegistry.getAllItems()
 		assertTrue(all.isNotEmpty())
-        assertTrue(all.contains(testItem))
+		assertTrue(all.contains(testItem))
 	}
 	
 	@Test
 	fun `getItem finds item by key`() {
-        val result = CoreConfigRegistry.getItem("test.key.abc")
-        assertNotNull(result)
+		val result = CoreConfigRegistry.getItem("test.key.abc")
+		assertNotNull(result)
 	}
 }

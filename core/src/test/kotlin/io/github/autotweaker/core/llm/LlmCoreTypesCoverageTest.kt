@@ -218,4 +218,12 @@ class LlmCoreTypesCoverageTest {
 		val result = runCatching { LlmClientLoader.load("nonexistent") }
 		assert(result.isFailure)
 	}
+	
+	@Test
+	fun `LlmClientLoader availableProviders returns registered providers`() {
+		val providers = LlmClientLoader.availableProviders()
+		assert(providers.contains("deepseek"))
+		assert(providers.contains("mimo"))
+		assert(providers.size >= 2)
+	}
 }

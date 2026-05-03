@@ -21,7 +21,7 @@ package io.github.autotweaker.core.container
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-@Suppress("unused")
+
 object ContainerManager {
 	private val mutex = Mutex()
 	

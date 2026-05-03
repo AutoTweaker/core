@@ -94,7 +94,7 @@ sealed class ToolChoice {
 		)
 	}
 	
-	@Suppress("unused")
+	
 	companion object {
 		val NONE = Simple(Simple.Mode.NONE)
 		val AUTO = Simple(Simple.Mode.AUTO)

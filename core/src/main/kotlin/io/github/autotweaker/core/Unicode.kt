@@ -20,7 +20,7 @@
 
 package io.github.autotweaker.core
 
-@Suppress("unused")
+
 @JvmInline
 value class Unicode(val value: String) {
 	init {

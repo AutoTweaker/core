@@ -24,7 +24,7 @@ import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
-@Suppress("unused")
+
 object Settings {
 	private val store = H2DatabaseStore()
 	

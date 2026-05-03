@@ -49,7 +49,7 @@ data class ChatRequest(
 		val type: Type
 	) {
 		@Serializable
-		@Suppress("unused")
+		
 		enum class Type {
 			@SerialName("text")
 			TEXT,

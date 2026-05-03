@@ -48,7 +48,7 @@ class Tools(settings: List<SettingItem>) {
 	//存储工具列表
 	private val _entries = mutableListOf<Entry>()
 	
-	@Suppress("unused")
+	
 	val entries: List<Entry> get() = _entries
 	
 	//添加工具

@@ -35,7 +35,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 
-@Suppress("unused")
+
 class Agent(
 	override var context: AgentContext,
 	override val workspace: Workspace,
@@ -137,7 +137,8 @@ class Agent(
 		}
 		//工作触发信号
 		scope.launch {
-			for (signal in workTrigger) {
+			while (true) {
+				workTrigger.receive()
 				resumeFromCurrentState()
 			}
 		}
