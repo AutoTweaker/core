@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.llm.Usage
+import java.util.*
 import kotlin.time.Instant
 
 data class AgentContext(
@@ -32,17 +33,19 @@ data class AgentContext(
 ) {
 	sealed class Message {
 		data class User(
+			val id: UUID = UUID.randomUUID(),
 			val content: String?,
 			val images: List<Base64>? = null,
 			val timestamp: Instant,
 		) : Message()
 		
 		data class Assistant(
+			val id: UUID = UUID.randomUUID(),
 			val reasoning: String? = null,
 			val content: String? = null,
 			val model: Model,
 			val timestamp: Instant,
-			val usage: Usage?,
+			val usage: Usage? = null,
 		) : Message()
 		
 		data class Tool(
@@ -52,13 +55,16 @@ data class AgentContext(
 			val result: Result,
 		) : Message() {
 			data class Call(
+				val id: UUID = UUID.randomUUID(),
+				val assistantMessageId: UUID,
 				val arguments: String,
-				val reason: String?,
+				val reason: String? = null,
 				val timestamp: Instant,
 				val model: Model,
 			)
 			
 			data class Result(
+				val id: UUID = UUID.randomUUID(),
 				val content: String,
 				val timestamp: Instant,
 				val status: Status,
@@ -76,7 +82,7 @@ data class AgentContext(
 	data class CompactedRound(
 		val compactedAt: Instant,
 		val rounds: List<CompletedRound>,
-		val incompleteRound: CurrentRound?,
+		val summarizedMessage: String
 	)
 	
 	data class CompletedRound(
@@ -93,10 +99,11 @@ data class AgentContext(
 	) {
 		data class PendingToolCall(
 			val callId: String,
+			val assistantMessageId: UUID,
 			val name: String,
 			val model: Model,
 			val arguments: String,
-			val reason: String?,
+			val reason: String? = null,
 			val timestamp: Instant,
 		)
 	}

@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -119,7 +120,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("compacted conversation summary", contextValue.summarizedMessage)
 		val contextUpdate = capturedOutputs.firstOrNull { it is AgentOutput.ContextUpdate }
@@ -155,7 +156,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -188,7 +189,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		// Should have attempted MAX_COMPACT_RETRIES (5) times before giving up
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
@@ -222,7 +223,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("real summary here", contextValue.summarizedMessage)
 	}
@@ -250,7 +251,7 @@ class CompactPhaseTest {
 		val toolMsg = AgentContext.Message.Tool(
 			name = "bash", callId = "call-1",
 			call = AgentContext.Message.Tool.Call(
-				arguments = "{}", reason = "needed",
+				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "needed",
 				timestamp = Clock.System.now(), model = model,
 			),
 			result = AgentContext.Message.Tool.Result(
@@ -269,7 +270,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("done", contextValue.summarizedMessage)
 		assertNotNull(contextValue.summarizedMessage)
@@ -298,7 +299,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -340,7 +341,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val outputting = capturedOutputs.filterIsInstance<AgentOutput.CompactOutput>()
 			.firstOrNull { it.status == AgentOutput.CompactOutput.Status.OUTPUTTING }
@@ -363,7 +364,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -397,7 +398,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("summary with images", contextValue.summarizedMessage)
 	}
@@ -451,7 +452,6 @@ class CompactPhaseTest {
 		compactPhase(
 			env,
 			rounds,
-			snapshotSize = 1,
 			summarizeModel = model,
 			fallbackModels = null,
 			settings = longContentSettings
@@ -485,7 +485,7 @@ class CompactPhaseTest {
 		val toolMsg = AgentContext.Message.Tool(
 			name = "bash", callId = "call-1",
 			call = AgentContext.Message.Tool.Call(
-				arguments = "{}", reason = "needed",
+				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "needed",
 				timestamp = Clock.System.now(), model = model,
 			),
 			result = AgentContext.Message.Tool.Result(
@@ -513,7 +513,6 @@ class CompactPhaseTest {
 		compactPhase(
 			env,
 			rounds,
-			snapshotSize = 1,
 			summarizeModel = model,
 			fallbackModels = null,
 			settings = longContentSettings
@@ -545,7 +544,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("done", contextValue.summarizedMessage)
 	}
@@ -597,7 +596,6 @@ class CompactPhaseTest {
 		compactPhase(
 			env,
 			rounds,
-			snapshotSize = 1,
 			summarizeModel = model,
 			fallbackModels = null,
 			settings = fallbackSettings
@@ -625,7 +623,6 @@ class CompactPhaseTest {
 			compactPhase(
 				env,
 				rounds,
-				snapshotSize = 1,
 				summarizeModel = model,
 				fallbackModels = null,
 				settings = settings

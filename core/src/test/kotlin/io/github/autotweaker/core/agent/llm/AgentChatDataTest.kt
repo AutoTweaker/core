@@ -149,7 +149,14 @@ class AgentChatDataTest {
 			usage = Usage(100, 50, 50),
 		)
 		val toolCalls = listOf(
-			AgentContext.CurrentRound.PendingToolCall("id1", "read", testModel, "{}", null, now)
+			AgentContext.CurrentRound.PendingToolCall(
+				callId = "id1",
+				assistantMessageId = UUID.randomUUID(),
+				name = "read",
+				model = testModel,
+				arguments = "{}",
+				timestamp = now
+			)
 		)
 		val finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP)
 		val assembled = AgentChatStreamResult.Assembled(assistantMsg, toolCalls, finishReason)
@@ -163,7 +170,7 @@ class AgentChatDataTest {
 	@Test
 	fun `assembled result without tool calls`() {
 		val now = Clock.System.now()
-		val assistantMsg = AgentContext.Message.Assistant(null, "done", testModel, now, null)
+		val assistantMsg = AgentContext.Message.Assistant(content = "done", model = testModel, timestamp = now)
 		val assembled = AgentChatStreamResult.Assembled(assistantMsg, null, null)
 		
 		assertNull(assembled.toolCalls)

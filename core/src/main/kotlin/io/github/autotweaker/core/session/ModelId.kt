@@ -16,19 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.llm
+package io.github.autotweaker.core.session
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Usage(
-	val totalTokens: Int,
-	val promptTokens: Int,
-	val completionTokens: Int,
-	
-	val reasoningTokens: Int? = null,
-	val cacheHitTokens: Int? = null,
-	val cacheMissTokens: Int? = null,
-	
-	val imageTokens: Int? = null
-)
+data class ModelId(
+	val provider: String,
+	val modelName: String,
+) {
+	override fun toString(): String = "$provider/$modelName"
+}

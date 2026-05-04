@@ -41,7 +41,6 @@ private const val MIN_SUMMARY_LENGTH = 10
 internal suspend fun compactPhase(
 	env: AgentEnvironment,
 	rounds: List<AgentContext.CompletedRound>,
-	snapshotSize: Int,
 	summarizeModel: Model,
 	fallbackModels: List<Model>?,
 	settings: List<SettingItem>,
@@ -74,9 +73,20 @@ internal suspend fun compactPhase(
 		return
 	}
 	
+	val compactedIds = rounds.map { it.userMessage.id }.toSet()
+	
 	env.updateContext { ctx ->
+		val dropped = ctx.historyRounds?.filter { it.userMessage.id in compactedIds }
+		val remaining = ctx.historyRounds?.filter { it.userMessage.id !in compactedIds }?.ifEmpty { null }
 		ctx.copy(
-			historyRounds = ctx.historyRounds?.drop(snapshotSize)?.ifEmpty { null },
+			historyRounds = remaining,
+			compactedRounds = if (!dropped.isNullOrEmpty()) {
+				(ctx.compactedRounds ?: emptyList()) + AgentContext.CompactedRound(
+					compactedAt = Clock.System.now(),
+					rounds = dropped,
+					summarizedMessage = cleaned,
+				)
+			} else ctx.compactedRounds,
 			summarizedMessage = cleaned,
 		)
 	}

@@ -108,7 +108,7 @@ class AgentCommandTest {
 	
 	@Test
 	fun `SendMessage holds content string`() {
-		val msg = AgentCommand.Message.SendMessage("hello world")
+		val msg = AgentCommand.Message.SendMessage(content = "hello world")
 		assertEquals("hello world", msg.content)
 		assertNull(msg.images)
 	}
@@ -116,14 +116,14 @@ class AgentCommandTest {
 	@Test
 	fun `SendMessage with images`() {
 		val img = Base64("aaaa")
-		val msg = AgentCommand.Message.SendMessage("hello", listOf(img))
+		val msg = AgentCommand.Message.SendMessage(content = "hello", images = listOf(img))
 		assertEquals("hello", msg.content)
 		assertEquals(listOf(img), msg.images)
 	}
 	
 	@Test
 	fun `SendMessage with empty content`() {
-		val msg = AgentCommand.Message.SendMessage("")
+		val msg = AgentCommand.Message.SendMessage(content = "")
 		assertEquals("", msg.content)
 	}
 	
@@ -169,7 +169,7 @@ class AgentCommandTest {
 	
 	@Test
 	fun `Message is AgentCommand`() {
-		assertIs<AgentCommand>(AgentCommand.Message.SendMessage("hi"))
+		assertIs<AgentCommand>(AgentCommand.Message.SendMessage(content = "hi"))
 		assertIs<AgentCommand>(AgentCommand.Message.ApproveToolCall(emptyList()))
 	}
 	

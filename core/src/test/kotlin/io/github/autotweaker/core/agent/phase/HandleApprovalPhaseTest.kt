@@ -29,6 +29,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -393,7 +394,7 @@ class HandleApprovalPhaseTest {
 		name: String = "test_function",
 		model: Model = mockModel(),
 	): AgentContext.CurrentRound.PendingToolCall = AgentContext.CurrentRound.PendingToolCall(
-		callId = callId, name = name, model = model,
+		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, model = model,
 		arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
 	)
 	

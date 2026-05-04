@@ -25,6 +25,7 @@ import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
 import io.ktor.http.*
 import io.mockk.mockk
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -127,7 +128,13 @@ class AgentOutputTest {
 	fun `ToolCallRequest wraps pending tool calls`() {
 		val pending = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
-				"c1", "bash_run", mockModel, """{"cmd":"ls"}""", "test", Clock.System.now()
+				callId = "c1",
+				assistantMessageId = UUID.randomUUID(),
+				name = "bash_run",
+				model = mockModel,
+				arguments = """{"cmd":"ls"}""",
+				reason = "test",
+				timestamp = Clock.System.now()
 			)
 		)
 		val output = AgentOutput.ToolCallRequest(pending)

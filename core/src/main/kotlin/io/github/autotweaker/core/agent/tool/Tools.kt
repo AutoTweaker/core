@@ -118,6 +118,7 @@ class Tools(settings: List<SettingItem>) {
 			return AgentContext.Message.Tool(
 				name = call.name,
 				call = AgentContext.Message.Tool.Call(
+					assistantMessageId = call.assistantMessageId,
 					arguments = call.arguments,
 					reason = call.reason,
 					timestamp = call.timestamp,
@@ -169,6 +170,7 @@ class Tools(settings: List<SettingItem>) {
 		return AgentContext.Message.Tool(
 			name = call.name,
 			call = AgentContext.Message.Tool.Call(
+				assistantMessageId = call.assistantMessageId,
 				arguments = call.arguments,
 				reason = call.reason,
 				timestamp = call.timestamp,

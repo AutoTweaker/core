@@ -16,19 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.llm
+package io.github.autotweaker.core.session
 
-import kotlinx.serialization.Serializable
+import java.util.*
 
-@Serializable
-data class Usage(
-	val totalTokens: Int,
-	val promptTokens: Int,
-	val completionTokens: Int,
-	
-	val reasoningTokens: Int? = null,
-	val cacheHitTokens: Int? = null,
-	val cacheMissTokens: Int? = null,
-	
-	val imageTokens: Int? = null
-)
+@Suppress("unused")
+interface SessionStore {
+	suspend fun saveSession(sessionData: SessionData)
+	suspend fun loadSession(id: UUID): SessionData?
+	suspend fun loadAllSessions(): List<SessionData>
+	suspend fun deleteSession(id: UUID)
+	suspend fun saveContext(sessionId: UUID, context: SessionContext)
+	suspend fun loadContext(sessionId: UUID): SessionContext?
+	suspend fun deleteContext(sessionId: UUID)
+}

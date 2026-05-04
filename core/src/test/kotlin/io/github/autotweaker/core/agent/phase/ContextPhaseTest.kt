@@ -30,6 +30,7 @@ import io.mockk.justRun
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -570,7 +571,7 @@ class ContextPhaseTest {
 		name: String = "test_function",
 		model: Model = mockModel(),
 	): AgentContext.CurrentRound.PendingToolCall = AgentContext.CurrentRound.PendingToolCall(
-		callId = callId, name = name, model = model,
+		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, model = model,
 		arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
 	)
 	

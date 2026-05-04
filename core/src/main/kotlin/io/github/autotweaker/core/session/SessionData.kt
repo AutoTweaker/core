@@ -16,19 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.llm
+package io.github.autotweaker.core.session
 
-import kotlinx.serialization.Serializable
+import java.util.*
 
-@Serializable
-data class Usage(
-	val totalTokens: Int,
-	val promptTokens: Int,
-	val completionTokens: Int,
+data class SessionData(
+	val id: UUID,
+	val title: String,
+	val workspaceName: String?,
 	
-	val reasoningTokens: Int? = null,
-	val cacheHitTokens: Int? = null,
-	val cacheMissTokens: Int? = null,
+	val context: SessionContext,
 	
-	val imageTokens: Int? = null
+	val model: ModelId,
+	val fallbackModel: List<ModelId>,
+	val summarizeModel: ModelId,
+	val thinking: Boolean,
 )

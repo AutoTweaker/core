@@ -62,7 +62,8 @@ class AgentChatTest {
 	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
 	private val testModel = Model("test-model", testProvider, testModelInfo, Config(0.7, 2048, null, null))
 	
-	private fun userMsg(content: String = "hello") = AgentContext.Message.User(content, null, Clock.System.now())
+	private fun userMsg(content: String = "hello") =
+		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
 	
 	@After
 	fun cleanup() {

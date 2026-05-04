@@ -33,6 +33,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -56,7 +57,7 @@ class AgentStreamProcessorTest {
 	)
 	
 	private fun userMsg(content: String = "hello") =
-		AgentContext.Message.User(content, null, Clock.System.now())
+		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
 	
 	private fun createRequest(): AgentChatRequest {
 		val user = userMsg()
@@ -80,7 +81,7 @@ class AgentStreamProcessorTest {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
-						null, "hi", mockModel, Clock.System.now(), Usage(10, 5, 5)
+						content = "hi", model = mockModel, timestamp = Clock.System.now(), usage = Usage(10, 5, 5)
 					),
 					toolCalls = null,
 					finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
@@ -120,7 +121,10 @@ class AgentStreamProcessorTest {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
-						"let me think", "answer", mockModel, Clock.System.now(), null
+						reasoning = "let me think",
+						content = "answer",
+						model = mockModel,
+						timestamp = Clock.System.now()
 					),
 					toolCalls = null,
 					finishReason = null,
@@ -140,7 +144,12 @@ class AgentStreamProcessorTest {
 		createProcessor()
 		val toolCalls = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
-				"c1", "read_file", mockModel, """{"path":"/tmp"}""", null, Clock.System.now()
+				callId = "c1",
+				assistantMessageId = UUID.randomUUID(),
+				name = "read_file",
+				model = mockModel,
+				arguments = """{"path":"/tmp"}""",
+				timestamp = Clock.System.now()
 			)
 		)
 		
@@ -149,7 +158,7 @@ class AgentStreamProcessorTest {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
-						null, null, mockModel, Clock.System.now(), null
+						model = mockModel, timestamp = Clock.System.now()
 					),
 					toolCalls = toolCalls,
 					finishReason = ChatResult.FinishReason("tool", ChatResult.FinishReason.Type.TOOL),
@@ -168,7 +177,13 @@ class AgentStreamProcessorTest {
 	fun `onContextUpdate transform sets assistant message on current round`() = runTest {
 		createProcessor()
 		val now = Clock.System.now()
-		val assistantMsg = AgentContext.Message.Assistant("think", "answer", mockModel, now, Usage(10, 5, 5))
+		val assistantMsg = AgentContext.Message.Assistant(
+			reasoning = "think",
+			content = "answer",
+			model = mockModel,
+			timestamp = now,
+			usage = Usage(10, 5, 5)
+		)
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
 		every { agentChat(any<AgentChatRequest>()) } returns flow {
@@ -198,9 +213,16 @@ class AgentStreamProcessorTest {
 	fun `onContextUpdate transform sets tool calls on current round`() = runTest {
 		createProcessor()
 		val now = Clock.System.now()
-		val assistantMsg = AgentContext.Message.Assistant(null, null, mockModel, now, null)
+		val assistantMsg = AgentContext.Message.Assistant(model = mockModel, timestamp = now)
 		val toolCalls = listOf(
-			AgentContext.CurrentRound.PendingToolCall("c1", "read", mockModel, "{}", null, now)
+			AgentContext.CurrentRound.PendingToolCall(
+				callId = "c1",
+				assistantMessageId = UUID.randomUUID(),
+				name = "read",
+				model = mockModel,
+				arguments = "{}",
+				timestamp = now
+			)
 		)
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
@@ -304,7 +326,7 @@ class AgentStreamProcessorTest {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
-						null, "ok", mockModel, Clock.System.now(), null
+						content = "ok", model = mockModel, timestamp = Clock.System.now()
 					),
 					toolCalls = null,
 					finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),

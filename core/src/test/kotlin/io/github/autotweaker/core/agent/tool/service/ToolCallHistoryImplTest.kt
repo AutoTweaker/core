@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent.tool.service
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk
+import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -39,6 +40,7 @@ class ToolCallHistoryImplTest {
 	) = AgentContext.Message.Tool(
 		name = name,
 		call = AgentContext.Message.Tool.Call(
+			assistantMessageId = UUID.randomUUID(),
 			arguments = arguments,
 			reason = "test",
 			timestamp = Clock.System.now(),

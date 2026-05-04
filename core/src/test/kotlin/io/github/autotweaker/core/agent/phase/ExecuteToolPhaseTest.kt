@@ -35,6 +35,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -93,7 +94,7 @@ class ExecuteToolPhaseTest {
 			arguments = buildJsonObject {},
 		)
 		pendingCall = AgentContext.CurrentRound.PendingToolCall(
-			callId = "c1", name = "bash_run", model = model,
+			callId = "c1", assistantMessageId = UUID.randomUUID(), name = "bash_run", model = model,
 			arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
 		)
 		
@@ -124,7 +125,7 @@ class ExecuteToolPhaseTest {
 		val toolResult = AgentContext.Message.Tool(
 			name = "bash_run", callId = "c1",
 			call = AgentContext.Message.Tool.Call(
-				arguments = "{}", reason = "test reason",
+				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "test reason",
 				timestamp = pendingCall.timestamp, model = model,
 			),
 			result = AgentContext.Message.Tool.Result(
@@ -258,7 +259,7 @@ class ExecuteToolPhaseTest {
 	private fun toolResultForTest() = AgentContext.Message.Tool(
 		name = "bash_run", callId = "c1",
 		call = AgentContext.Message.Tool.Call(
-			arguments = "{}", reason = "test reason",
+			assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "test reason",
 			timestamp = pendingCall.timestamp, model = model,
 		),
 		result = AgentContext.Message.Tool.Result(

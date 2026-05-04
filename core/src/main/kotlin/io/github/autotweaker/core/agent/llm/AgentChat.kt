@@ -23,10 +23,12 @@ import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.util.*
 import kotlin.time.Instant
 
 private fun toPendingToolCalls(
 	toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
+	assistantMessageId: UUID,
 	timestamp: Instant,
 	model: Model,
 ): List<AgentContext.CurrentRound.PendingToolCall>? {
@@ -34,6 +36,7 @@ private fun toPendingToolCalls(
 	return toolCalls.map {
 		AgentContext.CurrentRound.PendingToolCall(
 			callId = it.id,
+			assistantMessageId = assistantMessageId,
 			name = it.name,
 			arguments = it.arguments,
 			timestamp = timestamp,
@@ -92,17 +95,22 @@ fun agentChat(request: AgentChatRequest): Flow<AgentChatStreamResult> = flow {
 					
 					val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
 					val resultModel = lastRetrying ?: request.model
-					
+					val assistantMessage = AgentContext.Message.Assistant(
+						reasoning = assistantMsg.reasoningContent,
+						content = assistantMsg.content,
+						model = resultModel,
+						timestamp = assistantMsg.createdAt,
+						usage = result.usage,
+					)
 					emit(
 						AgentChatStreamResult.Assembled(
-							message = AgentContext.Message.Assistant(
-								reasoning = assistantMsg.reasoningContent,
-								content = assistantMsg.content,
-								model = resultModel,
-								timestamp = assistantMsg.createdAt,
-								usage = result.usage,
+							message = assistantMessage,
+							toolCalls = toPendingToolCalls(
+								assistantMsg.toolCalls,
+								assistantMessage.id,
+								assistantMsg.createdAt,
+								resultModel
 							),
-							toolCalls = toPendingToolCalls(assistantMsg.toolCalls, assistantMsg.createdAt, resultModel),
 							finishReason = result.finishReason,
 						)
 					)

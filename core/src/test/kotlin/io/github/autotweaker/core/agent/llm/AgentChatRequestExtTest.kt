@@ -52,19 +52,27 @@ class AgentChatRequestExtTest {
 	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
 	private val testModel = Model("test-model", testProvider, testModelInfo, Config(0.7, 2048, null, null))
 	
-	private fun userMsg(content: String = "hello") = AgentContext.Message.User(content, null, Clock.System.now())
+	private fun userMsg(content: String = "hello") =
+		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
 	
 	private fun assistantMsg(content: String = "response") = AgentContext.Message.Assistant(
-		null, content, testModel, Clock.System.now(), null
+		content = content, model = testModel, timestamp = Clock.System.now()
 	)
 	
 	private fun toolResult() =
 		AgentContext.Message.Tool(
 			name = "read",
-			call = AgentContext.Message.Tool.Call("{}", null, Clock.System.now(), testModel),
+			call = AgentContext.Message.Tool.Call(
+				assistantMessageId = UUID.randomUUID(),
+				arguments = "{}",
+				timestamp = Clock.System.now(),
+				model = testModel
+			),
 			callId = "call-1",
 			result = AgentContext.Message.Tool.Result(
-				"file content", Clock.System.now(), AgentContext.Message.Tool.Result.Status.SUCCESS
+				content = "file content",
+				timestamp = Clock.System.now(),
+				status = AgentContext.Message.Tool.Result.Status.SUCCESS
 			),
 		)
 	
@@ -151,7 +159,8 @@ class AgentChatRequestExtTest {
 	@Test
 	fun `images in user message`() {
 		val img = io.github.autotweaker.core.Base64("AAAA")
-		val user = AgentContext.Message.User("look at this", listOf(img), Clock.System.now())
+		val user =
+			AgentContext.Message.User(content = "look at this", images = listOf(img), timestamp = Clock.System.now())
 		val ctx = AgentContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx)
 		
@@ -187,7 +196,14 @@ class AgentChatRequestExtTest {
 	fun `throws when pending tool calls exist`() {
 		val user = userMsg("hello")
 		val pending = listOf(
-			AgentContext.CurrentRound.PendingToolCall("id1", "read", testModel, "{}", null, Clock.System.now())
+			AgentContext.CurrentRound.PendingToolCall(
+				callId = "id1",
+				assistantMessageId = UUID.randomUUID(),
+				name = "read",
+				model = testModel,
+				arguments = "{}",
+				timestamp = Clock.System.now()
+			)
 		)
 		val round = AgentContext.CurrentRound(user, null, null, pending)
 		val ctx = AgentContext(null, null, null, null, round)

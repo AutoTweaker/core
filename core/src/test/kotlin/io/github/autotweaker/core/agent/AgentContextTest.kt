@@ -22,6 +22,7 @@ import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.llm.Usage
 import io.mockk.mockk
+import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -37,7 +38,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `User message with content`() {
-		val msg = AgentContext.Message.User("hello", null, now)
+		val msg = AgentContext.Message.User(content = "hello", timestamp = now)
 		assertEquals("hello", msg.content)
 		assertNull(msg.images)
 		assertEquals(now, msg.timestamp)
@@ -46,13 +47,13 @@ class AgentContextTest {
 	@Test
 	fun `User message with images`() {
 		val img = Base64("aaaa")
-		val msg = AgentContext.Message.User("hello", listOf(img), now)
+		val msg = AgentContext.Message.User(content = "hello", images = listOf(img), timestamp = now)
 		assertEquals(listOf(img), msg.images)
 	}
 	
 	@Test
 	fun `User message with null content`() {
-		val msg = AgentContext.Message.User(null, null, now)
+		val msg = AgentContext.Message.User(content = null, timestamp = now)
 		assertNull(msg.content)
 	}
 	
@@ -62,7 +63,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `Assistant message with content`() {
-		val msg = AgentContext.Message.Assistant(null, "answer", mockModel, now, null)
+		val msg = AgentContext.Message.Assistant(content = "answer", model = mockModel, timestamp = now)
 		assertEquals("answer", msg.content)
 		assertNull(msg.reasoning)
 		assertEquals(mockModel, msg.model)
@@ -71,7 +72,13 @@ class AgentContextTest {
 	
 	@Test
 	fun `Assistant message with reasoning`() {
-		val msg = AgentContext.Message.Assistant("thinking", "answer", mockModel, now, Usage(10, 5, 5))
+		val msg = AgentContext.Message.Assistant(
+			reasoning = "thinking",
+			content = "answer",
+			model = mockModel,
+			timestamp = now,
+			usage = Usage(10, 5, 5)
+		)
 		assertEquals("thinking", msg.reasoning)
 		assertEquals("answer", msg.content)
 		assertEquals(Usage(10, 5, 5), msg.usage)
@@ -79,7 +86,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `Assistant message with null content and reasoning`() {
-		val msg = AgentContext.Message.Assistant(null, null, mockModel, now, null)
+		val msg = AgentContext.Message.Assistant(model = mockModel, timestamp = now)
 		assertNull(msg.content)
 		assertNull(msg.reasoning)
 	}
@@ -90,11 +97,17 @@ class AgentContextTest {
 	
 	@Test
 	fun `Tool message with success result`() {
-		val call = AgentContext.Message.Tool.Call("""{"cmd":"ls"}""", "test", now, mockModel)
-		val result = AgentContext.Message.Tool.Result(
-			"output", now, AgentContext.Message.Tool.Result.Status.SUCCESS
+		val call = AgentContext.Message.Tool.Call(
+			assistantMessageId = UUID.randomUUID(),
+			arguments = """{"cmd":"ls"}""",
+			reason = "test",
+			timestamp = now,
+			model = mockModel
 		)
-		val msg = AgentContext.Message.Tool("bash", call, "call-1", result)
+		val result = AgentContext.Message.Tool.Result(
+			content = "output", timestamp = now, status = AgentContext.Message.Tool.Result.Status.SUCCESS
+		)
+		val msg = AgentContext.Message.Tool(name = "bash", call = call, callId = "call-1", result = result)
 		
 		assertEquals("bash", msg.name)
 		assertEquals("call-1", msg.callId)
@@ -106,11 +119,16 @@ class AgentContextTest {
 	
 	@Test
 	fun `Tool message with failure status`() {
-		val call = AgentContext.Message.Tool.Call("{}", null, now, mockModel)
-		val result = AgentContext.Message.Tool.Result(
-			"error", now, AgentContext.Message.Tool.Result.Status.FAILURE
+		val call = AgentContext.Message.Tool.Call(
+			assistantMessageId = UUID.randomUUID(),
+			arguments = "{}",
+			timestamp = now,
+			model = mockModel
 		)
-		val msg = AgentContext.Message.Tool("read", call, "call-2", result)
+		val result = AgentContext.Message.Tool.Result(
+			content = "error", timestamp = now, status = AgentContext.Message.Tool.Result.Status.FAILURE
+		)
+		val msg = AgentContext.Message.Tool(name = "read", call = call, callId = "call-2", result = result)
 		
 		assertEquals("read", msg.name)
 		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, msg.result.status)
@@ -119,7 +137,7 @@ class AgentContextTest {
 	@Test
 	fun `Tool message with timeout status`() {
 		val result = AgentContext.Message.Tool.Result(
-			"timeout", now, AgentContext.Message.Tool.Result.Status.TIMEOUT
+			content = "timeout", timestamp = now, status = AgentContext.Message.Tool.Result.Status.TIMEOUT
 		)
 		assertEquals(AgentContext.Message.Tool.Result.Status.TIMEOUT, result.status)
 	}
@@ -127,14 +145,19 @@ class AgentContextTest {
 	@Test
 	fun `Tool message with cancelled status`() {
 		val result = AgentContext.Message.Tool.Result(
-			"cancelled", now, AgentContext.Message.Tool.Result.Status.CANCELLED
+			content = "cancelled", timestamp = now, status = AgentContext.Message.Tool.Result.Status.CANCELLED
 		)
 		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.status)
 	}
 	
 	@Test
 	fun `Tool call with null reason`() {
-		val call = AgentContext.Message.Tool.Call("{}", null, now, mockModel)
+		val call = AgentContext.Message.Tool.Call(
+			assistantMessageId = UUID.randomUUID(),
+			arguments = "{}",
+			timestamp = now,
+			model = mockModel
+		)
 		assertNull(call.reason)
 	}
 	
@@ -144,8 +167,8 @@ class AgentContextTest {
 	
 	@Test
 	fun `CompletedRound with turns and final message`() {
-		val userMsg = AgentContext.Message.User("hello", null, now)
-		val assistantMsg = AgentContext.Message.Assistant(null, "hi", mockModel, now, null)
+		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
+		val assistantMsg = AgentContext.Message.Assistant(content = "hi", model = mockModel, timestamp = now)
 		val turn = AgentContext.Turn(assistantMsg, emptyList())
 		val round = AgentContext.CompletedRound(userMsg, listOf(turn), assistantMsg)
 		
@@ -156,7 +179,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `CompletedRound with null turns and final message`() {
-		val userMsg = AgentContext.Message.User("hello", null, now)
+		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
 		val round = AgentContext.CompletedRound(userMsg, null, null)
 		
 		assertNull(round.turns)
@@ -169,7 +192,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `CurrentRound with user message only`() {
-		val userMsg = AgentContext.Message.User("hello", null, now)
+		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
 		val round = AgentContext.CurrentRound(userMsg, null)
 		
 		assertEquals(userMsg, round.userMessage)
@@ -180,10 +203,11 @@ class AgentContextTest {
 	
 	@Test
 	fun `CurrentRound with pending tool calls`() {
-		val userMsg = AgentContext.Message.User("read file", null, now)
+		val userMsg = AgentContext.Message.User(content = "read file", timestamp = now)
 		val pending = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
-				"c1", "read_file", mockModel, """{"path":"/tmp"}""", "need to read", now
+				callId = "c1", assistantMessageId = UUID.randomUUID(), name = "read_file", model = mockModel,
+				arguments = """{"path":"/tmp"}""", reason = "need to read", timestamp = now
 			)
 		)
 		val round = AgentContext.CurrentRound(userMsg, null, null, pending)
@@ -200,7 +224,12 @@ class AgentContextTest {
 	@Test
 	fun `PendingToolCall with null reason`() {
 		val pending = AgentContext.CurrentRound.PendingToolCall(
-			"c1", "bash_run", mockModel, "{}", null, now
+			callId = "c1",
+			assistantMessageId = UUID.randomUUID(),
+			name = "bash_run",
+			model = mockModel,
+			arguments = "{}",
+			timestamp = now
 		)
 		assertNull(pending.reason)
 	}
@@ -211,10 +240,19 @@ class AgentContextTest {
 	
 	@Test
 	fun `Turn holds assistant message and tools`() {
-		val assistantMsg = AgentContext.Message.Assistant(null, "done", mockModel, now, null)
-		val call = AgentContext.Message.Tool.Call("{}", null, now, mockModel)
-		val result = AgentContext.Message.Tool.Result("ok", now, AgentContext.Message.Tool.Result.Status.SUCCESS)
-		val toolMsg = AgentContext.Message.Tool("bash", call, "c1", result)
+		val assistantMsg = AgentContext.Message.Assistant(content = "done", model = mockModel, timestamp = now)
+		val call = AgentContext.Message.Tool.Call(
+			assistantMessageId = UUID.randomUUID(),
+			arguments = "{}",
+			timestamp = now,
+			model = mockModel
+		)
+		val result = AgentContext.Message.Tool.Result(
+			content = "ok",
+			timestamp = now,
+			status = AgentContext.Message.Tool.Result.Status.SUCCESS
+		)
+		val toolMsg = AgentContext.Message.Tool(name = "bash", call = call, callId = "c1", result = result)
 		val turn = AgentContext.Turn(assistantMsg, listOf(toolMsg))
 		
 		assertEquals(assistantMsg, turn.assistantMessage)
@@ -224,7 +262,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `Turn with empty tools`() {
-		val assistantMsg = AgentContext.Message.Assistant(null, "text only", mockModel, now, null)
+		val assistantMsg = AgentContext.Message.Assistant(content = "text only", model = mockModel, timestamp = now)
 		val turn = AgentContext.Turn(assistantMsg, emptyList())
 		
 		assertTrue(turn.tools.isEmpty())
@@ -258,7 +296,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `AgentContext with current round`() {
-		val userMsg = AgentContext.Message.User("hi", null, now)
+		val userMsg = AgentContext.Message.User(content = "hi", timestamp = now)
 		val currentRound = AgentContext.CurrentRound(userMsg, null)
 		val ctx = AgentContext(null, null, null, null, currentRound)
 		
@@ -268,7 +306,7 @@ class AgentContextTest {
 	
 	@Test
 	fun `AgentContext with history rounds`() {
-		val userMsg = AgentContext.Message.User("previous", null, now)
+		val userMsg = AgentContext.Message.User(content = "previous", timestamp = now)
 		val round = AgentContext.CompletedRound(userMsg, null, null)
 		val ctx = AgentContext(null, null, listOf(round), null, null)
 		
@@ -277,9 +315,9 @@ class AgentContextTest {
 	
 	@Test
 	fun `AgentContext with compacted rounds`() {
-		val userMsg = AgentContext.Message.User("old", null, now)
+		val userMsg = AgentContext.Message.User(content = "old", timestamp = now)
 		val completedRound = AgentContext.CompletedRound(userMsg, null, null)
-		val compactedRound = AgentContext.CompactedRound(now, listOf(completedRound), null)
+		val compactedRound = AgentContext.CompactedRound(now, listOf(completedRound), "summary")
 		val ctx = AgentContext(listOf(compactedRound), null, null, null, null)
 		
 		val compactedList = ctx.compactedRounds!!

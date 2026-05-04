@@ -20,6 +20,7 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
+import java.util.*
 
 sealed class AgentCommand {
 	sealed class Directive : AgentCommand() {
@@ -51,6 +52,7 @@ sealed class AgentCommand {
 	
 	sealed class Message : AgentCommand() {
 		data class SendMessage(
+			val id: UUID = UUID.randomUUID(),
 			val content: String,
 			val images: List<Base64>? = null,
 		) : Message()

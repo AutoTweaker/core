@@ -35,6 +35,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -90,7 +91,7 @@ class ToolsTest {
 		callId: String = "c1",
 		name: String = "bash_run",
 	) = AgentContext.CurrentRound.PendingToolCall(
-		callId = callId, name = name, model = mockModel,
+		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, model = mockModel,
 		arguments = """{"cmd":"echo","reason":"test"}""",
 		reason = "test", timestamp = Clock.System.now(),
 	)

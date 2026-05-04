@@ -33,10 +33,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.*
 import kotlin.time.Clock
 
 
 class Agent(
+	val id: UUID = UUID.randomUUID(),
 	override var context: AgentContext,
 	override val workspace: Workspace,
 	model: Model,
@@ -202,7 +204,7 @@ class Agent(
 				//如果非空闲丢弃消息
 				if (_status.value != AgentStatus.FREE) return
 				//处理消息
-				processUserMessage(message.content, message.images)
+				processUserMessage(message.id, message.content, message.images)
 			}
 			
 			is AgentCommand.Message.ApproveToolCall -> {
@@ -229,9 +231,10 @@ class Agent(
 	}
 	
 	//处理用户消息
-	private suspend fun processUserMessage(content: String, images: List<Base64>? = null) {
+	private suspend fun processUserMessage(id: UUID, content: String, images: List<Base64>? = null) {
 		//构建Message.User
 		val userMsg = AgentContext.Message.User(
+			id = id,
 			content = content,
 			images = images,
 			timestamp = Clock.System.now()
@@ -288,7 +291,7 @@ class Agent(
 		val rounds = context.historyRounds
 		if (rounds.isNullOrEmpty()) return
 		compactJob = scope.launch {
-			compactPhase(this@Agent, rounds, rounds.size, summarizeModel, currentFallbackModels, settings)
+			compactPhase(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
 		}
 	}
 	

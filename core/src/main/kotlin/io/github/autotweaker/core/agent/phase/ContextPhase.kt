@@ -137,6 +137,7 @@ internal fun buildToolResult(
 ): AgentContext.Message.Tool = AgentContext.Message.Tool(
 	name = call.name,
 	call = AgentContext.Message.Tool.Call(
+		assistantMessageId = call.assistantMessageId,
 		arguments = call.arguments,
 		reason = call.reason,
 		timestamp = call.timestamp,

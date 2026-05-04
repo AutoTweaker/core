@@ -61,20 +61,22 @@ fun main() {
 	
 	val toolCallTimestamp = Instant.parse("2026-04-11T09:03:33Z")
 	
+	val assistantMessage = AgentContext.Message.Assistant(
+		reasoning = "用户询问北京现在的天气情况。我需要调用天气查询工具来获取信息。根据工具定义，我需要提供城市名称，温度单位是可选的。用户没有指定温度单位，我可以使用默认值，或者不提供该参数。为了更准确，我应该询问用户偏好，但考虑到用户只是简单询问，我可以先使用默认单位（可能是摄氏度）。不过，工具描述中没有明确说明默认单位，所以我最好还是提供一个明确的单位。考虑到用户在北京，中国通常使用摄氏度，所以我应该使用celsius。现在，我需要生成一个函数调用。",
+		content = null,
+		model = model,
+		timestamp = toolCallTimestamp,
+		usage = null,
+	)
 	@Suppress("UnusedVariable", "unused") val turn = listOf(
 		AgentContext.Turn(
-			assistantMessage = AgentContext.Message.Assistant(
-				reasoning = "用户询问北京现在的天气情况。我需要调用天气查询工具来获取信息。根据工具定义，我需要提供城市名称，温度单位是可选的。用户没有指定温度单位，我可以使用默认值，或者不提供该参数。为了更准确，我应该询问用户偏好，但考虑到用户只是简单询问，我可以先使用默认单位（可能是摄氏度）。不过，工具描述中没有明确说明默认单位，所以我最好还是提供一个明确的单位。考虑到用户在北京，中国通常使用摄氏度，所以我应该使用celsius。现在，我需要生成一个函数调用。",
-				content = null,
-				model = model,
-				timestamp = toolCallTimestamp,
-				usage = null,
-			),
+			assistantMessage = assistantMessage,
 			tools = listOf(
 				AgentContext.Message.Tool(
 					name = "get_weather",
 					callId = "call_e3de44dd68d741508d5dc896",
 					call = AgentContext.Message.Tool.Call(
+						assistantMessageId = assistantMessage.id,
 						arguments = """{"city": "北京", "unit": "celsius"}""",
 						timestamp = toolCallTimestamp,
 						model = model,

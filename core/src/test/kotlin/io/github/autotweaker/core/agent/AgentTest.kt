@@ -309,7 +309,7 @@ class AgentTest {
 	@Test
 	fun `dispatch Stop archives context when current round exists`() = runBlocking {
 		val now = kotlin.time.Clock.System.now()
-		val userMsg = AgentContext.Message.User("hello", null, now)
+		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
 		val currentRound = AgentContext.CurrentRound(userMsg, null)
 		val ctx = AgentContext(null, null, null, null, currentRound)
 		val agent = createAgent(context = ctx)
@@ -374,7 +374,7 @@ class AgentTest {
 	fun `dispatch SendMessage when FREE triggers message processing`() {
 		runBlocking {
 			val agent = createAgent()
-			agent.dispatch(AgentCommand.Message.SendMessage("hello world"))
+			agent.dispatch(AgentCommand.Message.SendMessage(content = "hello world"))
 			delay(500.milliseconds)
 			assertNotNull(agent.status)
 		}
