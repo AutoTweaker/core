@@ -221,7 +221,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		val choice = response.choices.firstOrNull()
 		val msg = choice?.message
 		
-		return ChatResult(
+		return ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
@@ -253,7 +253,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		val choice = chunk.choices.firstOrNull()
 		val delta = choice?.delta
 		
-		return ChatResult(
+		return ChatResult.Chunk(
 			message = ChatMessage.AssistantMessage(
 				content = delta?.content,
 				reasoningContent = delta?.reasoningContent,
@@ -285,9 +285,9 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		}
 	)
 	
-	override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ToolCallFragment>? {
+	override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ChatResult.ChunkToolCall>? {
 		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
-			ToolCallFragment(
+			ChatResult.ChunkToolCall(
 				index = tc.index,
 				id = tc.id,
 				name = tc.function?.name,

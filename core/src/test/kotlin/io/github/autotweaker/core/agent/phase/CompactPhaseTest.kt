@@ -30,6 +30,7 @@ import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
+import io.github.autotweaker.core.llm.Usage
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flowOf
@@ -93,7 +94,7 @@ class CompactPhaseTest {
 	@Test
 	fun `compactPhase updates context with summarized message`() = runTest {
 		val summaryContent = "<summary>compacted conversation summary</summary>"
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent,
 				createdAt = Clock.System.now(),
@@ -131,7 +132,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `compactPhase emits error when summary is blank`() = runTest {
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = "   ",
 				createdAt = Clock.System.now(),
@@ -164,7 +165,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `compactPhase retries up to max before giving up`() = runTest {
-		val blankResult = ChatResult(
+		val blankResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = "   ",
 				createdAt = Clock.System.now(),
@@ -198,7 +199,7 @@ class CompactPhaseTest {
 	fun `extractSummary extracts content inside tags`() = runTest {
 		// extractSummary is private, tested indirectly through compactPhase
 		val summaryContent = "prefix text <summary>real summary here</summary> suffix text"
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent,
 				createdAt = Clock.System.now(),
@@ -229,7 +230,7 @@ class CompactPhaseTest {
 	@Test
 	fun `compactPhase preprocesses rounds with turns`() = runTest {
 		val summaryContent = "<summary>done</summary>"
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent,
 				createdAt = Clock.System.now(),
@@ -276,7 +277,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `runCompactRequest handles error message from LLM`() = runTest {
-		val errorResult = ChatResult(
+		val errorResult = ChatResult.Assembled(
 			message = ChatMessage.ErrorMessage(
 				content = "LLM error", createdAt = Clock.System.now(), statusCode = null,
 			),
@@ -305,6 +306,49 @@ class CompactPhaseTest {
 	}
 	
 	@Test
+	fun `runCompactRequest accumulates content from Chunk and captures usage`() = runTest {
+		val usage = Usage(100, 40, 60)
+		val chunkResult = ChatResult.Chunk(
+			message = ChatMessage.AssistantMessage(
+				content = "partial summary",
+				createdAt = Clock.System.now(),
+				model = "summarize-model",
+			),
+			usage = usage,
+		)
+		val assembledResult = ChatResult.Assembled(
+			message = ChatMessage.AssistantMessage(
+				content = "<summary>final summary</summary>",
+				createdAt = Clock.System.now(),
+				model = "summarize-model",
+			),
+			usage = usage,
+		)
+		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+			ResilientChatResult(result = chunkResult, retrying = null),
+			ResilientChatResult(result = assembledResult, retrying = null),
+		)
+		
+		val rounds = listOf(
+			AgentContext.CompletedRound(
+				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
+				turns = null,
+				finalAssistantMessage = AgentContext.Message.Assistant(
+					content = "hi", model = model,
+					timestamp = Clock.System.now(), usage = null,
+				),
+			),
+		)
+		
+		compactPhase(env, rounds, snapshotSize = 1, summarizeModel = model, fallbackModels = null, settings = settings)
+		
+		val outputting = capturedOutputs.filterIsInstance<AgentOutput.CompactOutput>()
+			.firstOrNull { it.status == AgentOutput.CompactOutput.Status.OUTPUTTING }
+		assertNotNull(outputting)
+		assertEquals("partial summary", outputting.content)
+	}
+	
+	@Test
 	fun `runCompactRequest handles exception from chat flow`() = runTest {
 		every { resilientChat(any(), any(), any(), any()) } throws RuntimeException("chat failed")
 		
@@ -328,7 +372,7 @@ class CompactPhaseTest {
 	@Test
 	fun `convertUserMessage handles images by inserting placeholders`() = runTest {
 		val summaryContent = "<summary>summary with images</summary>"
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent, createdAt = Clock.System.now(), model = "summarize-model",
 			),
@@ -374,7 +418,7 @@ class CompactPhaseTest {
 			),
 		)
 		val summaryContent = "<summary>compacted</summary>"
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent, createdAt = Clock.System.now(), model = "summarize-model",
 			),
@@ -427,7 +471,7 @@ class CompactPhaseTest {
 				""
 			),
 		)
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = "<summary>done</summary>", createdAt = Clock.System.now(), model = "summarize-model",
 			),
@@ -480,7 +524,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `null assistant content and reasoning edge cases are handled`() = runTest {
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = "<summary>done</summary>", createdAt = Clock.System.now(), model = "summarize-model",
 			),
@@ -520,8 +564,8 @@ class CompactPhaseTest {
 		// First call (summarizeMessage for long user msg): retrying non-null, result has null message
 		// Second call (summarizeMessage for long assistant msg): same
 		// Third call (runCompactRequest): success with summary
-		val emptyResult = ChatResult(message = null, usage = null)
-		val successResult = ChatResult(
+		val emptyResult = ChatResult.Chunk(message = null, usage = null)
+		val successResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = "<summary>final</summary>", createdAt = Clock.System.now(), model = "summarize-model",
 			),

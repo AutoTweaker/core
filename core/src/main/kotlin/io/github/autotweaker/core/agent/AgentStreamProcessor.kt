@@ -46,42 +46,38 @@ class AgentStreamProcessor(
 		try {
 			agentChat(request).collect { result ->
 				when (result) {
-					is AgentChatStreamResult.Reasoning -> {
-						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, result))
-					}
-					
-					is AgentChatStreamResult.Outputting -> {
-						emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, result))
+					is AgentChatStreamResult.Delta -> {
+						emitOutput(AgentOutput.StreamDelta(result))
 					}
 					
 					is AgentChatStreamResult.Failing -> {
-						val retrying = result.errors.lastOrNull()?.retrying
-						if (retrying != null) {
+						val lastError = result.errors.lastOrNull()
+						if (lastError?.retrying != null) {
 							onStatusChange(AgentStatus.RETRYING)
-							emitOutput(AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.RETRYING, result))
+							emitOutput(AgentOutput.StreamError(lastError))
 						} else {
-							val errorMessage = result.errors.lastOrNull()?.content ?: "All retries exhausted"
+							val errorMessage = lastError?.content ?: "All retries exhausted"
 							emitOutput(AgentOutput.Error(errorMessage, AgentOutput.Error.Type.LLM))
 							earlyResult = StreamProcessResult.Failed(errorMessage)
 							return@collect
 						}
 					}
 					
-					is AgentChatStreamResult.Finished -> {
-						val resultContext = result.result.context
-						val resultToolCalls = result.result.toolCalls
+					is AgentChatStreamResult.Assembled -> {
+						val resultMessage = result.message
+						val resultToolCalls = result.toolCalls
 						onContextUpdate { ctx ->
 							val updatedRound = ctx.currentRound?.copy(
-								assistantMessage = resultContext,
+								assistantMessage = resultMessage,
 								pendingToolCalls = resultToolCalls,
 							)
 							ctx.copy(currentRound = updatedRound)
 						}
 						
 						emitOutput(
-							AgentOutput.StreamMessage(
-								AgentOutput.StreamMessage.Status.FINISHED,
-								result,
+							AgentOutput.ContextUpdate(
+								context = request.context,
+								reason = AgentOutput.ContextUpdate.UpdateReason.LLM,
 							)
 						)
 						

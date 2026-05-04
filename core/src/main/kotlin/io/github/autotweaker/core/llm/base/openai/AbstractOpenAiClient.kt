@@ -19,10 +19,7 @@
 package io.github.autotweaker.core.llm.base.openai
 
 import io.github.autotweaker.core.Url
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.LlmClient
+import io.github.autotweaker.core.llm.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -69,13 +66,6 @@ abstract class AbstractOpenAiClient<
 		}
 	}
 	
-	data class ToolCallFragment(
-		val index: Int,
-		val id: String?,
-		val name: String?,
-		val arguments: String?
-	)
-	
 	class PendingToolCall(
 		var id: String = "",
 		var name: String = "",
@@ -87,7 +77,7 @@ abstract class AbstractOpenAiClient<
 	protected abstract fun createRequestBody(request: ChatRequest): Request
 	protected abstract fun mapToChatResult(response: Response): ChatResult
 	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
-	protected abstract fun extractToolCalls(chunk: Chunk): List<ToolCallFragment>?
+	protected abstract fun extractToolCalls(chunk: Chunk): List<ChatResult.ChunkToolCall>?
 	
 	override suspend fun chat(request: ChatRequest, apiKey: String, baseUrl: Url?): Flow<ChatResult> = flow {
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
@@ -101,86 +91,71 @@ abstract class AbstractOpenAiClient<
 					setBody(body, requestTypeInfo)
 				}.execute { response ->
 					if (!response.status.isSuccess()) {
-						emit(
-							ChatResult(
-								message = ChatMessage.ErrorMessage(
-									content = "LLM Stream Error: ${response.status}",
-									createdAt = Clock.System.now(),
-									statusCode = response.status
-								),
-								finishReason = null,
-								usage = null
-							)
-						)
-						return@execute
+						throw IllegalStateException("LLM Stream Error: ${response.status}")
 					}
 					
 					val channel = response.bodyAsChannel()
 					val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
+					var accumulatedContent: String? = null
+					var accumulatedReasoning: String? = null
+					var lastFinishReason: ChatResult.FinishReason? = null
+					var lastUsage: Usage? = null
+					var lastCreatedAt: kotlin.time.Instant? = null
+					var lastModel: String? = null
 					
-					try {
-						while (!channel.isClosedForRead) {
-							val line = channel.readLine() ?: break
+					while (!channel.isClosedForRead) {
+						val line = channel.readLine() ?: break
+						
+						if (line.startsWith("data: ")) {
+							val data = line.removePrefix("data: ").trim()
 							
-							if (line.startsWith("data: ")) {
-								val data = line.removePrefix("data: ").trim()
+							if (data == "[DONE]") break
+							
+							if (data.isNotEmpty()) {
+								val chunk = json.decodeFromString(chunkSerializer, data)
 								
-								if (data == "[DONE]") break
-								
-								if (data.isNotEmpty()) {
-									try {
-										val chunk = json.decodeFromString(chunkSerializer, data)
-										
-										extractToolCalls(chunk)?.forEach { fragment ->
-											val pending =
-												pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
-											if (fragment.id != null) pending.id = fragment.id
-											if (fragment.name != null) pending.name = fragment.name
-											if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
-										}
-										
-										var result = mapChunkToChatResult(chunk)
-										
-										if (result.finishReason != null) {
-											val toolCalls = buildToolCalls(pendingToolCalls)
-											if (toolCalls != null) {
-												val msg = result.message as? ChatMessage.AssistantMessage
-												if (msg != null) {
-													result = result.copy(
-														message = msg.copy(toolCalls = toolCalls)
-													)
-												}
-											}
-										}
-										
-										emit(result)
-									} catch (e: Throwable) {
-										emit(
-											ChatResult(
-												message = ChatMessage.ErrorMessage(
-													content = e.message ?: "Failed to parse stream chunk",
-													createdAt = Clock.System.now(),
-													statusCode = null
-												),
-												finishReason = null,
-												usage = null
-											)
-										)
-										break
-									}
+								val fragments = extractToolCalls(chunk)
+								fragments?.forEach { fragment ->
+									val pending =
+										pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
+									if (fragment.id != null) pending.id = fragment.id
+									if (fragment.name != null) pending.name = fragment.name
+									if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
 								}
+								
+								val result = mapChunkToChatResult(chunk) as ChatResult.Chunk
+								val msg = result.message
+								
+								if (msg?.content != null) {
+									accumulatedContent = (accumulatedContent ?: "") + msg.content
+								}
+								if (msg?.reasoningContent != null) {
+									accumulatedReasoning = (accumulatedReasoning ?: "") + msg.reasoningContent
+								}
+								
+								result.finishReason?.let { lastFinishReason = it }
+								result.usage?.let { lastUsage = it }
+								msg?.createdAt?.let { lastCreatedAt = it }
+								msg?.model?.let { lastModel = it }
+								
+								emit(result.copy(toolCalls = fragments))
 							}
 						}
-					} catch (e: Throwable) {
+					}
+					
+					val toolCalls = buildToolCalls(pendingToolCalls)
+					if (accumulatedContent != null || accumulatedReasoning != null || !toolCalls.isNullOrEmpty()) {
 						emit(
-							ChatResult(
-								message = ChatMessage.ErrorMessage(
-									content = e.message ?: "Stream read error",
-									createdAt = Clock.System.now(),
-									statusCode = null
+							ChatResult.Assembled(
+								message = ChatMessage.AssistantMessage(
+									content = accumulatedContent,
+									reasoningContent = accumulatedReasoning,
+									toolCalls = toolCalls,
+									createdAt = lastCreatedAt ?: Clock.System.now(),
+									model = lastModel,
 								),
-								finishReason = null,
-								usage = null
+								finishReason = lastFinishReason,
+								usage = lastUsage,
 							)
 						)
 					}
@@ -195,14 +170,12 @@ abstract class AbstractOpenAiClient<
 				if (!response.status.isSuccess()) {
 					val errorBody = response.bodyAsText()
 					emit(
-						ChatResult(
+						ChatResult.Assembled(
 							message = ChatMessage.ErrorMessage(
 								content = "LLM API Error (${response.status}): $errorBody",
 								createdAt = Clock.System.now(),
 								statusCode = response.status
 							),
-							finishReason = null,
-							usage = null
 						)
 					)
 					return@flow
@@ -213,14 +186,12 @@ abstract class AbstractOpenAiClient<
 			}
 		} catch (e: Throwable) {
 			emit(
-				ChatResult(
+				ChatResult.Assembled(
 					message = ChatMessage.ErrorMessage(
 						content = e.message ?: "Unknown error",
 						createdAt = Clock.System.now(),
 						statusCode = null
 					),
-					finishReason = null,
-					usage = null
 				)
 			)
 		}

@@ -70,14 +70,14 @@ class AgentChatTest {
 	}
 	
 	@Test
-	fun `emits outputting and finished for successful response with content`() = runTest {
+	fun `emits delta and assembled for successful response with content`() = runTest {
 		val assistantMsg = ChatMessage.AssistantMessage(
 			content = "hello world",
 			createdAt = Clock.System.now(),
 			reasoningContent = null,
 			toolCalls = null,
 		)
-		val chatResult = ChatResult(
+		val chatResult = ChatResult.Assembled(
 			message = assistantMsg,
 			finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 			usage = Usage(100, 50, 50),
@@ -96,32 +96,29 @@ class AgentChatTest {
 		
 		val results = agentChat(request).toList()
 		
-		assertTrue(results.any { it is AgentChatStreamResult.Outputting })
-		assertTrue(results.any { it is AgentChatStreamResult.Finished })
+		assertTrue(results.any { it is AgentChatStreamResult.Assembled })
 		
-		val outputting = results.filterIsInstance<AgentChatStreamResult.Outputting>().first()
-		assertEquals("hello world", outputting.content)
-		
-		val finished = results.filterIsInstance<AgentChatStreamResult.Finished>().first()
-		assertEquals("hello world", finished.result.context.content)
-		assertNotNull(finished.result.finishReason)
+		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		assertEquals("hello world", assembled.message.content)
+		assertNotNull(assembled.finishReason)
 	}
 	
 	@Test
-	fun `emits reasoning when reasoning content arrives`() = runTest {
-		val assistantMsg = ChatMessage.AssistantMessage(
-			content = "answer",
-			createdAt = Clock.System.now(),
-			reasoningContent = "let me think",
-			toolCalls = null,
+	fun `emits delta with reasoning when reasoning content arrives`() = runTest {
+		val now = Clock.System.now()
+		val chunkResult = ChatResult.Chunk(
+			message = ChatMessage.AssistantMessage("answer", now, reasoningContent = "let me think"),
 		)
-		val chatResult = ChatResult(message = assistantMsg)
+		val assembledResult = ChatResult.Assembled(
+			message = ChatMessage.AssistantMessage("answer", now, reasoningContent = "let me think"),
+		)
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
 		every {
 			resilientChat(any(), any(), any(), any())
 		} returns flow {
-			emit(ResilientChatResult(chatResult, null))
+			emit(ResilientChatResult(chunkResult, null))
+			emit(ResilientChatResult(assembledResult, null))
 		}
 		
 		val user = userMsg("question")
@@ -130,16 +127,17 @@ class AgentChatTest {
 		
 		val results = agentChat(request).toList()
 		
-		val reasoning = results.filterIsInstance<AgentChatStreamResult.Reasoning>().first()
-		assertEquals("let me think", reasoning.reasoningContent)
+		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
+		assertEquals("let me think", delta.reasoningContent)
+		assertEquals("answer", delta.content)
 		
-		val finished = results.filterIsInstance<AgentChatStreamResult.Finished>().first()
-		assertEquals("let me think", finished.result.context.reasoning)
-		assertEquals("answer", finished.result.context.content)
+		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		assertEquals("let me think", assembled.message.reasoning)
+		assertEquals("answer", assembled.message.content)
 	}
 	
 	@Test
-	fun `accumulates content across multiple chunks`() = runTest {
+	fun `passes through deltas from multiple chunks`() = runTest {
 		val now = Clock.System.now()
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
@@ -148,7 +146,7 @@ class AgentChatTest {
 		} returns flow {
 			emit(
 				ResilientChatResult(
-					ChatResult(
+					ChatResult.Chunk(
 						message = ChatMessage.AssistantMessage("hello ", now, null, null),
 					),
 					null,
@@ -156,8 +154,17 @@ class AgentChatTest {
 			)
 			emit(
 				ResilientChatResult(
-					ChatResult(
+					ChatResult.Chunk(
 						message = ChatMessage.AssistantMessage("world", now, null, null),
+						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
+					),
+					null,
+				)
+			)
+			emit(
+				ResilientChatResult(
+					ChatResult.Assembled(
+						message = ChatMessage.AssistantMessage("hello world", now, null, null),
 						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 					),
 					null,
@@ -171,14 +178,13 @@ class AgentChatTest {
 		
 		val results = agentChat(request).toList()
 		
-		val outputtings = results.filterIsInstance<AgentChatStreamResult.Outputting>()
-		assertEquals(2, outputtings.size)
-		assertEquals("hello ", outputtings[0].content)
-		assertEquals("hello world", outputtings[1].content)
+		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
+		assertEquals(2, deltas.size)
+		assertEquals("hello ", deltas[0].content)
+		assertEquals("world", deltas[1].content)
 		
-		val finished = results.filterIsInstance<AgentChatStreamResult.Finished>().first()
-		// Finished uses msg?.content (last message content) which overrides accumulated
-		assertEquals("world", finished.result.context.content)
+		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		assertEquals("hello world", assembled.message.content)
 	}
 	
 	@Test
@@ -188,7 +194,7 @@ class AgentChatTest {
 			createdAt = Clock.System.now(),
 			statusCode = io.ktor.http.HttpStatusCode.ServiceUnavailable,
 		)
-		val errorChatResult = ChatResult(message = errorMsg)
+		val errorChatResult = ChatResult.Assembled(message = errorMsg)
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
 		every {
@@ -223,12 +229,11 @@ class AgentChatTest {
 		
 		val results = agentChat(request).toList()
 		
-		// Should complete without emitting Finished
-		assertTrue(results.none { it is AgentChatStreamResult.Finished })
+		assertTrue(results.none { it is AgentChatStreamResult.Assembled })
 	}
 	
 	@Test
-	fun `emits finished with tool calls when assistant message has tool calls`() = runTest {
+	fun `emits assembled with tool calls when assistant message has tool calls`() = runTest {
 		val assistantToolCalls = listOf(
 			ChatMessage.AssistantMessage.ToolCall("call-1", "read", """{"path":"/tmp"}""")
 		)
@@ -238,7 +243,7 @@ class AgentChatTest {
 			reasoningContent = null,
 			toolCalls = assistantToolCalls,
 		)
-		val chatResult = ChatResult(message = assistantMsg)
+		val chatResult = ChatResult.Assembled(message = assistantMsg)
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
 		every {
@@ -253,15 +258,15 @@ class AgentChatTest {
 		
 		val results = agentChat(request).toList()
 		
-		val finished = results.filterIsInstance<AgentChatStreamResult.Finished>().first()
-		val toolCalls = assertNotNull(finished.result.toolCalls)
+		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val toolCalls = assertNotNull(assembled.toolCalls)
 		assertEquals(1, toolCalls.size)
 		assertEquals("call-1", toolCalls[0].callId)
 		assertEquals("read", toolCalls[0].name)
 	}
 	
 	@Test
-	fun `uses retrying model as result model in Finished`() = runTest {
+	fun `uses retrying model as result model in Assembled`() = runTest {
 		val fallbackModel = Model("fallback", testProvider, testModelInfo)
 		val errorMsg = ChatMessage.ErrorMessage(
 			content = "error",
@@ -279,10 +284,10 @@ class AgentChatTest {
 		every {
 			resilientChat(any(), any(), any(), any())
 		} returns flow {
-			emit(ResilientChatResult(ChatResult(message = errorMsg), retrying = fallbackModel))
+			emit(ResilientChatResult(ChatResult.Assembled(message = errorMsg), retrying = fallbackModel))
 			emit(
 				ResilientChatResult(
-					ChatResult(
+					ChatResult.Assembled(
 						message = assistantMsg,
 						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 					),
@@ -296,13 +301,13 @@ class AgentChatTest {
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
 		val results = agentChat(request).toList()
-		val finished = results.filterIsInstance<AgentChatStreamResult.Finished>().first()
+		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		
-		assertEquals("fallback", finished.result.context.model.name)
+		assertEquals("fallback", assembled.message.model.name)
 	}
 	
 	@Test
-	fun `carries over tool calls between chunks`() = runTest {
+	fun `passes tool call fragments through deltas`() = runTest {
 		val toolCalls = listOf(
 			ChatMessage.AssistantMessage.ToolCall("call-1", "read", """{"path":"/tmp"}""")
 		)
@@ -312,18 +317,21 @@ class AgentChatTest {
 		every {
 			resilientChat(any(), any(), any(), any())
 		} returns flow {
-			// first chunk: has toolCalls but no content
+			// chunk with tool call fragments
 			emit(
 				ResilientChatResult(
-					ChatResult(message = ChatMessage.AssistantMessage(null, now, null, toolCalls)),
+					ChatResult.Chunk(
+						message = ChatMessage.AssistantMessage(null, now, null, null),
+						toolCalls = listOf(ChatResult.ChunkToolCall(0, "call-1", "read", """{"path":"/tmp"}""")),
+					),
 					null,
 				)
 			)
-			// second chunk: has content but no toolCalls → carries over
+			// assembled with complete tool calls
 			emit(
 				ResilientChatResult(
-					ChatResult(
-						message = ChatMessage.AssistantMessage("done", now, null, null),
+					ChatResult.Assembled(
+						message = ChatMessage.AssistantMessage("done", now, null, toolCalls),
 						finishReason = ChatResult.FinishReason("tool", ChatResult.FinishReason.Type.TOOL),
 					),
 					null,
@@ -336,9 +344,14 @@ class AgentChatTest {
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
 		val results = agentChat(request).toList()
-		val finished = results.filterIsInstance<AgentChatStreamResult.Finished>().first()
 		
-		val tc = assertNotNull(finished.result.toolCalls)
+		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
+		assertNotNull(delta.toolCallFragments)
+		assertEquals(1, delta.toolCallFragments.size)
+		assertEquals("call-1", delta.toolCallFragments[0].id)
+		
+		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val tc = assertNotNull(assembled.toolCalls)
 		assertEquals(1, tc.size)
 		assertEquals("call-1", tc[0].callId)
 	}

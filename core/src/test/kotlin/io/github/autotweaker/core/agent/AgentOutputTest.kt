@@ -25,65 +25,55 @@ import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
 import io.ktor.http.*
 import io.mockk.mockk
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import kotlin.test.*
 import kotlin.time.Clock
 
 class AgentOutputTest {
 	
 	private val mockModel: Model = mockk(relaxed = true)
 	
-	// region StreamMessage
+	// region StreamDelta
 	
 	@Test
-	fun `StreamMessage RETRYING status`() {
-		val streamResult = AgentChatStreamResult.Failing(
-			errors = listOf(
-				AgentChatStreamResult.Failing.Error(
-					content = "error",
-					statusCode = HttpStatusCode.ServiceUnavailable,
-					retrying = mockModel,
-					timestamp = Clock.System.now(),
-				)
-			)
+	fun `StreamDelta with output content`() {
+		val delta = AgentChatStreamResult.Delta(content = "hello", reasoningContent = null, toolCallFragments = null)
+		val output = AgentOutput.StreamDelta(delta)
+		assertEquals("hello", output.delta.content)
+		assertNull(output.delta.reasoningContent)
+	}
+	
+	@Test
+	fun `StreamDelta with reasoning content`() {
+		val delta =
+			AgentChatStreamResult.Delta(content = null, reasoningContent = "thinking...", toolCallFragments = null)
+		val output = AgentOutput.StreamDelta(delta)
+		assertNull(output.delta.content)
+		assertEquals("thinking...", output.delta.reasoningContent)
+	}
+	
+	@Test
+	fun `StreamDelta with tool call fragments`() {
+		val fragments = listOf(ChatResult.ChunkToolCall(index = 0, id = "c1", name = "bash", arguments = "{}"))
+		val delta = AgentChatStreamResult.Delta(content = null, reasoningContent = null, toolCallFragments = fragments)
+		val output = AgentOutput.StreamDelta(delta)
+		assertEquals(1, output.delta.toolCallFragments?.size)
+		assertEquals("c1", output.delta.toolCallFragments?.get(0)?.id)
+	}
+	
+	// endregion
+	
+	// region StreamError
+	
+	@Test
+	fun `StreamError holds failing error`() {
+		val error = AgentChatStreamResult.Failing.Error(
+			content = "error",
+			statusCode = HttpStatusCode.ServiceUnavailable,
+			retrying = mockModel,
+			timestamp = Clock.System.now(),
 		)
-		val output = AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.RETRYING, streamResult)
-		assertEquals(AgentOutput.StreamMessage.Status.RETRYING, output.status)
-		assertEquals(streamResult, output.content)
-	}
-	
-	@Test
-	fun `StreamMessage REASONING status`() {
-		val streamResult = AgentChatStreamResult.Reasoning("thinking...")
-		val output = AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.REASONING, streamResult)
-		assertEquals(AgentOutput.StreamMessage.Status.REASONING, output.status)
-	}
-	
-	@Test
-	fun `StreamMessage OUTPUTTING status`() {
-		val streamResult = AgentChatStreamResult.Outputting(null, "hello")
-		val output = AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.OUTPUTTING, streamResult)
-		assertEquals(AgentOutput.StreamMessage.Status.OUTPUTTING, output.status)
-	}
-	
-	@Test
-	fun `StreamMessage FINISHED status`() {
-		val finishedResult = AgentChatStreamResult.Finished(
-			AgentChatStreamResult.Finished.Result(
-				context = AgentContext.Message.Assistant(
-					content = "done",
-					model = mockModel,
-					timestamp = Clock.System.now(),
-					usage = Usage(10, 5, 5),
-				),
-				toolCalls = null,
-				finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
-			)
-		)
-		val output = AgentOutput.StreamMessage(AgentOutput.StreamMessage.Status.FINISHED, finishedResult)
-		assertEquals(AgentOutput.StreamMessage.Status.FINISHED, output.status)
+		val output = AgentOutput.StreamError(error)
+		assertEquals(error, output.error)
 	}
 	
 	// endregion
@@ -164,6 +154,13 @@ class AgentOutputTest {
 	}
 	
 	@Test
+	fun `ContextUpdate with LLM reason`() {
+		val ctx = AgentContext(null, null, null, null, null)
+		val output = AgentOutput.ContextUpdate(ctx, AgentOutput.ContextUpdate.UpdateReason.LLM)
+		assertEquals(AgentOutput.ContextUpdate.UpdateReason.LLM, output.reason)
+	}
+	
+	@Test
 	fun `ContextUpdate with null reason`() {
 		val ctx = AgentContext(null, null, null, null, null)
 		val output = AgentOutput.ContextUpdate(ctx, null)
@@ -207,9 +204,17 @@ class AgentOutputTest {
 	@Test
 	fun `all variants are AgentOutput`() {
 		assertIs<AgentOutput>(
-			AgentOutput.StreamMessage(
-				AgentOutput.StreamMessage.Status.OUTPUTTING,
-				AgentChatStreamResult.Outputting(null, "hi")
+			AgentOutput.StreamDelta(
+				AgentChatStreamResult.Delta(
+					content = "hi",
+					reasoningContent = null,
+					toolCallFragments = null
+				)
+			)
+		)
+		assertIs<AgentOutput>(
+			AgentOutput.StreamError(
+				AgentChatStreamResult.Failing.Error("e", HttpStatusCode.InternalServerError, null, Clock.System.now())
 			)
 		)
 		assertIs<AgentOutput>(

@@ -105,27 +105,41 @@ class AgentChatDataTest {
 	}
 	
 	@Test
-	fun `reasoning result contains content`() {
-		val reasoning = AgentChatStreamResult.Reasoning("thinking step by step")
-		assertEquals("thinking step by step", reasoning.reasoningContent)
+	fun `delta result with reasoning`() {
+		val delta = AgentChatStreamResult.Delta(
+			content = null,
+			reasoningContent = "thinking step by step",
+			toolCallFragments = null
+		)
+		assertEquals("thinking step by step", delta.reasoningContent)
+		assertNull(delta.content)
+		assertNull(delta.toolCallFragments)
 	}
 	
 	@Test
-	fun `outputting result with reasoning`() {
-		val output = AgentChatStreamResult.Outputting(reasoningContent = "think", content = "hello")
-		assertEquals("think", output.reasoningContent)
-		assertEquals("hello", output.content)
+	fun `delta result with content and reasoning`() {
+		val delta = AgentChatStreamResult.Delta(content = "hello", reasoningContent = "think", toolCallFragments = null)
+		assertEquals("think", delta.reasoningContent)
+		assertEquals("hello", delta.content)
 	}
 	
 	@Test
-	fun `outputting result without reasoning`() {
-		val output = AgentChatStreamResult.Outputting(reasoningContent = null, content = "hello")
-		assertNull(output.reasoningContent)
-		assertEquals("hello", output.content)
+	fun `delta result with content only`() {
+		val delta = AgentChatStreamResult.Delta(content = "hello", reasoningContent = null, toolCallFragments = null)
+		assertNull(delta.reasoningContent)
+		assertEquals("hello", delta.content)
 	}
 	
 	@Test
-	fun `finished result with tool calls and finish reason`() {
+	fun `delta result with tool call fragments`() {
+		val fragments = listOf(ChatResult.ChunkToolCall(index = 0, id = "c1", name = "bash", arguments = "{}"))
+		val delta = AgentChatStreamResult.Delta(content = null, reasoningContent = null, toolCallFragments = fragments)
+		assertEquals(1, delta.toolCallFragments?.size)
+		assertEquals("c1", delta.toolCallFragments?.get(0)?.id)
+	}
+	
+	@Test
+	fun `assembled result with tool calls and finish reason`() {
 		val now = Clock.System.now()
 		val assistantMsg = AgentContext.Message.Assistant(
 			reasoning = "think",
@@ -138,24 +152,22 @@ class AgentChatDataTest {
 			AgentContext.CurrentRound.PendingToolCall("id1", "read", testModel, "{}", null, now)
 		)
 		val finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP)
-		val result = AgentChatStreamResult.Finished.Result(assistantMsg, toolCalls, finishReason)
-		val finished = AgentChatStreamResult.Finished(result)
+		val assembled = AgentChatStreamResult.Assembled(assistantMsg, toolCalls, finishReason)
 		
-		assertEquals(assistantMsg, finished.result.context)
-		assertEquals(toolCalls, finished.result.toolCalls)
-		assertEquals(finishReason, finished.result.finishReason)
+		assertEquals(assistantMsg, assembled.message)
+		assertEquals(toolCalls, assembled.toolCalls)
+		assertEquals(finishReason, assembled.finishReason)
 		assertEquals(1, toolCalls.size)
 	}
 	
 	@Test
-	fun `finished result without tool calls`() {
+	fun `assembled result without tool calls`() {
 		val now = Clock.System.now()
 		val assistantMsg = AgentContext.Message.Assistant(null, "done", testModel, now, null)
-		val result = AgentChatStreamResult.Finished.Result(assistantMsg, null, null)
-		val finished = AgentChatStreamResult.Finished(result)
+		val assembled = AgentChatStreamResult.Assembled(assistantMsg, null, null)
 		
-		assertNull(finished.result.toolCalls)
-		assertNull(finished.result.finishReason)
-		assertEquals("done", finished.result.context.content)
+		assertNull(assembled.toolCalls)
+		assertNull(assembled.finishReason)
+		assertEquals("done", assembled.message.content)
 	}
 }

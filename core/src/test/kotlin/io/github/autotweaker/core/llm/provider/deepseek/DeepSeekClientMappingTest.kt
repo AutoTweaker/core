@@ -41,10 +41,10 @@ class DeepSeekClientMappingTest {
 	private fun createRequestBody(request: ChatRequest): DeepSeekRequest =
 		invokeProtected("createRequestBody", request)
 	
-	private fun mapToChatResult(response: DeepSeekResponse): ChatResult =
+	private fun mapToChatResult(response: DeepSeekResponse): ChatResult.Assembled =
 		invokeProtected("mapToChatResult", response)
 	
-	private fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult =
+	private fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult.Chunk =
 		invokeProtected("mapChunkToChatResult", chunk)
 	
 	private fun extractToolCalls(chunk: DeepSeekStreamChunk): List<*>? =
@@ -214,7 +214,7 @@ class DeepSeekClientMappingTest {
 			usage = DeepSeekUsage(0, 0, 0)
 		)
 		val result = mapToChatResult(response)
-		assertNull(result.message?.content)
+		assertNull(result.message.content)
 	}
 	
 	@Test

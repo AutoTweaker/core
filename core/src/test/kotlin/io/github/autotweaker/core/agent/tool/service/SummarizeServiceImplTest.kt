@@ -54,7 +54,7 @@ class SummarizeServiceImplTest {
 		mockkStatic(::resilientChat)
 		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
-				result = ChatResult(
+				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("summarized content", Clock.System.now()),
 				),
 				retrying = null,
@@ -74,11 +74,11 @@ class SummarizeServiceImplTest {
 		mockkStatic(::resilientChat)
 		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
-				result = ChatResult(message = null),
+				result = ChatResult.Chunk(message = null),
 				retrying = mockModel,
 			),
 			ResilientChatResult(
-				result = ChatResult(
+				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("fallback result", Clock.System.now()),
 				),
 				retrying = null,
@@ -98,7 +98,7 @@ class SummarizeServiceImplTest {
 		mockkStatic(::resilientChat)
 		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
-				result = ChatResult(message = null),
+				result = ChatResult.Chunk(message = null),
 				retrying = mockModel,
 			),
 		)
@@ -131,7 +131,7 @@ class SummarizeServiceImplTest {
 		mockkStatic(::resilientChat)
 		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
-				result = ChatResult(
+				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("first success", Clock.System.now()),
 				),
 				retrying = null,

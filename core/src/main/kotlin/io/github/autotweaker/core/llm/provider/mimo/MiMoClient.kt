@@ -355,7 +355,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		val choice = response.choices.firstOrNull()
 		val msg = choice?.message
 		
-		return ChatResult(
+		return ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
@@ -388,7 +388,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		val choice = chunk.choices.firstOrNull()
 		val delta = choice?.delta
 		
-		return ChatResult(
+		return ChatResult.Chunk(
 			message = ChatMessage.AssistantMessage(
 				content = delta?.content,
 				reasoningContent = delta?.reasoningContent,
@@ -421,9 +421,9 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		}
 	)
 	
-	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ToolCallFragment>? {
+	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? {
 		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
-			ToolCallFragment(
+			ChatResult.ChunkToolCall(
 				index = tc.index,
 				id = tc.id,
 				name = tc.function?.name,

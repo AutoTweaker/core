@@ -202,8 +202,9 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
 		
-		assertEquals(1, results.size)
+		assertEquals(2, results.size)
 		assertEquals("ok", results[0].message?.content)
+		assertIs<ChatResult.Assembled>(results[1])
 	}
 	
 	@Test
@@ -236,8 +237,9 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
-		assertEquals(1, results.size)
+		assertEquals(2, results.size)
 		assertEquals("partial", results[0].message?.content)
+		assertIs<ChatResult.Assembled>(results[1])
 	}
 	
 	@Test

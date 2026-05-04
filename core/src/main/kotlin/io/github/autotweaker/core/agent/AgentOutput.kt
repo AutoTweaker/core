@@ -23,17 +23,8 @@ import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
 
 sealed class AgentOutput {
-	data class StreamMessage(
-		val status: Status,
-		val content: AgentChatStreamResult,
-	) : AgentOutput() {
-		enum class Status {
-			RETRYING,
-			REASONING,
-			OUTPUTTING,
-			FINISHED,
-		}
-	}
+	data class StreamDelta(val delta: AgentChatStreamResult.Delta) : AgentOutput()
+	data class StreamError(val error: AgentChatStreamResult.Failing.Error) : AgentOutput()
 	
 	data class CompactOutput(
 		val status: Status,
@@ -64,7 +55,8 @@ sealed class AgentOutput {
 		enum class UpdateReason {
 			COMPACTED,
 			ARCHIVED,
-			TOOL
+			TOOL,
+			LLM,
 		}
 	}
 	

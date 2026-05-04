@@ -141,9 +141,14 @@ fun main() {
 	runBlocking {
 		agentChat(request).collect { result ->
 			when (result) {
-				is AgentChatStreamResult.Reasoning -> logger.info("[Reasoning] {}", result.reasoningContent)
-				is AgentChatStreamResult.Outputting -> logger.info("[Outputting] {}", result.content)
-				is AgentChatStreamResult.Finished -> logger.info("[Finished] {}", result.result)
+				is AgentChatStreamResult.Delta -> logger.info(
+					"[Delta] content={} reasoning={} toolCalls={}",
+					result.content,
+					result.reasoningContent,
+					result.toolCallFragments
+				)
+				
+				is AgentChatStreamResult.Assembled -> logger.info("[Assembled] {}", result.message)
 				is AgentChatStreamResult.Failing -> logger.error("[Failing] {}", result.errors)
 			}
 		}

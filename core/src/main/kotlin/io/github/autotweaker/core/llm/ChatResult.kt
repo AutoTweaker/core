@@ -18,11 +18,31 @@
 
 package io.github.autotweaker.core.llm
 
-data class ChatResult(
-	val message: ChatMessage? = null,
-	val finishReason: FinishReason? = null,
-	val usage: Usage? = null
-) {
+sealed class ChatResult {
+	abstract val message: ChatMessage?
+	abstract val finishReason: FinishReason?
+	abstract val usage: Usage?
+	
+	data class Chunk(
+		override val message: ChatMessage.AssistantMessage? = null,
+		val toolCalls: List<ChunkToolCall>? = null,
+		override val finishReason: FinishReason? = null,
+		override val usage: Usage? = null,
+	) : ChatResult()
+	
+	data class ChunkToolCall(
+		val index: Int,
+		val id: String? = null,
+		val name: String? = null,
+		val arguments: String? = null,
+	)
+	
+	data class Assembled(
+		override val message: ChatMessage,
+		override val finishReason: FinishReason? = null,
+		override val usage: Usage? = null,
+	) : ChatResult()
+	
 	data class FinishReason(
 		val reason: String,
 		val type: Type

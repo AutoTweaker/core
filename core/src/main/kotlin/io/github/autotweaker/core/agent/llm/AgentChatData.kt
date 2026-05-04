@@ -29,11 +29,16 @@ data class AgentChatRequest(
 	val fallbackModels: List<Model>?,
 	val thinking: Boolean?,
 	val tools: List<ChatRequest.Tool>?,
-	
 	val context: AgentContext,
 )
 
 sealed class AgentChatStreamResult {
+	data class Delta(
+		val content: String?,
+		val reasoningContent: String?,
+		val toolCallFragments: List<ChatResult.ChunkToolCall>?,
+	) : AgentChatStreamResult()
+	
 	data class Failing(
 		val errors: List<Error>
 	) : AgentChatStreamResult() {
@@ -45,22 +50,9 @@ sealed class AgentChatStreamResult {
 		)
 	}
 	
-	data class Reasoning(
-		val reasoningContent: String
+	data class Assembled(
+		val message: AgentContext.Message.Assistant,
+		val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
+		val finishReason: ChatResult.FinishReason?,
 	) : AgentChatStreamResult()
-	
-	data class Outputting(
-		val reasoningContent: String?,
-		val content: String
-	) : AgentChatStreamResult()
-	
-	data class Finished(
-		val result: Result
-	) : AgentChatStreamResult() {
-		data class Result(
-			val context: AgentContext.Message.Assistant,
-			val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
-			val finishReason: ChatResult.FinishReason?,
-		)
-	}
 }

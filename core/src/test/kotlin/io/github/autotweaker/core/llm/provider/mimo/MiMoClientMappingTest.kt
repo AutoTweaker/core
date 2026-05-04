@@ -41,10 +41,10 @@ class MiMoClientMappingTest {
 	private fun createRequestBody(request: ChatRequest): MiMoRequest =
 		invokeProtected("createRequestBody", request)
 	
-	private fun mapToChatResult(response: MiMoResponse): ChatResult =
+	private fun mapToChatResult(response: MiMoResponse): ChatResult.Assembled =
 		invokeProtected("mapToChatResult", response)
 	
-	private fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult =
+	private fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult.Chunk =
 		invokeProtected("mapChunkToChatResult", chunk)
 	
 	private fun extractToolCalls(chunk: MiMoStreamChunk): List<*>? =
@@ -188,7 +188,7 @@ class MiMoClientMappingTest {
 			usage = MiMoUsage(0, 0, 0)
 		)
 		val result = mapToChatResult(response)
-		assertNull(result.message?.content)
+		assertNull(result.message.content)
 	}
 	
 	@Test

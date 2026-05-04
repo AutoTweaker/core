@@ -72,20 +72,18 @@ class AgentStreamProcessorTest {
 	// region success path
 	
 	@Test
-	fun `process emits outputting and finished for text response`() = runTest {
+	fun `process emits stream delta and context update for text response`() = runTest {
 		createProcessor()
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
 		every { agentChat(any<AgentChatRequest>()) } returns flow {
-			emit(AgentChatStreamResult.Outputting(null, "hi"))
+			emit(AgentChatStreamResult.Delta(content = "hi", reasoningContent = null, toolCallFragments = null))
 			emit(
-				AgentChatStreamResult.Finished(
-					AgentChatStreamResult.Finished.Result(
-						context = AgentContext.Message.Assistant(
-							null, "hi", mockModel, Clock.System.now(), Usage(10, 5, 5)
-						),
-						toolCalls = null,
-						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
-					)
+				AgentChatStreamResult.Assembled(
+					message = AgentContext.Message.Assistant(
+						null, "hi", mockModel, Clock.System.now(), Usage(10, 5, 5)
+					),
+					toolCalls = null,
+					finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 				)
 			)
 		}
@@ -93,29 +91,39 @@ class AgentStreamProcessorTest {
 		newProcessor().process(createRequest())
 		
 		assertTrue(emittedOutputs.any {
-			it is AgentOutput.StreamMessage && it.status == AgentOutput.StreamMessage.Status.OUTPUTTING
+			it is AgentOutput.StreamDelta && it.delta.content == "hi"
 		})
 		assertTrue(emittedOutputs.any {
-			it is AgentOutput.StreamMessage && it.status == AgentOutput.StreamMessage.Status.FINISHED
+			it is AgentOutput.ContextUpdate && it.reason == AgentOutput.ContextUpdate.UpdateReason.LLM
 		})
 	}
 	
 	@Test
-	fun `process emits reasoning when reasoning content arrives`() = runTest {
+	fun `process emits stream delta with reasoning when reasoning content arrives`() = runTest {
 		createProcessor()
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
 		every { agentChat(any<AgentChatRequest>()) } returns flow {
-			emit(AgentChatStreamResult.Reasoning("let me think"))
-			emit(AgentChatStreamResult.Outputting("let me think", "answer"))
 			emit(
-				AgentChatStreamResult.Finished(
-					AgentChatStreamResult.Finished.Result(
-						context = AgentContext.Message.Assistant(
-							"let me think", "answer", mockModel, Clock.System.now(), null
-						),
-						toolCalls = null,
-						finishReason = null,
-					)
+				AgentChatStreamResult.Delta(
+					content = null,
+					reasoningContent = "let me think",
+					toolCallFragments = null
+				)
+			)
+			emit(
+				AgentChatStreamResult.Delta(
+					content = "answer",
+					reasoningContent = "let me think",
+					toolCallFragments = null
+				)
+			)
+			emit(
+				AgentChatStreamResult.Assembled(
+					message = AgentContext.Message.Assistant(
+						"let me think", "answer", mockModel, Clock.System.now(), null
+					),
+					toolCalls = null,
+					finishReason = null,
 				)
 			)
 		}
@@ -123,7 +131,7 @@ class AgentStreamProcessorTest {
 		newProcessor().process(createRequest())
 		
 		assertTrue(emittedOutputs.any {
-			it is AgentOutput.StreamMessage && it.status == AgentOutput.StreamMessage.Status.REASONING
+			it is AgentOutput.StreamDelta && it.delta.reasoningContent == "let me think"
 		})
 	}
 	
@@ -139,14 +147,12 @@ class AgentStreamProcessorTest {
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
 		every { agentChat(any<AgentChatRequest>()) } returns flow {
 			emit(
-				AgentChatStreamResult.Finished(
-					AgentChatStreamResult.Finished.Result(
-						context = AgentContext.Message.Assistant(
-							null, null, mockModel, Clock.System.now(), null
-						),
-						toolCalls = toolCalls,
-						finishReason = ChatResult.FinishReason("tool", ChatResult.FinishReason.Type.TOOL),
-					)
+				AgentChatStreamResult.Assembled(
+					message = AgentContext.Message.Assistant(
+						null, null, mockModel, Clock.System.now(), null
+					),
+					toolCalls = toolCalls,
+					finishReason = ChatResult.FinishReason("tool", ChatResult.FinishReason.Type.TOOL),
 				)
 			)
 		}
@@ -162,17 +168,15 @@ class AgentStreamProcessorTest {
 	fun `onContextUpdate transform sets assistant message on current round`() = runTest {
 		createProcessor()
 		val now = Clock.System.now()
-		val assistantCtx = AgentContext.Message.Assistant("think", "answer", mockModel, now, Usage(10, 5, 5))
+		val assistantMsg = AgentContext.Message.Assistant("think", "answer", mockModel, now, Usage(10, 5, 5))
 		
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
 		every { agentChat(any<AgentChatRequest>()) } returns flow {
 			emit(
-				AgentChatStreamResult.Finished(
-					AgentChatStreamResult.Finished.Result(
-						context = assistantCtx,
-						toolCalls = null,
-						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
-					)
+				AgentChatStreamResult.Assembled(
+					message = assistantMsg,
+					toolCalls = null,
+					finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 				)
 			)
 		}
@@ -194,7 +198,7 @@ class AgentStreamProcessorTest {
 	fun `onContextUpdate transform sets tool calls on current round`() = runTest {
 		createProcessor()
 		val now = Clock.System.now()
-		val assistantCtx = AgentContext.Message.Assistant(null, null, mockModel, now, null)
+		val assistantMsg = AgentContext.Message.Assistant(null, null, mockModel, now, null)
 		val toolCalls = listOf(
 			AgentContext.CurrentRound.PendingToolCall("c1", "read", mockModel, "{}", null, now)
 		)
@@ -202,12 +206,10 @@ class AgentStreamProcessorTest {
 		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
 		every { agentChat(any<AgentChatRequest>()) } returns flow {
 			emit(
-				AgentChatStreamResult.Finished(
-					AgentChatStreamResult.Finished.Result(
-						context = assistantCtx,
-						toolCalls = toolCalls,
-						finishReason = ChatResult.FinishReason("tool", ChatResult.FinishReason.Type.TOOL),
-					)
+				AgentChatStreamResult.Assembled(
+					message = assistantMsg,
+					toolCalls = toolCalls,
+					finishReason = ChatResult.FinishReason("tool", ChatResult.FinishReason.Type.TOOL),
 				)
 			)
 		}
@@ -300,14 +302,12 @@ class AgentStreamProcessorTest {
 				)
 			)
 			emit(
-				AgentChatStreamResult.Finished(
-					AgentChatStreamResult.Finished.Result(
-						context = AgentContext.Message.Assistant(
-							null, "ok", mockModel, Clock.System.now(), null
-						),
-						toolCalls = null,
-						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
-					)
+				AgentChatStreamResult.Assembled(
+					message = AgentContext.Message.Assistant(
+						null, "ok", mockModel, Clock.System.now(), null
+					),
+					toolCalls = null,
+					finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 				)
 			)
 		}
@@ -315,6 +315,7 @@ class AgentStreamProcessorTest {
 		newProcessor().process(createRequest())
 		
 		assertTrue(statusChanges.contains(AgentStatus.RETRYING))
+		assertTrue(emittedOutputs.any { it is AgentOutput.StreamError })
 	}
 	
 	// endregion
@@ -363,7 +364,6 @@ class AgentStreamProcessorTest {
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
-		// Should NOT contain ": " since message is null
 		assertTrue(!result.message.contains(": "))
 	}
 	

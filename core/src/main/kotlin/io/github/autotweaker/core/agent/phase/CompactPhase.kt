@@ -27,6 +27,7 @@ import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
@@ -109,23 +110,42 @@ private suspend fun runCompactRequest(
 		val results = resilientChat(summarizeModel, fallbackModels, request)
 		results.collect { resilientResult ->
 			currentCoroutineContext().ensureActive()
-			val result = resilientResult.result
-			val msg = result.message
-			
-			if (msg is ChatMessage.ErrorMessage) {
-				env.emitOutput(AgentOutput.CompactOutput(AgentOutput.CompactOutput.Status.FAILED, rawContent, null))
-				hasError = true
-				return@collect
+			when (val result = resilientResult.result) {
+				is ChatResult.Chunk -> {
+					val msg = result.message ?: return@collect
+					if (!msg.content.isNullOrEmpty()) {
+						rawContent += msg.content
+						env.emitOutput(
+							AgentOutput.CompactOutput(
+								AgentOutput.CompactOutput.Status.OUTPUTTING,
+								rawContent,
+								null
+							)
+						)
+					}
+					result.usage?.let { lastUsage = it }
+				}
+				
+				is ChatResult.Assembled -> {
+					val msg = result.message
+					if (msg is ChatMessage.ErrorMessage) {
+						env.emitOutput(
+							AgentOutput.CompactOutput(
+								AgentOutput.CompactOutput.Status.FAILED,
+								rawContent,
+								null
+							)
+						)
+						hasError = true
+						return@collect
+					}
+					val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
+					if (!assistantMsg.content.isNullOrEmpty()) {
+						rawContent = assistantMsg.content
+					}
+					result.usage?.let { lastUsage = it }
+				}
 			}
-			
-			val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
-			
-			if (!assistantMsg.content.isNullOrEmpty()) {
-				rawContent += assistantMsg.content
-				env.emitOutput(AgentOutput.CompactOutput(AgentOutput.CompactOutput.Status.OUTPUTTING, rawContent, null))
-			}
-			
-			result.usage?.let { lastUsage = it }
 		}
 	} catch (e: CancellationException) {
 		throw e

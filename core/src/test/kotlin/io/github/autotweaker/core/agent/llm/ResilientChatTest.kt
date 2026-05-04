@@ -67,13 +67,13 @@ class ResilientChatTest {
 		config: Config? = null,
 	) = Model(name, provider, modelInfo, config)
 	
-	private fun assistantResult(content: String = "hello") = ChatResult(
+	private fun assistantResult(content: String = "hello") = ChatResult.Assembled(
 		message = ChatMessage.AssistantMessage(content, Clock.System.now(), null, null),
 		finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
 		usage = Usage(100, 50, 50),
 	)
 	
-	private fun errorResult(statusCode: Int = 500) = ChatResult(
+	private fun errorResult(statusCode: Int = 500) = ChatResult.Assembled(
 		message = ChatMessage.ErrorMessage(
 			"error",
 			Clock.System.now(),
@@ -331,7 +331,7 @@ class ResilientChatTest {
 		every { LlmClientLoader.load("test-provider") } returns mockClient
 		coEvery { mockClient.chat(any(), any(), any()) } returns flow {
 			emit(
-				ChatResult(
+				ChatResult.Chunk(
 					message = ChatMessage.AssistantMessage("", Clock.System.now(), "", null),
 				)
 			)
@@ -349,6 +349,30 @@ class ResilientChatTest {
 	}
 	
 	@Test
+	fun `normalize empty strings in Assembled result`() = runTest {
+		val mockClient = mockk<LlmClient>()
+		mockkObject(LlmClientLoader)
+		every { LlmClientLoader.load("test-provider") } returns mockClient
+		coEvery { mockClient.chat(any(), any(), any()) } returns flow {
+			emit(
+				ChatResult.Assembled(
+					message = ChatMessage.AssistantMessage("", Clock.System.now(), "", null),
+				)
+			)
+		}
+		
+		val results = resilientChat(
+			model = model(),
+			fallbackModels = null,
+			request = chatRequest(),
+		).toList()
+		
+		val msg = results[0].result.message as ChatMessage.AssistantMessage
+		assertEquals(null, msg.content)
+		assertEquals(null, msg.reasoningContent)
+	}
+	
+	@Test
 	fun `error with null status code triggers fallback`() = runTest {
 		val mockClient1 = mockk<LlmClient>()
 		val mockClient2 = mockk<LlmClient>()
@@ -357,7 +381,7 @@ class ResilientChatTest {
 		every { LlmClientLoader.load("p2") } returns mockClient2
 		
 		coEvery { mockClient1.chat(any(), any(), any()) } returns flow {
-			emit(ChatResult(message = ChatMessage.ErrorMessage("no status", Clock.System.now(), null)))
+			emit(ChatResult.Assembled(message = ChatMessage.ErrorMessage("no status", Clock.System.now(), null)))
 		}
 		coEvery {
 			mockClient2.chat(

@@ -71,9 +71,10 @@ fun resilientChat(
 			var lastStatusCode: Int? = null
 			
 			results.collect { result ->
-				if (result.message is ChatMessage.ErrorMessage) {
+				val msg = result.message
+				if (msg is ChatMessage.ErrorMessage) {
 					lastError = result
-					lastStatusCode = result.message.statusCode?.value
+					lastStatusCode = msg.statusCode?.value
 				} else {
 					emit(ResilientChatResult(result.normalizeEmptyStrings(), retrying = null))
 				}
@@ -130,12 +131,14 @@ private fun ChatResult.normalizeEmptyStrings(): ChatResult {
 	val content = msg.content
 	val reasoningContent = msg.reasoningContent
 	if (content != "" && reasoningContent != "") return this
-	return copy(
-		message = msg.copy(
-			content = if (content == "") null else content,
-			reasoningContent = if (reasoningContent == "") null else reasoningContent
-		)
+	val normalized = msg.copy(
+		content = if (content == "") null else content,
+		reasoningContent = if (reasoningContent == "") null else reasoningContent
 	)
+	return when (this) {
+		is ChatResult.Chunk -> copy(message = normalized)
+		is ChatResult.Assembled -> copy(message = normalized)
+	}
 }
 
 private fun ChatRequest.adapt(model: Model): ChatRequest {
