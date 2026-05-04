@@ -22,11 +22,16 @@ import java.util.*
 
 @Suppress("unused")
 interface SessionStore {
-	suspend fun saveSession(sessionData: SessionData)
-	suspend fun loadSession(id: UUID): SessionData?
-	suspend fun loadAllSessions(): List<SessionData>
-	suspend fun deleteSession(id: UUID)
+	suspend fun saveSessions(sessionData: List<SessionData>)
+	suspend fun loadSessions(ids: List<UUID>): List<SessionData>?
+	suspend fun loadAllSessions(): List<SessionData>?
+	suspend fun deleteSessions(id: List<UUID>)
+	
 	suspend fun saveContext(sessionId: UUID, context: SessionContext)
 	suspend fun loadContext(sessionId: UUID): SessionContext?
 	suspend fun deleteContext(sessionId: UUID)
+	
+	suspend fun saveMessages(messages: List<SessionMessage>)
+	suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>?
+	suspend fun deleteMessages(ids: List<UUID>)
 }

@@ -20,13 +20,37 @@ package io.github.autotweaker.core.session
 
 import java.util.*
 
-data class SessionData(
-	val id: UUID,
-	val title: String,
-	val workspaceName: String?,
+data class SessionContextIndex(
+	val compactedRounds: List<CompactedRound>?,
+	val historyRounds: List<CompactedRound.CompletedRound>?,
+	val currentRound: CurrentRound?,
+	val summarizedMessage: UUID?,
+) {
+	data class CompactedRound(
+		val rounds: List<CompletedRound>,
+		val summarizedMessage: UUID,
+	) {
+		data class CompletedRound(
+			val userMessage: UUID,
+			val turns: List<Turn>?,
+			val finalAssistantMessage: UUID?,
+		)
+	}
 	
-	val model: ModelId,
-	val fallbackModel: List<ModelId>,
-	val summarizeModel: ModelId,
-	val thinking: Boolean,
-)
+	data class CurrentRound(
+		val userMessage: UUID,
+		val turns: List<Turn>?,
+		val assistantMessage: UUID?,
+		val pendingToolCalls: List<UUID>?,
+	)
+	
+	data class Turn(
+		val assistantMessage: UUID,
+		val tools: List<Tool>,
+	) {
+		data class Tool(
+			val call: UUID,
+			val result: UUID,
+		)
+	}
+}

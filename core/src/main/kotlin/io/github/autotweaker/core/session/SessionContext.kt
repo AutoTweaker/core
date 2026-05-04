@@ -18,69 +18,13 @@
 
 package io.github.autotweaker.core.session
 
-import io.github.autotweaker.core.Base64
-import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.llm.Usage
 import java.util.*
-import kotlin.time.Instant
 
 data class SessionContext(
+	val sessionId: UUID,
 	val systemPrompt: String,
-	val messages: List<SessionMessage>,
 	val usage: Map<UUID, Usage>,
-) {
-	sealed class SessionMessage {
-		abstract val id: UUID
-		abstract val timestamp: Instant
-		abstract val inContext: Boolean
-		
-		data class User(
-			override val id: UUID,
-			override val timestamp: Instant,
-			override val inContext: Boolean,
-			val content: String,
-			val images: List<Base64>
-		) : SessionMessage()
-		
-		data class Assistant(
-			override val id: UUID,
-			override val timestamp: Instant,
-			override val inContext: Boolean,
-			val reasoning: String,
-			val content: String,
-			val model: ModelId,
-		) : SessionMessage()
-		
-		sealed class Tool : SessionMessage() {
-			abstract val callId: String
-			abstract val name: String
-			
-			data class Call(
-				override val id: UUID,
-				override val timestamp: Instant,
-				override val inContext: Boolean,
-				override val callId: String,
-				override val name: String,
-				val arguments: String,
-			) : Tool()
-			
-			data class Result(
-				override val id: UUID,
-				override val timestamp: Instant,
-				override val inContext: Boolean,
-				override val callId: String,
-				override val name: String,
-				val content: String,
-				val status: AgentContext.Message.Tool.Result.Status
-			) : Tool()
-		}
-		
-		@Suppress("unused")
-		data class Compact(
-			override val id: UUID,
-			override val timestamp: Instant,
-			override val inContext: Boolean,
-			val content: String,
-		) : SessionMessage()
-	}
-}
+	val index: SessionContextIndex
+)
+
