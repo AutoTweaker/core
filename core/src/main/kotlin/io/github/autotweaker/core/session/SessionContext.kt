@@ -25,6 +25,7 @@ data class SessionContext(
 	val sessionId: UUID,
 	val systemPrompt: String,
 	val usage: Map<UUID, Usage>,
-	val index: SessionContextIndex
+	val index: SessionContextIndex,
+	val droppedMessages: List<UUID>?,
 )
 

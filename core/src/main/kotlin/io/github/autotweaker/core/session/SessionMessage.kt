@@ -69,7 +69,6 @@ sealed class SessionMessage {
 		) : Tool()
 	}
 	
-	@Suppress("unused")
 	data class Compact(
 		override val id: UUID,
 		override val timestamp: Instant,
