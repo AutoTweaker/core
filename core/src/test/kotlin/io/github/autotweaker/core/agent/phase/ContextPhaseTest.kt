@@ -274,6 +274,69 @@ class ContextPhaseTest {
 		assertEquals(2, cr.turns!!.size)
 	}
 	
+	@Test
+	fun `writeToolTurn with approval reasons archives round and starts new round`() = runTest {
+		val assistantMsg = assistantMessage("assistant content", model)
+		val round = currentRound(assistantMessage = assistantMsg)
+		contextValue = AgentContext(null, null, null, null, round)
+		
+		agentState.processedTools = listOf(
+			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+		)
+		agentState.approvalReasons.addAll(listOf("reason1", "reason2"))
+		
+		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		
+		assertEquals(PhaseResult.Continue, result)
+		assertTrue(agentState.approvalReasons.isEmpty())
+		// old round archived
+		assertNotNull(contextValue.historyRounds)
+		assertEquals(1, contextValue.historyRounds!!.size)
+		// new round with user message
+		val cr = contextValue.currentRound
+		assertNotNull(cr)
+		assertEquals("reason1\n---\nreason2", cr.userMessage.content)
+		assertNull(cr.turns)
+	}
+	
+	@Test
+	fun `writeToolTurn without approval reasons does not archive`() = runTest {
+		val assistantMsg = assistantMessage("assistant content", model)
+		val round = currentRound(assistantMessage = assistantMsg)
+		contextValue = AgentContext(null, null, null, null, round)
+		
+		agentState.processedTools = listOf(
+			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+		)
+		
+		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		
+		assertEquals(PhaseResult.Continue, result)
+		assertNull(contextValue.historyRounds)
+		val cr = contextValue.currentRound
+		assertNotNull(cr)
+		assertNotNull(cr.turns)
+		assertEquals(1, cr.turns.size)
+	}
+	
+	@Test
+	fun `writeToolTurn with single approval reason no separator`() = runTest {
+		val assistantMsg = assistantMessage("assistant content", model)
+		val round = currentRound(assistantMessage = assistantMsg)
+		contextValue = AgentContext(null, null, null, null, round)
+		
+		agentState.processedTools = listOf(
+			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+		)
+		agentState.approvalReasons.add("only one reason")
+		
+		writeToolTurn(env, assistantMsg, env::updateContext)
+		
+		val cr = contextValue.currentRound
+		assertNotNull(cr)
+		assertEquals("only one reason", cr.userMessage.content)
+	}
+	
 	// endregion
 	
 	// region archiveCurrentRound

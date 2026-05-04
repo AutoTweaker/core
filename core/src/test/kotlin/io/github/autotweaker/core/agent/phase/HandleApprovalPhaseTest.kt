@@ -293,6 +293,88 @@ class HandleApprovalPhaseTest {
 		assertEquals(AgentOutput.ContextUpdate.UpdateReason.TOOL, (update as AgentOutput.ContextUpdate).reason)
 	}
 	
+	@Test
+	fun `approved with reason archives round and starts new round with reason`() = runTest {
+		val call = pendingToolCall("c1")
+		agentState.pendingApproval = listOf(
+			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+		)
+		val assistantMsg = assistantMessage("assistant")
+		val round = AgentContext.CurrentRound(
+			userMessage = userMessage(), turns = null,
+			assistantMessage = assistantMsg,
+			pendingToolCalls = listOf(call),
+		)
+		contextValue = AgentContext(null, null, null, null, round)
+		
+		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "allowed"))
+		val result = handleApprovalPhase(env, approvals, executeTool)
+		
+		assertEquals(PhaseResult.Continue, result)
+		assertTrue(agentState.approvalReasons.isEmpty())
+		assertNotNull(contextValue.historyRounds)
+		assertEquals(1, contextValue.historyRounds!!.size)
+		val cr = contextValue.currentRound
+		assertNotNull(cr)
+		assertEquals("allowed", cr.userMessage.content)
+		assertNull(cr.turns)
+	}
+	
+	@Test
+	fun `approved without reason does not archive`() = runTest {
+		val call = pendingToolCall("c1")
+		agentState.pendingApproval = listOf(
+			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+		)
+		val assistantMsg = assistantMessage("assistant")
+		val round = AgentContext.CurrentRound(
+			userMessage = userMessage(), turns = null,
+			assistantMessage = assistantMsg,
+			pendingToolCalls = listOf(call),
+		)
+		contextValue = AgentContext(null, null, null, null, round)
+		
+		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
+		val result = handleApprovalPhase(env, approvals, executeTool)
+		
+		assertEquals(PhaseResult.Continue, result)
+		assertNull(contextValue.historyRounds)
+		val cr = contextValue.currentRound
+		assertNotNull(cr)
+		assertNotNull(cr.turns)
+		assertEquals(1, cr.turns.size)
+	}
+	
+	@Test
+	fun `multiple approved calls with reasons join all reasons in new round`() = runTest {
+		val call1 = pendingToolCall("c1")
+		val call2 = pendingToolCall("c2")
+		agentState.pendingApproval = listOf(
+			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
+		)
+		val assistantMsg = assistantMessage("assistant")
+		val round = AgentContext.CurrentRound(
+			userMessage = userMessage(), turns = null,
+			assistantMessage = assistantMsg,
+			pendingToolCalls = listOf(call1, call2),
+		)
+		contextValue = AgentContext(null, null, null, null, round)
+		
+		val approvals = listOf(
+			AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "reason1"),
+			AgentCommand.Message.ApproveToolCall.Approve("c2", approved = true, reason = "reason2"),
+		)
+		val result = handleApprovalPhase(env, approvals, executeTool)
+		
+		assertEquals(PhaseResult.Continue, result)
+		assertTrue(agentState.approvalReasons.isEmpty())
+		assertNotNull(contextValue.historyRounds)
+		val cr = contextValue.currentRound
+		assertNotNull(cr)
+		assertEquals("reason1\n---\nreason2", cr.userMessage.content)
+	}
+	
 	// region helpers
 	
 	private fun validationSuccess() = ToolCallValidator.ValidationResult.Success(

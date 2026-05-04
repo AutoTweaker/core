@@ -53,4 +53,5 @@ internal interface AgentEnvironment {
 data class MutableAgentState(
 	var pendingApproval: List<Tools.ToolCallResolveResult.NeedsApproval>? = null,
 	var processedTools: List<AgentContext.Message.Tool>? = null,
+	val approvalReasons: MutableList<String> = mutableListOf(),
 )

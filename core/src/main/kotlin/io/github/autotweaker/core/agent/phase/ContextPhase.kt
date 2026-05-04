@@ -95,6 +95,20 @@ internal suspend fun writeToolTurn(
 			)
 		)
 	}
+	//发送批准原因
+	val reasons = env.agentState.approvalReasons.toList()
+	env.agentState.approvalReasons.clear()
+	if (reasons.isNotEmpty()) {
+		val userMsg = AgentContext.Message.User(
+			content = reasons.joinToString("\n---\n"),
+			timestamp = Clock.System.now()
+		)
+		//归档当前round，开启新round
+		archiveCurrentRound(env, updateContext)
+		updateContext { ctx ->
+			ctx.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
+		}
+	}
 	env.emitOutput(AgentOutput.ContextUpdate(env.context, AgentOutput.ContextUpdate.UpdateReason.TOOL))
 	return PhaseResult.Continue
 }

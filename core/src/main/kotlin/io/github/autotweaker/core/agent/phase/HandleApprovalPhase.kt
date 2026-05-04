@@ -58,8 +58,10 @@ internal suspend fun handleApprovalPhase(
 		}
 		//当前pendingApproval被批准或拒绝
 		processed.add(
-			if (a.approved) executeTool(n.result, call)
-			else buildRejectedTool(call, a.reason, env)
+			if (a.approved) {
+				if (a.reason != null) env.agentState.approvalReasons.add(a.reason)
+				executeTool(n.result, call)
+			} else buildRejectedTool(call, a.reason, env)
 		)
 		//如果已暂停，放弃剩余ToolCall
 		if (env.status == AgentStatus.PAUSED) {
