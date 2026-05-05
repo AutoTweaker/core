@@ -26,12 +26,10 @@ import kotlin.time.Instant
 sealed class SessionMessage {
 	abstract val id: UUID
 	abstract val timestamp: Instant
-	abstract val inContext: Boolean
 	
 	data class User(
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val inContext: Boolean,
 		val content: String,
 		val images: List<Base64>
 	) : SessionMessage()
@@ -39,7 +37,6 @@ sealed class SessionMessage {
 	data class Assistant(
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val inContext: Boolean,
 		val reasoning: String,
 		val content: String,
 		val model: ModelId,
@@ -51,7 +48,6 @@ sealed class SessionMessage {
 		data class Call(
 			override val id: UUID,
 			override val timestamp: Instant,
-			override val inContext: Boolean,
 			override val callId: String,
 			val assistantMessage: UUID,
 			val name: String,
@@ -62,7 +58,6 @@ sealed class SessionMessage {
 		data class Result(
 			override val id: UUID,
 			override val timestamp: Instant,
-			override val inContext: Boolean,
 			override val callId: String,
 			val content: String,
 			val status: AgentContext.Message.Tool.Result.Status
@@ -72,7 +67,6 @@ sealed class SessionMessage {
 	data class Compact(
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val inContext: Boolean,
 		val content: String,
 	) : SessionMessage()
 }
