@@ -31,6 +31,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import java.nio.file.Files
@@ -106,7 +107,7 @@ class ExecuteToolPhaseTest {
 		every { env.containerConfig } returns ContainerConfig(workDir = tmpDir, workspaceHostPath = tmpDir)
 		every { env.summarizeModel } returns model
 		every { env.currentFallbackModels } returns null
-		every { env.context } returns AgentContext(null, null, null, null, null)
+		every { env.context } returns MutableStateFlow(AgentContext(null, null, null, null, null))
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
 		every { env.toolRejectedWithFeedbackMessage } returns "Tool rejected: %s"

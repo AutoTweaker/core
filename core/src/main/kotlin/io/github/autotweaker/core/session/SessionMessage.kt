@@ -31,14 +31,14 @@ sealed class SessionMessage {
 		override val id: UUID,
 		override val timestamp: Instant,
 		val content: String,
-		val images: List<Base64>
+		val images: List<Base64>?
 	) : SessionMessage()
 	
 	data class Assistant(
 		override val id: UUID,
 		override val timestamp: Instant,
-		val reasoning: String,
-		val content: String,
+		val reasoning: String?,
+		val content: String?,
 		val model: ModelId,
 	) : SessionMessage()
 	

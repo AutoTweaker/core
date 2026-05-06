@@ -22,10 +22,8 @@ import io.github.autotweaker.core.llm.Usage
 import java.util.*
 
 data class SessionContext(
-	val sessionId: UUID,
 	val systemPrompt: String,
 	val usage: Map<UUID, Usage>,
 	val index: SessionContextIndex,
 	val droppedMessages: List<UUID>?,
 )
-

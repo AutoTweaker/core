@@ -58,7 +58,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 		}
 		
 		//当前轮次
-		add(current.userMessage.toChatMessage(context.summarizedMessage))
+		add(current.userMessage.toChatMessage(context.summarizedMessage?.content))
 		current.turns?.forEach { addTurn(it) }
 	}
 	
@@ -94,7 +94,7 @@ private fun AgentContext.Message.User.toChatMessage(summarizedMessage: String? =
 			appendLine(summarizedMessage)
 			appendLine("</summary>")
 		}
-		append(content ?: "")
+		append(content)
 	}.trimEnd(),
 	createdAt = timestamp,
 	pictures = images,

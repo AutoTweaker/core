@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
 import java.util.*
+import kotlin.time.Instant
 
 sealed class AgentCommand {
 	sealed class Directive : AgentCommand() {
@@ -55,6 +56,7 @@ sealed class AgentCommand {
 			val id: UUID = UUID.randomUUID(),
 			val content: String,
 			val images: List<Base64>? = null,
+			val timestamp: Instant,
 		) : Message()
 		
 		data class ApproveToolCall(

@@ -35,7 +35,7 @@ internal suspend fun handleApprovalPhase(
 	
 	//读取上下文
 	val needs = env.agentState.pendingApproval ?: return PhaseResult.Done
-	val round = env.context.currentRound ?: return PhaseResult.Done
+	val round = env.context.value.currentRound ?: return PhaseResult.Done
 	val pendingCalls = round.pendingToolCalls ?: return PhaseResult.Done
 	//读取assistantMessage
 	val assistantMsg = requireNotNull(round.assistantMessage)

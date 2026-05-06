@@ -28,13 +28,19 @@ data class AgentContext(
 	val compactedRounds: List<CompactedRound>?,
 	val systemPrompt: String?,
 	val historyRounds: List<CompletedRound>?,
-	val summarizedMessage: String?,
+	val summarizedMessage: SummarizedMessage?,
 	val currentRound: CurrentRound?,
 ) {
+	data class SummarizedMessage(
+		val id: UUID,
+		val timestamp: Instant,
+		val content: String,
+	)
+	
 	sealed class Message {
 		data class User(
 			val id: UUID = UUID.randomUUID(),
-			val content: String?,
+			val content: String,
 			val images: List<Base64>? = null,
 			val timestamp: Instant,
 		) : Message()
@@ -80,9 +86,8 @@ data class AgentContext(
 	}
 	
 	data class CompactedRound(
-		val compactedAt: Instant,
 		val rounds: List<CompletedRound>,
-		val summarizedMessage: String
+		val summarizedMessage: SummarizedMessage
 	)
 	
 	data class CompletedRound(
@@ -98,6 +103,7 @@ data class AgentContext(
 		val pendingToolCalls: List<PendingToolCall>? = null,
 	) {
 		data class PendingToolCall(
+			val id: UUID = UUID.randomUUID(),
 			val callId: String,
 			val assistantMessageId: UUID,
 			val name: String,

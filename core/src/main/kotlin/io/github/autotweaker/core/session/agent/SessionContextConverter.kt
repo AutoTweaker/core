@@ -16,11 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.core.session.agent
 
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.llm.Usage
+import io.github.autotweaker.core.session.ModelId
+import io.github.autotweaker.core.session.SessionContext
+import io.github.autotweaker.core.session.SessionContextIndex
+import io.github.autotweaker.core.session.SessionMessage
 import java.util.*
 
 @Suppress("unused")
@@ -29,7 +33,8 @@ object SessionContextConverter {
 		context: SessionContext,
 		messages: List<SessionMessage>,
 		defaultModel: Model,
-		resolveModel: (ModelId) -> Model
+		resolveModel: (ModelId) -> Model,
+		maxCompactedRounds: Int = 0
 	): AgentContext {
 		val messageMap = messages.associateBy { it.id }
 		val safeResolveModel: (ModelId) -> Model = { modelId ->
@@ -40,16 +45,20 @@ object SessionContextConverter {
 			}
 		}
 		
-		val compactedRounds = context.index.compactedRounds?.mapNotNull { compacted ->
+		val compactedRounds = if (maxCompactedRounds <= 0) null
+		else context.index.compactedRounds?.takeLast(maxCompactedRounds)?.mapNotNull { compacted ->
 			if (compacted.rounds.isEmpty()) return@mapNotNull null
 			val compactMsg = messageMap[compacted.summarizedMessage] as? SessionMessage.Compact
 				?: return@mapNotNull null
 			val rounds = compacted.rounds.map { buildCompletedRound(it, messageMap, context.usage, safeResolveModel) }
 			if (rounds.any { it == null }) return@mapNotNull null
 			AgentContext.CompactedRound(
-				compactedAt = compactMsg.timestamp,
 				rounds = rounds.filterNotNull(),
-				summarizedMessage = compactMsg.content
+				summarizedMessage = AgentContext.SummarizedMessage(
+					id = compactMsg.id,
+					timestamp = compactMsg.timestamp,
+					content = compactMsg.content
+				)
 			)
 		}
 		
@@ -63,7 +72,7 @@ object SessionContextConverter {
 		
 		val summarizedMessage = context.index.summarizedMessage
 			?.let { messageMap[it] as? SessionMessage.Compact }
-			?.content
+			?.let { AgentContext.SummarizedMessage(id = it.id, timestamp = it.timestamp, content = it.content) }
 		
 		return AgentContext(
 			compactedRounds = compactedRounds,

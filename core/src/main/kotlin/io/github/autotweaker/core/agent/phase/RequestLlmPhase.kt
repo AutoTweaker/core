@@ -36,7 +36,7 @@ internal suspend fun requestLlmPhase(
 		fallbackModels = env.currentFallbackModels,
 		thinking = env.currentThinking,
 		tools = env.tools.assembleTools(),
-		context = env.context,
+		context = env.context.value,
 	)
 	
 	return when (streamProcessor.process(request)) {

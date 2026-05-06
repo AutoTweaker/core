@@ -150,32 +150,6 @@ class AgentOutputTest {
 	
 	// endregion
 	
-	// region ContextUpdate
-	
-	@Test
-	fun `ContextUpdate with COMPACTED reason`() {
-		val ctx = AgentContext(null, null, null, null, null)
-		val output = AgentOutput.ContextUpdate(ctx, AgentOutput.ContextUpdate.UpdateReason.COMPACTED)
-		assertEquals(ctx, output.context)
-		assertEquals(AgentOutput.ContextUpdate.UpdateReason.COMPACTED, output.reason)
-	}
-	
-	@Test
-	fun `ContextUpdate with LLM reason`() {
-		val ctx = AgentContext(null, null, null, null, null)
-		val output = AgentOutput.ContextUpdate(ctx, AgentOutput.ContextUpdate.UpdateReason.LLM)
-		assertEquals(AgentOutput.ContextUpdate.UpdateReason.LLM, output.reason)
-	}
-	
-	@Test
-	fun `ContextUpdate with null reason`() {
-		val ctx = AgentContext(null, null, null, null, null)
-		val output = AgentOutput.ContextUpdate(ctx, null)
-		assertEquals(ctx, output.context)
-		assertEquals(null, output.reason)
-	}
-	
-	// endregion
 	
 	// region ToolListUpdate
 	
@@ -231,11 +205,6 @@ class AgentOutputTest {
 		)
 		assertIs<AgentOutput>(AgentOutput.ToolOutput("t", "c", "o"))
 		assertIs<AgentOutput>(AgentOutput.ToolCallRequest(emptyList()))
-		assertIs<AgentOutput>(
-			AgentOutput.ContextUpdate(
-				AgentContext(null, null, null, null, null), null
-			)
-		)
 		assertIs<AgentOutput>(AgentOutput.ToolListUpdate(emptyList()))
 		assertIs<AgentOutput>(AgentOutput.Error("e", AgentOutput.Error.Type.LLM))
 	}

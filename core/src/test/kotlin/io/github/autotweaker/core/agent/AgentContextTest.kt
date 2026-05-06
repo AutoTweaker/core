@@ -52,9 +52,9 @@ class AgentContextTest {
 	}
 	
 	@Test
-	fun `User message with null content`() {
-		val msg = AgentContext.Message.User(content = null, timestamp = now)
-		assertNull(msg.content)
+	fun `User message with empty content`() {
+		val msg = AgentContext.Message.User(content = "", timestamp = now)
+		assertEquals("", msg.content)
 	}
 	
 	// endregion
@@ -290,8 +290,14 @@ class AgentContextTest {
 	
 	@Test
 	fun `AgentContext with summarized message`() {
-		val ctx = AgentContext(null, null, null, "previous summary", null)
-		assertEquals("previous summary", ctx.summarizedMessage)
+		val ctx = AgentContext(
+			null,
+			null,
+			null,
+			AgentContext.SummarizedMessage(id = UUID.randomUUID(), timestamp = now, content = "previous summary"),
+			null
+		)
+		assertEquals("previous summary", ctx.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -317,12 +323,19 @@ class AgentContextTest {
 	fun `AgentContext with compacted rounds`() {
 		val userMsg = AgentContext.Message.User(content = "old", timestamp = now)
 		val completedRound = AgentContext.CompletedRound(userMsg, null, null)
-		val compactedRound = AgentContext.CompactedRound(now, listOf(completedRound), "summary")
+		val compactedRound = AgentContext.CompactedRound(
+			rounds = listOf(completedRound),
+			summarizedMessage = AgentContext.SummarizedMessage(
+				id = UUID.randomUUID(),
+				timestamp = now,
+				content = "summary"
+			)
+		)
 		val ctx = AgentContext(listOf(compactedRound), null, null, null, null)
 		
 		val compactedList = ctx.compactedRounds!!
 		assertEquals(1, compactedList.size)
-		assertEquals(now, compactedList[0].compactedAt)
+		assertEquals(now, compactedList[0].summarizedMessage.timestamp)
 	}
 	
 	// endregion

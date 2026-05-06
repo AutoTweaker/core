@@ -30,6 +30,7 @@ import io.github.autotweaker.core.tool.impl.read.SummarizeService
 import io.github.autotweaker.core.tool.impl.read.ToolCallHistory
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.*
@@ -53,7 +54,7 @@ class ToolProviderTest {
 		)
 		every { env.summarizeModel } returns model
 		every { env.currentFallbackModels } returns null
-		every { env.context } returns agentContext
+		every { env.context } returns MutableStateFlow(agentContext)
 	}
 	
 	@AfterTest

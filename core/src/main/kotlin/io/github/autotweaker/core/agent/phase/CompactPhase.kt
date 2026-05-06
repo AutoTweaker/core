@@ -33,6 +33,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.toList
+import java.util.*
 import kotlin.time.Clock
 
 private const val MAX_COMPACT_RETRIES = 5
@@ -78,20 +79,22 @@ internal suspend fun compactPhase(
 	env.updateContext { ctx ->
 		val dropped = ctx.historyRounds?.filter { it.userMessage.id in compactedIds }
 		val remaining = ctx.historyRounds?.filter { it.userMessage.id !in compactedIds }?.ifEmpty { null }
+		val compactMsg = AgentContext.SummarizedMessage(
+			id = UUID.randomUUID(),
+			timestamp = Clock.System.now(),
+			content = cleaned
+		)
 		ctx.copy(
 			historyRounds = remaining,
 			compactedRounds = if (!dropped.isNullOrEmpty()) {
 				(ctx.compactedRounds ?: emptyList()) + AgentContext.CompactedRound(
-					compactedAt = Clock.System.now(),
 					rounds = dropped,
-					summarizedMessage = cleaned,
+					summarizedMessage = compactMsg,
 				)
 			} else ctx.compactedRounds,
-			summarizedMessage = cleaned,
+			summarizedMessage = compactMsg,
 		)
 	}
-	
-	env.emitOutput(AgentOutput.ContextUpdate(env.context, AgentOutput.ContextUpdate.UpdateReason.COMPACTED))
 }
 
 private data class CompactRequestResult(
@@ -251,7 +254,7 @@ private suspend fun convertUserMessage(
 		if (!msg.images.isNullOrEmpty()) {
 			repeat(msg.images.size) { appendLine("<image_placeholder/>") }
 		}
-		append(msg.content ?: "")
+		append(msg.content)
 	}
 	val finalContent = if (content.length > maxMessageChars) {
 		summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)

@@ -48,18 +48,6 @@ sealed class AgentOutput {
 		val pendingToolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
 	) : AgentOutput()
 	
-	data class ContextUpdate(
-		val context: AgentContext,
-		val reason: UpdateReason?,
-	) : AgentOutput() {
-		enum class UpdateReason {
-			COMPACTED,
-			ARCHIVED,
-			TOOL,
-			LLM,
-		}
-	}
-	
 	data class ToolListUpdate(
 		val activeTools: List<Tool>,
 	) : AgentOutput()

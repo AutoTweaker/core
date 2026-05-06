@@ -24,6 +24,7 @@ import io.github.autotweaker.core.agent.llm.Provider
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
@@ -35,7 +36,7 @@ class RequestLlmPhaseTest {
 	private lateinit var streamProcessor: AgentStreamProcessor
 	private lateinit var agentState: MutableAgentState
 	private lateinit var model: Model
-	private var contextValue: AgentContext = AgentContext(null, null, null, null, null)
+	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val statusLog = mutableListOf<AgentStatus>()
 	
 	@BeforeTest
@@ -54,12 +55,11 @@ class RequestLlmPhaseTest {
 		every { env.toolRejectedMessage } returns "Tool rejected"
 		every { env.toolRejectedWithFeedbackMessage } returns "Tool rejected: %s"
 		
-		contextValue = AgentContext(null, null, null, null, null)
-		every { env.context } answers { contextValue }
-		every { env.context = any() } answers { contextValue = firstArg() }
+		_contextFlow.value = AgentContext(null, null, null, null, null)
+		every { env.context } returns _contextFlow
 		coEvery { env.updateContext(any()) } answers {
 			val transform = firstArg<suspend (AgentContext) -> AgentContext>()
-			runBlocking { contextValue = transform(contextValue) }
+			runBlocking { _contextFlow.value = transform(_contextFlow.value) }
 		}
 		coEvery { env.emitOutput(any()) } returns Unit
 		statusLog.clear()
@@ -72,14 +72,14 @@ class RequestLlmPhaseTest {
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("done"),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Completed
 		
 		val result = requestLlmPhase(env, streamProcessor)
 		
 		assertEquals(PhaseResult.Done, result)
-		assertNull(contextValue.currentRound)
-		assertNotNull(contextValue.historyRounds)
+		assertNull(_contextFlow.value.currentRound)
+		assertNotNull(_contextFlow.value.historyRounds)
 		assertTrue(statusLog.contains(AgentStatus.FREE))
 	}
 	
@@ -89,7 +89,7 @@ class RequestLlmPhaseTest {
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("calling tools"),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.ToolCallsRequired(emptyList())
 		
 		val result = requestLlmPhase(env, streamProcessor)
@@ -103,14 +103,14 @@ class RequestLlmPhaseTest {
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("cancelled"),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Cancelled
 		
 		val result = requestLlmPhase(env, streamProcessor)
 		
 		assertEquals(PhaseResult.Done, result)
-		assertNull(contextValue.currentRound)
-		assertNotNull(contextValue.historyRounds)
+		assertNull(_contextFlow.value.currentRound)
+		assertNotNull(_contextFlow.value.historyRounds)
 		assertTrue(statusLog.contains(AgentStatus.FREE))
 	}
 	
@@ -120,7 +120,7 @@ class RequestLlmPhaseTest {
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("failed"),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Failed("LLM error")
 		
 		val result = requestLlmPhase(env, streamProcessor)
@@ -136,7 +136,7 @@ class RequestLlmPhaseTest {
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("done"),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		requestLlmPhase(env, streamProcessor)
 		

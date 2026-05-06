@@ -144,7 +144,17 @@ class AgentChatRequestExtTest {
 	@Test
 	fun `summarized message included in user content`() {
 		val user = userMsg("continue")
-		val ctx = AgentContext(null, null, null, "previous summary", currentRound(user))
+		val ctx = AgentContext(
+			null,
+			null,
+			null,
+			AgentContext.SummarizedMessage(
+				id = UUID.randomUUID(),
+				timestamp = Clock.System.now(),
+				content = "previous summary"
+			),
+			currentRound(user)
+		)
 		val req = request(context = ctx)
 		
 		val chatReq = req.toChatRequest()

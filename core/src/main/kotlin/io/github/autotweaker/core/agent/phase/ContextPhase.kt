@@ -20,7 +20,6 @@ package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.AgentOutput
 import kotlin.time.Clock
 
 //归档当前round
@@ -29,7 +28,7 @@ internal suspend fun archiveCurrentRound(
 	updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
 ) {
 	//读取当前round
-	val round = env.context.currentRound ?: return
+	val round = env.context.value.currentRound ?: return
 	
 	//当前round啥也没有（只有用户消息），直接丢弃
 	if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
@@ -71,7 +70,6 @@ internal suspend fun archiveCurrentRound(
 			historyRounds = ctx.historyRounds.orEmpty() + completed,
 		)
 	}
-	env.emitOutput(AgentOutput.ContextUpdate(env.context, AgentOutput.ContextUpdate.UpdateReason.ARCHIVED))
 }
 
 //将处理完的工具连同assistantMessage转为一个Turn并继续
@@ -84,7 +82,7 @@ internal suspend fun writeToolTurn(
 	val tools = env.agentState.processedTools.orEmpty()
 	env.agentState.processedTools = null
 	if (tools.isEmpty()) return PhaseResult.Done
-	env.context.currentRound ?: return PhaseResult.Done
+	env.context.value.currentRound ?: return PhaseResult.Done
 	//更新上下文
 	updateContext { ctx ->
 		val cr = ctx.currentRound ?: return@updateContext ctx
@@ -109,7 +107,6 @@ internal suspend fun writeToolTurn(
 			ctx.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
 		}
 	}
-	env.emitOutput(AgentOutput.ContextUpdate(env.context, AgentOutput.ContextUpdate.UpdateReason.TOOL))
 	return PhaseResult.Continue
 }
 

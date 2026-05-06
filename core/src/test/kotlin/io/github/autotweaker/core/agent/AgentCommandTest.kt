@@ -22,6 +22,7 @@ import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk
 import kotlin.test.*
+import kotlin.time.Clock
 
 class AgentCommandTest {
 	
@@ -108,7 +109,7 @@ class AgentCommandTest {
 	
 	@Test
 	fun `SendMessage holds content string`() {
-		val msg = AgentCommand.Message.SendMessage(content = "hello world")
+		val msg = AgentCommand.Message.SendMessage(content = "hello world", timestamp = Clock.System.now())
 		assertEquals("hello world", msg.content)
 		assertNull(msg.images)
 	}
@@ -116,14 +117,15 @@ class AgentCommandTest {
 	@Test
 	fun `SendMessage with images`() {
 		val img = Base64("aaaa")
-		val msg = AgentCommand.Message.SendMessage(content = "hello", images = listOf(img))
+		val msg =
+			AgentCommand.Message.SendMessage(content = "hello", images = listOf(img), timestamp = Clock.System.now())
 		assertEquals("hello", msg.content)
 		assertEquals(listOf(img), msg.images)
 	}
 	
 	@Test
 	fun `SendMessage with empty content`() {
-		val msg = AgentCommand.Message.SendMessage(content = "")
+		val msg = AgentCommand.Message.SendMessage(content = "", timestamp = Clock.System.now())
 		assertEquals("", msg.content)
 	}
 	
@@ -169,7 +171,7 @@ class AgentCommandTest {
 	
 	@Test
 	fun `Message is AgentCommand`() {
-		assertIs<AgentCommand>(AgentCommand.Message.SendMessage(content = "hi"))
+		assertIs<AgentCommand>(AgentCommand.Message.SendMessage(content = "hi", timestamp = Clock.System.now()))
 		assertIs<AgentCommand>(AgentCommand.Message.ApproveToolCall(emptyList()))
 	}
 	

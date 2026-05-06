@@ -33,6 +33,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 class AgentTest {
@@ -308,7 +309,7 @@ class AgentTest {
 	
 	@Test
 	fun `dispatch Stop archives context when current round exists`() = runBlocking {
-		val now = kotlin.time.Clock.System.now()
+		val now = Clock.System.now()
 		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
 		val currentRound = AgentContext.CurrentRound(userMsg, null)
 		val ctx = AgentContext(null, null, null, null, currentRound)
@@ -374,7 +375,7 @@ class AgentTest {
 	fun `dispatch SendMessage when FREE triggers message processing`() {
 		runBlocking {
 			val agent = createAgent()
-			agent.dispatch(AgentCommand.Message.SendMessage(content = "hello world"))
+			agent.dispatch(AgentCommand.Message.SendMessage(content = "hello world", timestamp = Clock.System.now()))
 			delay(500.milliseconds)
 			assertNotNull(agent.status)
 		}

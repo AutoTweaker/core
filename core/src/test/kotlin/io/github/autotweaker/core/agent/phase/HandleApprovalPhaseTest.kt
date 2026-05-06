@@ -26,6 +26,7 @@ import io.github.autotweaker.core.agent.tool.Tools
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
@@ -38,7 +39,7 @@ class HandleApprovalPhaseTest {
 	private lateinit var env: AgentEnvironment
 	private lateinit var agentState: MutableAgentState
 	private lateinit var model: Model
-	private var contextValue: AgentContext = AgentContext(null, null, null, null, null)
+	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val statusLog = mutableListOf<AgentStatus>()
 	private val executedTools = mutableListOf<AgentContext.Message.Tool>()
 	private val emittedOutputs = mutableListOf<AgentOutput>()
@@ -66,12 +67,11 @@ class HandleApprovalPhaseTest {
 		every { env.toolRejectedWithFeedbackMessage } returns "Tool rejected: %s"
 		every { env.status } returns AgentStatus.PROCESSING
 		
-		contextValue = AgentContext(null, null, null, null, null)
-		every { env.context } answers { contextValue }
-		every { env.context = any() } answers { contextValue = firstArg() }
+		_contextFlow.value = AgentContext(null, null, null, null, null)
+		every { env.context } returns _contextFlow
 		coEvery { env.updateContext(any()) } answers {
 			val transform = firstArg<suspend (AgentContext) -> AgentContext>()
-			runBlocking { contextValue = transform(contextValue) }
+			runBlocking { _contextFlow.value = transform(_contextFlow.value) }
 		}
 		coEvery { env.emitOutput(any()) } answers { emittedOutputs.add(firstArg()) }
 		every { env.updateStatus(any()) } answers { statusLog.add(firstArg()) }
@@ -89,7 +89,7 @@ class HandleApprovalPhaseTest {
 	@Test
 	fun `returns Done when no currentRound`() = runTest {
 		agentState.pendingApproval = listOf(mockk(relaxed = true))
-		contextValue = AgentContext(null, null, null, null, null)
+		_contextFlow.value = AgentContext(null, null, null, null, null)
 		
 		val result = handleApprovalPhase(env, emptyList(), executeTool)
 		
@@ -104,7 +104,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMessage("ok"),
 			pendingToolCalls = null,
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val result = handleApprovalPhase(env, emptyList(), executeTool)
 		
@@ -122,7 +122,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
 		val result = handleApprovalPhase(env, approvals, executeTool)
@@ -130,8 +130,8 @@ class HandleApprovalPhaseTest {
 		assertEquals(PhaseResult.Continue, result)
 		assertEquals(1, executedTools.size)
 		assertNull(agentState.pendingApproval)
-		assertNotNull(contextValue.currentRound?.turns)
-		assertEquals(1, contextValue.currentRound!!.turns!!.size)
+		assertNotNull(_contextFlow.value.currentRound?.turns)
+		assertEquals(1, _contextFlow.value.currentRound!!.turns!!.size)
 	}
 	
 	@Test
@@ -146,7 +146,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = false, reason = "unsafe"))
 		val result = handleApprovalPhase(env, approvals, executeTool)
@@ -154,7 +154,7 @@ class HandleApprovalPhaseTest {
 		assertEquals(PhaseResult.Continue, result)
 		assertEquals(0, executedTools.size)
 		assertNull(agentState.pendingApproval)
-		val turns = contextValue.currentRound?.turns
+		val turns = _contextFlow.value.currentRound?.turns
 		assertNotNull(turns)
 		assertEquals(1, turns.size)
 		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, turns[0].tools[0].result.status)
@@ -175,7 +175,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call1, call2),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
 		val result = handleApprovalPhase(env, approvals, executeTool)
@@ -184,7 +184,7 @@ class HandleApprovalPhaseTest {
 		assertEquals(AgentStatus.WAITING, statusLog.last())
 		assertEquals(1, agentState.pendingApproval!!.size)
 		assertEquals("c2", agentState.pendingApproval!![0].callId)
-		val pending = contextValue.currentRound?.pendingToolCalls
+		val pending = _contextFlow.value.currentRound?.pendingToolCalls
 		assertNotNull(pending)
 		assertEquals(1, pending.size)
 		assertEquals("c2", pending[0].callId)
@@ -206,7 +206,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call1, call2, call3),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		every { env.status } returnsMany listOf(AgentStatus.PROCESSING, AgentStatus.PAUSED)
 		
@@ -234,7 +234,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = null,
 			pendingToolCalls = listOf(call),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
 		assertFailsWith<IllegalArgumentException> {
@@ -259,40 +259,19 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
 		val result = handleApprovalPhase(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertNull(agentState.pendingApproval)
-		val turns = contextValue.currentRound?.turns
+		val turns = _contextFlow.value.currentRound?.turns
 		assertNotNull(turns)
 		assertEquals(1, turns.size)
 		assertEquals(2, turns[0].tools.size)
 	}
 	
-	@Test
-	fun `emits ContextUpdate on writeToolTurn`() = runTest {
-		val call = pendingToolCall("c1")
-		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
-		)
-		val assistantMsg = assistantMessage("assistant")
-		val round = AgentContext.CurrentRound(
-			userMessage = userMessage(), turns = null,
-			assistantMessage = assistantMsg,
-			pendingToolCalls = listOf(call),
-		)
-		contextValue = AgentContext(null, null, null, null, round)
-		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
-		handleApprovalPhase(env, approvals, executeTool)
-		
-		val update = emittedOutputs.firstOrNull { it is AgentOutput.ContextUpdate }
-		assertNotNull(update)
-		assertEquals(AgentOutput.ContextUpdate.UpdateReason.TOOL, (update as AgentOutput.ContextUpdate).reason)
-	}
 	
 	@Test
 	fun `approved with reason archives round and starts new round with reason`() = runTest {
@@ -306,16 +285,16 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "allowed"))
 		val result = handleApprovalPhase(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertTrue(agentState.approvalReasons.isEmpty())
-		assertNotNull(contextValue.historyRounds)
-		assertEquals(1, contextValue.historyRounds!!.size)
-		val cr = contextValue.currentRound
+		assertNotNull(_contextFlow.value.historyRounds)
+		assertEquals(1, _contextFlow.value.historyRounds!!.size)
+		val cr = _contextFlow.value.currentRound
 		assertNotNull(cr)
 		assertEquals("allowed", cr.userMessage.content)
 		assertNull(cr.turns)
@@ -333,14 +312,14 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
 		val result = handleApprovalPhase(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
-		assertNull(contextValue.historyRounds)
-		val cr = contextValue.currentRound
+		assertNull(_contextFlow.value.historyRounds)
+		val cr = _contextFlow.value.currentRound
 		assertNotNull(cr)
 		assertNotNull(cr.turns)
 		assertEquals(1, cr.turns.size)
@@ -360,7 +339,7 @@ class HandleApprovalPhaseTest {
 			assistantMessage = assistantMsg,
 			pendingToolCalls = listOf(call1, call2),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(
 			AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "reason1"),
@@ -370,8 +349,8 @@ class HandleApprovalPhaseTest {
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertTrue(agentState.approvalReasons.isEmpty())
-		assertNotNull(contextValue.historyRounds)
-		val cr = contextValue.currentRound
+		assertNotNull(_contextFlow.value.historyRounds)
+		val cr = _contextFlow.value.currentRound
 		assertNotNull(cr)
 		assertEquals("reason1\n---\nreason2", cr.userMessage.content)
 	}

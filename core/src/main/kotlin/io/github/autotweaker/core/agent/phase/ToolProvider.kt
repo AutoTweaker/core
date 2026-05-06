@@ -42,6 +42,6 @@ internal fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
 		SummarizeServiceImpl(env.summarizeModel, env.currentFallbackModels),
 	)
 	container.register(BashService::class, BashServiceImpl(workspace.path, workspace.inContainer, config.workDir))
-	container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context))
+	container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context.value))
 	return container
 }

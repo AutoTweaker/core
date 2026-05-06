@@ -94,9 +94,6 @@ class AgentStreamProcessorTest {
 		assertTrue(emittedOutputs.any {
 			it is AgentOutput.StreamDelta && it.delta.content == "hi"
 		})
-		assertTrue(emittedOutputs.any {
-			it is AgentOutput.ContextUpdate && it.reason == AgentOutput.ContextUpdate.UpdateReason.LLM
-		})
 	}
 	
 	@Test

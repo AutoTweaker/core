@@ -18,12 +18,9 @@
 
 package io.github.autotweaker.core.session
 
-import java.util.*
-
-data class SessionData(
-	val id: UUID,
-	val title: String?,
-	val workspaceName: String?,
-	
-	val config: SessionConfig,
+data class SessionConfig(
+	val model: ModelId,
+	val fallbackModel: List<ModelId>?,
+	val summarizeModel: ModelId,
+	val thinking: Boolean,
 )

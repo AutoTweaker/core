@@ -26,6 +26,7 @@ import io.github.autotweaker.core.agent.tool.Tools
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
@@ -39,7 +40,7 @@ class ValidateToolCallsPhaseTest {
 	private lateinit var agentState: MutableAgentState
 	private lateinit var tools: Tools
 	private lateinit var model: Model
-	private var contextValue: AgentContext = AgentContext(null, null, null, null, null)
+	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val emittedOutputs = mutableListOf<AgentOutput>()
 	private val statusLog = mutableListOf<AgentStatus>()
 	
@@ -57,12 +58,11 @@ class ValidateToolCallsPhaseTest {
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
 		every { env.toolRejectedWithFeedbackMessage } returns "Tool rejected: %s"
-		contextValue = AgentContext(null, null, null, null, null)
-		every { env.context } answers { contextValue }
-		every { env.context = any() } answers { contextValue = firstArg() }
+		_contextFlow.value = AgentContext(null, null, null, null, null)
+		every { env.context } returns _contextFlow
 		coEvery { env.updateContext(any()) } answers {
 			val transform = firstArg<suspend (AgentContext) -> AgentContext>()
-			runBlocking { contextValue = transform(contextValue) }
+			runBlocking { _contextFlow.value = transform(_contextFlow.value) }
 		}
 		coEvery { env.emitOutput(any()) } answers { emittedOutputs.add(firstArg()) }
 		every { env.updateStatus(any()) } answers { statusLog.add(firstArg()) }
@@ -70,7 +70,7 @@ class ValidateToolCallsPhaseTest {
 	
 	@Test
 	fun `returns Done when no currentRound`() = runTest {
-		contextValue = AgentContext(null, null, null, null, null)
+		_contextFlow.value = AgentContext(null, null, null, null, null)
 		
 		val result = validateToolCallsPhase(env)
 		
@@ -80,7 +80,7 @@ class ValidateToolCallsPhaseTest {
 	@Test
 	fun `returns Done when no pendingToolCalls`() = runTest {
 		val round = currentRound(pendingToolCalls = null, assistantMessage = assistantMessage())
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val result = validateToolCallsPhase(env)
 		
@@ -94,7 +94,7 @@ class ValidateToolCallsPhaseTest {
 			assistantMessage = null,
 			pendingToolCalls = listOf(pendingToolCall("c1")),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		assertFailsWith<IllegalArgumentException> {
 			validateToolCallsPhase(env)
@@ -109,7 +109,7 @@ class ValidateToolCallsPhaseTest {
 			pendingToolCalls = listOf(call1, call2),
 			assistantMessage = assistantMessage(),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		every { tools.resolveToolCalls(any()) } returns listOf(
 			Tools.ToolCallResolveResult.ParseFailure("c1", "Invalid JSON"),
@@ -119,7 +119,7 @@ class ValidateToolCallsPhaseTest {
 		val result = validateToolCallsPhase(env)
 		
 		assertEquals(PhaseResult.Continue, result)
-		val turns = contextValue.currentRound?.turns
+		val turns = _contextFlow.value.currentRound?.turns
 		assertNotNull(turns)
 		assertEquals(1, turns.size)
 		assertEquals(2, turns[0].tools.size)
@@ -128,7 +128,7 @@ class ValidateToolCallsPhaseTest {
 		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, turns[0].tools[1].result.status)
 		assertEquals("Function not found", turns[0].tools[1].result.content)
 		assertNull(agentState.pendingApproval)
-		assertNull(contextValue.currentRound?.pendingToolCalls)
+		assertNull(_contextFlow.value.currentRound?.pendingToolCalls)
 	}
 	
 	@Test
@@ -139,7 +139,7 @@ class ValidateToolCallsPhaseTest {
 			pendingToolCalls = listOf(call1, call2),
 			assistantMessage = assistantMessage(),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val vs1 = validationSuccess("bash", "run")
 		val vs2 = validationSuccess("read", "file")
@@ -166,7 +166,7 @@ class ValidateToolCallsPhaseTest {
 			pendingToolCalls = listOf(call1, call2),
 			assistantMessage = assistantMessage(),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		every { tools.resolveToolCalls(any()) } returns listOf(
 			Tools.ToolCallResolveResult.ParseFailure("c1", "Bad JSON"),
@@ -184,7 +184,7 @@ class ValidateToolCallsPhaseTest {
 		assertNotNull(agentState.pendingApproval)
 		assertEquals(1, agentState.pendingApproval!!.size)
 		assertEquals("c2", agentState.pendingApproval!![0].callId)
-		val pending = contextValue.currentRound?.pendingToolCalls
+		val pending = _contextFlow.value.currentRound?.pendingToolCalls
 		assertNotNull(pending)
 		assertEquals(1, pending.size)
 		assertEquals("c2", pending[0].callId)
@@ -196,7 +196,7 @@ class ValidateToolCallsPhaseTest {
 			pendingToolCalls = listOf(pendingToolCall("c1")),
 			assistantMessage = assistantMessage(),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		every { tools.resolveToolCalls(any()) } returns listOf(
 			Tools.ToolCallResolveResult.ParseFailure("c1", "error"),
 		)
@@ -213,7 +213,7 @@ class ValidateToolCallsPhaseTest {
 			pendingToolCalls = listOf(call),
 			assistantMessage = assistantMessage(),
 		)
-		contextValue = AgentContext(null, null, null, null, round)
+		_contextFlow.value = AgentContext(null, null, null, null, round)
 		every { tools.resolveToolCalls(any()) } returns listOf(
 			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)

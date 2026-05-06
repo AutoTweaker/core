@@ -27,7 +27,7 @@ import io.github.autotweaker.core.agent.tool.Tools
 internal suspend fun validateToolCallsPhase(env: AgentEnvironment): PhaseResult {
 	env.updateStatus(AgentStatus.PROCESSING)
 	//读取上下文
-	val round = env.context.currentRound ?: return PhaseResult.Done
+	val round = env.context.value.currentRound ?: return PhaseResult.Done
 	val pendingCalls = round.pendingToolCalls ?: return PhaseResult.Done
 	val assistantMsg = requireNotNull(round.assistantMessage)
 	//解析工具调用

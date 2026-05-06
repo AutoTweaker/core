@@ -33,6 +33,7 @@ import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -46,7 +47,7 @@ class CompactPhaseTest {
 	private lateinit var env: AgentEnvironment
 	private lateinit var agentState: MutableAgentState
 	private lateinit var model: Model
-	private var contextValue: AgentContext = AgentContext(null, null, null, null, null)
+	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val capturedOutputs = mutableListOf<AgentOutput>()
 	private val settings = listOf(
 		SettingItem(SettingKey("core.agent.compact.prompt"), SettingItem.Value.ValString("Summarize conversation"), ""),
@@ -70,17 +71,16 @@ class CompactPhaseTest {
 		every { env.toolRejectedMessage } returns "Tool rejected"
 		every { env.toolRejectedWithFeedbackMessage } returns "Tool rejected: %s"
 		
-		contextValue = AgentContext(
+		_contextFlow.value = AgentContext(
 			compactedRounds = null, systemPrompt = null,
 			historyRounds = listOf(),
 			summarizedMessage = null,
 			currentRound = null,
 		)
-		every { env.context } answers { contextValue }
-		every { env.context = any() } answers { contextValue = firstArg() }
+		every { env.context } returns _contextFlow
 		coEvery { env.updateContext(any()) } answers {
 			val transform = firstArg<suspend (AgentContext) -> AgentContext>()
-			runBlocking { contextValue = transform(contextValue) }
+			runBlocking { _contextFlow.value = transform(_contextFlow.value) }
 		}
 		coEvery { env.emitOutput(any()) } answers { capturedOutputs.add(firstArg()) }
 		
@@ -122,13 +122,7 @@ class CompactPhaseTest {
 		
 		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
-		assertEquals("compacted conversation summary", contextValue.summarizedMessage)
-		val contextUpdate = capturedOutputs.firstOrNull { it is AgentOutput.ContextUpdate }
-		assertNotNull(contextUpdate)
-		assertEquals(
-			AgentOutput.ContextUpdate.UpdateReason.COMPACTED,
-			(contextUpdate as AgentOutput.ContextUpdate).reason
-		)
+		assertEquals("compacted conversation summary", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -225,7 +219,7 @@ class CompactPhaseTest {
 		
 		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
-		assertEquals("real summary here", contextValue.summarizedMessage)
+		assertEquals("real summary here", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -272,8 +266,8 @@ class CompactPhaseTest {
 		
 		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
-		assertEquals("done", contextValue.summarizedMessage)
-		assertNotNull(contextValue.summarizedMessage)
+		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
+		assertNotNull(_contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -400,7 +394,7 @@ class CompactPhaseTest {
 		
 		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
-		assertEquals("summary with images", contextValue.summarizedMessage)
+		assertEquals("summary with images", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -457,7 +451,7 @@ class CompactPhaseTest {
 			settings = longContentSettings
 		)
 		
-		assertEquals("compacted", contextValue.summarizedMessage)
+		assertEquals("compacted", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -518,7 +512,7 @@ class CompactPhaseTest {
 			settings = longContentSettings
 		)
 		
-		assertEquals("done", contextValue.summarizedMessage)
+		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -535,7 +529,7 @@ class CompactPhaseTest {
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(
-				userMessage = AgentContext.Message.User(content = null, timestamp = Clock.System.now()),
+				userMessage = AgentContext.Message.User(content = "", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = null, reasoning = null, model = model,
@@ -546,7 +540,7 @@ class CompactPhaseTest {
 		
 		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
-		assertEquals("done", contextValue.summarizedMessage)
+		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
@@ -601,7 +595,7 @@ class CompactPhaseTest {
 			settings = fallbackSettings
 		)
 		
-		assertEquals("final", contextValue.summarizedMessage)
+		assertEquals("final", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test

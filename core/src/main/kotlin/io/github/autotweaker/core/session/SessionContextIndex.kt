@@ -53,4 +53,29 @@ data class SessionContextIndex(
 			val result: UUID,
 		)
 	}
+	
+	companion object {
+		fun collectCompletedRoundIds(round: CompactedRound.CompletedRound, ids: MutableSet<UUID>) {
+			ids.add(round.userMessage)
+			round.finalAssistantMessage?.let { ids.add(it) }
+			collectTurnIds(round.turns, ids)
+		}
+		
+		fun collectCurrentRoundIds(round: CurrentRound, ids: MutableSet<UUID>) {
+			ids.add(round.userMessage)
+			round.assistantMessage?.let { ids.add(it) }
+			round.pendingToolCalls?.forEach { ids.add(it) }
+			collectTurnIds(round.turns, ids)
+		}
+		
+		private fun collectTurnIds(turns: List<Turn>?, ids: MutableSet<UUID>) {
+			turns?.forEach { turn ->
+				ids.add(turn.assistantMessage)
+				turn.tools.forEach { tool ->
+					ids.add(tool.call)
+					ids.add(tool.result)
+				}
+			}
+		}
+	}
 }

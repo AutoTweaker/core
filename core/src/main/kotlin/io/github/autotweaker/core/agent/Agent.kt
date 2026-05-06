@@ -31,15 +31,12 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.selects.select
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.*
-import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 class Agent(
-	val id: UUID = UUID.randomUUID(),
-	override var context: AgentContext,
+	context: AgentContext,
 	override val workspace: Workspace,
 	model: Model,
 	fallbackModels: List<Model>?,
@@ -54,16 +51,16 @@ class Agent(
 	override val toolRejectedWithFeedbackMessage: String =
 		settings.find("core.agent.tool.response.rejected.with.feedback")
 	
+	val id: UUID = UUID.randomUUID()
+	
 	//工具状态
 	override val agentState = MutableAgentState()
 	
-	//上下文锁
-	override val contextMutex = Mutex()
+	private val _context = MutableStateFlow(context)
+	override val context: StateFlow<AgentContext> = _context.asStateFlow()
 	
 	override suspend fun updateContext(transform: suspend (AgentContext) -> AgentContext) {
-		contextMutex.withLock {
-			context = transform(context)
-		}
+		_context.update { transform(it) }
 	}
 	
 	//工具列表
@@ -204,7 +201,7 @@ class Agent(
 				//如果非空闲丢弃消息
 				if (_status.value != AgentStatus.FREE) return
 				//处理消息
-				processUserMessage(message.id, message.content, message.images)
+				processUserMessage(message.id, message.content, message.images, message.timestamp)
 			}
 			
 			is AgentCommand.Message.ApproveToolCall -> {
@@ -231,13 +228,18 @@ class Agent(
 	}
 	
 	//处理用户消息
-	private suspend fun processUserMessage(id: UUID, content: String, images: List<Base64>? = null) {
+	private suspend fun processUserMessage(
+		id: UUID,
+		content: String,
+		images: List<Base64>? = null,
+		timestamp: Instant
+	) {
 		//构建Message.User
 		val userMsg = AgentContext.Message.User(
 			id = id,
 			content = content,
 			images = images,
-			timestamp = Clock.System.now()
+			timestamp = timestamp
 		)
 		//更新上下文
 		updateContext {
@@ -259,7 +261,7 @@ class Agent(
 	
 	//根据AgentContext判断下一步动作
 	private fun detectNextAction(): NextAction {
-		val round = context.currentRound ?: return NextAction.IDLE
+		val round = _context.value.currentRound ?: return NextAction.IDLE
 		if (round.pendingToolCalls != null) return NextAction.EXECUTE_TOOLS
 		if (round.turns?.lastOrNull()?.tools?.isNotEmpty() == true) return NextAction.REQUEST_LLM
 		if (round.turns.isNullOrEmpty()) return NextAction.REQUEST_LLM
@@ -288,7 +290,7 @@ class Agent(
 	//启动compact
 	private fun launchCompact() {
 		if (compactJob?.isActive == true) return
-		val rounds = context.historyRounds
+		val rounds = _context.value.historyRounds
 		if (rounds.isNullOrEmpty()) return
 		compactJob = scope.launch {
 			compactPhase(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
@@ -298,7 +300,7 @@ class Agent(
 	//compact检查
 	private fun checkAutoCompact() {
 		if (compactJob?.isActive == true) return
-		val rounds = context.historyRounds
+		val rounds = _context.value.historyRounds
 		if (rounds.isNullOrEmpty()) return
 		val config = currentModel.config ?: return
 		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usage ?: return

@@ -74,13 +74,6 @@ class AgentStreamProcessor(
 							ctx.copy(currentRound = updatedRound)
 						}
 						
-						emitOutput(
-							AgentOutput.ContextUpdate(
-								context = request.context,
-								reason = AgentOutput.ContextUpdate.UpdateReason.LLM,
-							)
-						)
-						
 						if (!resultToolCalls.isNullOrEmpty()) {
 							emitOutput(AgentOutput.ToolCallRequest(resultToolCalls))
 							earlyResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
