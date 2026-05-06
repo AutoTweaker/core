@@ -1,0 +1,189 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.core.data.session
+
+import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.session.SessionContext
+import io.github.autotweaker.core.session.SessionData
+import io.github.autotweaker.core.session.SessionMessage
+import io.github.autotweaker.core.session.SessionStore
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.upsert
+import java.util.*
+
+@Suppress("unused")
+class SessionStoreImpl : SessionStore {
+	private val store = H2DatabaseStore()
+	private var initialized = false
+	
+	@Synchronized
+	fun init() {
+		if (initialized) return
+		store.connect("Sessions")
+		transaction {
+			SchemaUtils.create(SessionDataTable, SessionContextTable, SessionMessageTable)
+		}
+		initialized = true
+	}
+	
+	private fun ensureInit() {
+		if (!initialized) init()
+	}
+	
+	// region Sessions
+	
+	override suspend fun saveSessions(sessionData: List<SessionData>) {
+		ensureInit()
+		transaction {
+			sessionData.forEach { data ->
+				SessionDataTable.upsert {
+					it[id] = data.id.toString()
+					it[title] = data.title
+					it[workspaceName] = data.workspaceName
+					fillConfig(it, data.config)
+				}
+			}
+		}
+	}
+	
+	override suspend fun loadSessions(ids: List<UUID>): List<SessionData>? {
+		ensureInit()
+		return transaction {
+			val idStrings = ids.map { it.toString() }
+			val rows = SessionDataTable.selectAll().where { SessionDataTable.id inList idStrings }
+			if (rows.empty()) null
+			else rows.map { it.toSessionData() }
+		}
+	}
+	
+	override suspend fun loadAllSessions(): List<SessionData>? {
+		ensureInit()
+		return transaction {
+			val rows = SessionDataTable.selectAll()
+			if (rows.empty()) null
+			else rows.map { it.toSessionData() }
+		}
+	}
+	
+	override suspend fun deleteSessions(id: List<UUID>) {
+		ensureInit()
+		val idStrings = id.map { it.toString() }
+		transaction {
+			SessionDataTable.deleteWhere { SessionDataTable.id inList idStrings }
+			SessionContextTable.deleteWhere { SessionContextTable.sessionId inList idStrings }
+		}
+	}
+	
+	private fun org.jetbrains.exposed.v1.core.ResultRow.toSessionData(): SessionData {
+		return SessionData(
+			id = UUID.fromString(this[SessionDataTable.id]),
+			title = this[SessionDataTable.title],
+			workspaceName = this[SessionDataTable.workspaceName],
+			config = SessionDataTable.readConfig(this),
+		)
+	}
+	
+	// endregion
+	
+	// region Context
+	
+	override suspend fun saveContext(sessionId: UUID, context: SessionContext) {
+		ensureInit()
+		transaction {
+			SessionContextTable.upsert {
+				it[SessionContextTable.sessionId] = sessionId.toString()
+				it[systemPrompt] = context.systemPrompt
+				fillUsage(it, context.usage)
+				fillIndex(it, context.index)
+				fillDroppedMessages(it, context.droppedMessages)
+			}
+		}
+	}
+	
+	override suspend fun loadContext(sessionId: UUID): SessionContext? {
+		ensureInit()
+		return transaction {
+			SessionContextTable.selectAll()
+				.where { SessionContextTable.sessionId eq sessionId.toString() }
+				.singleOrNull()
+				?.let { row ->
+					SessionContext(
+						systemPrompt = row[SessionContextTable.systemPrompt],
+						usage = SessionContextTable.readUsage(row),
+						index = SessionContextTable.readIndex(row),
+						droppedMessages = SessionContextTable.readDroppedMessages(row),
+					)
+				}
+		}
+	}
+	
+	override suspend fun deleteContext(sessionId: UUID) {
+		ensureInit()
+		transaction {
+			SessionContextTable.deleteWhere { SessionContextTable.sessionId eq sessionId.toString() }
+		}
+	}
+	
+	// endregion
+	
+	// region Messages
+	
+	override suspend fun saveMessages(messages: List<SessionMessage>) {
+		ensureInit()
+		transaction {
+			messages.forEach { msg ->
+				SessionMessageTable.upsert {
+					it[id] = msg.id.toString()
+					it[type] = typeOf(msg)
+					it[timestamp] = msg.timestamp.toEpochMilliseconds()
+					fillContent(it, msg)
+				}
+			}
+		}
+	}
+	
+	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>? {
+		ensureInit()
+		return transaction {
+			val idStrings = ids.map { it.toString() }
+			val rows = SessionMessageTable.selectAll().where { SessionMessageTable.id inList idStrings }
+			if (rows.empty()) null
+			else rows.map { it.toSessionMessage() }
+		}
+	}
+	
+	override suspend fun deleteMessages(ids: List<UUID>) {
+		ensureInit()
+		val idStrings = ids.map { it.toString() }
+		transaction {
+			SessionMessageTable.deleteWhere { SessionMessageTable.id inList idStrings }
+		}
+	}
+	
+	private fun org.jetbrains.exposed.v1.core.ResultRow.toSessionMessage(): SessionMessage {
+		return SessionMessageTable.readContent(this)
+	}
+	
+	// endregion
+}

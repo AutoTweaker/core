@@ -18,38 +18,63 @@
 
 package io.github.autotweaker.core.session
 
+import io.github.autotweaker.core.data.session.UuidListSerializer
+import io.github.autotweaker.core.data.session.UuidSerializer
+import kotlinx.serialization.Serializable
 import java.util.*
 
+@Serializable
 data class SessionContextIndex(
 	val compactedRounds: List<CompactedRound>?,
 	val historyRounds: List<CompactedRound.CompletedRound>?,
 	val currentRound: CurrentRound?,
+	
+	@Serializable(with = UuidSerializer::class)
 	val summarizedMessage: UUID?,
 ) {
+	@Serializable
 	data class CompactedRound(
 		val rounds: List<CompletedRound>,
+		
+		@Serializable(with = UuidSerializer::class)
 		val summarizedMessage: UUID,
 	) {
+		@Serializable
 		data class CompletedRound(
+			@Serializable(with = UuidSerializer::class)
 			val userMessage: UUID,
 			val turns: List<Turn>?,
+			
+			@Serializable(with = UuidSerializer::class)
 			val finalAssistantMessage: UUID?,
 		)
 	}
 	
+	@Serializable
 	data class CurrentRound(
+		@Serializable(with = UuidSerializer::class)
 		val userMessage: UUID,
 		val turns: List<Turn>?,
+		
+		@Serializable(with = UuidSerializer::class)
 		val assistantMessage: UUID?,
+		
+		@Serializable(with = UuidListSerializer::class)
 		val pendingToolCalls: List<UUID>?,
 	)
 	
+	@Serializable
 	data class Turn(
+		@Serializable(with = UuidSerializer::class)
 		val assistantMessage: UUID,
 		val tools: List<Tool>,
 	) {
+		@Serializable
 		data class Tool(
+			@Serializable(with = UuidSerializer::class)
 			val call: UUID,
+			
+			@Serializable(with = UuidSerializer::class)
 			val result: UUID,
 		)
 	}

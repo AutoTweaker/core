@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.core.session
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class SessionConfig(
 	val model: ModelId,
 	val fallbackModel: List<ModelId>?,

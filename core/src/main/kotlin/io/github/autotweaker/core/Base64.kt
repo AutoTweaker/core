@@ -20,9 +20,11 @@
 
 package io.github.autotweaker.core
 
+import kotlinx.serialization.Serializable
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.io.encoding.Base64 as KBase64
 
+@Serializable
 @JvmInline
 value class Base64(val value: String) {
 	init {
