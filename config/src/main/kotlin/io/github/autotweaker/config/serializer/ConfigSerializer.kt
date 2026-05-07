@@ -25,7 +25,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 val defaultItems: List<SettingItem> = listOf(
-	//agent模块的tool相关配置
+	// region Agent — 工具调用响应消息
 	SettingItem(
 		SettingKey("core.agent.tool.response.canceled"),
 		SettingItem.Value.ValString("工具调用已取消"),
@@ -66,7 +66,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("简要描述调用此工具的目的"),
 		"工具调用的reason属性描述"
 	),
-	//工具调用超时
+	// endregion
+	
+	// region Agent — 工具调用超时
 	SettingItem(
 		SettingKey("core.agent.tool.timeout.seconds"),
 		SettingItem.Value.ValInt(600),
@@ -77,7 +79,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("工具调用超时（%s秒）"),
 		"工具调用超时后的ToolResult"
 	),
-	//工具激活相关的属性和描述
+	// endregion
+	
+	// region Agent — 工具激活
 	SettingItem(
 		SettingKey("core.agent.tool.description.enable"),
 		SettingItem.Value.ValString("激活此工具以开始使用，无论将此值设为true或false都将启用工具"),
@@ -88,25 +92,33 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("工具%s已激活，包含%s个function，检查你的工具列表来了解如何使用"),
 		"激活工具后的ToolResult"
 	),
-	//工具模块相关配置
+	// endregion
+	
+	// region 工具 — 通用消息
 	SettingItem(
 		SettingKey("core.tool.message.path.error"),
 		SettingItem.Value.ValString("提供的路径不合法，请检查提供的路径参数"),
 		"路径解析失败时的描述"
 	),
-	//read工具相关配置
+	// endregion
+	
+	// region Read工具 — 通用配置
 	SettingItem(
 		SettingKey("core.tool.read.summarize.prompt"),
 		SettingItem.Value.ValString("你是文件总结助手，请根据用户输入和以下指令生成关于文件内容的摘要"),
 		"summarize功能使用的系统提示词，这段文本被安置在llm自定义指令之前"
 	),
-	//工具描述
+	// endregion
+	
+	// region Read工具 — 工具描述
 	SettingItem(
 		SettingKey("core.tool.read.description"),
 		SettingItem.Value.ValString("读取一个文件，支持获取摘要以及Unicode代码"),
 		"read工具的描述，在read工具未激活时展示给llm"
 	),
-	//function描述
+	// endregion
+	
+	// region Read工具 — Function描述
 	SettingItem(
 		SettingKey("core.tool.read.function.description.file"),
 		SettingItem.Value.ValString("读取一个文件，最大字符数%s，最大行数%s，返回内容的第一行为文件内容的SHA256，第二行开始是文件内容，注意区分"),
@@ -122,7 +134,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("读取一个文件但是返回每个字符的Unicode编码，在普通读取看起来没有返回有效内容时使用"),
 		"read_unicode工具的描述"
 	),
-	//属性描述
+	// endregion
+	
+	// region Read工具 — 属性描述
 	SettingItem(
 		SettingKey("core.tool.read.property.description.file.path"),
 		SettingItem.Value.ValString("文件的路径，支持绝对路径或相对路径"),
@@ -138,7 +152,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("读取文件的结束行号，不能小于开始行号，可以大于文件总行数"),
 		"read工具end_line参数的描述"
 	),
-	//特定function的属性描述
+	// endregion
+	
+	// region Read工具 — 特定Function属性描述
 	SettingItem(
 		SettingKey("core.tool.read.function.description.file.property.line.number"),
 		SettingItem.Value.ValString("是否启用行号，默认为true，启用行号后会在每行的开头添加[行号][制表符]作为前缀，注意区分"),
@@ -154,7 +170,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("读取文件的前n个字符，这将包括换行符等特殊字符，最多%s个字符"),
 		"read_unicode工具max_chars参数的描述"
 	),
-	//错误消息
+	// endregion
+	
+	// region Read工具 — 错误消息
 	SettingItem(
 		SettingKey("core.tool.read.message.error.too.many.lines"),
 		SettingItem.Value.ValString("读取的行数过多，上限为%s"),
@@ -215,7 +233,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("<字符数过多，后续内容已被截断（共%s字符）>"),
 		"read_summarize工具总结器输入内容截断位置的描述"
 	),
-	//数值参数
+	// endregion
+	
+	// region Read工具 — 数值参数
 	SettingItem(
 		SettingKey("core.tool.read.function.file.setting.max.lines"),
 		SettingItem.Value.ValInt(500),
@@ -251,7 +271,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValInt(500),
 		"read_unicode工具最大允许字符数，超出会返回错误消息"
 	),
-	//bash工具相关配置
+	// endregion
+	
+	// region Bash工具
 	SettingItem(
 		SettingKey("core.tool.bash.description"),
 		SettingItem.Value.ValString("运行一条bash命令，可选设置超时时间并按id注入一次性环境变量"),
@@ -312,7 +334,9 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValInt(60),
 		"bash_run工具默认超时时间（秒）"
 	),
-	//agent模块compact相关配置
+	// endregion
+	
+	// region Agent — 上下文压缩
 	SettingItem(
 		SettingKey("core.agent.compact.prompt"),
 		SettingItem.Value.ValString(
@@ -418,6 +442,15 @@ val defaultItems: List<SettingItem> = listOf(
 		),
 		"上下文压缩前对字符数过多的消息进行单独总结时的提示词"
 	),
+	// endregion
+	
+	// region 容器配置
+	SettingItem(
+		SettingKey("core.container.docker.image"),
+		SettingItem.Value.ValString("buildpack-deps:stable"),
+		"容器内工作区所使用的docker镜像名称"
+	)
+	// endregion
 )
 
 private val json = Json {

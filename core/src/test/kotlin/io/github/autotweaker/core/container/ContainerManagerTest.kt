@@ -18,10 +18,14 @@
 
 package io.github.autotweaker.core.container
 
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
+import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.settings.SettingItem
+import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.data.settings.Settings
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.*
 
 class ContainerManagerTest {
@@ -30,7 +34,22 @@ class ContainerManagerTest {
 	
 	@BeforeTest
 	fun setUp() {
+		every { MockEntry.instance.get() } returns null
+		
+		mockkObject(Settings)
+		every { Settings.getAll() } returns listOf(
+			SettingItem(
+				SettingKey("core.container.docker.image"),
+				SettingItem.Value.ValString("test-image:latest"),
+				"Docker image"
+			)
+		)
+		
+		mockkObject(JsonStore)
+		every { JsonStore.namespace(any()) } returns MockEntry.instance
+		
 		resetState()
+		
 		coEvery { service.start(any(), any()) } returns "container-123"
 		coEvery { service.exec(any(), any(), any(), any()) } returns CommandResult(0, "", "")
 	}
@@ -38,41 +57,43 @@ class ContainerManagerTest {
 	@AfterTest
 	fun tearDown() {
 		resetState()
+		unmockkObject(Settings)
+		unmockkObject(JsonStore)
 	}
 	
 	// region start
 	
 	@Test
 	fun `start returns container id from service`() = runTest {
-		val id = ContainerManager.start(service, "ubuntu:latest")
+		val id = ContainerManager.start(service)
 		assertEquals("container-123", id)
-		coVerify { service.start("ubuntu:latest", any()) }
+		coVerify { service.start(any(), any()) }
 	}
 	
 	@Test
 	fun `start sets isRunning to true`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		assertTrue(ContainerManager.isRunning)
 	}
 	
 	@Test
 	fun `start sets containerId to returned id`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		assertEquals("container-123", ContainerManager.containerId)
 	}
 	
 	@Test
-	fun `start passes ContainerConfig to service`() = runTest {
-		val config = ContainerConfig(name = "test", env = mapOf("A" to "1"))
-		ContainerManager.start(service, "ubuntu:latest", config)
-		coVerify { service.start("ubuntu:latest", config) }
+	fun `start passes env from getEnv to service config`() = runTest {
+		every { MockEntry.instance.get() } returns Json.encodeToJsonElement(mapOf("A" to "1"))
+		ContainerManager.start(service)
+		coVerify { service.start(any(), match { it.env == mapOf("A" to "1") }) }
 	}
 	
 	@Test
 	fun `start throws ContainerAlreadyRunningException when already running`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		val ex = assertFailsWith<ContainerAlreadyRunningException> {
-			ContainerManager.start(service, "another:image")
+			ContainerManager.start(service)
 		}
 		assertTrue(ex.message!!.contains("container-123"))
 	}
@@ -81,7 +102,7 @@ class ContainerManagerTest {
 	fun `start does not set containerId when service start throws`() = runTest {
 		coEvery { service.start(any(), any()) } throws RuntimeException("start failed")
 		assertFailsWith<RuntimeException> {
-			ContainerManager.start(service, "ubuntu:latest")
+			ContainerManager.start(service)
 		}
 		assertFalse(ContainerManager.isRunning)
 		assertNull(ContainerManager.containerId)
@@ -93,14 +114,14 @@ class ContainerManagerTest {
 	
 	@Test
 	fun `stop calls service stop with correct container id`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		ContainerManager.stop()
 		coVerify { service.stop("container-123") }
 	}
 	
 	@Test
 	fun `stop clears isRunning and containerId`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		ContainerManager.stop()
 		assertFalse(ContainerManager.isRunning)
 		assertNull(ContainerManager.containerId)
@@ -121,7 +142,7 @@ class ContainerManagerTest {
 	
 	@Test
 	fun `stop clears state even when service stop throws`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		coEvery { service.stop(any()) } throws RuntimeException("stop failed")
 		assertFailsWith<RuntimeException> {
 			ContainerManager.stop()
@@ -136,7 +157,7 @@ class ContainerManagerTest {
 	
 	@Test
 	fun `exec delegates to service with correct parameters`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		ContainerManager.exec("ls", "-la")
 		coVerify { service.exec("container-123", listOf("ls", "-la"), null, 30) }
 	}
@@ -145,7 +166,7 @@ class ContainerManagerTest {
 	fun `exec returns CommandResult from service`() = runTest {
 		val expected = CommandResult(0, "stdout", "stderr")
 		coEvery { service.exec(any(), any(), any(), any()) } returns expected
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		val result = ContainerManager.exec("echo", "hello")
 		assertEquals(expected, result)
 	}
@@ -171,7 +192,7 @@ class ContainerManagerTest {
 	
 	@Test
 	fun `execShell wraps command in bash -c`() = runTest {
-		ContainerManager.start(service, "ubuntu:latest")
+		ContainerManager.start(service)
 		ContainerManager.execShell("echo hello")
 		coVerify { service.exec("container-123", listOf("bash", "-c", "echo hello"), null, 30) }
 	}
@@ -199,19 +220,28 @@ class ContainerManagerTest {
 	
 	// endregion
 	
-	companion object {
-		private fun resetState() {
-			setInternalState(containerId = null, service = null)
+	private fun resetState() {
+		setInternalState(containerId = null, service = null)
+		runCatching {
+			val field = ContainerManager::class.java.getDeclaredField("jsonEntry")
+			field.isAccessible = true
+			field.set(ContainerManager, MockEntry.instance)
 		}
+	}
+	
+	private fun setInternalState(containerId: String?, service: ContainerService? = null) {
+		val containerIdField = ContainerManager::class.java.getDeclaredField("_containerId")
+		containerIdField.isAccessible = true
+		containerIdField.set(ContainerManager, containerId)
 		
-		private fun setInternalState(containerId: String?, service: ContainerService? = null) {
-			val containerIdField = ContainerManager::class.java.getDeclaredField("_containerId")
-			containerIdField.isAccessible = true
-			containerIdField.set(ContainerManager, containerId)
-			
-			val serviceField = ContainerManager::class.java.getDeclaredField("_service")
-			serviceField.isAccessible = true
-			serviceField.set(ContainerManager, service)
+		val serviceField = ContainerManager::class.java.getDeclaredField("_service")
+		serviceField.isAccessible = true
+		serviceField.set(ContainerManager, service)
+	}
+	
+	companion object {
+		object MockEntry {
+			val instance: JsonStore.JsonEntry = mockk()
 		}
 	}
 }

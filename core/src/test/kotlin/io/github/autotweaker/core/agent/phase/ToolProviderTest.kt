@@ -24,7 +24,7 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.session.ModelId
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.impl.bash.BashService
 import io.github.autotweaker.core.tool.impl.read.FileSystemService
 import io.github.autotweaker.core.tool.impl.read.SummarizeService
@@ -48,7 +48,7 @@ class ToolProviderTest {
 		val agentContext = AgentContext(null, null, null, null, null)
 		
 		env = mockk(relaxUnitFun = true)
-		every { env.workspace } returns Workspace("test", false, tmpDir)
+		every { env.workspace } returns WorkspaceMeta("test", false, tmpDir)
 		every { env.containerConfig } returns ContainerConfig(
 			workDir = tmpDir,
 			workspaceHostPath = tmpDir,

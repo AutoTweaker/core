@@ -21,7 +21,7 @@ package io.github.autotweaker.core.tool.impl.read
 import io.github.autotweaker.core.Unicode
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.coEvery
@@ -98,7 +98,7 @@ class ReadTest {
 		arguments = arguments,
 		provider = provider,
 		settings = settings,
-		workspace = Workspace("test", false, Path.of("/tmp/test")),
+		workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		outputChannel = null,
 	)
 	

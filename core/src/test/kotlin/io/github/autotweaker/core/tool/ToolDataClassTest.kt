@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.tool
 
 import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -259,7 +259,7 @@ class ToolDataClassTest {
 			arguments = buildJsonObject { put("cmd", JsonPrimitive("echo hello")) },
 			provider = SimpleContainer(),
 			settings = emptyList(),
-			workspace = Workspace("test", false, Path.of("/tmp/test")),
+			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		)
 		assertEquals("run", input.functionName)
 		assertNull(input.outputChannel)
@@ -273,7 +273,7 @@ class ToolDataClassTest {
 			arguments = buildJsonObject { },
 			provider = SimpleContainer(),
 			settings = emptyList(),
-			workspace = Workspace("test", false, Path.of("/tmp/test")),
+			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 			outputChannel = channel,
 		)
 		assertSame(channel, input.outputChannel)
@@ -286,7 +286,7 @@ class ToolDataClassTest {
 			arguments = buildJsonObject { },
 			provider = SimpleContainer(),
 			settings = emptyList(),
-			workspace = Workspace("test", false, Path.of("/tmp/test")),
+			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		)
 		val copied = input.copy(functionName = "execute")
 		assertEquals("execute", copied.functionName)

@@ -18,12 +18,19 @@
 
 package io.github.autotweaker.core.container
 
+import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.settings.Settings
+import io.github.autotweaker.core.data.settings.find
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 
 
 object ContainerManager {
 	private val mutex = Mutex()
+	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
 	@Volatile
 	private var _service: ContainerService? = null
@@ -35,15 +42,14 @@ object ContainerManager {
 	val containerId: String? get() = _containerId
 	
 	suspend fun start(
-		service: ContainerService,
-		image: String,
-		config: ContainerConfig = ContainerConfig(),
+		service: ContainerService
 	): String = mutex.withLock {
 		if (_containerId != null) {
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
 		_service = service
-		val id = service.start(image, config)
+		val config = ContainerConfig(env = getEnv())
+		val id = service.start(Settings.getAll().find("core.container.docker.image"), config)
 		_containerId = id
 		id
 	}
@@ -76,4 +82,10 @@ object ContainerManager {
 		val svc = _service ?: throw NoContainerRunningException()
 		return id to svc
 	}
+	
+	fun setEnv(env: Map<String, String>) =
+		jsonEntry.set(Json.encodeToJsonElement(env))
+	
+	fun getEnv(): Map<String, String> =
+		jsonEntry.get()?.let { Json.decodeFromJsonElement(it) } ?: emptyMap()
 }

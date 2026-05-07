@@ -88,7 +88,7 @@ class ContainerConfigTest {
 	@Test
 	fun `default values are correct`() {
 		val config = ContainerConfig()
-		assertEquals("autotweaker", config.name)
+		assertEquals("autotweaker-workspace", config.name)
 		assertTrue(config.env.isEmpty())
 		assertEquals(Paths.get("/workspace"), config.workDir)
 		assertEquals(Paths.get("~/.config/autotweaker/container/workspace"), config.workspaceHostPath)

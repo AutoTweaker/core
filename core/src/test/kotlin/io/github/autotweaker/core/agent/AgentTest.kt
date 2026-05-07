@@ -22,7 +22,7 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -78,9 +78,9 @@ class AgentTest {
 		),
 	)
 	
-	private fun createWorkspace(): Workspace {
+	private fun createWorkspace(): WorkspaceMeta {
 		val tmpDir = createTempDirectory("agent-test")
-		return Workspace("test", false, tmpDir)
+		return WorkspaceMeta("test", false, tmpDir)
 	}
 	
 	private fun createAgent(
@@ -133,7 +133,7 @@ class AgentTest {
 	@Test
 	fun `workspace is set correctly`() {
 		val tmpDir = createTempDirectory("agent-test-ws")
-		val ws = Workspace("my-workspace", true, tmpDir)
+		val ws = WorkspaceMeta("my-workspace", true, tmpDir)
 		val agent = Agent(
 			context = AgentContext(null, null, null, null, null),
 			workspace = ws,
@@ -157,7 +157,7 @@ class AgentTest {
 	@Test
 	fun `containerConfig has default values`() {
 		val agent = createAgent()
-		assertEquals("autotweaker", agent.containerConfig.name)
+		assertEquals("autotweaker-workspace", agent.containerConfig.name)
 	}
 	
 	@Test

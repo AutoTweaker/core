@@ -27,7 +27,6 @@ object LlmClientLoader {
 			?: throw IllegalArgumentException("Unknown LLM provider: $name")
 	}
 	
-	
 	fun availableProviders(): List<String> {
 		return ServiceLoader.load(LlmClient::class.java).map { it.providerInfo.name }
 	}

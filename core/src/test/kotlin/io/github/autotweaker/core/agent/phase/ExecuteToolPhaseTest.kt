@@ -27,7 +27,7 @@ import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.session.ModelId
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -104,7 +104,7 @@ class ExecuteToolPhaseTest {
 		every { env.agentState } returns agentState
 		every { env.tools } returns tools
 		every { env.settings } returns settings
-		every { env.workspace } returns Workspace("test", false, tmpDir)
+		every { env.workspace } returns WorkspaceMeta("test", false, tmpDir)
 		every { env.containerConfig } returns ContainerConfig(workDir = tmpDir, workspaceHostPath = tmpDir)
 		every { env.summarizeModel } returns model
 		every { env.currentFallbackModels } returns null
