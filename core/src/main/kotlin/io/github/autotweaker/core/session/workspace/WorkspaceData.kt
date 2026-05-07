@@ -21,7 +21,7 @@ package io.github.autotweaker.core.session.workspace
 import java.util.*
 
 data class WorkspaceData(
-	val meta: Workspace,
+	val meta: WorkspaceMeta,
 	val git: Boolean? = null,
 	val sessionIds: List<UUID>? = null
 )

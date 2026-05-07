@@ -26,25 +26,32 @@ import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.session.SessionContextIndex.CurrentRound
 import io.github.autotweaker.core.session.agent.AgentContextConverter
 import io.github.autotweaker.core.session.agent.SessionContextConverter
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.*
 import kotlin.time.Clock
 
-@Suppress("unused")
 class Session(
 	config: SessionConfig,
 	context: SessionContext,
 	private val store: SessionStore,
 	private val resolveModel: (ModelId) -> Model,
 	private val defaultModel: Model,
-	private var workspace: Workspace,
+	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val settings: List<SettingItem>,
 	private val maxCompactedRounds: Int = 0,
 ) {
+	val safeResolveModel: (ModelId) -> Model = { modelId ->
+		try {
+			resolveModel(modelId)
+		} catch (_: Exception) {
+			defaultModel
+		}
+	}
+	
 	//变量
 	private val tools: List<Tool> = ServiceLoader.load(Tool::class.java).toList()
 	
@@ -67,6 +74,9 @@ class Session(
 	private val agents = mutableMapOf<UUID, Agent>()
 	val agent: Agent? get() = agents.values.firstOrNull()
 	
+	val output: SharedFlow<AgentOutput> get() = agent?.output ?: error("No agent created")
+	val agentStatus: StateFlow<AgentStatus> get() = agent?.statusFlow ?: error("No agent created")
+	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
 	//初始化
@@ -87,8 +97,7 @@ class Session(
 		return SessionContextConverter.toAgentContext(
 			context = _context.value,
 			messages = messages.values.toList(),
-			defaultModel = defaultModel,
-			resolveModel = resolveModel,
+			resolveModel = safeResolveModel,
 			maxCompactedRounds = maxCompactedRounds
 		)
 	}
@@ -113,7 +122,7 @@ class Session(
 		save()
 	}
 	
-	fun createAgent(): Agent {
+	private fun createAgent() {
 		val fallbackModels = _data.value.config.fallbackModel?.map { resolveModel(it) }
 		val newAgent = Agent(
 			context = toAgentContext(),
@@ -127,12 +136,31 @@ class Session(
 			tools = tools,
 		)
 		agents[newAgent.id] = newAgent
-		return newAgent
 	}
 	
 	fun dispatch(command: AgentCommand) {
 		val target = agent ?: error("No agent created")
 		target.dispatch(command)
+	}
+	
+	fun updateConfig(config: SessionConfig) {
+		_data.update { _data.value.copy(config = config) }
+		dispatch(
+			AgentCommand.Directive.UpdateModel(
+				model = safeResolveModel(config.model),
+				fallbackModels = config.fallbackModel?.map { safeResolveModel(it) },
+				thinking = config.thinking,
+			)
+		)
+	}
+	
+	fun updateTitle(title: String) {
+		_data.update { _data.value.copy(title = title) }
+	}
+	
+	fun updateWorkspaceName(name: String) {
+		_data.update { _data.value.copy(workspaceName = name) }
+		workspace = workspace.copy(name = name)
 	}
 	
 	suspend fun send(content: String, images: List<Base64>? = null) {
@@ -160,21 +188,12 @@ class Session(
 		)
 	}
 	
-	fun updateConfig(config: SessionConfig) {
-		_data.update { _data.value.copy(config = config) }
+	suspend fun stop() {
+		val agent = agent ?: return
+		dispatch(AgentCommand.Directive.Stop)
+		agent.statusFlow.first { it == AgentStatus.FREE }
+		scope.cancel()
 	}
-	
-	fun updateTitle(title: String) {
-		_data.update { _data.value.copy(title = title) }
-	}
-	
-	fun updateWorkspaceName(name: String) {
-		_data.update { _data.value.copy(workspaceName = name) }
-		workspace = workspace.copy(name = name)
-	}
-	
-	val output: SharedFlow<AgentOutput> get() = agent?.output ?: error("No agent created")
-	val statusFlow: StateFlow<AgentStatus> get() = agent?.statusFlow ?: error("No agent created")
 	
 	//更新SessionContext
 	suspend fun syncContext(ctx: AgentContext) {

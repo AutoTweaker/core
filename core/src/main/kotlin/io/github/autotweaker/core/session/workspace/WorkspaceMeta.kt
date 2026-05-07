@@ -20,7 +20,7 @@ package io.github.autotweaker.core.session.workspace
 
 import java.nio.file.Path
 
-data class Workspace(
+data class WorkspaceMeta(
 	val name: String,
 	val inContainer: Boolean,
 	val path: Path

@@ -20,7 +20,6 @@ package io.github.autotweaker.core.session
 
 import java.util.*
 
-@Suppress("unused")
 interface SessionStore {
 	suspend fun saveSessions(sessionData: List<SessionData>)
 	suspend fun loadSessions(ids: List<UUID>): List<SessionData>?

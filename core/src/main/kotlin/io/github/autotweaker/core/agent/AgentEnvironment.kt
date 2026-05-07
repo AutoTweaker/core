@@ -22,7 +22,7 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import kotlinx.coroutines.flow.StateFlow
 
 internal interface AgentEnvironment {
@@ -32,7 +32,7 @@ internal interface AgentEnvironment {
 	
 	val tools: Tools
 	val settings: List<SettingItem>
-	val workspace: Workspace
+	val workspace: WorkspaceMeta
 	val containerConfig: ContainerConfig
 	
 	val currentModel: Model

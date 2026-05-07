@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.container
 
+import io.github.autotweaker.core.container.docker.DockerJavaService
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.data.settings.find
@@ -32,8 +33,7 @@ object ContainerManager {
 	private val mutex = Mutex()
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
-	@Volatile
-	private var _service: ContainerService? = null
+	private val service: ContainerService = DockerJavaService()
 	
 	@Volatile
 	private var _containerId: String? = null
@@ -41,13 +41,10 @@ object ContainerManager {
 	val isRunning: Boolean get() = _containerId != null
 	val containerId: String? get() = _containerId
 	
-	suspend fun start(
-		service: ContainerService
-	): String = mutex.withLock {
+	suspend fun start(): String = mutex.withLock {
 		if (_containerId != null) {
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
-		_service = service
 		val config = ContainerConfig(env = getEnv())
 		val id = service.start(Settings.getAll().find("core.container.docker.image"), config)
 		_containerId = id
@@ -57,12 +54,11 @@ object ContainerManager {
 	suspend fun stop() {
 		mutex.withLock {
 			val id = _containerId ?: return@withLock
-			val svc = _service ?: return@withLock
+			val svc = service
 			try {
 				svc.stop(id)
 			} finally {
 				_containerId = null
-				_service = null
 			}
 		}
 	}
@@ -79,10 +75,11 @@ object ContainerManager {
 	
 	private fun requireContainer(): Pair<String, ContainerService> {
 		val id = _containerId ?: throw NoContainerRunningException()
-		val svc = _service ?: throw NoContainerRunningException()
+		val svc = service
 		return id to svc
 	}
 	
+	@Suppress("unused")
 	fun setEnv(env: Map<String, String>) =
 		jsonEntry.set(Json.encodeToJsonElement(env))
 	

@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.tool
 
 import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonObject
 
@@ -58,7 +58,7 @@ interface Tool {
 		val arguments: JsonObject,
 		val provider: SimpleContainer,
 		val settings: List<SettingItem>,
-		val workspace: Workspace,
+		val workspace: WorkspaceMeta,
 		val outputChannel: Channel<RuntimeOutput>? = null,
 	)
 	

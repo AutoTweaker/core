@@ -32,7 +32,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
 
-@Suppress("unused")
 class SessionStoreImpl : SessionStore {
 	private val store = H2DatabaseStore()
 	private var initialized = false

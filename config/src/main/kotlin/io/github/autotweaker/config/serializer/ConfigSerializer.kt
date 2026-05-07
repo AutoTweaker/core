@@ -70,9 +70,7 @@ val defaultItems: List<SettingItem> = listOf(
 	
 	// region Agent — 工具调用超时
 	SettingItem(
-		SettingKey("core.agent.tool.timeout.seconds"),
-		SettingItem.Value.ValInt(600),
-		"工具调用超时时间，单位秒"
+		SettingKey("core.agent.tool.timeout.seconds"), SettingItem.Value.ValInt(600), "工具调用超时时间，单位秒"
 	),
 	SettingItem(
 		SettingKey("core.agent.tool.response.timeout"),
@@ -295,12 +293,9 @@ val defaultItems: List<SettingItem> = listOf(
 		"bash_run工具timeout_seconds参数的描述"
 	),
 	SettingItem(
-		SettingKey("core.tool.bash.property.description.env.ids"),
-		SettingItem.Value.ValString(
-			"要注入的环境变量列表，对于敏感信息，" +
-					"严禁令环境变量以任何形式打印到输出或写入文件中。可用列表：%s"
-		),
-		"bash_run工具env_ids参数的描述"
+		SettingKey("core.tool.bash.property.description.env.ids"), SettingItem.Value.ValString(
+			"要注入的环境变量列表，对于敏感信息，" + "严禁令环境变量以任何形式打印到输出或写入文件中。可用列表：%s"
+		), "bash_run工具env_ids参数的描述"
 	),
 	SettingItem(
 		SettingKey("core.tool.bash.message.error.invalid.timeout"),
@@ -313,8 +308,7 @@ val defaultItems: List<SettingItem> = listOf(
 		"bash_run工具command非法时的描述"
 	),
 	SettingItem(
-		SettingKey("core.tool.bash.message.result.template"),
-		SettingItem.Value.ValString(
+		SettingKey("core.tool.bash.message.result.template"), SettingItem.Value.ValString(
 			"""
 			命令已执行，退出码：%s，执行时间：%s秒
 			标准输出：
@@ -326,8 +320,7 @@ val defaultItems: List<SettingItem> = listOf(
 			%s
 			</stderr>
 			""".trimIndent()
-		),
-		"bash_run工具执行结果模板，参数依次为退出码、执行时间（秒）、标准输出、标准错误"
+		), "bash_run工具执行结果模板，参数依次为退出码、执行时间（秒）、标准输出、标准错误"
 	),
 	SettingItem(
 		SettingKey("core.tool.bash.setting.default.timeout.seconds"),
@@ -338,8 +331,7 @@ val defaultItems: List<SettingItem> = listOf(
 	
 	// region Agent — 上下文压缩
 	SettingItem(
-		SettingKey("core.agent.compact.prompt"),
-		SettingItem.Value.ValString(
+		SettingKey("core.agent.compact.prompt"), SettingItem.Value.ValString(
 			"""
 			你的任务是对迄今为止的对话进行详细总结，并特别留意用户的明确要求和你之前所执行的操作。
 			此摘要应详尽记录技术细节、代码模式以及架构决策，这对于在丢失上下文的情况下继续开发工作至关重要。
@@ -426,8 +418,7 @@ val defaultItems: List<SettingItem> = listOf(
 		
 			请根据迄今为止的对话提供你的摘要，遵循此结构，并确保你的回复精确且详尽。
 			""".trimIndent()
-		),
-		"用于上下文压缩的提示词"
+		), "用于上下文压缩的提示词"
 	),
 	SettingItem(
 		SettingKey("core.agent.compact.max.message.chars"),
@@ -435,12 +426,9 @@ val defaultItems: List<SettingItem> = listOf(
 		"上下文压缩前对字符数大于此值的消息进行单独总结"
 	),
 	SettingItem(
-		SettingKey("core.agent.compact.message.summarize.prompt"),
-		SettingItem.Value.ValString(
-			"请对以下消息内容进行概括，输出不要太长\n\n" +
-					"<message>\n%s\n</message>"
-		),
-		"上下文压缩前对字符数过多的消息进行单独总结时的提示词"
+		SettingKey("core.agent.compact.message.summarize.prompt"), SettingItem.Value.ValString(
+			"请对以下消息内容进行概括，输出不要太长\n\n" + "<message>\n%s\n</message>"
+		), "上下文压缩前对字符数过多的消息进行单独总结时的提示词"
 	),
 	// endregion
 	
@@ -449,7 +437,24 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingKey("core.container.docker.image"),
 		SettingItem.Value.ValString("buildpack-deps:stable"),
 		"容器内工作区所使用的docker镜像名称"
-	)
+	),
+	// endregion
+	
+	// region 会话配置
+	SettingItem(
+		SettingKey("core.session.prompt.system"),
+		SettingItem.Value.ValString(
+			"""
+			TODO -- 系统提示
+			""".trimIndent()
+		),
+		"系统提示词，作用于整个项目"
+	),
+	SettingItem(
+		SettingKey("core.session.model.default"),
+		SettingItem.Value.ValString("deepseek/deepseek-v4-flash"),
+		"模型Id无效时使用的默认模型"
+	),
 	// endregion
 )
 
@@ -469,8 +474,7 @@ fun serializeToFile(items: List<SettingItem>, outputPath: String) {
 }
 
 fun main(args: Array<String>) {
-	val outputPath = args.firstOrNull()
-		?: throw IllegalArgumentException("Output path is required")
+	val outputPath = args.firstOrNull() ?: throw IllegalArgumentException("Output path is required")
 	val duplicates = defaultItems.groupBy { it.key }.filter { it.value.size > 1 }.keys
 	require(duplicates.isEmpty()) {
 		"Duplicate SettingKey found: ${duplicates.joinToString { it.value }}"

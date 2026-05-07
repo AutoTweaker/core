@@ -24,8 +24,6 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
-
-@Suppress("unused")
 object WorkspaceManager {
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
@@ -38,17 +36,17 @@ object WorkspaceManager {
 		else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
 	}
 	
-	fun create(meta: Workspace) =
+	fun create(meta: WorkspaceMeta) =
 		update(workspaceList.plus(WorkspaceData(meta)))
 	
-	fun get(name: String): WorkspaceData? =
+	fun getData(name: String): WorkspaceData? =
 		workspaceList.find { it.meta.name == name }
 	
-	fun getAll(): List<Workspace> =
+	fun getAll(): List<WorkspaceMeta> =
 		workspaceList.map { it.meta }
 	
-	fun updateMeta(meta: Workspace) =
-		update(workspaceList.map { if (it.meta.name == meta.name) it.copy(meta = meta) else it })
+	fun updateMeta(name: String, meta: WorkspaceMeta) =
+		update(workspaceList.map { if (it.meta.name == name) it.copy(meta = meta) else it })
 	
 	fun updateData(name: String, git: Boolean?, sessionIds: List<UUID>?) =
 		update(workspaceList.map { if (it.meta.name == name) it.copy(git = git, sessionIds = sessionIds) else it })

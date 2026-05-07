@@ -23,7 +23,7 @@ import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.session.workspace.Workspace
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.CancellationException
@@ -100,7 +100,7 @@ class Tools(settings: List<SettingItem>) {
 		result: ToolCallValidator.ValidationResult.Success,
 		call: AgentContext.CurrentRound.PendingToolCall,
 		provider: SimpleContainer,
-		workspace: Workspace,
+		workspace: WorkspaceMeta,
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.ToolOutput) -> Unit)? = null,
 	): AgentContext.Message.Tool {

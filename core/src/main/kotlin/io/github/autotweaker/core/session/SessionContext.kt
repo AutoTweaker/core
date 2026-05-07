@@ -26,4 +26,19 @@ data class SessionContext(
 	val usage: Map<UUID, Usage>,
 	val index: SessionContextIndex,
 	val droppedMessages: List<UUID>?,
-)
+) {
+	companion object {
+		fun emptyContext(systemPrompt: String) =
+			SessionContext(
+				systemPrompt = systemPrompt,
+				usage = emptyMap(),
+				index = SessionContextIndex(
+					compactedRounds = null,
+					historyRounds = null,
+					currentRound = null,
+					summarizedMessage = null
+				),
+				droppedMessages = null
+			)
+	}
+}
