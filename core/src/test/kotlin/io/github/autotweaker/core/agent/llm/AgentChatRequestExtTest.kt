@@ -25,6 +25,7 @@ import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.core.session.ModelId
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.util.*
@@ -50,7 +51,12 @@ class AgentChatRequestExtTest {
 		supportsJsonOutput = true,
 	)
 	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
-	private val testModel = Model("test-model", testProvider, testModelInfo, Config(0.7, 2048, null, null))
+	private val testModel = Model(
+		provider = testProvider, modelInfo = testModelInfo, config = Config(0.7, 2048, null, null), modelId = ModelId(
+			"test-provider",
+			"test-model"
+		)
+	)
 	
 	private fun userMsg(content: String = "hello") =
 		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
@@ -94,7 +100,7 @@ class AgentChatRequestExtTest {
 		
 		val chatReq = req.toChatRequest()
 		
-		assertEquals("test-model", chatReq.model)
+		assertEquals("test-model-id", chatReq.model)
 		assertEquals(1, chatReq.messages.size)
 		val msg = chatReq.messages[0] as ChatMessage.UserMessage
 		assertTrue(msg.content.contains("hello world"))

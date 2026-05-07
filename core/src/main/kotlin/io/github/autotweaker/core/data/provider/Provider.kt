@@ -20,28 +20,27 @@ package io.github.autotweaker.core.data.provider
 
 import io.github.autotweaker.core.Price
 import io.github.autotweaker.core.Url
+import io.github.autotweaker.core.data.session.UuidSerializer
 import kotlinx.serialization.Serializable
+import java.util.*
 
 @Serializable
 data class Provider(
 	val name: String,
 	val providerType: String,
-	val apiKey: String,
+	@Serializable(with = UuidSerializer::class)
+	val apiKey: UUID,
 	val baseUrl: Url,
 	val models: List<Model>,
 	val errorHandlingRules: List<ErrorHandlingRule>
 ) {
 	@Serializable
 	data class ErrorHandlingRule(
-		val statusCode: Int,
-		val strategy: RecoveryStrategy
+		val statusCode: Int, val strategy: RecoveryStrategy
 	) {
 		@Serializable
 		enum class RecoveryStrategy {
-			RETRY,
-			FALLBACK,
-			CONTEXT_FALLBACK,
-			PROVIDER_FALLBACK,
+			RETRY, FALLBACK, CONTEXT_FALLBACK, PROVIDER_FALLBACK,
 		}
 	}
 	
@@ -73,10 +72,7 @@ data class Provider(
 		) {
 			@Serializable
 			data class PriceTier(
-				val fromTokens: Int,
-				val toTokens: Int? = null,
-				val price: Price,
-				val cachedPrice: Price? = null
+				val fromTokens: Int, val toTokens: Int? = null, val price: Price, val cachedPrice: Price? = null
 			)
 		}
 		

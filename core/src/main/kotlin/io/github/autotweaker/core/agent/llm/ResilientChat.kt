@@ -148,7 +148,7 @@ private fun ChatRequest.adapt(model: Model): ChatRequest {
 	val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
 	
 	return copy(
-		model = model.name,
+		model = model.modelInfo.id,
 		stream = stream && model.modelInfo.supportsStreaming,
 		thinking = if (stripThinking) null else thinking,
 		temperature = model.config?.temperature,

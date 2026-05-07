@@ -18,9 +18,12 @@
 
 package io.github.autotweaker.core.data.provider
 
+import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.llm.LlmClientLoader
+import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.session.ModelId
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -54,6 +57,23 @@ object ProviderManager {
 	
 	fun override(data: Provider) =
 		update(providers.map { if (it.name == data.name) data else it })
+	
+	fun getModel(id: ModelId): Model? {
+		val provider = providers.find { it.name == id.provider } ?: return null
+		val model = provider.models.find { it.name == id.modelName } ?: return null
+		val providerData = io.github.autotweaker.core.agent.llm.Provider(
+			name = provider.providerType,
+			baseUrl = provider.baseUrl,
+			apiKey = SecretManager.get(provider.apiKey),
+			errorHandlingRules = provider.errorHandlingRules
+		)
+		return Model(
+			provider = providerData,
+			modelInfo = model.modelInfo,
+			config = model.config,
+			modelId = id
+		)
+	}
 	
 	private fun update(new: List<Provider>) {
 		providers = new

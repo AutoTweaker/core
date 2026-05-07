@@ -23,6 +23,7 @@ import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.workspace.Workspace
 import io.github.autotweaker.core.tool.impl.bash.BashService
 import io.github.autotweaker.core.tool.impl.read.FileSystemService
@@ -90,7 +91,12 @@ class ToolProviderTest {
 	private fun mockModel(): Model {
 		val provider = mockk<Provider>()
 		every { provider.name } returns "test-provider"
-		return Model(name = "summarize-model", provider = provider, modelInfo = mockk(relaxed = true))
+		return Model(
+			provider = provider, modelInfo = mockk(relaxed = true), modelId = ModelId(
+				"test-provider",
+				"summarize-model"
+			)
+		)
 	}
 	// endregion
 }

@@ -26,4 +26,12 @@ data class ModelId(
 	val modelName: String,
 ) {
 	override fun toString(): String = "$provider/$modelName"
+	
+	companion object {
+		fun fromString(id: String): ModelId? {
+			val parts = id.split("/", limit = 2)
+			if (parts.size != 2) return null
+			return ModelId(parts[0], parts[1])
+		}
+	}
 }

@@ -19,9 +19,7 @@
 package io.github.autotweaker.core.session.agent
 
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.llm.Usage
-import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.SessionContext
 import io.github.autotweaker.core.session.SessionContextIndex
 import io.github.autotweaker.core.session.SessionMessage
@@ -220,7 +218,7 @@ object AgentContextConverter {
 			timestamp = msg.timestamp,
 			reasoning = msg.reasoning,
 			content = msg.content,
-			model = msg.model.toModelId()
+			model = msg.model.modelId
 		)
 	}
 	
@@ -245,11 +243,6 @@ object AgentContextConverter {
 			status = tool.result.status
 		)
 	}
-	
-	private fun Model.toModelId(): ModelId = ModelId(
-		provider = provider.name,
-		modelName = name
-	)
 	
 	// endregion
 	

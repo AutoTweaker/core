@@ -25,6 +25,7 @@ import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
+import io.github.autotweaker.core.session.ModelId
 import io.ktor.http.*
 import java.math.BigDecimal
 import java.util.*
@@ -52,7 +53,12 @@ class AgentChatDataTest {
 		supportsJsonOutput = true,
 	)
 	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
-	private val testModel = Model("test-model", testProvider, testModelInfo, Config(0.7, 2048, null, null))
+	private val testModel = Model(
+		provider = testProvider, modelInfo = testModelInfo, config = Config(0.7, 2048, null, null), modelId = ModelId(
+			"test-provider",
+			"test-model"
+		)
+	)
 	
 	@Test
 	fun `construct request with all fields`() {

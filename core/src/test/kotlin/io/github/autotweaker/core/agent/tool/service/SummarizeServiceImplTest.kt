@@ -24,6 +24,7 @@ import io.github.autotweaker.core.agent.llm.ResilientChatResult
 import io.github.autotweaker.core.agent.llm.resilientChat
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
+import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -38,15 +39,15 @@ import kotlin.time.Clock
 class SummarizeServiceImplTest {
 	
 	private val mockModel = Model(
-		name = "summarizer",
 		provider = Provider("test-provider", mockk(relaxed = true), "key", emptyList()),
 		modelInfo = mockk(relaxed = true),
+		modelId = ModelId("test-provider", "summarizer"),
 	)
 	
 	private val fallbackModel = Model(
-		name = "fallback",
 		provider = Provider("fb-provider", mockk(relaxed = true), "key2", emptyList()),
 		modelInfo = mockk(relaxed = true),
+		modelId = ModelId("fb-provider", "fallback"),
 	)
 	
 	@Test

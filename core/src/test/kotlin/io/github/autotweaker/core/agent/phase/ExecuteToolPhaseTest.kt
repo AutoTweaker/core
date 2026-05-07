@@ -26,6 +26,7 @@ import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.workspace.Workspace
 import io.mockk.coEvery
 import io.mockk.every
@@ -272,7 +273,12 @@ class ExecuteToolPhaseTest {
 	private fun mockModel(): Model {
 		val provider = mockk<Provider>()
 		every { provider.name } returns "test-provider"
-		return Model(name = "test-model", provider = provider, modelInfo = mockk(relaxed = true))
+		return Model(
+			provider = provider, modelInfo = mockk(relaxed = true), modelId = ModelId(
+				"test-provider",
+				"test-model"
+			)
+		)
 	}
 	// endregion
 }

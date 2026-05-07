@@ -26,6 +26,7 @@ import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceT
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
+import io.github.autotweaker.core.session.ModelId
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
@@ -60,7 +61,12 @@ class AgentChatTest {
 		supportsJsonOutput = true,
 	)
 	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
-	private val testModel = Model("test-model", testProvider, testModelInfo, Config(0.7, 2048, null, null))
+	private val testModel = Model(
+		provider = testProvider,
+		modelInfo = testModelInfo,
+		config = Config(0.7, 2048, null, null),
+		modelId = ModelId("test-provider", "test-model")
+	)
 	
 	private fun userMsg(content: String = "hello") =
 		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
@@ -268,7 +274,8 @@ class AgentChatTest {
 	
 	@Test
 	fun `uses retrying model as result model in Assembled`() = runTest {
-		val fallbackModel = Model("fallback", testProvider, testModelInfo)
+		val fallbackModel =
+			Model(provider = testProvider, modelInfo = testModelInfo, modelId = ModelId("test-provider", "fallback"))
 		val errorMsg = ChatMessage.ErrorMessage(
 			content = "error",
 			createdAt = Clock.System.now(),
@@ -304,7 +311,7 @@ class AgentChatTest {
 		val results = agentChat(request).toList()
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		
-		assertEquals("fallback", assembled.message.model.name)
+		assertEquals("fallback", assembled.message.model.modelId.modelName)
 	}
 	
 	@Test

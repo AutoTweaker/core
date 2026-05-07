@@ -231,17 +231,18 @@ class ProviderTest {
 		)
 		val model = Provider.Model(name = "premium", modelInfo = modelInfo, config = null)
 		val rule = Provider.ErrorHandlingRule(429, Provider.ErrorHandlingRule.RecoveryStrategy.RETRY)
+		val apiKey = UUID.randomUUID()
 		val provider = Provider(
 			name = "test-provider",
 			providerType = "openai",
-			apiKey = "sk-test",
+			apiKey = apiKey,
 			baseUrl = testUrl,
 			models = listOf(model),
 			errorHandlingRules = listOf(rule)
 		)
 		assertEquals("test-provider", provider.name)
 		assertEquals("openai", provider.providerType)
-		assertEquals("sk-test", provider.apiKey)
+		assertEquals(apiKey, provider.apiKey)
 		assertEquals(testUrl, provider.baseUrl)
 		assertEquals(1, provider.models.size)
 		assertEquals(1, provider.errorHandlingRules.size)
@@ -249,10 +250,11 @@ class ProviderTest {
 	
 	@Test
 	fun `Provider with empty models and rules`() {
+		val apiKey = UUID.randomUUID()
 		val provider = Provider(
 			name = "empty",
 			providerType = "custom",
-			apiKey = "key",
+			apiKey = apiKey,
 			baseUrl = testUrl,
 			models = emptyList(),
 			errorHandlingRules = emptyList()
@@ -263,8 +265,9 @@ class ProviderTest {
 	
 	@Test
 	fun `Provider data class equality`() {
-		val p1 = Provider("p", "t", "k", testUrl, emptyList(), emptyList())
-		val p2 = Provider("p", "t", "k", testUrl, emptyList(), emptyList())
+		val apiKey = UUID.randomUUID()
+		val p1 = Provider("p", "t", apiKey, testUrl, emptyList(), emptyList())
+		val p2 = Provider("p", "t", apiKey, testUrl, emptyList(), emptyList())
 		assertEquals(p1, p2)
 		assertEquals(p1.hashCode(), p2.hashCode())
 	}

@@ -23,6 +23,7 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
+import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -248,7 +249,12 @@ class ValidateToolCallsPhaseTest {
 	private fun mockModel(): Model {
 		val provider = mockk<Provider>()
 		every { provider.name } returns "test-provider"
-		return Model(name = "test-model", provider = provider, modelInfo = mockk(relaxed = true))
+		return Model(
+			provider = provider, modelInfo = mockk(relaxed = true), modelId = ModelId(
+				"test-provider",
+				"test-model"
+			)
+		)
 	}
 	
 	private fun pendingToolCall(

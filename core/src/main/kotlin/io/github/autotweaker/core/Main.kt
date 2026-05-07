@@ -20,10 +20,10 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.*
-import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.LlmClientLoader
+import io.github.autotweaker.core.session.ModelId
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
@@ -41,23 +41,19 @@ fun main() {
 		?: throw IllegalStateException("Please set your MiMo API key as an environment variable.")
 	
 	val mimoProviderInfo = LlmClientLoader.load("mimo").providerInfo
-	val model = Model(
-		name = mimoProviderInfo.models.first().id,
-		provider = Provider(
-			name = mimoProviderInfo.name,
-			baseUrl = mimoProviderInfo.baseUrl,
-			apiKey = apiKey,
-			errorHandlingRules = mimoProviderInfo.errorHandlingRules,
-		),
-		modelInfo = mimoProviderInfo.models.first(),
-		config = null
-	)
-	val wrongModel = Model(
-		name = "??",
-		provider = model.provider,
-		modelInfo = model.modelInfo,
-		config = null
-	)
+	val model =
+		Model(
+			provider = Provider(
+				name = mimoProviderInfo.name,
+				baseUrl = mimoProviderInfo.baseUrl,
+				apiKey = apiKey,
+				errorHandlingRules = mimoProviderInfo.errorHandlingRules,
+			),
+			modelInfo = mimoProviderInfo.models.find { it.id == "mimo-v2-flash" }!!,
+			config = null,
+			modelId = ModelId.fromString("mimo/mimo-v2-flash")!!
+		)
+	
 	
 	val toolCallTimestamp = Instant.parse("2026-04-11T09:03:33Z")
 	
@@ -93,8 +89,8 @@ fun main() {
 	)
 	
 	val request = AgentChatRequest(
-		model = wrongModel,
-		fallbackModels = listOf(model),
+		model = model,
+		fallbackModels = null,
 		thinking = true,
 		tools = listOf(
 			ChatRequest.Tool(

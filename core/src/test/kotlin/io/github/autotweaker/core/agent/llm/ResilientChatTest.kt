@@ -25,6 +25,7 @@ import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.Recov
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.*
+import io.github.autotweaker.core.session.ModelId
 import io.mockk.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
@@ -65,7 +66,7 @@ class ResilientChatTest {
 		provider: Provider = provider(),
 		modelInfo: ModelInfo = baseModelInfo,
 		config: Config? = null,
-	) = Model(name, provider, modelInfo, config)
+	) = Model(provider = provider, modelInfo = modelInfo, config = config, modelId = ModelId(provider.name, name))
 	
 	private fun assistantResult(content: String = "hello") = ChatResult.Assembled(
 		message = ChatMessage.AssistantMessage(content, Clock.System.now(), null, null),

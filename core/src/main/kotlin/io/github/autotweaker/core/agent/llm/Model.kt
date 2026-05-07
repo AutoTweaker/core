@@ -22,12 +22,13 @@ import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.provider.Provider.Model.Config
 import io.github.autotweaker.core.data.provider.Provider.Model.ModelInfo
+import io.github.autotweaker.core.session.ModelId
 
 data class Model(
-	val name: String,
 	val provider: Provider,
 	val modelInfo: ModelInfo,
 	val config: Config? = null,
+	val modelId: ModelId,
 )
 
 data class Provider(

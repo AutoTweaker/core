@@ -31,6 +31,7 @@ import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
+import io.github.autotweaker.core.session.ModelId
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -631,7 +632,12 @@ class CompactPhaseTest {
 	private fun mockModel(): Model {
 		val provider = mockk<Provider>()
 		every { provider.name } returns "test-provider"
-		return Model(name = "summarize-model", provider = provider, modelInfo = mockk(relaxed = true))
+		return Model(
+			provider = provider, modelInfo = mockk(relaxed = true), modelId = ModelId(
+				"test-provider",
+				"summarize-model"
+			)
+		)
 	}
 	// endregion
 }

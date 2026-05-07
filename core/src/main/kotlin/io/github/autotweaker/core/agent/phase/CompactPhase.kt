@@ -110,7 +110,7 @@ private suspend fun runCompactRequest(
 	messages: List<ChatMessage>,
 ): CompactRequestResult {
 	val request = ChatRequest(
-		model = summarizeModel.name,
+		model = summarizeModel.modelInfo.id,
 		messages = messages,
 		stream = true,
 		thinking = false,
@@ -279,7 +279,7 @@ private suspend fun convertAssistantMessage(
 		createdAt = msg.timestamp,
 		reasoningContent = msg.reasoning ?: "",
 		toolCalls = toolCalls,
-		model = msg.model.name,
+		model = msg.model.modelInfo.id,
 	)
 }
 
@@ -308,7 +308,7 @@ private suspend fun summarizeMessage(
 	fallbackModels: List<Model>?,
 ): String {
 	val request = ChatRequest(
-		model = model.name,
+		model = model.modelInfo.id,
 		thinking = false,
 		messages = listOf(
 			ChatMessage.UserMessage(prompt.format(content), Clock.System.now()),

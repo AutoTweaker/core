@@ -24,6 +24,7 @@ import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
+import io.github.autotweaker.core.session.ModelId
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test
@@ -59,11 +60,11 @@ class ModelTest {
 			errorHandlingRules = emptyList()
 		)
 		val model = Model(
-			name = "test-model",
 			provider = provider,
 			modelInfo = testModelInfo,
+			modelId = ModelId("test-provider", "test-model"),
 		)
-		assertEquals("test-model", model.name)
+		assertEquals("test-model", model.modelId.modelName)
 		assertEquals(provider, model.provider)
 		assertEquals(testModelInfo, model.modelInfo)
 		assertNull(model.config)
@@ -73,7 +74,7 @@ class ModelTest {
 	fun `construct model with config`() {
 		val provider = Provider("p", testUrl, "key", emptyList())
 		val config = Config(temperature = 0.7, maxTokens = 2048, compactContextUsage = 0.8, compactTotalTokens = 0.9)
-		val model = Model("m", provider, testModelInfo, config)
+		val model = Model(provider = provider, modelInfo = testModelInfo, config = config, modelId = ModelId("p", "m"))
 		assertEquals(config, model.config)
 		assertEquals(0.7, model.config?.temperature)
 		assertEquals(2048, model.config?.maxTokens)
@@ -96,8 +97,8 @@ class ModelTest {
 	@Test
 	fun `model equality`() {
 		val provider = Provider("p", testUrl, "key", emptyList())
-		val model1 = Model("m", provider, testModelInfo)
-		val model2 = Model("m", provider, testModelInfo)
+		val model1 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m"))
+		val model2 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m"))
 		assertEquals(model1, model2)
 		assertEquals(model1.hashCode(), model2.hashCode())
 	}
@@ -113,8 +114,8 @@ class ModelTest {
 	@Test
 	fun `models with different names are not equal`() {
 		val provider = Provider("p", testUrl, "key", emptyList())
-		val model1 = Model("m1", provider, testModelInfo)
-		val model2 = Model("m2", provider, testModelInfo)
+		val model1 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m1"))
+		val model2 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m2"))
 		assertTrue(model1 != model2)
 	}
 }
