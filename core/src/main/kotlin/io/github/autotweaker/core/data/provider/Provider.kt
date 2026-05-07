@@ -16,8 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.core.data.provider
 
+import io.github.autotweaker.core.Price
+import io.github.autotweaker.core.Url
 import kotlinx.serialization.Serializable
 
 @Serializable

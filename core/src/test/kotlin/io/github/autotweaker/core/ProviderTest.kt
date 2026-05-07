@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.core.data.provider.Provider
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*

@@ -19,10 +19,10 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Provider.Model.*
-import io.github.autotweaker.core.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.data.provider.Provider.Model.*
+import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
 import io.ktor.http.*

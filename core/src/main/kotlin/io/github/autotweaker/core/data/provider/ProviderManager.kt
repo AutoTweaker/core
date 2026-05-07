@@ -16,49 +16,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session.workspace
+package io.github.autotweaker.core.data.provider
 
 import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.llm.LlmClient
+import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
-import java.util.*
-
 
 @Suppress("unused")
-object WorkspaceManager {
+object ProviderManager {
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
-	private var workspaceList: List<WorkspaceData>
+	private var providers: List<Provider>
 	
 	init {
 		val jsonArray = jsonEntry.get()
-		
-		workspaceList = if (jsonArray == null) emptyList()
-		else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
+		providers = if (jsonArray == null) emptyList()
+		else Json.decodeFromJsonElement<List<Provider>>(jsonArray)
 	}
 	
-	fun create(meta: Workspace) =
-		update(workspaceList.plus(WorkspaceData(meta)))
+	fun add(data: Provider) =
+		update(providers + data)
 	
-	fun get(name: String): WorkspaceData? =
-		workspaceList.find { it.meta.name == name }
+	fun addModel(provider: String, models: List<Provider.Model>) =
+		update(providers.map { if (it.name == provider) it.copy(models = it.models + models) else it })
 	
-	fun getAll(): List<Workspace> =
-		workspaceList.map { it.meta }
+	fun get(): List<Provider> =
+		providers
 	
-	fun updateMeta(meta: Workspace) =
-		update(workspaceList.map { if (it.meta.name == meta.name) it.copy(meta = meta) else it })
-	
-	fun updateData(name: String, git: Boolean?, sessionIds: List<UUID>?) =
-		update(workspaceList.map { if (it.meta.name == name) it.copy(git = git, sessionIds = sessionIds) else it })
+	fun getInfo(type: String): LlmClient.ProviderInfo =
+		LlmClientLoader.load(type).providerInfo
 	
 	fun delete(name: String) =
-		update(workspaceList.filterNot { it.meta.name == name })
+		update(providers.filterNot { it.name == name })
 	
+	fun override(data: Provider) =
+		update(providers.map { if (it.name == data.name) data else it })
 	
-	private fun update(new: List<WorkspaceData>) {
-		workspaceList = new
-		jsonEntry.set(Json.encodeToJsonElement(workspaceList))
+	private fun update(new: List<Provider>) {
+		providers = new
+		jsonEntry.set(Json.encodeToJsonElement(new))
 	}
 }
