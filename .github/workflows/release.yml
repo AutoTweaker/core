@@ -42,7 +42,7 @@ jobs:
           mkdir -p "$PKG_ROOT/usr/share/autotweaker"
           mkdir -p "$PKG_ROOT/usr/bin"
 
-          cp -r core/build/install/core/* "$PKG_ROOT/usr/share/autotweaker/"
+          cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
 
           cat > "$PKG_ROOT/DEBIAN/control" << CTRL
           Package: autotweaker
