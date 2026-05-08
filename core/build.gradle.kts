@@ -85,10 +85,15 @@ tasks.register("validateFindCalls") {
 		
 		// 从 ConfigSerializer.kt 提取 key→期望类型 映射
 		val itemRegex = Regex("""SettingKey\("([^"]+)"\)\s*,\s*SettingItem\.Value\.(\w+)\(""")
+		val promptRegex = Regex("""fromPrompt\("([^"]+)"\s*,\s*""")
 		val registry = mutableMapOf<String, String>()
-		for (m in itemRegex.findAll(configSerializerFile.readText())) {
+		val configSource = configSerializerFile.readText()
+		for (m in itemRegex.findAll(configSource)) {
 			val kotlinType = valueTypeToKotlinType[m.groupValues[2]] ?: continue
 			registry[m.groupValues[1]] = kotlinType
+		}
+		for (m in promptRegex.findAll(configSource)) {
+			registry[m.groupValues[1]] = "String"
 		}
 		
 		val findRegex = Regex("""\.find\("([^"]+)"\)""")

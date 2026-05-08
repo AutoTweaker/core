@@ -43,7 +43,7 @@ object SessionManager {
 	private val settings = Settings.getAll()
 	
 	private val defaultModelId: String = settings.find("core.session.model.default")
-	private val systemPrompt: String = settings.find("core.session.prompt.system")
+	private val systemPrompt: String = settings.find("core.session.system.prompt")
 	
 	private val store = SessionStoreImpl().also { it.init() }
 	private val wsm = WorkspaceManager

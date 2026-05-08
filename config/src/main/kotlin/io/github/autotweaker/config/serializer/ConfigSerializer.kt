@@ -24,6 +24,14 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
 
+private fun fromPrompt(key: String, description: String): SettingItem =
+	SettingItem(
+		SettingKey(key),
+		SettingItem.Value.ValString(
+			Thread.currentThread().contextClassLoader.getResourceAsStream("prompt/$key")?.bufferedReader()
+				?.use { it.readText() } ?: error("Resource not found: prompt/$key")),
+		description)
+
 val defaultItems: List<SettingItem> = listOf(
 	// region Agent — 工具调用响应消息
 	SettingItem(
@@ -33,12 +41,12 @@ val defaultItems: List<SettingItem> = listOf(
 	),
 	SettingItem(
 		SettingKey("core.agent.tool.response.rejected"),
-		SettingItem.Value.ValString("工具调用已被用户拒绝"),
+		SettingItem.Value.ValString("工具调用已被用户拒绝，工具未被执行，请停止当前操作，等待用户告知如何继续"),
 		"工具调用被拒绝时的ToolResult"
 	),
 	SettingItem(
 		SettingKey("core.agent.tool.response.rejected.with.feedback"),
-		SettingItem.Value.ValString("用户拒绝了工具调用，并留言：%s"),
+		SettingItem.Value.ValString("工具未被执行，用户拒绝了工具调用，并留言：%s"),
 		"工具调用被拒绝时的ToolResult"
 	),
 	SettingItem(
@@ -277,11 +285,8 @@ val defaultItems: List<SettingItem> = listOf(
 		SettingItem.Value.ValString("运行一条bash命令，可选设置超时时间并按id注入一次性环境变量"),
 		"bash工具的描述"
 	),
-	SettingItem(
-		SettingKey("core.tool.bash.function.description.run"),
-		SettingItem.Value.ValString("运行一条bash命令并获取输出"),
-		"bash_run工具的描述"
-	),
+	fromPrompt("core.tool.bash.function.description.run", "bash_run工具的描述"),
+	
 	SettingItem(
 		SettingKey("core.tool.bash.property.description.command"),
 		SettingItem.Value.ValString("要执行的bash命令内容"),
@@ -330,96 +335,8 @@ val defaultItems: List<SettingItem> = listOf(
 	// endregion
 	
 	// region Agent — 上下文压缩
-	SettingItem(
-		SettingKey("core.agent.compact.prompt"), SettingItem.Value.ValString(
-			"""
-			你的任务是对迄今为止的对话进行详细总结，并特别留意用户的明确要求和你之前所执行的操作。
-			此摘要应详尽记录技术细节、代码模式以及架构决策，这对于在丢失上下文的情况下继续开发工作至关重要。
-		
-			在给出最终摘要之前，请将你的分析过程置于 <analysis> 标签内，以整理你的思路，并确保涵盖所有必要要点。在分析过程中：
-		
-			1. 按时间顺序分析对话中的每条消息及每个部分。对于每个部分，请详尽识别：
-			   - 用户的明确请求和意图
-			   - 你处理用户请求的方法
-			   - 关键决策、技术概念和代码模式
-			   - 具体细节，例如：
-			     - 文件名称
-			     - 完整代码片段
-			     - 函数签名
-			     - 文件编辑
-			   - 你所遇到的错误以及如何修复它们
-			   - 尤其要留意用户给出的具体反馈，特别是当用户告诉你采取不同做法的时候。
-			2. 仔细检查技术准确性和完整性，确保涵盖每个必需元素。
-		
-			你的摘要应包含以下部分：
-		
-			1. 主要请求与意图：详细描述用户的所有明确请求和意图
-			2. 关键技术概念：列出所有讨论过的重要技术概念、技术和框架。
-			3. 文件与代码片段：枚举所查看、修改或创建的特定文件及代码部分。特别关注最近的消息，并在适用时包含完整代码片段，同时概述该文件读取或编辑为何重要。
-			4. 错误与修复：列出你遇到的所有错误及其修复方式。尤其要留意用户的具体反馈，特别是当用户告知你应当采用不同方式时。
-			5. 问题解决：描述已解决的问题以及任何正在进行的故障排除工作。
-			6. 所有用户消息：列出所有非工具执行结果的用户消息。这些消息对于理解用户的反馈和意图变化至关重要。
-			7. 待处理任务：列出你被明确要求处理的任何待处理任务。
-			8. 当前工作：详细描述在此次摘要请求之前正在进行的准确工作，尤其关注来自用户和助手的最近消息。在适用时包含文件名称和代码片段。
-			9. 可选下一步：列出与你最近进行的工作相关的下一步措施。重要提示：请确保此步骤与你最近的明确用户请求以及摘要请求之前你正在进行的任务直接相关。如果你的上一个任务已经结束，那么仅在这些步骤与你最近的明确用户请求直接相关时才列出后续步骤。在未与用户确认之前，请勿开始处理旁枝末节或早已完成的陈旧请求。
-			             如果存在下一步，请包含最近对话的直接引述，以准确展示你正在进行什么任务以及你在何处暂停。此举应一字不差地进行，以确保任务解释不会发生偏移。
-		
-			以下是你输出内容应遵循的结构示例：
-		
-			<example>
-			<analysis>
-			[你的思考过程，确保全面且准确地涵盖所有要点]
-			</analysis>
-		
-			<summary>
-			1. 主要请求与意图：
-			   [详细描述]
-		
-			2. 关键技术概念：
-			   - [概念 1]
-			   - [概念 2]
-			   - [...]
-		
-			3. 文件与代码片段：
-			   - [文件名称 1]
-			      - [概述为什么此文件很重要]
-			      - [概述对此文件所做的更改（若有）]
-			      - [重要代码片段]
-			   - [文件名称 2]
-			      - [重要代码片段]
-			   - [...]
-		
-			4. 错误与修复：
-			    - [错误 1 的详细描述]：
-			      - [你是如何修复该错误的]
-			      - [用户关于该错误的反馈（若有）]
-			    - [...]
-		
-			5. 问题解决：
-			   [已解决问题和正在进行的故障排除工作的描述]
-		
-			6. 所有用户消息：
-			    - [详细描述的非工具使用用户消息]
-			    - [...]
-		
-			7. 待处理任务：
-			   - [任务 1]
-			   - [任务 2]
-			   - [...]
-		
-			8. 当前工作：
-			   [当前工作的准确描述]
-		
-			9. 可选下一步：
-			   [可选的下一步行动]
-		
-			</summary>
-			</example>
-		
-			请根据迄今为止的对话提供你的摘要，遵循此结构，并确保你的回复精确且详尽。
-			""".trimIndent()
-		), "用于上下文压缩的提示词"
-	),
+	fromPrompt("core.agent.compact.prompt", "用于上下文压缩的提示词"),
+	
 	SettingItem(
 		SettingKey("core.agent.compact.max.message.chars"),
 		SettingItem.Value.ValInt(10000),
@@ -441,15 +358,8 @@ val defaultItems: List<SettingItem> = listOf(
 	// endregion
 	
 	// region 会话配置
-	SettingItem(
-		SettingKey("core.session.prompt.system"),
-		SettingItem.Value.ValString(
-			"""
-			TODO -- 系统提示
-			""".trimIndent()
-		),
-		"系统提示词，作用于整个项目"
-	),
+	fromPrompt("core.session.system.prompt", "系统提示词，作用于整个项目"),
+	
 	SettingItem(
 		SettingKey("core.session.model.default"),
 		SettingItem.Value.ValString("deepseek/deepseek-v4-flash"),
