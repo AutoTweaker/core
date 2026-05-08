@@ -18,16 +18,40 @@
 
 package io.github.autotweaker.core.llm
 
+import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 object LlmClientLoader {
+	private val builtIn: List<LlmClient> by lazy {
+		ServiceLoader.load(LlmClient::class.java).toList()
+	}
+	
+	private val all: List<LlmClient> by lazy {
+		val external = loadExternalProviders()
+		val externalNames = external.map { it.providerInfo.name }.toSet()
+		external + builtIn.filter { it.providerInfo.name !in externalNames }
+	}
+	
+	private fun loadExternalProviders(): List<LlmClient> {
+		val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins", "provider")
+		if (!Files.isDirectory(dir)) return emptyList()
+		
+		val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
+		if (jars.isEmpty()) return emptyList()
+		
+		val urls = jars.map { it.toUri().toURL() }.toTypedArray()
+		val classLoader = URLClassLoader(urls, LlmClientLoader::class.java.classLoader)
+		return ServiceLoader.load(LlmClient::class.java, classLoader).toList()
+	}
+	
 	fun load(name: String): LlmClient {
-		return ServiceLoader.load(LlmClient::class.java)
-			.firstOrNull { it.providerInfo.name == name }
+		return all.firstOrNull { it.providerInfo.name == name }
 			?: throw IllegalArgumentException("Unknown LLM provider: $name")
 	}
 	
 	fun availableProviders(): List<String> {
-		return ServiceLoader.load(LlmClient::class.java).map { it.providerInfo.name }
+		return all.map { it.providerInfo.name }
 	}
 }
