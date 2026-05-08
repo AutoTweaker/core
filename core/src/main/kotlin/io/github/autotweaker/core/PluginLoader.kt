@@ -18,6 +18,19 @@
 
 package io.github.autotweaker.core
 
-fun main() {
-    AutoTweaker.start()
+import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.*
+
+inline fun <reified T : Any> loadPlugins(subDir: String): List<T> {
+	val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins", subDir)
+	if (!Files.isDirectory(dir)) return emptyList()
+	
+	val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
+	if (jars.isEmpty()) return emptyList()
+	
+	val urls = jars.map { it.toUri().toURL() }.toTypedArray()
+	val classLoader = URLClassLoader(urls, T::class.java.classLoader)
+	return ServiceLoader.load(T::class.java, classLoader).toList()
 }

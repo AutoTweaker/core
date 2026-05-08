@@ -25,6 +25,7 @@ import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.config.CoreConfig
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.SessionConfig
 import io.github.autotweaker.core.session.SessionManager
@@ -32,6 +33,9 @@ import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import java.util.*
 
 object CoreAPIImpl : CoreAPI {
+	override fun unlock(password: String) = SecretManager.unlock(password)
+	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
+	
 	override val session = object : CoreAPI.SessionAPI {
 		override suspend fun create(workspace: String, config: SessionConfig) =
 			SessionManager.SessionAPI.create(workspace, config)

@@ -33,6 +33,9 @@ interface CoreAPI {
 	val session: SessionAPI
 	val config: ConfigAPI
 	
+	fun unlock(password: String)
+	val isUnlocked: Boolean
+	
 	interface SessionAPI {
 		suspend fun create(workspace: String, config: SessionConfig): SessionManager.SessionHandle
 		suspend fun delete(sessionId: UUID)
