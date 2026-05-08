@@ -21,6 +21,7 @@ package io.github.autotweaker.core.tool.impl.bash
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
@@ -28,6 +29,7 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*
 import java.nio.file.Path
+import java.util.*
 import kotlin.test.*
 
 class BashTest {
@@ -45,11 +47,19 @@ class BashTest {
 		every { mockEntry.get() } answers { storedJson }
 		every { mockEntry.set(any()) } answers { storedJson = firstArg() }
 		every { JsonStore.namespace(any()) } returns mockEntry
+		
+		mockkObject(SecretManager)
+		val secretStore = mutableMapOf<UUID, String>()
+		every { SecretManager.add(any()) } answers { UUID.randomUUID().also { secretStore[it] = firstArg() } }
+		every { SecretManager.get(any()) } answers { secretStore[firstArg()]!! }
+		every { SecretManager.remove(any()) } answers { secretStore.remove(firstArg()) }
+		
 		bash = Bash()
 	}
 	
 	@AfterTest
 	fun tearDown() {
+		unmockkObject(SecretManager)
 		unmockkObject(JsonStore)
 	}
 	
@@ -352,17 +362,17 @@ class BashTest {
 		bash.setEnv("MY_VAR", "my_value")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run($$"echo $MY_VAR", 30, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
+		coEvery { bashService.run("echo \$MY_VAR", 30, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
 			exitCode = 0, stdout = "my_value", stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		
 		val input = ToolInput(
-			args($$"echo $MY_VAR", envIds = listOf("MY_VAR")), container(bashService)
+			args("echo \$MY_VAR", envIds = listOf("MY_VAR")), container(bashService)
 		)
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
-		coVerify { bashService.run($$"echo $MY_VAR", 30, mapOf("MY_VAR" to "my_value")) }
+		coVerify { bashService.run("echo \$MY_VAR", 30, mapOf("MY_VAR" to "my_value")) }
 	}
 	
 	@Test

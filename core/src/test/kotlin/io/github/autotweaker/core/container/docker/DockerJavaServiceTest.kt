@@ -213,6 +213,7 @@ class DockerJavaServiceTest {
 		every { execCreateCmd.withCmd(*anyVararg()) } returns execCreateCmd
 		every { execCreateCmd.withAttachStdout(any()) } returns execCreateCmd
 		every { execCreateCmd.withAttachStderr(any()) } returns execCreateCmd
+		every { execCreateCmd.withEnv(any()) } returns execCreateCmd
 		every { execCreateCmd.exec() } returns execCreateResponse
 		every { client.execCreateCmd(any()) } returns execCreateCmd
 		
@@ -255,6 +256,7 @@ class DockerJavaServiceTest {
 		every { execCreateCmd.withCmd(*anyVararg()) } returns execCreateCmd
 		every { execCreateCmd.withAttachStdout(any()) } returns execCreateCmd
 		every { execCreateCmd.withAttachStderr(any()) } returns execCreateCmd
+		every { execCreateCmd.withEnv(any()) } returns execCreateCmd
 		every { execCreateCmd.withWorkingDir("/tmp/work") } returns execCreateCmd
 		every { execCreateCmd.exec() } returns execCreateResponse
 		every { client.execCreateCmd(any()) } returns execCreateCmd
@@ -292,6 +294,7 @@ class DockerJavaServiceTest {
 		every { execCreateCmd.withCmd(*anyVararg()) } returns execCreateCmd
 		every { execCreateCmd.withAttachStdout(any()) } returns execCreateCmd
 		every { execCreateCmd.withAttachStderr(any()) } returns execCreateCmd
+		every { execCreateCmd.withEnv(any()) } returns execCreateCmd
 		every { execCreateCmd.exec() } returns execCreateResponse
 		every { client.execCreateCmd(any()) } returns execCreateCmd
 		

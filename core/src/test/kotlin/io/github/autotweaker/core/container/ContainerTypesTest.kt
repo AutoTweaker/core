@@ -125,6 +125,7 @@ class ContainerServiceTest {
 				command: List<String>,
 				workDir: String?,
 				timeoutSeconds: Long,
+				env: Map<String, String>,
 			) = CommandResult(0, workDir ?: "default", timeoutSeconds.toString())
 		}
 		

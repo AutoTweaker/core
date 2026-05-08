@@ -22,11 +22,14 @@ import io.github.autotweaker.core.container.docker.DockerJavaService
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.data.settings.find
+import io.github.autotweaker.core.secret.SecretManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import java.util.*
 
 
 object ContainerManager {
@@ -39,6 +42,8 @@ object ContainerManager {
 	private var _containerId: String? = null
 	
 	val isRunning: Boolean get() = _containerId != null
+	
+	@Suppress("unused")
 	val containerId: String? get() = _containerId
 	
 	suspend fun start(): String = mutex.withLock {
@@ -63,14 +68,15 @@ object ContainerManager {
 		}
 	}
 	
-	suspend fun exec(vararg cmd: String): CommandResult {
+	@Suppress("unused")
+	suspend fun exec(vararg cmd: String, env: Map<String, String> = emptyMap()): CommandResult {
 		val (id, svc) = requireContainer()
-		return svc.exec(id, cmd.toList())
+		return svc.exec(id, cmd.toList(), env = env)
 	}
 	
-	suspend fun execShell(command: String): CommandResult {
+	suspend fun execShell(command: String, env: Map<String, String> = emptyMap()): CommandResult {
 		val (id, svc) = requireContainer()
-		return svc.exec(id, listOf("bash", "-c", command))
+		return svc.exec(id, listOf("bash", "-lc", command), env = env)
 	}
 	
 	private fun requireContainer(): Pair<String, ContainerService> {
@@ -79,10 +85,38 @@ object ContainerManager {
 		return id to svc
 	}
 	
-	@Suppress("unused")
-	fun setEnv(env: Map<String, String>) =
-		jsonEntry.set(Json.encodeToJsonElement(env))
+	fun list(): List<String> = getEnvUuidMap().keys.toList()
 	
-	fun getEnv(): Map<String, String> =
-		jsonEntry.get()?.let { Json.decodeFromJsonElement(it) } ?: emptyMap()
+	@Suppress("unused")
+	fun setEnv(env: Map<String, String>) {
+		val current = getEnvUuidMap()
+		val removed = current.keys - env.keys
+		removed.forEach { current[it]?.let { uuid -> SecretManager.remove(uuid) } }
+		val updated = current.filterKeys { it in env.keys }.toMutableMap()
+		for ((id, value) in env) {
+			current[id]?.let { SecretManager.remove(it) }
+			updated[id] = SecretManager.add(value)
+		}
+		saveEnvUuidMap(updated)
+	}
+	
+	fun getEnv(): Map<String, String> = getEnvUuidMap().mapNotNull { (id, uuid) ->
+		try {
+			id to SecretManager.get(uuid)
+		} catch (_: Exception) {
+			null
+		}
+	}.toMap()
+	
+	private fun getEnvUuidMap(): Map<String, UUID> {
+		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
+		return obj.mapNotNull { (k, v) ->
+			v.jsonPrimitive.contentOrNull?.let { UUID.fromString(it) }?.let { k to it }
+		}.toMap()
+	}
+	
+	private fun saveEnvUuidMap(map: Map<String, UUID>) {
+		val obj = JsonObject(map.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
+		jsonEntry.set(obj)
+	}
 }

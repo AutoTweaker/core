@@ -22,9 +22,11 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
+import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.tool.get
 import kotlinx.serialization.json.*
+import java.util.*
 
 @AutoService(Tool::class)
 class Bash : Tool {
@@ -41,8 +43,7 @@ class Bash : Tool {
 		val timeoutDescription: String = settings.find("core.tool.bash.property.description.timeout.seconds")
 		val envIdsDescription: String = settings.find("core.tool.bash.property.description.env.ids")
 		val defaultTimeoutSeconds: Int = settings.find("core.tool.bash.setting.default.timeout.seconds")
-		val envIds =
-			getEnvStore().keys.sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
+		val envIds = list().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
 		return Tool.Meta(
 			name = "bash",
 			description = description,
@@ -84,7 +85,7 @@ class Bash : Tool {
 			return Tool.ToolOutput(runtime.messageInvalidTimeout, false)
 		}
 		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
-		val selectedEnv = envIds.mapNotNull { id -> getEnvStore()[id]?.let { id to it } }.toMap()
+		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
 		val result = input.provider.get<BashService>().run(command, timeoutSeconds, selectedEnv)
 		val stdout = result.stdout.ifBlank { "<empty>" }
@@ -110,27 +111,39 @@ class Bash : Tool {
 	)
 	
 	
+	fun list(): List<String> = getEnvUuidMap().keys.toList()
+	
 	fun getEnv(id: String): String? {
-		val obj = jsonEntry.get() as? JsonObject ?: return null
-		return obj[id]?.jsonPrimitive?.contentOrNull
+		val uuid = getEnvUuidMap()[id] ?: return null
+		return try {
+			SecretManager.get(uuid)
+		} catch (_: Exception) {
+			null
+		}
 	}
 	
 	
 	fun setEnv(id: String, value: String) {
-		val obj = jsonEntry.get() as? JsonObject ?: buildJsonObject { }
-		val updated = JsonObject(obj + (id to JsonPrimitive(value)))
+		val current = getEnvUuidMap()
+		current[id]?.let { SecretManager.remove(it) }
+		val uuid = SecretManager.add(value)
+		val updated =
+			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
 	}
 	
 	
 	fun removeEnv(id: String) {
-		val obj = jsonEntry.get() as? JsonObject ?: return
-		val updated = JsonObject(obj - id)
+		val current = getEnvUuidMap()
+		current[id]?.let { SecretManager.remove(it) }
+		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
 	}
 	
-	private fun getEnvStore(): Map<String, String> {
+	private fun getEnvUuidMap(): Map<String, UUID> {
 		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
-		return obj.mapNotNull { (k, v) -> v.jsonPrimitive.contentOrNull?.let { k to it } }.toMap()
+		return obj.mapNotNull { (k, v) ->
+			v.jsonPrimitive.contentOrNull?.let { UUID.fromString(it) }?.let { k to it }
+		}.toMap()
 	}
 }

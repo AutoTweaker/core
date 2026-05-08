@@ -44,53 +44,43 @@ class DockerJavaService : ContainerService {
 	@Suppress("DEPRECATION")
 	private val client: DockerClient = DockerClientImpl.getInstance()
 	
-	override suspend fun start(image: String, config: ContainerConfig): String =
-		withContext(Dispatchers.IO) {
-			try {
-				logger.info("Pulling image: $image")
-				client.pullImageCmd(image)
-					.exec(object : PullImageResultCallback() {})
-					.awaitCompletion()
-				
-				val workspaceHostPath = config.workspaceHostPath
-				Files.createDirectories(workspaceHostPath)
-				
-				val hostConfig = HostConfig()
-					.withBinds(
-						com.github.dockerjava.api.model.Bind(
-							workspaceHostPath.toString(),
-							com.github.dockerjava.api.model.Volume(config.workDir.toString())
-						)
-					)
-				
-				logger.info("Creating container: ${config.name}")
-				val createResponse = client.createContainerCmd(image)
-					.withName(config.name)
-					.withWorkingDir(config.workDir.toString())
-					.withEnv(config.env.map { "${it.key}=${it.value}" })
-					.withHostConfig(hostConfig)
-					.withEntrypoint("tail", "-f", "/dev/null")
-					.exec()
-				
-				logger.info("Starting container: ${createResponse.id}")
-				client.startContainerCmd(createResponse.id).exec()
-				
-				createResponse.id
-			} catch (e: ConflictException) {
-				throw ContainerOperationException("Container '${config.name}' already exists", e)
-			} catch (e: NotFoundException) {
-				throw ContainerOperationException("Image '$image' not found", e)
-			} catch (e: Exception) {
-				throw ContainerOperationException("Failed to start container: ${e.message}", e)
-			}
+	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
+		try {
+			logger.info("Pulling image: $image")
+			client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
+			
+			val workspaceHostPath = config.workspaceHostPath
+			Files.createDirectories(workspaceHostPath)
+			
+			val hostConfig = HostConfig().withBinds(
+				com.github.dockerjava.api.model.Bind(
+					workspaceHostPath.toString(), com.github.dockerjava.api.model.Volume(config.workDir.toString())
+				)
+			)
+			
+			logger.info("Creating container: ${config.name}")
+			val createResponse =
+				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
+					.withEnv(config.env.map { "${it.key}=${it.value}" }).withHostConfig(hostConfig)
+					.withEntrypoint("tail", "-f", "/dev/null").exec()
+			
+			logger.info("Starting container: ${createResponse.id}")
+			client.startContainerCmd(createResponse.id).exec()
+			
+			createResponse.id
+		} catch (e: ConflictException) {
+			throw ContainerOperationException("Container '${config.name}' already exists", e)
+		} catch (e: NotFoundException) {
+			throw ContainerOperationException("Image '$image' not found", e)
+		} catch (e: Exception) {
+			throw ContainerOperationException("Failed to start container: ${e.message}", e)
 		}
+	}
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
 		try {
 			logger.info("Stopping container: $containerId")
-			client.stopContainerCmd(containerId)
-				.withTimeout(10)
-				.exec()
+			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			client.removeContainerCmd(containerId).exec()
 			logger.info("Container removed: $containerId")
 		} catch (_: NotFoundException) {
@@ -105,12 +95,11 @@ class DockerJavaService : ContainerService {
 		command: List<String>,
 		workDir: String?,
 		timeoutSeconds: Long,
+		env: Map<String, String>,
 	): CommandResult = withContext(Dispatchers.IO) {
 		try {
-			val execCmd = client.execCreateCmd(containerId)
-				.withCmd(*command.toTypedArray())
-				.withAttachStdout(true)
-				.withAttachStderr(true)
+			val execCmd = client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
+				.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
 			if (workDir != null) {
 				execCmd.withWorkingDir(workDir)
 			}
@@ -119,17 +108,15 @@ class DockerJavaService : ContainerService {
 			val stdout = StringBuilder()
 			val stderr = StringBuilder()
 			
-			client.execStartCmd(execId)
-				.exec(object : ResultCallback.Adapter<Frame>() {
-					override fun onNext(frame: Frame) {
-						when (frame.streamType) {
-							StreamType.STDOUT -> stdout.append(String(frame.payload, Charsets.UTF_8))
-							StreamType.STDERR -> stderr.append(String(frame.payload, Charsets.UTF_8))
-							else -> {}
-						}
+			client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
+				override fun onNext(frame: Frame) {
+					when (frame.streamType) {
+						StreamType.STDOUT -> stdout.append(String(frame.payload, Charsets.UTF_8))
+						StreamType.STDERR -> stderr.append(String(frame.payload, Charsets.UTF_8))
+						else -> {}
 					}
-				})
-				.awaitCompletion(timeoutSeconds, TimeUnit.SECONDS)
+				}
+			}).awaitCompletion(timeoutSeconds, TimeUnit.SECONDS)
 			
 			val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong
 			

@@ -35,11 +35,9 @@ class BashServiceImpl(
 	override suspend fun run(command: String, timeoutSeconds: Int, env: Map<String, String>): BashService.Result =
 		if (inContainer) runInContainer(command, timeoutSeconds, env) else withContext(Dispatchers.IO) {
 			val startNs = System.nanoTime()
-			val process = ProcessBuilder("bash", "-lc", command)
-				.directory(workspacePath.toFile())
-				.redirectErrorStream(false)
-				.apply { environment().putAll(env) }
-				.start()
+			val process =
+				ProcessBuilder("bash", "-lc", command).directory(workspacePath.toFile()).redirectErrorStream(false)
+					.apply { environment().putAll(env) }.start()
 			
 			val pool = Executors.newFixedThreadPool(2)
 			try {
@@ -66,18 +64,13 @@ class BashServiceImpl(
 		}
 	
 	private suspend fun runInContainer(
-		command: String,
-		timeoutSeconds: Int,
-		env: Map<String, String>
+		command: String, timeoutSeconds: Int, env: Map<String, String>
 	): BashService.Result {
 		val startNs = System.nanoTime()
-		val envPrefix = env.entries.joinToString(" ") { (k, v) -> "${k.shellEscape()}=${v.shellEscape()}" }
-		val wrapped = buildString {
-			append("cd ${containerWorkDir.toString().shellEscape()} && ")
-			if (envPrefix.isNotBlank()) append("env $envPrefix ")
-			append("timeout ${timeoutSeconds}s bash -lc ${command.shellEscape()}")
-		}
-		val result = ContainerManager.exec("bash", "-lc", wrapped)
+		val wrapped = "cd ${
+			containerWorkDir.toString().shellEscape()
+		} && timeout ${timeoutSeconds}s bash -lc ${command.shellEscape()}"
+		val result = ContainerManager.execShell(wrapped, env = env)
 		val timeout = result.exitCode == 124
 		val durationSeconds = (System.nanoTime() - startNs) / 1_000_000_000.0
 		return BashService.Result(result.exitCode, result.stdout, result.stderr, timeout, durationSeconds)
