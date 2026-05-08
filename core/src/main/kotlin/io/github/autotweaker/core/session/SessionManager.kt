@@ -40,7 +40,7 @@ import java.util.*
 
 @Suppress("unused")
 object SessionManager {
-	private val settings = Settings.getAll()
+	private val settings = Settings.get()
 	
 	private val defaultModelId: String = settings.find("core.session.model.default")
 	private val systemPrompt: String = settings.find("core.session.system.prompt")

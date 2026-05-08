@@ -43,7 +43,7 @@ class Bash : Tool {
 		val timeoutDescription: String = settings.find("core.tool.bash.property.description.timeout.seconds")
 		val envIdsDescription: String = settings.find("core.tool.bash.property.description.env.ids")
 		val defaultTimeoutSeconds: Int = settings.find("core.tool.bash.setting.default.timeout.seconds")
-		val envIds = list().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
+		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
 		return Tool.Meta(
 			name = "bash",
 			description = description,
@@ -111,7 +111,7 @@ class Bash : Tool {
 	)
 	
 	
-	fun list(): List<String> = getEnvUuidMap().keys.toList()
+	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
 	
 	fun getEnv(id: String): String? {
 		val uuid = getEnvUuidMap()[id] ?: return null

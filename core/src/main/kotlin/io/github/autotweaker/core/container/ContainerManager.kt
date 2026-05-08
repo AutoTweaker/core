@@ -51,7 +51,7 @@ object ContainerManager {
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
 		val config = ContainerConfig(env = getEnv())
-		val id = service.start(Settings.getAll().find("core.container.docker.image"), config)
+		val id = service.start(Settings.get().find("core.container.docker.image"), config)
 		_containerId = id
 		id
 	}
@@ -85,9 +85,8 @@ object ContainerManager {
 		return id to svc
 	}
 	
-	fun list(): List<String> = getEnvUuidMap().keys.toList()
+	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
 	
-	@Suppress("unused")
 	fun setEnv(env: Map<String, String>) {
 		val current = getEnvUuidMap()
 		val removed = current.keys - env.keys
@@ -100,13 +99,24 @@ object ContainerManager {
 		saveEnvUuidMap(updated)
 	}
 	
-	fun getEnv(): Map<String, String> = getEnvUuidMap().mapNotNull { (id, uuid) ->
-		try {
-			id to SecretManager.get(uuid)
-		} catch (_: Exception) {
-			null
-		}
-	}.toMap()
+	fun removeEnv(id: String) {
+		val current = getEnvUuidMap()
+		current[id]?.let { SecretManager.remove(it) }
+		val updated = current.filterKeys { it != id }.toMutableMap()
+		saveEnvUuidMap(updated)
+	}
+	
+	fun getEnv(id: String? = null): Map<String, String> {
+		val uuidMap = getEnvUuidMap()
+		val ids = if (id != null) listOf(id).filter { it in uuidMap } else uuidMap.keys
+		return ids.mapNotNull { key ->
+			try {
+				key to SecretManager.get(uuidMap[key]!!)
+			} catch (_: Exception) {
+				null
+			}
+		}.toMap()
+	}
 	
 	private fun getEnvUuidMap(): Map<String, UUID> {
 		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()

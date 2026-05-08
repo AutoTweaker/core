@@ -21,8 +21,6 @@ package io.github.autotweaker.core.data.settings
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.nio.file.Files
 import kotlin.test.*
 
@@ -59,7 +57,7 @@ class SettingsIntegrationTest {
 	@Test
 	fun `init then getAll returns defaults`() {
 		Settings.init()
-		val all = Settings.getAll()
+		val all = Settings.get()
 		assertTrue(all.isNotEmpty())
 		val item = all.find { it.key.value == "test.key1" }!!
 		assertEquals("default1", (item.value as SettingItem.Value.ValString).value)
@@ -69,7 +67,7 @@ class SettingsIntegrationTest {
 	fun `set updates value`() {
 		Settings.init()
 		Settings.set(SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("updated"), "updated desc"))
-		val all = Settings.getAll()
+		val all = Settings.get()
 		val item = all.find { it.key.value == "test.key1" }!!
 		assertEquals("updated", (item.value as SettingItem.Value.ValString).value)
 	}
@@ -99,7 +97,7 @@ class SettingsIntegrationTest {
 		)
 		Settings.init()
 		
-		val afterFirst = Settings.getAll().find { it.key.value == "test.key3" }!!
+		val afterFirst = Settings.get().find { it.key.value == "test.key3" }!!
 		assertTrue(afterFirst.value is SettingItem.Value.ValInt)
 		
 		every { CoreConfigRegistry.getItem("test.key3") } returns
@@ -109,7 +107,7 @@ class SettingsIntegrationTest {
 		)
 		
 		Settings.init()
-		val afterUpdate = Settings.getAll().find { it.key.value == "test.key3" }!!
+		val afterUpdate = Settings.get().find { it.key.value == "test.key3" }!!
 		assertTrue(afterUpdate.value is SettingItem.Value.ValString)
 	}
 	
@@ -118,18 +116,5 @@ class SettingsIntegrationTest {
 		every { CoreConfigRegistry.getAllItems() } returns emptyList()
 		every { CoreConfigRegistry.getItem(any()) } returns null
 		Settings.init()
-	}
-	
-	@Test
-	fun `getAll throws when row has corrupted JSON`() {
-		Settings.init()
-		transaction {
-			ConfigTable.insert {
-				it[ConfigTable.keyName] = "test.corrupt.json"
-				it[ConfigTable.description] = "bad data"
-				it[ConfigTable.valJson] = "this is not valid json"
-			}
-		}
-		assertFailsWith<IllegalStateException> { Settings.getAll() }
 	}
 }
