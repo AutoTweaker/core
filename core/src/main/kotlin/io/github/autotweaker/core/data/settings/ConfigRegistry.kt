@@ -22,7 +22,7 @@ import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 object CoreConfigRegistry {
-	private val logger = LoggerFactory.getLogger(CoreConfigRegistry::class.java)
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val _items = mutableSetOf<SettingItem>()
 	
 	init {
@@ -33,9 +33,9 @@ object CoreConfigRegistry {
 		try {
 			val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
 			items.forEach { register(it) }
-			logger.info("Loaded ${items.size} config items from remote")
-		} catch (e: Exception) {
-			logger.warn("Failed to load default config, use local config only", e)
+			logger.info("Loaded default config  count={}", items.size)
+		} catch (_: Exception) {
+			logger.warn("Failed to load default config  fallback=local")
 		}
 	}
 	

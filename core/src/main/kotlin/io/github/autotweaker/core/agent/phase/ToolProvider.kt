@@ -29,19 +29,21 @@ import io.github.autotweaker.core.tool.impl.read.FileSystemService
 import io.github.autotweaker.core.tool.impl.read.SummarizeService
 import io.github.autotweaker.core.tool.impl.read.ToolCallHistory
 
-internal fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
-	val container = SimpleContainer()
-	val workspace = env.workspace
-	val config = env.containerConfig
-	container.register(
-		FileSystemService::class,
-		FileSystemServiceImpl(workspace.path, workspace.inContainer, config.workDir, config.workspaceHostPath),
-	)
-	container.register(
-		SummarizeService::class,
-		SummarizeServiceImpl(env.summarizeModel, env.currentFallbackModels),
-	)
-	container.register(BashService::class, BashServiceImpl(workspace.path, workspace.inContainer, config.workDir))
-	container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context.value))
-	return container
+internal object ToolProvider {
+	internal fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
+		val container = SimpleContainer()
+		val workspace = env.workspace
+		val config = env.containerConfig
+		container.register(
+			FileSystemService::class,
+			FileSystemServiceImpl(workspace.path, workspace.inContainer, config.workDir, config.workspaceHostPath),
+		)
+		container.register(
+			SummarizeService::class,
+			SummarizeServiceImpl(env.summarizeModel, env.currentFallbackModels),
+		)
+		container.register(BashService::class, BashServiceImpl(workspace.path, workspace.inContainer, config.workDir))
+		container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context.value))
+		return container
+	}
 }

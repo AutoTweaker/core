@@ -48,7 +48,7 @@ class HandleApprovalPhaseTest {
 	private val executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool =
 		{ _, call ->
 			executedTools.add(
-				buildToolResult(call, "executed", AgentContext.Message.Tool.Result.Status.SUCCESS)
+				ContextPhase.buildToolResult(call, "executed", AgentContext.Message.Tool.Result.Status.SUCCESS)
 			)
 			executedTools.last()
 		}
@@ -62,6 +62,7 @@ class HandleApprovalPhaseTest {
 		emittedOutputs.clear()
 		
 		env = mockk(relaxUnitFun = true)
+		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
@@ -82,7 +83,7 @@ class HandleApprovalPhaseTest {
 	fun `returns Done when no pendingApproval`() = runTest {
 		agentState.pendingApproval = null
 		
-		val result = handleApprovalPhase(env, emptyList(), executeTool)
+		val result = HandleApprovalPhase.execute(env, emptyList(), executeTool)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -92,7 +93,7 @@ class HandleApprovalPhaseTest {
 		agentState.pendingApproval = listOf(mockk(relaxed = true))
 		_contextFlow.value = AgentContext(null, null, null, null, null)
 		
-		val result = handleApprovalPhase(env, emptyList(), executeTool)
+		val result = HandleApprovalPhase.execute(env, emptyList(), executeTool)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -107,7 +108,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val result = handleApprovalPhase(env, emptyList(), executeTool)
+		val result = HandleApprovalPhase.execute(env, emptyList(), executeTool)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -126,7 +127,7 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertEquals(1, executedTools.size)
@@ -150,7 +151,7 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = false, reason = "unsafe"))
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertEquals(0, executedTools.size)
@@ -179,7 +180,7 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertEquals(AgentStatus.WAITING, statusLog.last())
@@ -216,7 +217,7 @@ class HandleApprovalPhaseTest {
 			AgentCommand.Message.ApproveToolCall.Approve("c2", approved = true, reason = null),
 			AgentCommand.Message.ApproveToolCall.Approve("c3", approved = true, reason = null),
 		)
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertEquals(AgentStatus.WAITING, statusLog.last())
@@ -239,14 +240,14 @@ class HandleApprovalPhaseTest {
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
 		assertFailsWith<IllegalArgumentException> {
-			handleApprovalPhase(env, approvals, executeTool)
+			HandleApprovalPhase.execute(env, approvals, executeTool)
 		}
 	}
 	
 	@Test
 	fun `appends to existing processedTools from prior phase`() = runTest {
 		val call = pendingToolCall("c1")
-		val preExistingTool = buildToolResult(
+		val preExistingTool = ContextPhase.buildToolResult(
 			pendingToolCall("c0"), "previous output",
 			AgentContext.Message.Tool.Result.Status.FAILURE
 		)
@@ -263,7 +264,7 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertNull(agentState.pendingApproval)
@@ -289,7 +290,7 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "allowed"))
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertTrue(agentState.approvalReasons.isEmpty())
@@ -316,7 +317,7 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertNull(_contextFlow.value.historyRounds)
@@ -346,7 +347,7 @@ class HandleApprovalPhaseTest {
 			AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "reason1"),
 			AgentCommand.Message.ApproveToolCall.Approve("c2", approved = true, reason = "reason2"),
 		)
-		val result = handleApprovalPhase(env, approvals, executeTool)
+		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertTrue(agentState.approvalReasons.isEmpty())

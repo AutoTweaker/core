@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -33,7 +34,11 @@ import java.net.URI
 object SerializeConfig {
 	private const val INDEX_URL = "https://autotweaker.github.io/website/"
 	
-	private const val SETTINGS_VERSION = "dev"
+	private val appVersion: SemVer by lazy {
+		val props = java.util.Properties()
+		this::class.java.getResourceAsStream("/version.properties")?.use { props.load(it) }
+		SemVer.parse(props.getProperty("version"))
+	}
 	
 	private val json = Json {
 		prettyPrint = false
@@ -69,8 +74,9 @@ object SerializeConfig {
 				}
 			}.first { it.defaultAppConfig.isNotBlank() }
 			
-			require(index.version == SETTINGS_VERSION) {
-				"Expected version '$SETTINGS_VERSION', but got '${index.version}'"
+			val indexVersion = SemVer.parse(index.version)
+			require(indexVersion.major == appVersion.major) {
+				"Major version mismatch: app major=${appVersion.major}, index major=${indexVersion.major}"
 			}
 			val configResponse: String = httpClient.get(index.defaultAppConfig).body()
 			val items = json.decodeFromString(ListSerializer(SettingItem.serializer()), configResponse)

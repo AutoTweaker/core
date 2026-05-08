@@ -39,15 +39,15 @@ import java.util.concurrent.TimeUnit
 
 class DockerJavaService : ContainerService {
 	
-	private val logger = LoggerFactory.getLogger(DockerJavaService::class.java)
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	@Suppress("DEPRECATION")
 	private val client: DockerClient = DockerClientImpl.getInstance()
 	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
 		try {
-			logger.info("Pulling image: $image")
 			client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
+			logger.info("Pulled image  image={}", image)
 			
 			val workspaceHostPath = config.workspaceHostPath
 			Files.createDirectories(workspaceHostPath)
@@ -58,34 +58,38 @@ class DockerJavaService : ContainerService {
 				)
 			)
 			
-			logger.info("Creating container: ${config.name}")
 			val createResponse =
 				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
 					.withEnv(config.env.map { "${it.key}=${it.value}" }).withHostConfig(hostConfig)
 					.withEntrypoint("tail", "-f", "/dev/null").exec()
+			logger.info("Container created  containerId={}", createResponse.id)
 			
-			logger.info("Starting container: ${createResponse.id}")
 			client.startContainerCmd(createResponse.id).exec()
 			
+			logger.info("Container started  containerId={}", createResponse.id)
 			createResponse.id
 		} catch (e: ConflictException) {
+			logger.warn("Container name already used  name={}", config.name)
 			throw ContainerOperationException("Container '${config.name}' already exists", e)
 		} catch (e: NotFoundException) {
+			logger.warn("Failed to pull image  image={}", image)
 			throw ContainerOperationException("Image '$image' not found", e)
 		} catch (e: Exception) {
+			logger.error("Failed to start container  image={}  name={}", image, config.name, e)
 			throw ContainerOperationException("Failed to start container: ${e.message}", e)
 		}
 	}
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
 		try {
-			logger.info("Stopping container: $containerId")
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
+			logger.debug("Container stopped  containerId={}", containerId)
 			client.removeContainerCmd(containerId).exec()
-			logger.info("Container removed: $containerId")
+			logger.info("Container removed  containerId={}", containerId)
 		} catch (_: NotFoundException) {
-			logger.warn("Container not found, already removed: $containerId")
+			logger.warn("Container already removed  containerId={}", containerId)
 		} catch (e: Exception) {
+			logger.error("Failed to stop container  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
 		}
 	}
@@ -97,6 +101,10 @@ class DockerJavaService : ContainerService {
 		timeoutSeconds: Long,
 		env: Map<String, String>,
 	): CommandResult = withContext(Dispatchers.IO) {
+		logger.debug(
+			"Command execution started  containerId={}  cmd={}  timeout={}s",
+			containerId, command.joinToString(" "), timeoutSeconds
+		)
 		try {
 			val execCmd = client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
 				.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
@@ -126,8 +134,10 @@ class DockerJavaService : ContainerService {
 				stderr = stderr.toString(),
 			)
 		} catch (e: NotFoundException) {
+			logger.warn("Failed to find container  containerId={}", containerId)
 			throw ContainerOperationException("Container not found: $containerId", e)
 		} catch (e: Exception) {
+			logger.error("Failed to exec command  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to exec command: ${e.message}", e)
 		}
 	}

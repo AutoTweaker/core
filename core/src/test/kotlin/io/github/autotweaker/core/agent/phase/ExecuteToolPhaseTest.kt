@@ -101,6 +101,7 @@ class ExecuteToolPhaseTest {
 		)
 		
 		env = mockk(relaxUnitFun = true)
+		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.tools } returns tools
 		every { env.settings } returns settings
@@ -137,7 +138,7 @@ class ExecuteToolPhaseTest {
 		)
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } returns toolResult
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
 		assertEquals("execution output", result.result.content)
@@ -149,7 +150,7 @@ class ExecuteToolPhaseTest {
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } throws
 				CancellationException("cancelled")
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
 		assertEquals("Tool cancelled", result.result.content)
@@ -160,7 +161,7 @@ class ExecuteToolPhaseTest {
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } throws
 				RuntimeException("Boom")
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
 		assertEquals("Boom", result.result.content)
@@ -171,7 +172,7 @@ class ExecuteToolPhaseTest {
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } throws
 				RuntimeException()
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
 		assertEquals("Tool execution failed", result.result.content)
@@ -219,7 +220,7 @@ class ExecuteToolPhaseTest {
 		)
 		every { env.settings } returns timeoutSettings
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.TIMEOUT, result.result.status)
 		assertEquals("Timeout after 0 seconds", result.result.content)
@@ -233,7 +234,7 @@ class ExecuteToolPhaseTest {
 			toolResultForTest()
 		}
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
 		val activation = capturedOutputs.firstOrNull { it is AgentOutput.ToolListUpdate }
@@ -248,7 +249,7 @@ class ExecuteToolPhaseTest {
 			toolResultForTest()
 		}
 		
-		val result = executeApprovedToolPhase(env, validationResult, pendingCall)
+		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
 		val toolOutput = capturedOutputs.firstOrNull { it is AgentOutput.ToolOutput }

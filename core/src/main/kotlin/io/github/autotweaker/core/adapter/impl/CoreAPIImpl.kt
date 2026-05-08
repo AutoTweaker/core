@@ -18,13 +18,16 @@
 
 package io.github.autotweaker.core.adapter.impl
 
+import io.github.autotweaker.core.AutoTweaker
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.adapter.api.CoreAPI
+import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.config.CoreConfig
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.SessionConfig
@@ -33,8 +36,15 @@ import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import java.util.*
 
 object CoreAPIImpl : CoreAPI {
+	override fun changePassword(oldPassword: String, newPassword: String) =
+		SecretManager.changePassword(oldPassword, newPassword)
+	
 	override fun unlock(password: String) = SecretManager.unlock(password)
+	override fun listAdapter(): List<AdapterInfo> = AutoTweaker.listAdapter()
+	override fun startAdapter(name: String) = AutoTweaker.startAdapter(name)
+	override fun stopAdapter(name: String) = AutoTweaker.stopAdapter(name)
 	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
+	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty
 	
 	override val session = object : CoreAPI.SessionAPI {
 		override suspend fun create(workspace: String, config: SessionConfig) =
@@ -45,38 +55,25 @@ object CoreAPIImpl : CoreAPI {
 		override suspend fun send(sessionId: UUID, content: String, images: List<Base64>?) =
 			SessionManager.SessionAPI.send(sessionId, content, images)
 		
-		override suspend fun stop(sessionId: UUID) {
-			SessionManager.SessionAPI.stop(sessionId)
-		}
+		override suspend fun stop(sessionId: UUID) = SessionManager.SessionAPI.stop(sessionId) ?: Unit
 		
-		override fun pause(sessionId: UUID) {
-			SessionManager.SessionAPI.pauseAgent(sessionId)
-		}
+		override fun pause(sessionId: UUID) = SessionManager.SessionAPI.pauseAgent(sessionId) ?: Unit
 		
-		override fun resume(sessionId: UUID) {
-			SessionManager.SessionAPI.resumeAgent(sessionId)
-		}
+		override fun resume(sessionId: UUID) = SessionManager.SessionAPI.resumeAgent(sessionId) ?: Unit
 		
-		override fun cancel(sessionId: UUID) {
-			SessionManager.SessionAPI.cancelAgent(sessionId)
-		}
+		override fun cancel(sessionId: UUID) = SessionManager.SessionAPI.cancelAgent(sessionId) ?: Unit
 		
-		override fun retry(sessionId: UUID) {
-			SessionManager.SessionAPI.retryAgent(sessionId)
-		}
+		override fun retry(sessionId: UUID) = SessionManager.SessionAPI.retryAgent(sessionId) ?: Unit
 		
-		override fun compact(sessionId: UUID) {
-			SessionManager.SessionAPI.compactAgent(sessionId)
-		}
+		override fun compact(sessionId: UUID) = SessionManager.SessionAPI.compactAgent(sessionId) ?: Unit
 		
 		override fun list() = SessionManager.SessionAPI.list()
 		
 		override fun updateTitle(sessionId: UUID, title: String) =
 			SessionManager.SessionAPI.updateTitle(sessionId, title)
 		
-		override fun updateConfig(sessionId: UUID, config: SessionConfig) {
-			SessionManager.SessionAPI.updateConfig(sessionId, config)
-		}
+		override fun updateConfig(sessionId: UUID, config: SessionConfig) =
+			SessionManager.SessionAPI.updateConfig(sessionId, config) ?: Unit
 		
 		override fun createWorkspace(meta: WorkspaceMeta) = SessionManager.WorkspaceAPI.create(meta)
 		
@@ -105,6 +102,11 @@ object CoreAPIImpl : CoreAPI {
 			ConfigManager.EnvConfigAPI.remove(type, id)
 		
 		override fun listProviders() = ConfigManager.ProviderConfigAPI.ProviderAPI.list()
+		override fun listAvailableProviderTypes() =
+			ConfigManager.ProviderConfigAPI.ProviderAPI.listAvailable()
+		
+		override fun getProviderMeta(type: String): LlmClient.ProviderInfo =
+			ConfigManager.ProviderConfigAPI.ProviderAPI.getMeta(type)
 		
 		override fun createProvider(provider: CoreConfig.ProviderConfig.Provider) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.create(provider)
@@ -129,6 +131,8 @@ object CoreAPIImpl : CoreAPI {
 		override fun listModels() = ConfigManager.ProviderConfigAPI.ModelAPI.list()
 		
 		override fun listModelIds() = ConfigManager.ProviderConfigAPI.ModelAPI.listId()
+		override fun getModelMeta(provider: String, modelId: String): Provider.Model.ModelInfo? =
+			ConfigManager.ProviderConfigAPI.ModelAPI.getMeta(provider, modelId)
 		
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) =
 			ConfigManager.ProviderConfigAPI.ModelAPI.add(model)

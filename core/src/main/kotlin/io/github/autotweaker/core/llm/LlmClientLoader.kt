@@ -19,9 +19,12 @@
 package io.github.autotweaker.core.llm
 
 import io.github.autotweaker.core.loadPlugins
+import org.slf4j.LoggerFactory
 import java.util.*
 
 object LlmClientLoader {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	
 	private val builtIn: List<LlmClient> by lazy {
 		ServiceLoader.load(LlmClient::class.java).toList()
 	}
@@ -29,12 +32,16 @@ object LlmClientLoader {
 	private val all: List<LlmClient> by lazy {
 		val external = loadPlugins<LlmClient>("provider")
 		val externalNames = external.map { it.providerInfo.name }.toSet()
-		external + builtIn.filter { it.providerInfo.name !in externalNames }
+		val result = external + builtIn.filter { it.providerInfo.name !in externalNames }
+		logger.info("LLM providers loaded  builtIn={}  external={}  total={}", builtIn.size, external.size, result.size)
+		result
 	}
 	
 	fun load(name: String): LlmClient {
-		return all.firstOrNull { it.providerInfo.name == name }
+		val client = all.firstOrNull { it.providerInfo.name == name }
 			?: throw IllegalArgumentException("Unknown LLM provider: $name")
+		logger.debug("LLM provider loaded  name={}", name)
+		return client
 	}
 	
 	fun availableProviders(): List<String> {

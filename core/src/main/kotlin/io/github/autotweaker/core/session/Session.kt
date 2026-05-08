@@ -30,6 +30,7 @@ import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
 
@@ -44,6 +45,7 @@ class Session(
 	private val settings: List<SettingItem>,
 	private val maxCompactedRounds: Int = 0,
 ) {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	val safeResolveModel: (ModelId) -> Model = { modelId ->
 		try {
 			resolveModel(modelId)
@@ -87,6 +89,7 @@ class Session(
 			messages?.forEach { this.messages[it.id] = it }
 		}
 		createAgent()
+		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.name)
 		scope.launch {
 			agent?.context?.collectLatest { syncContext(it) }
 		}
@@ -135,7 +138,7 @@ class Session(
 			settings = settings,
 			tools = tools,
 		)
-		agents[newAgent.id] = newAgent
+		agents[newAgent.agentId] = newAgent
 	}
 	
 	fun dispatch(command: AgentCommand) {
@@ -166,6 +169,7 @@ class Session(
 	suspend fun send(content: String, images: List<Base64>? = null) {
 		val agent = agent ?: return
 		agent.statusFlow.first { it == AgentStatus.FREE }
+		logger.info("Sent user message  sessionId={}  charCount={}", _data.value.id, content.length)
 		
 		val ctx = _context.value
 		

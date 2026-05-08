@@ -36,7 +36,6 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
-@Suppress("unused")
 object ConfigManager {
 	private val secret = SecretManager
 	
@@ -139,14 +138,13 @@ object ConfigManager {
 				ProviderAPI.getMeta(provider).models.find { it.id == modelId }
 			
 			fun add(model: CoreConfig.ProviderConfig.Model) {
-				val provider = ProviderAPI.get(model.providerName)
 				val modelInfo = model.meta ?: getMeta(model.providerName, model.name) ?: error("Default meta not found")
 				val newModel = Provider.Model(
 					name = model.name,
 					modelInfo = modelInfo,
 					config = model.config,
 				)
-				pm.override(provider.copy(models = provider.models + newModel))
+				pm.addModel(model.providerName, listOf(newModel))
 			}
 			
 			fun list() = pm.get().flatMap {

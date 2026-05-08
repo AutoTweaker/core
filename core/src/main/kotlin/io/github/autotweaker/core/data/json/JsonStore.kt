@@ -29,7 +29,7 @@ import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
 
 object JsonStore {
-	private val logger = LoggerFactory.getLogger(JsonStore::class.java)
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 	private var initialized = false
 	
@@ -39,7 +39,7 @@ object JsonStore {
 		H2DatabaseStore().connect("AppConfig")
 		transaction { SchemaUtils.create(JsonStoreTable) }
 		initialized = true
-		logger.info("JsonStore initialized (table: json_store)")
+		logger.info("JsonStore initialized  table=json_store")
 	}
 	
 	private fun ensureInit() {
@@ -61,7 +61,7 @@ object JsonStore {
 						try {
 							json.parseToJsonElement(row[JsonStoreTable.content])
 						} catch (e: Exception) {
-							logger.warn("Failed to parse JSON for '$namespace': ${e.message}")
+							logger.warn("Failed to parse JSON  namespace={}  message={}", namespace, e.message)
 							null
 						}
 					}

@@ -27,9 +27,10 @@ import io.github.autotweaker.core.session.ModelId
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import org.slf4j.LoggerFactory
 
-@Suppress("unused")
 object ProviderManager {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
 	private var providers: List<Provider>
@@ -38,13 +39,18 @@ object ProviderManager {
 		val jsonArray = jsonEntry.get()
 		providers = if (jsonArray == null) emptyList()
 		else Json.decodeFromJsonElement<List<Provider>>(jsonArray)
+		logger.info("ProviderManager initialized  providerCount={}", providers.size)
 	}
 	
-	fun add(data: Provider) =
+	fun add(data: Provider) {
+		logger.debug("Provider added  name={}  type={}", data.name, data.providerType)
 		update(providers + data)
+	}
 	
-	fun addModel(provider: String, models: List<Provider.Model>) =
+	fun addModel(provider: String, models: List<Provider.Model>) {
+		logger.debug("Provider models added  provider={}  count={}", provider, models.size)
 		update(providers.map { if (it.name == provider) it.copy(models = it.models + models) else it })
+	}
 	
 	fun get(): List<Provider> =
 		providers
@@ -52,11 +58,15 @@ object ProviderManager {
 	fun getInfo(type: String): LlmClient.ProviderInfo =
 		LlmClientLoader.load(type).providerInfo
 	
-	fun delete(name: String) =
+	fun delete(name: String) {
+		logger.debug("Provider deleted  name={}", name)
 		update(providers.filterNot { it.name == name })
+	}
 	
-	fun override(data: Provider) =
+	fun override(data: Provider) {
+		logger.debug("Provider overridden  name={}", data.name)
 		update(providers.map { if (it.name == data.name) data else it })
+	}
 	
 	fun getModel(id: ModelId): Model? {
 		val provider = providers.find { it.name == id.provider } ?: return null

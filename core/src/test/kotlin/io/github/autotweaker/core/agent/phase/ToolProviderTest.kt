@@ -65,7 +65,7 @@ class ToolProviderTest {
 	
 	@Test
 	fun `buildToolProvider creates container with required services`() {
-		val container = buildToolProvider(env)
+		val container = ToolProvider.buildToolProvider(env)
 		
 		assertNotNull(container.get(FileSystemService::class))
 		assertNotNull(container.get(SummarizeService::class))
@@ -80,7 +80,7 @@ class ToolProviderTest {
 	
 	@Test
 	fun `get throws for unregistered service`() {
-		val container = buildToolProvider(env)
+		val container = ToolProvider.buildToolProvider(env)
 		assertFailsWith<NoSuchElementException> {
 			container.get(String::class)
 		}

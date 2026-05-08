@@ -23,42 +23,50 @@ import io.github.autotweaker.core.agent.AgentStatus
 import io.github.autotweaker.core.agent.AgentStreamProcessor
 import io.github.autotweaker.core.agent.StreamProcessResult
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
+import org.slf4j.LoggerFactory
 
-//调用llm
-internal suspend fun requestLlmPhase(
-	env: AgentEnvironment,
-	streamProcessor: AgentStreamProcessor,
-): PhaseResult {
-	env.updateStatus(AgentStatus.PROCESSING)
+internal object RequestLlmPhase {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	val request = AgentChatRequest(
-		model = env.currentModel,
-		fallbackModels = env.currentFallbackModels,
-		thinking = env.currentThinking,
-		tools = env.tools.assembleTools(),
-		context = env.context.value,
-	)
-	
-	return when (streamProcessor.process(request)) {
-		is StreamProcessResult.Completed -> {
-			archiveCurrentRound(env, env::updateContext)
-			env.updateStatus(AgentStatus.FREE)
-			PhaseResult.Done
-		}
+	internal suspend fun execute(
+		env: AgentEnvironment,
+		streamProcessor: AgentStreamProcessor,
+	): PhaseResult {
+		logger.debug(
+			"LLM request phase started  agentId={}  model={}  hasFallback={}  thinking={}",
+			env.agentId, env.currentModel.modelInfo.id, env.currentFallbackModels != null, env.currentThinking
+		)
+		env.updateStatus(AgentStatus.PROCESSING)
 		
-		is StreamProcessResult.ToolCallsRequired -> {
-			PhaseResult.Continue
-		}
+		val request = AgentChatRequest(
+			model = env.currentModel,
+			fallbackModels = env.currentFallbackModels,
+			thinking = env.currentThinking,
+			tools = env.tools.assembleTools(),
+			context = env.context.value,
+		)
 		
-		is StreamProcessResult.Cancelled -> {
-			archiveCurrentRound(env, env::updateContext)
-			env.updateStatus(AgentStatus.FREE)
-			PhaseResult.Done
-		}
-		
-		is StreamProcessResult.Failed -> {
-			env.updateStatus(AgentStatus.ERROR)
-			PhaseResult.Error
+		return when (streamProcessor.process(request)) {
+			is StreamProcessResult.Completed -> {
+				ContextPhase.archiveCurrentRound(env, env::updateContext)
+				env.updateStatus(AgentStatus.FREE)
+				PhaseResult.Done
+			}
+			
+			is StreamProcessResult.ToolCallsRequired -> {
+				PhaseResult.Continue
+			}
+			
+			is StreamProcessResult.Cancelled -> {
+				ContextPhase.archiveCurrentRound(env, env::updateContext)
+				env.updateStatus(AgentStatus.FREE)
+				PhaseResult.Done
+			}
+			
+			is StreamProcessResult.Failed -> {
+				env.updateStatus(AgentStatus.ERROR)
+				PhaseResult.Error
+			}
 		}
 	}
 }

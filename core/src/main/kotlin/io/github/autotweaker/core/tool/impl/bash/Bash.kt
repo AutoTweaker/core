@@ -26,10 +26,12 @@ import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.tool.get
 import kotlinx.serialization.json.*
+import org.slf4j.LoggerFactory
 import java.util.*
 
 @AutoService(Tool::class)
 class Bash : Tool {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
 	init {
@@ -78,19 +80,28 @@ class Bash : Tool {
 		
 		val command = input.arguments["command"]!!.jsonPrimitive.content
 		if (command.isBlank()) {
+			logger.debug("Rejected blank bash command")
 			return Tool.ToolOutput(runtime.messageInvalidCommand, false)
 		}
 		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: runtime.defaultTimeoutSeconds
 		if (timeoutSeconds <= 0) {
+			logger.debug("Rejected invalid bash timeout  timeout={}", timeoutSeconds)
 			return Tool.ToolOutput(runtime.messageInvalidTimeout, false)
 		}
 		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
 		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
+		logger.debug("Bash execution started  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds)
+		
 		val result = input.provider.get<BashService>().run(command, timeoutSeconds, selectedEnv)
 		val stdout = result.stdout.ifBlank { "<empty>" }
 		val stderr = result.stderr.ifBlank { "<empty>" }
 		val duration = String.format("%.3f", result.durationSeconds)
+		
+		logger.debug(
+			"Bash completed  exitCode={}  duration={}s  timeout={}",
+			result.exitCode, duration, result.timeout
+		)
 		
 		val output = runtime.messageResultTemplate.format(result.exitCode, duration, stdout, stderr)
 		return Tool.ToolOutput(output, result.exitCode == 0 && !result.timeout)
@@ -110,7 +121,6 @@ class Bash : Tool {
 		messageResultTemplate = settings.find("core.tool.bash.message.result.template"),
 	)
 	
-	
 	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
 	
 	fun getEnv(id: String): String? {
@@ -122,7 +132,6 @@ class Bash : Tool {
 		}
 	}
 	
-	
 	fun setEnv(id: String, value: String) {
 		val current = getEnvUuidMap()
 		current[id]?.let { SecretManager.remove(it) }
@@ -131,7 +140,6 @@ class Bash : Tool {
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
 	}
-	
 	
 	fun removeEnv(id: String) {
 		val current = getEnvUuidMap()

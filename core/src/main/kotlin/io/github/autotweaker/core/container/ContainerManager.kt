@@ -29,10 +29,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import org.slf4j.LoggerFactory
 import java.util.*
 
 
 object ContainerManager {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val mutex = Mutex()
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
@@ -48,11 +50,15 @@ object ContainerManager {
 	
 	suspend fun start(): String = mutex.withLock {
 		if (_containerId != null) {
+			logger.warn("Container already started  containerId={}", _containerId)
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
 		val config = ContainerConfig(env = getEnv())
-		val id = service.start(Settings.get().find("core.container.docker.image"), config)
+		val image = Settings.get().find<String>("core.container.docker.image")
+		logger.debug("Container start initiated  image={}", image)
+		val id = service.start(image, config)
 		_containerId = id
+		logger.info("Container started  containerId={}", id)
 		id
 	}
 	
@@ -61,9 +67,11 @@ object ContainerManager {
 			val id = _containerId ?: return@withLock
 			val svc = service
 			try {
+				logger.debug("Container stop initiated  containerId={}", id)
 				svc.stop(id)
 			} finally {
 				_containerId = null
+				logger.info("Container stopped  containerId={}", id)
 			}
 		}
 	}
@@ -71,11 +79,13 @@ object ContainerManager {
 	@Suppress("unused")
 	suspend fun exec(vararg cmd: String, env: Map<String, String> = emptyMap()): CommandResult {
 		val (id, svc) = requireContainer()
+		logger.debug("Container command started  containerId={}  cmd={}", id, cmd.joinToString(" "))
 		return svc.exec(id, cmd.toList(), env = env)
 	}
 	
 	suspend fun execShell(command: String, env: Map<String, String> = emptyMap()): CommandResult {
 		val (id, svc) = requireContainer()
+		logger.debug("Container shell started  containerId={}  command={}", id, command)
 		return svc.exec(id, listOf("bash", "-lc", command), env = env)
 	}
 	
@@ -88,6 +98,7 @@ object ContainerManager {
 	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
 	
 	fun setEnv(env: Map<String, String>) {
+		logger.debug("Container env set started  count={}", env.size)
 		val current = getEnvUuidMap()
 		val removed = current.keys - env.keys
 		removed.forEach { current[it]?.let { uuid -> SecretManager.remove(uuid) } }
@@ -97,6 +108,7 @@ object ContainerManager {
 			updated[id] = SecretManager.add(value)
 		}
 		saveEnvUuidMap(updated)
+		logger.debug("Container env set  count={}", updated.size)
 	}
 	
 	fun removeEnv(id: String) {
@@ -104,6 +116,7 @@ object ContainerManager {
 		current[id]?.let { SecretManager.remove(it) }
 		val updated = current.filterKeys { it != id }.toMutableMap()
 		saveEnvUuidMap(updated)
+		logger.debug("Container env removed  key={}", id)
 	}
 	
 	fun getEnv(id: String? = null): Map<String, String> {
@@ -113,6 +126,7 @@ object ContainerManager {
 			try {
 				key to SecretManager.get(uuidMap[key]!!)
 			} catch (_: Exception) {
+				logger.warn("Failed to get env value  key={}", key)
 				null
 			}
 		}.toMap()

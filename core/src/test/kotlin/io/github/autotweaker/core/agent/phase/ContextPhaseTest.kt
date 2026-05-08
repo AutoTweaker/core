@@ -50,6 +50,7 @@ class ContextPhaseTest {
 		model = mockModel()
 		capturedOutputs.clear()
 		env = mockk(relaxUnitFun = true)
+		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
@@ -73,7 +74,7 @@ class ContextPhaseTest {
 	fun `buildToolResult creates Tool message with given params`() {
 		val call = pendingToolCall("c1", "bash_run", model)
 		
-		val result = buildToolResult(
+		val result = ContextPhase.buildToolResult(
 			call, "execution output",
 			AgentContext.Message.Tool.Result.Status.SUCCESS
 		)
@@ -89,21 +90,21 @@ class ContextPhaseTest {
 	@Test
 	fun `buildToolResult produces FAILURE status`() {
 		val call = pendingToolCall("c1")
-		val result = buildToolResult(call, "error", AgentContext.Message.Tool.Result.Status.FAILURE)
+		val result = ContextPhase.buildToolResult(call, "error", AgentContext.Message.Tool.Result.Status.FAILURE)
 		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
 	}
 	
 	@Test
 	fun `buildToolResult produces TIMEOUT status`() {
 		val call = pendingToolCall("c1")
-		val result = buildToolResult(call, "timeout", AgentContext.Message.Tool.Result.Status.TIMEOUT)
+		val result = ContextPhase.buildToolResult(call, "timeout", AgentContext.Message.Tool.Result.Status.TIMEOUT)
 		assertEquals(AgentContext.Message.Tool.Result.Status.TIMEOUT, result.result.status)
 	}
 	
 	@Test
 	fun `buildToolResult produces CANCELLED status`() {
 		val call = pendingToolCall("c1")
-		val result = buildToolResult(call, "cancelled", AgentContext.Message.Tool.Result.Status.CANCELLED)
+		val result = ContextPhase.buildToolResult(call, "cancelled", AgentContext.Message.Tool.Result.Status.CANCELLED)
 		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
 	}
 	
@@ -114,7 +115,7 @@ class ContextPhaseTest {
 	@Test
 	fun `buildErrorTool creates Tool with FAILURE status and error message`() {
 		val call = pendingToolCall("c1")
-		val result = buildErrorTool(call, "Something went wrong")
+		val result = ContextPhase.buildErrorTool(call, "Something went wrong")
 		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
 		assertEquals("Something went wrong", result.result.content)
 		assertEquals("c1", result.callId)
@@ -127,7 +128,7 @@ class ContextPhaseTest {
 	@Test
 	fun `buildRejectedTool with feedback reason uses formatted message`() {
 		val call = pendingToolCall("c1")
-		val result = buildRejectedTool(call, "unsafe operation", env)
+		val result = ContextPhase.buildRejectedTool(call, "unsafe operation", env)
 		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
 		assertEquals("Tool rejected: unsafe operation", result.result.content)
 	}
@@ -135,7 +136,7 @@ class ContextPhaseTest {
 	@Test
 	fun `buildRejectedTool without feedback reason uses default message`() {
 		val call = pendingToolCall("c1")
-		val result = buildRejectedTool(call, null, env)
+		val result = ContextPhase.buildRejectedTool(call, null, env)
 		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
 		assertEquals("Tool rejected", result.result.content)
 	}
@@ -152,7 +153,7 @@ class ContextPhaseTest {
 		val round = currentRound(pendingToolCalls = listOf(call1, call2, call3))
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		keepPendingCalls(setOf("c1", "c3"), env::updateContext)
+		ContextPhase.keepPendingCalls(setOf("c1", "c3"), env::updateContext)
 		
 		val pending = _contextFlow.value.currentRound?.pendingToolCalls
 		assertNotNull(pending)
@@ -166,7 +167,7 @@ class ContextPhaseTest {
 		val round = currentRound(pendingToolCalls = listOf(pendingToolCall("c1")))
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		keepPendingCalls(emptySet(), env::updateContext)
+		ContextPhase.keepPendingCalls(emptySet(), env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound?.pendingToolCalls)
 	}
@@ -175,7 +176,7 @@ class ContextPhaseTest {
 	fun `keepPendingCalls with no currentRound does nothing`() = runTest {
 		_contextFlow.value = AgentContext(null, null, null, null, null)
 		
-		keepPendingCalls(setOf("c1"), env::updateContext)
+		ContextPhase.keepPendingCalls(setOf("c1"), env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound)
 	}
@@ -185,7 +186,7 @@ class ContextPhaseTest {
 		val round = currentRound(pendingToolCalls = null)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		keepPendingCalls(setOf("c1"), env::updateContext)
+		ContextPhase.keepPendingCalls(setOf("c1"), env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound?.pendingToolCalls)
 	}
@@ -198,12 +199,16 @@ class ContextPhaseTest {
 	fun `writeToolTurn returns Continue when tools are processed`() = runTest {
 		val assistantMsg = assistantMessage("assistant content", model)
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"output",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
 		val round = currentRound(assistantMessage = assistantMsg)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		val result = ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertNull(agentState.processedTools)
@@ -221,7 +226,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		val result = ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -233,7 +238,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		val result = ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -241,12 +246,16 @@ class ContextPhaseTest {
 	@Test
 	fun `writeToolTurn returns Done when no currentRound`() = runTest {
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"output",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, null)
 		val assistantMsg = assistantMessage("assistant content", model)
 		
-		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		val result = ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -258,18 +267,26 @@ class ContextPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "output1", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"output1",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
-		writeToolTurn(env, assistantMsg, env::updateContext)
+		ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		val assistantMsg2 = assistantMessage("assistant content 2", model)
 		_contextFlow.value = _contextFlow.value.copy(
 			currentRound = _contextFlow.value.currentRound!!.copy(assistantMessage = assistantMsg2)
 		)
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c2"), "output2", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c2"),
+				"output2",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
-		writeToolTurn(env, assistantMsg2, env::updateContext)
+		ContextPhase.writeToolTurn(env, assistantMsg2, env::updateContext)
 		
 		val cr = _contextFlow.value.currentRound
 		assertNotNull(cr)
@@ -283,11 +300,15 @@ class ContextPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"output",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
 		agentState.approvalReasons.addAll(listOf("reason1", "reason2"))
 		
-		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		val result = ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertTrue(agentState.approvalReasons.isEmpty())
@@ -308,10 +329,14 @@ class ContextPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"output",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
 		
-		val result = writeToolTurn(env, assistantMsg, env::updateContext)
+		val result = ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		assertEquals(PhaseResult.Continue, result)
 		assertNull(_contextFlow.value.historyRounds)
@@ -328,11 +353,15 @@ class ContextPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"output",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
 		agentState.approvalReasons.add("only one reason")
 		
-		writeToolTurn(env, assistantMsg, env::updateContext)
+		ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
 		
 		val cr = _contextFlow.value.currentRound
 		assertNotNull(cr)
@@ -347,7 +376,7 @@ class ContextPhaseTest {
 	fun `archiveCurrentRound does nothing when no currentRound`() = runTest {
 		_contextFlow.value = AgentContext(null, null, null, null, null)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound)
 		assertNull(_contextFlow.value.historyRounds)
@@ -358,7 +387,7 @@ class ContextPhaseTest {
 		val round = AgentContext.CurrentRound(userMessage = userMessage("test"), turns = null)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound)
 		assertNull(_contextFlow.value.historyRounds)
@@ -370,7 +399,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound)
 		assertNotNull(_contextFlow.value.historyRounds)
@@ -388,7 +417,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg, pendingToolCalls = listOf(pendingCall))
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(agentState.pendingApproval)
 		assertNull(_contextFlow.value.currentRound)
@@ -409,7 +438,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(agentState.pendingApproval)
 		assertNull(agentState.processedTools)
@@ -418,7 +447,7 @@ class ContextPhaseTest {
 	@Test
 	fun `archiveCurrentRound merges processed tools with cancelled tools into turn`() = runTest {
 		val assistantMsg = assistantMessage("assistant", model)
-		val processedTool = buildToolResult(
+		val processedTool = ContextPhase.buildToolResult(
 			pendingToolCall("call-1"), "output",
 			AgentContext.Message.Tool.Result.Status.SUCCESS
 		)
@@ -427,7 +456,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg, pendingToolCalls = listOf(pendingCall))
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		val completed = _contextFlow.value.historyRounds!![0]
 		assertNotNull(completed.turns)
@@ -446,7 +475,7 @@ class ContextPhaseTest {
 		val round = currentRound(assistantMessage = assistantMsg)
 		_contextFlow.value = AgentContext(null, null, historyRounds = listOf(existingCompleted), null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNotNull(_contextFlow.value.historyRounds)
 		assertEquals(2, _contextFlow.value.historyRounds!!.size)
@@ -458,7 +487,11 @@ class ContextPhaseTest {
 		val priorTurn = AgentContext.Turn(
 			assistantMessage = assistantMessage("prior assistant", model),
 			tools = listOf(
-				buildToolResult(pendingToolCall("c0"), "prior output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+				ContextPhase.buildToolResult(
+					pendingToolCall("c0"),
+					"prior output",
+					AgentContext.Message.Tool.Result.Status.SUCCESS
+				),
 			),
 		)
 		val round = AgentContext.CurrentRound(
@@ -468,7 +501,7 @@ class ContextPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound)
 		assertNotNull(_contextFlow.value.historyRounds)
@@ -483,12 +516,20 @@ class ContextPhaseTest {
 		val priorTurn = AgentContext.Turn(
 			assistantMessage = assistantMessage("prior assistant", model),
 			tools = listOf(
-				buildToolResult(pendingToolCall("c0"), "prior output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+				ContextPhase.buildToolResult(
+					pendingToolCall("c0"),
+					"prior output",
+					AgentContext.Message.Tool.Result.Status.SUCCESS
+				),
 			),
 		)
 		val assistantMsg = assistantMessage("current assistant", model)
 		agentState.processedTools = listOf(
-			buildToolResult(pendingToolCall("c1"), "new output", AgentContext.Message.Tool.Result.Status.SUCCESS),
+			ContextPhase.buildToolResult(
+				pendingToolCall("c1"),
+				"new output",
+				AgentContext.Message.Tool.Result.Status.SUCCESS
+			),
 		)
 		val round = AgentContext.CurrentRound(
 			userMessage = userMessage("test"),
@@ -497,7 +538,7 @@ class ContextPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		val completed = _contextFlow.value.historyRounds!![0]
 		assertNotNull(completed.turns)
@@ -511,7 +552,11 @@ class ContextPhaseTest {
 		val priorTurn = AgentContext.Turn(
 			assistantMessage = assistantMessage("prior assistant", model),
 			tools = listOf(
-				buildToolResult(pendingToolCall("c0"), "prior", AgentContext.Message.Tool.Result.Status.SUCCESS),
+				ContextPhase.buildToolResult(
+					pendingToolCall("c0"),
+					"prior",
+					AgentContext.Message.Tool.Result.Status.SUCCESS
+				),
 			),
 		)
 		val pendingCall = pendingToolCall("pending-1")
@@ -523,7 +568,7 @@ class ContextPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		archiveCurrentRound(env, env::updateContext)
+		ContextPhase.archiveCurrentRound(env, env::updateContext)
 		
 		assertNull(_contextFlow.value.currentRound)
 		assertNotNull(_contextFlow.value.historyRounds)

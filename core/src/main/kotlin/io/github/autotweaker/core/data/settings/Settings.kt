@@ -23,9 +23,11 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 
 
 object Settings {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val store = H2DatabaseStore()
 	
 	@Volatile
@@ -64,6 +66,7 @@ object Settings {
 		}
 		
 		cache = loadAll()
+		logger.info("Settings initialized  count={}", cache?.size)
 	}
 	
 	fun get(): List<SettingItem> = cache ?: throw IllegalStateException("Settings not initialized")
@@ -89,6 +92,7 @@ object Settings {
 		}
 		
 		cache = cache!!.filterNot { it.key.value == item.key.value } + item
+		logger.debug("Setting updated  key={}  value={}", item.key.value, item.value)
 	}
 	
 	private fun loadAll(): List<SettingItem> {

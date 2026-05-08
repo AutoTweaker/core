@@ -20,15 +20,15 @@ package io.github.autotweaker.core.agent.tool.service
 
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
+import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.agent.llm.ResilientChatResult
-import io.github.autotweaker.core.agent.llm.resilientChat
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -52,8 +52,8 @@ class SummarizeServiceImplTest {
 	
 	@Test
 	fun `summarize returns response on success`() = runTest {
-		mockkStatic(::resilientChat)
-		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		mockkObject(ResilientChat)
+		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("summarized content", Clock.System.now()),
@@ -67,13 +67,13 @@ class SummarizeServiceImplTest {
 		
 		assertEquals("summarized content", result)
 		
-		unmockkStatic(::resilientChat)
+		unmockkObject(ResilientChat)
 	}
 	
 	@Test
 	fun `summarize skips retrying results and uses success`() = runTest {
-		mockkStatic(::resilientChat)
-		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		mockkObject(ResilientChat)
+		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Chunk(message = null),
 				retrying = mockModel,
@@ -91,13 +91,13 @@ class SummarizeServiceImplTest {
 		
 		assertEquals("fallback result", result)
 		
-		unmockkStatic(::resilientChat)
+		unmockkObject(ResilientChat)
 	}
 	
 	@Test
 	fun `summarize throws when no successful response`() = runTest {
-		mockkStatic(::resilientChat)
-		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		mockkObject(ResilientChat)
+		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Chunk(message = null),
 				retrying = mockModel,
@@ -110,13 +110,13 @@ class SummarizeServiceImplTest {
 			service.summarize("content", "summarize")
 		}
 		
-		unmockkStatic(::resilientChat)
+		unmockkObject(ResilientChat)
 	}
 	
 	@Test
 	fun `summarize empty flow throws`() = runTest {
-		mockkStatic(::resilientChat)
-		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf()
+		mockkObject(ResilientChat)
+		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf()
 		
 		val service = SummarizeServiceImpl(mockModel)
 		
@@ -124,13 +124,13 @@ class SummarizeServiceImplTest {
 			service.summarize("content", "summarize")
 		}
 		
-		unmockkStatic(::resilientChat)
+		unmockkObject(ResilientChat)
 	}
 	
 	@Test
 	fun `summarize bypasses fallback when first model succeeds`() = runTest {
-		mockkStatic(::resilientChat)
-		coEvery { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		mockkObject(ResilientChat)
+		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("first success", Clock.System.now()),
@@ -144,6 +144,6 @@ class SummarizeServiceImplTest {
 		
 		assertEquals("first success", result)
 		
-		unmockkStatic(::resilientChat)
+		unmockkObject(ResilientChat)
 	}
 }

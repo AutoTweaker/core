@@ -20,9 +20,11 @@ package io.github.autotweaker.core.adapter.api
 
 import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.Url
+import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.CoreConfig
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.SessionConfig
 import io.github.autotweaker.core.session.SessionManager
@@ -34,7 +36,13 @@ interface CoreAPI {
 	val config: ConfigAPI
 	
 	fun unlock(password: String)
+	fun changePassword(oldPassword: String, newPassword: String)
 	val isUnlocked: Boolean
+	val isPasswordEmpty: Boolean
+	
+	fun listAdapter(): List<AdapterInfo>
+	fun startAdapter(name: String)
+	fun stopAdapter(name: String)
 	
 	interface SessionAPI {
 		suspend fun create(workspace: String, config: SessionConfig): SessionManager.SessionHandle
@@ -67,6 +75,8 @@ interface CoreAPI {
 		fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String)
 		
 		fun listProviders(): List<CoreConfig.ProviderConfig.Provider>
+		fun listAvailableProviderTypes(): List<String>
+		fun getProviderMeta(type: String): LlmClient.ProviderInfo
 		fun createProvider(provider: CoreConfig.ProviderConfig.Provider)
 		fun deleteProvider(name: String)
 		fun renameProvider(name: String, new: String)
@@ -77,6 +87,7 @@ interface CoreAPI {
 		
 		fun listModels(): List<CoreConfig.ProviderConfig.Model>
 		fun listModelIds(): List<ModelId>
+		fun getModelMeta(provider: String, modelId: String): Provider.Model.ModelInfo?
 		fun addModel(model: CoreConfig.ProviderConfig.Model)
 		fun removeModel(id: ModelId)
 		fun updateModel(id: ModelId, model: CoreConfig.ProviderConfig.Model)

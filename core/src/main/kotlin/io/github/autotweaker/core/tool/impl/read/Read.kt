@@ -27,9 +27,11 @@ import io.github.autotweaker.core.tool.Tool.ToolInput
 import io.github.autotweaker.core.tool.Tool.ToolOutput
 import io.github.autotweaker.core.tool.get
 import kotlinx.serialization.json.*
+import org.slf4j.LoggerFactory
 
 @AutoService(Tool::class)
 class Read : Tool {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	private data class Runtime(
 		//数值
@@ -153,6 +155,11 @@ class Read : Tool {
 	}
 	
 	override suspend fun execute(input: ToolInput): ToolOutput {
+		logger.debug(
+			"Read tool started  function={}  filePath={}",
+			input.functionName,
+			input.arguments["file_path"]?.jsonPrimitive?.content
+		)
 		val r = Runtime(
 			fileMaxChars = input.settings.find("core.tool.read.function.file.setting.max.chars"),
 			fileMaxLines = input.settings.find("core.tool.read.function.file.setting.max.lines"),

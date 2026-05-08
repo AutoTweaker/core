@@ -26,6 +26,7 @@ import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.seconds
 
 private const val DEFAULT_MAX_RETRIES = 3
@@ -36,136 +37,163 @@ data class ResilientChatResult(
 	val retrying: Model?,
 )
 
-fun resilientChat(
-	model: Model,
-	fallbackModels: List<Model>?,
-	request: ChatRequest,
-	maxRetries: Int = DEFAULT_MAX_RETRIES,
-): Flow<ResilientChatResult> = flow {
-	require(maxRetries > 0) { "maxRetries must be positive" }
+internal object ResilientChat {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	var candidates = buildList {
-		add(model)
-		addAll(fallbackModels.orEmpty())
-	}
-	
-	// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
-	if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
-		candidates = candidates.filter { it.modelInfo.supportsImage }.ifEmpty { candidates }
-	}
-	
-	while (candidates.isNotEmpty()) {
-		val current = candidates.first()
-		val rules = current.provider.errorHandlingRules
+	internal fun execute(
+		model: Model,
+		fallbackModels: List<Model>?,
+		request: ChatRequest,
+		maxRetries: Int = DEFAULT_MAX_RETRIES,
+	): Flow<ResilientChatResult> = flow {
+		require(maxRetries > 0) { "maxRetries must be positive" }
 		
-		for (retryAttempt in 0 until maxRetries) {
-			val chatRequest = request.adapt(current)
-			val client = LlmClientLoader.load(current.provider.name)
-			val results = client.chat(
-				request = chatRequest,
-				apiKey = current.provider.apiKey,
-				baseUrl = current.provider.baseUrl,
-			)
+		var candidates = buildList {
+			add(model)
+			addAll(fallbackModels.orEmpty())
+		}
+		
+		logger.debug(
+			"Chat started  provider={}  model={}  candidates={}  maxRetries={}",
+			model.provider.name, model.modelInfo.id, candidates.size, maxRetries
+		)
+		
+		// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
+		if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
+			candidates = candidates.filter { it.modelInfo.supportsImage }.ifEmpty { candidates }
+		}
+		
+		var lastModelId: String? = null
+		while (candidates.isNotEmpty()) {
+			val current = candidates.first()
+			lastModelId = current.modelInfo.id
+			val rules = current.provider.errorHandlingRules
 			
-			var lastError: ChatResult? = null
-			var lastStatusCode: Int? = null
-			
-			results.collect { result ->
-				val msg = result.message
-				if (msg is ChatMessage.ErrorMessage) {
-					lastError = result
-					lastStatusCode = msg.statusCode?.value
-				} else {
-					emit(ResilientChatResult(result.normalizeEmptyStrings(), retrying = null))
-				}
-			}
-			
-			val error = lastError ?: return@flow
-			
-			// 匹配错误处理规则
-			val matchedRule = if (lastStatusCode != null) {
-				rules.find { it.statusCode == lastStatusCode }
-			} else {
-				null
-			}
-			
-			when (matchedRule?.strategy) {
-				RecoveryStrategy.RETRY -> {
-					if (retryAttempt < maxRetries - 1) {
-						emit(ResilientChatResult(error, retrying = current))
-						delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
-						continue
+			for (retryAttempt in 0 until maxRetries) {
+				val chatRequest = request.adapt(current)
+				val client = LlmClientLoader.load(current.provider.name)
+				val results = client.chat(
+					request = chatRequest,
+					apiKey = current.provider.apiKey,
+					baseUrl = current.provider.baseUrl,
+				)
+				
+				var lastError: ChatResult? = null
+				var lastStatusCode: Int? = null
+				
+				results.collect { result ->
+					val msg = result.message
+					if (msg is ChatMessage.ErrorMessage) {
+						lastError = result
+						lastStatusCode = msg.statusCode?.value
+					} else {
+						emit(ResilientChatResult(result.normalizeEmptyStrings(), retrying = null))
 					}
-					// 重试耗尽，屏蔽当前模型
-					candidates = candidates.drop(1)
 				}
 				
-				RecoveryStrategy.CONTEXT_FALLBACK -> {
-					// 屏蔽上下文窗口 <= 当前模型的候选模型
-					candidates = candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
+				val error = lastError ?: return@flow
+				
+				// 匹配错误处理规则
+				val matchedRule = if (lastStatusCode != null) {
+					rules.find { it.statusCode == lastStatusCode }
+				} else {
+					null
 				}
 				
-				RecoveryStrategy.PROVIDER_FALLBACK -> {
-					// 屏蔽与当前模型同 provider 的候选模型
-					candidates = candidates.filter { it.provider.name != current.provider.name }
+				when (matchedRule?.strategy) {
+					RecoveryStrategy.RETRY -> {
+						if (retryAttempt < maxRetries - 1) {
+							logger.debug(
+								"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
+								current.modelInfo.id, retryAttempt + 1, lastStatusCode
+							)
+							emit(ResilientChatResult(error, retrying = current))
+							delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
+							continue
+						}
+						logger.debug(
+							"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.id
+						)
+						candidates = candidates.drop(1)
+					}
+					
+					RecoveryStrategy.CONTEXT_FALLBACK -> {
+						logger.debug(
+							"Fell back to larger context window  model={}  statusCode={}",
+							current.modelInfo.id, lastStatusCode
+						)
+						candidates = candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
+					}
+					
+					RecoveryStrategy.PROVIDER_FALLBACK -> {
+						logger.debug(
+							"Fell back to different provider  model={}  provider={}  statusCode={}",
+							current.modelInfo.id, current.provider.name, lastStatusCode
+						)
+						candidates = candidates.filter { it.provider.name != current.provider.name }
+					}
+					
+					RecoveryStrategy.FALLBACK, null -> {
+						logger.debug(
+							"Fell back to next model  model={}  statusCode={}",
+							current.modelInfo.id, lastStatusCode
+						)
+						candidates = candidates.drop(1)
+					}
 				}
 				
-				RecoveryStrategy.FALLBACK, null -> {
-					// 屏蔽当前模型
-					candidates = candidates.drop(1)
-				}
+				emit(ResilientChatResult(error, retrying = candidates.firstOrNull()))
+				
+				break // 跳出当前模型的重试循环，回到外层取下一个候选
 			}
-			
-			emit(ResilientChatResult(error, retrying = candidates.firstOrNull()))
-			
-			break // 跳出当前模型的重试循环，回到外层取下一个候选
+		}
+		
+		logger.warn("All candidate models exhausted  lastModel={}  candidates={}", lastModelId, candidates.size)
+		throw IllegalStateException("All candidate models exhausted without success")
+	}
+	
+	private fun ChatResult.normalizeEmptyStrings(): ChatResult {
+		val msg = message
+		if (msg !is ChatMessage.AssistantMessage) return this
+		val content = msg.content
+		val reasoningContent = msg.reasoningContent
+		if (content != "" && reasoningContent != "") return this
+		val normalized = msg.copy(
+			content = if (content == "") null else content,
+			reasoningContent = if (reasoningContent == "") null else reasoningContent
+		)
+		return when (this) {
+			is ChatResult.Chunk -> copy(message = normalized)
+			is ChatResult.Assembled -> copy(message = normalized)
 		}
 	}
 	
-	throw IllegalStateException("All candidate models exhausted without success")
-}
-
-private fun ChatResult.normalizeEmptyStrings(): ChatResult {
-	val msg = message
-	if (msg !is ChatMessage.AssistantMessage) return this
-	val content = msg.content
-	val reasoningContent = msg.reasoningContent
-	if (content != "" && reasoningContent != "") return this
-	val normalized = msg.copy(
-		content = if (content == "") null else content,
-		reasoningContent = if (reasoningContent == "") null else reasoningContent
-	)
-	return when (this) {
-		is ChatResult.Chunk -> copy(message = normalized)
-		is ChatResult.Assembled -> copy(message = normalized)
-	}
-}
-
-private fun ChatRequest.adapt(model: Model): ChatRequest {
-	val stripPictures = !model.modelInfo.supportsImage &&
-			messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
-	val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
-	val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
-	
-	return copy(
-		model = model.modelInfo.id,
-		stream = stream && model.modelInfo.supportsStreaming,
-		thinking = if (stripThinking) null else thinking,
-		temperature = model.config?.temperature,
-		maxTokens = model.config?.maxTokens,
-		messages = messages.mapIndexed { _, msg ->
-			var result = msg
-			if (stripPictures && result is ChatMessage.UserMessage) {
-				result = result.copy(pictures = null)
-			}
-			if (result is ChatMessage.AssistantMessage) {
-				result = when {
-					shouldStripReasoning -> result.copy(reasoningContent = null)
-					result.reasoningContent == null -> result.copy(reasoningContent = "")
-					else -> result
+	private fun ChatRequest.adapt(model: Model): ChatRequest {
+		val stripPictures = !model.modelInfo.supportsImage &&
+				messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
+		val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
+		val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
+		
+		return copy(
+			model = model.modelInfo.id,
+			stream = stream && model.modelInfo.supportsStreaming,
+			thinking = if (stripThinking) null else thinking,
+			temperature = model.config?.temperature,
+			maxTokens = model.config?.maxTokens,
+			messages = messages.mapIndexed { _, msg ->
+				var result = msg
+				if (stripPictures && result is ChatMessage.UserMessage) {
+					result = result.copy(pictures = null)
 				}
-			}
-			result
-		},
-	)
+				if (result is ChatMessage.AssistantMessage) {
+					result = when {
+						shouldStripReasoning -> result.copy(reasoningContent = null)
+						result.reasoningContent == null -> result.copy(reasoningContent = "")
+						else -> result
+					}
+				}
+				result
+			},
+		)
+	}
 }

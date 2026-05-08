@@ -18,17 +18,17 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.agent.llm.agentChat
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
 import io.ktor.http.*
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
@@ -51,6 +51,7 @@ class AgentStreamProcessorTest {
 	}
 	
 	private fun newProcessor() = AgentStreamProcessor(
+		agentId = UUID.randomUUID(),
 		emitOutput = { emittedOutputs.add(it) },
 		onStatusChange = { statusChanges.add(it) },
 		onContextUpdate = { transform -> contextUpdateTransform = transform },
@@ -67,7 +68,7 @@ class AgentStreamProcessorTest {
 	
 	@After
 	fun cleanup() {
-		unmockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
+		unmockkObject(AgentChat)
 	}
 	
 	// region success path
@@ -75,8 +76,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `process emits stream delta and context update for text response`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(AgentChatStreamResult.Delta(content = "hi", reasoningContent = null, toolCallFragments = null))
 			emit(
 				AgentChatStreamResult.Assembled(
@@ -99,8 +100,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `process emits stream delta with reasoning when reasoning content arrives`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Delta(
 					content = null,
@@ -150,8 +151,8 @@ class AgentStreamProcessorTest {
 			)
 		)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
@@ -182,8 +183,8 @@ class AgentStreamProcessorTest {
 			usage = Usage(10, 5, 5)
 		)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = assistantMsg,
@@ -222,8 +223,8 @@ class AgentStreamProcessorTest {
 			)
 		)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = assistantMsg,
@@ -252,8 +253,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `process emits Error when Failing without retrying`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Failing(
 					errors = listOf(
@@ -277,8 +278,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `Failing with null content uses default error message`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Failing(
 					errors = listOf(
@@ -306,8 +307,8 @@ class AgentStreamProcessorTest {
 		createProcessor()
 		val retryingModel: Model = mockk(relaxed = true)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Failing(
 					errors = listOf(
@@ -344,8 +345,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `process returns Cancelled on CancellationException`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			throw CancellationException("cancelled")
 		}
 		
@@ -357,8 +358,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `process returns Failed on generic exception with message and cause`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			throw RuntimeException("outer", IllegalStateException("inner"))
 		}
 		
@@ -374,8 +375,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `exception with null message omits colon and message text`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			throw RuntimeException()
 		}
 		
@@ -389,8 +390,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `exception with null cause does not include cause section`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			throw RuntimeException("some error")
 		}
 		
@@ -409,8 +410,8 @@ class AgentStreamProcessorTest {
 	@Test
 	fun `process returns Completed when flow emits nothing`() = runTest {
 		createProcessor()
-		mockkStatic("io.github.autotweaker.core.agent.llm.AgentChatKt")
-		every { agentChat(any<AgentChatRequest>()) } returns flow {}
+		mockkObject(AgentChat)
+		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {}
 		
 		val result = newProcessor().process(createRequest())
 		

@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.time.Instant
+
 plugins {
 	kotlin("jvm")
 	kotlin("kapt")
@@ -24,8 +26,14 @@ plugins {
 	jacoco
 }
 
+version = "0.1.0-alpha.1"
+
 application {
 	mainClass = "io.github.autotweaker.core.MainKt"
+}
+
+tasks.named<JavaExec>("run") {
+	systemProperty("log.level", providers.systemProperty("log.level").orElse("INFO").get())
 }
 
 dependencies {
@@ -163,3 +171,49 @@ tasks.jacocoTestReport {
 		html.required = true
 	}
 }
+
+// region 生成版本资源文件
+
+val generateVersionProperties by tasks.registering {
+	description = "生成 version.properties（含 git hash 和构建时间戳）"
+	notCompatibleWithConfigurationCache("访问 git 命令和环境变量")
+	
+	val outputDir = layout.buildDirectory.dir("generated/version")
+	val outputFile = outputDir.map { it.file("version.properties") }
+	
+	outputs.file(outputFile)
+	
+	doLast {
+		val baseVersion = project.version.toString()
+		val gitHash = runCatching {
+			ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+				.redirectErrorStream(true)
+				.start()
+				.inputStream.bufferedReader().readText().trim()
+		}.getOrDefault("unknown")
+		
+		val timestamp = Instant.now().toString().replace(":", "")
+		
+		val fullVersion = if (System.getenv("GITHUB_ACTIONS") == "true") {
+			val stripped = baseVersion.replace(Regex("-[a-zA-Z].*"), "")
+			"$stripped-dev+$timestamp.$gitHash"
+		} else {
+			"$baseVersion+$gitHash.$timestamp"
+		}
+		
+		outputFile.get().asFile.apply {
+			parentFile.mkdirs()
+			writeText("version=$fullVersion")
+		}
+	}
+}
+
+sourceSets.main {
+	resources.srcDir(generateVersionProperties.map { it.outputs.files.singleFile.parentFile })
+}
+
+tasks.named("processResources") {
+	dependsOn(generateVersionProperties)
+}
+
+// endregion

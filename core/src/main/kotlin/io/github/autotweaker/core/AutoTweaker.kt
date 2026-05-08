@@ -20,6 +20,7 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.core.adapter.api.AdapterAPI
 import io.github.autotweaker.core.adapter.api.CoreAPI
+import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.data.json.JsonStore
@@ -29,8 +30,12 @@ import org.slf4j.LoggerFactory
 import java.util.*
 
 object AutoTweaker {
-	private val logger = LoggerFactory.getLogger(AutoTweaker::class.java)
-	val version = SemVer(1, 0, 0)
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	val version: SemVer by lazy {
+		val props = Properties()
+		this::class.java.getResourceAsStream("/version.properties")?.use { props.load(it) }
+		SemVer.parse(props.getProperty("version"))
+	}
 	
 	private val builtInAdapters: List<AdapterAPI> by lazy {
 		ServiceLoader.load(AdapterAPI::class.java).toList()
@@ -42,35 +47,58 @@ object AutoTweaker {
 		external + builtInAdapters.filter { it.load(version).name !in externalNames }
 	}
 	
+	private val registry: MutableMap<String, Pair<AdapterAPI, AdapterInfo>> = mutableMapOf()
+	
 	fun start() {
-		logger.info("AutoTweaker $version starting...")
+		logger.info("AutoTweaker started  version={}", version)
 		logger.info("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc")
 		
 		Settings.init()
-		logger.info("Settings initialized")
-		
 		JsonStore.init()
-		logger.info("JsonStore initialized")
-		
-		SecretManager
-		logger.info(
-			if (SecretManager.isUnlocked) "SecretManager auto-unlocked"
-			else "SecretManager locked — waiting for password"
-		)
+		try {
+			SecretManager.unlock("")
+		} catch (_: Exception) {
+			logger.debug("Auto-unlock skipped  passwordAlreadySet=true")
+		}
 		
 		val core: CoreAPI = CoreAPIImpl
-		logger.info("CoreAPI ready")
 		
 		val adapters = allAdapters
 		if (adapters.isEmpty()) {
-			error("No AdapterAPI implementations found. At least one adapter is required.")
+			val noAdapterError =
+				IllegalStateException("No AdapterAPI implementations found. At least one adapter is required.")
+			logger.error("Failed to load any adapter  component=AutoTweaker", noAdapterError)
+			throw noAdapterError
 		}
 		
+		logger.info(
+			"Found {} adapters to start  builtIn={}  external={}",
+			adapters.size,
+			builtInAdapters.size,
+			adapters.size - builtInAdapters.size
+		)
 		adapters.forEach { adapter ->
 			val info = adapter.load(version)
-			logger.info("Adapter loaded: ${info.name} v${info.version} — ${info.description}")
+			registry[info.name] = adapter to info
+			logger.info(
+				"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
+			)
 			adapter.start(core)
-			logger.info("Adapter started: ${info.name}")
+			logger.info("Adapter started  name={}", info.name)
 		}
+	}
+	
+	fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }
+	
+	fun startAdapter(name: String) {
+		val (adapter, info) = registry[name] ?: error("Unknown adapter: $name")
+		adapter.start(CoreAPIImpl)
+		logger.info("Started adapter  name={}", info.name)
+	}
+	
+	fun stopAdapter(name: String) {
+		val (adapter, info) = registry[name] ?: error("Unknown adapter: $name")
+		adapter.stop()
+		logger.info("Stopped adapter  name={}", info.name)
 	}
 }

@@ -31,6 +31,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.selects.select
+import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Instant
 
@@ -46,12 +47,13 @@ class Agent(
 	override val settings: List<SettingItem>,
 	tools: List<Tool>,
 ) : AgentEnvironment {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	
+	override val agentId: UUID = UUID.randomUUID()
 	override val toolCancelledMessage: String = settings.find("core.agent.tool.response.canceled")
 	override val toolRejectedMessage: String = settings.find("core.agent.tool.response.rejected")
 	override val toolRejectedWithFeedbackMessage: String =
 		settings.find("core.agent.tool.response.rejected.with.feedback")
-	
-	val id: UUID = UUID.randomUUID()
 	
 	//工具状态
 	override val agentState = MutableAgentState()
@@ -92,6 +94,7 @@ class Agent(
 	
 	//llm输出转agentOutput
 	private val streamProcessor = AgentStreamProcessor(
+		agentId = agentId,
 		emitOutput = { _output.emit(it) },
 		onStatusChange = { _status.value = it },
 		onContextUpdate = { transform -> updateContext(transform) },
@@ -110,11 +113,19 @@ class Agent(
 	
 	//更新状态
 	override fun updateStatus(status: AgentStatus) {
+		logger.debug("Agent status changed  agentId={}  from={}  to={}", agentId, _status.value, status)
 		_status.value = status
 	}
 	
 	//初始化
 	init {
+		logger.info(
+			"Agent created  agentId={}  model={}  fallbackModels={}  thinking={}",
+			agentId,
+			model.modelInfo.id,
+			fallbackModels?.map { it.modelInfo.id },
+			thinking
+		)
 		startEventLoop()
 	}
 	
@@ -141,42 +152,51 @@ class Agent(
 				resumeFromCurrentState()
 			}
 		}
+		logger.debug("Event loop started  agentId={}", agentId)
 	}
 	
 	//处理指令（即时
 	private suspend fun handleDirective(directive: AgentCommand.Directive) {
 		when (directive) {
 			is AgentCommand.Directive.Stop -> {
-				//取消协程
+				logger.info("Stop requested  agentId={}", agentId)
 				currentJob?.cancel()
 				currentJob = null
 				compactJob?.cancel()
 				compactJob = null
-				//归档上下文
-				archiveCurrentRound(this, this::updateContext)
-				//更新状态
+				ContextPhase.archiveCurrentRound(this, this::updateContext)
 				updateStatus(AgentStatus.FREE)
+				logger.info("Agent stopped  agentId={}", agentId)
 			}
 			
 			is AgentCommand.Directive.UpdateModel -> {
-				//更新模型
 				currentModel = directive.model
 				directive.fallbackModels?.let { currentFallbackModels = it }
 				directive.thinking?.let { currentThinking = it }
+				logger.info(
+					"Model updated  agentId={}  model={}  fallbackModels={}  thinking={}",
+					agentId,
+					directive.model.modelInfo.id,
+					directive.fallbackModels?.map { it.modelInfo.id },
+					directive.thinking
+				)
 			}
 			
 			is AgentCommand.Directive.Pause -> {
 				if (_status.value == AgentStatus.FREE || _status.value == AgentStatus.ERROR || _status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
+				logger.info("Pause requested  agentId={}  status={}", agentId, _status.value)
 				updateStatus(AgentStatus.PAUSED)
 			}
 			
 			is AgentCommand.Directive.Resume -> {
 				if (_status.value != AgentStatus.PAUSED) return
+				logger.info("Resume requested  agentId={}", agentId)
 				updateStatus(AgentStatus.FREE)
 				workTrigger.trySend(Unit)
 			}
 			
 			is AgentCommand.Directive.Cancel -> {
+				logger.info("Cancel requested  agentId={}  status={}", agentId, _status.value)
 				if (_status.value == AgentStatus.TOOL_CALLING) {
 					currentJob?.cancel()
 				}
@@ -186,11 +206,15 @@ class Agent(
 			
 			is AgentCommand.Directive.Retry -> {
 				if (_status.value != AgentStatus.ERROR) return
+				logger.info("Retried from error  agentId={}", agentId)
 				updateStatus(AgentStatus.FREE)
 				workTrigger.trySend(Unit)
 			}
 			
-			is AgentCommand.Directive.Compact -> launchCompact()
+			is AgentCommand.Directive.Compact -> {
+				logger.debug("Compact requested  agentId={}", agentId)
+				launchCompact()
+			}
 		}
 	}
 	
@@ -198,30 +222,40 @@ class Agent(
 	private suspend fun handleMessage(message: AgentCommand.Message) {
 		when (message) {
 			is AgentCommand.Message.SendMessage -> {
-				//如果非空闲丢弃消息
-				if (_status.value != AgentStatus.FREE) return
-				//处理消息
+				if (_status.value != AgentStatus.FREE) {
+					logger.warn(
+						"Dropped user message  agent not free  agentId={}  status={}  messageId={}",
+						agentId,
+						_status.value,
+						message.id
+					)
+					return
+				}
+				logger.debug(
+					"Received user message  agentId={}  messageId={}  charCount={}",
+					agentId,
+					message.id,
+					message.content.length
+				)
 				processUserMessage(message.id, message.content, message.images, message.timestamp)
 			}
 			
 			is AgentCommand.Message.ApproveToolCall -> {
-				//回去排队
 				if (_status.value != AgentStatus.WAITING) {
 					messageChannel.trySend(message)
 					return
 				}
-				//没有待批准的了，丢弃消息
 				if (agentState.pendingApproval == null) return
-				//处理批准，工具调用时启动协程
-				val result = handleApprovalPhase(this@Agent, message.approvals) { result, call ->
+				logger.debug("Tool approvals processed  agentId={}  approvalCount={}", agentId, message.approvals.size)
+				val result = HandleApprovalPhase.execute(this@Agent, message.approvals) { result, call ->
 					scope.async {
-						executeApprovedToolPhase(this@Agent, result, call)
+						ExecuteToolPhase.execute(this@Agent, result, call)
 					}.also { currentJob = it }.await()
 				}
 				when (result) {
 					PhaseResult.Continue -> workTrigger.trySend(Unit)
 					PhaseResult.Done -> {}
-					PhaseResult.Error -> {}
+					PhaseResult.Error -> logger.warn("Tool approval phase failed  agentId={}", agentId)
 				}
 			}
 		}
@@ -229,23 +263,15 @@ class Agent(
 	
 	//处理用户消息
 	private suspend fun processUserMessage(
-		id: UUID,
-		content: String,
-		images: List<Base64>? = null,
-		timestamp: Instant
+		id: UUID, content: String, images: List<Base64>? = null, timestamp: Instant
 	) {
-		//构建Message.User
 		val userMsg = AgentContext.Message.User(
-			id = id,
-			content = content,
-			images = images,
-			timestamp = timestamp
+			id = id, content = content, images = images, timestamp = timestamp
 		)
-		//更新上下文
 		updateContext {
 			it.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
 		}
-		//开始迭代
+		logger.debug("User message processed  iteration started  agentId={}  messageId={}", agentId, id)
 		workTrigger.trySend(Unit)
 	}
 	
@@ -253,9 +279,20 @@ class Agent(
 	private fun resumeFromCurrentState() {
 		if (_status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
 		when (detectNextAction()) {
-			NextAction.IDLE -> updateStatus(AgentStatus.FREE)
-			NextAction.REQUEST_LLM -> requestLlm()
-			NextAction.EXECUTE_TOOLS -> executeTools()
+			NextAction.IDLE -> {
+				logger.debug("Next action determined  action=IDLE  agentId={}", agentId)
+				updateStatus(AgentStatus.FREE)
+			}
+			
+			NextAction.REQUEST_LLM -> {
+				logger.debug("Next action determined  action=REQUEST_LLM  agentId={}", agentId)
+				requestLlm()
+			}
+			
+			NextAction.EXECUTE_TOOLS -> {
+				logger.debug("Next action determined  action=EXECUTE_TOOLS  agentId={}", agentId)
+				executeTools()
+			}
 		}
 	}
 	
@@ -270,19 +307,20 @@ class Agent(
 	
 	//调用llm
 	private fun requestLlm() {
-		//启动协程
 		currentJob = scope.launch {
-			//调用对应方法
-			val result = requestLlmPhase(this@Agent, streamProcessor)
-			//compact检查
+			logger.debug("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.id)
+			val result = RequestLlmPhase.execute(this@Agent, streamProcessor)
 			if (result == PhaseResult.Done || result == PhaseResult.Continue) {
 				checkAutoCompact()
 			}
-			//处理结果
 			when (result) {
-				PhaseResult.Continue -> workTrigger.trySend(Unit)
-				PhaseResult.Done -> {}
-				PhaseResult.Error -> {}
+				PhaseResult.Continue -> {
+					logger.debug("LLM phase continued  agentId={}", agentId)
+					workTrigger.trySend(Unit)
+				}
+				
+				PhaseResult.Done -> logger.debug("LLM phase completed  agentId={}", agentId)
+				PhaseResult.Error -> logger.warn("LLM phase failed  agentId={}", agentId)
 			}
 		}
 	}
@@ -292,8 +330,9 @@ class Agent(
 		if (compactJob?.isActive == true) return
 		val rounds = _context.value.historyRounds
 		if (rounds.isNullOrEmpty()) return
+		logger.debug("Compact launched  agentId={}  roundCount={}", agentId, rounds.size)
 		compactJob = scope.launch {
-			compactPhase(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
+			CompactPhase.execute(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
 		}
 	}
 	
@@ -305,35 +344,44 @@ class Agent(
 		val config = currentModel.config ?: return
 		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usage ?: return
 		val contextWindow = currentModel.modelInfo.contextWindow
-		val shouldCompact = (config.compactContextUsage != null &&
-				usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage) ||
-				(config.compactTotalTokens != null &&
-						usage.totalTokens >= config.compactTotalTokens)
-		if (shouldCompact) launchCompact()
+		val shouldCompact =
+			(config.compactContextUsage != null && usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage) || (config.compactTotalTokens != null && usage.totalTokens >= config.compactTotalTokens)
+		if (shouldCompact) {
+			logger.debug(
+				"Auto-compact triggered  agentId={}  usage={}  contextWindow={}",
+				agentId,
+				usage.totalTokens,
+				contextWindow
+			)
+			launchCompact()
+		}
 	}
 	
 	//处理工具调用
 	private fun executeTools() {
 		currentJob = scope.launch {
-			//调用对应方法
-			val result = validateToolCallsPhase(this@Agent)
+			logger.debug("Tool execution phase started  agentId={}", agentId)
+			val result = ValidateToolCallsPhase.execute(this@Agent)
 			when (result) {
-				PhaseResult.Continue -> workTrigger.trySend(Unit)
-				PhaseResult.Done -> {}
-				PhaseResult.Error -> {}
+				PhaseResult.Continue -> {
+					logger.debug("Tool execution decided  result=Continue  agentId={}", agentId)
+					workTrigger.trySend(Unit)
+				}
+				
+				PhaseResult.Done -> logger.debug("Tool execution completed  agentId={}", agentId)
+				PhaseResult.Error -> logger.warn("Tool execution failed  agentId={}", agentId)
 			}
 		}
 	}
 	
 	//下一步动作
 	private enum class NextAction {
-		IDLE,
-		REQUEST_LLM,
-		EXECUTE_TOOLS,
+		IDLE, REQUEST_LLM, EXECUTE_TOOLS,
 	}
 	
 	//外部发送命令
 	fun dispatch(command: AgentCommand) {
+		logger.debug("Command dispatched  agentId={}  commandType={}", agentId, command::class.simpleName)
 		when (command) {
 			is AgentCommand.Directive -> directiveChannel.trySend(command)
 			is AgentCommand.Message -> messageChannel.trySend(command)

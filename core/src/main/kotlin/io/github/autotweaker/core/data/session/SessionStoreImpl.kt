@@ -30,9 +30,11 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
+import org.slf4j.LoggerFactory
 import java.util.*
 
 class SessionStoreImpl : SessionStore {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val store = H2DatabaseStore()
 	private var initialized = false
 	
@@ -44,6 +46,7 @@ class SessionStoreImpl : SessionStore {
 			SchemaUtils.create(SessionDataTable, SessionContextTable, SessionMessageTable)
 		}
 		initialized = true
+		logger.info("SessionStore initialized")
 	}
 	
 	private fun ensureInit() {

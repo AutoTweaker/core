@@ -101,7 +101,7 @@ class ResilientChatTest {
 		every { LlmClientLoader.load("test-provider") } returns mockClient
 		coEvery { mockClient.chat(any(), any(), any()) } returns flow { emit(assistantResult("ok")) }
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model(),
 			fallbackModels = null,
 			request = chatRequest(),
@@ -132,7 +132,7 @@ class ResilientChatTest {
 		val providerWithRetry = provider(
 			rules = listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY))
 		)
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model(provider = providerWithRetry),
 			fallbackModels = null,
 			request = chatRequest(),
@@ -167,7 +167,7 @@ class ResilientChatTest {
 		val m1 = model("model1", p1)
 		val m2 = model("model2", p2)
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = m1,
 			fallbackModels = listOf(m2),
 			request = chatRequest(),
@@ -202,7 +202,7 @@ class ResilientChatTest {
 		val providerSame = provider("same", listOf(ErrorHandlingRule(401, RecoveryStrategy.PROVIDER_FALLBACK)))
 		val providerOther = provider("other")
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model("m1", providerSame),
 			fallbackModels = listOf(model("m2", providerSame), model("m3", providerOther)),
 			request = chatRequest(),
@@ -245,7 +245,7 @@ class ResilientChatTest {
 		val p2 = provider("p2")
 		val p3 = provider("p3")
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model("m1", p1, baseModelInfo),
 			fallbackModels = listOf(
 				model("m2", p2, smallerModelInfo),
@@ -270,7 +270,7 @@ class ResilientChatTest {
 		
 		val p = provider(rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.FALLBACK)))
 		val ex = assertFailsWith<IllegalStateException> {
-			resilientChat(
+			ResilientChat.execute(
 				model = model(provider = p),
 				fallbackModels = null,
 				request = chatRequest(),
@@ -282,7 +282,7 @@ class ResilientChatTest {
 	@Test
 	fun `maxRetries must be positive`() = runTest {
 		val ex = assertFailsWith<IllegalArgumentException> {
-			resilientChat(
+			ResilientChat.execute(
 				model = model(),
 				fallbackModels = null,
 				request = chatRequest(),
@@ -314,7 +314,7 @@ class ResilientChatTest {
 			),
 		)
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model("m1", provider("p1"), noImageModelInfo),
 			fallbackModels = listOf(model("m2", provider("p2"), imageModelInfo)),
 			request = requestWithImage,
@@ -338,7 +338,7 @@ class ResilientChatTest {
 			)
 		}
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model(),
 			fallbackModels = null,
 			request = chatRequest(),
@@ -362,7 +362,7 @@ class ResilientChatTest {
 			)
 		}
 		
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model(),
 			fallbackModels = null,
 			request = chatRequest(),
@@ -393,7 +393,7 @@ class ResilientChatTest {
 		} returns flow { emit(assistantResult("fallback after null status")) }
 		
 		val p1 = provider("p1")
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model("m1", p1),
 			fallbackModels = listOf(model("m2", provider("p2"))),
 			request = chatRequest(),
@@ -421,7 +421,7 @@ class ResilientChatTest {
 		} returns flow { emit(assistantResult("success after retry exhaust")) }
 		
 		val p1 = provider("p1", listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY)))
-		val results = resilientChat(
+		val results = ResilientChat.execute(
 			model = model("m1", p1),
 			fallbackModels = listOf(model("m2", provider("p2"))),
 			request = chatRequest(),
@@ -450,7 +450,7 @@ class ResilientChatTest {
 			messages = listOf(ChatMessage.UserMessage("look", Clock.System.now(), listOf(img)))
 		)
 		
-		resilientChat(
+		ResilientChat.execute(
 			model = model("m1", provider("p1"), baseModelInfo.copy(supportsImage = false)),
 			fallbackModels = null,
 			request = requestWithImage,
@@ -481,7 +481,7 @@ class ResilientChatTest {
 			),
 		)
 		
-		resilientChat(
+		ResilientChat.execute(
 			model = model("m1", provider("p1"), baseModelInfo.copy(supportsReasoning = false)),
 			fallbackModels = null,
 			request = requestWithAssistant,
@@ -514,7 +514,7 @@ class ResilientChatTest {
 			thinking = true,
 		)
 		
-		resilientChat(
+		ResilientChat.execute(
 			model = model("m1", provider("p1"), baseModelInfo.copy(supportsReasoning = true)),
 			fallbackModels = null,
 			request = request,

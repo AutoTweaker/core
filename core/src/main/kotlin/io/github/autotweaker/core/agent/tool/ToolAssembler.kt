@@ -23,10 +23,15 @@ import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.*
+import org.slf4j.LoggerFactory
 
 object ToolAssembler {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	
 	fun assemble(tools: List<Tool>, settings: List<SettingItem>): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
+		
+		logger.debug("Tool assembly started  toolCount={}", tools.size)
 		
 		val reasonDescription: String = settings.find("core.agent.tool.description.reason")
 		val metas = tools.map { it.resolveMeta(settings) }

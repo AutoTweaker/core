@@ -54,6 +54,7 @@ class ValidateToolCallsPhaseTest {
 		statusLog.clear()
 		
 		env = mockk(relaxUnitFun = true)
+		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.tools } returns tools
 		every { env.toolCancelledMessage } returns "Tool cancelled"
@@ -73,7 +74,7 @@ class ValidateToolCallsPhaseTest {
 	fun `returns Done when no currentRound`() = runTest {
 		_contextFlow.value = AgentContext(null, null, null, null, null)
 		
-		val result = validateToolCallsPhase(env)
+		val result = ValidateToolCallsPhase.execute(env)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -83,7 +84,7 @@ class ValidateToolCallsPhaseTest {
 		val round = currentRound(pendingToolCalls = null, assistantMessage = assistantMessage())
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val result = validateToolCallsPhase(env)
+		val result = ValidateToolCallsPhase.execute(env)
 		
 		assertEquals(PhaseResult.Done, result)
 	}
@@ -98,7 +99,7 @@ class ValidateToolCallsPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		assertFailsWith<IllegalArgumentException> {
-			validateToolCallsPhase(env)
+			ValidateToolCallsPhase.execute(env)
 		}
 	}
 	
@@ -117,7 +118,7 @@ class ValidateToolCallsPhaseTest {
 			Tools.ToolCallResolveResult.ParseFailure("c2", "Function not found"),
 		)
 		
-		val result = validateToolCallsPhase(env)
+		val result = ValidateToolCallsPhase.execute(env)
 		
 		assertEquals(PhaseResult.Continue, result)
 		val turns = _contextFlow.value.currentRound?.turns
@@ -149,7 +150,7 @@ class ValidateToolCallsPhaseTest {
 			Tools.ToolCallResolveResult.NeedsApproval("c2", vs2),
 		)
 		
-		val result = validateToolCallsPhase(env)
+		val result = ValidateToolCallsPhase.execute(env)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertEquals(AgentStatus.WAITING, statusLog.last())
@@ -174,7 +175,7 @@ class ValidateToolCallsPhaseTest {
 			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
 		)
 		
-		val result = validateToolCallsPhase(env)
+		val result = ValidateToolCallsPhase.execute(env)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertEquals(AgentStatus.WAITING, statusLog.last())
@@ -202,7 +203,7 @@ class ValidateToolCallsPhaseTest {
 			Tools.ToolCallResolveResult.ParseFailure("c1", "error"),
 		)
 		
-		validateToolCallsPhase(env)
+		ValidateToolCallsPhase.execute(env)
 		
 		assertTrue(statusLog.contains(AgentStatus.PROCESSING))
 	}
@@ -219,7 +220,7 @@ class ValidateToolCallsPhaseTest {
 			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		
-		validateToolCallsPhase(env)
+		ValidateToolCallsPhase.execute(env)
 		
 		val req = emittedOutputs.firstOrNull { it is AgentOutput.ToolCallRequest } as? AgentOutput.ToolCallRequest
 		assertNotNull(req)

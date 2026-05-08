@@ -25,11 +25,42 @@ data class SemVer(
 	val preRelease: List<String> = emptyList(),
 	val buildMetadata: List<String> = emptyList()
 ) : Comparable<SemVer> {
+	
+	init {
+		require(major >= 0) { "Major version must be non-negative, got: $major" }
+		require(minor >= 0) { "Minor version must be non-negative, got: $minor" }
+		require(patch >= 0) { "Patch version must be non-negative, got: $patch" }
+		validatePreRelease()
+		validateBuildMetadata()
+	}
+	
+	private fun validatePreRelease() {
+		for (id in preRelease) {
+			require(id.isNotEmpty()) { "Pre-release identifier must not be empty" }
+			require(id.all { it in '0'..'9' || it in 'A'..'Z' || it in 'a'..'z' || it == '-' }) {
+				"Pre-release identifier must consist of [0-9A-Za-z-], got: \"$id\""
+			}
+			if (id.all { it in '0'..'9' }) {
+				require(id == "0" || !id.startsWith('0')) {
+					"Numeric pre-release identifier must not have leading zeros, got: \"$id\""
+				}
+			}
+		}
+	}
+	
+	private fun validateBuildMetadata() {
+		for (id in buildMetadata) {
+			require(id.isNotEmpty()) { "Build metadata identifier must not be empty" }
+			require(id.all { it in '0'..'9' || it in 'A'..'Z' || it in 'a'..'z' || it == '-' }) {
+				"Build metadata identifier must consist of [0-9A-Za-z-], got: \"$id\""
+			}
+		}
+	}
+	
 	override fun compareTo(other: SemVer): Int {
-		if (major != other.major) return major - other.major
-		if (minor != other.minor) return minor - other.minor
-		if (patch != other.patch) return patch - other.patch
-		
+		if (major != other.major) return major.compareTo(other.major)
+		if (minor != other.minor) return minor.compareTo(other.minor)
+		if (patch != other.patch) return patch.compareTo(other.patch)
 		
 		if (preRelease.isEmpty() && other.preRelease.isNotEmpty()) return 1
 		if (preRelease.isNotEmpty() && other.preRelease.isEmpty()) return -1
@@ -42,7 +73,7 @@ data class SemVer(
 			val bNum = b.toIntOrNull()
 			
 			val cmp = when {
-				aNum != null && bNum != null -> aNum - bNum
+				aNum != null && bNum != null -> aNum.compareTo(bNum)
 				aNum != null -> -1
 				bNum != null -> 1
 				else -> a.compareTo(b)
@@ -50,7 +81,7 @@ data class SemVer(
 			if (cmp != 0) return cmp
 		}
 		
-		return preRelease.size - other.preRelease.size
+		return preRelease.size.compareTo(other.preRelease.size)
 	}
 	
 	override fun toString(): String {
@@ -62,10 +93,12 @@ data class SemVer(
 	
 	companion object {
 		private val regex = Regex(
-			"""^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$"""
+			"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)" +
+					"(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)" +
+					"(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?" +
+					"(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
 		)
 		
-		@Suppress("unused")
 		fun parse(text: String): SemVer {
 			val m = regex.matchEntire(text)
 				?: error("Invalid SemVer: $text")

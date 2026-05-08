@@ -25,34 +25,55 @@ import io.github.autotweaker.core.agent.AgentStatus
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.data.settings.find
 import kotlinx.coroutines.withTimeout
+import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.milliseconds
 
-//实际调用工具
-internal suspend fun executeApprovedToolPhase(
-	env: AgentEnvironment,
-	result: ToolCallValidator.ValidationResult.Success,
-	call: AgentContext.CurrentRound.PendingToolCall,
-): AgentContext.Message.Tool {
-	env.updateStatus(AgentStatus.TOOL_CALLING)
-	val timeoutSeconds: Int = env.settings.find("core.agent.tool.timeout.seconds")
-	val timeoutMessage: String = env.settings.find("core.agent.tool.response.timeout")
-	return try {
-		withTimeout((timeoutSeconds * 1000L).milliseconds) {
-			env.tools.executeTool(
-				result, call, buildToolProvider(env), env.workspace,
-				onToolActivated = { activeTools ->
-					env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
-				},
-				onToolOutput = { output ->
-					env.emitOutput(output)
-				},
+internal object ExecuteToolPhase {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	
+	internal suspend fun execute(
+		env: AgentEnvironment,
+		result: ToolCallValidator.ValidationResult.Success,
+		call: AgentContext.CurrentRound.PendingToolCall,
+	): AgentContext.Message.Tool {
+		logger.debug(
+			"Tool execution started  agentId={}  tool={}  timeout={}s",
+			env.agentId, call.name, env.settings.find<Int>("core.agent.tool.timeout.seconds")
+		)
+		env.updateStatus(AgentStatus.TOOL_CALLING)
+		val timeoutSeconds: Int = env.settings.find("core.agent.tool.timeout.seconds")
+		val timeoutMessage: String = env.settings.find("core.agent.tool.response.timeout")
+		return try {
+			withTimeout((timeoutSeconds * 1000L).milliseconds) {
+				env.tools.executeTool(
+					result, call, ToolProvider.buildToolProvider(env), env.workspace,
+					onToolActivated = { activeTools ->
+						env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
+					},
+					onToolOutput = { output ->
+						env.emitOutput(output)
+					},
+				)
+			}.also {
+				logger.debug("Tool completed  agentId={}  tool={}  status={}", env.agentId, call.name, it.result.status)
+			}
+		} catch (_: kotlinx.coroutines.TimeoutCancellationException) {
+			logger.warn("Tool timed out  agentId={}  tool={}  timeout={}s", env.agentId, call.name, timeoutSeconds)
+			ContextPhase.buildToolResult(
+				call,
+				timeoutMessage.format(timeoutSeconds),
+				AgentContext.Message.Tool.Result.Status.TIMEOUT
 			)
+		} catch (_: kotlinx.coroutines.CancellationException) {
+			logger.debug("Tool cancelled  agentId={}  tool={}", env.agentId, call.name)
+			ContextPhase.buildToolResult(
+				call,
+				env.toolCancelledMessage,
+				AgentContext.Message.Tool.Result.Status.CANCELLED
+			)
+		} catch (e: Exception) {
+			logger.error("Tool execution failed  agentId={}  tool={}", env.agentId, call.name, e)
+			ContextPhase.buildErrorTool(call, e.message ?: "Tool execution failed")
 		}
-	} catch (_: kotlinx.coroutines.TimeoutCancellationException) {
-		buildToolResult(call, timeoutMessage.format(timeoutSeconds), AgentContext.Message.Tool.Result.Status.TIMEOUT)
-	} catch (_: kotlinx.coroutines.CancellationException) {
-		buildToolResult(call, env.toolCancelledMessage, AgentContext.Message.Tool.Result.Status.CANCELLED)
-	} catch (e: Exception) {
-		buildErrorTool(call, e.message ?: "Tool execution failed")
 	}
 }

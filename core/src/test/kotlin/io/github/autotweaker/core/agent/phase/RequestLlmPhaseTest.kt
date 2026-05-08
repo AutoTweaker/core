@@ -28,6 +28,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -47,6 +48,7 @@ class RequestLlmPhaseTest {
 		streamProcessor = mockk()
 		
 		env = mockk(relaxUnitFun = true)
+		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.currentModel } returns model
 		every { env.currentFallbackModels } returns null
@@ -76,7 +78,7 @@ class RequestLlmPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Completed
 		
-		val result = requestLlmPhase(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertNull(_contextFlow.value.currentRound)
@@ -93,7 +95,7 @@ class RequestLlmPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.ToolCallsRequired(emptyList())
 		
-		val result = requestLlmPhase(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
 		assertEquals(PhaseResult.Continue, result)
 	}
@@ -107,7 +109,7 @@ class RequestLlmPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Cancelled
 		
-		val result = requestLlmPhase(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertNull(_contextFlow.value.currentRound)
@@ -124,7 +126,7 @@ class RequestLlmPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Failed("LLM error")
 		
-		val result = requestLlmPhase(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
 		assertEquals(PhaseResult.Error, result)
 		assertTrue(statusLog.contains(AgentStatus.ERROR))
@@ -139,7 +141,7 @@ class RequestLlmPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		requestLlmPhase(env, streamProcessor)
+		RequestLlmPhase.execute(env, streamProcessor)
 		
 		assertTrue(statusLog.contains(AgentStatus.PROCESSING))
 	}

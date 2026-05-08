@@ -32,9 +32,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
 class Tools(settings: List<SettingItem>) {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val _settings = settings
 	private val enableDescription: String = settings.find("core.agent.tool.description.enable")
 	private val enabledMessage: String = settings.find("core.agent.tool.response.active")
@@ -48,11 +50,12 @@ class Tools(settings: List<SettingItem>) {
 	//存储工具列表
 	private val _entries = mutableListOf<Entry>()
 	
-	
 	val entries: List<Entry> get() = _entries
 	
 	//添加工具
 	fun add(tool: Tool) {
+		val meta = tool.resolveMeta(_settings)
+		logger.debug("Tool added  tool={}  functionCount={}", meta.name, meta.functions.size)
 		_entries.add(Entry(tool))
 	}
 	
@@ -67,17 +70,27 @@ class Tools(settings: List<SettingItem>) {
 	fun resolveToolCalls(
 		calls: List<AgentContext.CurrentRound.PendingToolCall>,
 	): List<ToolCallResolveResult> {
-		return calls.map { call ->
-			//调用参数解析器
+		val results = calls.map { call ->
 			when (val validated = _validator.validate(call.name, call.arguments)) {
-				//解析失败
 				is ToolCallValidator.ValidationResult.Failure ->
-					ToolCallResolveResult.ParseFailure(call.callId, validated.errorMessage)
-				//解析成功
+					ToolCallResolveResult.ParseFailure(call.callId, validated.errorMessage).also {
+						logger.debug(
+							"Failed to parse tool call  callId={}  tool={}  error={}",
+							call.callId, call.name, validated.errorMessage
+						)
+					}
+				
 				is ToolCallValidator.ValidationResult.Success ->
-					ToolCallResolveResult.NeedsApproval(call.callId, validated)
+					ToolCallResolveResult.NeedsApproval(call.callId, validated).also {
+						logger.debug("Tool call validated  callId={}  tool={}", call.callId, call.name)
+					}
 			}
 		}
+		logger.debug(
+			"Tool calls resolved  total={}  success={}", calls.size,
+			results.count { it is ToolCallResolveResult.NeedsApproval }
+		)
+		return results
 	}
 	
 	//解析输出
@@ -107,8 +120,14 @@ class Tools(settings: List<SettingItem>) {
 		//匹配工具实现
 		val entry = _entries.first { it.tool.resolveMeta(_settings).name == result.toolName }
 		
+		logger.debug(
+			"Tool execution started  tool={}  function={}  reason={}  active={}",
+			result.toolName, result.functionName, result.reason, entry.active
+		)
+		
 		//工具未激活
 		if (!entry.active) {
+			logger.debug("Tool activated  tool={}  function={}", result.toolName, result.functionName)
 			//激活
 			entry.active = true
 			onToolActivated?.invoke(_entries.filter { it.active }.map { it.tool })
@@ -159,12 +178,18 @@ class Tools(settings: List<SettingItem>) {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
+				logger.error("Failed to execute tool  tool={}  function={}", result.toolName, result.functionName, e)
 				Tool.ToolOutput(e.message ?: "Unknown error", false)
 			}
 			outputChannel.close()
 			drainJob.join()
 			result
 		}
+		
+		logger.debug(
+			"Tool execution completed  tool={}  function={}  success={}",
+			result.toolName, result.functionName, output.success
+		)
 		
 		//返回结果
 		return AgentContext.Message.Tool(

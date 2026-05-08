@@ -22,22 +22,26 @@ import io.github.autotweaker.core.data.json.JsonStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import org.slf4j.LoggerFactory
 import java.util.*
 
 object WorkspaceManager {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
 	private var workspaceList: List<WorkspaceData>
 	
 	init {
 		val jsonArray = jsonEntry.get()
-		
 		workspaceList = if (jsonArray == null) emptyList()
 		else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
+		logger.debug("WorkspaceManager initialized  count={}", workspaceList.size)
 	}
 	
-	fun create(meta: WorkspaceMeta) =
+	fun create(meta: WorkspaceMeta) {
+		logger.debug("Workspace created  name={}", meta.name)
 		update(workspaceList.plus(WorkspaceData(meta)))
+	}
 	
 	fun getData(name: String): WorkspaceData? =
 		workspaceList.find { it.meta.name == name }
@@ -45,15 +49,20 @@ object WorkspaceManager {
 	fun getAll(): List<WorkspaceMeta> =
 		workspaceList.map { it.meta }
 	
-	fun updateMeta(name: String, meta: WorkspaceMeta) =
+	fun updateMeta(name: String, meta: WorkspaceMeta) {
+		logger.debug("Workspace meta updated  name={}", name)
 		update(workspaceList.map { if (it.meta.name == name) it.copy(meta = meta) else it })
+	}
 	
-	fun updateData(name: String, git: Boolean?, sessionIds: List<UUID>?) =
+	fun updateData(name: String, git: Boolean?, sessionIds: List<UUID>?) {
+		logger.debug("Workspace data updated  name={}", name)
 		update(workspaceList.map { if (it.meta.name == name) it.copy(git = git, sessionIds = sessionIds) else it })
+	}
 	
-	fun delete(name: String) =
+	fun delete(name: String) {
+		logger.debug("Workspace deleted  name={}", name)
 		update(workspaceList.filterNot { it.meta.name == name })
-	
+	}
 	
 	private fun update(new: List<WorkspaceData>) {
 		workspaceList = new

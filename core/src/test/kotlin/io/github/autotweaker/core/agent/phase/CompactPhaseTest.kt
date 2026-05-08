@@ -24,8 +24,8 @@ import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
+import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.agent.llm.ResilientChatResult
-import io.github.autotweaker.core.agent.llm.resilientChat
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.ChatMessage
@@ -67,6 +67,7 @@ class CompactPhaseTest {
 		capturedOutputs.clear()
 		
 		env = mockk(relaxUnitFun = true)
+		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
@@ -85,12 +86,12 @@ class CompactPhaseTest {
 		}
 		coEvery { env.emitOutput(any()) } answers { capturedOutputs.add(firstArg()) }
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 	}
 	
 	@AfterTest
 	fun tearDown() {
-		unmockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		unmockkObject(ResilientChat)
 	}
 	
 	@Test
@@ -104,7 +105,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -121,7 +122,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("compacted conversation summary", _contextFlow.value.summarizedMessage?.content)
 	}
@@ -136,7 +137,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -151,7 +152,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -169,7 +170,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = blankResult, retrying = null)
 		)
 		
@@ -184,7 +185,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		// Should have attempted MAX_COMPACT_RETRIES (5) times before giving up
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
@@ -203,7 +204,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -218,7 +219,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("real summary here", _contextFlow.value.summarizedMessage?.content)
 	}
@@ -234,7 +235,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -265,7 +266,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
 		assertNotNull(_contextFlow.value.summarizedMessage?.content)
@@ -279,7 +280,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = errorResult, retrying = null)
 		)
 		
@@ -294,7 +295,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -320,7 +321,7 @@ class CompactPhaseTest {
 			),
 			usage = usage,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chunkResult, retrying = null),
 			ResilientChatResult(result = assembledResult, retrying = null),
 		)
@@ -336,7 +337,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val outputting = capturedOutputs.filterIsInstance<AgentOutput.CompactOutput>()
 			.firstOrNull { it.status == AgentOutput.CompactOutput.Status.OUTPUTTING }
@@ -346,7 +347,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `runCompactRequest handles exception from chat flow`() = runTest {
-		every { resilientChat(any(), any(), any(), any()) } throws RuntimeException("chat failed")
+		every { ResilientChat.execute(any(), any(), any(), any()) } throws RuntimeException("chat failed")
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(
@@ -359,7 +360,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -374,7 +375,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -393,7 +394,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("summary with images", _contextFlow.value.summarizedMessage?.content)
 	}
@@ -422,7 +423,7 @@ class CompactPhaseTest {
 		)
 		// First call: summarizeMessage for user message, second call: summarizeMessage for assistant message,
 		// third call: runCompactRequest
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		) andThen flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
@@ -444,7 +445,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(
+		CompactPhase.execute(
 			env,
 			rounds,
 			summarizeModel = model,
@@ -473,7 +474,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		// summarizeMessage called for each long message + main compact request
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -505,7 +506,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(
+		CompactPhase.execute(
 			env,
 			rounds,
 			summarizeModel = model,
@@ -524,7 +525,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -539,7 +540,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
 		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
 	}
@@ -565,7 +566,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { resilientChat(any(), any(), any(), any()) } returnsMany listOf(
+		every { ResilientChat.execute(any(), any(), any(), any()) } returnsMany listOf(
 			flowOf(
 				ResilientChatResult(result = emptyResult, retrying = model),
 				ResilientChatResult(result = emptyResult, retrying = null)
@@ -588,7 +589,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		compactPhase(
+		CompactPhase.execute(
 			env,
 			rounds,
 			summarizeModel = model,
@@ -601,7 +602,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `CancellationException is rethrown not swallowed`() = runTest {
-		every { resilientChat(any(), any(), any(), any()) } throws CancellationException("cancelled")
+		every { ResilientChat.execute(any(), any(), any(), any()) } throws CancellationException("cancelled")
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(
@@ -615,7 +616,7 @@ class CompactPhaseTest {
 		)
 		
 		val job = launch {
-			compactPhase(
+			CompactPhase.execute(
 				env,
 				rounds,
 				summarizeModel = model,

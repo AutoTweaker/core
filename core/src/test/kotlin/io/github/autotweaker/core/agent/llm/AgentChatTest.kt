@@ -28,8 +28,8 @@ import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.session.ModelId
 import io.mockk.every
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -73,7 +73,7 @@ class AgentChatTest {
 	
 	@After
 	fun cleanup() {
-		unmockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		unmockkObject(ResilientChat)
 	}
 	
 	@Test
@@ -90,9 +90,9 @@ class AgentChatTest {
 			usage = Usage(100, 50, 50),
 		)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(chatResult, null))
 		}
@@ -101,7 +101,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		assertTrue(results.any { it is AgentChatStreamResult.Assembled })
 		
@@ -120,9 +120,9 @@ class AgentChatTest {
 			message = ChatMessage.AssistantMessage("answer", now, reasoningContent = "let me think"),
 		)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(chunkResult, null))
 			emit(ResilientChatResult(assembledResult, null))
@@ -132,7 +132,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
 		assertEquals("let me think", delta.reasoningContent)
@@ -147,9 +147,9 @@ class AgentChatTest {
 	fun `passes through deltas from multiple chunks`() = runTest {
 		val now = Clock.System.now()
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			emit(
 				ResilientChatResult(
@@ -183,7 +183,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
 		assertEquals(2, deltas.size)
@@ -203,9 +203,9 @@ class AgentChatTest {
 		)
 		val errorChatResult = ChatResult.Assembled(message = errorMsg)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(errorChatResult, null))
 		}
@@ -214,7 +214,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val failings = results.filterIsInstance<AgentChatStreamResult.Failing>()
 		assertEquals(1, failings.size)
@@ -223,9 +223,9 @@ class AgentChatTest {
 	
 	@Test
 	fun `handles all models exhausted silently`() = runTest {
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			throw IllegalStateException("All candidate models exhausted without success")
 		}
@@ -234,7 +234,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		assertTrue(results.none { it is AgentChatStreamResult.Assembled })
 	}
@@ -252,9 +252,9 @@ class AgentChatTest {
 		)
 		val chatResult = ChatResult.Assembled(message = assistantMsg)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(chatResult, null))
 		}
@@ -263,7 +263,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		val toolCalls = assertNotNull(assembled.toolCalls)
@@ -288,9 +288,9 @@ class AgentChatTest {
 			toolCalls = null,
 		)
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(ChatResult.Assembled(message = errorMsg), retrying = fallbackModel))
 			emit(
@@ -308,7 +308,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		
 		assertEquals("fallback", assembled.message.model.modelId.modelName)
@@ -321,9 +321,9 @@ class AgentChatTest {
 		)
 		val now = Clock.System.now()
 		
-		mockkStatic("io.github.autotweaker.core.agent.llm.ResilientChatKt")
+		mockkObject(ResilientChat)
 		every {
-			resilientChat(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any())
 		} returns flow {
 			// chunk with tool call fragments
 			emit(
@@ -351,7 +351,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = agentChat(request).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
 		assertNotNull(delta.toolCallFragments)

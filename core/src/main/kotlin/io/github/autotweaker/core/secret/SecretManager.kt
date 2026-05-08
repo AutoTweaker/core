@@ -18,13 +18,14 @@
 
 package io.github.autotweaker.core.secret
 
+import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
 
-@Suppress("unused")
 object SecretManager : SecretStore {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val rootDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "secret")
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")
@@ -37,13 +38,6 @@ object SecretManager : SecretStore {
 	val isUnlocked: Boolean get() = password != null
 	val isPasswordEmpty: Boolean get() = password == ""
 	
-	init {
-		try {
-			unlock("")
-		} catch (_: Exception) {
-		}
-	}
-	
 	//接收密码
 	fun unlock(password: String) {
 		//确保目录存在
@@ -55,15 +49,15 @@ object SecretManager : SecretStore {
 		} catch (_: UnsupportedOperationException) {
 		}
 		if (!hasSecretKey()) {
-			//不存在gpg密钥，生成
 			this.password = password
 			generateKey()
 			createMarker()
+			logger.info("New secret key generated")
 		} else {
-			//存在gpg密钥，验证密码
 			verifyPassword(password)
 			this.password = password
 		}
+		logger.info("SecretManager unlocked  keyExists={}", hasSecretKey())
 	}
 	
 	//确保unlocked，否则异常抛到上游
@@ -97,24 +91,17 @@ object SecretManager : SecretStore {
 	//更改密码
 	fun changePassword(oldPassword: String, newPassword: String) {
 		requireUnlocked()
-		//改了个寂寞
 		if (oldPassword == newPassword) return
-		//校验密码
 		verifyPassword(oldPassword)
-		//解密所有密文
 		val cache = list().associateWith { get(it) }
-		//删除密钥
+		logger.info("Password change started  secretCount={}", cache.size)
 		deleteKey()
-		//删除markerFile
 		Files.deleteIfExists(markerFile)
-		//更新密码
 		this.password = newPassword
-		//生成新密钥
 		generateKey()
-		//重新加密
 		cache.forEach { (id, secret) -> encryptTo(secret, secretsDir.resolve("$id.gpg")) }
-		//重建markerFile
 		createMarker()
+		logger.info("Password changed  secretCount={}", cache.size)
 	}
 	
 	//删除密钥
@@ -149,26 +136,23 @@ object SecretManager : SecretStore {
 	// region 实现接口
 	override fun add(secret: String): UUID {
 		requireUnlocked()
-		
 		val id = UUID.randomUUID()
 		val file = secretsDir.resolve("$id.gpg")
-		
 		encryptTo(secret, file)
+		logger.debug("Secret added  id={}", id)
 		return id
 	}
 	
 	override fun get(id: UUID): String {
 		requireUnlocked()
-		
 		val file = secretsDir.resolve("$id.gpg")
 		require(Files.exists(file)) { "Secret not found: $id" }
-		
+		logger.debug("Secret retrieved  id={}", id)
 		return gpg("--batch", "--yes", "--passphrase", password!!, "-d", file.toString())
 	}
 	
 	override fun list(): List<UUID> {
 		requireUnlocked()
-		
 		return Files.list(secretsDir).use { stream ->
 			stream.filter { it.fileName.toString().endsWith(".gpg") }
 				.map { UUID.fromString(it.fileName.toString().removeSuffix(".gpg")) }.toList()
@@ -177,8 +161,8 @@ object SecretManager : SecretStore {
 	
 	override fun remove(id: UUID) {
 		requireUnlocked()
-		
 		Files.deleteIfExists(secretsDir.resolve("$id.gpg"))
+		logger.debug("Secret removed  id={}", id)
 	}
 	// endregion
 }

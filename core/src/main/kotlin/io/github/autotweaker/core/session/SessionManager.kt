@@ -35,11 +35,12 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.util.*
 
-@Suppress("unused")
 object SessionManager {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val settings = Settings.get()
 	
 	private val defaultModelId: String = settings.find("core.session.model.default")
@@ -134,6 +135,7 @@ object SessionManager {
 				sessionIds = workspace.sessionIds.orEmpty() + session.data.value.id
 			)
 			store.saveSessions(listOf(session.data.value))
+			logger.info("Session created  sessionId={}  workspace={}", session.data.value.id, workspace.meta.name)
 			return SessionHandle.fromSession(session)
 		}
 		
