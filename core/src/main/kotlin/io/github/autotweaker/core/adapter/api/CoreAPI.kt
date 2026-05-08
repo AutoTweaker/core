@@ -18,4 +18,67 @@
 
 package io.github.autotweaker.core.adapter.api
 
-interface CoreAPI
+import io.github.autotweaker.core.Base64
+import io.github.autotweaker.core.Url
+import io.github.autotweaker.core.adapter.config.CoreConfig
+import io.github.autotweaker.core.data.provider.Provider
+import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.core.session.ModelId
+import io.github.autotweaker.core.session.SessionConfig
+import io.github.autotweaker.core.session.SessionManager
+import io.github.autotweaker.core.session.workspace.WorkspaceMeta
+import java.util.*
+
+interface CoreAPI {
+	val session: SessionAPI
+	val config: ConfigAPI
+	
+	interface SessionAPI {
+		suspend fun create(workspace: String, config: SessionConfig): SessionManager.SessionHandle
+		suspend fun delete(sessionId: UUID)
+		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
+		suspend fun stop(sessionId: UUID)
+		fun pause(sessionId: UUID)
+		fun resume(sessionId: UUID)
+		fun cancel(sessionId: UUID)
+		fun retry(sessionId: UUID)
+		fun compact(sessionId: UUID)
+		fun list(): List<SessionManager.SessionHandle>
+		fun updateTitle(sessionId: UUID, title: String)
+		fun updateConfig(sessionId: UUID, config: SessionConfig)
+		
+		fun createWorkspace(meta: WorkspaceMeta)
+		suspend fun renameWorkspace(name: String, newName: String)
+		suspend fun deleteWorkspace(name: String)
+		fun listWorkspaces(): List<WorkspaceMeta>
+	}
+	
+	interface ConfigAPI {
+		fun getAppConfig(key: SettingKey): CoreConfig.AppConfig?
+		fun setAppConfig(config: CoreConfig.AppConfig)
+		fun getAllAppConfigs(): List<CoreConfig.AppConfig>
+		
+		fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
+		fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
+		fun setEnv(env: List<CoreConfig.JsonConfig.Env>)
+		fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String)
+		
+		fun listProviders(): List<CoreConfig.ProviderConfig.Provider>
+		fun createProvider(provider: CoreConfig.ProviderConfig.Provider)
+		fun deleteProvider(name: String)
+		fun renameProvider(name: String, new: String)
+		fun updateProviderType(name: String, type: String)
+		fun updateProviderKey(name: String, keyName: String)
+		fun updateProviderUrl(name: String, url: Url)
+		fun updateProviderRule(name: String, rules: List<Provider.ErrorHandlingRule>)
+		
+		fun listModels(): List<CoreConfig.ProviderConfig.Model>
+		fun listModelIds(): List<ModelId>
+		fun addModel(model: CoreConfig.ProviderConfig.Model)
+		fun removeModel(id: ModelId)
+		fun updateModel(id: ModelId, model: CoreConfig.ProviderConfig.Model)
+		
+		fun setApiKey(key: CoreConfig.ProviderConfig.ApiKey)
+		fun listApiKeyNames(): List<String>
+	}
+}
