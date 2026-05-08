@@ -38,7 +38,18 @@ object SecretManager : SecretStore {
 	val isUnlocked: Boolean get() = password != null
 	val isPasswordEmpty: Boolean get() = password == ""
 	
-	//接收密码
+	fun init() {
+		try {
+			unlock("")
+		} catch (e: Exception) {
+			if (hasSecretKey()) {
+				logger.info("SecretManager auto-unlock skipped  reason=password required")
+				return
+			}
+			throw e
+		}
+	}
+
 	fun unlock(password: String) {
 		//确保目录存在
 		Files.createDirectories(secretsDir)
@@ -66,8 +77,12 @@ object SecretManager : SecretStore {
 	
 	//检查gpg密钥存在
 	private fun hasSecretKey(): Boolean =
-		gpg("--list-secret-keys", "--with-colons", KEY_UID).lines().any {
-			it.startsWith("sec:")
+		try {
+			gpg("--list-secret-keys", "--with-colons", KEY_UID).lines().any {
+				it.startsWith("sec:")
+			}
+		} catch (_: Exception) {
+			false
 		}
 	
 	//生成gpg密钥

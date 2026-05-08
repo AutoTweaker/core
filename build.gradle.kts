@@ -29,5 +29,4 @@ allprojects {
 
 subprojects {
 	group = "io.github.autotweaker"
-	version = "1.0.0"
 }

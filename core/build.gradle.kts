@@ -24,16 +24,18 @@ plugins {
 	id("org.jetbrains.kotlin.plugin.serialization")
 	application
 	jacoco
+	`maven-publish`
 }
 
 version = "0.1.0-alpha.1"
 
 application {
 	mainClass = "io.github.autotweaker.core.MainKt"
+	applicationName = "autotweaker"
 }
 
 tasks.named<JavaExec>("run") {
-	systemProperty("log.level", providers.systemProperty("log.level").orElse("INFO").get())
+	systemProperty("log.level", providers.systemProperty("log.level").orElse("DEBUG").get())
 }
 
 dependencies {
@@ -184,7 +186,6 @@ val generateVersionProperties by tasks.registering {
 	outputs.file(outputFile)
 	
 	doLast {
-		val baseVersion = project.version.toString()
 		val gitHash = runCatching {
 			ProcessBuilder("git", "rev-parse", "--short", "HEAD")
 				.redirectErrorStream(true)
@@ -194,11 +195,13 @@ val generateVersionProperties by tasks.registering {
 		
 		val timestamp = Instant.now().toString().replace(":", "")
 		
-		val fullVersion = if (System.getenv("GITHUB_ACTIONS") == "true") {
+		val githubRef = System.getenv("GITHUB_REF") ?: ""
+		val fullVersion = if (githubRef.startsWith("refs/tags/v")) {
+			"${githubRef.removePrefix("refs/tags/v")}+$gitHash"
+		} else {
+			val baseVersion = project.version.toString()
 			val stripped = baseVersion.replace(Regex("-[a-zA-Z].*"), "")
 			"$stripped-dev+$timestamp.$gitHash"
-		} else {
-			"$baseVersion+$gitHash.$timestamp"
 		}
 		
 		outputFile.get().asFile.apply {
@@ -214,6 +217,31 @@ sourceSets.main {
 
 tasks.named("processResources") {
 	dependsOn(generateVersionProperties)
+}
+
+// endregion
+
+// region Maven 发布到 GitHub Packages
+
+publishing {
+	repositories {
+		maven {
+			name = "GitHubPackages"
+			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
+			credentials {
+				username = System.getenv("GITHUB_ACTOR") ?: ""
+				password = System.getenv("GITHUB_TOKEN") ?: ""
+			}
+		}
+	}
+	publications {
+		create<MavenPublication>("maven") {
+			from(components["java"])
+			groupId = "io.github.autotweaker"
+			artifactId = "core"
+			version = project.version.toString()
+		}
+	}
 }
 
 // endregion

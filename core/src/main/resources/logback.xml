@@ -55,6 +55,8 @@
         </encoder>
     </appender>
 
+    <logger name="Exposed" level="WARN"/>
+
     <root level="${log.root.level:-DEBUG}">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>

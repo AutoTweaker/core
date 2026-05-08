@@ -56,9 +56,10 @@ object AutoTweaker {
 		Settings.init()
 		JsonStore.init()
 		try {
-			SecretManager.unlock("")
-		} catch (_: Exception) {
-			logger.debug("Auto-unlock skipped  passwordAlreadySet=true")
+			SecretManager.init()
+		} catch (e: Exception) {
+			logger.error("Failed to initialize SecretManager", e)
+			throw e
 		}
 		
 		val core: CoreAPI = CoreAPIImpl
@@ -67,7 +68,7 @@ object AutoTweaker {
 		if (adapters.isEmpty()) {
 			val noAdapterError =
 				IllegalStateException("No AdapterAPI implementations found. At least one adapter is required.")
-			logger.error("Failed to load any adapter  component=AutoTweaker", noAdapterError)
+			logger.error("Failed to load any adapter", noAdapterError)
 			throw noAdapterError
 		}
 		

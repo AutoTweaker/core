@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Extract version from tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+
+      - name: Build and package
+        run: ./gradlew :core:distZip :core:distTar -Pversion="$VERSION"
+
+      - name: Publish to GitHub Packages
+        run: ./gradlew :core:publish -Pversion="$VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build .deb package
+        run: |
+          ./gradlew :core:installDist -Pversion="$VERSION"
+
+          DEB_VERSION=$(echo "$VERSION" | sed 's/-/~/g')
+          PKG_ROOT="autotweaker_${DEB_VERSION}_amd64"
+
+          mkdir -p "$PKG_ROOT/DEBIAN"
+          mkdir -p "$PKG_ROOT/usr/share/autotweaker"
+          mkdir -p "$PKG_ROOT/usr/bin"
+
+          cp -r core/build/install/core/* "$PKG_ROOT/usr/share/autotweaker/"
+
+          cat > "$PKG_ROOT/DEBIAN/control" << CTRL
+          Package: autotweaker
+          Version: $DEB_VERSION
+          Section: devel
+          Priority: optional
+          Architecture: amd64
+          Depends: default-jre-headless (>= 17), gnupg, git
+          Maintainer: WhiteElephant-abc
+          Description: AI Agent framework
+           AutoTweaker is a Kotlin AI Agent framework with
+           event-driven architecture based on coroutines and Flow.
+          CTRL
+
+          cat > "$PKG_ROOT/DEBIAN/postinst" << 'SCRIPT'
+          #!/bin/sh
+          set -e
+          ln -sf /usr/share/autotweaker/bin/autotweaker /usr/bin/autotweaker
+          chmod +x /usr/share/autotweaker/bin/autotweaker
+          SCRIPT
+          chmod 755 "$PKG_ROOT/DEBIAN/postinst"
+
+          dpkg-deb --build --root-owner-group "$PKG_ROOT"
+
+          echo "DEB_FILE=${PKG_ROOT}.deb" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "v$VERSION" \
+            --title "AutoTweaker v$VERSION" \
+            --generate-notes \
+            core/build/distributions/*.zip \
+            core/build/distributions/*.tar \
+            "$DEB_FILE"
+        env:
+          GH_TOKEN: ${{ github.token }}

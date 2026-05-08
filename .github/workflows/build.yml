@@ -15,9 +15,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build
         run: ./gradlew build
+
+      - name: Package distributions
+        run: ./gradlew :core:distZip :core:distTar
+
+      - name: Upload distZip (dev snapshot)
+        uses: actions/upload-artifact@v5
+        with:
+          name: autotweaker-dev-dist
+          path: |
+            core/build/distributions/*.zip
+            core/build/distributions/*.tar
+          retention-days: 7
