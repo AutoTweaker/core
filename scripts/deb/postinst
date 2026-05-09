@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# AutoTweaker
+# Copyright (C) 2026  WhiteElephant-abc
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+set -e
+
+# 基于物理内存生成 JVM 配置
+MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+MEM_MB=$((MEM_KB / 1024))
+
+if   [ "$MEM_MB" -lt 1024 ]; then
+    XMX=512m
+    GC_OPTS="-XX:+UseSerialGC"
+elif [ "$MEM_MB" -lt 2048 ]; then
+    XMX=1g
+elif [ "$MEM_MB" -lt 4096 ]; then
+    XMX=2g
+elif [ "$MEM_MB" -lt 8192 ]; then
+    XMX=4g
+else
+    XMX=6g
+    GC_OPTS="-XX:+UseZGC"
+fi
+
+mkdir -p /etc/autotweaker
+cat > /etc/autotweaker/jvm.options << EOF
+-Xmx${XMX}
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:HeapDumpPath=/var/log/autotweaker
+EOF
+[ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
+
+# 启动命令包装器：读 JVM 配置起实际脚本
+cat > /usr/bin/autotweaker << 'WRAPPER'
+#!/bin/sh
+JVM_OPTS=$(grep -v '^#' /etc/autotweaker/jvm.options 2>/dev/null | tr '\n' ' ')
+export JAVA_OPTS="$JVM_OPTS $JAVA_OPTS"
+exec /usr/share/autotweaker/bin/autotweaker "$@"
+WRAPPER
+chmod 755 /usr/bin/autotweaker

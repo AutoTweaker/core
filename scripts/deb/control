@@ -1,0 +1,11 @@
+Package: autotweaker
+Version: ${DEB_VERSION}
+Section: devel
+Priority: optional
+Architecture: amd64
+Depends: default-jre-headless (>= 17) | java-runtime-headless (>= 17), gnupg, git
+Homepage: https://github.com/AutoTweaker/core
+Vcs-Git: https://github.com/AutoTweaker/core.git
+License: GPL-3.0+
+Maintainer: WhiteElephant-abc
+Description: AutoTweaker is a Kotlin AI Agent framework

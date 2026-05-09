@@ -265,4 +265,11 @@ publishing {
 	}
 }
 
+tasks.register<Exec>("buildDeb") {
+	description = "构建 .deb 包"
+	dependsOn("installDist")
+	workingDir = rootProject.projectDir
+	commandLine("bash", "scripts/build-deb.sh", project.version.toString())
+}
+
 // endregion
