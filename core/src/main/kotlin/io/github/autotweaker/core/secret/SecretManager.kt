@@ -138,10 +138,10 @@ object SecretManager : SecretStore {
 	//执行gpg命令，自动设置homedir，自动处理标准输入输出
 	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {
 		val allArgs = mutableListOf("gpg", "--homedir", gpgHome.toString())
-		allArgs.addAll(args)
 		if (passphrase != null) {
 			allArgs += listOf("--passphrase-fd", "0")
 		}
+		allArgs.addAll(args)
 		val cmd = allArgs.toList()
 		val proc = ProcessBuilder(cmd).start()
 		proc.outputStream.bufferedWriter().use { writer ->
