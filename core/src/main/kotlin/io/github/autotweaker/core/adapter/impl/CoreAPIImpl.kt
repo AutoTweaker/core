@@ -25,6 +25,7 @@ import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.config.CoreConfig
+import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
@@ -68,6 +69,9 @@ object CoreAPIImpl : CoreAPI {
 		override fun retry(sessionId: UUID) = SessionManager.SessionAPI.retryAgent(sessionId) ?: Unit
 		
 		override fun compact(sessionId: UUID) = SessionManager.SessionAPI.compactAgent(sessionId) ?: Unit
+		
+		override fun approveToolCall(sessionId: UUID, approvals: List<AgentCommand.Message.ApproveToolCall.Approve>) =
+			SessionManager.SessionAPI.approveToolCall(sessionId, approvals)
 		
 		override fun list() = SessionManager.SessionAPI.list()
 		

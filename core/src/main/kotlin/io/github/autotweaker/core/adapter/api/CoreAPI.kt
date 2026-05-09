@@ -22,6 +22,7 @@ import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.CoreConfig
+import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
@@ -57,6 +58,7 @@ interface CoreAPI {
 		fun cancel(sessionId: UUID)
 		fun retry(sessionId: UUID)
 		fun compact(sessionId: UUID)
+		fun approveToolCall(sessionId: UUID, approvals: List<AgentCommand.Message.ApproveToolCall.Approve>)
 		fun list(): List<SessionManager.SessionHandle>
 		fun updateTitle(sessionId: UUID, title: String)
 		fun updateConfig(sessionId: UUID, config: SessionConfig)

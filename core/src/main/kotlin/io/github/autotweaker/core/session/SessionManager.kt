@@ -97,6 +97,10 @@ object SessionManager {
 		fun compactAgent(session: UUID) =
 			sessions[session]?.dispatch(AgentCommand.Directive.Compact)
 		
+		fun approveToolCall(session: UUID, approvals: List<AgentCommand.Message.ApproveToolCall.Approve>) {
+			sessions[session]?.dispatch(AgentCommand.Message.ApproveToolCall(approvals))
+		}
+		
 		fun list(): List<SessionHandle> =
 			sessions.map { entry -> SessionHandle.fromSession(entry.value) }
 		
