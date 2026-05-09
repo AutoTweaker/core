@@ -22,6 +22,7 @@ import io.github.autotweaker.core.Base64
 import io.github.autotweaker.core.Url
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.CoreConfig
+import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.LlmClient
@@ -43,6 +44,8 @@ interface CoreAPI {
 	fun listAdapter(): List<AdapterInfo>
 	fun startAdapter(name: String)
 	fun stopAdapter(name: String)
+	
+	fun jsonStore(namespace: String): JsonStore.JsonEntry
 	
 	interface SessionAPI {
 		suspend fun create(workspace: String, config: SessionConfig): SessionManager.SessionHandle
@@ -93,6 +96,7 @@ interface CoreAPI {
 		fun updateModel(id: ModelId, model: CoreConfig.ProviderConfig.Model)
 		
 		fun setApiKey(key: CoreConfig.ProviderConfig.ApiKey)
+		fun deleteApiKey(name: String)
 		fun listApiKeyNames(): List<String>
 	}
 }

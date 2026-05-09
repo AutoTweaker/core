@@ -192,6 +192,12 @@ object ConfigManager {
 			
 			fun list(): List<String> = keyMap.keys.toList()
 			fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
+			fun delete(name: String) {
+				val id = keyMap.remove(name) ?: error("Key $name not found")
+				secret.remove(id)
+				saveMap()
+			}
+			
 			internal fun getId(name: String): UUID = keyMap[name] ?: error("Key $name not found")
 			internal fun getName(id: UUID): String =
 				keyMap.filter { it.value == id }.keys.firstOrNull() ?: error("Key $id not found")

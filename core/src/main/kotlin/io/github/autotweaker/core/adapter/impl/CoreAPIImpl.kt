@@ -25,6 +25,7 @@ import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.config.CoreConfig
+import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.LlmClient
@@ -43,6 +44,7 @@ object CoreAPIImpl : CoreAPI {
 	override fun listAdapter(): List<AdapterInfo> = AutoTweaker.listAdapter()
 	override fun startAdapter(name: String) = AutoTweaker.startAdapter(name)
 	override fun stopAdapter(name: String) = AutoTweaker.stopAdapter(name)
+	override fun jsonStore(namespace: String) = JsonStore.namespace(namespace)
 	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
 	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty
 	
@@ -102,8 +104,7 @@ object CoreAPIImpl : CoreAPI {
 			ConfigManager.EnvConfigAPI.remove(type, id)
 		
 		override fun listProviders() = ConfigManager.ProviderConfigAPI.ProviderAPI.list()
-		override fun listAvailableProviderTypes() =
-			ConfigManager.ProviderConfigAPI.ProviderAPI.listAvailable()
+		override fun listAvailableProviderTypes() = ConfigManager.ProviderConfigAPI.ProviderAPI.listAvailable()
 		
 		override fun getProviderMeta(type: String): LlmClient.ProviderInfo =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.getMeta(type)
@@ -146,5 +147,7 @@ object CoreAPIImpl : CoreAPI {
 			ConfigManager.ProviderConfigAPI.ApiKeyAPI.set(key)
 		
 		override fun listApiKeyNames() = ConfigManager.ProviderConfigAPI.ApiKeyAPI.list()
+		
+		override fun deleteApiKey(name: String) = ConfigManager.ProviderConfigAPI.ApiKeyAPI.delete(name)
 	}
 }
