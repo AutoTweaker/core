@@ -89,9 +89,9 @@ object SecretManager : SecretStore {
 	private fun generateKey() =
 		gpg(
 			"--batch",
-			"--passphrase", password!!,
 			"--quick-generate-key", KEY_UID,
-			"rsa4096", "encrypt", "never"
+			"rsa4096", "encrypt", "never",
+			passphrase = password!!
 		)
 	
 	//加密一个ok，写入markerFile
@@ -99,7 +99,7 @@ object SecretManager : SecretStore {
 	
 	//解密markerFile，如果成功就是密钥正确
 	private fun verifyPassword(password: String) {
-		val result = gpg("--batch", "--yes", "--passphrase", password, "-d", markerFile.toString())
+		val result = gpg("--batch", "--yes", "-d", markerFile.toString(), passphrase = password)
 		check(result == "ok") { "Invalid password" }
 	}
 	
@@ -136,11 +136,22 @@ object SecretManager : SecretStore {
 		)
 	
 	//执行gpg命令，自动设置homedir，自动处理标准输入输出
-	private fun gpg(vararg args: String, input: String? = null): String {
-		val cmd = listOf("gpg", "--homedir", gpgHome.toString()) + args.toList()
+	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {
+		val allArgs = mutableListOf("gpg", "--homedir", gpgHome.toString())
+		allArgs.addAll(args)
+		if (passphrase != null) {
+			allArgs += listOf("--passphrase-fd", "0")
+		}
+		val cmd = allArgs.toList()
 		val proc = ProcessBuilder(cmd).start()
-		if (input != null) {
-			proc.outputStream.bufferedWriter().use { it.write(input) }
+		proc.outputStream.bufferedWriter().use { writer ->
+			if (passphrase != null) {
+				writer.write(passphrase)
+				writer.newLine()
+			}
+			if (input != null) {
+				writer.write(input)
+			}
 		}
 		val stdout = proc.inputStream.bufferedReader().readText()
 		val stderr = proc.errorStream.bufferedReader().readText()
@@ -163,7 +174,7 @@ object SecretManager : SecretStore {
 		val file = secretsDir.resolve("$id.gpg")
 		require(Files.exists(file)) { "Secret not found: $id" }
 		logger.debug("Secret retrieved  id={}", id)
-		return gpg("--batch", "--yes", "--passphrase", password!!, "-d", file.toString())
+		return gpg("--batch", "--yes", "-d", file.toString(), passphrase = password!!)
 	}
 	
 	override fun list(): List<UUID> {
