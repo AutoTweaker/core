@@ -211,12 +211,24 @@ val generateVersionProperties by tasks.registering {
 	}
 }
 
-sourceSets.main {
-	resources.srcDir(generateVersionProperties.map { it.outputs.files.singleFile.parentFile })
+tasks.named<ProcessResources>("processResources") {
+	dependsOn(generateVersionProperties)
+	from(generateVersionProperties.map { it.outputs.files.singleFile.parentFile })
 }
 
-tasks.named("processResources") {
-	dependsOn(generateVersionProperties)
+val generatedVersionFile = layout.buildDirectory.file("generated/version/version.properties")
+
+val generatedVersion = provider<String> {
+	val f = generatedVersionFile.get().asFile
+	if (f.exists()) {
+		f.readText().removePrefix("version=").trim()
+	} else {
+		project.version.toString()
+	}
+}
+
+tasks.withType<AbstractArchiveTask>().configureEach {
+	archiveVersion.set(generatedVersion)
 }
 
 // endregion

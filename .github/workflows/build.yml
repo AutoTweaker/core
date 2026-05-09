@@ -25,14 +25,7 @@ jobs:
         run: ./gradlew build
 
       - name: Package distributions
-        run: |
-          ./gradlew :core:distZip :core:distTar
-          DEV_VER=$(grep -oP 'version=\K.*' core/build/generated/version/version.properties)
-          cd core/build/distributions
-          for ext in zip tar; do
-            f=$(ls autotweaker-*.$ext 2>/dev/null | head -1)
-            [ -n "$f" ] && mv "$f" "autotweaker-${DEV_VER}.$ext"
-          done
+        run: ./gradlew :core:distZip :core:distTar
 
       - name: Upload distZip (dev snapshot)
         uses: actions/upload-artifact@v5
