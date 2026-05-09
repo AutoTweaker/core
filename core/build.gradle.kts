@@ -187,10 +187,8 @@ val generateVersionProperties by tasks.registering {
 	
 	doLast {
 		val gitHash = runCatching {
-			ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-				.redirectErrorStream(true)
-				.start()
-				.inputStream.bufferedReader().readText().trim()
+			ProcessBuilder("git", "rev-parse", "--short", "HEAD").redirectErrorStream(true)
+				.start().inputStream.bufferedReader().readText().trim()
 		}.getOrDefault("unknown")
 		
 		val timestamp = Instant.now().toString().replace(":", "")
@@ -270,6 +268,18 @@ tasks.register<Exec>("buildDeb") {
 	dependsOn("installDist")
 	workingDir = rootProject.projectDir
 	commandLine("bash", "scripts/build-deb.sh", project.version.toString())
+}
+
+tasks.register<Exec>("releaseTag") {
+	description = "基于当前版本号打 tag 并推送"
+	workingDir = rootProject.projectDir
+	commandLine(
+		"bash", "-c", """
+		set -e
+		git tag -a "v${project.version}" -m "AutoTweaker v${project.version}"
+		git push origin "v${project.version}"
+	""".trimIndent()
+	)
 }
 
 // endregion
