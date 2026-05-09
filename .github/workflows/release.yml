@@ -21,28 +21,31 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Extract version from tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
 
       - name: Build and package
-        run: ./gradlew :core:distZip :core:distTar -Pversion="$VERSION"
+        run: ./gradlew :core:distZip :core:distTar
 
       - name: Publish to GitHub Packages
-        run: ./gradlew :core:publish -Pversion="$VERSION"
+        run: ./gradlew :core:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build .deb package
         run: |
-          ./gradlew :core:installDist -Pversion="$VERSION"
+          ./gradlew :core:installDist
 
           DEB_VERSION=$(echo "$VERSION" | sed 's/-/~/g')
           PKG_ROOT="autotweaker_${DEB_VERSION}_amd64"
 
           mkdir -p "$PKG_ROOT/DEBIAN"
           mkdir -p "$PKG_ROOT/usr/share/autotweaker"
+          mkdir -p "$PKG_ROOT/usr/share/doc/autotweaker"
           mkdir -p "$PKG_ROOT/usr/bin"
 
           cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
+          cp LICENSE "$PKG_ROOT/usr/share/doc/autotweaker/copyright"
 
           cat > "$PKG_ROOT/DEBIAN/control" << CTRL
           Package: autotweaker
@@ -51,6 +54,8 @@ jobs:
           Priority: optional
           Architecture: amd64
           Depends: default-jre-headless (>= 17), gnupg, git
+          Homepage: https://github.com/AutoTweaker/core
+          Vcs-Git: https://github.com/AutoTweaker/core.git
           Maintainer: WhiteElephant-abc
           Description: AI Agent framework
            AutoTweaker is a Kotlin AI Agent framework with
