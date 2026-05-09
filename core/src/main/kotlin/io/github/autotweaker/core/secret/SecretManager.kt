@@ -89,6 +89,7 @@ object SecretManager : SecretStore {
 	private fun generateKey() =
 		gpg(
 			"--batch",
+			"--pinentry-mode", "loopback",
 			"--quick-generate-key", KEY_UID,
 			"rsa4096", "encrypt", "never",
 			passphrase = password!!
@@ -99,7 +100,7 @@ object SecretManager : SecretStore {
 	
 	//解密markerFile，如果成功就是密钥正确
 	private fun verifyPassword(password: String) {
-		val result = gpg("--batch", "--yes", "-d", markerFile.toString(), passphrase = password)
+		val result = gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
 		check(result == "ok") { "Invalid password" }
 	}
 	
@@ -174,7 +175,7 @@ object SecretManager : SecretStore {
 		val file = secretsDir.resolve("$id.gpg")
 		require(Files.exists(file)) { "Secret not found: $id" }
 		logger.debug("Secret retrieved  id={}", id)
-		return gpg("--batch", "--yes", "-d", file.toString(), passphrase = password!!)
+		return gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", file.toString(), passphrase = password!!)
 	}
 	
 	override fun list(): List<UUID> {
