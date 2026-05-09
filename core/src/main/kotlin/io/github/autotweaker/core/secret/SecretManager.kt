@@ -59,11 +59,24 @@ object SecretManager : SecretStore {
 			Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------"))
 		} catch (_: UnsupportedOperationException) {
 		}
-		//创建配置文件
+		//创建私钥目录
+		val privateKeysDir = gpgHome.resolve("private-keys-v1.d")
+		Files.createDirectories(privateKeysDir)
+		try {
+			Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------"))
+		} catch (_: UnsupportedOperationException) {
+		}
+		//创建gpg agent配置
 		val agentConf = gpgHome.resolve("gpg-agent.conf")
 		if (!Files.exists(agentConf)) {
 			Files.writeString(agentConf, "allow-loopback-pinentry\n")
 			Files.setPosixFilePermissions(agentConf, PosixFilePermissions.fromString("rw-------"))
+		}
+		//干掉gpg agent
+		runCatching {
+			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
+			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
+			killPb.start().waitFor()
 		}
 		if (!hasSecretKey()) {
 			this.password = password
@@ -136,15 +149,17 @@ object SecretManager : SecretStore {
 		"--batch", "--yes", "--trust-model", "always", "-r", KEY_UID, "-a", "-e", "-o", output.toString(), input = input
 	)
 	
-	//执行gpg命令，自动设置homedir，自动处理标准输入输出
 	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {
-		val allArgs = mutableListOf("gpg", "--homedir", gpgHome.toString())
+		val allArgs = mutableListOf("gpg")
 		if (passphrase != null) {
 			allArgs += listOf("--passphrase-fd", "0")
 		}
 		allArgs.addAll(args)
 		val cmd = allArgs.toList()
-		val proc = ProcessBuilder(cmd).start()
+		val pb = ProcessBuilder(cmd)
+		pb.environment()["GNUPGHOME"] = gpgHome.toString()
+		pb.environment().remove("GPG_AGENT_INFO")
+		val proc = pb.start()
 		proc.outputStream.bufferedWriter().use { writer ->
 			if (passphrase != null) {
 				writer.write(passphrase)
