@@ -49,7 +49,7 @@ object SecretManager : SecretStore {
 			throw e
 		}
 	}
-
+	
 	fun unlock(password: String) {
 		//确保目录存在
 		Files.createDirectories(secretsDir)
@@ -58,6 +58,12 @@ object SecretManager : SecretStore {
 		try {
 			Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------"))
 		} catch (_: UnsupportedOperationException) {
+		}
+		//创建配置文件
+		val agentConf = gpgHome.resolve("gpg-agent.conf")
+		if (!Files.exists(agentConf)) {
+			Files.writeString(agentConf, "allow-loopback-pinentry\n")
+			Files.setPosixFilePermissions(agentConf, PosixFilePermissions.fromString("rw-------"))
 		}
 		if (!hasSecretKey()) {
 			this.password = password
@@ -72,35 +78,37 @@ object SecretManager : SecretStore {
 	}
 	
 	//确保unlocked，否则异常抛到上游
-	private fun requireUnlocked() =
-		check(password != null) { "SecretManager is locked. Call unlock() first." }
+	private fun requireUnlocked() = check(password != null) { "SecretManager is locked. Call unlock() first." }
 	
 	//检查gpg密钥存在
-	private fun hasSecretKey(): Boolean =
-		try {
-			gpg("--list-secret-keys", "--with-colons", KEY_UID).lines().any {
-				it.startsWith("sec:")
-			}
-		} catch (_: Exception) {
-			false
+	private fun hasSecretKey(): Boolean = try {
+		gpg("--list-secret-keys", "--with-colons", KEY_UID).lines().any {
+			it.startsWith("sec:")
 		}
+	} catch (_: Exception) {
+		false
+	}
 	
 	//生成gpg密钥
-	private fun generateKey() =
-		gpg(
-			"--batch",
-			"--pinentry-mode", "loopback",
-			"--quick-generate-key", KEY_UID,
-			"rsa4096", "encrypt", "never",
-			passphrase = password!!
-		)
+	private fun generateKey() = gpg(
+		"--batch",
+		"--pinentry-mode",
+		"loopback",
+		"--quick-generate-key",
+		KEY_UID,
+		"rsa4096",
+		"encrypt",
+		"never",
+		passphrase = password!!
+	)
 	
 	//加密一个ok，写入markerFile
 	private fun createMarker() = encryptTo("ok", markerFile)
 	
 	//解密markerFile，如果成功就是密钥正确
 	private fun verifyPassword(password: String) {
-		val result = gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
+		val result =
+			gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
 		check(result == "ok") { "Invalid password" }
 	}
 	
@@ -121,20 +129,12 @@ object SecretManager : SecretStore {
 	}
 	
 	//删除密钥
-	private fun deleteKey() =
-		gpg("--batch", "--yes", "--delete-secret-and-public-key", KEY_UID)
+	private fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", KEY_UID)
 	
 	//加密
-	private fun encryptTo(input: String, output: Path) =
-		gpg(
-			"--batch",
-			"--yes",
-			"--trust-model", "always",
-			"-r", KEY_UID,
-			"-a", "-e",
-			"-o", output.toString(),
-			input = input
-		)
+	private fun encryptTo(input: String, output: Path) = gpg(
+		"--batch", "--yes", "--trust-model", "always", "-r", KEY_UID, "-a", "-e", "-o", output.toString(), input = input
+	)
 	
 	//执行gpg命令，自动设置homedir，自动处理标准输入输出
 	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {
