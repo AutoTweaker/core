@@ -50,8 +50,8 @@ object AutoTweaker {
 	private val registry: MutableMap<String, Pair<AdapterAPI, AdapterInfo>> = mutableMapOf()
 	
 	fun start() {
-		logger.info("AutoTweaker started  version={}", version)
 		logger.info("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc")
+		logger.info("AutoTweaker started  version={}", version)
 		
 		Settings.init()
 		JsonStore.init()
