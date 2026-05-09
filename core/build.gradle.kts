@@ -227,7 +227,16 @@ val generatedVersion = provider<String> {
 	}
 }
 
-tasks.withType<AbstractArchiveTask>().configureEach {
+tasks.jar {
+	archiveBaseName = "autotweaker-core"
+	archiveVersion = if ((System.getenv("GITHUB_REF") ?: "").startsWith("refs/tags/v")) {
+		project.version.toString()
+	} else {
+		""
+	}
+}
+
+tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEach {
 	archiveVersion.set(generatedVersion)
 }
 
