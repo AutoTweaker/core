@@ -33,14 +33,14 @@ class BashServiceImplTest {
 	
 	private lateinit var tmpDir: Path
 	private lateinit var originalHome: String
-
+	
 	@BeforeTest
 	fun setUp() {
 		tmpDir = Files.createTempDirectory("bash-test")
 		originalHome = System.getProperty("user.home")
 		System.setProperty("user.home", tmpDir.toString())
 	}
-
+	
 	@AfterTest
 	fun tearDown() {
 		System.setProperty("user.home", originalHome)

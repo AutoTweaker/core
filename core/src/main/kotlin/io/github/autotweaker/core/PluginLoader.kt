@@ -23,6 +23,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
+@PublishedApi
+internal val pluginClassLoaders = mutableListOf<URLClassLoader>()
+
 inline fun <reified T : Any> loadPlugins(subDir: String): List<T> {
 	val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins", subDir)
 	if (!Files.isDirectory(dir)) return emptyList()
@@ -32,5 +35,11 @@ inline fun <reified T : Any> loadPlugins(subDir: String): List<T> {
 	
 	val urls = jars.map { it.toUri().toURL() }.toTypedArray()
 	val classLoader = URLClassLoader(urls, T::class.java.classLoader)
+	pluginClassLoaders.add(classLoader)
 	return ServiceLoader.load(T::class.java, classLoader).toList()
+}
+
+fun closePluginClassLoaders() {
+	pluginClassLoaders.forEach { runCatching { it.close() } }
+	pluginClassLoaders.clear()
 }

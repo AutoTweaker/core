@@ -166,6 +166,7 @@ class Agent(
 				compactJob = null
 				ContextPhase.archiveCurrentRound(this, this::updateContext)
 				updateStatus(AgentStatus.FREE)
+				scope.cancel()
 				logger.info("Agent stopped  agentId={}", agentId)
 			}
 			

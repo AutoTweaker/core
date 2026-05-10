@@ -71,6 +71,7 @@ object ContainerManager {
 				svc.stop(id)
 			} finally {
 				_containerId = null
+				service.shutdown()
 				logger.info("Container stopped  containerId={}", id)
 			}
 		}

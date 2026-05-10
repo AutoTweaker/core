@@ -44,6 +44,10 @@ class DockerJavaService : ContainerService {
 	@Suppress("DEPRECATION")
 	private val client: DockerClient = DockerClientImpl.getInstance()
 	
+	override fun shutdown() {
+		runCatching { client.close() }
+	}
+	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
 		try {
 			client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
@@ -103,7 +107,9 @@ class DockerJavaService : ContainerService {
 	): CommandResult = withContext(Dispatchers.IO) {
 		logger.debug(
 			"Command execution started  containerId={}  cmd={}  timeout={}s",
-			containerId, command.joinToString(" "), timeoutSeconds
+			containerId,
+			command.joinToString(" "),
+			timeoutSeconds
 		)
 		try {
 			val execCmd = client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)

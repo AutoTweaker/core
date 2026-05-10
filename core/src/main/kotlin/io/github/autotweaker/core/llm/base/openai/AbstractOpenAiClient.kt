@@ -58,6 +58,10 @@ abstract class AbstractOpenAiClient<
 			}
 		}
 		
+		fun close() {
+			sharedHttpClient.close()
+		}
+		
 		private fun buildToolCalls(
 			pendingToolCalls: Map<Int, PendingToolCall>
 		): List<ChatMessage.AssistantMessage.ToolCall>? {

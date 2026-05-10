@@ -34,4 +34,13 @@ class H2DatabaseStore : DatabaseStore {
 		logger.debug("Database connected  db={}  url={}", dbName, url)
 		Database.connect(url, "org.h2.Driver")
 	}
+	
+	override fun shutdown() {
+		try {
+			org.jetbrains.exposed.v1.jdbc.transactions.transaction {
+				exec("SHUTDOWN")
+			}
+		} catch (_: Exception) {
+		}
+	}
 }

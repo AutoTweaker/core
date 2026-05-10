@@ -5,6 +5,7 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/libexec/autotweaker/autotweakerd
+SuccessExitStatus=143
 Restart=on-failure
 RestartSec=5
 

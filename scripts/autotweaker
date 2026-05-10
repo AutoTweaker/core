@@ -21,8 +21,9 @@ SOCK="${XDG_CONFIG_HOME:-$HOME/.config}/autotweaker/cli.sock"
 
 systemctl --user daemon-reload 2>/dev/null || true
 if ! systemctl --user is-active --quiet autotweaker 2>/dev/null; then
+    echo "autotweaker: starting daemon..." >&2
     systemctl --user start autotweaker
-    for _ in $(seq 1 50); do
+    for _ in $(seq 1 150); do
         [ -S "$SOCK" ] && break
         sleep 0.1
     done

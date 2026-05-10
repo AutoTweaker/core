@@ -31,12 +31,14 @@ import org.slf4j.LoggerFactory
 object JsonStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
+	private lateinit var store: H2DatabaseStore
 	private var initialized = false
 	
 	@Synchronized
 	fun init() {
 		if (initialized) return
-		H2DatabaseStore().connect("AppConfig")
+		store = H2DatabaseStore()
+		store.connect("AppConfig")
 		transaction { SchemaUtils.create(JsonStoreTable) }
 		initialized = true
 		logger.info("JsonStore initialized  table=json_store")
@@ -44,6 +46,10 @@ object JsonStore {
 	
 	private fun ensureInit() {
 		if (!initialized) init()
+	}
+	
+	fun shutdown() {
+		if (::store.isInitialized) store.shutdown()
 	}
 	
 	fun namespace(name: String): JsonEntry {

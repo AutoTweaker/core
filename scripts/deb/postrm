@@ -21,6 +21,7 @@ set -e
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     systemctl --global disable --now autotweaker 2>/dev/null || true
+    pkill -f "io.github.autotweaker.core.MainKt" 2>/dev/null || true
     rm -f /usr/bin/autotweaker
     rm -f /usr/lib/systemd/user/autotweaker.service
     rm -rf /usr/libexec/autotweaker

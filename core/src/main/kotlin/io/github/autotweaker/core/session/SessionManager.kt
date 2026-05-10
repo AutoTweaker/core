@@ -104,6 +104,14 @@ object SessionManager {
 		fun list(): List<SessionHandle> =
 			sessions.map { entry -> SessionHandle.fromSession(entry.value) }
 		
+		suspend fun shutdown() {
+			sessions.keys.toList().forEach { id ->
+				runCatching { stop(id) }
+			}
+			scope.cancel()
+			store.shutdown()
+		}
+		
 		suspend fun delete(sessionId: UUID) {
 			val session = sessions[sessionId] ?: error("Session not found: $sessionId")
 			session.stop()

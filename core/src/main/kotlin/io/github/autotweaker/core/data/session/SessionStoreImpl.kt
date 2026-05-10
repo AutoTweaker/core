@@ -38,6 +38,10 @@ class SessionStoreImpl : SessionStore {
 	private val store = H2DatabaseStore()
 	private var initialized = false
 	
+	fun shutdown() {
+		store.shutdown()
+	}
+	
 	@Synchronized
 	fun init() {
 		if (initialized) return

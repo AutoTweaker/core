@@ -38,6 +38,14 @@ object SecretManager : SecretStore {
 	val isUnlocked: Boolean get() = password != null
 	val isPasswordEmpty: Boolean get() = password == ""
 	
+	fun killGpgAgent() {
+		runCatching {
+			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
+			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
+			killPb.start().waitFor()
+		}
+	}
+	
 	fun init() {
 		try {
 			unlock("")

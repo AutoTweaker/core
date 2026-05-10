@@ -23,9 +23,13 @@ import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
+import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.Settings
+import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.session.SessionManager
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -89,11 +93,26 @@ object AutoTweaker {
 		}
 		
 		Runtime.getRuntime().addShutdownHook(Thread {
-			registry.values.forEach { (adapter, info) ->
-				runCatching { adapter.stop() }
-				logger.info("Adapter stopped  name={}", info.name)
-			}
+			shutdown()
 		})
+	}
+	
+	private fun shutdown() {
+		logger.info("Shutdown initiated")
+		registry.values.forEach { (adapter, info) ->
+			runCatching { adapter.stop() }
+			logger.info("Adapter stopped  name={}", info.name)
+		}
+		runBlocking {
+			runCatching { SessionManager.SessionAPI.shutdown() }
+		}
+		runBlocking { runCatching { ContainerManager.stop() } }
+		runCatching { AbstractOpenAiClient.close() }
+		runCatching { closePluginClassLoaders() }
+		runCatching { Settings.shutdown() }
+		runCatching { JsonStore.shutdown() }
+		runCatching { SecretManager.killGpgAgent() }
+		logger.info("Shutdown completed")
 	}
 	
 	fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }

@@ -69,6 +69,10 @@ object Settings {
 		logger.info("Settings initialized  count={}", cache?.size)
 	}
 	
+	fun shutdown() {
+		store.shutdown()
+	}
+	
 	fun get(): List<SettingItem> = cache ?: throw IllegalStateException("Settings not initialized")
 	
 	fun set(item: SettingItem) {

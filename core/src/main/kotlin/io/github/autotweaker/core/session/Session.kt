@@ -196,6 +196,7 @@ class Session(
 		val agent = agent ?: return
 		dispatch(AgentCommand.Directive.Stop)
 		agent.statusFlow.first { it == AgentStatus.FREE }
+		save()
 		scope.cancel()
 	}
 	
