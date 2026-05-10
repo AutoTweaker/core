@@ -37,7 +37,7 @@ else
     GC_OPTS="-XX:+UseZGC"
 fi
 
-mkdir -p /etc/autotweaker
+mkdir -p /etc/autotweaker /usr/libexec/autotweaker /usr/lib/systemd/user
 cat > /etc/autotweaker/jvm.options << EOF
 -Xmx${XMX}
 -XX:+HeapDumpOnOutOfMemoryError
@@ -45,11 +45,7 @@ cat > /etc/autotweaker/jvm.options << EOF
 EOF
 [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
 
-# 启动命令包装器：读 JVM 配置起实际脚本
-cat > /usr/bin/autotweaker << 'WRAPPER'
-#!/bin/sh
-JVM_OPTS=$(grep -v '^#' /etc/autotweaker/jvm.options 2>/dev/null | tr '\n' ' ')
-export JAVA_OPTS="$JVM_OPTS $JAVA_OPTS"
-exec /usr/share/autotweaker/bin/autotweaker "$@"
-WRAPPER
-chmod 755 /usr/bin/autotweaker
+install -m 755 /usr/share/autotweaker/scripts/autotweaker /usr/bin/autotweaker
+install -m 755 /usr/share/autotweaker/scripts/autotweakerd /usr/libexec/autotweaker/autotweakerd
+install -m 644 /usr/share/autotweaker/scripts/autotweaker.service /usr/lib/systemd/user/autotweaker.service
+systemctl --global daemon-reload 2>/dev/null || true

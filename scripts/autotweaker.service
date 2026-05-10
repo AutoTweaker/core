@@ -1,0 +1,12 @@
+[Unit]
+Description=AutoTweaker AI Agent
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/autotweaker/autotweakerd
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

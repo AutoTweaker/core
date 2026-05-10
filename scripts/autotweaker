@@ -17,16 +17,24 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-set -e
+SOCK="${XDG_CONFIG_HOME:-$HOME/.config}/autotweaker/cli.sock"
 
-if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    systemctl --global disable --now autotweaker 2>/dev/null || true
-    rm -f /usr/bin/autotweaker
-    rm -f /usr/lib/systemd/user/autotweaker.service
-    rm -rf /usr/libexec/autotweaker
-    systemctl --global daemon-reload 2>/dev/null || true
+systemctl --user daemon-reload 2>/dev/null || true
+if ! systemctl --user is-active --quiet autotweaker 2>/dev/null; then
+    systemctl --user start autotweaker
+    for _ in $(seq 1 50); do
+        [ -S "$SOCK" ] && break
+        sleep 0.1
+    done
 fi
+[ ! -S "$SOCK" ] && { echo "autotweaker: failed to start daemon" >&2; exit 1; }
 
-if [ "$1" = "purge" ]; then
-    rm -rf /etc/autotweaker
+if [ -t 0 ]; then
+    stdin=""
+else
+    stdin=$(cat)
 fi
+printf '{"args":%s,"stdin":%s}\n' \
+    "$(printf '%s\n' "$@" | jq -R . | jq -s -c .)" \
+    "$(printf '%s' "$stdin" | jq -Rs -c .)" \
+    | socat - "UNIX-CONNECT:$SOCK"

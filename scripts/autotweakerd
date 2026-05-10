@@ -17,16 +17,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-set -e
-
-if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    systemctl --global disable --now autotweaker 2>/dev/null || true
-    rm -f /usr/bin/autotweaker
-    rm -f /usr/lib/systemd/user/autotweaker.service
-    rm -rf /usr/libexec/autotweaker
-    systemctl --global daemon-reload 2>/dev/null || true
-fi
-
-if [ "$1" = "purge" ]; then
-    rm -rf /etc/autotweaker
-fi
+JVM_OPTS=$(grep -v '^#' /etc/autotweaker/jvm.options 2>/dev/null | tr '\n' ' ')
+export JAVA_OPTS="$JVM_OPTS $JAVA_OPTS"
+exec /usr/share/autotweaker/bin/autotweaker

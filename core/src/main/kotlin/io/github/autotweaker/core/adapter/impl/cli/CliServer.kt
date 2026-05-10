@@ -22,6 +22,7 @@ import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.ServerSocketChannel
@@ -42,10 +43,10 @@ class CliServer {
 		Files.createDirectories(path.parent)
 		path.deleteIfExists()
 		
-		channel = ServerSocketChannel.open().apply {
+		channel = ServerSocketChannel.open(StandardProtocolFamily.UNIX).apply {
 			bind(UnixDomainSocketAddress.of(path))
 		}
-		logger.info("CliServer listening  path={}", path)
+		logger.info("CliServer started  path={}", path)
 		
 		scope.launch {
 			while (channel.isOpen) {
@@ -64,7 +65,6 @@ class CliServer {
 	
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
 		client.use {
-			client.configureBlocking(false)
 			val line = readLine(client) ?: return
 			val request = json.decodeFromString<Request>(line)
 			

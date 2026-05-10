@@ -87,6 +87,13 @@ object AutoTweaker {
 			adapter.start(core)
 			logger.info("Adapter started  name={}", info.name)
 		}
+		
+		Runtime.getRuntime().addShutdownHook(Thread {
+			registry.values.forEach { (adapter, info) ->
+				runCatching { adapter.stop() }
+				logger.info("Adapter stopped  name={}", info.name)
+			}
+		})
 	}
 	
 	fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }

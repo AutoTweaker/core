@@ -3,7 +3,7 @@ Version: ${DEB_VERSION}
 Section: devel
 Priority: optional
 Architecture: amd64
-Depends: default-jre-headless (>= 17) | java-runtime-headless (>= 17), gnupg, git
+Depends: default-jre-headless (>= 17) | java-runtime-headless (>= 17), gnupg, git, jq, socat
 Homepage: https://github.com/AutoTweaker/core
 Vcs-Git: https://github.com/AutoTweaker/core.git
 License: GPL-3.0+

@@ -37,6 +37,13 @@ mkdir -p "$PKG_ROOT/usr/bin"
 # 产物（installDist 由 buildDeb task 管理依赖）
 cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
 
+# CLI 脚本和服务
+mkdir -p "$PKG_ROOT/usr/share/autotweaker/scripts"
+cp "$SCRIPT_DIR/autotweaker" "$PKG_ROOT/usr/share/autotweaker/scripts/"
+cp "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/share/autotweaker/scripts/"
+cp "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/share/autotweaker/scripts/"
+chmod 755 "$PKG_ROOT/usr/share/autotweaker/scripts/autotweaker" "$PKG_ROOT/usr/share/autotweaker/scripts/autotweakerd"
+
 # 元数据
 cp "$SCRIPT_DIR/deb/copyright" "$PKG_ROOT/usr/share/doc/autotweaker/copyright"
 cp "$SCRIPT_DIR/deb/io.github.autotweaker.core.metainfo.xml" "$PKG_ROOT/usr/share/metainfo/"
