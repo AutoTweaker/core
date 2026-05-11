@@ -49,16 +49,16 @@ class ToolCallValidator(
 	}
 	
 	//主函数
-	fun validate(toolCallName: String, argumentsJson: String): ValidationResult {
+	fun validate(toolCallName: String, argumentsJson: String, callId: String = ""): ValidationResult {
 		//解析json参数
 		val arguments = try {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 				?: return ValidationResult.Failure(jsonErrorMessage.format("Invalid JSON object")).also {
-					logger.debug("Failed to validate tool call JSON  name={}", toolCallName)
+					logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
 				}
 		} catch (e: Exception) {
 			return ValidationResult.Failure(jsonErrorMessage.format(e.message ?: "Unknown error")).also {
-				logger.debug("Failed to parse tool call JSON  name={}", toolCallName)
+				logger.debug("Failed to parse tool call JSON  callId={}  name={}", callId, toolCallName)
 			}
 		}
 		
@@ -67,37 +67,40 @@ class ToolCallValidator(
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
 				functionNotFoundMessage.format(toolCallName)
-			).also { logger.debug("Failed to parse tool call name  name={}", toolCallName) }
+			).also { logger.debug("Failed to parse tool call name  callId={}  name={}", callId, toolCallName) }
 		}
 		
 		val toolName = parts[0]
 		val functionName = parts[1]
 		
 		//检查工具是否存在
-		val tool = tools.find { it.resolveMeta(settings).name == toolName }
-			?: return ValidationResult.Failure(
-				functionNotFoundMessage.format(toolCallName)
-			).also { logger.debug("Failed to find tool  name={}  tool={}", toolCallName, toolName) }
+		val tool = tools.find { it.resolveMeta(settings).name == toolName } ?: return ValidationResult.Failure(
+			functionNotFoundMessage.format(toolCallName)
+		).also { logger.debug("Failed to find tool  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
 		val meta = tool.resolveMeta(settings)
 		
-		val function = meta.functions.find { it.name == functionName }
-			?: return ValidationResult.Failure(
-				functionNotFoundMessage.format(toolCallName)
-			).also {
-				logger.debug(
-					"Failed to find function  name={}  tool={}  function={}",
-					toolCallName,
-					toolName,
-					functionName
-				)
-			}
+		val function = meta.functions.find { it.name == functionName } ?: return ValidationResult.Failure(
+			functionNotFoundMessage.format(toolCallName)
+		).also {
+			logger.debug(
+				"Failed to find function  callId={}  name={}  tool={}  function={}",
+				callId,
+				toolCallName,
+				toolName,
+				functionName
+			)
+		}
 		
 		//解析工具调用原因
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
 				propertyMissingMessage.format(toolCallName, "reason")
-			).also { logger.debug("Failed to validate tool call reason  name={}  tool={}", toolCallName, toolName) }
+			).also {
+				logger.debug(
+					"Failed to validate tool call reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
+				)
+			}
 		}
 		val reason = reasonElement.content
 		
@@ -112,7 +115,8 @@ class ToolCallValidator(
 					propertyMissingMessage.format(toolCallName, paramName)
 				).also {
 					logger.debug(
-						"Failed to find required param  name={}  tool={}  param={}",
+						"Failed to find required param  callId={}  name={}  tool={}  param={}",
+						callId,
 						toolCallName,
 						toolName,
 						paramName
@@ -131,13 +135,22 @@ class ToolCallValidator(
 				).also {
 					logger.debug(
 						"Param type did not match  name={}  tool={}  param={}  expected={}",
-						toolCallName, toolName, paramName, expectedType
+						toolCallName,
+						toolName,
+						paramName,
+						expectedType
 					)
 				}
 			}
 		}
 		
-		logger.debug("Tool call validated  name={}  tool={}  function={}", toolCallName, toolName, functionName)
+		logger.debug(
+			"Tool call validated  callId={}  name={}  tool={}  function={}",
+			callId,
+			toolCallName,
+			toolName,
+			functionName
+		)
 		return ValidationResult.Success(
 			toolName = toolName,
 			functionName = functionName,
@@ -148,8 +161,7 @@ class ToolCallValidator(
 	
 	//检查属性类型
 	private fun validateParameterType(
-		value: JsonElement,
-		expectedType: Tool.Function.Property.ValueType
+		value: JsonElement, expectedType: Tool.Function.Property.ValueType
 	): Boolean {
 		return when (expectedType) {
 			is Tool.Function.Property.ValueType.StringValue -> value is JsonPrimitive && value.isString

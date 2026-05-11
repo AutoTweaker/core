@@ -76,7 +76,7 @@ internal object CompactPhase {
 		val cleaned = finalResult.rawContent
 		if (cleaned.isBlank()) {
 			logger.warn(
-				"Compact produced empty summary  agentId={}  attempts={}", env.agentId, attempt
+				"Failed to produce compact summary  result was empty  agentId={}  attempts={}", env.agentId, attempt
 			)
 			env.emitOutput(
 				AgentOutput.Error(
@@ -181,7 +181,7 @@ internal object CompactPhase {
 		} catch (e: CancellationException) {
 			throw e
 		} catch (_: Exception) {
-			logger.warn("Compact request failed  agentId={}", env.agentId)
+			logger.warn("Failed to send compact request  agentId={}", env.agentId)
 			env.emitOutput(AgentOutput.CompactOutput(AgentOutput.CompactOutput.Status.FAILED, rawContent, null))
 			return CompactRequestResult(rawContent, lastUsage, success = false)
 		}

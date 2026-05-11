@@ -255,7 +255,7 @@ class Agent(
 				when (result) {
 					PhaseResult.Continue -> workTrigger.trySend(Unit)
 					PhaseResult.Done -> {}
-					PhaseResult.Error -> logger.warn("Tool approval phase failed  agentId={}", agentId)
+					PhaseResult.Error -> logger.warn("Failed to execute tool approval phase  agentId={}", agentId)
 				}
 			}
 		}
@@ -271,7 +271,7 @@ class Agent(
 		updateContext {
 			it.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
 		}
-		logger.debug("User message processed  iteration started  agentId={}  messageId={}", agentId, id)
+		logger.debug("User message processed  agentId={}  messageId={}", agentId, id)
 		workTrigger.trySend(Unit)
 	}
 	
@@ -320,7 +320,7 @@ class Agent(
 				}
 				
 				PhaseResult.Done -> logger.debug("LLM phase completed  agentId={}", agentId)
-				PhaseResult.Error -> logger.warn("LLM phase failed  agentId={}", agentId)
+				PhaseResult.Error -> logger.warn("Failed to complete LLM phase  agentId={}", agentId)
 			}
 		}
 	}
@@ -369,7 +369,7 @@ class Agent(
 				}
 				
 				PhaseResult.Done -> logger.debug("Tool execution completed  agentId={}", agentId)
-				PhaseResult.Error -> logger.warn("Tool execution failed  agentId={}", agentId)
+				PhaseResult.Error -> logger.warn("Failed to execute tools  agentId={}", agentId)
 			}
 		}
 	}

@@ -59,7 +59,7 @@ class AgentStreamProcessor(
 						val lastError = result.errors.lastOrNull()
 						if (lastError?.retrying != null) {
 							logger.debug(
-								"LLM stream error occurred  retry initiated  agentId={}  model={}  error={}",
+								"LLM stream retry initiated  agentId={}  model={}  error={}",
 								agentId, lastError.retrying.modelInfo.id, lastError.content
 							)
 							onStatusChange(AgentStatus.RETRYING)
@@ -67,7 +67,9 @@ class AgentStreamProcessor(
 						} else {
 							val errorMessage = lastError?.content ?: "All retries exhausted"
 							logger.warn(
-								"LLM stream failed  retries exhausted  agentId={}  error={}", agentId, errorMessage
+								"Failed to receive LLM stream  retries exhausted  agentId={}  error={}",
+								agentId,
+								errorMessage
 							)
 							emitOutput(AgentOutput.Error(errorMessage, AgentOutput.Error.Type.LLM))
 							earlyResult = StreamProcessResult.Failed(errorMessage)
@@ -106,7 +108,7 @@ class AgentStreamProcessor(
 			logger.debug("LLM stream cancelled  agentId={}", agentId)
 			return StreamProcessResult.Cancelled
 		} catch (e: Exception) {
-			logger.error("LLM stream process failed  agentId={}", agentId, e)
+			logger.error("Failed to process LLM stream  agentId={}", agentId, e)
 			val message = buildString {
 				append(e::class.simpleName ?: e::class.qualifiedName ?: "UnknownException")
 				e.message?.let { append(": ").append(it) }

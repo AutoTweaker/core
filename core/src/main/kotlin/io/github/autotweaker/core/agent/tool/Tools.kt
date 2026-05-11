@@ -69,15 +69,16 @@ class Tools(settings: List<SettingItem>) {
 	//解析工具调用
 	fun resolveToolCalls(
 		calls: List<AgentContext.CurrentRound.PendingToolCall>,
+		agentId: java.util.UUID = java.util.UUID.randomUUID(),
 	): List<ToolCallResolveResult> {
 		val results = calls.map { call ->
-			when (val validated = _validator.validate(call.name, call.arguments)) {
+			when (val validated = _validator.validate(call.name, call.arguments, call.callId)) {
 				is ToolCallValidator.ValidationResult.Failure -> ToolCallResolveResult.ParseFailure(
-					call.callId,
-					validated.errorMessage
+					call.callId, validated.errorMessage
 				).also {
 					logger.debug(
-						"Failed to parse tool call  callId={}  tool={}  error={}",
+						"Failed to parse tool call  agentId={}  callId={}  tool={}  error={}",
+						agentId,
 						call.callId,
 						call.name,
 						validated.errorMessage
@@ -85,15 +86,15 @@ class Tools(settings: List<SettingItem>) {
 				}
 				
 				is ToolCallValidator.ValidationResult.Success -> ToolCallResolveResult.NeedsApproval(
-					call.callId,
-					validated
+					call.callId, validated
 				).also {
-					logger.debug("Tool call validated  callId={}  tool={}", call.callId, call.name)
+					logger.debug("Tool call validated  agentId={}  callId={}  tool={}", agentId, call.callId, call.name)
 				}
 			}
 		}
 		logger.debug(
-			"Tool calls resolved  success={}  failed={}",
+			"Tool calls resolved  agentId={}  success={}  failed={}",
+			agentId,
 			results.count { it is ToolCallResolveResult.NeedsApproval },
 			results.count { it is ToolCallResolveResult.ParseFailure })
 		return results
@@ -120,6 +121,7 @@ class Tools(settings: List<SettingItem>) {
 		call: AgentContext.CurrentRound.PendingToolCall,
 		provider: SimpleContainer,
 		workspace: WorkspaceMeta,
+		agentId: java.util.UUID = java.util.UUID.randomUUID(),
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.ToolOutput) -> Unit)? = null,
 	): AgentContext.Message.Tool {
@@ -187,7 +189,13 @@ class Tools(settings: List<SettingItem>) {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				logger.error("Failed to execute tool  tool={}  function={}", result.toolName, result.functionName, e)
+				logger.error(
+					"Failed to execute tool  agentId={}  tool={}  function={}",
+					agentId,
+					result.toolName,
+					result.functionName,
+					e
+				)
 				Tool.ToolOutput(e.message ?: "Unknown error", false)
 			}
 			outputChannel.close()

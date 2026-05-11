@@ -52,7 +52,7 @@ object I18nLoader {
 		
 		return runCatching {
 			withContext(Dispatchers.IO) {
-				retry { downloadBundle(component) }
+				retry(component) { downloadBundle(component) }
 			}
 		}.getOrNull()
 	}
@@ -97,7 +97,7 @@ object I18nLoader {
 			.readText()
 	}
 	
-	private suspend fun <T> retry(times: Int = 3, delayMs: Long = 2000, block: suspend () -> T): T {
+	private suspend fun <T> retry(component: String, times: Int = 3, delayMs: Long = 2000, block: suspend () -> T): T {
 		var last: Throwable? = null
 		repeat(times) { attempt ->
 			try {
@@ -105,7 +105,13 @@ object I18nLoader {
 			} catch (e: Exception) {
 				last = e
 				if (attempt < times - 1) {
-					log.warn("Retried i18n fetch  attempt={}/{}  reason={}", attempt + 1, times - 1, e.message)
+					log.warn(
+						"Retried i18n bundle retrieval  component={}  attempt={}/{}  reason={}",
+						component,
+						attempt + 1,
+						times,
+						e.message
+					)
 					delay(delayMs.milliseconds)
 				}
 			}

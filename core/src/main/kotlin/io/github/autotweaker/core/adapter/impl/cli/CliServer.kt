@@ -46,7 +46,7 @@ class CliServer {
 		channel = ServerSocketChannel.open(StandardProtocolFamily.UNIX).apply {
 			bind(UnixDomainSocketAddress.of(path))
 		}
-		logger.info("CliServer started  path={}", path)
+		logger.info("CliServer started  socketPath={}", path)
 		
 		scope.launch {
 			while (channel.isOpen) {
@@ -60,7 +60,7 @@ class CliServer {
 		scope.cancel()
 		runCatching { channel.close() }
 		runCatching { socketPath().deleteIfExists() }
-		logger.info("CliServer stopped")
+		logger.info("CliServer stopped  socketPath={}", socketPath())
 	}
 	
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {

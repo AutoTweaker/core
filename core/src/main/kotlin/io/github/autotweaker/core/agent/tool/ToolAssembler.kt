@@ -31,7 +31,7 @@ object ToolAssembler {
 	fun assemble(tools: List<Tool>, settings: List<SettingItem>): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
-		logger.debug("Tool assembly started  toolCount={}", tools.size)
+		logger.debug("Tool assembly started  toolCount={}  source=ToolAssembler", tools.size)
 		
 		val reasonDescription: String = settings.find("core.agent.tool.description.reason")
 		val metas = tools.map { it.resolveMeta(settings) }

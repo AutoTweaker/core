@@ -64,7 +64,6 @@ object AutoTweaker {
 	fun start() {
 		acquireLock()
 		
-		logger.info("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc")
 		logger.info("AutoTweaker started  version={}", version)
 		
 		Settings.init()
@@ -85,7 +84,7 @@ object AutoTweaker {
 		}
 		
 		logger.info(
-			"Found {} adapters to start  builtIn={}  external={}",
+			"Found adapters to start  count={}  builtIn={}  external={}",
 			adapters.size,
 			builtInAdapters.size,
 			adapters.size - builtInAdapters.size
@@ -117,7 +116,7 @@ object AutoTweaker {
 	}
 	
 	private fun shutdown() {
-		logger.info("Shutdown initiated")
+		logger.info("AutoTweaker shutdown initiated")
 		registry.values.forEach { (_, info) ->
 			runCatching { stopAdapter(info.name) }
 		}
@@ -131,7 +130,7 @@ object AutoTweaker {
 		runCatching { JsonStore.shutdown() }
 		runCatching { SecretManager.killGpgAgent() }
 		runCatching { lockFile.deleteIfExists() }
-		logger.info("Shutdown completed")
+		logger.info("AutoTweaker shutdown completed")
 	}
 	
 	fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }

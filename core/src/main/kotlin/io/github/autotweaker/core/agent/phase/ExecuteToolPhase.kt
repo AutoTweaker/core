@@ -46,7 +46,7 @@ internal object ExecuteToolPhase {
 		return try {
 			withTimeout((timeoutSeconds * 1000L).milliseconds) {
 				env.tools.executeTool(
-					result, call, ToolProvider.buildToolProvider(env), env.workspace,
+					result, call, ToolProvider.buildToolProvider(env), env.workspace, env.agentId,
 					onToolActivated = { activeTools ->
 						env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
 					},
@@ -72,7 +72,7 @@ internal object ExecuteToolPhase {
 				AgentContext.Message.Tool.Result.Status.CANCELLED
 			)
 		} catch (e: Exception) {
-			logger.error("Tool execution failed  agentId={}  tool={}", env.agentId, call.name, e)
+			logger.error("Failed to execute tool  agentId={}  tool={}", env.agentId, call.name, e)
 			ContextPhase.buildErrorTool(call, e.message ?: "Tool execution failed")
 		}
 	}

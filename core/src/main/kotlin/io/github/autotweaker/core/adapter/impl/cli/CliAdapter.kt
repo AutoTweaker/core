@@ -52,11 +52,11 @@ class CliAdapter : AdapterAPI {
 		val router = CommandRouter(core, coreVersion ?: error("CliAdapter not initialized"))
 		runBlocking { I18n.init(adapterName) }
 		server.start(router)
-		logger.info("CliAdapter started  version={}", adapterVersion.toString())
+		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)
 	}
 	
 	override fun stop() {
 		server.stop()
-		logger.info("CliAdapter stopped")
+		logger.info("CliAdapter stopped  adapter={}", adapterName)
 	}
 }

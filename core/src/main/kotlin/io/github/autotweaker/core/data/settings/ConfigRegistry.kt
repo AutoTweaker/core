@@ -34,8 +34,8 @@ object CoreConfigRegistry {
 			val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
 			items.forEach { register(it) }
 			logger.info("Loaded default config  count={}", items.size)
-		} catch (_: Exception) {
-			logger.warn("Failed to load default config  fallback=local")
+		} catch (e: Exception) {
+			logger.warn("Failed to load default config  fallback=local  reason={}", e.message)
 		}
 	}
 	

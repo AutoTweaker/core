@@ -37,7 +37,7 @@ internal object ContextPhase {
 		//当前round啥也没有（只有用户消息），直接丢弃
 		if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
 			logger.debug(
-				"Round archived  empty round discarded  agentId={}  userMessageId={}",
+				"Empty round discarded  agentId={}  userMessageId={}",
 				env.agentId, round.userMessage.id
 			)
 			updateContext { it.copy(currentRound = null) }

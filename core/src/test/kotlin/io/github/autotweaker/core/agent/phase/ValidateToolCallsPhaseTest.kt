@@ -113,7 +113,7 @@ class ValidateToolCallsPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		every { tools.resolveToolCalls(any()) } returns listOf(
+		every { tools.resolveToolCalls(any(), any()) } returns listOf(
 			Tools.ToolCallResolveResult.ParseFailure("c1", "Invalid JSON"),
 			Tools.ToolCallResolveResult.ParseFailure("c2", "Function not found"),
 		)
@@ -145,7 +145,7 @@ class ValidateToolCallsPhaseTest {
 		
 		val vs1 = validationSuccess("bash", "run")
 		val vs2 = validationSuccess("read", "file")
-		every { tools.resolveToolCalls(any()) } returns listOf(
+		every { tools.resolveToolCalls(any(), any()) } returns listOf(
 			Tools.ToolCallResolveResult.NeedsApproval("c1", vs1),
 			Tools.ToolCallResolveResult.NeedsApproval("c2", vs2),
 		)
@@ -170,7 +170,7 @@ class ValidateToolCallsPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		every { tools.resolveToolCalls(any()) } returns listOf(
+		every { tools.resolveToolCalls(any(), any()) } returns listOf(
 			Tools.ToolCallResolveResult.ParseFailure("c1", "Bad JSON"),
 			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
 		)
@@ -199,7 +199,7 @@ class ValidateToolCallsPhaseTest {
 			assistantMessage = assistantMessage(),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		every { tools.resolveToolCalls(any()) } returns listOf(
+		every { tools.resolveToolCalls(any(), any()) } returns listOf(
 			Tools.ToolCallResolveResult.ParseFailure("c1", "error"),
 		)
 		
@@ -216,7 +216,7 @@ class ValidateToolCallsPhaseTest {
 			assistantMessage = assistantMessage(),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		every { tools.resolveToolCalls(any()) } returns listOf(
+		every { tools.resolveToolCalls(any(), any()) } returns listOf(
 			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		

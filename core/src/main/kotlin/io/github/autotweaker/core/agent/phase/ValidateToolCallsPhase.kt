@@ -38,7 +38,7 @@ internal object ValidateToolCallsPhase {
 		val pendingCalls = round.pendingToolCalls ?: return PhaseResult.Done
 		val assistantMsg = requireNotNull(round.assistantMessage)
 		//解析工具调用
-		val results = env.tools.resolveToolCalls(pendingCalls)
+		val results = env.tools.resolveToolCalls(pendingCalls, env.agentId)
 		val callById = pendingCalls.associateBy { it.callId }
 		
 		//分别提取解析失败和成功的
@@ -72,7 +72,7 @@ internal object ValidateToolCallsPhase {
 			PhaseResult.Done
 		} else {
 			logger.debug(
-				"Tool calls all resolved  continued  agentId={}  processedToolCount={}",
+				"All tool calls resolved  continued  agentId={}  processedToolCount={}",
 				env.agentId, errorTools.size
 			)
 			//没有待处理的，直接继续

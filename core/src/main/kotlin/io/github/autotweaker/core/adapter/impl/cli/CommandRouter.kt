@@ -20,8 +20,7 @@ package io.github.autotweaker.core.adapter.impl.cli
 
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.SemVer
-import io.github.autotweaker.core.adapter.impl.cli.Command.Param
-import io.github.autotweaker.core.adapter.impl.cli.Command.ParamType
+import io.github.autotweaker.core.adapter.impl.cli.Command.*
 import io.github.autotweaker.core.adapter.impl.cli.commands.Help
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
@@ -38,13 +37,15 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 		handlers = (loaded + help).associateBy { it.name }
 	}
 	
-	fun dispatch(request: Request, prompt: suspend (String) -> String): Flow<Command.Chunk> {
+	fun dispatch(request: Request, prompt: suspend (String) -> String): Flow<Chunk> {
 		val cmd = request.command()
-		val handler =
-			handlers[cmd] ?: return flowOf(Command.Chunk.Data(I18n.get("cmd.unknown_hint", cmd, request.prog) + "\n"))
+		if (cmd.isEmpty()) {
+			return flowOf(Chunk.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"))
+		}
+		val handler = handlers[cmd] ?: return flowOf(Chunk.Data(I18n.get("cmd.unknown_hint", cmd, request.prog) + "\n"))
 		
 		val parsed = parse(request, handler.params) ?: run {
-			return flowOf(Command.Chunk.Data(I18n.get("cmd.invalid_args", cmd, request.prog) + "\n"))
+			return flowOf(Chunk.Data(I18n.get("cmd.invalid_args", cmd, request.prog) + "\n"))
 		}
 		
 		return handler.handle(parsed, prompt)

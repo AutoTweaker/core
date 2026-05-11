@@ -96,7 +96,7 @@ internal object AgentChat {
 						val msg = result.message
 						if (msg is ChatMessage.ErrorMessage) {
 							logger.debug(
-								"Agent chat error received  agentId={}  model={}  statusCode={}  errors={}",
+								"Agent chat error received  agentId={}  model={}  statusCode={}  errorCount={}",
 								agentId,
 								lastRetrying?.modelInfo?.id ?: request.model.modelInfo.id,
 								msg.statusCode,
@@ -135,7 +135,9 @@ internal object AgentChat {
 			}
 		} catch (_: IllegalStateException) {
 			logger.warn(
-				"Agent chat failed  all models exhausted  agentId={}  model={}", agentId, request.model.modelInfo.id
+				"Failed to complete agent chat  all models exhausted  agentId={}  model={}",
+				agentId,
+				request.model.modelInfo.id
 			)
 			return@flow
 		}
