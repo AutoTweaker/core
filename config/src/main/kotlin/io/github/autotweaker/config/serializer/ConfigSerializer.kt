@@ -299,7 +299,7 @@ val defaultItems: List<SettingItem> = listOf(
 	),
 	SettingItem(
 		SettingKey("core.tool.bash.property.description.env.ids"), SettingItem.Value.ValString(
-			"要注入的环境变量列表，对于敏感信息，" + "严禁令环境变量以任何形式打印到输出或写入文件中。可用列表：%s"
+			"要注入的环境变量列表，对于敏感信息，严禁令环境变量以任何形式打印到输出或写入文件中。可用列表：%s"
 		), "bash_run工具env_ids参数的描述"
 	),
 	SettingItem(

@@ -1,19 +1,15 @@
-name: Upload Config to Website
+name: Update Website
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - ".github/workflows/upload-config.yml"
-      - "config/src/main/kotlin/io/github/autotweaker/config/serializer/**"
-      - "core/src/main/kotlin/io/github/autotweaker/core/data/settings/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  sync-config:
+  sync:
     runs-on: ubuntu-latest
 
     steps:
@@ -42,10 +38,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Update index.json version from build.gradle.kts
+          # Update projects_version from build.gradle.kts
           BASE_VERSION=$(grep -oP 'version = "\K[^"]+' \
             "$GITHUB_WORKSPACE/core/build.gradle.kts")
-          jq -c 'map(if .default_app_config != "" then .version = "'"$BASE_VERSION"'" else . end)' index.json > index.json.tmp
+          jq --arg v "$BASE_VERSION" '.projects_version.core = $v' index.json > index.json.tmp
           mv index.json.tmp index.json
 
           # Copy config

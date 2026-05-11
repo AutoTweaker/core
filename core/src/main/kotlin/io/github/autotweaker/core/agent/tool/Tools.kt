@@ -72,24 +72,30 @@ class Tools(settings: List<SettingItem>) {
 	): List<ToolCallResolveResult> {
 		val results = calls.map { call ->
 			when (val validated = _validator.validate(call.name, call.arguments)) {
-				is ToolCallValidator.ValidationResult.Failure ->
-					ToolCallResolveResult.ParseFailure(call.callId, validated.errorMessage).also {
-						logger.debug(
-							"Failed to parse tool call  callId={}  tool={}  error={}",
-							call.callId, call.name, validated.errorMessage
-						)
-					}
+				is ToolCallValidator.ValidationResult.Failure -> ToolCallResolveResult.ParseFailure(
+					call.callId,
+					validated.errorMessage
+				).also {
+					logger.debug(
+						"Failed to parse tool call  callId={}  tool={}  error={}",
+						call.callId,
+						call.name,
+						validated.errorMessage
+					)
+				}
 				
-				is ToolCallValidator.ValidationResult.Success ->
-					ToolCallResolveResult.NeedsApproval(call.callId, validated).also {
-						logger.debug("Tool call validated  callId={}  tool={}", call.callId, call.name)
-					}
+				is ToolCallValidator.ValidationResult.Success -> ToolCallResolveResult.NeedsApproval(
+					call.callId,
+					validated
+				).also {
+					logger.debug("Tool call validated  callId={}  tool={}", call.callId, call.name)
+				}
 			}
 		}
 		logger.debug(
-			"Tool calls resolved  total={}  success={}", calls.size,
-			results.count { it is ToolCallResolveResult.NeedsApproval }
-		)
+			"Tool calls resolved  success={}  failed={}",
+			results.count { it is ToolCallResolveResult.NeedsApproval },
+			results.count { it is ToolCallResolveResult.ParseFailure })
 		return results
 	}
 	
@@ -122,7 +128,10 @@ class Tools(settings: List<SettingItem>) {
 		
 		logger.debug(
 			"Tool execution started  tool={}  function={}  reason={}  active={}",
-			result.toolName, result.functionName, result.reason, entry.active
+			result.toolName,
+			result.functionName,
+			result.reason,
+			entry.active
 		)
 		
 		//工具未激活
@@ -188,7 +197,9 @@ class Tools(settings: List<SettingItem>) {
 		
 		logger.debug(
 			"Tool execution completed  tool={}  function={}  success={}",
-			result.toolName, result.functionName, output.success
+			result.toolName,
+			result.functionName,
+			output.success
 		)
 		
 		//返回结果
@@ -219,26 +230,22 @@ class Tools(settings: List<SettingItem>) {
 		val active = ToolAssembler.assemble(activeTools, _settings)
 		
 		//未激活工具构建特殊function
-		val inactive = _entries
-			.filter { !it.active }
-			.map { it.tool }
-			.takeIf { it.isNotEmpty() }
-			?.map { tool ->
-				val meta = tool.resolveMeta(_settings)
-				ChatRequest.Tool(
-					name = meta.name,
-					description = meta.description,
-					parameters = buildJsonObject {
-						put("type", "object")
-						put("properties", buildJsonObject {
-							put("enable", buildJsonObject {
-								put("type", "boolean")
-								put("description", enableDescription)
-							})
+		val inactive = _entries.filter { !it.active }.map { it.tool }.takeIf { it.isNotEmpty() }?.map { tool ->
+			val meta = tool.resolveMeta(_settings)
+			ChatRequest.Tool(
+				name = meta.name,
+				description = meta.description,
+				parameters = buildJsonObject {
+					put("type", "object")
+					put("properties", buildJsonObject {
+						put("enable", buildJsonObject {
+							put("type", "boolean")
+							put("description", enableDescription)
 						})
-					},
-				)
-			}
+					})
+				},
+			)
+		}
 		
 		//返回参数列表
 		return if (active != null || inactive != null) {

@@ -16,56 +16,54 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.data.settings
+package io.github.autotweaker.core.adapter.impl.cli.i18n
 
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
 import java.nio.file.Path
+import java.util.*
 import kotlin.io.path.readText
 import kotlin.time.Duration.Companion.milliseconds
 
-object SerializeConfig {
-	private val log = LoggerFactory.getLogger(SerializeConfig::class.java)
+object I18nLoader {
+	private val log = LoggerFactory.getLogger(I18nLoader::class.java)
 	
 	private val baseUrl: String
 		get() = System.getenv("AUTOTWEAKER_WEBSITE_URL") ?: error("AUTOTWEAKER_WEBSITE_URL not set")
 	
-	private const val CONFIG_VERSION = 1
+	private val json = Json { ignoreUnknownKeys = true }
+	private var cachedBundle: ResourceBundle? = null
 	
-	private val json = Json {
-		prettyPrint = false
-		ignoreUnknownKeys = true
-	}
-	
-	private var cachedItems: List<SettingItem>? = null
-	
-	suspend fun fetchDefaultConfig(): List<SettingItem> {
-		cachedItems?.let { return it }
+	suspend fun fetchBundle(component: String): ResourceBundle? {
+		cachedBundle?.let { return it }
 		
-		val items = retry { fetchFromRemote() }
-		cachedItems = items
-		return items
+		return runCatching {
+			withContext(Dispatchers.IO) {
+				retry { downloadBundle(component) }
+			}
+		}.getOrNull()
 	}
 	
-	private suspend fun fetchFromRemote(): List<SettingItem> {
+	private suspend fun downloadBundle(component: String): ResourceBundle {
 		val proxyUrl = System.getenv("https_proxy") ?: System.getenv("HTTPS_PROXY")
 		val client = if (baseUrl.startsWith("http") && proxyUrl != null) {
 			val uri = URI(proxyUrl)
-			val proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(uri.host, uri.port))
 			HttpClient(CIO) {
 				engine {
-					this.proxy = proxy
+					proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(uri.host, uri.port))
 					requestTimeout = 45_000
 				}
 			}
@@ -78,15 +76,19 @@ object SerializeConfig {
 		}
 		
 		client.use { httpClient ->
-			val index = json.decodeFromString<RootIndex>(fetch(httpClient, "index.json"))
+			val root = json.decodeFromString<RootIndex>(fetch(httpClient, "index.json"))
+			val i18nIndex = json.decodeFromString<Map<String, List<String>>>(fetch(httpClient, root.i18nIndex))
+			val urls = i18nIndex[component] ?: return ResourceBundle.getBundle("")
 			
-			val configVersion = index.defaultAppConfig.version.toInt()
-			require(configVersion == CONFIG_VERSION) {
-				"Config version mismatch  site=$configVersion  local=$CONFIG_VERSION"
-			}
+			val locale = Locale.getDefault()
+			val localeTag = "_$locale"
+			val url = urls.firstOrNull { it.endsWith(".properties") && it.contains(localeTag) }
+				?: urls.firstOrNull { it.endsWith("messages.properties") } ?: return ResourceBundle.getBundle("")
 			
-			val configResponse = fetch(httpClient, index.defaultAppConfig.url)
-			return json.decodeFromString(ListSerializer(SettingItem.serializer()), configResponse)
+			val content = fetch(httpClient, url)
+			val bundle = PropertyResourceBundle(ByteArrayInputStream(content.toByteArray()))
+			cachedBundle = bundle
+			return bundle
 		}
 	}
 	
@@ -103,7 +105,7 @@ object SerializeConfig {
 			} catch (e: Exception) {
 				last = e
 				if (attempt < times - 1) {
-					log.warn("Retried config fetch  attempt={}/{}  reason={}", attempt + 1, times - 1, e.message)
+					log.warn("Retried i18n fetch  attempt={}/{}  reason={}", attempt + 1, times - 1, e.message)
 					delay(delayMs.milliseconds)
 				}
 			}
@@ -113,18 +115,6 @@ object SerializeConfig {
 	
 	@Serializable
 	private data class RootIndex(
-		@SerialName("default_app_config") val defaultAppConfig: DefaultAppConfig,
-		@SerialName("projects_version") val projectsVersion: ProjectsVersion,
-	)
-	
-	@Serializable
-	private data class DefaultAppConfig(
-		val url: String,
-		val version: String = "",
-	)
-	
-	@Serializable
-	private data class ProjectsVersion(
-		val core: String,
+		@SerialName("i18n_index") val i18nIndex: String,
 	)
 }

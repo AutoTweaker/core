@@ -37,12 +37,10 @@ mkdir -p "$PKG_ROOT/usr/bin"
 # 产物（installDist 由 buildDeb task 管理依赖）
 cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
 
-# CLI 脚本和服务
-mkdir -p "$PKG_ROOT/usr/share/autotweaker/scripts"
-cp "$SCRIPT_DIR/autotweaker" "$PKG_ROOT/usr/share/autotweaker/scripts/"
-cp "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/share/autotweaker/scripts/"
-cp "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/share/autotweaker/scripts/"
-chmod 755 "$PKG_ROOT/usr/share/autotweaker/scripts/autotweaker" "$PKG_ROOT/usr/share/autotweaker/scripts/autotweakerd"
+# CLI 脚本和服务（由 dpkg 管理）
+install -m 755 -D "$SCRIPT_DIR/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
+install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
+install -m 644 -D "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/lib/systemd/user/autotweaker.service"
 
 # 元数据
 cp "$SCRIPT_DIR/deb/copyright" "$PKG_ROOT/usr/share/doc/autotweaker/copyright"
@@ -51,8 +49,9 @@ cp "$PROJECT_DIR/icon.png" "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps/io.gi
 
 sed "s/\${DEB_VERSION}/$DEB_VERSION/g" "$SCRIPT_DIR/deb/control" > "$PKG_ROOT/DEBIAN/control"
 cp "$SCRIPT_DIR/deb/postinst" "$PKG_ROOT/DEBIAN/postinst"
+cp "$SCRIPT_DIR/deb/prerm" "$PKG_ROOT/DEBIAN/prerm"
 cp "$SCRIPT_DIR/deb/postrm" "$PKG_ROOT/DEBIAN/postrm"
-chmod 755 "$PKG_ROOT/DEBIAN/postinst" "$PKG_ROOT/DEBIAN/postrm"
+chmod 755 "$PKG_ROOT/DEBIAN/postinst" "$PKG_ROOT/DEBIAN/prerm" "$PKG_ROOT/DEBIAN/postrm"
 
 dpkg-deb --build --root-owner-group "$PKG_ROOT"
 

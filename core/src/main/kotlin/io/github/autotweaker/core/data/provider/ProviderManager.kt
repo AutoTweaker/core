@@ -43,7 +43,7 @@ object ProviderManager {
 	}
 	
 	fun add(data: Provider) {
-		logger.debug("Provider added  name={}  type={}", data.name, data.providerType)
+		logger.debug("Provider added  provider={}  type={}", data.name, data.providerType)
 		update(providers + data)
 	}
 	
@@ -52,19 +52,17 @@ object ProviderManager {
 		update(providers.map { if (it.name == provider) it.copy(models = it.models + models) else it })
 	}
 	
-	fun get(): List<Provider> =
-		providers
+	fun get(): List<Provider> = providers
 	
-	fun getInfo(type: String): LlmClient.ProviderInfo =
-		LlmClientLoader.load(type).providerInfo
+	fun getInfo(type: String): LlmClient.ProviderInfo = LlmClientLoader.load(type).providerInfo
 	
 	fun delete(name: String) {
-		logger.debug("Provider deleted  name={}", name)
+		logger.debug("Provider deleted  provider={}", name)
 		update(providers.filterNot { it.name == name })
 	}
 	
 	fun override(data: Provider) {
-		logger.debug("Provider overridden  name={}", data.name)
+		logger.debug("Provider overridden  provider={}", data.name)
 		update(providers.map { if (it.name == data.name) data else it })
 	}
 	
@@ -78,10 +76,7 @@ object ProviderManager {
 			errorHandlingRules = provider.errorHandlingRules
 		)
 		return Model(
-			provider = providerData,
-			modelInfo = model.modelInfo,
-			config = model.config,
-			modelId = id
+			provider = providerData, modelInfo = model.modelInfo, config = model.config, modelId = id
 		)
 	}
 	

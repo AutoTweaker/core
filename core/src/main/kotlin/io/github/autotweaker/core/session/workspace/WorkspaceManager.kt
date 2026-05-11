@@ -35,7 +35,7 @@ object WorkspaceManager {
 		val jsonArray = jsonEntry.get()
 		workspaceList = if (jsonArray == null) emptyList()
 		else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
-		logger.debug("WorkspaceManager initialized  count={}", workspaceList.size)
+		logger.info("WorkspaceManager initialized  count={}", workspaceList.size)
 	}
 	
 	fun create(meta: WorkspaceMeta) {
@@ -43,11 +43,9 @@ object WorkspaceManager {
 		update(workspaceList.plus(WorkspaceData(meta)))
 	}
 	
-	fun getData(name: String): WorkspaceData? =
-		workspaceList.find { it.meta.name == name }
+	fun getData(name: String): WorkspaceData? = workspaceList.find { it.meta.name == name }
 	
-	fun getAll(): List<WorkspaceMeta> =
-		workspaceList.map { it.meta }
+	fun getAll(): List<WorkspaceMeta> = workspaceList.map { it.meta }
 	
 	fun updateMeta(name: String, meta: WorkspaceMeta) {
 		logger.debug("Workspace meta updated  name={}", name)

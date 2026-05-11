@@ -107,13 +107,10 @@ class Read : Tool {
 		)
 		
 		return Tool.Meta(
-			name = "read",
-			description = description,
-			functions = listOf(
+			name = "read", description = description, functions = listOf(
 				Tool.Function(
 					name = "file",
-					description = fileDescription
-						.format(fileMaxChars, fileMaxLines),
+					description = fileDescription.format(fileMaxChars, fileMaxLines),
 					parameters = commonProperties + mapOf(
 						"line_number" to Tool.Function.Property(
 							description = fileDescriptionLineNumber,
@@ -124,8 +121,11 @@ class Read : Tool {
 				),
 				Tool.Function(
 					name = "summarize",
-					description = summarizeDescription
-						.format(summarizeMaxInputChars, summarizeMinChars, summarizeMaxLines),
+					description = summarizeDescription.format(
+						summarizeMaxInputChars,
+						summarizeMinChars,
+						summarizeMaxLines
+					),
 					parameters = commonProperties + mapOf(
 						"prompt" to Tool.Function.Property(
 							description = summarizeDescriptionPrompt,
@@ -156,7 +156,7 @@ class Read : Tool {
 	
 	override suspend fun execute(input: ToolInput): ToolOutput {
 		logger.debug(
-			"Read tool started  function={}  filePath={}",
+			"Read tool started  tool=read  function={}  filePath={}",
 			input.functionName,
 			input.arguments["file_path"]?.jsonPrimitive?.content
 		)
@@ -230,8 +230,7 @@ class Read : Tool {
 				//校验字符数参数
 				if (maxChars > r.unicodeMaxChars) {
 					return ToolOutput(
-						r.unicodeMessageTooManyChars.format(r.unicodeMaxChars),
-						false
+						r.unicodeMessageTooManyChars.format(r.unicodeMaxChars), false
 					)
 				}
 				executeUnicode(fs, r, normalizedPath, maxChars)
@@ -315,8 +314,7 @@ class Read : Tool {
 							//匹配sha256（判断文件是否已被修改）
 							&& prev.sha256 == sha256
 							//匹配范围（相同或更小）
-							&& prev.startLine <= startLine
-							&& prev.endLine >= endLine
+							&& prev.startLine <= startLine && prev.endLine >= endLine
 				} catch (_: Exception) {
 					//路径解析失败
 					false
@@ -365,8 +363,7 @@ class Read : Tool {
 		//文件太小，无法总结
 		if (content.length < r.summarizeMinChars) {
 			return ToolOutput(
-				r.summarizeMessageTooFew.format(content.length, r.summarizeMinChars),
-				false
+				r.summarizeMessageTooFew.format(content.length, r.summarizeMinChars), false
 			)
 		}
 		
@@ -385,9 +382,7 @@ class Read : Tool {
 		//截断
 		return if (output.length > r.summarizeMaxOutputChars) {
 			ToolOutput(
-				output.take(r.summarizeMaxOutputChars) +
-						r.summarizeMessageOutputTruncate.format(output.length),
-				true
+				output.take(r.summarizeMaxOutputChars) + r.summarizeMessageOutputTruncate.format(output.length), true
 			)
 		} else {
 			ToolOutput(output, true)
@@ -409,8 +404,7 @@ class Read : Tool {
 		}
 		
 		return ToolOutput(
-			allUnicode.take(maxChars).joinToString("") { it.value },
-			true
+			allUnicode.take(maxChars).joinToString("") { it.value }, true
 		)
 	}
 	

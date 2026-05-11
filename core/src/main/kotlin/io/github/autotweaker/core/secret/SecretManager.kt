@@ -51,7 +51,7 @@ object SecretManager : SecretStore {
 			unlock("")
 		} catch (e: Exception) {
 			if (hasSecretKey()) {
-				logger.info("SecretManager auto-unlock skipped  reason=password required")
+				logger.info("SecretManager auto-unlock skipped  reason=password_required")
 				return
 			}
 			throw e
@@ -90,7 +90,7 @@ object SecretManager : SecretStore {
 			this.password = password
 			generateKey()
 			createMarker()
-			logger.info("New secret key generated")
+			logger.info("Secret key generated")
 		} else {
 			verifyPassword(password)
 			this.password = password

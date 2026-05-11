@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 # AutoTweaker
 # Copyright (C) 2026  WhiteElephant-abc
@@ -15,12 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-9.5.0-bin.zip
-networkTimeout=10000
-retries=0
-retryBackOffMs=500
-validateDistributionUrl=true
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
+
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ] || [ "$1" = "upgrade" ]; then
+    systemctl --global disable --now autotweaker 2>/dev/null || true
+    pkill -f "io.github.autotweaker.core.MainKt" 2>/dev/null || true
+    for _ in $(seq 1 50); do
+        pgrep -f "io.github.autotweaker.core.MainKt" >/dev/null || break
+        sleep 0.1
+    done
+fi

@@ -25,13 +25,14 @@ import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.github.autotweaker.core.adapter.impl.cli.Command.Param
 import io.github.autotweaker.core.adapter.impl.cli.ParsedRequest
+import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
 @AutoService(Command::class)
 class Version : Command {
 	override val name = "version"
-	override val description = "Show AutoTweaker version"
+	override val description get() = I18n.get("cmd.version.desc")
 	override val params = emptyList<Param>()
 	private var coreVersion: SemVer = SemVer.parse("0.0.0")
 	

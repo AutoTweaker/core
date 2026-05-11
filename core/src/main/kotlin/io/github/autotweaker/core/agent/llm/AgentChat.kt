@@ -55,7 +55,10 @@ internal object AgentChat {
 		
 		logger.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  messages={}",
-			agentId, request.model.modelInfo.id, request.fallbackModels?.size, chatRequest.messages.size
+			agentId,
+			request.model.modelInfo.id,
+			request.fallbackModels?.size,
+			chatRequest.messages.size
 		)
 		
 		val results = ResilientChat.execute(
@@ -94,8 +97,10 @@ internal object AgentChat {
 						if (msg is ChatMessage.ErrorMessage) {
 							logger.debug(
 								"Agent chat error received  agentId={}  model={}  statusCode={}  errors={}",
-								agentId, lastRetrying?.modelInfo?.id ?: request.model.modelInfo.id,
-								msg.statusCode, errors.size + 1
+								agentId,
+								lastRetrying?.modelInfo?.id ?: request.model.modelInfo.id,
+								msg.statusCode,
+								errors.size + 1
 							)
 							errors += AgentChatStreamResult.Failing.Error(
 								content = msg.content,
@@ -120,10 +125,7 @@ internal object AgentChat {
 							AgentChatStreamResult.Assembled(
 								message = assistantMessage,
 								toolCalls = toPendingToolCalls(
-									assistantMsg.toolCalls,
-									assistantMessage.id,
-									assistantMsg.createdAt,
-									resultModel
+									assistantMsg.toolCalls, assistantMessage.id, assistantMsg.createdAt, resultModel
 								),
 								finishReason = result.finishReason,
 							)
@@ -133,9 +135,7 @@ internal object AgentChat {
 			}
 		} catch (_: IllegalStateException) {
 			logger.warn(
-				"Agent chat failed, all models exhausted  agentId={}  model={}",
-				agentId,
-				request.model.modelInfo.id
+				"Agent chat failed  all models exhausted  agentId={}  model={}", agentId, request.model.modelInfo.id
 			)
 			return@flow
 		}

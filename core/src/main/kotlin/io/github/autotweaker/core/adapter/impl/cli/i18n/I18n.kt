@@ -16,26 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.impl.cli
+package io.github.autotweaker.core.adapter.impl.cli.i18n
 
-import kotlinx.serialization.Serializable
+import java.text.MessageFormat
+import java.util.*
 
-@Serializable
-data class Request(
-	val args: List<String> = emptyList(),
-	val stdin: String = "",
-	val prog: String = "autotweaker",
-) {
-	fun command(): String = args.firstOrNull() ?: ""
-	
-	@Suppress("unused")
-	fun arg(index: Int): String? = args.getOrNull(index)
-	
-	fun option(long: String, short: String): String? {
-		val idx = args.indexOf(long).let { if (it >= 0) it else args.indexOf(short) }
-		return if (idx >= 0) args.getOrNull(idx + 1) else null
+object I18n {
+	private val bundle: ResourceBundle? by lazy {
+		I18n_bundle ?: bundledFallback()
 	}
 	
-	@Suppress("unused")
-	fun flag(name: String): Boolean = name in args
+	@Volatile
+	private var I18n_bundle: ResourceBundle? = null
+	
+	suspend fun init(component: String) {
+		I18n_bundle = I18nLoader.fetchBundle(component)
+	}
+	
+	private fun bundledFallback(): ResourceBundle? = runCatching {
+		ResourceBundle.getBundle("i18n.cli-adapter.messages")
+	}.getOrNull()
+	
+	fun get(key: String, vararg args: Any): String {
+		val pattern = bundle?.let { runCatching { it.getString(key) }.getOrNull() } ?: key
+		return if (args.isEmpty()) pattern else MessageFormat.format(pattern, *args)
+	}
 }

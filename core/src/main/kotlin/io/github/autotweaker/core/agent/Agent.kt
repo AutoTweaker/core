@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Instant
 
-
 class Agent(
 	context: AgentContext,
 	override val workspace: WorkspaceMeta,
@@ -225,7 +224,7 @@ class Agent(
 			is AgentCommand.Message.SendMessage -> {
 				if (_status.value != AgentStatus.FREE) {
 					logger.warn(
-						"Dropped user message  agent not free  agentId={}  status={}  messageId={}",
+						"Dropped user message  reason=agent_not_free  agentId={}  status={}  messageId={}",
 						agentId,
 						_status.value,
 						message.id

@@ -33,16 +33,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
-abstract class AbstractOpenAiClient<
-		Request : OpenAiRequest,
-		Response : OpenAiResponse,
-		Chunk : OpenAiStreamChunk>(
+abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiResponse, Chunk : OpenAiStreamChunk>(
 	private val requestTypeInfo: TypeInfo,
 	private val responseTypeInfo: TypeInfo,
 	private val chunkSerializer: KSerializer<Chunk>,
 ) : LlmClient {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	
 	companion object {
 		private val json: Json = Json {
 			ignoreUnknownKeys = true
@@ -71,9 +71,7 @@ abstract class AbstractOpenAiClient<
 	}
 	
 	class PendingToolCall(
-		var id: String = "",
-		var name: String = "",
-		val arguments: StringBuilder = StringBuilder()
+		var id: String = "", var name: String = "", val arguments: StringBuilder = StringBuilder()
 	) {
 		fun toToolCall() = ChatMessage.AssistantMessage.ToolCall(id, name, arguments.toString())
 	}
@@ -120,8 +118,7 @@ abstract class AbstractOpenAiClient<
 								
 								val fragments = extractToolCalls(chunk)
 								fragments?.forEach { fragment ->
-									val pending =
-										pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
+									val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
 									if (fragment.id != null) pending.id = fragment.id
 									if (fragment.name != null) pending.name = fragment.name
 									if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
@@ -189,12 +186,11 @@ abstract class AbstractOpenAiClient<
 				emit(mapToChatResult(openAiResponse))
 			}
 		} catch (e: Throwable) {
+			logger.error("Failed to execute LLM request  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
 				ChatResult.Assembled(
 					message = ChatMessage.ErrorMessage(
-						content = e.message ?: "Unknown error",
-						createdAt = Clock.System.now(),
-						statusCode = null
+						content = e.message ?: "Unknown error", createdAt = Clock.System.now(), statusCode = null
 					),
 				)
 			)

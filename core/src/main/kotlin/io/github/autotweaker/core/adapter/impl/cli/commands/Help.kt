@@ -21,41 +21,45 @@ package io.github.autotweaker.core.adapter.impl.cli.commands
 import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Command.*
 import io.github.autotweaker.core.adapter.impl.cli.ParsedRequest
+import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
-class Help(private val commands: List<Command>) : Command {
+class Help(private val loaded: List<Command>) : Command {
 	override val name = "help"
-	override val description = "Show available commands and their usage"
-	override val params = listOf(
-		Param("command", "Show help for a specific command", type = ParamType.POSITIONAL),
-	)
+	override val description get() = I18n.get("cmd.help.desc")
+	override val params
+		get() = listOf(
+			Param("command", I18n.get("cmd.help.param.command"), type = ParamType.POSITIONAL),
+		)
+	
+	private val all: List<Command> get() = loaded + this
 	
 	override fun handle(request: ParsedRequest, prompt: suspend (String) -> String): Flow<Chunk> = flow {
 		val target = request.positional.firstOrNull()
 		if (target != null) {
-			val cmd = commands.find { it.name == target }
+			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emit(Chunk.Data("Unknown command: $target\n"))
+				emit(Chunk.Data(I18n.get("cmd.unknown", target) + "\n"))
 				return@flow
 			}
 			emitAll(formatDetail(cmd))
 			return@flow
 		}
-		emit(Chunk.Data("Available commands:\n"))
-		for (cmd in commands.sortedBy { it.name }) {
+		emit(Chunk.Data(I18n.get("cmd.available") + "\n"))
+		for (cmd in all.sortedBy { it.name }) {
 			emit(Chunk.Data("  ${cmd.name}  —  ${cmd.description}\n"))
 		}
-		emit(Chunk.Data("\nRun 'autotweaker help <command>' for detailed usage.\n"))
+		emit(Chunk.Data("\n" + I18n.get("cmd.help_hint", request.prog) + "\n"))
 	}
 	
 	private fun formatDetail(cmd: Command): Flow<Chunk> = flow {
 		emit(Chunk.Data("${cmd.name}  —  ${cmd.description}\n"))
 		if (cmd.params.isNotEmpty()) {
-			emit(Chunk.Data("\nParameters:\n"))
+			emit(Chunk.Data("\n" + I18n.get("cmd.params") + "\n"))
 			for (p in cmd.params) {
-				val required = if (p.required) " (required)" else ""
+				val required = if (p.required) " " + I18n.get("param.required") else ""
 				emit(Chunk.Data("  ${formatParam(p)}  —  ${p.description}$required\n"))
 			}
 		}

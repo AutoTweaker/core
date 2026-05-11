@@ -23,6 +23,7 @@ import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.Command.Param
 import io.github.autotweaker.core.adapter.impl.cli.Command.ParamType
 import io.github.autotweaker.core.adapter.impl.cli.commands.Help
+import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.*
@@ -40,10 +41,10 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 	fun dispatch(request: Request, prompt: suspend (String) -> String): Flow<Command.Chunk> {
 		val cmd = request.command()
 		val handler =
-			handlers[cmd] ?: return flowOf(Command.Chunk.Data("Unknown command: $cmd. Run 'autotweaker help'.\n"))
+			handlers[cmd] ?: return flowOf(Command.Chunk.Data(I18n.get("cmd.unknown_hint", cmd, request.prog) + "\n"))
 		
 		val parsed = parse(request, handler.params) ?: run {
-			return flowOf(Command.Chunk.Data("Invalid arguments. Run 'autotweaker help $cmd' for usage.\n"))
+			return flowOf(Command.Chunk.Data(I18n.get("cmd.invalid_args", cmd, request.prog) + "\n"))
 		}
 		
 		return handler.handle(parsed, prompt)
@@ -110,6 +111,6 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 			if (p.name !in values) return null
 		}
 		
-		return ParsedRequest(request.stdin, values, positional)
+		return ParsedRequest(request.stdin, values, positional, request.prog)
 	}
 }

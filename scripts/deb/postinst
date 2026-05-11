@@ -19,33 +19,33 @@
 
 set -e
 
-# 基于物理内存生成 JVM 配置
-MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-MEM_MB=$((MEM_KB / 1024))
+mkdir -p /etc/autotweaker
 
-if   [ "$MEM_MB" -lt 1024 ]; then
-    XMX=512m
-    GC_OPTS="-XX:+UseSerialGC"
-elif [ "$MEM_MB" -lt 2048 ]; then
-    XMX=1g
-elif [ "$MEM_MB" -lt 4096 ]; then
-    XMX=2g
-elif [ "$MEM_MB" -lt 8192 ]; then
-    XMX=4g
-else
-    XMX=6g
-    GC_OPTS="-XX:+UseZGC"
-fi
+if [ -z "$2" ]; then
+    # 首次安装：基于物理内存生成 JVM 配置
+    MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    MEM_MB=$((MEM_KB / 1024))
 
-mkdir -p /etc/autotweaker /usr/libexec/autotweaker /usr/lib/systemd/user
-cat > /etc/autotweaker/jvm.options << EOF
+    if   [ "$MEM_MB" -lt 1024 ]; then
+        XMX=512m
+        GC_OPTS="-XX:+UseSerialGC"
+    elif [ "$MEM_MB" -lt 2048 ]; then
+        XMX=1g
+    elif [ "$MEM_MB" -lt 4096 ]; then
+        XMX=2g
+    elif [ "$MEM_MB" -lt 8192 ]; then
+        XMX=4g
+    else
+        XMX=6g
+        GC_OPTS="-XX:+UseZGC"
+    fi
+
+    cat > /etc/autotweaker/jvm.options << EOF
 -Xmx${XMX}
 -XX:+HeapDumpOnOutOfMemoryError
 -XX:HeapDumpPath=/var/log/autotweaker
 EOF
-[ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
+    [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
+fi
 
-install -m 755 /usr/share/autotweaker/scripts/autotweaker /usr/bin/autotweaker
-install -m 755 /usr/share/autotweaker/scripts/autotweakerd /usr/libexec/autotweaker/autotweakerd
-install -m 644 /usr/share/autotweaker/scripts/autotweaker.service /usr/lib/systemd/user/autotweaker.service
 systemctl --global daemon-reload 2>/dev/null || true

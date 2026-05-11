@@ -17,25 +17,57 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-SOCK="${XDG_CONFIG_HOME:-$HOME/.config}/autotweaker/cli.sock"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/autotweaker"
+SOCK="$CONF/cli.sock"
+LOCK="$CONF/autotweaker.lock"
+
+mkdir -p "$CONF"
+for v in https_proxy HTTPS_PROXY http_proxy HTTP_PROXY all_proxy ALL_PROXY no_proxy NO_PROXY; do
+    eval "val=\${$v:-}"
+    [ -n "$val" ] && echo "$v=$val"
+done > "$CONF/env"
 
 systemctl --user daemon-reload 2>/dev/null || true
-if ! systemctl --user is-active --quiet autotweaker 2>/dev/null; then
-    echo "autotweaker: starting daemon..." >&2
+
+state=$(systemctl --user show autotweaker -p ActiveState --value 2>/dev/null)
+if [ "$state" != "active" ]; then
+    echo "Starting daemon..." >&2
+    systemctl --user reset-failed autotweaker 2>/dev/null
     systemctl --user start autotweaker
-    for _ in $(seq 1 150); do
-        [ -S "$SOCK" ] && break
-        sleep 0.1
-    done
 fi
-[ ! -S "$SOCK" ] && { echo "autotweaker: failed to start daemon" >&2; exit 1; }
+
+waited=0
+while true; do
+    if [ -S "$SOCK" ] && [ -f "$LOCK" ]; then
+        break
+    fi
+
+    state=$(systemctl --user show autotweaker -p ActiveState --value 2>/dev/null)
+    substate=$(systemctl --user show autotweaker -p SubState --value 2>/dev/null)
+    case "$state:$substate" in
+        failed:*|inactive:*|*:auto-restart)
+            echo "Daemon failed to start, showing recent logs:" >&2
+            journalctl --user -u autotweaker --no-pager -n 30 >&2
+            exit 1
+            ;;
+    esac
+
+    waited=$((waited + 1))
+    if [ $waited -ge 300 ]; then
+        echo "Daemon is taking too long, showing recent logs:" >&2
+        journalctl --user -u autotweaker --no-pager -n 15 >&2
+        waited=0
+    fi
+    sleep 0.1
+done
 
 if [ -t 0 ]; then
     stdin=""
 else
     stdin=$(cat)
 fi
-printf '{"args":%s,"stdin":%s}\n' \
+printf '{"args":%s,"stdin":%s,"prog":"%s"}\n' \
     "$(printf '%s\n' "$@" | jq -R . | jq -s -c .)" \
     "$(printf '%s' "$stdin" | jq -Rs -c .)" \
+    "$(basename "$0")" \
     | socat - "UNIX-CONNECT:$SOCK"

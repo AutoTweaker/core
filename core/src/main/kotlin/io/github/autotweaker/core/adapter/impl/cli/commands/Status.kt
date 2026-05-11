@@ -25,13 +25,14 @@ import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.github.autotweaker.core.adapter.impl.cli.Command.Param
 import io.github.autotweaker.core.adapter.impl.cli.ParsedRequest
+import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 @AutoService(Command::class)
 class Status : Command {
 	override val name = "status"
-	override val description = "Show system status"
+	override val description get() = I18n.get("cmd.status.desc")
 	override val params = emptyList<Param>()
 	private lateinit var core: CoreAPI
 	
@@ -40,36 +41,40 @@ class Status : Command {
 	}
 	
 	override fun handle(request: ParsedRequest, prompt: suspend (String) -> String): Flow<Chunk> = flow {
-		emit(Chunk.Data("Unlocked: ${core.isUnlocked}\n"))
-		emit(Chunk.Data("Password set: ${!core.isPasswordEmpty}\n"))
+		val keystoreState = when {
+			!core.isUnlocked -> I18n.get("status.unlocked")
+			!core.isPasswordEmpty -> I18n.get("status.locked")
+			else -> I18n.get("status.unlocked.password_set")
+		}
+		emit(Chunk.Data(keystoreState + "\n"))
 		
 		val adapters = core.listAdapter()
-		emit(Chunk.Data("\nAdapters (${adapters.size}):\n"))
+		emit(Chunk.Data("\n" + I18n.get("status.adapters", adapters.size) + "\n"))
 		for (a in adapters) {
 			emit(Chunk.Data("  ${a.name}  ${a.version}  ${a.description}\n"))
 		}
 		
 		val providers = core.config.listProviders()
-		emit(Chunk.Data("\nProviders (${providers.size}):\n"))
+		emit(Chunk.Data("\n" + I18n.get("status.providers", providers.size) + "\n"))
 		for (p in providers) {
 			emit(Chunk.Data("  ${p.name}  ${p.type}\n"))
 		}
 		
 		val models = core.config.listModelIds()
-		emit(Chunk.Data("\nModels (${models.size}):\n"))
+		emit(Chunk.Data("\n" + I18n.get("status.models", models.size) + "\n"))
 		for (m in models) {
 			emit(Chunk.Data("  $m\n"))
 		}
 		
 		val sessions = core.session.list()
-		emit(Chunk.Data("\nSessions (${sessions.size}):\n"))
+		emit(Chunk.Data("\n" + I18n.get("status.sessions", sessions.size) + "\n"))
 		for (s in sessions) {
 			val d = s.data.value
 			emit(Chunk.Data("  ${s.id}  ${s.status.value}  ${d.title}\n"))
 		}
 		
 		val workspaces = core.session.listWorkspaces()
-		emit(Chunk.Data("\nWorkspaces (${workspaces.size}):\n"))
+		emit(Chunk.Data("\n" + I18n.get("status.workspaces", workspaces.size) + "\n"))
 		for (w in workspaces) {
 			emit(Chunk.Data("  ${w.name}  ${w.path}\n"))
 		}

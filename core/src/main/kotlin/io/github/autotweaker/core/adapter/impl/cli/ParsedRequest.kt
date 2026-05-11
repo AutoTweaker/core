@@ -22,6 +22,7 @@ data class ParsedRequest(
 	val stdin: String,
 	val values: Map<String, String>,
 	val positional: List<String>,
+	val prog: String = "autotweaker",
 ) {
 	fun get(name: String): String? = values[name]
 	

@@ -80,18 +80,20 @@ class Bash : Tool {
 		
 		val command = input.arguments["command"]!!.jsonPrimitive.content
 		if (command.isBlank()) {
-			logger.debug("Rejected blank bash command")
+			logger.debug("Rejected blank bash command  tool=bash")
 			return Tool.ToolOutput(runtime.messageInvalidCommand, false)
 		}
 		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: runtime.defaultTimeoutSeconds
 		if (timeoutSeconds <= 0) {
-			logger.debug("Rejected invalid bash timeout  timeout={}", timeoutSeconds)
+			logger.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
 			return Tool.ToolOutput(runtime.messageInvalidTimeout, false)
 		}
 		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
 		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
-		logger.debug("Bash execution started  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds)
+		logger.debug(
+			"Bash execution started  tool=bash  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds
+		)
 		
 		val result = input.provider.get<BashService>().run(command, timeoutSeconds, selectedEnv)
 		val stdout = result.stdout.ifBlank { "<empty>" }
@@ -99,8 +101,10 @@ class Bash : Tool {
 		val duration = String.format("%.3f", result.durationSeconds)
 		
 		logger.debug(
-			"Bash completed  exitCode={}  duration={}s  timeout={}",
-			result.exitCode, duration, result.timeout
+			"Bash completed  tool=bash  exitCode={}  duration={}s  timeout={}",
+			result.exitCode,
+			duration,
+			result.timeout
 		)
 		
 		val output = runtime.messageResultTemplate.format(result.exitCode, duration, stdout, stderr)

@@ -19,7 +19,6 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.core.adapter.api.AdapterAPI
-import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
@@ -31,7 +30,12 @@ import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.SessionManager
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 object AutoTweaker {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -53,7 +57,13 @@ object AutoTweaker {
 	
 	private val registry: MutableMap<String, Pair<AdapterAPI, AdapterInfo>> = mutableMapOf()
 	
+	private val lockFile: Path = Path.of(
+		System.getProperty("user.home"), ".config", "autotweaker", "autotweaker.lock"
+	)
+	
 	fun start() {
+		acquireLock()
+		
 		logger.info("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc")
 		logger.info("AutoTweaker started  version={}", version)
 		
@@ -65,8 +75,6 @@ object AutoTweaker {
 			logger.error("Failed to initialize SecretManager", e)
 			throw e
 		}
-		
-		val core: CoreAPI = CoreAPIImpl
 		
 		val adapters = allAdapters
 		if (adapters.isEmpty()) {
@@ -88,8 +96,7 @@ object AutoTweaker {
 			logger.info(
 				"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
 			)
-			adapter.start(core)
-			logger.info("Adapter started  name={}", info.name)
+			startAdapter(info.name)
 		}
 		
 		Runtime.getRuntime().addShutdownHook(Thread {
@@ -97,11 +104,22 @@ object AutoTweaker {
 		})
 	}
 	
+	private fun acquireLock() {
+		Files.createDirectories(lockFile.parent)
+		if (Files.exists(lockFile)) {
+			val pid = lockFile.readText().trim().toLongOrNull()
+			if (pid != null && ProcessHandle.of(pid).isPresent) {
+				throw IllegalStateException("Another instance is already running (pid=$pid)")
+			}
+			lockFile.deleteIfExists()
+		}
+		lockFile.writeText(ProcessHandle.current().pid().toString())
+	}
+	
 	private fun shutdown() {
 		logger.info("Shutdown initiated")
-		registry.values.forEach { (adapter, info) ->
-			runCatching { adapter.stop() }
-			logger.info("Adapter stopped  name={}", info.name)
+		registry.values.forEach { (_, info) ->
+			runCatching { stopAdapter(info.name) }
 		}
 		runBlocking {
 			runCatching { SessionManager.SessionAPI.shutdown() }
@@ -112,20 +130,24 @@ object AutoTweaker {
 		runCatching { Settings.shutdown() }
 		runCatching { JsonStore.shutdown() }
 		runCatching { SecretManager.killGpgAgent() }
+		runCatching { lockFile.deleteIfExists() }
 		logger.info("Shutdown completed")
 	}
 	
 	fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }
 	
 	fun startAdapter(name: String) {
-		val (adapter, info) = registry[name] ?: error("Unknown adapter: $name")
+		val (adapter, info) = requireAdapter(name)
 		adapter.start(CoreAPIImpl)
 		logger.info("Started adapter  name={}", info.name)
 	}
 	
 	fun stopAdapter(name: String) {
-		val (adapter, info) = registry[name] ?: error("Unknown adapter: $name")
+		val (adapter, info) = requireAdapter(name)
 		adapter.stop()
 		logger.info("Stopped adapter  name={}", info.name)
 	}
+	
+	private fun requireAdapter(name: String): Pair<AdapterAPI, AdapterInfo> =
+		registry[name] ?: error("Unknown adapter: $name")
 }

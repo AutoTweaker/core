@@ -24,6 +24,8 @@ import io.github.autotweaker.core.adapter.api.AdapterAPI
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.api.data.SemVer
+import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 @AutoService(AdapterAPI::class)
@@ -32,19 +34,23 @@ class CliAdapter : AdapterAPI {
 	private val adapterVersion = SemVer.parse("0.1.0")
 	private val server = CliServer()
 	private var coreVersion: SemVer? = null
+	private lateinit var adapterName: String
 	
 	override fun load(coreVersion: SemVer): AdapterInfo {
 		this.coreVersion = coreVersion
-		return AdapterInfo(
+		val info = AdapterInfo(
 			name = "cli-adapter",
 			description = "CLI adapter — Unix domain socket based command interface",
 			version = adapterVersion,
 			source = Url("https://github.com/AutoTweaker/core"),
 		)
+		adapterName = info.name
+		return info
 	}
 	
 	override fun start(core: CoreAPI) {
 		val router = CommandRouter(core, coreVersion ?: error("CliAdapter not initialized"))
+		runBlocking { I18n.init(adapterName) }
 		server.start(router)
 		logger.info("CliAdapter started  version={}", adapterVersion.toString())
 	}

@@ -106,7 +106,7 @@ class DockerJavaService : ContainerService {
 		env: Map<String, String>,
 	): CommandResult = withContext(Dispatchers.IO) {
 		logger.debug(
-			"Command execution started  containerId={}  cmd={}  timeout={}s",
+			"Command execution started  containerId={}  cmd={}  timeoutSeconds={}",
 			containerId,
 			command.joinToString(" "),
 			timeoutSeconds
