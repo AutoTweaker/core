@@ -42,9 +42,9 @@ class Status : Command {
 	
 	override fun handle(request: ParsedRequest, prompt: suspend (String) -> String): Flow<Chunk> = flow {
 		val keystoreState = when {
-			!core.isUnlocked -> I18n.get("status.unlocked")
-			!core.isPasswordEmpty -> I18n.get("status.locked")
-			else -> I18n.get("status.unlocked.password_set")
+			core.isPasswordEmpty -> I18n.get("status.unlocked")
+			core.isUnlocked -> I18n.get("status.unlocked.password_set")
+			else -> I18n.get("status.locked")
 		}
 		emit(Chunk.Data(keystoreState + "\n"))
 		

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # AutoTweaker
 # Copyright (C) 2026  WhiteElephant-abc
@@ -66,8 +66,29 @@ if [ -t 0 ]; then
 else
     stdin=$(cat)
 fi
-printf '{"args":%s,"stdin":%s,"prog":"%s"}\n' \
+
+request=$(printf '{"args":%s,"stdin":%s,"prog":"%s"}\n' \
     "$(printf '%s\n' "$@" | jq -R . | jq -s -c .)" \
     "$(printf '%s' "$stdin" | jq -Rs -c .)" \
-    "$(basename "$0")" \
-    | socat - "UNIX-CONNECT:$SOCK"
+    "$(basename "$0")")
+
+coproc sock { socat - "UNIX-CONNECT:$SOCK"; }
+
+printf '%s\n' "$request" >&"${sock[1]}"
+
+while read -r line <&"${sock[0]}"; do
+    type=$(printf '%s' "$line" | jq -r '.type // empty')
+    case "$type" in
+        data)
+            printf '%s' "$line" | jq -j '.text // empty'
+            ;;
+        prompt)
+            printf '%s' "$line" | jq -j '.text // empty' >&2
+            IFS= read -r -s answer < /dev/tty
+            printf '%s\n' "$answer" >&"${sock[1]}"
+            ;;
+        *)
+            break
+            ;;
+    esac
+done

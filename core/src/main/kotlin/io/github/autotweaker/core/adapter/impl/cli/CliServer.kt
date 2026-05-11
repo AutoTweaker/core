@@ -21,6 +21,7 @@ package io.github.autotweaker.core.adapter.impl.cli
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.LoggerFactory
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -69,13 +70,16 @@ class CliServer {
 			val request = json.decodeFromString<Request>(line)
 			
 			val prompt: suspend (String) -> String = { text ->
-				write(client, text)
+				write(client, """{"type":"prompt","text":${JsonPrimitive(text)}}""")
 				readLine(client) ?: ""
 			}
 			
 			router.dispatch(request, prompt).collect { chunk ->
 				when (chunk) {
-					is Chunk.Data -> write(client, chunk.text)
+					is Chunk.Data -> {
+						write(client, """{"type":"data","text":${JsonPrimitive(chunk.text)}}""")
+					}
+					
 					is Chunk.Done -> return@collect
 				}
 			}
@@ -103,7 +107,7 @@ class CliServer {
 	
 	private fun write(channel: SocketChannel, text: String) {
 		if (text.isEmpty()) return
-		val bytes = text.toByteArray(StandardCharsets.UTF_8)
+		val bytes = (text + "\n").toByteArray(StandardCharsets.UTF_8)
 		var pos = 0
 		while (pos < bytes.size) {
 			pos += channel.write(ByteBuffer.wrap(bytes, pos, bytes.size - pos))

@@ -66,8 +66,8 @@ object AutoTweaker {
 		
 		logger.info("AutoTweaker started  version={}", version)
 		
-		Settings.init()
 		JsonStore.init()
+		Settings.init()
 		try {
 			SecretManager.init()
 		} catch (e: Exception) {

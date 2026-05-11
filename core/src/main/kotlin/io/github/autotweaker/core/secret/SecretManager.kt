@@ -149,8 +149,12 @@ object SecretManager : SecretStore {
 		logger.info("Password changed  secretCount={}", cache.size)
 	}
 	
+	private fun fingerprint(): String =
+		gpg("--list-keys", "--with-colons", "--fingerprint", KEY_UID).lines().first { it.startsWith("fpr:") }.split(":")
+			.getOrNull(9) ?: error("Cannot find fingerprint for $KEY_UID")
+	
 	//删除密钥
-	private fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", KEY_UID)
+	private fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", fingerprint())
 	
 	//加密
 	private fun encryptTo(input: String, output: Path) = gpg(

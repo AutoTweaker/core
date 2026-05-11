@@ -10,7 +10,7 @@ SuccessExitStatus=143
 Restart=on-failure
 RestartSec=5
 StartLimitBurst=3
-StartLimitIntervalSec=60s
+StartLimitInterval=60s
 
 [Install]
 WantedBy=default.target
