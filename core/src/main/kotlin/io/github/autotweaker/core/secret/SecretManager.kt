@@ -136,8 +136,8 @@ object SecretManager : SecretStore {
 	//更改密码
 	fun changePassword(oldPassword: String, newPassword: String) {
 		requireUnlocked()
-		if (oldPassword == newPassword) return
-		verifyPassword(oldPassword)
+		if (oldPassword != password) error("Invalid password")
+		if (newPassword == password) return
 		val cache = list().associateWith { get(it) }
 		logger.info("Password change started  secretCount={}", cache.size)
 		deleteKey()

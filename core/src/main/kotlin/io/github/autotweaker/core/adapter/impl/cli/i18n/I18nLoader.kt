@@ -21,9 +21,11 @@ package io.github.autotweaker.core.adapter.impl.cli.i18n
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -33,9 +35,12 @@ import java.io.ByteArrayInputStream
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.URI
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.notExists
 import kotlin.io.path.readText
+import kotlin.io.path.writeText
 import kotlin.time.Duration.Companion.milliseconds
 
 object I18nLoader {
@@ -47,19 +52,44 @@ object I18nLoader {
 	private val json = Json { ignoreUnknownKeys = true }
 	private var cachedBundle: ResourceBundle? = null
 	
-	suspend fun fetchBundle(component: String): ResourceBundle? {
-		cachedBundle?.let { return it }
+	private val cacheDir: Path = Path.of(
+		System.getProperty("user.home"), ".config", "autotweaker", "i18n"
+	)
+	
+	fun fetchBundle(component: String, onUpdate: (ResourceBundle) -> Unit): ResourceBundle? {
+		val local = cachedBundle ?: loadFromCache(component)
+		if (local != null) {
+			cachedBundle = local
+			logger.debug("I18n bundle loaded from cache  component={}", component)
+		}
 		
-		return runCatching {
-			withContext(Dispatchers.IO) {
-				retry(component) { downloadBundle(component) }
+		Thread({
+			runBlocking {
+				runCatching {
+					withContext(Dispatchers.IO) {
+						retry(component) { downloadBundle(component) }
+					}
+				}.onSuccess { bundle ->
+					cachedBundle = bundle
+					onUpdate(bundle)
+					logger.info("I18n bundle loaded  component={}", component)
+				}.onFailure { e ->
+					logger.warn("Failed to load i18n bundle  component={}  reason={}", component, e.message)
+				}
 			}
-		}.onSuccess { _ ->
-			logger.info("I18n bundle loaded  component={}", component)
-		}.onFailure { e ->
-			logger.warn("Failed to load i18n bundle  component={}  reason={}", component, e.message)
-		}.getOrNull()
+		}, "i18n-update").apply { isDaemon = true }.start()
+		
+		return local
 	}
+	
+	private fun loadFromCache(component: String): ResourceBundle? = runCatching {
+		val cacheFile = cacheDir.resolve("$component.properties")
+		if (cacheFile.notExists()) return null
+		val content = cacheFile.readText()
+		PropertyResourceBundle(ByteArrayInputStream(content.toByteArray()))
+	}.onFailure { e ->
+		logger.debug("Failed to load i18n cache  component={}  reason={}", component, e.message)
+	}.getOrNull()
 	
 	private suspend fun downloadBundle(component: String): ResourceBundle {
 		val proxyUrl = System.getenv("https_proxy") ?: System.getenv("HTTPS_PROXY")
@@ -68,12 +98,18 @@ object I18nLoader {
 			HttpClient(CIO) {
 				engine {
 					proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(uri.host, uri.port))
-					requestTimeout = 45_000
+				}
+				install(HttpTimeout) {
+					connectTimeoutMillis = 5_000
+					requestTimeoutMillis = 15_000
 				}
 			}
 		} else if (baseUrl.startsWith("http")) {
 			HttpClient(CIO) {
-				engine { requestTimeout = 45_000 }
+				install(HttpTimeout) {
+					connectTimeoutMillis = 5_000
+					requestTimeoutMillis = 15_000
+				}
 			}
 		} else {
 			null
@@ -98,9 +134,17 @@ object I18nLoader {
 			}
 			
 			val content = fetch(httpClient, url)
-			val bundle = PropertyResourceBundle(ByteArrayInputStream(content.toByteArray()))
-			cachedBundle = bundle
-			return bundle
+			saveToCache(component, content)
+			return PropertyResourceBundle(ByteArrayInputStream(content.toByteArray()))
+		}
+	}
+	
+	private fun saveToCache(component: String, content: String) {
+		runCatching {
+			Files.createDirectories(cacheDir)
+			cacheDir.resolve("$component.properties").writeText(content)
+		}.onFailure { e ->
+			logger.debug("Failed to save i18n cache  component={}  reason={}", component, e.message)
 		}
 	}
 	
@@ -109,7 +153,7 @@ object I18nLoader {
 			.readText()
 	}
 	
-	private suspend fun <T> retry(component: String, times: Int = 3, delayMs: Long = 2000, block: suspend () -> T): T {
+	private suspend fun <T> retry(component: String, times: Int = 10, delayMs: Long = 2000, block: suspend () -> T): T {
 		var last: Throwable? = null
 		repeat(times) { attempt ->
 			try {

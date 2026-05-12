@@ -30,39 +30,39 @@ class ConfigRegistryTest {
 	
 	@BeforeTest
 	fun setUp() {
-		val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
+		val field = ConfigRegistry::class.java.getDeclaredField("_items")
 		field.isAccessible = true
 		@Suppress("UNCHECKED_CAST")
-		val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
+		val items = field.get(ConfigRegistry) as MutableSet<SettingItem>
 		items.clear()
 		items.add(testItem)
 	}
 	
 	@AfterTest
 	fun tearDown() {
-		val field = CoreConfigRegistry::class.java.getDeclaredField("_items")
+		val field = ConfigRegistry::class.java.getDeclaredField("_items")
 		field.isAccessible = true
 		@Suppress("UNCHECKED_CAST")
-		val items = field.get(CoreConfigRegistry) as MutableSet<SettingItem>
+		val items = field.get(ConfigRegistry) as MutableSet<SettingItem>
 		items.clear()
 	}
 	
 	@Test
 	fun `getItem returns null for unknown key`() {
-		val result = CoreConfigRegistry.getItem("nonexistent.zz99")
+		val result = ConfigRegistry.getItem("nonexistent.zz99")
 		assertNull(result)
 	}
 	
 	@Test
 	fun `getAllItems returns items loaded from cache`() {
-		val all = CoreConfigRegistry.getAllItems()
+		val all = ConfigRegistry.getAllItems()
 		assertTrue(all.isNotEmpty())
 		assertTrue(all.contains(testItem))
 	}
 	
 	@Test
 	fun `getItem finds item by key`() {
-		val result = CoreConfigRegistry.getItem("test.key.abc")
+		val result = ConfigRegistry.getItem("test.key.abc")
 		assertNotNull(result)
 	}
 }

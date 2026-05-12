@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
@@ -33,13 +35,19 @@ class SettingsIntegrationTest {
 	fun setUp() {
 		System.setProperty("user.home", tmpHome.toString())
 		
-		mockkObject(CoreConfigRegistry)
-		every { CoreConfigRegistry.getItem(any()) } returns null
-		every { CoreConfigRegistry.getItem("test.key1") } returns
+		mockkObject(SerializeConfig)
+		coEvery { SerializeConfig.fetchDefaultConfig() } returns listOf(
+			SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1"),
+			SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
+		)
+		
+		mockkObject(ConfigRegistry)
+		every { ConfigRegistry.getItem(any()) } returns null
+		every { ConfigRegistry.getItem("test.key1") } returns
 				SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1")
-		every { CoreConfigRegistry.getItem("test.key2") } returns
+		every { ConfigRegistry.getItem("test.key2") } returns
 				SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
-		every { CoreConfigRegistry.getAllItems() } returns listOf(
+		every { ConfigRegistry.getAllItems() } returns listOf(
 			SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1"),
 			SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
 		)
@@ -47,7 +55,9 @@ class SettingsIntegrationTest {
 	
 	@AfterTest
 	fun tearDown() {
-		unmockkObject(CoreConfigRegistry)
+		unmockkObject(ConfigRegistry)
+		unmockkObject(SerializeConfig)
+		H2DatabaseStore.shutdown()
 		if (originalHome != null) {
 			System.setProperty("user.home", originalHome)
 		}
@@ -90,9 +100,12 @@ class SettingsIntegrationTest {
 	
 	@Test
 	fun `init detects type mismatch and updates`() {
-		every { CoreConfigRegistry.getItem("test.key3") } returns
+		every { ConfigRegistry.getItem("test.key3") } returns
 				SettingItem(SettingKey("test.key3"), SettingItem.Value.ValInt(999), "desc3")
-		every { CoreConfigRegistry.getAllItems() } returns listOf(
+		every { ConfigRegistry.getAllItems() } returns listOf(
+			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValInt(999), "desc3")
+		)
+		coEvery { SerializeConfig.fetchDefaultConfig() } returns listOf(
 			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValInt(999), "desc3")
 		)
 		Settings.init()
@@ -100,21 +113,31 @@ class SettingsIntegrationTest {
 		val afterFirst = Settings.get().find { it.key.value == "test.key3" }!!
 		assertTrue(afterFirst.value is SettingItem.Value.ValInt)
 		
-		every { CoreConfigRegistry.getItem("test.key3") } returns
+		every { ConfigRegistry.getItem("test.key3") } returns
 				SettingItem(SettingKey("test.key3"), SettingItem.Value.ValString("updated-type"), "desc3")
-		every { CoreConfigRegistry.getAllItems() } returns listOf(
+		every { ConfigRegistry.getAllItems() } returns listOf(
+			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValString("updated-type"), "desc3")
+		)
+		coEvery { SerializeConfig.fetchDefaultConfig() } returns listOf(
 			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValString("updated-type"), "desc3")
 		)
 		
 		Settings.init()
-		val afterUpdate = Settings.get().find { it.key.value == "test.key3" }!!
-		assertTrue(afterUpdate.value is SettingItem.Value.ValString)
+		// Background config update runs asynchronously — poll until cache reflects the type change
+		var afterUpdate: SettingItem? = null
+		repeat(50) {
+			afterUpdate = Settings.get().find { it.key.value == "test.key3" }
+			if (afterUpdate?.value is SettingItem.Value.ValString) return@repeat
+			Thread.sleep(50)
+		}
+		assertTrue(afterUpdate?.value is SettingItem.Value.ValString)
 	}
 	
 	@Test
 	fun `init with empty registry skips delete`() {
-		every { CoreConfigRegistry.getAllItems() } returns emptyList()
-		every { CoreConfigRegistry.getItem(any()) } returns null
+		every { ConfigRegistry.getAllItems() } returns emptyList()
+		every { ConfigRegistry.getItem(any()) } returns null
+		coEvery { SerializeConfig.fetchDefaultConfig() } returns emptyList()
 		Settings.init()
 	}
 }

@@ -34,13 +34,13 @@ class SettingsTest {
 	
 	@BeforeTest
 	fun setUp() {
-		mockkObject(CoreConfigRegistry)
-		every { CoreConfigRegistry.getItem(any()) } returns null
-		every { CoreConfigRegistry.getItem("test.key1") } returns
+		mockkObject(ConfigRegistry)
+		every { ConfigRegistry.getItem(any()) } returns null
+		every { ConfigRegistry.getItem("test.key1") } returns
 				SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1")
-		every { CoreConfigRegistry.getItem("test.key2") } returns
+		every { ConfigRegistry.getItem("test.key2") } returns
 				SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
-		every { CoreConfigRegistry.getAllItems() } returns listOf(
+		every { ConfigRegistry.getAllItems() } returns listOf(
 			SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1"),
 			SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
 		)
@@ -48,7 +48,7 @@ class SettingsTest {
 	
 	@AfterTest
 	fun tearDown() {
-		unmockkObject(CoreConfigRegistry)
+		unmockkObject(ConfigRegistry)
 	}
 	
 	@Test
@@ -163,7 +163,7 @@ class SettingsTest {
 			}
 		}
 		
-		// Re-read: the stored value has type ValInt, but CoreConfigRegistry says ValString
+		// Re-read: the stored value has type ValInt, but ConfigRegistry says ValString
 		// getValueFromRow will parse it as ValInt
 		// The init logic would detect type mismatch (ValInt != ValString) and update
 		val row = transaction {

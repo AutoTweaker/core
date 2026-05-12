@@ -21,6 +21,7 @@ package io.github.autotweaker.core.data.settings
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.delay
 import kotlinx.serialization.SerialName
@@ -66,12 +67,18 @@ object SerializeConfig {
 			HttpClient(CIO) {
 				engine {
 					this.proxy = proxy
-					requestTimeout = 45_000
+				}
+				install(HttpTimeout) {
+					connectTimeoutMillis = 5_000
+					requestTimeoutMillis = 15_000
 				}
 			}
 		} else if (baseUrl.startsWith("http")) {
 			HttpClient(CIO) {
-				engine { requestTimeout = 45_000 }
+				install(HttpTimeout) {
+					connectTimeoutMillis = 5_000
+					requestTimeoutMillis = 15_000
+				}
 			}
 		} else {
 			null
@@ -95,7 +102,7 @@ object SerializeConfig {
 			.readText()
 	}
 	
-	private suspend fun <T> retry(times: Int = 3, delayMs: Long = 2000, block: suspend () -> T): T {
+	private suspend fun <T> retry(times: Int = 10, delayMs: Long = 2000, block: suspend () -> T): T {
 		var last: Throwable? = null
 		repeat(times) { attempt ->
 			try {

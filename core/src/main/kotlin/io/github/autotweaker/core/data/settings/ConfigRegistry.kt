@@ -18,29 +18,16 @@
 
 package io.github.autotweaker.core.data.settings
 
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
-object CoreConfigRegistry {
+object ConfigRegistry {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val _items = mutableSetOf<SettingItem>()
 	
-	init {
-		loadDefaultConfig()
-	}
-	
-	private fun loadDefaultConfig() {
-		try {
-			val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
-			items.forEach { register(it) }
-			logger.info("Loaded default config  count={}", items.size)
-		} catch (e: Exception) {
-			logger.warn("Failed to load default config  fallback=local  reason={}", e.message)
-		}
-	}
-	
-	private fun register(item: SettingItem) {
-		_items.add(item)
+	fun init(items: Collection<SettingItem>) {
+		_items.clear()
+		_items.addAll(items)
+		logger.info("Config registry initialized  count={}", _items.size)
 	}
 	
 	fun getItem(key: String): SettingItem? = _items.find { it.key.value == key }

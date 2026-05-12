@@ -22,15 +22,13 @@ import java.text.MessageFormat
 import java.util.*
 
 object I18n {
-	private val bundle: ResourceBundle? by lazy {
-		I18n_bundle ?: bundledFallback()
-	}
+	private val bundle: ResourceBundle? get() = I18n_bundle ?: bundledFallback()
 	
 	@Volatile
 	private var I18n_bundle: ResourceBundle? = null
 	
-	suspend fun init(component: String) {
-		I18n_bundle = I18nLoader.fetchBundle(component)
+	fun init(component: String) {
+		I18n_bundle = I18nLoader.fetchBundle(component) { I18n_bundle = it }
 	}
 	
 	private fun bundledFallback(): ResourceBundle? = runCatching {

@@ -82,8 +82,8 @@ class Passwd : Command {
 		try {
 			core.unlock(password)
 			logger.info("Keystore unlocked  command=passwd")
-		} catch (e: Exception) {
-			logger.error("Failed to unlock keystore  command=passwd", e)
+		} catch (_: Exception) {
+			logger.warn("Failed to unlock keystore  command=passwd")
 			emit(Chunk.Data(I18n.get("unlock.failed"), Chunk.Channel.STDERR))
 			emit(Chunk.Done(1))
 			return@flow
@@ -100,8 +100,8 @@ class Passwd : Command {
 			}
 			core.changePassword(password, "")
 			logger.info("Password removed  command=passwd")
-		} catch (e: Exception) {
-			logger.error("Failed to remove password  command=passwd", e)
+		} catch (_: Exception) {
+			logger.warn("Failed to remove password  command=passwd")
 			emit(Chunk.Data(I18n.get("passwd.invalid"), Chunk.Channel.STDERR))
 			emit(Chunk.Done(1))
 			return@flow
@@ -134,8 +134,8 @@ class Passwd : Command {
 			}
 			core.changePassword(oldPassword, newPassword)
 			logger.info("Password changed  command=passwd")
-		} catch (e: Exception) {
-			logger.error("Failed to change password  command=passwd", e)
+		} catch (_: Exception) {
+			logger.warn("Failed to change password  command=passwd")
 			emit(Chunk.Data(I18n.get("passwd.invalid"), Chunk.Channel.STDERR))
 			emit(Chunk.Done(1))
 			return@flow

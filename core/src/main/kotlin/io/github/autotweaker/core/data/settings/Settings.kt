@@ -19,12 +19,12 @@
 package io.github.autotweaker.core.data.settings
 
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
-
 
 object Settings {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -36,37 +36,67 @@ object Settings {
 	fun init() {
 		db = H2DatabaseStore.connect("AppConfig")
 		
-		transaction(db) {
+		val rowCount = transaction(db) {
 			SchemaUtils.create(ConfigTable)
+			ConfigTable.selectAll().count()
+		}
+		
+		if (rowCount == 0L) {
+			val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
+			ConfigRegistry.init(items)
+			transaction(db) { syncDb(items) }
+			cache = items
+			logger.info("Settings initialized from remote  count={}", items.size)
+		} else {
+			cache = loadAll()
+			ConfigRegistry.init(cache!!)
+			logger.info("Settings initialized from local  count={}", cache!!.size)
 			
-			val registeredKeys = CoreConfigRegistry.getAllItems().map { it.key.value }.toSet()
-			CoreConfigRegistry.getAllItems().forEach { item ->
-				val row = ConfigTable.selectAll().where { ConfigTable.keyName eq item.key.value }.singleOrNull()
-				
-				if (row == null) {
-					ConfigTable.insert {
-						it[keyName] = item.key.value
+			launchBackgroundConfigUpdate()
+		}
+	}
+	
+	private fun launchBackgroundConfigUpdate() {
+		val localDb = db
+		Thread({
+			runBlocking {
+				runCatching { SerializeConfig.fetchDefaultConfig() }.onSuccess { remoteItems ->
+					transaction(localDb) { syncDb(remoteItems) }
+					ConfigRegistry.init(remoteItems)
+					cache = loadAll()
+					logger.info("Background config update completed  count={}", remoteItems.size)
+				}.onFailure { e ->
+					logger.warn("Background config update failed  reason={}", e.message)
+				}
+			}
+		}, "config-updater").apply { isDaemon = true }.start()
+	}
+	
+	private fun syncDb(items: List<SettingItem>) {
+		val registeredKeys = items.map { it.key.value }.toSet()
+		
+		items.forEach { item ->
+			val row = ConfigTable.selectAll().where { ConfigTable.keyName eq item.key.value }.singleOrNull()
+			if (row == null) {
+				ConfigTable.insert {
+					it[keyName] = item.key.value
+					it[description] = item.description
+					fillColumn(it, item.value)
+				}
+			} else {
+				val existingValue = ConfigTable.getValueFromRow(row)
+				if (existingValue == null || existingValue::class != item.value::class) {
+					ConfigTable.update({ ConfigTable.keyName eq item.key.value }) {
 						it[description] = item.description
 						fillColumn(it, item.value)
 					}
-				} else {
-					val existingValue = ConfigTable.getValueFromRow(row)
-					if (existingValue == null || existingValue::class != item.value::class) {
-						ConfigTable.update({ ConfigTable.keyName eq item.key.value }) {
-							it[description] = item.description
-							fillColumn(it, item.value)
-						}
-					}
 				}
-			}
-			
-			if (registeredKeys.isNotEmpty()) {
-				ConfigTable.deleteWhere { ConfigTable.keyName notInList registeredKeys }
 			}
 		}
 		
-		cache = loadAll()
-		logger.info("Settings initialized  count={}", cache?.size)
+		if (registeredKeys.isNotEmpty()) {
+			ConfigTable.deleteWhere { ConfigTable.keyName notInList registeredKeys }
+		}
 	}
 	
 	fun get(): List<SettingItem> = cache ?: throw IllegalStateException("Settings not initialized")
@@ -74,7 +104,7 @@ object Settings {
 	fun set(item: SettingItem) {
 		cache ?: throw IllegalStateException("Settings not initialized")
 		
-		val registered = CoreConfigRegistry.getItem(item.key.value)
+		val registered = ConfigRegistry.getItem(item.key.value)
 			?: throw IllegalArgumentException("Writing to unregistered key: ${item.key.value}")
 		
 		if (item.value::class != registered.value::class) {
