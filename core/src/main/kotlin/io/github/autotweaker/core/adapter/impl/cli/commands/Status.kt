@@ -46,37 +46,43 @@ class Status : Command {
 			core.isUnlocked -> I18n.get("status.unlocked.password_set")
 			else -> I18n.get("status.locked")
 		}
-		emit(Chunk.Data(keystoreState + "\n"))
+		emit(Chunk.Data(keystoreState))
 		
 		val adapters = core.listAdapter()
-		emit(Chunk.Data("\n" + I18n.get("status.adapters", adapters.size) + "\n"))
+		emit(Chunk.Data(""))
+		emit(Chunk.Data(I18n.get("status.adapters", adapters.size)))
 		for (a in adapters) {
-			emit(Chunk.Data("  ${a.name}  ${a.version}  ${a.description}\n"))
+			emit(Chunk.Data("  ${a.name}  ${a.version}  ${a.description}"))
 		}
 		
 		val providers = core.config.listProviders()
-		emit(Chunk.Data("\n" + I18n.get("status.providers", providers.size) + "\n"))
+		emit(Chunk.Data(""))
+		emit(Chunk.Data(I18n.get("status.providers", providers.size)))
 		for (p in providers) {
-			emit(Chunk.Data("  ${p.name}  ${p.type}\n"))
+			emit(Chunk.Data("  ${p.name}  ${p.type}"))
 		}
 		
 		val models = core.config.listModelIds()
-		emit(Chunk.Data("\n" + I18n.get("status.models", models.size) + "\n"))
+		emit(Chunk.Data(""))
+		emit(Chunk.Data(I18n.get("status.models", models.size)))
 		for (m in models) {
-			emit(Chunk.Data("  $m\n"))
+			emit(Chunk.Data("  $m"))
 		}
 		
 		val sessions = core.session.list()
-		emit(Chunk.Data("\n" + I18n.get("status.sessions", sessions.size) + "\n"))
+		emit(Chunk.Data(""))
+		emit(Chunk.Data(I18n.get("status.sessions", sessions.size)))
 		for (s in sessions) {
 			val d = s.data.value
-			emit(Chunk.Data("  ${s.id}  ${s.status.value}  ${d.title}\n"))
+			emit(Chunk.Data("  ${s.id}  ${s.status.value}  ${d.title}"))
 		}
 		
 		val workspaces = core.session.listWorkspaces()
-		emit(Chunk.Data("\n" + I18n.get("status.workspaces", workspaces.size) + "\n"))
+		emit(Chunk.Data(""))
+		emit(Chunk.Data(I18n.get("status.workspaces", workspaces.size)))
 		for (w in workspaces) {
-			emit(Chunk.Data("  ${w.name}  ${w.path}\n"))
+			emit(Chunk.Data("  ${w.name}  ${w.path}"))
 		}
+		emit(Chunk.Done())
 	}
 }

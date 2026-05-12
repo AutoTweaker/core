@@ -39,7 +39,7 @@ import kotlin.io.path.readText
 import kotlin.time.Duration.Companion.milliseconds
 
 object I18nLoader {
-	private val log = LoggerFactory.getLogger(I18nLoader::class.java)
+	private val logger = LoggerFactory.getLogger(I18nLoader::class.java)
 	
 	private val baseUrl: String
 		get() = System.getenv("AUTOTWEAKER_WEBSITE_URL") ?: error("AUTOTWEAKER_WEBSITE_URL not set")
@@ -54,6 +54,10 @@ object I18nLoader {
 			withContext(Dispatchers.IO) {
 				retry(component) { downloadBundle(component) }
 			}
+		}.onSuccess { _ ->
+			logger.info("I18n bundle loaded  component={}", component)
+		}.onFailure { e ->
+			logger.warn("Failed to load i18n bundle  component={}  reason={}", component, e.message)
 		}.getOrNull()
 	}
 	
@@ -78,12 +82,20 @@ object I18nLoader {
 		client.use { httpClient ->
 			val root = json.decodeFromString<RootIndex>(fetch(httpClient, "index.json"))
 			val i18nIndex = json.decodeFromString<Map<String, List<String>>>(fetch(httpClient, root.i18nIndex))
-			val urls = i18nIndex[component] ?: return ResourceBundle.getBundle("")
+			val urls = i18nIndex[component]
+			if (urls == null) {
+				logger.warn("No i18n entries for component  component={}", component)
+				return ResourceBundle.getBundle("")
+			}
 			
 			val locale = Locale.getDefault()
 			val localeTag = "_$locale"
 			val url = urls.firstOrNull { it.endsWith(".properties") && it.contains(localeTag) }
-				?: urls.firstOrNull { it.endsWith("messages.properties") } ?: return ResourceBundle.getBundle("")
+				?: urls.firstOrNull { it.endsWith("messages.properties") }
+			if (url == null) {
+				logger.warn("No matching i18n file found  component={}  locale={}", component, locale)
+				return ResourceBundle.getBundle("")
+			}
 			
 			val content = fetch(httpClient, url)
 			val bundle = PropertyResourceBundle(ByteArrayInputStream(content.toByteArray()))
@@ -105,7 +117,7 @@ object I18nLoader {
 			} catch (e: Exception) {
 				last = e
 				if (attempt < times - 1) {
-					log.warn(
+					logger.warn(
 						"Retried i18n bundle retrieval  component={}  attempt={}/{}  reason={}",
 						component,
 						attempt + 1,

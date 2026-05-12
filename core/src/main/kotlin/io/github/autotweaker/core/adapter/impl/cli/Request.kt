@@ -23,7 +23,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Request(
 	val args: List<String> = emptyList(),
-	val stdin: String = "",
 	val prog: String = "autotweaker",
 ) {
 	fun command(): String = args.firstOrNull() ?: ""

@@ -28,15 +28,15 @@ import org.slf4j.LoggerFactory
 
 object Settings {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val store = H2DatabaseStore()
+	private lateinit var db: Database
 	
 	@Volatile
 	private var cache: List<SettingItem>? = null
 	
 	fun init() {
-		store.connect("AppConfig")
+		db = H2DatabaseStore.connect("AppConfig")
 		
-		transaction {
+		transaction(db) {
 			SchemaUtils.create(ConfigTable)
 			
 			val registeredKeys = CoreConfigRegistry.getAllItems().map { it.key.value }.toSet()
@@ -69,10 +69,6 @@ object Settings {
 		logger.info("Settings initialized  count={}", cache?.size)
 	}
 	
-	fun shutdown() {
-		store.shutdown()
-	}
-	
 	fun get(): List<SettingItem> = cache ?: throw IllegalStateException("Settings not initialized")
 	
 	fun set(item: SettingItem) {
@@ -87,7 +83,7 @@ object Settings {
 			)
 		}
 		
-		transaction {
+		transaction(db) {
 			ConfigTable.upsert {
 				it[keyName] = item.key.value
 				it[description] = item.description
@@ -100,7 +96,7 @@ object Settings {
 	}
 	
 	private fun loadAll(): List<SettingItem> {
-		return transaction {
+		return transaction(db) {
 			ConfigTable.selectAll().map { row ->
 				val key = SettingKey(row[ConfigTable.keyName])
 				val value = ConfigTable.getValueFromRow(row)

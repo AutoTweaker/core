@@ -25,9 +25,11 @@ import io.github.autotweaker.core.adapter.impl.cli.commands.Help
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import org.slf4j.LoggerFactory
 import java.util.*
 
 class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val handlers: Map<String, Command>
 	
 	init {
@@ -35,17 +37,33 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 		loaded.forEach { it.init(core, coreVersion) }
 		val help = Help(loaded)
 		handlers = (loaded + help).associateBy { it.name }
+		logger.debug("CommandRouter loaded  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
 	fun dispatch(request: Request, prompt: suspend (String) -> String): Flow<Chunk> {
 		val cmd = request.command()
 		if (cmd.isEmpty()) {
-			return flowOf(Chunk.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"))
+			return flowOf(
+				Chunk.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"), Chunk.Done()
+			)
 		}
-		val handler = handlers[cmd] ?: return flowOf(Chunk.Data(I18n.get("cmd.unknown_hint", cmd, request.prog) + "\n"))
+		val handler = handlers[cmd]
+		if (handler == null) {
+			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
+			return flowOf(
+				Chunk.Data(I18n.get("cmd.unknown_hint", cmd, request.prog), Chunk.Channel.STDERR),
+				Chunk.Done(1),
+			)
+		}
 		
-		val parsed = parse(request, handler.params) ?: run {
-			return flowOf(Chunk.Data(I18n.get("cmd.invalid_args", cmd, request.prog) + "\n"))
+		logger.debug("Command dispatched  command={}  args={}", cmd, request.args.drop(1))
+		val parsed = parse(request, handler.params)
+		if (parsed == null) {
+			logger.debug("Invalid arguments for command  command={}", cmd)
+			return flowOf(
+				Chunk.Data(I18n.get("cmd.invalid_args", cmd, request.prog), Chunk.Channel.STDERR),
+				Chunk.Done(1),
+			)
 		}
 		
 		return handler.handle(parsed, prompt)
@@ -112,6 +130,6 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 			if (p.name !in values) return null
 		}
 		
-		return ParsedRequest(request.stdin, values, positional, request.prog)
+		return ParsedRequest(values, positional, request.prog)
 	}
 }

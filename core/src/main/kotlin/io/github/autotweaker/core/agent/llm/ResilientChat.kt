@@ -148,7 +148,7 @@ internal object ResilientChat {
 			}
 		}
 		
-		logger.warn("All candidate models exhausted  lastModel={}  candidates={}", lastModelId, candidates.size)
+		logger.warn("All candidate models exhausted  lastModel={}  candidates={}", lastModelId, 0)
 		throw IllegalStateException("All candidate models exhausted without success")
 	}
 	

@@ -7,10 +7,6 @@ Type=simple
 EnvironmentFile=-%h/.config/autotweaker/env
 ExecStart=/usr/libexec/autotweaker/autotweakerd
 SuccessExitStatus=143
-Restart=on-failure
-RestartSec=5
-StartLimitBurst=3
-StartLimitInterval=60s
 
 [Install]
 WantedBy=default.target

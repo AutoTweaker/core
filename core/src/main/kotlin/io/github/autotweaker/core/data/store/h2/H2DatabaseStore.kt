@@ -20,27 +20,32 @@ package io.github.autotweaker.core.data.store.h2
 
 import io.github.autotweaker.core.data.store.DatabaseStore
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
 
-class H2DatabaseStore : DatabaseStore {
+object H2DatabaseStore : DatabaseStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val databases = ConcurrentHashMap<String, Database>()
 	
-	override fun connect(dbName: String) {
-		val dbDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database")
-		Files.createDirectories(dbDir)
-		val url = "jdbc:h2:${dbDir.resolve(dbName)};DB_CLOSE_DELAY=-1"
-		logger.debug("Database connected  db={}  url={}", dbName, url)
-		Database.connect(url, "org.h2.Driver")
-	}
+	override fun connect(dbName: String): Database =
+		databases.computeIfAbsent(dbName) { name ->
+			val dbDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database")
+			Files.createDirectories(dbDir)
+			val url = "jdbc:h2:${dbDir.resolve(name)};DB_CLOSE_DELAY=-1"
+			logger.debug("Database connected  db={}  url={}", name, url)
+			Database.connect(url, "org.h2.Driver")
+		}
 	
 	override fun shutdown() {
-		try {
-			org.jetbrains.exposed.v1.jdbc.transactions.transaction {
-				exec("SHUTDOWN")
+		databases.values.forEach { db ->
+			try {
+				transaction(db) { exec("SHUTDOWN") }
+			} catch (_: Exception) {
 			}
-		} catch (_: Exception) {
 		}
+		databases.clear()
 	}
 }

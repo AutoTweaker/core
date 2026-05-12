@@ -19,23 +19,14 @@
 <configuration>
     <property name="LOG_DIR" value="${user.home}/.config/autotweaker/logs"/>
 
+    <conversionRule conversionWord="levelColor" class="io.github.autotweaker.core.logging.LevelColorConverter"/>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>${log.level:-INFO}</level>
+            <level>${log.level:-DEBUG}</level>
         </filter>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${LOG_DIR}/latest.log</file>
-        <append>false</append>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>${log.level:-INFO}</level>
-        </filter>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%white(%d{HH:mm:ss.SSS}) %magenta([%thread]) %levelColor(%-5level) %blue(%logger{36}) - %levelColor(%msg%n)</pattern>
         </encoder>
     </appender>
 
@@ -59,7 +50,6 @@
 
     <root level="${log.root.level:-DEBUG}">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE"/>
         <appender-ref ref="ROLLING"/>
     </root>
 

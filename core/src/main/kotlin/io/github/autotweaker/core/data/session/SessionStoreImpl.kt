@@ -25,28 +25,21 @@ import io.github.autotweaker.core.session.SessionMessage
 import io.github.autotweaker.core.session.SessionStore
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
 import java.util.*
 
 class SessionStoreImpl : SessionStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val store = H2DatabaseStore()
+	private lateinit var db: Database
 	private var initialized = false
-	
-	fun shutdown() {
-		store.shutdown()
-	}
 	
 	@Synchronized
 	fun init() {
 		if (initialized) return
-		store.connect("Sessions")
-		transaction {
+		db = H2DatabaseStore.connect("Sessions")
+		transaction(db) {
 			SchemaUtils.create(SessionDataTable, SessionContextTable, SessionMessageTable)
 		}
 		initialized = true
@@ -61,7 +54,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun saveSessions(sessionData: List<SessionData>) {
 		ensureInit()
-		transaction {
+		transaction(db) {
 			sessionData.forEach { data ->
 				SessionDataTable.upsert {
 					it[id] = data.id.toString()
@@ -75,7 +68,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun loadSessions(ids: List<UUID>): List<SessionData>? {
 		ensureInit()
-		return transaction {
+		return transaction(db) {
 			val idStrings = ids.map { it.toString() }
 			val rows = SessionDataTable.selectAll().where { SessionDataTable.id inList idStrings }
 			if (rows.empty()) null
@@ -85,7 +78,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun loadAllSessions(): List<SessionData>? {
 		ensureInit()
-		return transaction {
+		return transaction(db) {
 			val rows = SessionDataTable.selectAll()
 			if (rows.empty()) null
 			else rows.map { it.toSessionData() }
@@ -95,7 +88,7 @@ class SessionStoreImpl : SessionStore {
 	override suspend fun deleteSessions(id: List<UUID>) {
 		ensureInit()
 		val idStrings = id.map { it.toString() }
-		transaction {
+		transaction(db) {
 			SessionDataTable.deleteWhere { SessionDataTable.id inList idStrings }
 			SessionContextTable.deleteWhere { SessionContextTable.sessionId inList idStrings }
 		}
@@ -116,7 +109,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun saveContext(sessionId: UUID, context: SessionContext) {
 		ensureInit()
-		transaction {
+		transaction(db) {
 			SessionContextTable.upsert {
 				it[SessionContextTable.sessionId] = sessionId.toString()
 				it[systemPrompt] = context.systemPrompt
@@ -129,11 +122,9 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun loadContext(sessionId: UUID): SessionContext? {
 		ensureInit()
-		return transaction {
-			SessionContextTable.selectAll()
-				.where { SessionContextTable.sessionId eq sessionId.toString() }
-				.singleOrNull()
-				?.let { row ->
+		return transaction(db) {
+			SessionContextTable.selectAll().where { SessionContextTable.sessionId eq sessionId.toString() }
+				.singleOrNull()?.let { row ->
 					SessionContext(
 						systemPrompt = row[SessionContextTable.systemPrompt],
 						usage = SessionContextTable.readUsage(row),
@@ -146,7 +137,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun deleteContext(sessionId: UUID) {
 		ensureInit()
-		transaction {
+		transaction(db) {
 			SessionContextTable.deleteWhere { SessionContextTable.sessionId eq sessionId.toString() }
 		}
 	}
@@ -157,7 +148,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun saveMessages(messages: List<SessionMessage>) {
 		ensureInit()
-		transaction {
+		transaction(db) {
 			messages.forEach { msg ->
 				SessionMessageTable.upsert {
 					it[id] = msg.id.toString()
@@ -171,7 +162,7 @@ class SessionStoreImpl : SessionStore {
 	
 	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>? {
 		ensureInit()
-		return transaction {
+		return transaction(db) {
 			val idStrings = ids.map { it.toString() }
 			val rows = SessionMessageTable.selectAll().where { SessionMessageTable.id inList idStrings }
 			if (rows.empty()) null
@@ -182,7 +173,7 @@ class SessionStoreImpl : SessionStore {
 	override suspend fun deleteMessages(ids: List<UUID>) {
 		ensureInit()
 		val idStrings = ids.map { it.toString() }
-		transaction {
+		transaction(db) {
 			SessionMessageTable.deleteWhere { SessionMessageTable.id inList idStrings }
 		}
 	}

@@ -109,7 +109,6 @@ object SessionManager {
 				runCatching { stop(id) }
 			}
 			scope.cancel()
-			store.shutdown()
 		}
 		
 		suspend fun delete(sessionId: UUID) {

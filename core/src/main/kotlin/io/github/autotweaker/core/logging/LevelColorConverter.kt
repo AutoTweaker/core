@@ -16,11 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.data.store
+package io.github.autotweaker.core.logging
 
-import org.jetbrains.exposed.v1.jdbc.Database
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.pattern.color.ANSIConstants
+import ch.qos.logback.core.pattern.color.ForegroundCompositeConverterBase
 
-interface DatabaseStore {
-	fun connect(dbName: String): Database
-	fun shutdown() {}
+class LevelColorConverter : ForegroundCompositeConverterBase<ILoggingEvent>() {
+	override fun getForegroundColorCode(event: ILoggingEvent): String = when (event.level.toInt()) {
+		Level.ERROR_INT -> "31"
+		Level.WARN_INT -> "33"
+		Level.INFO_INT -> "36"
+		Level.DEBUG_INT -> "32"
+		Level.TRACE_INT -> "90"
+		else -> ANSIConstants.DEFAULT_FG
+	}
 }

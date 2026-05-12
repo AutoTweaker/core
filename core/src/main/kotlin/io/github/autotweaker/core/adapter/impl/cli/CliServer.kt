@@ -52,6 +52,7 @@ class CliServer {
 		scope.launch {
 			while (channel.isOpen) {
 				val client = runCatching { channel.accept() }.getOrNull() ?: break
+				logger.debug("Client connected")
 				scope.launch { handle(client, router) }
 			}
 		}
@@ -67,6 +68,7 @@ class CliServer {
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
 		client.use {
 			val line = readLine(client) ?: return
+			logger.debug("Request received  request={}", line)
 			val request = json.decodeFromString<Request>(line)
 			
 			val prompt: suspend (String) -> String = { text ->
@@ -74,14 +76,35 @@ class CliServer {
 				readLine(client) ?: ""
 			}
 			
-			router.dispatch(request, prompt).collect { chunk ->
-				when (chunk) {
-					is Chunk.Data -> {
-						write(client, """{"type":"data","text":${JsonPrimitive(chunk.text)}}""")
+			var sawDone = false
+			try {
+				router.dispatch(request, prompt).collect { chunk ->
+					when (chunk) {
+						is Chunk.Data -> {
+							write(
+								client,
+								"""{"type":"data","text":${JsonPrimitive(chunk.text)},"channel":${JsonPrimitive(chunk.channel.name.lowercase())},"newline":${chunk.newline}}"""
+							)
+						}
+						
+						is Chunk.Done -> {
+							sawDone = true
+							write(client, """{"type":"done","exitCode":${chunk.exitCode}}""")
+							return@collect
+						}
 					}
-					
-					is Chunk.Done -> return@collect
 				}
+			} catch (e: Exception) {
+				logger.error("Command failed  command={}", request.command(), e)
+				write(
+					client,
+					"""{"type":"data","text":${JsonPrimitive(e.message ?: "Internal error")},"channel":"stderr","newline":true}"""
+				)
+			}
+			
+			if (!sawDone) {
+				logger.error("Command did not emit Done  command={}", request.command())
+				write(client, """{"type":"done","exitCode":1}""")
 			}
 		}
 	}

@@ -25,6 +25,7 @@ import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.Settings
+import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.SessionManager
@@ -105,12 +106,15 @@ object AutoTweaker {
 	
 	private fun acquireLock() {
 		Files.createDirectories(lockFile.parent)
-		if (Files.exists(lockFile)) {
+		try {
+			Files.createFile(lockFile)
+		} catch (_: java.nio.file.FileAlreadyExistsException) {
 			val pid = lockFile.readText().trim().toLongOrNull()
 			if (pid != null && ProcessHandle.of(pid).isPresent) {
 				throw IllegalStateException("Another instance is already running (pid=$pid)")
 			}
 			lockFile.deleteIfExists()
+			Files.createFile(lockFile)
 		}
 		lockFile.writeText(ProcessHandle.current().pid().toString())
 	}
@@ -120,15 +124,12 @@ object AutoTweaker {
 		registry.values.forEach { (_, info) ->
 			runCatching { stopAdapter(info.name) }
 		}
-		runBlocking {
-			runCatching { SessionManager.SessionAPI.shutdown() }
-		}
+		runBlocking { runCatching { SessionManager.SessionAPI.shutdown() } }
 		runBlocking { runCatching { ContainerManager.stop() } }
 		runCatching { AbstractOpenAiClient.close() }
 		runCatching { closePluginClassLoaders() }
-		runCatching { Settings.shutdown() }
-		runCatching { JsonStore.shutdown() }
 		runCatching { SecretManager.killGpgAgent() }
+		runCatching { H2DatabaseStore.shutdown() }
 		runCatching { lockFile.deleteIfExists() }
 		logger.info("AutoTweaker shutdown completed")
 	}

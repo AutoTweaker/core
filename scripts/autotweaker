@@ -61,30 +61,41 @@ while true; do
     sleep 0.1
 done
 
-if [ -t 0 ]; then
-    stdin=""
-else
-    stdin=$(cat)
-fi
-
-request=$(printf '{"args":%s,"stdin":%s,"prog":"%s"}\n' \
+request=$(printf '{"args":%s,"prog":"%s"}\n' \
     "$(printf '%s\n' "$@" | jq -R . | jq -s -c .)" \
-    "$(printf '%s' "$stdin" | jq -Rs -c .)" \
     "$(basename "$0")")
 
 coproc sock { socat - "UNIX-CONNECT:$SOCK"; }
 
 printf '%s\n' "$request" >&"${sock[1]}"
 
+exit_code=1
 while read -r line <&"${sock[0]}"; do
     type=$(printf '%s' "$line" | jq -r '.type // empty')
     case "$type" in
         data)
-            printf '%s' "$line" | jq -j '.text // empty'
+            text=$(printf '%s' "$line" | jq -j '.text // empty')
+            channel=$(printf '%s' "$line" | jq -r '.channel // "stdout"')
+            newline=$(printf '%s' "$line" | jq -r '.newline // true')
+            if [ "$channel" = "stderr" ]; then
+                printf '%s' "$text" >&2
+                [ "$newline" = "true" ] && printf '\n' >&2
+            else
+                printf '%s' "$text"
+                [ "$newline" = "true" ] && printf '\n'
+            fi
+            ;;
+        done)
+            exit_code=$(printf '%s' "$line" | jq -r '.exitCode // 0')
+            break
             ;;
         prompt)
             printf '%s' "$line" | jq -j '.text // empty' >&2
-            IFS= read -r -s answer < /dev/tty
+            if [ -t 0 ]; then
+                IFS= read -r -s answer < /dev/tty
+            else
+                IFS= read -r answer
+            fi
             printf '%s\n' "$answer" >&"${sock[1]}"
             ;;
         *)
@@ -92,3 +103,5 @@ while read -r line <&"${sock[0]}"; do
             ;;
     esac
 done
+
+exit "$exit_code"

@@ -31,8 +31,7 @@ class H2DatabaseStoreTest {
 		val originalHome = System.getProperty("user.home")
 		try {
 			System.setProperty("user.home", tmpHome.toString())
-			val store = H2DatabaseStore()
-			store.connect("TestDb")
+			H2DatabaseStore.connect("TestDb")
 			
 			val dbDir = Path.of(tmpHome.toString(), ".config", "autotweaker", "database")
 			assertTrue(Files.exists(dbDir))

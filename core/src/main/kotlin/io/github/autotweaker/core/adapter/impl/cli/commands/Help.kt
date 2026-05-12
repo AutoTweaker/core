@@ -41,26 +41,31 @@ class Help(private val loaded: List<Command>) : Command {
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emit(Chunk.Data(I18n.get("cmd.unknown", target) + "\n"))
+				emit(Chunk.Data(I18n.get("cmd.unknown", target), Chunk.Channel.STDERR))
+				emit(Chunk.Done(1))
 				return@flow
 			}
 			emitAll(formatDetail(cmd))
+			emit(Chunk.Done())
 			return@flow
 		}
-		emit(Chunk.Data(I18n.get("cmd.available") + "\n"))
+		emit(Chunk.Data(I18n.get("cmd.available")))
 		for (cmd in all.sortedBy { it.name }) {
-			emit(Chunk.Data("  ${cmd.name}  —  ${cmd.description}\n"))
+			emit(Chunk.Data("  ${cmd.name}  —  ${cmd.description}"))
 		}
-		emit(Chunk.Data("\n" + I18n.get("cmd.help_hint", request.prog) + "\n"))
+		emit(Chunk.Data(""))
+		emit(Chunk.Data(I18n.get("cmd.help_hint", request.prog)))
+		emit(Chunk.Done())
 	}
 	
 	private fun formatDetail(cmd: Command): Flow<Chunk> = flow {
-		emit(Chunk.Data("${cmd.name}  —  ${cmd.description}\n"))
+		emit(Chunk.Data("${cmd.name}  —  ${cmd.description}"))
 		if (cmd.params.isNotEmpty()) {
-			emit(Chunk.Data("\n" + I18n.get("cmd.params") + "\n"))
+			emit(Chunk.Data(""))
+			emit(Chunk.Data(I18n.get("cmd.params")))
 			for (p in cmd.params) {
 				val required = if (p.required) " " + I18n.get("param.required") else ""
-				emit(Chunk.Data("  ${formatParam(p)}  —  ${p.description}$required\n"))
+				emit(Chunk.Data("  ${formatParam(p)}  —  ${p.description}$required"))
 			}
 		}
 	}

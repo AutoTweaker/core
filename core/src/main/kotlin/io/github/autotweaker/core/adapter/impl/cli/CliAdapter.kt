@@ -45,6 +45,9 @@ class CliAdapter : AdapterAPI {
 			source = Url("https://github.com/AutoTweaker/core"),
 		)
 		adapterName = info.name
+		logger.info(
+			"CliAdapter loaded  adapter={}  version={}  coreVersion={}", adapterName, adapterVersion, coreVersion
+		)
 		return info
 	}
 	

@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.adapter.impl.cli
 
 data class ParsedRequest(
-	val stdin: String,
 	val values: Map<String, String>,
 	val positional: List<String>,
 	val prog: String = "autotweaker",

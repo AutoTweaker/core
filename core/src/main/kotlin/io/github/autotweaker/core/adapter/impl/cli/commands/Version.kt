@@ -42,5 +42,6 @@ class Version : Command {
 	
 	override fun handle(request: ParsedRequest, prompt: suspend (String) -> String): Flow<Chunk> = flowOf(
 		Chunk.Data(coreVersion.toString()),
+		Chunk.Done(),
 	)
 }

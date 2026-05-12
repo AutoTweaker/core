@@ -216,7 +216,7 @@ tasks.named<ProcessResources>("processResources") {
 
 val generatedVersionFile = layout.buildDirectory.file("generated/version/version.properties")
 
-val generatedVersion = provider<String> {
+val generatedVersion = provider {
 	val f = generatedVersionFile.get().asFile
 	if (f.exists()) {
 		f.readText().removePrefix("version=").trim()

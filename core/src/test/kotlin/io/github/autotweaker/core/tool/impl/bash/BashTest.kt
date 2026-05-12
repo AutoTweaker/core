@@ -362,17 +362,17 @@ class BashTest {
 		bash.setEnv("MY_VAR", "my_value")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo \$MY_VAR", 30, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
+		coEvery { bashService.run($$"echo $MY_VAR", 30, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
 			exitCode = 0, stdout = "my_value", stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		
 		val input = ToolInput(
-			args("echo \$MY_VAR", envIds = listOf("MY_VAR")), container(bashService)
+			args($$"echo $MY_VAR", envIds = listOf("MY_VAR")), container(bashService)
 		)
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
-		coVerify { bashService.run("echo \$MY_VAR", 30, mapOf("MY_VAR" to "my_value")) }
+		coVerify { bashService.run($$"echo $MY_VAR", 30, mapOf("MY_VAR" to "my_value")) }
 	}
 	
 	@Test

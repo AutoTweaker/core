@@ -80,7 +80,7 @@ class BashServiceImplTest {
 	@Test
 	fun `run local with environment variables`() = runTest {
 		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run("echo \$MY_VAR", timeoutSeconds = 10, mapOf("MY_VAR" to "test_value"))
+		val result = service.run($$"echo $MY_VAR", timeoutSeconds = 10, mapOf("MY_VAR" to "test_value"))
 		
 		assertEquals(0, result.exitCode)
 		assertEquals("test_value\n", result.stdout)

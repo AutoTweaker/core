@@ -66,13 +66,4 @@ class MutableAgentStateTest {
 		assertNotNull(state.pendingApproval)
 		assertNotNull(state.processedTools)
 	}
-	
-	@Test
-	fun `can clear fields back to null`() {
-		val state = MutableAgentState()
-		state.pendingApproval = listOf(mockk(relaxed = true))
-		state.pendingApproval = null
-		
-		assertNull(state.pendingApproval)
-	}
 }

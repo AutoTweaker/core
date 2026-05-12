@@ -31,25 +31,20 @@ import org.slf4j.LoggerFactory
 object JsonStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
-	private lateinit var store: H2DatabaseStore
+	private lateinit var db: org.jetbrains.exposed.v1.jdbc.Database
 	private var initialized = false
 	
 	@Synchronized
 	fun init() {
 		if (initialized) return
-		store = H2DatabaseStore()
-		store.connect("AppConfig")
-		transaction { SchemaUtils.create(JsonStoreTable) }
+		db = H2DatabaseStore.connect("AppConfig")
+		transaction(db) { SchemaUtils.create(JsonStoreTable) }
 		initialized = true
 		logger.info("JsonStore initialized  table=json_store")
 	}
 	
 	private fun ensureInit() {
 		if (!initialized) init()
-	}
-	
-	fun shutdown() {
-		if (::store.isInitialized) store.shutdown()
 	}
 	
 	fun namespace(name: String): JsonEntry {
@@ -59,24 +54,21 @@ object JsonStore {
 	
 	class JsonEntry(private val namespace: String) {
 		fun get(): JsonElement? {
-			return transaction {
-				JsonStoreTable.selectAll()
-					.where { JsonStoreTable.namespace eq namespace }
-					.singleOrNull()
-					?.let { row ->
-						try {
-							json.parseToJsonElement(row[JsonStoreTable.content])
-						} catch (e: Exception) {
-							logger.warn("Failed to parse JSON  namespace={}  message={}", namespace, e.message)
-							null
-						}
+			return transaction(db) {
+				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
+					try {
+						json.parseToJsonElement(row[JsonStoreTable.content])
+					} catch (e: Exception) {
+						logger.warn("Failed to parse JSON  namespace={}  message={}", namespace, e.message)
+						null
 					}
+				}
 			}
 		}
 		
 		fun set(value: JsonElement) {
 			val content = json.encodeToString(JsonElement.serializer(), value)
-			transaction {
+			transaction(db) {
 				JsonStoreTable.upsert {
 					it[JsonStoreTable.namespace] = namespace
 					it[JsonStoreTable.content] = content

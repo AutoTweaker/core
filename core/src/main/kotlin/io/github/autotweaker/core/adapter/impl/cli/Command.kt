@@ -50,7 +50,9 @@ interface Command {
 	}
 	
 	sealed class Chunk {
-		data class Data(val text: String) : Chunk()
-		data object Done : Chunk()
+		data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : Chunk()
+		data class Done(val exitCode: Int = 0) : Chunk()
+		
+		enum class Channel { STDOUT, STDERR }
 	}
 }
