@@ -74,48 +74,89 @@ class Help(private val loaded: List<Command>) : Command {
 	}
 	
 	companion object {
+		private sealed class ContentNode {
+			data class Label(val text: String, val children: List<ContentNode>) : ContentNode()
+			data class Group(val children: List<ContentNode>) : ContentNode()
+			data class Leaf(val text: String) : ContentNode()
+		}
+		
+		private fun Syntax.toContent(ancestorOptional: Boolean = false): ContentNode {
+			val isOptional = ancestorOptional || when (this) {
+				is Syntax.Leaf -> !required
+				is Syntax.Xor -> !required
+				is Syntax.All -> !required
+			}
+			return when (this) {
+				is Syntax.Leaf -> {
+					val opt = if (isOptional) " ${I18n.get("param.optional")}" else ""
+					ContentNode.Leaf("${param.format()}  —  ${param.description}$opt")
+				}
+				
+				is Syntax.All -> ContentNode.Group(children.map { it.toContent(isOptional) })
+				is Syntax.Xor -> {
+					val opt = if (isOptional) " ${I18n.get("param.optional")}" else ""
+					ContentNode.Label(
+						I18n.get("syntax.xor") + opt,
+						children.map { it.toContent(isOptional) },
+					)
+				}
+			}
+		}
+		
 		fun formatSyntax(root: Syntax): List<String> {
-			val lines = mutableListOf<String>()
-			when (root) {
-				is Syntax.Leaf -> appendParam(root, lines, "")
-				is Syntax.All -> renderChildren(root.children, lines, "", root.required)
-				is Syntax.Xor -> {
-					lines.add(I18n.get("syntax.xor"))
-					renderChildren(root.children, lines, "  ", root.required)
-				}
-			}
-			return lines
+			return renderRoot(root.toContent())
 		}
 		
-		private fun renderTree(node: Syntax, lines: MutableList<String>, isLast: Boolean, bars: String) {
+		private fun renderRoot(node: ContentNode): List<String> {
+			return when (node) {
+				is ContentNode.Label -> {
+					val result = mutableListOf(node.text)
+					for (i in node.children.indices) {
+						result.addAll(render(node.children[i], "", i == node.children.lastIndex))
+					}
+					result
+				}
+				
+				is ContentNode.Group -> {
+					val result = mutableListOf<String>()
+					for (i in node.children.indices) {
+						result.addAll(render(node.children[i], "", i == node.children.lastIndex))
+					}
+					result
+				}
+				
+				is ContentNode.Leaf -> listOf(node.text)
+			}
+		}
+		
+		private fun render(node: ContentNode, bars: String, isLast: Boolean): List<String> {
 			val connector = if (isLast) "└── " else "├── "
-			
-			when (node) {
-				is Syntax.Leaf -> appendParam(node, lines, "$bars$connector")
-				is Syntax.All -> renderChildren(node.children, lines, bars, node.required)
-				is Syntax.Xor -> {
-					lines.add("$bars$connector${I18n.get("syntax.xor")}")
+			return when (node) {
+				is ContentNode.Leaf -> listOf("$bars$connector${node.text}")
+				is ContentNode.Label -> {
+					val result = mutableListOf("$bars$connector${node.text}")
 					val childBars = bars + if (isLast) "    " else "│   "
-					renderChildren(node.children, lines, childBars, node.required)
+					for (i in node.children.indices) {
+						result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
+					}
+					result
+				}
+				
+				is ContentNode.Group -> {
+					if (node.children.isEmpty()) return emptyList()
+					val result = mutableListOf<String>()
+					val hasMore = node.children.size > 1
+					
+					val firstIsLast = isLast && (bars.isEmpty() || !hasMore)
+					result.addAll(render(node.children.first(), bars, firstIsLast))
+					
+					val childBars = bars + if (firstIsLast) "    " else "│   "
+					for (i in 1 until node.children.size) {
+						result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
+					}
+					result
 				}
 			}
-		}
-		
-		private fun renderChildren(
-			children: List<Syntax>, lines: MutableList<String>, bars: String, required: Boolean
-		) {
-			for ((i, child) in children.withIndex()) {
-				renderTree(child, lines, i == children.lastIndex, bars)
-			}
-			if (!required && lines.isNotEmpty()) {
-				lines[lines.lastIndex] += " ${I18n.get("param.optional")}"
-			}
-		}
-		
-		private fun appendParam(node: Syntax.Leaf, lines: MutableList<String>, prefix: String) {
-			val p = node.param
-			val req = if (node.required) " ${I18n.get("param.required")}" else ""
-			lines.add("$prefix${p.format()}  —  ${p.description}$req")
 		}
 	}
 }

@@ -45,20 +45,22 @@ class Config : Command {
 						Syntax.leaf(Param.Flag("list", I18n.get("cfg.list")), required = true),
 					),
 					Syntax.all(
-						Syntax.leaf(Param.Value("search", I18n.get("cfg.search")), required = true),
+						Syntax.leaf(
+							Param.Value("search", I18n.get("cfg.search"), aliases = emptyList()), required = true
+						),
 						Syntax.xor(
-							Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"))),
-							Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"))),
-							Syntax.leaf(Param.Flag("desc", I18n.get("cfg.search.desc"))),
+							Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"), aliases = emptyList())),
+							Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"), aliases = emptyList())),
+							Syntax.leaf(Param.Flag("desc", I18n.get("cfg.search.desc"), aliases = emptyList())),
 							required = false,
 						),
 					),
 				),
-				Syntax.leaf(Param.Value("limit", I18n.get("cfg.limit"))),
+				Syntax.leaf(Param.Value("limit", I18n.get("cfg.limit"), aliases = emptyList())),
 				Syntax.leaf(Param.Flag("full", I18n.get("cfg.full"))),
 			), Syntax.all(
 				Syntax.leaf(Param.Value("set", I18n.get("cfg.set")), required = true),
-				Syntax.leaf(Param.Positional("value", I18n.get("cfg.set.value"))),
+				Syntax.leaf(Param.Positional("value", I18n.get("cfg.set.value")), required = true),
 			)
 		)
 	

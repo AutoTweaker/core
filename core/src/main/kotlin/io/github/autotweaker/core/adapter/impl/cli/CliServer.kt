@@ -20,6 +20,7 @@ package io.github.autotweaker.core.adapter.impl.cli
 
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.net.StandardProtocolFamily
@@ -30,12 +31,16 @@ import java.nio.channels.SocketChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.PosixFilePermissions
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
 
 class CliServer {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+	private val activeClients = ConcurrentHashMap.newKeySet<SocketChannel>()
+	private val connectionLimit = Semaphore(64)
 	private lateinit var channel: ServerSocketChannel
 	
 	fun start(router: CommandRouter) {
@@ -46,20 +51,32 @@ class CliServer {
 		channel = ServerSocketChannel.open(StandardProtocolFamily.UNIX).apply {
 			bind(UnixDomainSocketAddress.of(path))
 		}
+		Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
 		logger.info("CliServer started  socketPath={}", path)
 		
 		scope.launch {
 			while (channel.isOpen) {
 				val client = runCatching { channel.accept() }.getOrNull() ?: break
 				logger.debug("Client connected")
-				scope.launch { handle(client, router) }
+				connectionLimit.acquire()
+				activeClients.add(client)
+				scope.launch {
+					try {
+						handle(client, router)
+					} finally {
+						activeClients.remove(client)
+						connectionLimit.release()
+					}
+				}
 			}
 		}
 	}
 	
 	fun stop() {
-		scope.cancel()
+		activeClients.forEach { runCatching { it.close() } }
+		activeClients.clear()
 		runCatching { channel.close() }
+		scope.cancel()
 		runCatching { socketPath().deleteIfExists() }
 		logger.info("CliServer stopped  socketPath={}", socketPath())
 	}
@@ -73,7 +90,8 @@ class CliServer {
 			val prompt: suspend (String) -> String = { text ->
 				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text)))
 				val reply = json.decodeFromString<CliMessage>(readLine(client) ?: "")
-				(reply as? CliMessage.PromptResponse)?.text ?: ""
+				(reply as? CliMessage.PromptResponse)?.text
+					?: throw IllegalStateException("Expected PromptResponse, got ${reply::class.simpleName}")
 			}
 			
 			var sawDone = false
@@ -123,13 +141,16 @@ class CliServer {
 			buf.clear()
 			val n = channel.read(buf)
 			if (n == -1) return sb.toString().ifEmpty { null }
-			if (n == 0) continue
 			buf.flip()
 			val chunk = StandardCharsets.UTF_8.decode(buf).toString()
 			val nl = chunk.indexOf('\n')
 			if (nl >= 0) {
 				sb.append(chunk, 0, nl)
 				return sb.toString()
+			}
+			if (sb.length > MAX_LINE_LENGTH) {
+				logger.warn("Line exceeded max length  length={}", sb.length)
+				return null
 			}
 			sb.append(chunk)
 		}
@@ -145,6 +166,8 @@ class CliServer {
 	}
 	
 	companion object {
+		private const val MAX_LINE_LENGTH = 10_485_760  // 10 MB
+		
 		private fun socketPath(): Path = Path.of(
 			System.getProperty("user.home"),
 			".config", "autotweaker", "cli.sock",
