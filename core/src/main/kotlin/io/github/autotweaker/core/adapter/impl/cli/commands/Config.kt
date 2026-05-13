@@ -37,29 +37,30 @@ class Config : Command {
 	override val name: String = "cfg"
 	override val description: String
 		get() = I18n.get("cfg.desc")
-	override val syntax = Syntax.xor(
-		Syntax.all(
-			Syntax.xor(
-				Syntax.all(
-					Syntax.leaf(Param.Flag("list", I18n.get("cfg.list")), required = true),
-				),
-				Syntax.all(
-					Syntax.leaf(Param.Value("search", I18n.get("cfg.search")), required = true),
-					Syntax.xor(
-						Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"))),
-						Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"))),
-						Syntax.leaf(Param.Flag("desc", I18n.get("cfg.search.desc"))),
-						required = false,
+	override val syntax
+		get() = Syntax.xor(
+			Syntax.all(
+				Syntax.xor(
+					Syntax.all(
+						Syntax.leaf(Param.Flag("list", I18n.get("cfg.list")), required = true),
+					),
+					Syntax.all(
+						Syntax.leaf(Param.Value("search", I18n.get("cfg.search")), required = true),
+						Syntax.xor(
+							Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"))),
+							Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"))),
+							Syntax.leaf(Param.Flag("desc", I18n.get("cfg.search.desc"))),
+							required = false,
+						),
 					),
 				),
-			),
-			Syntax.leaf(Param.Value("limit", I18n.get("cfg.limit"))),
-			Syntax.leaf(Param.Flag("full", I18n.get("cfg.full"))),
-		), Syntax.all(
-			Syntax.leaf(Param.Value("set", I18n.get("cfg.set")), required = true),
-			Syntax.leaf(Param.Positional("value", I18n.get("cfg.set.value"))),
+				Syntax.leaf(Param.Value("limit", I18n.get("cfg.limit"))),
+				Syntax.leaf(Param.Flag("full", I18n.get("cfg.full"))),
+			), Syntax.all(
+				Syntax.leaf(Param.Value("set", I18n.get("cfg.set")), required = true),
+				Syntax.leaf(Param.Positional("value", I18n.get("cfg.set.value"))),
+			)
 		)
-	)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core

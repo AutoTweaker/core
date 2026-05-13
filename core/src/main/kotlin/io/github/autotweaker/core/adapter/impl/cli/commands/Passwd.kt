@@ -37,11 +37,12 @@ class Passwd : Command {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	override val name = "passwd"
 	override val description get() = I18n.get("cmd.passwd.desc")
-	override val syntax = Syntax.xor(
-		Syntax.leaf(Param.Flag("unlock", I18n.get("passwd.param.unlock"))),
-		Syntax.leaf(Param.Flag("remove", I18n.get("passwd.param.remove"))),
-		required = false,
-	)
+	override val syntax
+		get() = Syntax.xor(
+			Syntax.leaf(Param.Flag("unlock", I18n.get("passwd.param.unlock"))),
+			Syntax.leaf(Param.Flag("remove", I18n.get("passwd.param.remove"))),
+			required = false,
+		)
 	private lateinit var core: CoreAPI
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {

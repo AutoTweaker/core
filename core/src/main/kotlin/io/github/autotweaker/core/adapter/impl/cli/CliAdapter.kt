@@ -51,8 +51,8 @@ class CliAdapter : AdapterAPI {
 	}
 	
 	override fun start(core: CoreAPI) {
-		val router = CommandRouter(core, coreVersion ?: error("CliAdapter not initialized"))
 		I18n.init(adapterName)
+		val router = CommandRouter(core, coreVersion ?: error("CliAdapter not initialized"))
 		server.start(router)
 		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)
 	}

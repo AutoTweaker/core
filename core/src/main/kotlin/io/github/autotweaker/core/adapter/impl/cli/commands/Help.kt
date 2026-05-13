@@ -31,10 +31,11 @@ import kotlinx.coroutines.flow.flow
 class Help(private val loaded: List<Command>) : Command {
 	override val name = "help"
 	override val description get() = I18n.get("cmd.help.desc")
-	override val syntax = Syntax.all(
-		Syntax.leaf(Param.Positional("command", I18n.get("cmd.help.param.command"))),
-		required = false,
-	)
+	override val syntax
+		get() = Syntax.all(
+			Syntax.leaf(Param.Positional("command", I18n.get("cmd.help.param.command"))),
+			required = false,
+		)
 	
 	private val all: List<Command> get() = loaded + this
 	
