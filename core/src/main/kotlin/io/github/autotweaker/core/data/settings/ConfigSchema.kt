@@ -31,65 +31,62 @@ object ConfigTable : Table("core_settings") {
 
 @Serializable
 data class SettingItem(
-	val key: SettingKey,
-	val value: Value,
-	val description: String
+	val key: SettingKey, val value: Value, val description: String
 ) {
 	@Serializable
 	sealed class Value {
 		abstract val value: Any?
-		
-		//基本类型
-		@Serializable
-		data class ValByte(
-			override val value: Byte
-		) : Value()
+		abstract fun parse(raw: String): Value
 		
 		@Serializable
-		data class ValShort(
-			override val value: Short
-		) : Value()
+		data class ValByte(override val value: Byte) : Value() {
+			override fun parse(raw: String) = ValByte(raw.toByte())
+		}
 		
 		@Serializable
-		data class ValInt(
-			override val value: Int
-		) : Value()
+		data class ValShort(override val value: Short) : Value() {
+			override fun parse(raw: String) = ValShort(raw.toShort())
+		}
 		
 		@Serializable
-		data class ValLong(
-			override val value: Long
-		) : Value()
+		data class ValInt(override val value: Int) : Value() {
+			override fun parse(raw: String) = ValInt(raw.toInt())
+		}
 		
 		@Serializable
-		data class ValFloat(
-			override val value: Float
-		) : Value()
+		data class ValLong(override val value: Long) : Value() {
+			override fun parse(raw: String) = ValLong(raw.toLong())
+		}
 		
 		@Serializable
-		data class ValDouble(
-			override val value: Double
-		) : Value()
+		data class ValFloat(override val value: Float) : Value() {
+			override fun parse(raw: String) = ValFloat(raw.toFloat())
+		}
 		
 		@Serializable
-		data class ValBoolean(
-			override val value: Boolean
-		) : Value()
+		data class ValDouble(override val value: Double) : Value() {
+			override fun parse(raw: String) = ValDouble(raw.toDouble())
+		}
 		
 		@Serializable
-		data class ValChar(
-			override val value: Char
-		) : Value()
+		data class ValBoolean(override val value: Boolean) : Value() {
+			override fun parse(raw: String) = ValBoolean(raw.toBooleanStrict())
+		}
 		
 		@Serializable
-		data class ValString(
-			override val value: String
-		) : Value()
+		data class ValChar(override val value: Char) : Value() {
+			override fun parse(raw: String) = ValChar(raw.single())
+		}
+		
+		@Serializable
+		data class ValString(override val value: String) : Value() {
+			override fun parse(raw: String) = ValString(raw)
+		}
 	}
 }
 
 inline fun <reified T> List<SettingItem>.find(key: String): T {
-	val value = find { it.key == SettingKey(key) }?.value
-		?: throw IllegalArgumentException("Setting not found: $key")
+	val value = find { it.key == SettingKey(key) }?.value ?: throw IllegalArgumentException("Setting not found: $key")
 	return value.value as? T
 		?: throw IllegalArgumentException("Setting type mismatch for $key: expected ${T::class.simpleName}, got ${value::class.simpleName}")
 }
