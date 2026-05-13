@@ -263,9 +263,19 @@ publishing {
 	}
 }
 
+// endregion
+
+tasks.register<Exec>("compileAutotweakerCli") {
+	description = "编译 C 编写的 autotweaker CLI 客户端"
+	workingDir = file("${rootProject.projectDir}/cli")
+	commandLine("make")
+	inputs.dir(workingDir).withPropertyName("cliSourceDir").withPathSensitivity(PathSensitivity.RELATIVE)
+	outputs.file("${workingDir}/build/autotweaker")
+}
+
 tasks.register<Exec>("buildDeb") {
 	description = "构建 .deb 包"
-	dependsOn("installDist")
+	dependsOn("installDist", "compileAutotweakerCli")
 	workingDir = rootProject.projectDir
 	commandLine("bash", "scripts/build-deb.sh", project.version.toString())
 }
@@ -281,5 +291,3 @@ tasks.register<Exec>("releaseTag") {
 	""".trimIndent()
 	)
 }
-
-// endregion

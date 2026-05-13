@@ -38,3 +38,6 @@ bin/
 .claude
 .kotlin
 /htmlReport
+
+# C CLI build output
+cli/build/

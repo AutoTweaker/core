@@ -38,7 +38,7 @@ mkdir -p "$PKG_ROOT/usr/bin"
 cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
 
 # CLI 脚本和服务（由 dpkg 管理）
-install -m 755 -D "$SCRIPT_DIR/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
+install -m 755 -D "$PROJECT_DIR/cli/build/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
 install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
 install -m 644 -D "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/lib/systemd/user/autotweaker.service"
 
