@@ -17,7 +17,7 @@
  */
 
 #define _GNU_SOURCE
-#include "cJSON.h"
+#include <cjson/cJSON.h>
 
 #include <errno.h>
 #include <fcntl.h>
