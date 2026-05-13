@@ -44,7 +44,7 @@ class Config : Command {
 					Syntax.leaf(Param.Flag("list", I18n.get("cfg.list")), required = true),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("search", I18n.get("cfg.search")), required = true),
+					Syntax.leaf(Param.Value("search", I18n.get("cfg.search")), required = true),
 					Syntax.xor(
 						Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"))),
 						Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"))),

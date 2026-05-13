@@ -71,7 +71,7 @@ class CliServer {
 			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: return
 			
 			val prompt: suspend (String) -> String = { text ->
-				write(client, json.encodeToString(CliResponse.Prompt(text)))
+				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text)))
 				val reply = json.decodeFromString<CliMessage>(readLine(client) ?: "")
 				(reply as? CliMessage.PromptResponse)?.text ?: ""
 			}
@@ -82,30 +82,36 @@ class CliServer {
 				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
 						is Chunk.Data -> write(
-							client, json.encodeToString(
+							client, json.encodeToString<CliResponse>(
 								CliResponse.Data(chunk.text, chunk.channel.name.lowercase(), chunk.newline)
 							)
 						)
 						
 						is Chunk.Done -> {
 							sawDone = true
-							write(client, json.encodeToString(CliResponse.Done(chunk.exitCode)))
+							write(client, json.encodeToString<CliResponse>(CliResponse.Done(chunk.exitCode)))
 							return@collect
 						}
 					}
 				}
 			} catch (e: Exception) {
 				logger.error("Command failed  command={}", cmdName, e)
-				write(
-					client, json.encodeToString(
-						CliResponse.Data(e.message ?: "Internal error", "stderr", true)
-					)
-				)
+				if (e !is java.io.IOException) {
+					runCatching {
+						write(
+							client, json.encodeToString<CliResponse>(
+								CliResponse.Data(e.message ?: "Internal error", "stderr", true)
+							)
+						)
+					}
+				}
 			}
 			
 			if (!sawDone) {
 				logger.error("Command did not emit Done  command={}", cmdName)
-				write(client, json.encodeToString(CliResponse.Done(1)))
+				runCatching {
+					write(client, json.encodeToString<CliResponse>(CliResponse.Done(1)))
+				}
 			}
 		}
 	}
