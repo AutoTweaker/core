@@ -61,7 +61,7 @@ while true; do
     sleep 0.1
 done
 
-request=$(printf '{"args":%s,"prog":"%s"}\n' \
+request=$(printf '{"type":"cmd","args":%s,"prog":"%s"}\n' \
     "$(printf '%s\n' "$@" | jq -R . | jq -s -c .)" \
     "$(basename "$0")")
 
@@ -96,7 +96,7 @@ while read -r line <&"${sock[0]}"; do
             else
                 IFS= read -r answer
             fi
-            printf '%s\n' "$answer" >&"${sock[1]}"
+            printf '{"type":"reply","text":%s}\n' "$(printf '%s' "$answer" | jq -R .)" >&"${sock[1]}"
             ;;
         *)
             break

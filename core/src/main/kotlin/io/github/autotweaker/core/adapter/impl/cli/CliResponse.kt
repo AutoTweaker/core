@@ -18,12 +18,20 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
-data class ParsedRequest(
-	val values: Map<String, String>,
-	val positional: List<String>,
-	val prog: String = "autotweaker",
-) {
-	fun get(name: String): String? = values[name]
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+sealed class CliResponse {
+	@Serializable
+	@SerialName("prompt")
+	data class Prompt(val text: String) : CliResponse()
 	
-	fun has(name: String): Boolean = name in values
+	@Serializable
+	@SerialName("data")
+	data class Data(val text: String, val channel: String, val newline: Boolean) : CliResponse()
+	
+	@Serializable
+	@SerialName("done")
+	data class Done(val exitCode: Int) : CliResponse()
 }

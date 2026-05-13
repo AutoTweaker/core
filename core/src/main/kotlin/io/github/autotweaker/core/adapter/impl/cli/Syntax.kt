@@ -18,22 +18,15 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
-import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.SemVer
-import kotlinx.coroutines.flow.Flow
-
-interface Command {
-	val name: String
-	val description: String
-	val syntax: Syntax
+sealed class Syntax {
+	data class All(val children: List<Syntax>, val required: Boolean = true) : Syntax()
+	data class Xor(val children: List<Syntax>, val required: Boolean = true) : Syntax()
+	data class Leaf(val param: Param, val required: Boolean = false) : Syntax()
 	
-	fun init(core: CoreAPI, coreVersion: SemVer) {}
-	fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk>
-	
-	sealed class Chunk {
-		data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : Chunk()
-		data class Done(val exitCode: Int = 0) : Chunk()
-		
-		enum class Channel { STDOUT, STDERR }
+	companion object {
+		fun all(vararg children: Syntax, required: Boolean = true) = All(children.toList(), required)
+		fun xor(vararg children: Syntax, required: Boolean = true) = Xor(children.toList(), required)
+		fun leaf(param: Param, required: Boolean = false) = Leaf(param, required)
+		fun none() = All(emptyList(), required = false)
 	}
 }

@@ -23,8 +23,8 @@ import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
-import io.github.autotweaker.core.adapter.impl.cli.Command.Param
-import io.github.autotweaker.core.adapter.impl.cli.ParsedRequest
+import io.github.autotweaker.core.adapter.impl.cli.Request
+import io.github.autotweaker.core.adapter.impl.cli.Syntax
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -33,14 +33,14 @@ import kotlinx.coroutines.flow.flow
 class Status : Command {
 	override val name = "status"
 	override val description get() = I18n.get("cmd.status.desc")
-	override val params = emptyList<Param>()
+	override val syntax = Syntax.none()
 	private lateinit var core: CoreAPI
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
 	}
 	
-	override fun handle(request: ParsedRequest, prompt: suspend (String) -> String): Flow<Chunk> = flow {
+	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flow {
 		val keystoreState = when {
 			core.isPasswordEmpty -> I18n.get("status.unlocked")
 			core.isUnlocked -> I18n.get("status.unlocked.password_set")

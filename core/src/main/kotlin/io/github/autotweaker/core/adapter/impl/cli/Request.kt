@@ -18,23 +18,13 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 data class Request(
-	val args: List<String> = emptyList(),
+	val values: Map<String, String>,
+	val positional: List<String>,
 	val prog: String = "autotweaker",
+	private val aliasToCanonical: Map<String, String> = emptyMap(),
 ) {
-	fun command(): String = args.firstOrNull() ?: ""
+	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }
 	
-	@Suppress("unused")
-	fun arg(index: Int): String? = args.getOrNull(index)
-	
-	fun option(long: String, short: String): String? {
-		val idx = args.indexOf(long).let { if (it >= 0) it else args.indexOf(short) }
-		return if (idx >= 0) args.getOrNull(idx + 1) else null
-	}
-	
-	@Suppress("unused")
-	fun flag(name: String): Boolean = name in args
+	fun has(name: String): Boolean = name in values || aliasToCanonical[name] in values
 }

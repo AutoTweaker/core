@@ -18,22 +18,32 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
-import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.SemVer
-import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-interface Command {
-	val name: String
-	val description: String
-	val syntax: Syntax
-	
-	fun init(core: CoreAPI, coreVersion: SemVer) {}
-	fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk>
-	
-	sealed class Chunk {
-		data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : Chunk()
-		data class Done(val exitCode: Int = 0) : Chunk()
+@Serializable
+sealed class CliMessage {
+	@Serializable
+	@SerialName("cmd")
+	data class Command(
+		val args: List<String> = emptyList(),
+		val prog: String = "autotweaker",
+	) : CliMessage() {
+		fun command(): String = args.firstOrNull() ?: ""
 		
-		enum class Channel { STDOUT, STDERR }
+		@Suppress("unused")
+		fun arg(index: Int): String? = args.getOrNull(index)
+		
+		fun option(long: String, short: String): String? {
+			val idx = args.indexOf(long).let { if (it >= 0) it else args.indexOf(short) }
+			return if (idx >= 0) args.getOrNull(idx + 1) else null
+		}
+		
+		@Suppress("unused")
+		fun flag(name: String): Boolean = name in args
 	}
+	
+	@Serializable
+	@SerialName("reply")
+	data class PromptResponse(val text: String) : CliMessage()
 }

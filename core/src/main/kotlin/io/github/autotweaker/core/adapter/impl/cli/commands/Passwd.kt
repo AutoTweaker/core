@@ -22,8 +22,10 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.Command
-import io.github.autotweaker.core.adapter.impl.cli.Command.*
-import io.github.autotweaker.core.adapter.impl.cli.ParsedRequest
+import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
+import io.github.autotweaker.core.adapter.impl.cli.Param
+import io.github.autotweaker.core.adapter.impl.cli.Request
+import io.github.autotweaker.core.adapter.impl.cli.Syntax
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -35,26 +37,24 @@ class Passwd : Command {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	override val name = "passwd"
 	override val description get() = I18n.get("cmd.passwd.desc")
-	override val params
-		get() = listOf(
-			Param("u", I18n.get("passwd.param.unlock"), type = ParamType.FLAG_SHORT),
-			Param("unlock", I18n.get("passwd.param.unlock"), type = ParamType.FLAG_LONG),
-			Param("r", I18n.get("passwd.param.remove"), type = ParamType.FLAG_SHORT),
-			Param("remove", I18n.get("passwd.param.remove"), type = ParamType.FLAG_LONG),
-		)
+	override val syntax = Syntax.xor(
+		Syntax.leaf(Param.Flag("unlock", I18n.get("passwd.param.unlock"))),
+		Syntax.leaf(Param.Flag("remove", I18n.get("passwd.param.remove"))),
+		required = false,
+	)
 	private lateinit var core: CoreAPI
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
 	}
 	
-	override fun handle(request: ParsedRequest, prompt: suspend (String) -> String): Flow<Chunk> = flow {
-		if (request.has("u") || request.has("unlock")) {
+	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flow {
+		if (request.has("unlock")) {
 			emitAll(handleUnlock(prompt))
 			return@flow
 		}
 		
-		if (request.has("r") || request.has("remove")) {
+		if (request.has("remove")) {
 			emitAll(handleRemove(prompt))
 			return@flow
 		}

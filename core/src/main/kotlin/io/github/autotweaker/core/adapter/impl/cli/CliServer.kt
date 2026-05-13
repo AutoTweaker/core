@@ -21,7 +21,6 @@ package io.github.autotweaker.core.adapter.impl.cli
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.LoggerFactory
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -68,43 +67,45 @@ class CliServer {
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
 		client.use {
 			val line = readLine(client) ?: return
-			logger.debug("Request received  request={}", line)
-			val request = json.decodeFromString<Request>(line)
+			logger.debug("CliMessage received  request={}", line)
+			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: return
 			
 			val prompt: suspend (String) -> String = { text ->
-				write(client, """{"type":"prompt","text":${JsonPrimitive(text)}}""")
-				readLine(client) ?: ""
+				write(client, json.encodeToString(CliResponse.Prompt(text)))
+				val reply = json.decodeFromString<CliMessage>(readLine(client) ?: "")
+				(reply as? CliMessage.PromptResponse)?.text ?: ""
 			}
 			
 			var sawDone = false
+			val cmdName = command.command()
 			try {
-				router.dispatch(request, prompt).collect { chunk ->
+				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
-						is Chunk.Data -> {
-							write(
-								client,
-								"""{"type":"data","text":${JsonPrimitive(chunk.text)},"channel":${JsonPrimitive(chunk.channel.name.lowercase())},"newline":${chunk.newline}}"""
+						is Chunk.Data -> write(
+							client, json.encodeToString(
+								CliResponse.Data(chunk.text, chunk.channel.name.lowercase(), chunk.newline)
 							)
-						}
+						)
 						
 						is Chunk.Done -> {
 							sawDone = true
-							write(client, """{"type":"done","exitCode":${chunk.exitCode}}""")
+							write(client, json.encodeToString(CliResponse.Done(chunk.exitCode)))
 							return@collect
 						}
 					}
 				}
 			} catch (e: Exception) {
-				logger.error("Command failed  command={}", request.command(), e)
+				logger.error("Command failed  command={}", cmdName, e)
 				write(
-					client,
-					"""{"type":"data","text":${JsonPrimitive(e.message ?: "Internal error")},"channel":"stderr","newline":true}"""
+					client, json.encodeToString(
+						CliResponse.Data(e.message ?: "Internal error", "stderr", true)
+					)
 				)
 			}
 			
 			if (!sawDone) {
-				logger.error("Command did not emit Done  command={}", request.command())
-				write(client, """{"type":"done","exitCode":1}""")
+				logger.error("Command did not emit Done  command={}", cmdName)
+				write(client, json.encodeToString(CliResponse.Done(1)))
 			}
 		}
 	}

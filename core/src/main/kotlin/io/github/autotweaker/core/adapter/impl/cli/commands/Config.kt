@@ -19,29 +19,45 @@
 package io.github.autotweaker.core.adapter.impl.cli.commands
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.Command
-import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
+import io.github.autotweaker.core.adapter.impl.cli.Param
 import io.github.autotweaker.core.adapter.impl.cli.Request
 import io.github.autotweaker.core.adapter.impl.cli.Syntax
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 
 @AutoService(Command::class)
-class Version : Command {
-	override val name = "version"
-	override val description get() = I18n.get("cmd.version.desc")
-	override val syntax = Syntax.none()
-	private var coreVersion: SemVer = SemVer.parse("0.0.0")
-	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
-		this.coreVersion = coreVersion
-	}
-	
-	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flowOf(
-		Chunk.Data(coreVersion.toString()),
-		Chunk.Done(),
+class Config : Command {
+	override val name: String = "cfg"
+	override val description: String
+		get() = I18n.get("cfg.desc")
+	override val syntax = Syntax.xor(
+		Syntax.all(
+			Syntax.xor(
+				Syntax.all(
+					Syntax.leaf(Param.Flag("list", I18n.get("cfg.list"))),
+					Syntax.leaf(Param.Value("number", I18n.get("cfg.number"))),
+				),
+				Syntax.all(
+					Syntax.leaf(Param.Flag("search", I18n.get("cfg.search"))),
+					Syntax.xor(
+						Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"))),
+						Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"))),
+						Syntax.leaf(Param.Flag("desc", I18n.get("cfg.search.desc"))),
+						required = false,
+					),
+				),
+			),
+			Syntax.leaf(Param.Value("number", I18n.get("cfg.number"))),
+			Syntax.leaf(Param.Flag("all", I18n.get("cfg.all"))),
+		), Syntax.all(
+			//TODO
+		)
 	)
+	
+	override fun handle(
+		request: Request, prompt: suspend (String) -> String
+	): Flow<Command.Chunk> {
+		TODO("Not yet implemented")
+	}
 }
