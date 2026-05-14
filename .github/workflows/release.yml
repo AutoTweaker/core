@@ -27,13 +27,16 @@ jobs:
       - name: Build and package
         run: ./gradlew :core:distZip :core:distTar
 
+      - name: Install build dependencies
+        run: sudo apt-get update -y && sudo apt-get install -y libcjson-dev
+
+      - name: Build .deb package
+        run: ./gradlew :core:buildDeb
+
       - name: Publish to GitHub Packages
         run: ./gradlew :core:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build .deb package
-        run: ./gradlew :core:buildDeb
 
       - name: Create GitHub Release
         run: |
