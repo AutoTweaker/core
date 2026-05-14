@@ -57,6 +57,15 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 			)
 		}
 		
+		val conflicts = checkParamConflicts(handler.syntax)
+		if (conflicts.isNotEmpty()) {
+			logger.warn("Param name conflict in command  command={}  conflicts={}", cmd, conflicts)
+			return flowOf(
+				Chunk.Data(conflicts.first(), Chunk.Channel.STDERR),
+				Chunk.Done(1),
+			)
+		}
+		
 		logger.debug("Command dispatched  command={}  args={}", cmd, request.args.drop(1))
 		val parsed = parse(request, handler.syntax)
 		if (parsed == null) {
@@ -73,7 +82,13 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 	private fun parse(request: CliMessage.Command, syntax: Syntax): Request? {
 		val positional = mutableListOf<String>()
 		val values = mutableMapOf<String, String>()
-		val allParams = collectParams(syntax).distinctBy { it.name }
+		var posCounter = 0
+		val allParams = collectParams(syntax).map { p ->
+			if (p is Param.Positional) p.copy(name = $$"$pos_$${posCounter++}") else p
+		}.let {
+			it.filterNot { p -> p is Param.Positional }
+				.distinctBy { p -> p.name } + it.filterIsInstance<Param.Positional>()
+		}
 		val aliasMap = buildAliasMap(allParams)
 		val args = request.args.drop(1)
 		if (args.size > maxArgsCount) return null
@@ -176,6 +191,17 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 			}
 		}
 		return map
+	}
+	
+	private fun checkParamConflicts(syntax: Syntax): List<String> {
+		val params = collectParams(syntax).filter { it !is Param.Positional }
+		val seen = mutableMapOf<String, Param>()
+		val conflicts = mutableListOf<String>()
+		for (p in params) {
+			seen[p.name]?.let { conflicts.add("Duplicate param name: ${p.name}") }
+			seen[p.name] = p
+		}
+		return conflicts
 	}
 	
 	private fun countRequiredPositional(syntax: Syntax): Int = when (syntax) {
