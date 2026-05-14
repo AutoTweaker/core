@@ -16,16 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session.workspace
+package io.github.autotweaker.core.data.session
 
-import io.github.autotweaker.core.data.session.PathSerializer
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import java.nio.file.Path
 
-@Serializable
-data class WorkspaceMeta(
-	val name: String,
-	val inContainer: Boolean,
-	@Serializable(with = PathSerializer::class)
-	val path: Path
-)
+object PathSerializer : KSerializer<Path> {
+	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
+	
+	override fun serialize(encoder: Encoder, value: Path) {
+		encoder.encodeString(value.toString())
+	}
+	
+	override fun deserialize(decoder: Decoder): Path {
+		return Path.of(decoder.decodeString())
+	}
+}

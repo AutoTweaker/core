@@ -40,8 +40,9 @@ class Version : Command {
 		this.coreVersion = coreVersion
 	}
 	
-	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flowOf(
-		Chunk.Data(coreVersion.toString()),
-		Chunk.Done(),
-	)
+	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> =
+		flowOf(
+			Chunk.Data(coreVersion.toString()),
+			Chunk.Done(),
+		)
 }

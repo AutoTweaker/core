@@ -49,7 +49,7 @@ class Passwd : Command {
 		this.core = core
 	}
 	
-	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flow {
+	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
 		if (request.has("unlock")) {
 			emitAll(handleUnlock(prompt))
 			return@flow
@@ -63,7 +63,7 @@ class Passwd : Command {
 		emitAll(handleChange(prompt))
 	}
 	
-	private fun handleUnlock(prompt: suspend (String) -> String): Flow<Chunk> = flow {
+	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
 		if (core.isPasswordEmpty) {
 			logger.debug("Unlock skipped  command=passwd  reason=no_password_set")
 			emit(Chunk.Data(I18n.get("unlock.no_password")))
@@ -78,7 +78,7 @@ class Passwd : Command {
 			return@flow
 		}
 		
-		val password = prompt(I18n.get("unlock.prompt")).also { emit(Chunk.Data("")) }
+		val password = prompt(I18n.get("unlock.prompt"), false).also { emit(Chunk.Data("")) }
 		
 		try {
 			core.unlock(password)
@@ -92,8 +92,8 @@ class Passwd : Command {
 		emit(Chunk.Done())
 	}
 	
-	private fun handleRemove(prompt: suspend (String) -> String): Flow<Chunk> = flow {
-		val password = prompt(I18n.get("unlock.prompt"))
+	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
+		val password = prompt(I18n.get("unlock.prompt"), false)
 		emit(Chunk.Data(""))
 		try {
 			if (!core.isUnlocked) {
@@ -110,16 +110,16 @@ class Passwd : Command {
 		emit(Chunk.Done())
 	}
 	
-	private fun handleChange(prompt: suspend (String) -> String): Flow<Chunk> = flow {
+	private fun handleChange(prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
 		val oldPassword = if (core.isPasswordEmpty) {
 			""
 		} else {
-			prompt(I18n.get("unlock.prompt")).also { emit(Chunk.Data("")) }
+			prompt(I18n.get("unlock.prompt"), false).also { emit(Chunk.Data("")) }
 		}
 		
-		val newPassword = prompt(I18n.get("passwd.prompt_new"))
+		val newPassword = prompt(I18n.get("passwd.prompt_new"), false)
 		emit(Chunk.Data(" " + I18n.get("passwd.length", newPassword.length)))
-		val confirm = prompt(I18n.get("passwd.prompt_confirm"))
+		val confirm = prompt(I18n.get("passwd.prompt_confirm"), false)
 		emit(Chunk.Data(""))
 		
 		if (newPassword != confirm) {

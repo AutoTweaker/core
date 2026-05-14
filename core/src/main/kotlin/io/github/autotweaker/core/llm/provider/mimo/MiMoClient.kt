@@ -42,12 +42,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
-					amount = BigDecimal(7),
+					amount = BigDecimal("7"),
 					currency = Currency.getInstance(Locale.CHINA),
 					unit = 100_0000
 				),
 				cachedPrice = Price(
-					amount = BigDecimal(1.4),
+					amount = BigDecimal("1.4"),
 					currency = Currency.getInstance(Locale.CHINA),
 					unit = 100_0000
 				),
@@ -55,12 +55,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			Provider.Model.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
-					amount = BigDecimal(14),
+					amount = BigDecimal("14"),
 					currency = Currency.getInstance(Locale.CHINA),
 					unit = 100_0000
 				),
 				cachedPrice = Price(
-					amount = BigDecimal(2.8),
+					amount = BigDecimal("2.8"),
 					currency = Currency.getInstance(Locale.CHINA),
 					unit = 100_0000
 				),
@@ -71,7 +71,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
-					amount = BigDecimal(21),
+					amount = BigDecimal("21"),
 					currency = Currency.getInstance(Locale.CHINA),
 					unit = 100_0000
 				),
@@ -79,7 +79,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			Provider.Model.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
-					amount = BigDecimal(42),
+					amount = BigDecimal("42"),
 					currency = Currency.getInstance(Locale.CHINA),
 					unit = 100_0000
 				),
@@ -122,12 +122,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(2.8),
+								amount = BigDecimal("2.8"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal(0.56),
+								amount = BigDecimal("0.56"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -137,7 +137,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(14),
+								amount = BigDecimal("14"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -160,12 +160,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
-								amount = BigDecimal(2.8),
+								amount = BigDecimal("2.8"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal(0.56),
+								amount = BigDecimal("0.56"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -173,12 +173,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
-								amount = BigDecimal(5.6),
+								amount = BigDecimal("5.6"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal(1.12),
+								amount = BigDecimal("1.12"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -189,7 +189,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
-								amount = BigDecimal(14),
+								amount = BigDecimal("14"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -197,7 +197,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
-								amount = BigDecimal(28),
+								amount = BigDecimal("28"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -219,12 +219,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(0.7),
+								amount = BigDecimal("0.7"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal(0.07),
+								amount = BigDecimal("0.07"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
@@ -234,7 +234,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						Provider.Model.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
-								amount = BigDecimal(2.1),
+								amount = BigDecimal("2.1"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),

@@ -40,7 +40,7 @@ class Status : Command {
 		this.core = core
 	}
 	
-	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flow {
+	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
 		val keystoreState = when {
 			core.isPasswordEmpty -> I18n.get("status.unlocked")
 			core.isUnlocked -> I18n.get("status.unlocked.password_set")

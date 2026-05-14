@@ -77,7 +77,7 @@ class CommandRouterTest {
 	private fun dispatch(vararg args: String): List<Chunk> = runBlocking {
 		router.dispatch(
 			CliMessage.Command(args = listOf("autotweaker", *args)),
-		) { "" }.toList()
+		) { _, _ -> "" }.toList()
 	}
 	
 	private fun List<Chunk>.done(): Chunk.Done = last() as Chunk.Done
@@ -90,7 +90,7 @@ class CommandRouterTest {
 	@Test
 	fun `empty command shows copyright`() {
 		val r = runBlocking {
-			router.dispatch(CliMessage.Command(args = emptyList())) { "" }.toList()
+			router.dispatch(CliMessage.Command(args = emptyList())) { _, _ -> "" }.toList()
 		}
 		assertEquals(0, r.done().exitCode)
 		assertTrue(r.stdout().any { it.contains("AutoTweaker") })

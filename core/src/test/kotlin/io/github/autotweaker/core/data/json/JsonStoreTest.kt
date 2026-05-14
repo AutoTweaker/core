@@ -20,8 +20,8 @@ package io.github.autotweaker.core.data.json
 
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import io.mockk.every
-import io.mockk.mockkConstructor
-import io.mockk.unmockkConstructor
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -33,8 +33,8 @@ class JsonStoreTest {
 	
 	@BeforeTest
 	fun setUp() {
-		mockkConstructor(H2DatabaseStore::class)
-		every { anyConstructed<H2DatabaseStore>().connect(any()) } answers {
+		mockkObject(H2DatabaseStore)
+		every { H2DatabaseStore.connect(any()) } answers {
 			Database.connect("jdbc:h2:mem:js;DB_CLOSE_DELAY=-1", "org.h2.Driver")
 		}
 		val field = JsonStore::class.java.getDeclaredField("initialized")
@@ -44,7 +44,7 @@ class JsonStoreTest {
 	
 	@AfterTest
 	fun tearDown() {
-		unmockkConstructor(H2DatabaseStore::class)
+		unmockkObject(H2DatabaseStore)
 	}
 	
 	@Test
@@ -58,20 +58,7 @@ class JsonStoreTest {
 		JsonStore.init()
 		val entry = JsonStore.namespace("test_ns")
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
-		try {
-			entry.set(data)
-		} catch (_: org.jetbrains.exposed.v1.exceptions.ExposedSQLException) {
-			// upsert SQL bug in Exposed 1.2.0 H2 — set() code path exercised
-		}
-		// Manually insert and verify get reads back
-		val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; prettyPrint = false }
-		val encoded = json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), data)
-		transaction {
-			JsonStoreTable.insert {
-				it[JsonStoreTable.namespace] = "test_ns"
-				it[JsonStoreTable.content] = encoded
-			}
-		}
+		entry.set(data)
 		assertNotNull(entry.get())
 	}
 	

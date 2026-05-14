@@ -31,9 +31,9 @@ import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.tool.impl.bash.Bash
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
 object ConfigManager {
@@ -185,7 +185,8 @@ object ConfigManager {
 			private val jsonEntry = JsonStore.namespace(this::class.java.name)
 			private val keyMap: MutableMap<String, @Serializable(with = UuidSerializer::class) UUID> = mutableMapOf()
 			
-			fun set(key: CoreConfig.ProviderConfig.ApiKey) {
+			fun add(key: CoreConfig.ProviderConfig.ApiKey) {
+				if (keyMap[key.name] != null) error("Key ${key.name} already exists")
 				keyMap[key.name] = secret.add(key.key)
 				saveMap()
 			}
@@ -205,14 +206,13 @@ object ConfigManager {
 			init {
 				jsonEntry.get()?.let {
 					keyMap.putAll(
-						Json.decodeFromJsonElement<Map<String, @Serializable(with = UuidSerializer::class) UUID>>(
-							it
-						)
+						Json.decodeFromJsonElement(MapSerializer(String.serializer(), UuidSerializer), it)
 					)
 				}
 			}
 			
-			private fun saveMap() = jsonEntry.set(Json.encodeToJsonElement(keyMap))
+			private fun saveMap() =
+				jsonEntry.set(Json.encodeToJsonElement(MapSerializer(String.serializer(), UuidSerializer), keyMap))
 		}
 	}
 }

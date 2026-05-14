@@ -69,7 +69,7 @@ class Config : Command {
 	}
 	
 	override fun handle(
-		request: Request, prompt: suspend (String) -> String
+		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<Command.Chunk> = flow {
 		val full: Boolean = request.get("full").toBoolean()
 		val limit: Int = try {

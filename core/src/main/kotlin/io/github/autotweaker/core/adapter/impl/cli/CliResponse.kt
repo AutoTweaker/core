@@ -25,7 +25,7 @@ import kotlinx.serialization.Serializable
 sealed class CliResponse {
 	@Serializable
 	@SerialName("prompt")
-	data class Prompt(val text: String) : CliResponse()
+	data class Prompt(val text: String, val echo: Boolean = true) : CliResponse()
 	
 	@Serializable
 	@SerialName("data")

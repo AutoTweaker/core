@@ -43,13 +43,21 @@ object ProviderManager {
 	}
 	
 	fun add(data: Provider) {
-		logger.debug("Provider added  provider={}  type={}", data.name, data.providerType)
+		if (providers.any { it.name == data.name }) error("Provider with name ${data.name} already exists")
 		update(providers + data)
+		logger.debug("Provider added  provider={}  type={}", data.name, data.providerType)
 	}
 	
 	fun addModel(provider: String, models: List<Provider.Model>) {
+		update(providers.map {
+			if (it.name == provider) {
+				val names = it.models.map { model -> model.name }.toSet()
+				val duplicates = models.map { model -> model.name }.filter { name -> name in names }.toSet()
+				if (duplicates.isNotEmpty()) error("Duplicates model found: $duplicates")
+				it.copy(models = it.models + models)
+			} else it
+		})
 		logger.debug("Provider models added  provider={}  count={}", provider, models.size)
-		update(providers.map { if (it.name == provider) it.copy(models = it.models + models) else it })
 	}
 	
 	fun get(): List<Provider> = providers
@@ -57,13 +65,13 @@ object ProviderManager {
 	fun getInfo(type: String): LlmClient.ProviderInfo = LlmClientLoader.load(type).providerInfo
 	
 	fun delete(name: String) {
-		logger.debug("Provider deleted  provider={}", name)
 		update(providers.filterNot { it.name == name })
+		logger.debug("Provider deleted  provider={}", name)
 	}
 	
 	fun override(data: Provider) {
-		logger.debug("Provider overridden  provider={}", data.name)
 		update(providers.map { if (it.name == data.name) data else it })
+		logger.debug("Provider overridden  provider={}", data.name)
 	}
 	
 	fun getModel(id: ModelId): Model? {

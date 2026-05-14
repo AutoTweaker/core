@@ -18,10 +18,14 @@
 
 package io.github.autotweaker.core.session.workspace
 
+import io.github.autotweaker.core.data.session.UuidListSerializer
+import kotlinx.serialization.Serializable
 import java.util.*
 
+@Serializable
 data class WorkspaceData(
 	val meta: WorkspaceMeta,
 	val git: Boolean? = null,
+	@Serializable(with = UuidListSerializer::class)
 	val sessionIds: List<UUID>? = null
 )

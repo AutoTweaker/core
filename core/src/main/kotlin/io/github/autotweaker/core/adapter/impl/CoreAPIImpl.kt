@@ -113,24 +113,24 @@ object CoreAPIImpl : CoreAPI {
 		override fun getProviderMeta(type: String): LlmClient.ProviderInfo =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.getMeta(type)
 		
-		override fun createProvider(provider: CoreConfig.ProviderConfig.Provider) =
+		override fun addProvider(provider: CoreConfig.ProviderConfig.Provider) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.create(provider)
 		
-		override fun deleteProvider(name: String) = ConfigManager.ProviderConfigAPI.ProviderAPI.delete(name)
+		override fun removeProvider(name: String) = ConfigManager.ProviderConfigAPI.ProviderAPI.delete(name)
 		
 		override fun renameProvider(name: String, new: String) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.rename(name, new)
 		
-		override fun updateProviderType(name: String, type: String) =
+		override fun setProviderType(name: String, type: String) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.updateType(name, type)
 		
-		override fun updateProviderKey(name: String, keyName: String) =
+		override fun setProviderKey(name: String, keyName: String) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.updateKey(name, keyName)
 		
-		override fun updateProviderUrl(name: String, url: Url) =
+		override fun setProviderUrl(name: String, url: Url) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.updateUrl(name, url)
 		
-		override fun updateProviderRule(name: String, rules: List<Provider.ErrorHandlingRule>) =
+		override fun setProviderRule(name: String, rules: List<Provider.ErrorHandlingRule>) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.updateRule(name, rules)
 		
 		override fun listModels() = ConfigManager.ProviderConfigAPI.ModelAPI.list()
@@ -144,14 +144,14 @@ object CoreAPIImpl : CoreAPI {
 		
 		override fun removeModel(id: ModelId) = ConfigManager.ProviderConfigAPI.ModelAPI.remove(id)
 		
-		override fun updateModel(id: ModelId, model: CoreConfig.ProviderConfig.Model) =
+		override fun setModel(id: ModelId, model: CoreConfig.ProviderConfig.Model) =
 			ConfigManager.ProviderConfigAPI.ModelAPI.update(id, model)
 		
-		override fun setApiKey(key: CoreConfig.ProviderConfig.ApiKey) =
-			ConfigManager.ProviderConfigAPI.ApiKeyAPI.set(key)
+		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) =
+			ConfigManager.ProviderConfigAPI.ApiKeyAPI.add(key)
 		
 		override fun listApiKeyNames() = ConfigManager.ProviderConfigAPI.ApiKeyAPI.list()
 		
-		override fun deleteApiKey(name: String) = ConfigManager.ProviderConfigAPI.ApiKeyAPI.delete(name)
+		override fun removeApiKey(name: String) = ConfigManager.ProviderConfigAPI.ApiKeyAPI.delete(name)
 	}
 }

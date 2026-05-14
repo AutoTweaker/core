@@ -39,8 +39,8 @@ object WorkspaceManager {
 	}
 	
 	fun create(meta: WorkspaceMeta) {
-		logger.debug("Workspace created  name={}", meta.name)
 		update(workspaceList.plus(WorkspaceData(meta)))
+		logger.debug("Workspace created  name={}", meta.name)
 	}
 	
 	fun getData(name: String): WorkspaceData? = workspaceList.find { it.meta.name == name }
@@ -48,18 +48,18 @@ object WorkspaceManager {
 	fun getAll(): List<WorkspaceMeta> = workspaceList.map { it.meta }
 	
 	fun updateMeta(name: String, meta: WorkspaceMeta) {
-		logger.debug("Workspace meta updated  name={}", name)
 		update(workspaceList.map { if (it.meta.name == name) it.copy(meta = meta) else it })
+		logger.debug("Workspace meta updated  name={}", name)
 	}
 	
 	fun updateData(name: String, git: Boolean?, sessionIds: List<UUID>?) {
-		logger.debug("Workspace data updated  name={}", name)
 		update(workspaceList.map { if (it.meta.name == name) it.copy(git = git, sessionIds = sessionIds) else it })
+		logger.debug("Workspace data updated  name={}", name)
 	}
 	
 	fun delete(name: String) {
-		logger.debug("Workspace deleted  name={}", name)
 		update(workspaceList.filterNot { it.meta.name == name })
+		logger.debug("Workspace deleted  name={}", name)
 	}
 	
 	private fun update(new: List<WorkspaceData>) {

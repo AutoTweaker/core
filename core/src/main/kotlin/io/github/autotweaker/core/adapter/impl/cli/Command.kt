@@ -28,7 +28,7 @@ interface Command {
 	val syntax: Syntax
 	
 	fun init(core: CoreAPI, coreVersion: SemVer) {}
-	fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk>
+	fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk>
 	
 	sealed class Chunk {
 		data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : Chunk()

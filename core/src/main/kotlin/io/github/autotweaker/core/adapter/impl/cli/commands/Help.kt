@@ -39,7 +39,7 @@ class Help(private val loaded: List<Command>) : Command {
 	
 	private val all: List<Command> get() = loaded + this
 	
-	override fun handle(request: Request, prompt: suspend (String) -> String): Flow<Chunk> = flow {
+	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
 		val target = request.positional.firstOrNull()
 		if (target != null) {
 			val cmd = all.find { it.name == target }

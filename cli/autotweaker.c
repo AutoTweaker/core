@@ -365,7 +365,7 @@ static int connect_socket(void) {
 }
 
 /* ---- handle_prompt: returns a malloc'd reply JSON string ---- */
-static char *handle_prompt(const char *prompt_text) {
+static char *handle_prompt(const char *prompt_text, int echo) {
     fputs(prompt_text, stderr);
     fflush(stderr);
 
@@ -373,7 +373,7 @@ static char *handle_prompt(const char *prompt_text) {
     answer[0] = '\0';
 
     if (isatty(STDIN_FILENO)) {
-        /* Read from /dev/tty with echo disabled */
+        /* Read from /dev/tty, optionally with echo disabled */
         int tty = open("/dev/tty", O_RDONLY);
         if (tty < 0) goto fallback;
 
@@ -383,7 +383,7 @@ static char *handle_prompt(const char *prompt_text) {
             goto fallback;
         }
         new_tio = old_tio;
-        new_tio.c_lflag &= ~(ECHO | ECHONL);
+        if (!echo) new_tio.c_lflag &= ~(ECHO | ECHONL);
         if (tcsetattr(tty, TCSANOW, &new_tio) < 0) {
             close(tty);
             goto fallback;
@@ -469,8 +469,10 @@ static int run_protocol(int fd) {
             cJSON *ptext = cJSON_GetObjectItemCaseSensitive(root, "text");
             const char *pt =
                 cJSON_IsString(ptext) ? ptext->valuestring : "";
+            cJSON *pecho = cJSON_GetObjectItemCaseSensitive(root, "echo");
+            int echo = !cJSON_IsFalse(pecho);
 
-            char *reply = handle_prompt(pt);
+            char *reply = handle_prompt(pt, echo);
             if (send_line(fd, reply) < 0) {
                 free(reply);
                 cJSON_Delete(root);

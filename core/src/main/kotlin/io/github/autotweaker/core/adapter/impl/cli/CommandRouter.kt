@@ -41,7 +41,7 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 		logger.debug("CommandRouter loaded  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
-	fun dispatch(request: CliMessage.Command, prompt: suspend (String) -> String): Flow<Chunk> {
+	fun dispatch(request: CliMessage.Command, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> {
 		val cmd = request.command()
 		if (cmd.isEmpty()) {
 			return flowOf(

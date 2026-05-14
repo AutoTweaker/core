@@ -87,8 +87,8 @@ class CliServer {
 			logger.debug("CliMessage received  request={}", line)
 			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: return
 			
-			val prompt: suspend (String) -> String = { text ->
-				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text)))
+			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
+				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text, echo)))
 				val reply = json.decodeFromString<CliMessage>(readLine(client) ?: "")
 				(reply as? CliMessage.PromptResponse)?.text
 					?: throw IllegalStateException("Expected PromptResponse, got ${reply::class.simpleName}")

@@ -1,0 +1,87 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.core.adapter.impl.cli.commands.provider
+
+import com.google.auto.service.AutoService
+import io.github.autotweaker.core.adapter.api.CoreAPI
+import io.github.autotweaker.core.adapter.api.data.SemVer
+import io.github.autotweaker.core.adapter.impl.cli.Command
+import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
+import io.github.autotweaker.core.adapter.impl.cli.Param
+import io.github.autotweaker.core.adapter.impl.cli.Request
+import io.github.autotweaker.core.adapter.impl.cli.Syntax
+import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+
+@AutoService(Command::class)
+class Provider : Command {
+	lateinit var core: CoreAPI
+	
+	override val name = "prov"
+	override val description get() = I18n.get("prov.desc")
+	override val syntax = Syntax.xor(
+		Syntax.leaf(Param.Flag("list", I18n.get("prov.list"))),
+		Syntax.leaf(Param.Value("show", I18n.get("prov.show"), emptyList())),
+		Syntax.leaf(Param.Flag("types", I18n.get("prov.types"), emptyList())),
+		Syntax.leaf(Param.Value("info", I18n.get("prov.info"))),
+		Syntax.leaf(Param.Value("add", I18n.get("prov.add"), emptyList())),
+		Syntax.leaf(Param.Value("rm", I18n.get("prov.rm"), emptyList())),
+		Syntax.leaf(Param.Value("rename", I18n.get("prov.rename"))),
+		Syntax.leaf(Param.Value("update", I18n.get("prov.update"))),
+	)
+	
+	override fun init(core: CoreAPI, coreVersion: SemVer) {
+		this.core = core
+	}
+	
+	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
+		val read = Read(core)
+		if (request.has("list")) {
+			emitAll(read.list().map { Chunk.Data(it) })
+			emit(Chunk.Done())
+			return@flow
+		}
+		
+		if (request.has("show")) {
+			val name = request.get("show") ?: error("Missing provider name")
+			emitAll(read.show(name).map { Chunk.Data(it) })
+			emit(Chunk.Done())
+			return@flow
+		}
+		
+		if (request.has(("types"))) {
+			emitAll(read.types().map { Chunk.Data(it) })
+			emit(Chunk.Done())
+			return@flow
+		}
+		
+		if (request.has("info")) {
+			val name = request.get("info") ?: error("Missing provider name")
+			emitAll(read.info(name).map { Chunk.Data(it) })
+			emit(Chunk.Done())
+			return@flow
+		}
+		
+		emit(Chunk.Done())
+		return@flow
+	}
+}
