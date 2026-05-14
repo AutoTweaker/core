@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -482,9 +483,40 @@ static int run_protocol(int fd) {
     return exit_code;
 }
 
+/* ---- handle_daemon_cmd: intercept -d <action>, return exit code ---- */
+static int handle_daemon_cmd(const char *action) {
+    static const char *const ACTIONS[] = {
+        "start",   "stop",     "restart",   "reload",   "try-restart",
+        "enable",  "disable",  "mask",      "unmask",   "reenable",
+        "status",  "is-active","is-enabled","is-failed",
+        NULL,
+    };
+
+    for (int i = 0; ACTIONS[i]; i++) {
+        if (strcmp(action, ACTIONS[i]) == 0) {
+            char cmd[512];
+            int n = snprintf(cmd, sizeof(cmd),
+                             "systemctl --user %s autotweaker", action);
+            if (n < 0 || (size_t)n >= sizeof(cmd)) return 1;
+            int status = system(cmd);
+            return status == -1 ? 1 : WEXITSTATUS(status);
+        }
+    }
+
+    /* unknown action, not handled — caller should pass through */
+    return -1;
+}
+
 /* ---- main ---- */
 int main(int argc, char **argv) {
     signal(SIGPIPE, SIG_IGN);
+
+    /* intercept autotweaker -d <action> — manage daemon directly */
+    if (argc == 3 && strcmp(argv[1], "-d") == 0) {
+        int rc = handle_daemon_cmd(argv[2]);
+        if (rc >= 0) return rc;
+        /* unknown action falls through to socket passthrough */
+    }
 
     config_init();
     write_proxy_env();
