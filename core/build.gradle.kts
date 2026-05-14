@@ -286,6 +286,15 @@ tasks.register<Exec>("releaseTag") {
 	commandLine(
 		"bash", "-c", """
 		set -e
+		if ! git diff --quiet || ! git diff --cached --quiet; then
+			echo "错误: 工作区存在未提交的更改，请先提交或暂存所有更改后再执行 releaseTag" >&2
+			exit 1
+		fi
+		git fetch origin main
+		if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+			echo "错误: 本地 main 分支与 origin/main 不同步，请先同步后再执行 releaseTag" >&2
+			exit 1
+		fi
 		git tag -a "v${project.version}" -m "AutoTweaker v${project.version}"
 		git push origin "v${project.version}"
 	""".trimIndent()
