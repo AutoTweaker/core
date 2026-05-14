@@ -326,7 +326,10 @@ static char *build_request(int argc, char **argv) {
     for (int i = 1; i < argc; i++)
         cJSON_AddItemToArray(args, cJSON_CreateString(argv[i]));
 
-    cJSON_AddStringToObject(root, "prog", "autotweaker");
+    const char *prog = argv[0];
+    const char *slash = strrchr(prog, '/');
+    if (slash) prog = slash + 1;
+    cJSON_AddStringToObject(root, "prog", prog);
 
     char *json = cJSON_PrintUnformatted(root);
     cJSON_Delete(root);
