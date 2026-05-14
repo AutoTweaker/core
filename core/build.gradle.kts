@@ -27,7 +27,7 @@ plugins {
 	`maven-publish`
 }
 
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 
 application {
 	mainClass = "io.github.autotweaker.core.MainKt"
