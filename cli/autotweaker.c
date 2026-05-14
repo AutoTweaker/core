@@ -35,7 +35,7 @@
 
 #define MAX_LINE_LEN 65536
 #define POLL_INTERVAL_MS 100
-#define WARN_ITERATIONS 300
+#define WARN_ITERATIONS 600
 
 static const char *const PROXY_VARS[] = {
     "https_proxy", "HTTPS_PROXY", "http_proxy", "HTTP_PROXY",
@@ -64,12 +64,23 @@ static int lr_fill(struct line_reader *lr) {
         lr->len = 0;
         lr->pos = 0;
     }
-    ssize_t n = recv(lr->fd, lr->buf + lr->len,
-                     sizeof(lr->buf) - 1 - lr->len, 0);
-    if (n < 0) {
-        if (errno == EINTR) return 0;
-        return -1;
+    int     eintr_retries = 0;
+    ssize_t n;
+    while (eintr_retries < 100) {
+        n = recv(lr->fd, lr->buf + lr->len,
+                 sizeof(lr->buf) - 1 - lr->len, 0);
+        if (n < 0) {
+            if (errno == EINTR) {
+                eintr_retries++;
+                struct timespec ts = {0, POLL_INTERVAL_MS * 1000000L};
+                nanosleep(&ts, NULL);
+                continue;
+            }
+            return -1;
+        }
+        break;
     }
+    if (eintr_retries >= 100) return -1;
     if (n == 0) return -1; /* EOF */
     lr->len += (int)n;
     lr->buf[lr->len] = '\0';
@@ -191,7 +202,7 @@ static void write_proxy_env(void) {
 static char *shell_read(const char *cmd) {
     FILE *p = popen(cmd, "r");
     if (!p) return NULL;
-    char  buf[256];
+    char  buf[4096];
     char *result = NULL;
     if (fgets(buf, sizeof(buf), p)) {
         /* strip trailing whitespace */
@@ -236,6 +247,27 @@ static void ensure_daemon(void) {
         shell_ignore(
             "systemctl --user reset-failed autotweaker 2>/dev/null");
         shell_ignore("systemctl --user start autotweaker");
+
+        /* Give systemd a moment to spawn the process, then fail fast
+         * if the unit is already dead instead of waiting in poll loop */
+        struct timespec ts = {0, 500 * 1000000L};
+        nanosleep(&ts, NULL);
+
+        if (!daemon_is_active()) {
+            char *sub = daemon_substate();
+            int   dead = sub && (strcmp(sub, "failed") == 0 ||
+                                 strcmp(sub, "dead") == 0);
+            free(sub);
+            if (dead) {
+                fputs("Daemon failed to start, showing recent logs:\n",
+                      stderr);
+                fflush(stderr);
+                int _rc = system(
+                    "journalctl --user -u autotweaker --no-pager -n 30 >&2");
+                (void)_rc;
+                exit(1);
+            }
+        }
     }
 }
 
@@ -333,7 +365,7 @@ static char *handle_prompt(const char *prompt_text) {
     fputs(prompt_text, stderr);
     fflush(stderr);
 
-    char answer[65536];
+    char answer[4096];
     answer[0] = '\0';
 
     if (isatty(STDIN_FILENO)) {

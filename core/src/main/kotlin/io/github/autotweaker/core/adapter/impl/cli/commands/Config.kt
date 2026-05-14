@@ -147,15 +147,17 @@ class Config : Command {
 	private fun printConfig(settings: List<CoreConfig.AppConfig>, full: Boolean): Flow<String> = flow {
 		if (full) {
 			settings.forEachIndexed { index, setting ->
-				emit(I18n.get("cfg.out.key", setting.setting.key.value))
-				emit(I18n.get("cfg.out.desc", setting.setting.description))
-				emit(I18n.get("cfg.out.val", setting.setting.value.value.toString()))
+				emit(I18n.get("cfg.out.key", sanitize(setting.setting.key.value)))
+				emit(I18n.get("cfg.out.desc", sanitize(setting.setting.description)))
+				emit(I18n.get("cfg.out.val", sanitize(setting.setting.value.value.toString())))
 				if (index != settings.lastIndex) emit("-".repeat(10))
 			}
 		} else {
-			settings.forEach { emit(it.setting.key.value) }
+			settings.forEach { emit(sanitize(it.setting.key.value)) }
 		}
 	}
+	
+	private fun sanitize(text: String): String = text.replace(ANSI_PATTERN, "")
 	
 	private fun match(text: String, query: String): Boolean {
 		val keywords = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
@@ -173,5 +175,6 @@ class Config : Command {
 	
 	companion object {
 		private const val DEFAULT_LIMIT = 1000
+		private val ANSI_PATTERN = Regex("\u001B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])")
 	}
 }

@@ -195,18 +195,24 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 	
 	private fun checkParamConflicts(syntax: Syntax): List<String> {
 		val params = collectParams(syntax).filter { it !is Param.Positional }
-		val seen = mutableMapOf<String, Param>()
+		val seen = mutableMapOf<String, String>()
 		val conflicts = mutableListOf<String>()
 		for (p in params) {
 			seen[p.name]?.let { conflicts.add("Duplicate param name: ${p.name}") }
-			seen[p.name] = p
+			seen[p.name] = p.name
+			for (alias in p.aliases) {
+				seen[alias]?.let { other ->
+					conflicts.add("Alias conflict: '$alias' used by both --${p.name} and --$other")
+				}
+				seen[alias] = p.name
+			}
 		}
 		return conflicts
 	}
 	
 	private fun countRequiredPositional(syntax: Syntax): Int = when (syntax) {
 		is Syntax.All -> if (!syntax.required) 0 else syntax.children.sumOf { countRequiredPositional(it) }
-		is Syntax.Xor -> 0  // per-branch positional requirement checked in validateSyntax
+		is Syntax.Xor -> 0
 		is Syntax.Leaf -> if (syntax.required && syntax.param is Param.Positional) 1 else 0
 	}
 	
