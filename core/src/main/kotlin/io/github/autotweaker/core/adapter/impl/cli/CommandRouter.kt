@@ -104,8 +104,10 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 								values[key] = arg.substring(eq + 1)
 								i++
 							} else {
-								values[key] = args.getOrNull(++i) ?: return null
-								i++
+								val next = args.getOrNull(i + 1) ?: return null
+								if (next == "--") return null
+								values[key] = next
+								i += 2
 							}
 						}
 						
@@ -152,7 +154,7 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 		val requiredPosCount = countRequiredPositional(syntax)
 		if (positional.size !in requiredPosCount..declaredPosCount) return null
 		
-		if (!validateSyntax(syntax, values.keys, positional.isNotEmpty())) {
+		if (!validateSyntax(syntax, values.keys, positional.size)) {
 			logger.debug("Syntax validation failed")
 			return null
 		}
@@ -178,22 +180,23 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 	
 	private fun countRequiredPositional(syntax: Syntax): Int = when (syntax) {
 		is Syntax.All -> if (!syntax.required) 0 else syntax.children.sumOf { countRequiredPositional(it) }
-		is Syntax.Xor -> if (!syntax.required) 0 else syntax.children.minOf { countRequiredPositional(it) }
+		is Syntax.Xor -> 0  // per-branch positional requirement checked in validateSyntax
 		is Syntax.Leaf -> if (syntax.required && syntax.param is Param.Positional) 1 else 0
 	}
 	
-	private fun validateSyntax(syntax: Syntax, activeValues: Set<String>, hasPositional: Boolean = false): Boolean =
+	private fun validateSyntax(syntax: Syntax, activeValues: Set<String>, positionalCount: Int): Boolean =
 		when (syntax) {
 			is Syntax.All -> {
-				val anyActive = syntax.children.any { isActive(it, activeValues, hasPositional) }
+				val hasPos = positionalCount > 0
+				val anyActive = syntax.children.any { isActive(it, activeValues, hasPos) }
 				if (syntax.required && !anyActive) false
-				else if (!anyActive) true
-				else syntax.children.all { validateSyntax(it, activeValues, hasPositional) }
+				else syntax.children.all { validateSyntax(it, activeValues, positionalCount) }
 			}
 			
 			is Syntax.Xor -> {
+				val hasPos = positionalCount > 0
 				val byParam = syntax.children.count { isActive(it, activeValues, hasPositional = false) }
-				val effectiveHasPos = byParam == 0 && hasPositional
+				val effectiveHasPos = byParam == 0 && hasPos
 				val count =
 					if (effectiveHasPos) syntax.children.count { isActive(it, activeValues, hasPositional = true) }
 					else byParam
@@ -204,13 +207,14 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
 					else -> validateSyntax(
 						syntax.children.first { isActive(it, activeValues, effectiveHasPos) },
 						activeValues,
-						hasPositional,
+						positionalCount,
 					)
 				}
 			}
 			
 			is Syntax.Leaf -> {
-				!(syntax.required && syntax.param !is Param.Positional && syntax.param.name !in activeValues)
+				if (syntax.param is Param.Positional) !(syntax.required && positionalCount < 1)
+				else !(syntax.required && syntax.param.name !in activeValues)
 			}
 		}
 	
