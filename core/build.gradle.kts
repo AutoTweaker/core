@@ -24,10 +24,8 @@ plugins {
 	id("org.jetbrains.kotlin.plugin.serialization")
 	application
 	jacoco
-	`maven-publish`
+	
 }
-
-version = "0.1.0-alpha.4"
 
 application {
 	mainClass = "io.github.autotweaker.core.MainKt"
@@ -248,30 +246,6 @@ tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEac
 
 // endregion
 
-// region Maven 发布到 GitHub Packages
-
-publishing {
-	repositories {
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
-			credentials {
-				username = System.getenv("GITHUB_ACTOR") ?: ""
-				password = System.getenv("GITHUB_TOKEN") ?: ""
-			}
-		}
-	}
-	publications {
-		create<MavenPublication>("maven") {
-			from(components["java"])
-			groupId = "io.github.autotweaker"
-			artifactId = "core"
-			version = project.version.toString()
-		}
-	}
-}
-
-// endregion
 
 tasks.register<Exec>("compileAutotweakerCli") {
 	description = "编译 C 编写的 autotweaker CLI 客户端"

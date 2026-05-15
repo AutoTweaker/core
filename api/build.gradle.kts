@@ -19,9 +19,35 @@
 plugins {
 	kotlin("jvm")
 	id("org.jetbrains.kotlin.plugin.serialization")
+	`maven-publish`
 }
 
 dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
+
+// region Maven 发布到 GitHub Packages
+
+publishing {
+	repositories {
+		maven {
+			name = "GitHubPackages"
+			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
+			credentials {
+				username = System.getenv("GITHUB_ACTOR") ?: ""
+				password = System.getenv("GITHUB_TOKEN") ?: ""
+			}
+		}
+	}
+	publications {
+		create<MavenPublication>("maven") {
+			from(components["java"])
+			groupId = "io.github.autotweaker"
+			artifactId = "api"
+			version = project.version.toString()
+		}
+	}
+}
+
+// endregion
