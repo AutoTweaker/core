@@ -2,7 +2,7 @@ name: Update Website
 
 on:
   push:
-    branches: [ main ]
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
@@ -38,9 +38,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Update projects_version from build.gradle.kts
-          BASE_VERSION=$(grep -oP 'version = "\K[^"]+' \
-            "$GITHUB_WORKSPACE/core/build.gradle.kts")
+          # Extract version from git tag
+          BASE_VERSION="${GITHUB_REF#refs/tags/v}"
           jq --arg v "$BASE_VERSION" '.projects_version.core = $v' index.json > index.json.tmp
           mv index.json.tmp index.json
 
