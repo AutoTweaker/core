@@ -29,7 +29,6 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.provider.ProviderManager
-import io.github.autotweaker.core.data.session.SessionStoreImpl
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.session.workspace.WorkspaceManager
 import kotlinx.coroutines.*
@@ -47,7 +46,8 @@ object SessionManager {
 	private val defaultModelId: String = settings.find("core.session.model.default")
 	private val systemPrompt: String = settings.find("core.session.system.prompt")
 	
-	private val store = SessionStoreImpl().also { it.init() }
+	private val store =
+		ServiceLoader.load(SessionStore::class.java).firstOrNull() ?: error("No SessionStore implementation found")
 	private val wsm = WorkspaceManager
 	
 	private val resolveModel: (ModelId) -> Model = { id ->
@@ -83,27 +83,21 @@ object SessionManager {
 		
 		suspend fun stop(session: UUID) = sessions[session]?.stop()
 		
-		fun pauseAgent(session: UUID) =
-			sessions[session]?.dispatch(AgentCommand.Directive.Pause)
+		fun pauseAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Pause)
 		
-		fun resumeAgent(session: UUID) =
-			sessions[session]?.dispatch(AgentCommand.Directive.Resume)
+		fun resumeAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Resume)
 		
-		fun cancelAgent(session: UUID) =
-			sessions[session]?.dispatch(AgentCommand.Directive.Cancel)
+		fun cancelAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Cancel)
 		
-		fun retryAgent(session: UUID) =
-			sessions[session]?.dispatch(AgentCommand.Directive.Retry)
+		fun retryAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Retry)
 		
-		fun compactAgent(session: UUID) =
-			sessions[session]?.dispatch(AgentCommand.Directive.Compact)
+		fun compactAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Compact)
 		
 		fun approveToolCall(session: UUID, approvals: List<ToolApprove>) {
 			sessions[session]?.dispatch(AgentCommand.Message.ApproveToolCall(approvals))
 		}
 		
-		fun list(): List<SessionHandle> =
-			sessions.map { entry -> SessionHandle.fromSession(entry.value) }
+		fun list(): List<SessionHandle> = sessions.map { entry -> SessionHandle.fromSession(entry.value) }
 		
 		suspend fun shutdown() {
 			sessions.keys.toList().forEach { id ->

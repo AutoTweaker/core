@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.session
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionMessage
@@ -30,13 +31,14 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.*
 
+@AutoService(SessionStore::class)
 class SessionStoreImpl : SessionStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
 	private var initialized = false
 	
 	@Synchronized
-	fun init() {
+	private fun init() {
 		if (initialized) return
 		db = H2DatabaseStore.connect("Sessions")
 		transaction(db) {
