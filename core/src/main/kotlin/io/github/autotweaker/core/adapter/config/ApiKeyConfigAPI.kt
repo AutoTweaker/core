@@ -1,0 +1,64 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.core.adapter.config
+
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.secret.impl.SecretManager
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
+import java.util.*
+
+object ApiKeyConfigAPI {
+	private val secret = SecretManager
+	private val jsonEntry = JsonStore.namespace(this::class.java.name)
+	private val keyMap: MutableMap<String, @Serializable(with = UuidSerializer::class) UUID> = mutableMapOf()
+	
+	fun add(key: CoreConfig.ProviderConfig.ApiKey) {
+		if (keyMap[key.name] != null) error("Key ${key.name} already exists")
+		keyMap[key.name] = secret.add(key.key)
+		saveMap()
+	}
+	
+	fun list(): List<String> = keyMap.keys.toList()
+	fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
+	fun delete(name: String) {
+		val id = keyMap.remove(name) ?: error("Key $name not found")
+		secret.remove(id)
+		saveMap()
+	}
+	
+	internal fun getId(name: String): UUID = keyMap[name] ?: error("Key $name not found")
+	internal fun getName(id: UUID): String =
+		keyMap.filter { it.value == id }.keys.firstOrNull() ?: error("Key $id not found")
+	
+	init {
+		jsonEntry.get()?.let {
+			keyMap.putAll(
+				Json.decodeFromJsonElement(MapSerializer(String.serializer(), UuidSerializer), it)
+			)
+		}
+	}
+	
+	private fun saveMap() =
+		jsonEntry.set(Json.encodeToJsonElement(MapSerializer(String.serializer(), UuidSerializer), keyMap))
+}

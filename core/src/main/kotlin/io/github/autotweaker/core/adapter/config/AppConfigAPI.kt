@@ -18,10 +18,16 @@
 
 package io.github.autotweaker.core.adapter.config
 
-object ConfigManager {
-	val appConfig = AppConfigAPI
-	val envConfig = EnvConfigAPI
-	val providerConfig = ProviderConfigAPI
-	val apiKeyConfig = ApiKeyConfigAPI
-	val modelConfig = ModelConfigAPI
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.settings.SettingKey
+import io.github.autotweaker.core.data.settings.Settings
+
+object AppConfigAPI {
+	private val cfg = Settings
+	
+	fun get(id: SettingKey): CoreConfig.AppConfig? =
+		cfg.get().find { it.key == id }?.let { CoreConfig.AppConfig(it) }
+	
+	fun set(setting: CoreConfig.AppConfig) = cfg.set(setting.setting)
+	fun getAll(): List<CoreConfig.AppConfig> = cfg.get().map { CoreConfig.AppConfig(it) }
 }
