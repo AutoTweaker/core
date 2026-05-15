@@ -16,17 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session.workspace
+package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.serializer.UuidListSerializer
-import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
 data class WorkspaceData(
+	@Serializable(with = UuidSerializer::class) val id: UUID = UUID.randomUUID(),
 	val meta: WorkspaceMeta,
 	val git: Boolean? = null,
-	@Serializable(with = UuidListSerializer::class)
-	val sessionIds: List<UUID>? = null
+	@Serializable(with = UuidListSerializer::class) val sessionIds: List<UUID>? = null
 )

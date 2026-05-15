@@ -16,17 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session.workspace
+package io.github.autotweaker.core.data
 
+import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.data.json.JsonStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 object WorkspaceManager {
+	val DEFAULT_WORKSPACE_ID: UUID = UUID.nameUUIDFromBytes("autotweaker-default-workspace".toByteArray())
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
@@ -39,29 +43,46 @@ object WorkspaceManager {
 		logger.info("WorkspaceManager initialized  count={}", workspaceList.size)
 	}
 	
-	fun create(meta: WorkspaceMeta) {
+	fun create(meta: WorkspaceMeta): WorkspaceData {
 		if (workspaceList.any { it.meta.name == meta.name }) error("Workspace with name ${meta.name} already exists")
-		update(workspaceList.plus(WorkspaceData(meta)))
-		logger.debug("Workspace created  name={}", meta.name)
+		val data = WorkspaceData(meta = meta)
+		update(workspaceList.plus(data))
+		logger.debug("Workspace created  id={}  name={}", data.id, meta.name)
+		return data
 	}
 	
-	fun getData(name: String): WorkspaceData? = workspaceList.find { it.meta.name == name }
+	fun getData(id: UUID): WorkspaceData? = workspaceList.find { it.id == id }
 	
-	fun getAll(): List<WorkspaceMeta> = workspaceList.map { it.meta }
+	fun getAll(): List<WorkspaceData> = workspaceList
 	
-	fun updateMeta(name: String, meta: WorkspaceMeta) {
-		update(workspaceList.map { if (it.meta.name == name) it.copy(meta = meta) else it })
-		logger.debug("Workspace meta updated  name={}", name)
+	fun updateMeta(id: UUID, meta: WorkspaceMeta) {
+		update(workspaceList.map { if (it.id == id) it.copy(meta = meta) else it })
+		logger.debug("Workspace meta updated  id={}", id)
 	}
 	
-	fun updateData(name: String, git: Boolean?, sessionIds: List<UUID>?) {
-		update(workspaceList.map { if (it.meta.name == name) it.copy(git = git, sessionIds = sessionIds) else it })
-		logger.debug("Workspace data updated  name={}", name)
+	fun updateData(id: UUID, git: Boolean?, sessionIds: List<UUID>?) {
+		update(workspaceList.map { if (it.id == id) it.copy(git = git, sessionIds = sessionIds) else it })
+		logger.debug("Workspace data updated  id={}", id)
 	}
 	
-	fun delete(name: String) {
-		update(workspaceList.filterNot { it.meta.name == name })
-		logger.debug("Workspace deleted  name={}", name)
+	fun delete(id: UUID) {
+		if (id == DEFAULT_WORKSPACE_ID) error("Cannot delete default workspace")
+		update(workspaceList.filterNot { it.id == id })
+		logger.debug("Workspace deleted  id={}", id)
+	}
+	
+	fun getOrCreateDefault(): WorkspaceData {
+		return getData(DEFAULT_WORKSPACE_ID) ?: run {
+			val defaultPath = Path.of(
+				System.getProperty("user.home"), ".config", "autotweaker", "workspace"
+			)
+			Files.createDirectories(defaultPath)
+			val meta = WorkspaceMeta(name = "default", inContainer = false, path = defaultPath)
+			val data = WorkspaceData(id = DEFAULT_WORKSPACE_ID, meta = meta)
+			update(workspaceList.plus(data))
+			logger.info("Default workspace created  id={}  path={}", data.id, defaultPath)
+			data
+		}
 	}
 	
 	private fun update(new: List<WorkspaceData>) {

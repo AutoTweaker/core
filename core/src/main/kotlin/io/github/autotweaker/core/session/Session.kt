@@ -44,6 +44,7 @@ class Session(
 	private val store: SessionStore,
 	private val resolveModel: (ModelId) -> Model,
 	private val defaultModel: Model,
+	private val workspaceId: UUID,
 	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val settings: List<SettingItem>,
@@ -65,7 +66,7 @@ class Session(
 		SessionData(
 			id = UUID.randomUUID(),
 			title = null,
-			workspaceName = workspace.name,
+			workspaceId = workspaceId,
 			config = config,
 		)
 	)
@@ -166,7 +167,6 @@ class Session(
 	}
 	
 	fun updateWorkspaceName(name: String) {
-		_data.update { _data.value.copy(workspaceName = name) }
 		workspace = workspace.copy(name = name)
 	}
 	

@@ -28,8 +28,8 @@ import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.container.ContainerManager
+import io.github.autotweaker.core.data.WorkspaceManager
 import io.github.autotweaker.core.data.settings.Settings
-import io.github.autotweaker.core.session.workspace.WorkspaceManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import org.slf4j.LoggerFactory
@@ -92,7 +92,7 @@ object SessionManager {
 		sessions[session]?.dispatch(AgentCommand.Message.ApproveToolCall(approvals))
 	}
 	
-	fun list(): List<SessionHandle> = sessions.map { entry -> SessionHandle.fromSession(entry.value) }
+	fun get(id: UUID): SessionHandle? = sessions[id]?.let { SessionHandle.fromSession(it) }
 	
 	suspend fun shutdown() {
 		sessions.keys.toList().forEach { id ->
@@ -115,47 +115,59 @@ object SessionManager {
 	
 	fun updateConfig(session: UUID, config: SessionConfig) = sessions[session]?.updateConfig(config)
 	
-	suspend fun create(workspace: String, config: SessionConfig): SessionHandle {
-		val workspace = getWorkspace(workspace)
-		if (workspace.meta.inContainer && !ContainerManager.isRunning) ContainerManager.start()
+	suspend fun create(config: SessionConfig): SessionHandle {
+		val ws = wsm.getOrCreateDefault()
+		return create(ws.id, config)
+	}
+	
+	suspend fun create(workspaceId: UUID, config: SessionConfig): SessionHandle {
+		val data = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
+		if (data.meta.inContainer && !ContainerManager.isRunning) ContainerManager.start()
 		val session = Session(
 			config = config,
 			context = SessionContext.emptyContext(systemPrompt),
 			store = store,
 			resolveModel = resolveModel,
 			defaultModel = defaultModel,
-			workspace = workspace.meta,
+			workspaceId = data.id,
+			workspace = data.meta,
 			containerConfig = ContainerConfig(),
 			settings = settings,
 		)
 		sessions[session.data.value.id] = session
 		startMonitor(session)
 		wsm.updateData(
-			name = workspace.meta.name,
-			git = workspace.git,
-			sessionIds = workspace.sessionIds.orEmpty() + session.data.value.id
+			id = data.id, git = data.git, sessionIds = data.sessionIds.orEmpty() + session.data.value.id
 		)
 		store.saveSessions(listOf(session.data.value))
-		logger.info("Session created  sessionId={}  workspace={}", session.data.value.id, workspace.meta.name)
+		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, data.id)
 		return SessionHandle.fromSession(session)
 	}
 	
-	internal suspend fun updateWorkspaceName(name: String, new: String) = store.loadAllSessions()?.forEach {
-		if (it.workspaceName == name) {
+	internal suspend fun updateWorkspaceName(id: UUID, new: String) = store.loadAllSessions()?.forEach {
+		if (it.workspaceId == id) {
 			sessions[it.id]?.updateWorkspaceName(new)
 		}
 	}
 	
+	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids)
+	
+	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
+	
+	suspend fun loadContext(sessionId: UUID) = store.loadContext(sessionId)
+	
 	private suspend fun restore(id: UUID): SessionHandle {
 		val data = store.loadSessions(listOf(id))?.first() ?: error("$id not found")
 		val context = store.loadContext(data.id) ?: SessionContext.emptyContext(systemPrompt)
+		val workspaceId = data.workspaceId
 		val session = Session(
 			config = data.config,
 			context = context,
 			store = store,
 			resolveModel = resolveModel,
 			defaultModel = defaultModel,
-			workspace = getWorkspace(data.workspaceName!!).meta,
+			workspaceId = workspaceId,
+			workspace = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId"),
 			settings = settings,
 			containerConfig = ContainerConfig(),
 		)
@@ -163,6 +175,4 @@ object SessionManager {
 		startMonitor(session)
 		return SessionHandle.fromSession(session)
 	}
-	
-	private fun getWorkspace(name: String) = wsm.getData(name) ?: error("Workspace not found: $name")
 }

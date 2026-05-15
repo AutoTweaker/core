@@ -25,9 +25,7 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.api.types.session.SessionConfig
-import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.session.SessionHandle
@@ -49,24 +47,31 @@ interface CoreAPI {
 	fun jsonStore(namespace: String): JsonStore.JsonEntry
 	
 	interface SessionAPI {
-		suspend fun create(workspace: String, config: SessionConfig): SessionHandle
+		suspend fun create(config: SessionConfig): SessionHandle
+		suspend fun create(workspaceId: UUID, config: SessionConfig): SessionHandle
 		suspend fun delete(sessionId: UUID)
-		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
+		fun getHandle(sessionId: UUID): SessionHandle?
+		fun updateTitle(sessionId: UUID, title: String)
+		fun updateConfig(sessionId: UUID, config: SessionConfig)
+		
 		suspend fun stop(sessionId: UUID)
 		fun pause(sessionId: UUID)
 		fun resume(sessionId: UUID)
 		fun cancel(sessionId: UUID)
 		fun retry(sessionId: UUID)
 		fun compact(sessionId: UUID)
-		fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
-		fun list(): List<SessionHandle>
-		fun updateTitle(sessionId: UUID, title: String)
-		fun updateConfig(sessionId: UUID, config: SessionConfig)
 		
-		fun createWorkspace(meta: WorkspaceMeta)
-		suspend fun renameWorkspace(name: String, newName: String)
-		suspend fun deleteWorkspace(name: String)
-		fun listWorkspaces(): List<WorkspaceMeta>
+		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
+		fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
+		
+		suspend fun loadData(ids: List<UUID>): List<SessionData>?
+		suspend fun loadContext(sessionId: UUID): SessionContext?
+		suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>?
+		
+		fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
+		suspend fun renameWorkspace(id: UUID, newName: String)
+		suspend fun deleteWorkspace(id: UUID)
+		fun listWorkspaces(): List<WorkspaceData>
 	}
 	
 	interface ConfigAPI {

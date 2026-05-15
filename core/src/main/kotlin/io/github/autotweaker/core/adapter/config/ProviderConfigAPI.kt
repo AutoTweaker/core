@@ -21,7 +21,7 @@ package io.github.autotweaker.core.adapter.config
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.core.data.provider.ProviderStore
+import io.github.autotweaker.core.data.ProviderStore
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.session.ProviderService
 
@@ -73,6 +73,5 @@ object ProviderConfigAPI {
 		store.add(old.copy(name = new))
 	}
 	
-	internal fun get(name: String) =
-		store.get().find { it.name == name } ?: error("ProviderData $name not found")
+	internal fun get(name: String) = store.get().find { it.name == name } ?: error("ProviderData $name not found")
 }

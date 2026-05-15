@@ -69,19 +69,21 @@ class Status : Command {
 			emit(Chunk.Data("  $m"))
 		}
 		
-		val sessions = core.session.list()
+		val workspaces = core.session.listWorkspaces()
+		val allSessionIds = workspaces.flatMap { it.sessionIds.orEmpty() }
+		val sessions = core.session.loadData(allSessionIds).orEmpty()
 		emit(Chunk.Data(""))
 		emit(Chunk.Data(I18n.get("status.sessions", sessions.size)))
 		for (s in sessions) {
-			val d = s.data.value
-			emit(Chunk.Data("  ${s.id}  ${s.status.value}  ${d.title}"))
+			val handle = core.session.getHandle(s.id)
+			val state = handle?.status?.value ?: I18n.get("status.inactive")
+			emit(Chunk.Data("  ${s.id}  $state  ${s.title}"))
 		}
 		
-		val workspaces = core.session.listWorkspaces()
 		emit(Chunk.Data(""))
 		emit(Chunk.Data(I18n.get("status.workspaces", workspaces.size)))
 		for (w in workspaces) {
-			emit(Chunk.Data("  ${w.name}  ${w.path}"))
+			emit(Chunk.Data("  ${w.meta.name}  ${w.meta.path}"))
 		}
 		emit(Chunk.Done())
 	}

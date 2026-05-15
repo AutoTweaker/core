@@ -18,33 +18,35 @@
 
 package io.github.autotweaker.core.session
 
+import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.session.workspace.WorkspaceManager
+import io.github.autotweaker.core.data.WorkspaceManager
 import java.nio.file.Files
+import java.util.*
 
 object WorkspaceAPI {
 	private val wsm = WorkspaceManager
 	
-	fun create(meta: WorkspaceMeta) {
+	fun create(meta: WorkspaceMeta): WorkspaceData {
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
-		wsm.create(meta)
+		val data = wsm.create(meta)
 		if (Files.isDirectory(meta.path.resolve(".git"))) {
-			wsm.updateData(meta.name, git = true, null)
+			wsm.updateData(data.id, git = true, null)
 		}
+		return data
 	}
 	
-	suspend fun updateName(name: String, newName: String) {
-		val oldMeta = getWorkspace(name).meta
-		wsm.updateMeta(name = name, meta = oldMeta.copy(name = newName))
-		SessionManager.updateWorkspaceName(name, newName)
+	suspend fun rename(id: UUID, newName: String) {
+		val data = wsm.getData(id) ?: error("Workspace not found: $id")
+		wsm.updateMeta(id, meta = data.meta.copy(name = newName))
+		SessionManager.updateWorkspaceName(id, newName)
 	}
 	
-	suspend fun delete(name: String) {
-		getWorkspace(name).sessionIds?.forEach { SessionManager.delete(it) }
-		wsm.delete(name)
+	suspend fun delete(id: UUID) {
+		val data = wsm.getData(id) ?: error("Workspace not found: $id")
+		data.sessionIds?.forEach { SessionManager.delete(it) }
+		wsm.delete(id)
 	}
 	
 	fun list() = wsm.getAll()
-	
-	private fun getWorkspace(name: String) = wsm.getData(name) ?: error("Workspace not found: $name")
 }

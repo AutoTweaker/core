@@ -61,7 +61,7 @@ class SessionStoreImpl : SessionStore {
 				SessionDataTable.upsert {
 					it[id] = data.id.toString()
 					it[title] = data.title
-					it[workspaceName] = data.workspaceName
+					it[workspaceId] = data.workspaceId.toString()
 					fillConfig(it, data.config)
 				}
 			}
@@ -100,7 +100,7 @@ class SessionStoreImpl : SessionStore {
 		return SessionData(
 			id = UUID.fromString(this[SessionDataTable.id]),
 			title = this[SessionDataTable.title],
-			workspaceName = this[SessionDataTable.workspaceName],
+			workspaceId = UUID.fromString(this[SessionDataTable.workspaceId]),
 			config = SessionDataTable.readConfig(this),
 		)
 	}

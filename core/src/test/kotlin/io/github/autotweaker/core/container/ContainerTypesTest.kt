@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.container
 
 import kotlinx.coroutines.test.runTest
-import java.nio.file.Paths
+import java.nio.file.Path
 import kotlin.test.*
 
 class ContainerExceptionsTest {
@@ -90,8 +90,11 @@ class ContainerConfigTest {
 		val config = ContainerConfig()
 		assertEquals("autotweaker-workspace", config.name)
 		assertTrue(config.env.isEmpty())
-		assertEquals(Paths.get("/workspace"), config.workDir)
-		assertEquals(Paths.get("~/.config/autotweaker/container/workspace"), config.workspaceHostPath)
+		assertEquals(Path.of("/workspace"), config.workDir)
+		assertEquals(
+			Path.of(System.getProperty("user.home"), ".config", "autotweaker", "container", "workspace"),
+			config.workspaceHostPath
+		)
 	}
 	
 	@Test
@@ -99,13 +102,13 @@ class ContainerConfigTest {
 		val config = ContainerConfig(
 			name = "custom",
 			env = mapOf("KEY" to "VALUE"),
-			workDir = Paths.get("/tmp/work"),
-			workspaceHostPath = Paths.get("/tmp/host"),
+			workDir = Path.of("/tmp/work"),
+			workspaceHostPath = Path.of("/tmp/host"),
 		)
 		assertEquals("custom", config.name)
 		assertEquals(mapOf("KEY" to "VALUE"), config.env)
-		assertEquals(Paths.get("/tmp/work"), config.workDir)
-		assertEquals(Paths.get("/tmp/host"), config.workspaceHostPath)
+		assertEquals(Path.of("/tmp/work"), config.workDir)
+		assertEquals(Path.of("/tmp/host"), config.workspaceHostPath)
 	}
 }
 

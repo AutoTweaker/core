@@ -23,7 +23,7 @@ import java.util.*
 data class SessionData(
 	val id: UUID,
 	val title: String?,
-	val workspaceName: String?,
+	val workspaceId: UUID,
 	
 	val config: SessionConfig,
 )

@@ -23,7 +23,7 @@ import org.jetbrains.exposed.v1.core.Table
 object SessionDataTable : Table("session_data") {
 	val id = varchar("id", 36)
 	val title = varchar("title", 512).nullable()
-	val workspaceName = varchar("workspace_name", 512).nullable()
+	val workspaceId = varchar("workspace_id", 36)
 	val configJson = text("config_json")
 	
 	override val primaryKey = PrimaryKey(id)

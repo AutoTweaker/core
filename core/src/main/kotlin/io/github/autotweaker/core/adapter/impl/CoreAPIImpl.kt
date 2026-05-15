@@ -51,7 +51,10 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty
 	
 	override val session = object : CoreAPI.SessionAPI {
-		override suspend fun create(workspace: String, config: SessionConfig) = SessionManager.create(workspace, config)
+		override suspend fun create(config: SessionConfig) = SessionManager.create(config)
+		override suspend fun create(workspaceId: UUID, config: SessionConfig) =
+			SessionManager.create(workspaceId, config)
+		
 		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
 		override suspend fun send(sessionId: UUID, content: String, images: List<Base64>?) =
 			SessionManager.send(sessionId, content, images)
@@ -65,16 +68,21 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>) =
 			SessionManager.approveToolCall(sessionId, approvals)
 		
-		override fun list() = SessionManager.list()
+		override fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
 		override fun updateTitle(sessionId: UUID, title: String) = SessionManager.updateTitle(sessionId, title)
 		override fun updateConfig(sessionId: UUID, config: SessionConfig) =
 			SessionManager.updateConfig(sessionId, config) ?: Unit
 		
+		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
+		override suspend fun loadContext(sessionId: UUID) = SessionManager.loadContext(sessionId)
+		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
+		
 		override fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
-		override suspend fun renameWorkspace(name: String, newName: String) = WorkspaceAPI.updateName(name, newName)
-		override suspend fun deleteWorkspace(name: String) = WorkspaceAPI.delete(name)
-		override fun listWorkspaces(): List<WorkspaceMeta> = WorkspaceAPI.list()
+		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
+		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
+		override fun listWorkspaces() = WorkspaceAPI.list()
 	}
+	
 	override val config = object : CoreAPI.ConfigAPI {
 		private val cfg = ConfigManager
 		override fun getAppConfig(key: SettingKey) = cfg.appConfig.get(key)

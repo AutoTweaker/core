@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.data.provider
+package io.github.autotweaker.core.data
 
 import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.core.data.json.JsonStore
