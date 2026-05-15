@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.session
 
+import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore

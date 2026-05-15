@@ -21,10 +21,7 @@ package io.github.autotweaker.core.session
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.api.types.session.SessionConfig
-import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.AgentOutput
@@ -32,7 +29,6 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.provider.ProviderManager
-import io.github.autotweaker.core.data.session.SessionContext
 import io.github.autotweaker.core.data.session.SessionStoreImpl
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.session.workspace.WorkspaceManager

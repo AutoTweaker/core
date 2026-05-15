@@ -29,7 +29,6 @@ import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
-import io.github.autotweaker.core.data.session.SessionContext
 import io.github.autotweaker.core.session.agent.AgentContextConverter
 import io.github.autotweaker.core.session.agent.SessionContextConverter
 import io.github.autotweaker.core.tool.Tool
