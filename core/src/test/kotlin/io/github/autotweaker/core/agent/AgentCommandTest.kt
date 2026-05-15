@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk
 import kotlin.test.*
@@ -131,7 +132,7 @@ class AgentCommandTest {
 	
 	@Test
 	fun `ApproveToolCall default approved is true`() {
-		val approval = AgentCommand.Message.ApproveToolCall.Approve("call-1")
+		val approval = ToolApprove("call-1")
 		assertEquals("call-1", approval.callId)
 		assertNull(approval.reason)
 		assertTrue(approval.approved)
@@ -139,14 +140,14 @@ class AgentCommandTest {
 	
 	@Test
 	fun `ApproveToolCall with reason`() {
-		val approval = AgentCommand.Message.ApproveToolCall.Approve("call-2", "looks safe")
+		val approval = ToolApprove("call-2", "looks safe")
 		assertEquals("call-2", approval.callId)
 		assertEquals("looks safe", approval.reason)
 	}
 	
 	@Test
 	fun `ApproveToolCall with rejected`() {
-		val approval = AgentCommand.Message.ApproveToolCall.Approve("call-3", approved = false)
+		val approval = ToolApprove("call-3", approved = false)
 		assertEquals("call-3", approval.callId)
 		assertFalse(approval.approved)
 	}
@@ -154,8 +155,8 @@ class AgentCommandTest {
 	@Test
 	fun `ApproveToolCall wraps list of approvals`() {
 		val approvals = listOf(
-			AgentCommand.Message.ApproveToolCall.Approve("c1"),
-			AgentCommand.Message.ApproveToolCall.Approve("c2", approved = false),
+			ToolApprove("c1"),
+			ToolApprove("c2", approved = false),
 		)
 		val msg = AgentCommand.Message.ApproveToolCall(approvals)
 		assertEquals(2, msg.approvals.size)

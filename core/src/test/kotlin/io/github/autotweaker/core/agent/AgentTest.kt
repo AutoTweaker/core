@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -385,7 +386,7 @@ class AgentTest {
 	@Test
 	fun `dispatch ApproveToolCall when not WAITING gets requeued`() = runBlocking {
 		val agent = createAgent()
-		val approval = AgentCommand.Message.ApproveToolCall.Approve("call-1", approved = true)
+		val approval = ToolApprove("call-1", approved = true)
 		val msg = AgentCommand.Message.ApproveToolCall(listOf(approval))
 		
 		agent.dispatch(msg)

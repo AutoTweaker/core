@@ -20,6 +20,7 @@ package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionData
@@ -101,7 +102,7 @@ object SessionManager {
 		fun compactAgent(session: UUID) =
 			sessions[session]?.dispatch(AgentCommand.Directive.Compact)
 		
-		fun approveToolCall(session: UUID, approvals: List<AgentCommand.Message.ApproveToolCall.Approve>) {
+		fun approveToolCall(session: UUID, approvals: List<ToolApprove>) {
 			sessions[session]?.dispatch(AgentCommand.Message.ApproveToolCall(approvals))
 		}
 		

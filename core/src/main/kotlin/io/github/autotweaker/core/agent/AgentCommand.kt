@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.core.agent.llm.Model
 import java.util.*
 import kotlin.time.Instant
@@ -60,13 +61,7 @@ sealed class AgentCommand {
 		) : Message()
 		
 		data class ApproveToolCall(
-			val approvals: List<Approve>,
-		) : Message() {
-			data class Approve(
-				val callId: String,
-				val reason: String? = null,
-				val approved: Boolean = true,
-			)
-		}
+			val approvals: List<ToolApprove>,
+		) : Message()
 	}
 }

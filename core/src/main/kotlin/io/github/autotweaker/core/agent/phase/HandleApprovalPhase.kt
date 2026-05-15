@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.core.agent.AgentCommand
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
@@ -31,7 +31,7 @@ internal object HandleApprovalPhase {
 	
 	internal suspend fun execute(
 		env: AgentEnvironment,
-		approvals: List<AgentCommand.Message.ApproveToolCall.Approve>,
+		approvals: List<ToolApprove>,
 		executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,
 	): PhaseResult {
 		logger.debug(
@@ -73,7 +73,7 @@ internal object HandleApprovalPhase {
 			processed.add(
 				if (a.approved) {
 					logger.debug("Tool approved  agentId={}  tool={}  callId={}", env.agentId, call.name, call.callId)
-					if (a.reason != null) env.agentState.approvalReasons.add(a.reason)
+					if (a.reason != null) env.agentState.approvalReasons.add(a.reason!!)
 					executeTool(n.result, call)
 				} else {
 					logger.debug("Tool rejected  agentId={}  tool={}  callId={}", env.agentId, call.name, call.callId)

@@ -22,6 +22,7 @@ import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.api.types.session.ModelId
@@ -31,7 +32,6 @@ import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.AutoTweaker
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.config.ConfigManager
-import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.SessionManager
@@ -70,7 +70,7 @@ object CoreAPIImpl : CoreAPI {
 		
 		override fun compact(sessionId: UUID) = SessionManager.SessionAPI.compactAgent(sessionId) ?: Unit
 		
-		override fun approveToolCall(sessionId: UUID, approvals: List<AgentCommand.Message.ApproveToolCall.Approve>) =
+		override fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>) =
 			SessionManager.SessionAPI.approveToolCall(sessionId, approvals)
 		
 		override fun list() = SessionManager.SessionAPI.list()

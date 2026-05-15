@@ -19,9 +19,13 @@
 package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.ToolResultStatus
-import io.github.autotweaker.core.agent.*
+import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.agent.AgentEnvironment
+import io.github.autotweaker.core.agent.AgentOutput
+import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
@@ -132,7 +136,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
+		val approvals = listOf(ToolApprove("c1", approved = true, reason = null))
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
@@ -156,7 +160,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = false, reason = "unsafe"))
+		val approvals = listOf(ToolApprove("c1", approved = false, reason = "unsafe"))
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
@@ -185,7 +189,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
+		val approvals = listOf(ToolApprove("c1", approved = true, reason = null))
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Done, result)
@@ -219,9 +223,9 @@ class HandleApprovalPhaseTest {
 		every { env.status } returnsMany listOf(AgentStatus.PROCESSING, AgentStatus.PAUSED)
 		
 		val approvals = listOf(
-			AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null),
-			AgentCommand.Message.ApproveToolCall.Approve("c2", approved = true, reason = null),
-			AgentCommand.Message.ApproveToolCall.Approve("c3", approved = true, reason = null),
+			ToolApprove("c1", approved = true, reason = null),
+			ToolApprove("c2", approved = true, reason = null),
+			ToolApprove("c3", approved = true, reason = null),
 		)
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
@@ -244,7 +248,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
+		val approvals = listOf(ToolApprove("c1", approved = true, reason = null))
 		assertFailsWith<IllegalArgumentException> {
 			HandleApprovalPhase.execute(env, approvals, executeTool)
 		}
@@ -269,7 +273,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
+		val approvals = listOf(ToolApprove("c1", approved = true, reason = null))
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
@@ -295,7 +299,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "allowed"))
+		val approvals = listOf(ToolApprove("c1", approved = true, reason = "allowed"))
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
@@ -322,7 +326,7 @@ class HandleApprovalPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		val approvals = listOf(AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = null))
+		val approvals = listOf(ToolApprove("c1", approved = true, reason = null))
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
 		assertEquals(PhaseResult.Continue, result)
@@ -350,8 +354,8 @@ class HandleApprovalPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
 		val approvals = listOf(
-			AgentCommand.Message.ApproveToolCall.Approve("c1", approved = true, reason = "reason1"),
-			AgentCommand.Message.ApproveToolCall.Approve("c2", approved = true, reason = "reason2"),
+			ToolApprove("c1", approved = true, reason = "reason1"),
+			ToolApprove("c2", approved = true, reason = "reason2"),
 		)
 		val result = HandleApprovalPhase.execute(env, approvals, executeTool)
 		
