@@ -26,17 +26,17 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule
 import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.mockk.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import org.junit.jupiter.api.AfterEach
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
@@ -95,7 +95,7 @@ class ResilientChatTest {
 		),
 	)
 	
-	@After
+	@AfterEach
 	fun cleanup() {
 		unmockkObject(LlmClientLoader)
 	}

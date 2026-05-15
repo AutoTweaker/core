@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.data.ProviderStore
 
 object ModelConfigAPI {

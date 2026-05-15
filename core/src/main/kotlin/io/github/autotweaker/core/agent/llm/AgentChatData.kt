@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.agent.AgentContext
@@ -33,9 +34,7 @@ data class AgentChatRequest(
 
 sealed class AgentChatStreamResult {
 	data class Delta(
-		val content: String?,
-		val reasoningContent: String?,
-		val toolCallFragments: List<ChatResult.ChunkToolCall>?,
+		val delta: StreamDelta
 	) : AgentChatStreamResult()
 	
 	data class Failing(

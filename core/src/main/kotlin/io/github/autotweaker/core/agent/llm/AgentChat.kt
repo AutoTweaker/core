@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.agent.AgentContext
@@ -84,9 +85,11 @@ internal object AgentChat {
 						if (msg != null) {
 							emit(
 								AgentChatStreamResult.Delta(
-									content = msg.content,
-									reasoningContent = msg.reasoningContent,
-									toolCallFragments = result.toolCalls,
+									StreamDelta(
+										content = msg.content,
+										reasoningContent = msg.reasoningContent,
+										toolCallFragments = result.toolCalls,
+									)
 								)
 							)
 						}

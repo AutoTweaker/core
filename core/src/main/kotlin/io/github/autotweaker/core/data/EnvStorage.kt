@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.data
 
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.secret.impl.SecretManager
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -27,7 +27,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.util.*
 
 class EnvStorage(namespace: String) {
-	private val jsonEntry = JsonStore.namespace(namespace)
+	private val jsonEntry = JsonStoreImpl.namespace(namespace)
 	
 	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
 	

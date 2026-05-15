@@ -20,12 +20,13 @@ package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.AgentContext
 import java.math.BigDecimal
 import java.util.*
@@ -113,35 +114,55 @@ class AgentChatDataTest {
 	@Test
 	fun `delta result with reasoning`() {
 		val delta = AgentChatStreamResult.Delta(
-			content = null,
-			reasoningContent = "thinking step by step",
-			toolCallFragments = null
+			delta = StreamDelta(
+				content = null,
+				reasoningContent = "thinking step by step",
+				toolCallFragments = null
+			)
 		)
-		assertEquals("thinking step by step", delta.reasoningContent)
-		assertNull(delta.content)
-		assertNull(delta.toolCallFragments)
+		assertEquals("thinking step by step", delta.delta.reasoningContent)
+		assertNull(delta.delta.content)
+		assertNull(delta.delta.toolCallFragments)
 	}
 	
 	@Test
 	fun `delta result with content and reasoning`() {
-		val delta = AgentChatStreamResult.Delta(content = "hello", reasoningContent = "think", toolCallFragments = null)
-		assertEquals("think", delta.reasoningContent)
-		assertEquals("hello", delta.content)
+		val delta = AgentChatStreamResult.Delta(
+			delta = StreamDelta(
+				content = "hello",
+				reasoningContent = "think",
+				toolCallFragments = null
+			)
+		)
+		assertEquals("think", delta.delta.reasoningContent)
+		assertEquals("hello", delta.delta.content)
 	}
 	
 	@Test
 	fun `delta result with content only`() {
-		val delta = AgentChatStreamResult.Delta(content = "hello", reasoningContent = null, toolCallFragments = null)
-		assertNull(delta.reasoningContent)
-		assertEquals("hello", delta.content)
+		val delta = AgentChatStreamResult.Delta(
+			delta = StreamDelta(
+				content = "hello",
+				reasoningContent = null,
+				toolCallFragments = null
+			)
+		)
+		assertNull(delta.delta.reasoningContent)
+		assertEquals("hello", delta.delta.content)
 	}
 	
 	@Test
 	fun `delta result with tool call fragments`() {
 		val fragments = listOf(ChatResult.ChunkToolCall(index = 0, id = "c1", name = "bash", arguments = "{}"))
-		val delta = AgentChatStreamResult.Delta(content = null, reasoningContent = null, toolCallFragments = fragments)
-		assertEquals(1, delta.toolCallFragments?.size)
-		assertEquals("c1", delta.toolCallFragments?.get(0)?.id)
+		val delta = AgentChatStreamResult.Delta(
+			delta = StreamDelta(
+				content = null,
+				reasoningContent = null,
+				toolCallFragments = fragments
+			)
+		)
+		assertEquals(1, delta.delta.toolCallFragments?.size)
+		assertEquals("c1", delta.delta.toolCallFragments?.get(0)?.id)
 	}
 	
 	@Test

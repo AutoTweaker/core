@@ -20,7 +20,7 @@ package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.secret.impl.SecretManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
@@ -30,7 +30,7 @@ import java.util.*
 
 object ApiKeyConfigAPI {
 	private val secret = SecretManager
-	private val jsonEntry = JsonStore.namespace(this::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
 	private val keyMap: MutableMap<String, @Serializable(with = UuidSerializer::class) UUID> = mutableMapOf()
 	
 	fun add(key: CoreConfig.ProviderConfig.ApiKey) {

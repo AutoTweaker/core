@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -52,7 +54,9 @@ internal object CompactPhase {
 	) {
 		logger.debug(
 			"Compact started  agentId={}  roundCount={}  summarizeModel={}",
-			env.agentId, rounds.size, summarizeModel.modelInfo.id
+			env.agentId,
+			rounds.size,
+			summarizeModel.modelInfo.id
 		)
 		
 		val compactPrompt: String = settings.find("core.agent.compact.prompt")
@@ -80,8 +84,9 @@ internal object CompactPhase {
 			)
 			env.emitOutput(
 				AgentOutput.Error(
-					"Compact produced empty summary after $attempt attempts",
-					AgentOutput.Error.Type.COMPACT
+					AgentError(
+						"Compact produced empty summary after $attempt attempts", AgentError.Type.COMPACT
+					)
 				)
 			)
 			return
@@ -89,7 +94,10 @@ internal object CompactPhase {
 		
 		logger.debug(
 			"Compact completed  agentId={}  roundCount={}  attempts={}  summaryLength={}",
-			env.agentId, rounds.size, attempt, cleaned.length
+			env.agentId,
+			rounds.size,
+			attempt,
+			cleaned.length
 		)
 		
 		val compactedIds = rounds.map { it.userMessage.id }.toSet()
@@ -98,9 +106,7 @@ internal object CompactPhase {
 			val dropped = ctx.historyRounds?.filter { it.userMessage.id in compactedIds }
 			val remaining = ctx.historyRounds?.filter { it.userMessage.id !in compactedIds }?.ifEmpty { null }
 			val compactMsg = AgentContext.SummarizedMessage(
-				id = UUID.randomUUID(),
-				timestamp = Clock.System.now(),
-				content = cleaned
+				id = UUID.randomUUID(), timestamp = Clock.System.now(), content = cleaned
 			)
 			ctx.copy(
 				historyRounds = remaining,
@@ -147,10 +153,10 @@ internal object CompactPhase {
 						if (!msg.content.isNullOrEmpty()) {
 							rawContent += msg.content
 							env.emitOutput(
-								AgentOutput.CompactOutput(
-									AgentOutput.CompactOutput.Status.OUTPUTTING,
-									rawContent,
-									null
+								AgentOutput.Compact(
+									CompactOutput(
+										CompactOutput.Status.OUTPUTTING, rawContent, null
+									)
 								)
 							)
 						}
@@ -161,10 +167,10 @@ internal object CompactPhase {
 						val msg = result.message
 						if (msg is ChatMessage.ErrorMessage) {
 							env.emitOutput(
-								AgentOutput.CompactOutput(
-									AgentOutput.CompactOutput.Status.FAILED,
-									rawContent,
-									null
+								AgentOutput.Compact(
+									CompactOutput(
+										CompactOutput.Status.FAILED, rawContent, null
+									)
 								)
 							)
 							hasError = true
@@ -182,7 +188,7 @@ internal object CompactPhase {
 			throw e
 		} catch (_: Exception) {
 			logger.warn("Failed to send compact request  agentId={}", env.agentId)
-			env.emitOutput(AgentOutput.CompactOutput(AgentOutput.CompactOutput.Status.FAILED, rawContent, null))
+			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastUsage, success = false)
 		}
 		
@@ -192,12 +198,12 @@ internal object CompactPhase {
 		val valid = extracted.length >= MIN_SUMMARY_LENGTH
 		
 		if (valid) {
-			env.emitOutput(AgentOutput.CompactOutput(AgentOutput.CompactOutput.Status.FINISHED, rawContent, lastUsage))
+			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastUsage)))
 		} else {
 			logger.debug(
 				"Compact summary found too short  agentId={}  length={}", env.agentId, extracted.length
 			)
-			env.emitOutput(AgentOutput.CompactOutput(AgentOutput.CompactOutput.Status.FAILED, rawContent, lastUsage))
+			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastUsage)))
 		}
 		
 		return CompactRequestResult(extracted, lastUsage, success = valid)
@@ -213,11 +219,7 @@ internal object CompactPhase {
 		for (round in rounds) {
 			add(
 				convertUserMessage(
-					round.userMessage,
-					maxMessageChars,
-					messageSummarizePrompt,
-					summarizeModel,
-					fallbackModels
+					round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
 				)
 			)
 			round.turns?.forEach { turn ->
@@ -241,11 +243,7 @@ internal object CompactPhase {
 				turn.tools.forEach {
 					add(
 						convertToolMessage(
-							it,
-							maxMessageChars,
-							messageSummarizePrompt,
-							summarizeModel,
-							fallbackModels
+							it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
 						)
 					)
 				}
@@ -253,12 +251,7 @@ internal object CompactPhase {
 			round.finalAssistantMessage?.let {
 				add(
 					convertAssistantMessage(
-						it,
-						null,
-						maxMessageChars,
-						messageSummarizePrompt,
-						summarizeModel,
-						fallbackModels
+						it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
 					)
 				)
 			}

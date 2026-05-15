@@ -18,13 +18,36 @@
 
 package io.github.autotweaker.api.types.session
 
+import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.CompactOutput
+import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.model.ModelId
-import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
-@Serializable
-data class SessionConfig(
-	val model: ModelId,
-	val fallbackModel: List<ModelId>?,
-	val summarizeModel: ModelId,
-	val thinking: Boolean,
-)
+sealed class SessionOutput {
+	data class LlmDelta(val delta: StreamDelta) : SessionOutput()
+	data class LlmError(
+		val content: String?,
+		val statusCode: Int?,
+		val retrying: ModelId?,
+		val timestamp: Instant,
+	) : SessionOutput()
+	
+	data class Compact(
+		val output: CompactOutput
+	) : SessionOutput()
+	
+	data class Tool(
+		val output: ToolOutput
+	) : SessionOutput()
+	
+	data class ToolRequest(
+		val requests: List<ToolCallRequest>,
+	) : SessionOutput()
+	
+	data class Error(
+		val error: AgentError
+	) : SessionOutput()
+}
+

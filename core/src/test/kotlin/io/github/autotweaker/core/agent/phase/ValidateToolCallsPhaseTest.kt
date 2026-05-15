@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
@@ -160,9 +160,9 @@ class ValidateToolCallsPhaseTest {
 		assertEquals(PhaseResult.Done, result)
 		assertEquals(AgentStatus.WAITING, statusLog.last())
 		assertEquals(2, agentState.pendingApproval!!.size)
-		val req = emittedOutputs.firstOrNull { it is AgentOutput.ToolCallRequest } as? AgentOutput.ToolCallRequest
+		val req = emittedOutputs.firstOrNull { it is AgentOutput.ToolRequest } as? AgentOutput.ToolRequest
 		assertNotNull(req)
-		assertEquals(2, req.pendingToolCalls.size)
+		assertEquals(2, req.requests.size)
 	}
 	
 	@Test
@@ -230,11 +230,10 @@ class ValidateToolCallsPhaseTest {
 		
 		ValidateToolCallsPhase.execute(env)
 		
-		val req = emittedOutputs.firstOrNull { it is AgentOutput.ToolCallRequest } as? AgentOutput.ToolCallRequest
+		val req = emittedOutputs.firstOrNull { it is AgentOutput.ToolRequest } as? AgentOutput.ToolRequest
 		assertNotNull(req)
-		assertEquals(1, req.pendingToolCalls.size)
-		assertEquals("c1", req.pendingToolCalls[0].callId)
-		assertEquals("bash_run", req.pendingToolCalls[0].name)
+		assertEquals(1, req.requests.size)
+		assertEquals("bash_run", req.requests[0].name)
 	}
 	
 	// region helpers

@@ -16,14 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-}
+data class ToolOutput(
+	val name: String,
+	val callId: String,
+	val content: String,
+)

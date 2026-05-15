@@ -19,20 +19,20 @@
 package io.github.autotweaker.core.adapter.impl
 
 import io.github.autotweaker.api.AdapterRegistry
+import io.github.autotweaker.api.CoreAPI
 import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingKey
-import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.config.ConfigManager
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
 import io.github.autotweaker.core.session.WorkspaceAPI
@@ -46,7 +46,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	override fun listAdapter(): List<AdapterInfo> = adapterRegistry.listAdapter()
 	override fun startAdapter(name: String) = adapterRegistry.startAdapter(name)
 	override fun stopAdapter(name: String) = adapterRegistry.stopAdapter(name)
-	override fun jsonStore(namespace: String) = JsonStore.namespace(namespace)
+	override fun jsonStore(namespace: String) = JsonStoreImpl.namespace(namespace)
 	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
 	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty
 	

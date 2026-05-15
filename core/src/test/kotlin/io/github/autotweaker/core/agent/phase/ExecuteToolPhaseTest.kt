@@ -19,8 +19,9 @@
 package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.agent.ToolOutput
+import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -69,7 +70,11 @@ class ExecuteToolPhaseTest {
 			SettingItem.Value.ValString("Missing %s"),
 			""
 		),
-		SettingItem(SettingKey("core.agent.tool.response.property.error"), SettingItem.Value.ValString("Error %s"), ""),
+		SettingItem(
+			SettingKey("core.agent.tool.response.property.error"),
+			SettingItem.Value.ValString("Error %s"),
+			""
+		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.function.name.error"),
 			SettingItem.Value.ValString("Function %s not found"),
@@ -249,17 +254,17 @@ class ExecuteToolPhaseTest {
 	@Test
 	fun `tool callbacks fire onToolOutput`() = runTest {
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } coAnswers {
-			val onToolOutput = arg<suspend (AgentOutput.ToolOutput) -> Unit>(6)
-			onToolOutput.invoke(AgentOutput.ToolOutput("bash", "c1", "streaming data"))
+			val onToolOutput = arg<suspend (AgentOutput.Tool) -> Unit>(6)
+			onToolOutput.invoke(AgentOutput.Tool(ToolOutput(name = "bash", callId = "c1", content = "streaming data")))
 			toolResultForTest()
 		}
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
-		val toolOutput = capturedOutputs.firstOrNull { it is AgentOutput.ToolOutput }
+		val toolOutput = capturedOutputs.firstOrNull { it is AgentOutput.Tool }
 		assertNotNull(toolOutput)
-		assertEquals("streaming data", (toolOutput as AgentOutput.ToolOutput).content)
+		assertEquals("streaming data", (toolOutput as AgentOutput.Tool).output.content)
 	}
 	
 	// region helpers

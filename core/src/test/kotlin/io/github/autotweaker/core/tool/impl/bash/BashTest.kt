@@ -21,7 +21,7 @@ package io.github.autotweaker.core.tool.impl.bash
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
@@ -42,11 +42,11 @@ class BashTest {
 	@BeforeTest
 	fun setUp() {
 		storedJson = null
-		mockkObject(JsonStore)
-		val mockEntry = mockk<JsonStore.JsonEntry>()
+		mockkObject(JsonStoreImpl)
+		val mockEntry = mockk<JsonStoreImpl.JsonEntry>()
 		every { mockEntry.get() } answers { storedJson }
 		every { mockEntry.set(any()) } answers { storedJson = firstArg() }
-		every { JsonStore.namespace(any()) } returns mockEntry
+		every { JsonStoreImpl.namespace(any()) } returns mockEntry
 		
 		mockkObject(SecretManager)
 		val secretStore = mutableMapOf<UUID, String>()
@@ -60,7 +60,7 @@ class BashTest {
 	@AfterTest
 	fun tearDown() {
 		unmockkObject(SecretManager)
-		unmockkObject(JsonStore)
+		unmockkObject(JsonStoreImpl)
 	}
 	
 	private val defaultSettings: List<SettingItem> by lazy {

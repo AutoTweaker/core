@@ -20,7 +20,7 @@ package io.github.autotweaker.core.data
 
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -32,7 +32,7 @@ import java.util.*
 object WorkspaceManager {
 	val DEFAULT_WORKSPACE_ID: UUID = UUID.nameUUIDFromBytes("autotweaker-default-workspace".toByteArray())
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStore.namespace(this::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
 	
 	private var workspaceList: List<WorkspaceData>
 	

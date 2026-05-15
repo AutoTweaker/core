@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
-import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import org.slf4j.LoggerFactory

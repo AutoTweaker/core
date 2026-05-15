@@ -18,13 +18,17 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.CompactOutput
+import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.mockk
-import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -36,17 +40,24 @@ class AgentOutputTest {
 	
 	@Test
 	fun `StreamDelta with output content`() {
-		val delta = AgentChatStreamResult.Delta(content = "hello", reasoningContent = null, toolCallFragments = null)
-		val output = AgentOutput.StreamDelta(delta)
+		val delta = StreamDelta(
+			content = "hello",
+			reasoningContent = null,
+			toolCallFragments = null
+		)
+		val output = AgentOutput.LlmDelta(delta)
 		assertEquals("hello", output.delta.content)
 		assertNull(output.delta.reasoningContent)
 	}
 	
 	@Test
 	fun `StreamDelta with reasoning content`() {
-		val delta =
-			AgentChatStreamResult.Delta(content = null, reasoningContent = "thinking...", toolCallFragments = null)
-		val output = AgentOutput.StreamDelta(delta)
+		val delta = StreamDelta(
+			content = null,
+			reasoningContent = "thinking...",
+			toolCallFragments = null
+		)
+		val output = AgentOutput.LlmDelta(delta)
 		assertNull(output.delta.content)
 		assertEquals("thinking...", output.delta.reasoningContent)
 	}
@@ -54,8 +65,12 @@ class AgentOutputTest {
 	@Test
 	fun `StreamDelta with tool call fragments`() {
 		val fragments = listOf(ChatResult.ChunkToolCall(index = 0, id = "c1", name = "bash", arguments = "{}"))
-		val delta = AgentChatStreamResult.Delta(content = null, reasoningContent = null, toolCallFragments = fragments)
-		val output = AgentOutput.StreamDelta(delta)
+		val delta = StreamDelta(
+			content = null,
+			reasoningContent = null,
+			toolCallFragments = fragments
+		)
+		val output = AgentOutput.LlmDelta(delta)
 		assertEquals(1, output.delta.toolCallFragments?.size)
 		assertEquals("c1", output.delta.toolCallFragments?.get(0)?.id)
 	}
@@ -72,7 +87,7 @@ class AgentOutputTest {
 			retrying = mockModel,
 			timestamp = Clock.System.now(),
 		)
-		val output = AgentOutput.StreamError(error)
+		val output = AgentOutput.LlmError(error)
 		assertEquals(error, output.error)
 	}
 	
@@ -82,29 +97,29 @@ class AgentOutputTest {
 	
 	@Test
 	fun `CompactOutput OUTPUTTING status`() {
-		val output = AgentOutput.CompactOutput(
-			AgentOutput.CompactOutput.Status.OUTPUTTING, "summarizing...", null
+		val output = AgentOutput.Compact(
+			CompactOutput(status = CompactOutput.Status.OUTPUTTING, content = "summarizing...", usage = null)
 		)
-		assertEquals(AgentOutput.CompactOutput.Status.OUTPUTTING, output.status)
-		assertEquals("summarizing...", output.content)
+		assertEquals(CompactOutput.Status.OUTPUTTING, output.output.status)
+		assertEquals("summarizing...", output.output.content)
 	}
 	
 	@Test
 	fun `CompactOutput FINISHED with usage`() {
 		val usage = Usage(100, 50, 50)
-		val output = AgentOutput.CompactOutput(
-			AgentOutput.CompactOutput.Status.FINISHED, "summary done", usage
+		val output = AgentOutput.Compact(
+			CompactOutput(status = CompactOutput.Status.FINISHED, content = "summary done", usage = usage)
 		)
-		assertEquals(AgentOutput.CompactOutput.Status.FINISHED, output.status)
-		assertEquals(usage, output.usage)
+		assertEquals(CompactOutput.Status.FINISHED, output.output.status)
+		assertEquals(usage, output.output.usage)
 	}
 	
 	@Test
 	fun `CompactOutput FAILED status`() {
-		val output = AgentOutput.CompactOutput(
-			AgentOutput.CompactOutput.Status.FAILED, "compact error", null
+		val output = AgentOutput.Compact(
+			CompactOutput(status = CompactOutput.Status.FAILED, content = "compact error", usage = null)
 		)
-		assertEquals(AgentOutput.CompactOutput.Status.FAILED, output.status)
+		assertEquals(CompactOutput.Status.FAILED, output.output.status)
 	}
 	
 	// endregion
@@ -113,10 +128,10 @@ class AgentOutputTest {
 	
 	@Test
 	fun `ToolOutput holds name callId and content`() {
-		val output = AgentOutput.ToolOutput("bash", "call-1", "command output")
-		assertEquals("bash", output.name)
-		assertEquals("call-1", output.callId)
-		assertEquals("command output", output.content)
+		val output = AgentOutput.Tool(ToolOutput(name = "bash", callId = "call-1", content = "command output"))
+		assertEquals("bash", output.output.name)
+		assertEquals("call-1", output.output.callId)
+		assertEquals("command output", output.output.content)
 	}
 	
 	// endregion
@@ -125,26 +140,22 @@ class AgentOutputTest {
 	
 	@Test
 	fun `ToolCallRequest wraps pending tool calls`() {
-		val pending = listOf(
-			AgentContext.CurrentRound.PendingToolCall(
-				callId = "c1",
-				assistantMessageId = UUID.randomUUID(),
+		val requests = listOf(
+			ToolCallRequest(
 				name = "bash_run",
-				model = mockModel,
 				arguments = """{"cmd":"ls"}""",
 				reason = "test",
-				timestamp = Clock.System.now()
 			)
 		)
-		val output = AgentOutput.ToolCallRequest(pending)
-		assertEquals(1, output.pendingToolCalls.size)
-		assertEquals("c1", output.pendingToolCalls[0].callId)
+		val output = AgentOutput.ToolRequest(requests)
+		assertEquals(1, output.requests.size)
+		assertEquals("bash_run", output.requests[0].name)
 	}
 	
 	@Test
 	fun `ToolCallRequest empty pending list`() {
-		val output = AgentOutput.ToolCallRequest(emptyList())
-		assertTrue(output.pendingToolCalls.isEmpty())
+		val output = AgentOutput.ToolRequest(emptyList())
+		assertTrue(output.requests.isEmpty())
 	}
 	
 	// endregion
@@ -165,16 +176,16 @@ class AgentOutputTest {
 	
 	@Test
 	fun `Error LLM type`() {
-		val output = AgentOutput.Error("llm error", AgentOutput.Error.Type.LLM)
-		assertEquals("llm error", output.message)
-		assertEquals(AgentOutput.Error.Type.LLM, output.type)
+		val output = AgentOutput.Error(AgentError(message = "llm error", type = AgentError.Type.LLM))
+		assertEquals("llm error", output.error.message)
+		assertEquals(AgentError.Type.LLM, output.error.type)
 	}
 	
 	@Test
 	fun `Error COMPACT type`() {
-		val output = AgentOutput.Error("compact failed", AgentOutput.Error.Type.COMPACT)
-		assertEquals("compact failed", output.message)
-		assertEquals(AgentOutput.Error.Type.COMPACT, output.type)
+		val output = AgentOutput.Error(AgentError(message = "compact failed", type = AgentError.Type.COMPACT))
+		assertEquals("compact failed", output.error.message)
+		assertEquals(AgentError.Type.COMPACT, output.error.type)
 	}
 	
 	// endregion
@@ -184,8 +195,8 @@ class AgentOutputTest {
 	@Test
 	fun `all variants are AgentOutput`() {
 		assertIs<AgentOutput>(
-			AgentOutput.StreamDelta(
-				AgentChatStreamResult.Delta(
+			AgentOutput.LlmDelta(
+				StreamDelta(
 					content = "hi",
 					reasoningContent = null,
 					toolCallFragments = null
@@ -193,19 +204,19 @@ class AgentOutputTest {
 			)
 		)
 		assertIs<AgentOutput>(
-			AgentOutput.StreamError(
+			AgentOutput.LlmError(
 				AgentChatStreamResult.Failing.Error("e", 500, null, Clock.System.now())
 			)
 		)
 		assertIs<AgentOutput>(
-			AgentOutput.CompactOutput(
-				AgentOutput.CompactOutput.Status.OUTPUTTING, "x", null
+			AgentOutput.Compact(
+				CompactOutput(status = CompactOutput.Status.OUTPUTTING, content = "x", usage = null)
 			)
 		)
-		assertIs<AgentOutput>(AgentOutput.ToolOutput("t", "c", "o"))
-		assertIs<AgentOutput>(AgentOutput.ToolCallRequest(emptyList()))
+		assertIs<AgentOutput>(AgentOutput.Tool(ToolOutput(name = "t", callId = "c", content = "o")))
+		assertIs<AgentOutput>(AgentOutput.ToolRequest(emptyList()))
 		assertIs<AgentOutput>(AgentOutput.ToolListUpdate(emptyList()))
-		assertIs<AgentOutput>(AgentOutput.Error("e", AgentOutput.Error.Type.LLM))
+		assertIs<AgentOutput>(AgentOutput.Error(AgentError(message = "e", type = AgentError.Type.LLM)))
 	}
 	
 	// endregion

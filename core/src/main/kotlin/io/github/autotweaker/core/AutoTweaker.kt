@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.AdapterAPI
 import io.github.autotweaker.api.AdapterRegistry
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.core.adapter.api.AdapterAPI
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.container.ContainerManager
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
@@ -68,7 +68,7 @@ object AutoTweaker : AdapterRegistry {
 		
 		logger.info("AutoTweaker started  version={}", version)
 		
-		JsonStore.init()
+		JsonStoreImpl.init()
 		Settings.init()
 		try {
 			SecretManager.init()

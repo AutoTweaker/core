@@ -16,15 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.Config
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.ModelInfo
+import kotlinx.serialization.json.JsonElement
 
-data class Model(
-	val provider: Provider,
-	val modelInfo: ModelInfo,
-	val config: Config? = null,
-	val modelId: ModelId,
-)
+interface JsonStore {
+	fun get(): JsonElement?
+	fun set(value: JsonElement)
+}

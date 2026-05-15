@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
+import io.github.autotweaker.api.CoreAPI
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.github.autotweaker.core.adapter.impl.cli.commands.Help
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
@@ -28,17 +28,21 @@ import kotlinx.coroutines.flow.flowOf
 import org.slf4j.LoggerFactory
 import java.util.*
 
-class CommandRouter(core: CoreAPI, coreVersion: SemVer) {
+class CommandRouter(core: CoreAPI, coreVersion: SemVer, commands: List<Command>) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val handlers: Map<String, Command>
 	private val maxArgsCount = 100_000
 	
 	init {
-		val loaded = ServiceLoader.load(Command::class.java).toList()
-		loaded.forEach { it.init(core, coreVersion) }
-		val help = Help(loaded)
-		handlers = (loaded + help).associateBy { it.name }
+		commands.forEach { it.init(core, coreVersion) }
+		val help = Help(commands)
+		handlers = (commands + help).associateBy { it.name }
 		logger.debug("CommandRouter loaded  commandCount={}  commands={}", handlers.size, handlers.keys)
+	}
+	
+	companion object {
+		fun fromServiceLoader(core: CoreAPI, coreVersion: SemVer): CommandRouter =
+			CommandRouter(core, coreVersion, ServiceLoader.load(Command::class.java).toList())
 	}
 	
 	fun dispatch(request: CliMessage.Command, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> {

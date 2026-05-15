@@ -20,9 +20,10 @@ package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
+import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.llm.Model
@@ -92,7 +93,7 @@ object SessionManager {
 		sessions[session]?.dispatch(AgentCommand.Message.ApproveToolCall(approvals))
 	}
 	
-	fun get(id: UUID): SessionHandle? = sessions[id]?.let { SessionHandle.fromSession(it) }
+	fun get(id: UUID): SessionHandle? = sessions[id]?.let { getHandle(it) }
 	
 	suspend fun shutdown() {
 		sessions.keys.toList().forEach { id ->
@@ -141,7 +142,7 @@ object SessionManager {
 		)
 		store.saveSessions(listOf(session.data.value))
 		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, data.id)
-		return SessionHandle.fromSession(session)
+		return getHandle(session)
 	}
 	
 	internal suspend fun updateWorkspaceName(id: UUID, new: String) = store.loadAllSessions()?.forEach {
@@ -173,6 +174,14 @@ object SessionManager {
 		)
 		sessions[session.data.value.id] = session
 		startMonitor(session)
-		return SessionHandle.fromSession(session)
+		return getHandle(session)
 	}
+	
+	private fun getHandle(session: Session): SessionHandle = SessionHandle(
+		id = session.data.value.id,
+		context = session.context,
+		output = session.output,
+		status = session.agentStatus,
+		data = session.data,
+	)
 }

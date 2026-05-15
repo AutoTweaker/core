@@ -29,7 +29,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.test.*
 
-class JsonStoreTest {
+class JsonStoreImplTest {
 	
 	@BeforeTest
 	fun setUp() {
@@ -37,9 +37,9 @@ class JsonStoreTest {
 		every { H2DatabaseStore.connect(any()) } answers {
 			Database.connect("jdbc:h2:mem:js;DB_CLOSE_DELAY=-1", "org.h2.Driver")
 		}
-		val field = JsonStore::class.java.getDeclaredField("initialized")
+		val field = JsonStoreImpl::class.java.getDeclaredField("initialized")
 		field.isAccessible = true
-		field.setBoolean(JsonStore, false)
+		field.setBoolean(JsonStoreImpl, false)
 	}
 	
 	@AfterTest
@@ -49,14 +49,14 @@ class JsonStoreTest {
 	
 	@Test
 	fun `init then get returns null`() {
-		JsonStore.init()
-		assertNull(JsonStore.namespace("empty_ns").get())
+		JsonStoreImpl.init()
+		assertNull(JsonStoreImpl.namespace("empty_ns").get())
 	}
 	
 	@Test
 	fun `namespace and set then get`() {
-		JsonStore.init()
-		val entry = JsonStore.namespace("test_ns")
+		JsonStoreImpl.init()
+		val entry = JsonStoreImpl.namespace("test_ns")
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
 		entry.set(data)
 		assertNotNull(entry.get())
@@ -64,13 +64,13 @@ class JsonStoreTest {
 	
 	@Test
 	fun `get handles corrupted JSON`() {
-		JsonStore.init()
+		JsonStoreImpl.init()
 		transaction {
 			JsonStoreTable.insert {
 				it[JsonStoreTable.namespace] = "corrupt"
 				it[JsonStoreTable.content] = "bad json"
 			}
 		}
-		assertNull(JsonStore.namespace("corrupt").get())
+		assertNull(JsonStoreImpl.namespace("corrupt").get())
 	}
 }

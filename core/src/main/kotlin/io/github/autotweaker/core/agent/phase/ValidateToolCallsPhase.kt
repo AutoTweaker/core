@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.tool.Tools
@@ -30,7 +31,8 @@ internal object ValidateToolCallsPhase {
 	internal suspend fun execute(env: AgentEnvironment): PhaseResult {
 		logger.debug(
 			"Tool calls validation started  agentId={}  pendingCallCount={}",
-			env.agentId, env.context.value.currentRound?.pendingToolCalls?.size
+			env.agentId,
+			env.context.value.currentRound?.pendingToolCalls?.size
 		)
 		env.updateStatus(AgentStatus.PROCESSING)
 		//读取上下文
@@ -46,7 +48,10 @@ internal object ValidateToolCallsPhase {
 		val needsApproval = results.filterIsInstance<Tools.ToolCallResolveResult.NeedsApproval>()
 		logger.debug(
 			"Tool calls resolved  agentId={}  total={}  failures={}  needsApproval={}",
-			env.agentId, pendingCalls.size, failures.size, needsApproval.size
+			env.agentId,
+			pendingCalls.size,
+			failures.size,
+			needsApproval.size
 		)
 		//构建解析失败的工具消息
 		val errorTools = failures.map { f ->
@@ -64,16 +69,18 @@ internal object ValidateToolCallsPhase {
 			env.agentState.pendingApproval = needsApproval
 			val needsApprovalCalls = needsApproval.map { callById.getValue(it.callId) }
 			logger.debug(
-				"Tool calls queued for approval  agentId={}  count={}",
-				env.agentId, needsApproval.size
+				"Tool calls queued for approval  agentId={}  count={}", env.agentId, needsApproval.size
 			)
-			env.emitOutput(AgentOutput.ToolCallRequest(needsApprovalCalls))
+			env.emitOutput(AgentOutput.ToolRequest(needsApprovalCalls.map {
+				ToolCallRequest(
+					name = it.name, arguments = it.arguments, reason = it.reason
+				)
+			}))
 			env.updateStatus(AgentStatus.WAITING)
 			PhaseResult.Done
 		} else {
 			logger.debug(
-				"All tool calls resolved  continued  agentId={}  processedToolCount={}",
-				env.agentId, errorTools.size
+				"All tool calls resolved  continued  agentId={}  processedToolCount={}", env.agentId, errorTools.size
 			)
 			//没有待处理的，直接继续
 			ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)

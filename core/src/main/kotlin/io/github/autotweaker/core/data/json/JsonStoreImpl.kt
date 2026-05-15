@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.json
 
+import io.github.autotweaker.api.JsonStore
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -27,7 +28,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 
-object JsonStore {
+object JsonStoreImpl {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 	private lateinit var db: org.jetbrains.exposed.v1.jdbc.Database
@@ -39,20 +40,20 @@ object JsonStore {
 		db = H2DatabaseStore.connect("AppConfig")
 		transaction(db) { SchemaUtils.create(JsonStoreTable) }
 		initialized = true
-		logger.info("JsonStore initialized  table=json_store")
+		logger.info("JsonStoreImpl initialized  table=json_store")
 	}
 	
 	private fun ensureInit() {
 		if (!initialized) init()
 	}
 	
-	fun namespace(name: String): JsonEntry {
+	fun namespace(name: String): JsonStore {
 		ensureInit()
 		return JsonEntry(name)
 	}
 	
-	class JsonEntry(private val namespace: String) {
-		fun get(): JsonElement? {
+	class JsonEntry(private val namespace: String) : JsonStore {
+		override fun get(): JsonElement? {
 			return transaction(db) {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
 					try {
@@ -65,13 +66,16 @@ object JsonStore {
 			}
 		}
 		
-		fun set(value: JsonElement) {
+		override fun set(value: JsonElement) {
 			val content = json.encodeToString(JsonElement.serializer(), value)
 			transaction(db) {
 				exec(
-					"MERGE INTO JSON_STORE (NAMESPACE, CONTENT) KEY (NAMESPACE) VALUES (" +
-							"'${namespace.replace("'", "''")}', " +
-							"'${content.replace("'", "''")}')"
+					"MERGE INTO JSON_STORE (NAMESPACE, CONTENT) KEY (NAMESPACE) VALUES (" + "'${
+						namespace.replace(
+							"'",
+							"''"
+						)
+					}', " + "'${content.replace("'", "''")}')"
 				)
 			}
 		}

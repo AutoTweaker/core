@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
+import io.github.autotweaker.api.CoreAPI
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.core.adapter.api.CoreAPI
 import kotlinx.coroutines.flow.Flow
 
 interface Command {

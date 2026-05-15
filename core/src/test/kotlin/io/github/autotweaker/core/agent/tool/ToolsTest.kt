@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool
 
-import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -319,7 +319,7 @@ class ToolsTest {
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
 			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
-			onToolOutput = { outputs.add(it.content) },
+			onToolOutput = { outputs.add(it.output.content) },
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.result.status)

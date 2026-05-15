@@ -164,7 +164,13 @@ tasks.named("compileKotlin") {
 // endregion
 
 tasks.test {
-	jvmArgs("-Dnet.bytebuddy.experimental=true")
+	useJUnitPlatform()
+	jvmArgs(
+		"-Dnet.bytebuddy.experimental=true",
+		"--add-opens", "java.base/java.util=ALL-UNNAMED",
+		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
+		"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
+	)
 	finalizedBy(tasks.jacocoTestReport)
 }
 

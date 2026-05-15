@@ -16,15 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.api.types.model
 
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.Config
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.ModelInfo
+import kotlinx.serialization.Serializable
 
-data class Model(
-	val provider: Provider,
-	val modelInfo: ModelInfo,
-	val config: Config? = null,
-	val modelId: ModelId,
-)
+@Serializable
+data class ModelId(
+	val provider: String,
+	val modelName: String,
+) {
+	override fun toString(): String = "$provider/$modelName"
+	
+	companion object {
+		fun fromString(id: String): ModelId? {
+			val parts = id.split("/", limit = 2)
+			if (parts.size != 2) return null
+			return ModelId(parts[0], parts[1])
+		}
+	}
+}

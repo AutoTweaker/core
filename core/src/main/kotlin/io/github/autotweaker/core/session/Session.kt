@@ -20,6 +20,7 @@ package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
 import io.github.autotweaker.api.types.settings.SettingItem
@@ -59,8 +60,7 @@ class Session(
 		}
 	}
 	
-	//变量
-	private val tools: List<Tool> = ServiceLoader.load(Tool::class.java).toList()
+	private val _tools: List<Tool> = ServiceLoader.load(Tool::class.java).toList()
 	
 	private val _data = MutableStateFlow(
 		SessionData(
@@ -72,7 +72,6 @@ class Session(
 	)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
 	
-	
 	private val _context = MutableStateFlow(context)
 	val context: StateFlow<SessionContext> = _context.asStateFlow()
 	
@@ -81,7 +80,11 @@ class Session(
 	private val agents = mutableMapOf<UUID, Agent>()
 	val agent: Agent? get() = agents.values.firstOrNull()
 	
-	val output: SharedFlow<AgentOutput> get() = agent?.output ?: error("No agent created")
+	private val _sessionOutput = MutableSharedFlow<SessionOutput>(
+		extraBufferCapacity = 64
+	)
+	val output = _sessionOutput.asSharedFlow()
+	
 	val agentStatus: StateFlow<AgentStatus> get() = agent?.statusFlow ?: error("No agent created")
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -97,6 +100,12 @@ class Session(
 		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.name)
 		scope.launch {
 			agent?.context?.collectLatest { syncContext(it) }
+		}
+		scope.launch {
+			agent?.output?.collect {
+				val output = processAgentOutput(it) ?: return@collect
+				_sessionOutput.tryEmit(output)
+			}
 		}
 	}
 	
@@ -141,7 +150,7 @@ class Session(
 			summarizeModel = resolveModel(_data.value.config.summarizeModel),
 			containerConfig = containerConfig,
 			settings = settings,
-			tools = tools,
+			tools = _tools,
 		)
 		agents[newAgent.agentId] = newAgent
 	}
@@ -236,5 +245,18 @@ class Session(
 		index.summarizedMessage?.let { ids.add(it) }
 		
 		return ids
+	}
+	
+	private fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {
+		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(output.delta)
+		is AgentOutput.LlmError -> SessionOutput.LlmError(
+			output.error.content, output.error.statusCode, output.error.retrying?.modelId, output.error.timestamp
+		)
+		
+		is AgentOutput.Compact -> SessionOutput.Compact(output.output)
+		is AgentOutput.Error -> SessionOutput.Error(output.error)
+		is AgentOutput.Tool -> SessionOutput.Tool(output.output)
+		is AgentOutput.ToolRequest -> SessionOutput.ToolRequest(output.requests)
+		else -> null
 	}
 }

@@ -19,11 +19,11 @@
 package io.github.autotweaker.core.adapter.impl.cli
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.AdapterAPI
+import io.github.autotweaker.api.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.core.adapter.api.AdapterAPI
-import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import org.slf4j.LoggerFactory
 
@@ -52,7 +52,7 @@ class CliAdapter : AdapterAPI {
 	
 	override fun start(core: CoreAPI) {
 		I18n.init(adapterName)
-		val router = CommandRouter(core, coreVersion ?: error("CliAdapter not initialized"))
+		val router = CommandRouter.fromServiceLoader(core, coreVersion ?: error("CliAdapter not initialized"))
 		server.start(router)
 		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)
 	}

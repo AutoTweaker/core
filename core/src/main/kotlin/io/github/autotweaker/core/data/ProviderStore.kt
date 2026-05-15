@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.data
 
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.json.JsonStoreImpl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory
 
 object ProviderStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStore.namespace(this::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
 	
 	private var providers: List<ProviderData>
 	

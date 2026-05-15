@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
@@ -53,7 +54,7 @@ class AgentStreamProcessor(
 			AgentChat.execute(request, agentId).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Delta -> {
-						emitOutput(AgentOutput.StreamDelta(result))
+						emitOutput(AgentOutput.LlmDelta(result.delta))
 					}
 					
 					is AgentChatStreamResult.Failing -> {
@@ -61,10 +62,12 @@ class AgentStreamProcessor(
 						if (lastError?.retrying != null) {
 							logger.debug(
 								"LLM stream retry initiated  agentId={}  model={}  error={}",
-								agentId, lastError.retrying.modelInfo.id, lastError.content
+								agentId,
+								lastError.retrying.modelInfo.id,
+								lastError.content
 							)
 							onStatusChange(AgentStatus.RETRYING)
-							emitOutput(AgentOutput.StreamError(lastError))
+							emitOutput(AgentOutput.LlmError(lastError))
 						} else {
 							val errorMessage = lastError?.content ?: "All retries exhausted"
 							logger.warn(
@@ -72,7 +75,7 @@ class AgentStreamProcessor(
 								agentId,
 								errorMessage
 							)
-							emitOutput(AgentOutput.Error(errorMessage, AgentOutput.Error.Type.LLM))
+							emitOutput(AgentOutput.Error(AgentError(errorMessage, AgentError.Type.LLM)))
 							earlyResult = StreamProcessResult.Failed(errorMessage)
 							return@collect
 						}
@@ -92,9 +95,9 @@ class AgentStreamProcessor(
 						if (!resultToolCalls.isNullOrEmpty()) {
 							logger.debug(
 								"LLM stream completed with tool calls  agentId={}  toolCallCount={}",
-								agentId, resultToolCalls.size
+								agentId,
+								resultToolCalls.size
 							)
-							emitOutput(AgentOutput.ToolCallRequest(resultToolCalls))
 							earlyResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
 						} else {
 							logger.debug("LLM stream completed  agentId={}", agentId)
@@ -118,7 +121,7 @@ class AgentStreamProcessor(
 					cause::class.simpleName ?: cause::class.qualifiedName
 				).append(")")
 			}
-			emitOutput(AgentOutput.Error(message, AgentOutput.Error.Type.LLM))
+			emitOutput(AgentOutput.Error(AgentError(message, AgentError.Type.LLM)))
 			return StreamProcessResult.Failed(message)
 		}
 	}

@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.LlmClient
-import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.data.ProviderStore

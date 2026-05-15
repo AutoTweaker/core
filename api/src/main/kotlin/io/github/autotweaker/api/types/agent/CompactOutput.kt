@@ -16,15 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.Config
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.ModelInfo
+import io.github.autotweaker.api.types.llm.Usage
 
-data class Model(
-	val provider: Provider,
-	val modelInfo: ModelInfo,
-	val config: Config? = null,
-	val modelId: ModelId,
-)
+data class CompactOutput(
+	val status: Status,
+	val content: String,
+	val usage: Usage?,
+) {
+	enum class Status {
+		OUTPUTTING, FINISHED, FAILED,
+	}
+}

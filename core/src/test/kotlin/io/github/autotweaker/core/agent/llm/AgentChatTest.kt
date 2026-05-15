@@ -23,9 +23,9 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.AgentContext
 import io.mockk.every
 import io.mockk.mockkObject
@@ -33,7 +33,7 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import org.junit.jupiter.api.AfterEach
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test
@@ -71,7 +71,7 @@ class AgentChatTest {
 	private fun userMsg(content: String = "hello") =
 		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
 	
-	@After
+	@AfterEach
 	fun cleanup() {
 		unmockkObject(ResilientChat)
 	}
@@ -135,8 +135,8 @@ class AgentChatTest {
 		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
-		assertEquals("let me think", delta.reasoningContent)
-		assertEquals("answer", delta.content)
+		assertEquals("let me think", delta.delta.reasoningContent)
+		assertEquals("answer", delta.delta.content)
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals("let me think", assembled.message.reasoning)
@@ -187,8 +187,8 @@ class AgentChatTest {
 		
 		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
 		assertEquals(2, deltas.size)
-		assertEquals("hello ", deltas[0].content)
-		assertEquals("world", deltas[1].content)
+		assertEquals("hello ", deltas[0].delta.content)
+		assertEquals("world", deltas[1].delta.content)
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals("hello world", assembled.message.content)
@@ -354,9 +354,9 @@ class AgentChatTest {
 		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
-		assertNotNull(delta.toolCallFragments)
-		assertEquals(1, delta.toolCallFragments.size)
-		assertEquals("call-1", delta.toolCallFragments[0].id)
+		val frags = assertNotNull(delta.delta.toolCallFragments)
+		assertEquals(1, frags.size)
+		assertEquals("call-1", frags[0].id)
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		val tc = assertNotNull(assembled.toolCalls)

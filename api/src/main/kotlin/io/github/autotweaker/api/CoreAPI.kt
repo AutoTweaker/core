@@ -16,19 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.api
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.settings.SettingKey
-import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.session.SessionHandle
 import java.util.*
 
 interface CoreAPI {
@@ -44,7 +42,7 @@ interface CoreAPI {
 	fun startAdapter(name: String)
 	fun stopAdapter(name: String)
 	
-	fun jsonStore(namespace: String): JsonStore.JsonEntry
+	fun jsonStore(namespace: String): JsonStore
 	
 	interface SessionAPI {
 		suspend fun create(config: SessionConfig): SessionHandle

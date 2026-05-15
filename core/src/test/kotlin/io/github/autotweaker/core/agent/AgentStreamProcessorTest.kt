@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.llm.AgentChat
@@ -32,7 +34,7 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import org.junit.jupiter.api.AfterEach
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
@@ -66,7 +68,7 @@ class AgentStreamProcessorTest {
 		return AgentChatRequest(mockModel, null, null, null, ctx)
 	}
 	
-	@After
+	@AfterEach
 	fun cleanup() {
 		unmockkObject(AgentChat)
 	}
@@ -78,7 +80,15 @@ class AgentStreamProcessorTest {
 		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
-			emit(AgentChatStreamResult.Delta(content = "hi", reasoningContent = null, toolCallFragments = null))
+			emit(
+				AgentChatStreamResult.Delta(
+					delta = StreamDelta(
+						content = "hi",
+						reasoningContent = null,
+						toolCallFragments = null
+					)
+				)
+			)
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
@@ -93,7 +103,7 @@ class AgentStreamProcessorTest {
 		newProcessor().process(createRequest())
 		
 		assertTrue(emittedOutputs.any {
-			it is AgentOutput.StreamDelta && it.delta.content == "hi"
+			it is AgentOutput.LlmDelta && it.delta.content == "hi"
 		})
 	}
 	
@@ -104,16 +114,20 @@ class AgentStreamProcessorTest {
 		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
 			emit(
 				AgentChatStreamResult.Delta(
-					content = null,
-					reasoningContent = "let me think",
-					toolCallFragments = null
+					delta = StreamDelta(
+						content = null,
+						reasoningContent = "let me think",
+						toolCallFragments = null
+					)
 				)
 			)
 			emit(
 				AgentChatStreamResult.Delta(
-					content = "answer",
-					reasoningContent = "let me think",
-					toolCallFragments = null
+					delta = StreamDelta(
+						content = "answer",
+						reasoningContent = "let me think",
+						toolCallFragments = null
+					)
 				)
 			)
 			emit(
@@ -133,7 +147,7 @@ class AgentStreamProcessorTest {
 		newProcessor().process(createRequest())
 		
 		assertTrue(emittedOutputs.any {
-			it is AgentOutput.StreamDelta && it.delta.reasoningContent == "let me think"
+			it is AgentOutput.LlmDelta && it.delta.reasoningContent == "let me think"
 		})
 	}
 	
@@ -168,7 +182,6 @@ class AgentStreamProcessorTest {
 		
 		assertIs<StreamProcessResult.ToolCallsRequired>(result)
 		assertEquals("c1", result.toolCalls[0].callId)
-		assertTrue(emittedOutputs.any { it is AgentOutput.ToolCallRequest })
 	}
 	
 	@Test
@@ -272,7 +285,7 @@ class AgentStreamProcessorTest {
 		val result = newProcessor().process(createRequest())
 		
 		assertIs<StreamProcessResult.Failed>(result)
-		assertTrue(emittedOutputs.any { it is AgentOutput.Error && it.type == AgentOutput.Error.Type.LLM })
+		assertTrue(emittedOutputs.any { it is AgentOutput.Error && it.error.type == AgentError.Type.LLM })
 	}
 	
 	@Test
@@ -299,7 +312,7 @@ class AgentStreamProcessorTest {
 		assertIs<StreamProcessResult.Failed>(result)
 		assertEquals("All retries exhausted", result.message)
 		val errorOutput = emittedOutputs.filterIsInstance<AgentOutput.Error>().first()
-		assertEquals("All retries exhausted", errorOutput.message)
+		assertEquals("All retries exhausted", errorOutput.error.message)
 	}
 	
 	@Test
@@ -335,7 +348,7 @@ class AgentStreamProcessorTest {
 		newProcessor().process(createRequest())
 		
 		assertTrue(statusChanges.contains(AgentStatus.RETRYING))
-		assertTrue(emittedOutputs.any { it is AgentOutput.StreamError })
+		assertTrue(emittedOutputs.any { it is AgentOutput.LlmError })
 	}
 	
 	// endregion

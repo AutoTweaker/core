@@ -16,12 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.session.SessionContext
-import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.core.agent.AgentOutput
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
@@ -29,17 +26,7 @@ import java.util.*
 data class SessionHandle(
 	val id: UUID,
 	val context: StateFlow<SessionContext>,
-	val output: SharedFlow<AgentOutput>,
+	val output: SharedFlow<SessionOutput>,
 	val status: StateFlow<AgentStatus>,
 	val data: StateFlow<SessionData>,
-) {
-	companion object {
-		fun fromSession(session: Session) = SessionHandle(
-			id = session.data.value.id,
-			context = session.context,
-			output = session.output,
-			status = session.agentStatus,
-			data = session.data,
-		)
-	}
-}
+)

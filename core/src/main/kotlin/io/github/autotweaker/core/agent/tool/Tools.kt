@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.types.agent.ToolOutput
+import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.find
@@ -124,7 +125,7 @@ class Tools(settings: List<SettingItem>) {
 		workspace: WorkspaceMeta,
 		agentId: java.util.UUID = java.util.UUID.randomUUID(),
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
-		onToolOutput: (suspend (AgentOutput.ToolOutput) -> Unit)? = null,
+		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
 	): AgentContext.Message.Tool {
 		//匹配工具实现
 		val entry = _entries.first { it.tool.resolveMeta(_settings).name == result.toolName }
@@ -182,7 +183,7 @@ class Tools(settings: List<SettingItem>) {
 			//启动drain协程
 			val drainJob = launch {
 				for (msg in outputChannel) {
-					onToolOutput?.invoke(AgentOutput.ToolOutput(call.name, call.callId, msg.content))
+					onToolOutput?.invoke(AgentOutput.Tool(ToolOutput(call.name, call.callId, msg.content)))
 				}
 			}
 			val result = try {

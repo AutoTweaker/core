@@ -18,47 +18,34 @@
 
 package io.github.autotweaker.core.agent
 
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.CompactOutput
+import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.agent.ToolOutput
+import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
-import io.github.autotweaker.core.tool.Tool
 
 sealed class AgentOutput {
-	data class StreamDelta(val delta: AgentChatStreamResult.Delta) : AgentOutput()
-	data class StreamError(val error: AgentChatStreamResult.Failing.Error) : AgentOutput()
+	data class LlmDelta(val delta: StreamDelta) : AgentOutput()
+	data class LlmError(val error: AgentChatStreamResult.Failing.Error) : AgentOutput()
 	
-	data class CompactOutput(
-		val status: Status,
-		val content: String,
-		val usage: Usage?,
-	) : AgentOutput() {
-		enum class Status {
-			OUTPUTTING,
-			FINISHED,
-			FAILED,
-		}
-	}
-	
-	data class ToolOutput(
-		val name: String,
-		val callId: String,
-		val content: String,
+	data class Compact(
+		val output: CompactOutput
 	) : AgentOutput()
 	
-	data class ToolCallRequest(
-		val pendingToolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
+	data class Tool(
+		val output: ToolOutput
+	) : AgentOutput()
+	
+	data class ToolRequest(
+		val requests: List<ToolCallRequest>,
 	) : AgentOutput()
 	
 	data class ToolListUpdate(
-		val activeTools: List<Tool>,
+		val activeTools: List<io.github.autotweaker.core.tool.Tool>,
 	) : AgentOutput()
 	
 	data class Error(
-		val message: String,
-		val type: Type,
-	) : AgentOutput() {
-		enum class Type {
-			LLM,
-			COMPACT,
-		}
-	}
+		val error: AgentError
+	) : AgentOutput()
 }

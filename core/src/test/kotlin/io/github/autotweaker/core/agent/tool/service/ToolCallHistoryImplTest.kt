@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
-import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk

@@ -18,11 +18,13 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.CompactOutput
+import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentContext
@@ -157,8 +159,8 @@ class CompactPhaseTest {
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
-		assertEquals(AgentOutput.Error.Type.COMPACT, (error as AgentOutput.Error).type)
-		assertTrue(error.message.contains("empty summary"))
+		assertEquals(AgentError.Type.COMPACT, (error as AgentOutput.Error).error.type)
+		assertTrue(error.error.message.contains("empty summary"))
 	}
 	
 	@Test
@@ -300,7 +302,7 @@ class CompactPhaseTest {
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
-		assertEquals(AgentOutput.Error.Type.COMPACT, (error as AgentOutput.Error).type)
+		assertEquals(AgentError.Type.COMPACT, (error as AgentOutput.Error).error.type)
 	}
 	
 	@Test
@@ -340,10 +342,10 @@ class CompactPhaseTest {
 		
 		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
 		
-		val outputting = capturedOutputs.filterIsInstance<AgentOutput.CompactOutput>()
-			.firstOrNull { it.status == AgentOutput.CompactOutput.Status.OUTPUTTING }
+		val outputting = capturedOutputs.filterIsInstance<AgentOutput.Compact>()
+			.firstOrNull { it.output.status == CompactOutput.Status.OUTPUTTING }
 		assertNotNull(outputting)
-		assertEquals("partial summary", outputting.content)
+		assertEquals("partial summary", outputting.output.content)
 	}
 	
 	@Test

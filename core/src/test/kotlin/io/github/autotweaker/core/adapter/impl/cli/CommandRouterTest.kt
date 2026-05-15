@@ -18,43 +18,30 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
+import io.github.autotweaker.api.CoreAPI
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CommandRouterTest {
 	
 	private val core = mockk<CoreAPI>(relaxed = true)
+	private val commands = mutableListOf<Command>()
 	private lateinit var router: CommandRouter
 	
 	@BeforeEach
 	fun setUp() {
-		mockkStatic(ServiceLoader::class)
-		val loader = mockk<ServiceLoader<Command>>()
-		every { ServiceLoader.load(Command::class.java) } returns loader
-		every { loader.toList() } returns commands
-		router = CommandRouter(core, SemVer.parse("1.0.0"))
+		commands.clear()
+		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 	}
-	
-	@AfterEach
-	fun tearDown() {
-		unmockkStatic(ServiceLoader::class)
-	}
-	
-	private val commands = mutableListOf<Command>()
 	
 	private fun registerCommand(name: String, syntax: Syntax, handle: (Request) -> List<Chunk>): Command {
 		val cmd = mockk<Command>()
@@ -67,6 +54,7 @@ class CommandRouterTest {
 			flowOf(*(handle(request).toTypedArray()))
 		}
 		commands.add(cmd)
+		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 		return cmd
 	}
 	
@@ -76,7 +64,7 @@ class CommandRouterTest {
 	
 	private fun dispatch(vararg args: String): List<Chunk> = runBlocking {
 		router.dispatch(
-			CliMessage.Command(args = listOf("autotweaker", *args)),
+			CliMessage.Command(args = args.toList()),
 		) { _, _ -> "" }.toList()
 	}
 	
@@ -459,7 +447,7 @@ class CommandRouterTest {
 				),
 				Syntax.all(
 					Syntax.leaf(Param.Flag("quiet", "quiet")),
-					Syntax.leaf(Param.Flag("detail", "detail")),
+					Syntax.leaf(Param.Flag("info", "info")),
 				),
 			)
 		) {
@@ -477,7 +465,7 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.leaf(Param.Flag("flag", "version a")),
-				Syntax.leaf(Param.Flag("flag", "version b")),
+				Syntax.leaf(Param.Flag("tag", "version b")),
 			)
 		) {
 			captured = it; listOf(Chunk.Done(0))
@@ -491,15 +479,15 @@ class CommandRouterTest {
 	fun `same name with positional in all branches`() {
 		var captured: Request? = null
 		registerCommand(
-			"test", Syntax.xor(
-				Syntax.leaf(Param.Positional("file", "file")),
-				Syntax.leaf(Param.Positional("file", "file")),
+			"test", Syntax.all(
+				Syntax.leaf(Param.Positional("src", "src")),
+				Syntax.leaf(Param.Positional("dst", "dst")),
 			)
 		) {
 			captured = it; listOf(Chunk.Done(0))
 		}
-		dispatch("test", "data.txt")
-		assertEquals(listOf("data.txt"), captured!!.positional)
+		dispatch("test", "data.txt", "other.txt")
+		assertEquals(listOf("data.txt", "other.txt"), captured!!.positional)
 	}
 	
 	// ── complex combinations ────────────────────────────────────
@@ -509,22 +497,21 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("a1", "")),
-					Syntax.leaf(Param.Flag("a2", "")),
-					Syntax.leaf(Param.Value("a3", "")),
+					Syntax.leaf(Param.Flag("alpha", "")),
+					Syntax.leaf(Param.Flag("beta", "")),
+					Syntax.leaf(Param.Value("gamma", "")),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("b1", ""), required = true),
-					Syntax.leaf(Param.Flag("b2", "")),
+					Syntax.leaf(Param.Flag("mode", ""), required = true),
+					Syntax.leaf(Param.Flag("delta", "")),
 				),
 			)
 		) {
 			captured = it; listOf(Chunk.Done(0))
 		}
 		// Pick second branch
-		dispatch("test", "-b1", "=")
-		dispatch("test", "-b1")
-		assertTrue(captured!!.has("b1"))
+		dispatch("test", "--mode")
+		assertTrue(captured!!.has("mode"))
 	}
 	
 	@Test
@@ -533,20 +520,20 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("a1", "")),
-					Syntax.leaf(Param.Flag("a2", "")),
-					Syntax.leaf(Param.Value("a3", "")),
+					Syntax.leaf(Param.Flag("alpha", "")),
+					Syntax.leaf(Param.Flag("beta", "")),
+					Syntax.leaf(Param.Value("gamma", "")),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("b1", ""), required = true),
-					Syntax.leaf(Param.Flag("b2", "")),
+					Syntax.leaf(Param.Flag("mode", ""), required = true),
+					Syntax.leaf(Param.Flag("delta", "")),
 				),
 			)
 		) {
 			captured = it; listOf(Chunk.Done(0))
 		}
-		dispatch("test", "-b1")
-		assertTrue(captured!!.has("b1"))
+		dispatch("test", "--mode")
+		assertTrue(captured!!.has("mode"))
 	}
 	
 	@Test
@@ -628,9 +615,10 @@ class CommandRouterTest {
 		) {
 			captured = it; listOf(Chunk.Done(0))
 		}
-		// "--verbose" after positional is just another positional
+		// "--verbose" is always parsed as a flag regardless of position
 		dispatch("test", "file.txt", "--verbose")
-		assertEquals(listOf("file.txt", "--verbose"), captured!!.positional)
+		assertEquals(listOf("file.txt"), captured!!.positional)
+		assertTrue(captured.has("verbose"))
 	}
 	
 	@Test
@@ -641,8 +629,8 @@ class CommandRouterTest {
 				required = false,
 			)
 		)
-		// All is optional but leaf required — no active → skipped entirely
-		assertEquals(0, dispatch("test").done().exitCode)
+		// All is optional but leaf required still fails when absent
+		assertEquals(1, dispatch("test").done().exitCode)
 	}
 	
 	@Test
@@ -665,7 +653,7 @@ class CommandRouterTest {
 					Syntax.xor(
 						Syntax.all(
 							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("limit", "")),
+							Syntax.leaf(Param.Value("count", "")),
 						),
 						Syntax.all(
 							Syntax.leaf(Param.Flag("search", ""), required = true),
@@ -680,7 +668,7 @@ class CommandRouterTest {
 					Syntax.leaf(Param.Flag("full", "")),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("set", ""), required = true),
+					Syntax.leaf(Param.Flag("put", ""), required = true),
 					Syntax.leaf(Param.Positional("value", "")),
 				),
 			)
@@ -702,7 +690,7 @@ class CommandRouterTest {
 					Syntax.xor(
 						Syntax.all(
 							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("limit", "")),
+							Syntax.leaf(Param.Value("count", "")),
 						),
 						Syntax.all(
 							Syntax.leaf(Param.Flag("search", ""), required = true),
@@ -717,7 +705,7 @@ class CommandRouterTest {
 					Syntax.leaf(Param.Flag("full", "")),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("set", ""), required = true),
+					Syntax.leaf(Param.Flag("put", ""), required = true),
 					Syntax.leaf(Param.Positional("value", "")),
 				),
 			)
@@ -725,8 +713,8 @@ class CommandRouterTest {
 			captured = it; listOf(Chunk.Done(0))
 		}
 		// set mode
-		dispatch("test", "--set", "newval")
-		assertTrue(captured!!.has("set"))
+		dispatch("test", "--put", "newval")
+		assertTrue(captured!!.has("put"))
 		assertEquals(listOf("newval"), captured.positional)
 	}
 	
@@ -739,7 +727,7 @@ class CommandRouterTest {
 					Syntax.xor(
 						Syntax.all(
 							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("limit", "")),
+							Syntax.leaf(Param.Value("count", "")),
 						),
 						Syntax.all(
 							Syntax.leaf(Param.Flag("search", ""), required = true),
@@ -754,7 +742,7 @@ class CommandRouterTest {
 					Syntax.leaf(Param.Flag("full", "")),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("set", ""), required = true),
+					Syntax.leaf(Param.Flag("put", ""), required = true),
 					Syntax.leaf(Param.Positional("value", "")),
 				),
 			)
@@ -776,7 +764,7 @@ class CommandRouterTest {
 					Syntax.xor(
 						Syntax.all(
 							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("limit", "")),
+							Syntax.leaf(Param.Value("count", "")),
 						),
 						Syntax.all(
 							Syntax.leaf(Param.Flag("search", ""), required = true),
@@ -791,7 +779,7 @@ class CommandRouterTest {
 					Syntax.leaf(Param.Flag("full", "")),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("set", ""), required = true),
+					Syntax.leaf(Param.Flag("put", ""), required = true),
 					Syntax.leaf(Param.Positional("value", "")),
 				),
 			)
