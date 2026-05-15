@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.core.data.provider
 
+import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.llm.LlmClientLoader
@@ -33,22 +35,22 @@ object ProviderManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
-	private var providers: List<Provider>
+	private var providers: List<ProviderData>
 	
 	init {
 		val jsonArray = jsonEntry.get()
 		providers = if (jsonArray == null) emptyList()
-		else Json.decodeFromJsonElement<List<Provider>>(jsonArray)
+		else Json.decodeFromJsonElement<List<ProviderData>>(jsonArray)
 		logger.info("ProviderManager initialized  providerCount={}", providers.size)
 	}
 	
-	fun add(data: Provider) {
-		if (providers.any { it.name == data.name }) error("Provider with name ${data.name} already exists")
+	fun add(data: ProviderData) {
+		if (providers.any { it.name == data.name }) error("ProviderData with name ${data.name} already exists")
 		update(providers + data)
-		logger.debug("Provider added  provider={}  type={}", data.name, data.providerType)
+		logger.debug("ProviderData added  provider={}  type={}", data.name, data.providerType)
 	}
 	
-	fun addModel(provider: String, models: List<Provider.Model>) {
+	fun addModel(provider: String, models: List<ProviderData.ModelData>) {
 		update(providers.map {
 			if (it.name == provider) {
 				val names = it.models.map { model -> model.name }.toSet()
@@ -57,27 +59,27 @@ object ProviderManager {
 				it.copy(models = it.models + models)
 			} else it
 		})
-		logger.debug("Provider models added  provider={}  count={}", provider, models.size)
+		logger.debug("ProviderData models added  provider={}  count={}", provider, models.size)
 	}
 	
-	fun get(): List<Provider> = providers
+	fun get(): List<ProviderData> = providers
 	
 	fun getInfo(type: String): LlmClient.ProviderInfo = LlmClientLoader.load(type).providerInfo
 	
 	fun delete(name: String) {
 		update(providers.filterNot { it.name == name })
-		logger.debug("Provider deleted  provider={}", name)
+		logger.debug("ProviderData deleted  provider={}", name)
 	}
 	
-	fun override(data: Provider) {
+	fun override(data: ProviderData) {
 		update(providers.map { if (it.name == data.name) data else it })
-		logger.debug("Provider overridden  provider={}", data.name)
+		logger.debug("ProviderData overridden  provider={}", data.name)
 	}
 	
 	fun getModel(id: ModelId): Model? {
 		val provider = providers.find { it.name == id.provider } ?: return null
 		val model = provider.models.find { it.name == id.modelName } ?: return null
-		val providerData = io.github.autotweaker.core.agent.llm.Provider(
+		val providerData = Provider(
 			name = provider.providerType,
 			baseUrl = provider.baseUrl,
 			apiKey = SecretManager.get(provider.apiKey),
@@ -88,7 +90,7 @@ object ProviderManager {
 		)
 	}
 	
-	private fun update(new: List<Provider>) {
+	private fun update(new: List<ProviderData>) {
 		providers = new
 		jsonEntry.set(Json.encodeToJsonElement(new))
 	}

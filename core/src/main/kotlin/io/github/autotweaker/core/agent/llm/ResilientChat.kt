@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.llm.ChatResult
@@ -31,11 +31,6 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val DEFAULT_MAX_RETRIES = 3
 private val RETRY_BASE_DELAY = 1.seconds
-
-data class ResilientChatResult(
-	val result: ChatResult,
-	val retrying: Model?,
-)
 
 internal object ResilientChat {
 	private val logger = LoggerFactory.getLogger(this::class.java)

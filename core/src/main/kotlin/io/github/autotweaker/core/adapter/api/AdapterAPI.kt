@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.adapter.api
 
-import io.github.autotweaker.core.adapter.api.data.AdapterInfo
-import io.github.autotweaker.core.adapter.api.data.SemVer
+import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.adapter.AdapterInfo
 
 interface AdapterAPI {
 	fun load(coreVersion: SemVer): AdapterInfo

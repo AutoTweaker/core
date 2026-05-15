@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.session.workspace
 
+import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.data.json.JsonStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement

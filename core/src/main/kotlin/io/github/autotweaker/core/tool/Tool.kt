@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.tool
 
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingItem
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonObject
 

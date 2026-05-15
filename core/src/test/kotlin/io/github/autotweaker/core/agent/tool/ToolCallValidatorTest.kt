@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.agent.tool
 
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.every
 import io.mockk.mockk

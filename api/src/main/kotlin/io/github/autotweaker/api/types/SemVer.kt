@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.api.data
+package io.github.autotweaker.api.types
 
 data class SemVer(
 	val major: Int,

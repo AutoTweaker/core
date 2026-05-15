@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.agent.tool
 
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.find
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.*

@@ -18,17 +18,21 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.ToolResultStatus
-import io.github.autotweaker.core.agent.*
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
+import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.agent.AgentEnvironment
+import io.github.autotweaker.core.agent.AgentOutput
+import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.SettingKey
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

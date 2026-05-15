@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.llm
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
-import io.github.autotweaker.core.data.provider.Provider.Model.ModelInfo
+import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule
+import io.github.autotweaker.api.types.provider.ProviderData.ModelData.ModelInfo
 import kotlinx.coroutines.flow.Flow
 
 interface LlmClient {

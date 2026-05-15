@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.settings.SettingItem
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder

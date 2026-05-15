@@ -16,15 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent
+package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.provider.ProviderData
 
-enum class AgentStatus {
-	FREE,
-	PROCESSING,
-	RETRYING,
-	TOOL_CALLING,
-	WAITING,
-	PAUSED,
-	ERROR
-}
+data class Provider(
+	val name: String,
+	val baseUrl: Url,
+	val apiKey: String,
+	val errorHandlingRules: List<ProviderData.ErrorHandlingRule>
+)

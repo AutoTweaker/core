@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.config
+package io.github.autotweaker.api.types.config
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.core.data.settings.SettingItem
+import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.settings.SettingItem
 
 sealed class CoreConfig {
 	sealed class JsonConfig {
@@ -38,14 +39,14 @@ sealed class CoreConfig {
 			val type: String,
 			val keyId: String,
 			val baseUrl: Url?,
-			val errorHandlingRules: List<io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule>?
+			val errorHandlingRules: List<ProviderData.ErrorHandlingRule>?
 		)
 		
 		data class Model(
 			val name: String,
 			val providerName: String,
-			val meta: io.github.autotweaker.core.data.provider.Provider.Model.ModelInfo?,
-			val config: io.github.autotweaker.core.data.provider.Provider.Model.Config?,
+			val meta: ProviderData.ModelData.ModelInfo?,
+			val config: ProviderData.ModelData.Config?,
 		)
 		
 		data class ApiKey(

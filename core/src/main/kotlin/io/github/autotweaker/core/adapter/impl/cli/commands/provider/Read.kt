@@ -19,9 +19,9 @@
 package io.github.autotweaker.core.adapter.impl.cli.commands.provider
 
 import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
-import io.github.autotweaker.core.data.provider.Provider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -65,7 +65,7 @@ class Read(private val core: CoreAPI) {
 		}
 	}
 	
-	private fun printRules(rules: List<Provider.ErrorHandlingRule>): Flow<String> = flow {
+	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {
 		rules.forEach {
 			emit(
 				SPACE + I18n.get("prov.out.rule.status", it.statusCode) + " | " + I18n.get(
@@ -75,7 +75,7 @@ class Read(private val core: CoreAPI) {
 		}
 	}
 	
-	private fun printModelInfo(info: Provider.Model.ModelInfo): Flow<String> = flow {
+	private fun printModelInfo(info: ProviderData.ModelData.ModelInfo): Flow<String> = flow {
 		val feature = buildList {
 			if (info.supportsStreaming) add(I18n.get("prov.out.model.feature.streaming"))
 			if (info.supportsToolCalls) add(I18n.get("prov.out.model.feature.tool_call"))
@@ -90,19 +90,21 @@ class Read(private val core: CoreAPI) {
 		emitAll(printTokenPrice(info.price))
 	}
 	
-	private fun printTokenPrice(price: Provider.Model.TokenPrice): Flow<String> = flow {
-		fun processPrice(price: List<Provider.Model.TokenPrice.PriceTier>): Flow<String> = flow {
+	private fun printTokenPrice(price: ProviderData.ModelData.TokenPrice): Flow<String> = flow {
+		fun processPrice(price: List<ProviderData.ModelData.TokenPrice.PriceTier>): Flow<String> = flow {
 			price.forEach {
+				val from = it.fromTokens
+				val to = it.toTokens
 				emit(
 					when {
-						it.fromTokens == 0 && it.toTokens == null -> SPACE + buildPrice(it.price, it.cachedPrice)
-						it.toTokens == null -> SPACE + "[${processUnit(it.fromTokens)}+] ${
+						from == 0 && to == null -> SPACE + buildPrice(it.price, it.cachedPrice)
+						to == null -> SPACE + "[${processUnit(from)}+] ${
 							buildPrice(
 								it.price, it.cachedPrice
 							)
 						}"
 						
-						else -> SPACE + "[${processUnit(it.fromTokens)} - ${processUnit(it.toTokens)}] ${
+						else -> SPACE + "[${processUnit(from)} - ${processUnit(to)}] ${
 							buildPrice(
 								it.price, it.cachedPrice
 							)

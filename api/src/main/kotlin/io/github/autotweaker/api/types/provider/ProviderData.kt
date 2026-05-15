@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.data.provider
+package io.github.autotweaker.api.types.provider
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
@@ -25,13 +25,13 @@ import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
-data class Provider(
+data class ProviderData(
 	val name: String,
 	val providerType: String,
 	@Serializable(with = UuidSerializer::class)
 	val apiKey: UUID,
 	val baseUrl: Url,
-	val models: List<Model>,
+	val models: List<ModelData>,
 	val errorHandlingRules: List<ErrorHandlingRule>
 ) {
 	@Serializable
@@ -45,7 +45,7 @@ data class Provider(
 	}
 	
 	@Serializable
-	data class Model(
+	data class ModelData(
 		val name: String,
 		val modelInfo: ModelInfo,
 		val config: Config? = null,

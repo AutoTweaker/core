@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
-import io.github.autotweaker.core.agent.AgentStatus
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
-import io.github.autotweaker.core.data.settings.find
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.milliseconds

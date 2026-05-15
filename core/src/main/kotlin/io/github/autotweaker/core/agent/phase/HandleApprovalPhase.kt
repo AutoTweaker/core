@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.AgentStatus
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
 import org.slf4j.LoggerFactory

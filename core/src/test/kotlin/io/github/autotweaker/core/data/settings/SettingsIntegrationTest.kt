@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import io.mockk.coEvery
 import io.mockk.every

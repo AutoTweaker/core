@@ -19,11 +19,11 @@
 package io.github.autotweaker.core.adapter.impl.cli
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.adapter.api.AdapterAPI
 import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.AdapterInfo
-import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import org.slf4j.LoggerFactory
 

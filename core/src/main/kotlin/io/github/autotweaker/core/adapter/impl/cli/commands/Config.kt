@@ -19,15 +19,15 @@
 package io.github.autotweaker.core.adapter.impl.cli.commands
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.SemVer
-import io.github.autotweaker.core.adapter.config.CoreConfig
 import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Param
 import io.github.autotweaker.core.adapter.impl.cli.Request
 import io.github.autotweaker.core.adapter.impl.cli.Syntax
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
-import io.github.autotweaker.core.data.settings.SettingKey
 import kotlinx.coroutines.flow.*
 
 @AutoService(Command::class)

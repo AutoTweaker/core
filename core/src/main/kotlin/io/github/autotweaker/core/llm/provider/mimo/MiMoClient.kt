@@ -21,7 +21,7 @@ package io.github.autotweaker.core.llm.provider.mimo
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.core.data.provider.Provider
+import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.core.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
@@ -36,9 +36,9 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 	responseTypeInfo = typeInfo<MiMoResponse>(),
 	chunkSerializer = serializer<MiMoStreamChunk>(),
 ) {
-	private val mimoProPrice = Provider.Model.TokenPrice(
+	private val mimoProPrice = ProviderData.ModelData.TokenPrice(
 		inputPrice = listOf(
-			Provider.Model.TokenPrice.PriceTier(
+			ProviderData.ModelData.TokenPrice.PriceTier(
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
@@ -52,7 +52,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					unit = 100_0000
 				),
 			),
-			Provider.Model.TokenPrice.PriceTier(
+			ProviderData.ModelData.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
 					amount = BigDecimal("14"),
@@ -67,7 +67,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			)
 		),
 		outputPrice = listOf(
-			Provider.Model.TokenPrice.PriceTier(
+			ProviderData.ModelData.TokenPrice.PriceTier(
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
@@ -76,7 +76,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					unit = 100_0000
 				),
 			),
-			Provider.Model.TokenPrice.PriceTier(
+			ProviderData.ModelData.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
 					amount = BigDecimal("42"),
@@ -91,7 +91,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		name = "mimo",
 		baseUrl = Url("https://api.xiaomimimo.com/v1"),
 		models = listOf(
-			Provider.Model.ModelInfo(
+			ProviderData.ModelData.ModelInfo(
 				id = "mimo-v2-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -102,7 +102,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			Provider.Model.ModelInfo(
+			ProviderData.ModelData.ModelInfo(
 				id = "mimo-v2.5-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -113,13 +113,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			Provider.Model.ModelInfo(
+			ProviderData.ModelData.ModelInfo(
 				id = "mimo-v2-omni",
 				contextWindow = 256_000,
 				maxOutputTokens = 128_000,
-				price = Provider.Model.TokenPrice(
+				price = ProviderData.ModelData.TokenPrice(
 					inputPrice = listOf(
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("2.8"),
@@ -134,7 +134,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						),
 					),
 					outputPrice = listOf(
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("14"),
@@ -150,13 +150,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = true,
 				supportsJsonOutput = true
 			),
-			Provider.Model.ModelInfo(
+			ProviderData.ModelData.ModelInfo(
 				id = "mimo-v2.5",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
-				price = Provider.Model.TokenPrice(
+				price = ProviderData.ModelData.TokenPrice(
 					inputPrice = listOf(
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
@@ -170,7 +170,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								unit = 100_0000
 							),
 						),
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal("5.6"),
@@ -185,7 +185,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						)
 					),
 					outputPrice = listOf(
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
@@ -194,7 +194,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								unit = 100_0000
 							),
 						),
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal("28"),
@@ -210,13 +210,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = true,
 				supportsJsonOutput = true
 			),
-			Provider.Model.ModelInfo(
+			ProviderData.ModelData.ModelInfo(
 				id = "mimo-v2-flash",
 				contextWindow = 256_000,
 				maxOutputTokens = 64_000,
-				price = Provider.Model.TokenPrice(
+				price = ProviderData.ModelData.TokenPrice(
 					inputPrice = listOf(
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("0.7"),
@@ -231,7 +231,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						),
 					),
 					outputPrice = listOf(
-						Provider.Model.TokenPrice.PriceTier(
+						ProviderData.ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("2.1"),
@@ -249,37 +249,37 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			)
 		),
 		errorHandlingRules = listOf(
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 400,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 401,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 402,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 403,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 421,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 429,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.RETRY
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 500,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
 			),
-			Provider.ErrorHandlingRule(
+			ProviderData.ErrorHandlingRule(
 				statusCode = 503,
-				strategy = Provider.ErrorHandlingRule.RecoveryStrategy.RETRY
+				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
 			)
 		),
 	)

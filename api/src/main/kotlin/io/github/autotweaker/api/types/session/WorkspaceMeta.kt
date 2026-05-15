@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session.workspace
+package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.serializer.PathSerializer
 import kotlinx.serialization.Serializable

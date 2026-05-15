@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.config.serializer
 
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.SettingKey
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File

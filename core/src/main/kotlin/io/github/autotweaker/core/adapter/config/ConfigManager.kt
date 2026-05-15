@@ -19,13 +19,14 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.provider.ProviderManager
-import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.secret.SecretManager
@@ -103,7 +104,7 @@ object ConfigManager {
 			fun create(provider: CoreConfig.ProviderConfig.Provider) {
 				val meta = pm.getInfo(provider.type)
 				pm.add(
-					Provider(
+					ProviderData(
 						name = provider.name,
 						providerType = provider.type,
 						apiKey = ApiKeyAPI.getId(provider.keyId),
@@ -121,7 +122,7 @@ object ConfigManager {
 			
 			fun updateUrl(name: String, url: Url) = pm.override(get(name).copy(baseUrl = url))
 			
-			fun updateRule(name: String, rules: List<Provider.ErrorHandlingRule>) =
+			fun updateRule(name: String, rules: List<ProviderData.ErrorHandlingRule>) =
 				pm.override(get(name).copy(errorHandlingRules = rules))
 			
 			fun rename(name: String, new: String) {
@@ -130,7 +131,7 @@ object ConfigManager {
 				pm.add(old.copy(name = new))
 			}
 			
-			internal fun get(name: String) = pm.get().find { it.name == name } ?: error("Provider $name not found")
+			internal fun get(name: String) = pm.get().find { it.name == name } ?: error("ProviderData $name not found")
 		}
 		
 		object ModelAPI {
@@ -139,7 +140,7 @@ object ConfigManager {
 			
 			fun add(model: CoreConfig.ProviderConfig.Model) {
 				val modelInfo = model.meta ?: getMeta(model.providerName, model.name) ?: error("Default meta not found")
-				val newModel = Provider.Model(
+				val newModel = ProviderData.ModelData(
 					name = model.name,
 					modelInfo = modelInfo,
 					config = model.config,
@@ -169,7 +170,7 @@ object ConfigManager {
 			fun update(id: ModelId, model: CoreConfig.ProviderConfig.Model) {
 				val provider = ProviderAPI.get(id.provider)
 				val modelInfo = model.meta ?: getMeta(model.providerName, model.name) ?: error("Default meta not found")
-				val newModel = Provider.Model(
+				val newModel = ProviderData.ModelData(
 					name = model.name,
 					modelInfo = modelInfo,
 					config = model.config,

@@ -16,13 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.api.data
+package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.core.llm.ChatResult
 
-data class AdapterInfo(
-	val name: String,
-	val description: String,
-	val version: SemVer,
-	val source: Url,
+data class ResilientChatResult(
+	val result: ChatResult,
+	val retrying: Model?,
 )

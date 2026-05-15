@@ -20,21 +20,21 @@ package io.github.autotweaker.core.adapter.impl
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.SessionConfig
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.AutoTweaker
 import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.ConfigManager
-import io.github.autotweaker.core.adapter.config.CoreConfig
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.data.provider.Provider
-import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.session.SessionManager
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import java.util.*
 
 object CoreAPIImpl : CoreAPI {
@@ -130,13 +130,13 @@ object CoreAPIImpl : CoreAPI {
 		override fun setProviderUrl(name: String, url: Url) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.updateUrl(name, url)
 		
-		override fun setProviderRule(name: String, rules: List<Provider.ErrorHandlingRule>) =
+		override fun setProviderRule(name: String, rules: List<ProviderData.ErrorHandlingRule>) =
 			ConfigManager.ProviderConfigAPI.ProviderAPI.updateRule(name, rules)
 		
 		override fun listModels() = ConfigManager.ProviderConfigAPI.ModelAPI.list()
 		
 		override fun listModelIds() = ConfigManager.ProviderConfigAPI.ModelAPI.listId()
-		override fun getModelMeta(provider: String, modelId: String): Provider.Model.ModelInfo? =
+		override fun getModelMeta(provider: String, modelId: String): ProviderData.ModelData.ModelInfo? =
 			ConfigManager.ProviderConfigAPI.ModelAPI.getMeta(provider, modelId)
 		
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) =

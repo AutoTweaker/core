@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.adapter.api.AdapterAPI
-import io.github.autotweaker.core.adapter.api.data.AdapterInfo
-import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStore

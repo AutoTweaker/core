@@ -19,9 +19,9 @@
 package io.github.autotweaker.core.tool.impl.read
 
 import io.github.autotweaker.api.types.Unicode
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.SettingKey
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.coEvery

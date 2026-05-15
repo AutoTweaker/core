@@ -20,12 +20,12 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.core.data.provider.Provider
+import io.github.autotweaker.api.types.provider.ProviderData
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
 
-class ProviderTest {
+class ProviderDataTest {
 	
 	private val testUrl = Url("https://api.example.com")
 	
@@ -35,9 +35,9 @@ class ProviderTest {
 	
 	@Test
 	fun `ErrorHandlingRule constructs correctly`() {
-		val rule = Provider.ErrorHandlingRule(503, Provider.ErrorHandlingRule.RecoveryStrategy.RETRY)
+		val rule = ProviderData.ErrorHandlingRule(503, ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY)
 		assertEquals(503, rule.statusCode)
-		assertEquals(Provider.ErrorHandlingRule.RecoveryStrategy.RETRY, rule.strategy)
+		assertEquals(ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY, rule.strategy)
 	}
 	
 	// endregion
@@ -46,19 +46,19 @@ class ProviderTest {
 	
 	@Test
 	fun `RecoveryStrategy has all expected values`() {
-		val values = Provider.ErrorHandlingRule.RecoveryStrategy.entries
+		val values = ProviderData.ErrorHandlingRule.RecoveryStrategy.entries
 		assertEquals(4, values.size)
-		assertTrue(values.contains(Provider.ErrorHandlingRule.RecoveryStrategy.RETRY))
-		assertTrue(values.contains(Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK))
-		assertTrue(values.contains(Provider.ErrorHandlingRule.RecoveryStrategy.CONTEXT_FALLBACK))
-		assertTrue(values.contains(Provider.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK))
+		assertTrue(values.contains(ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY))
+		assertTrue(values.contains(ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK))
+		assertTrue(values.contains(ProviderData.ErrorHandlingRule.RecoveryStrategy.CONTEXT_FALLBACK))
+		assertTrue(values.contains(ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK))
 	}
 	
 	@Test
 	fun `RecoveryStrategy valueOf works`() {
 		assertEquals(
-			Provider.ErrorHandlingRule.RecoveryStrategy.FALLBACK,
-			Provider.ErrorHandlingRule.RecoveryStrategy.valueOf("FALLBACK")
+			ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK,
+			ProviderData.ErrorHandlingRule.RecoveryStrategy.valueOf("FALLBACK")
 		)
 	}
 	
@@ -68,11 +68,11 @@ class ProviderTest {
 	
 	@Test
 	fun `ModelInfo constructs with all fields`() {
-		val tokenPrice = Provider.Model.TokenPrice(
+		val tokenPrice = ProviderData.ModelData.TokenPrice(
 			inputPrice = emptyList(),
 			outputPrice = emptyList()
 		)
-		val info = Provider.Model.ModelInfo(
+		val info = ProviderData.ModelData.ModelInfo(
 			id = "test-model",
 			contextWindow = 128000,
 			maxOutputTokens = 4096,
@@ -100,13 +100,13 @@ class ProviderTest {
 	
 	@Test
 	fun `TokenPrice constructs with tiers`() {
-		val tier = Provider.Model.TokenPrice.PriceTier(
+		val tier = ProviderData.ModelData.TokenPrice.PriceTier(
 			fromTokens = 0,
 			toTokens = 1000000,
 			price = testPrice,
 			cachedPrice = null
 		)
-		val tokenPrice = Provider.Model.TokenPrice(
+		val tokenPrice = ProviderData.ModelData.TokenPrice(
 			inputPrice = listOf(tier),
 			outputPrice = listOf(tier)
 		)
@@ -121,7 +121,7 @@ class ProviderTest {
 	@Test
 	fun `PriceTier with all fields`() {
 		val cachedPrice = Price(BigDecimal("0.0005"), Currency.getInstance("USD"), 1000)
-		val tier = Provider.Model.TokenPrice.PriceTier(
+		val tier = ProviderData.ModelData.TokenPrice.PriceTier(
 			fromTokens = 0,
 			toTokens = 1000000,
 			price = testPrice,
@@ -135,7 +135,7 @@ class ProviderTest {
 	
 	@Test
 	fun `PriceTier with null cachedPrice and toTokens`() {
-		val tier = Provider.Model.TokenPrice.PriceTier(
+		val tier = ProviderData.ModelData.TokenPrice.PriceTier(
 			fromTokens = 500000,
 			toTokens = null,
 			price = testPrice,
@@ -152,7 +152,7 @@ class ProviderTest {
 	
 	@Test
 	fun `Config with all fields set`() {
-		val config = Provider.Model.Config(
+		val config = ProviderData.ModelData.Config(
 			temperature = 0.7,
 			maxTokens = 4096,
 			compactContextUsage = 0.8,
@@ -166,7 +166,7 @@ class ProviderTest {
 	
 	@Test
 	fun `Config with null fields uses defaults`() {
-		val config = Provider.Model.Config(null, null, null, null)
+		val config = ProviderData.ModelData.Config(null, null, null, null)
 		assertNull(config.temperature)
 		assertNull(config.maxTokens)
 		assertNull(config.compactContextUsage)
@@ -175,23 +175,23 @@ class ProviderTest {
 	
 	// endregion
 	
-	// region Model
+	// region ModelData
 	
 	@Test
 	fun `Model constructs with all fields`() {
-		val modelInfo = Provider.Model.ModelInfo(
+		val modelInfo = ProviderData.ModelData.ModelInfo(
 			id = "m1",
 			contextWindow = 64000,
 			maxOutputTokens = 2048,
-			price = Provider.Model.TokenPrice(emptyList(), emptyList()),
+			price = ProviderData.ModelData.TokenPrice(emptyList(), emptyList()),
 			supportsStreaming = true,
 			supportsToolCalls = false,
 			supportsReasoning = false,
 			supportsImage = false,
 			supportsJsonOutput = false,
 		)
-		val config = Provider.Model.Config(0.5, 1000, null, null)
-		val model = Provider.Model(name = "gpt-4", modelInfo = modelInfo, config = config)
+		val config = ProviderData.ModelData.Config(0.5, 1000, null, null)
+		val model = ProviderData.ModelData(name = "gpt-4", modelInfo = modelInfo, config = config)
 		assertEquals("gpt-4", model.name)
 		assertEquals(modelInfo, model.modelInfo)
 		assertEquals(config, model.config)
@@ -199,42 +199,42 @@ class ProviderTest {
 	
 	@Test
 	fun `Model with null config`() {
-		val modelInfo = Provider.Model.ModelInfo(
+		val modelInfo = ProviderData.ModelData.ModelInfo(
 			id = "m2",
 			contextWindow = 32000,
 			maxOutputTokens = 1024,
-			price = Provider.Model.TokenPrice(emptyList(), emptyList()),
+			price = ProviderData.ModelData.TokenPrice(emptyList(), emptyList()),
 			supportsStreaming = false,
 			supportsToolCalls = false,
 			supportsReasoning = false,
 			supportsImage = false,
 			supportsJsonOutput = false,
 		)
-		val model = Provider.Model(name = "basic", modelInfo = modelInfo, config = null)
+		val model = ProviderData.ModelData(name = "basic", modelInfo = modelInfo, config = null)
 		assertNull(model.config)
 	}
 	
 	// endregion
 	
-	// region Provider
+	// region ProviderData
 	
 	@Test
 	fun `Provider constructs with all fields`() {
-		val modelInfo = Provider.Model.ModelInfo(
+		val modelInfo = ProviderData.ModelData.ModelInfo(
 			id = "p1",
 			contextWindow = 32000,
 			maxOutputTokens = 2048,
-			price = Provider.Model.TokenPrice(emptyList(), emptyList()),
+			price = ProviderData.ModelData.TokenPrice(emptyList(), emptyList()),
 			supportsStreaming = true,
 			supportsToolCalls = true,
 			supportsReasoning = true,
 			supportsImage = true,
 			supportsJsonOutput = true,
 		)
-		val model = Provider.Model(name = "premium", modelInfo = modelInfo, config = null)
-		val rule = Provider.ErrorHandlingRule(429, Provider.ErrorHandlingRule.RecoveryStrategy.RETRY)
+		val model = ProviderData.ModelData(name = "premium", modelInfo = modelInfo, config = null)
+		val rule = ProviderData.ErrorHandlingRule(429, ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY)
 		val apiKey = UUID.randomUUID()
-		val provider = Provider(
+		val providerData = ProviderData(
 			name = "test-provider",
 			providerType = "openai",
 			apiKey = apiKey,
@@ -242,18 +242,18 @@ class ProviderTest {
 			models = listOf(model),
 			errorHandlingRules = listOf(rule)
 		)
-		assertEquals("test-provider", provider.name)
-		assertEquals("openai", provider.providerType)
-		assertEquals(apiKey, provider.apiKey)
-		assertEquals(testUrl, provider.baseUrl)
-		assertEquals(1, provider.models.size)
-		assertEquals(1, provider.errorHandlingRules.size)
+		assertEquals("test-provider", providerData.name)
+		assertEquals("openai", providerData.providerType)
+		assertEquals(apiKey, providerData.apiKey)
+		assertEquals(testUrl, providerData.baseUrl)
+		assertEquals(1, providerData.models.size)
+		assertEquals(1, providerData.errorHandlingRules.size)
 	}
 	
 	@Test
 	fun `Provider with empty models and rules`() {
 		val apiKey = UUID.randomUUID()
-		val provider = Provider(
+		val providerData = ProviderData(
 			name = "empty",
 			providerType = "custom",
 			apiKey = apiKey,
@@ -261,15 +261,15 @@ class ProviderTest {
 			models = emptyList(),
 			errorHandlingRules = emptyList()
 		)
-		assertTrue(provider.models.isEmpty())
-		assertTrue(provider.errorHandlingRules.isEmpty())
+		assertTrue(providerData.models.isEmpty())
+		assertTrue(providerData.errorHandlingRules.isEmpty())
 	}
 	
 	@Test
 	fun `Provider data class equality`() {
 		val apiKey = UUID.randomUUID()
-		val p1 = Provider("p", "t", apiKey, testUrl, emptyList(), emptyList())
-		val p2 = Provider("p", "t", apiKey, testUrl, emptyList(), emptyList())
+		val p1 = ProviderData("p", "t", apiKey, testUrl, emptyList(), emptyList())
+		val p2 = ProviderData("p", "t", apiKey, testUrl, emptyList(), emptyList())
 		assertEquals(p1, p2)
 		assertEquals(p1.hashCode(), p2.hashCode())
 	}

@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
+import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.core.adapter.api.CoreAPI
-import io.github.autotweaker.core.adapter.api.data.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.github.autotweaker.core.adapter.impl.cli.commands.Help
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n

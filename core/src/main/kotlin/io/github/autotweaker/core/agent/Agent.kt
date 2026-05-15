@@ -19,13 +19,14 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.phase.*
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.find
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -345,7 +346,7 @@ class Agent(
 		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usage ?: return
 		val contextWindow = currentModel.modelInfo.contextWindow
 		val shouldCompact =
-			(config.compactContextUsage != null && usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage) || (config.compactTotalTokens != null && usage.totalTokens >= config.compactTotalTokens)
+			(config.compactContextUsage != null && usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage!!) || (config.compactTotalTokens != null && usage.totalTokens >= config.compactTotalTokens!!)
 		if (shouldCompact) {
 			logger.debug(
 				"Auto-compact triggered  agentId={}  usage={}  contextWindow={}",

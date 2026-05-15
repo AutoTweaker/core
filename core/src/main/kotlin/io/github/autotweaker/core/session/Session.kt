@@ -19,16 +19,19 @@
 package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
-import io.github.autotweaker.core.agent.*
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.core.agent.Agent
+import io.github.autotweaker.core.agent.AgentCommand
+import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.session.SessionContext
-import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.session.agent.AgentContextConverter
 import io.github.autotweaker.core.session.agent.SessionContextConverter
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*

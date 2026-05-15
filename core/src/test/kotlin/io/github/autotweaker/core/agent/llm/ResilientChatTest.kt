@@ -21,11 +21,11 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule
+import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
+import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
-import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.RecoveryStrategy
-import io.github.autotweaker.core.data.provider.Provider.Model.*
-import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.*
 import io.mockk.*
 import kotlinx.coroutines.flow.flow

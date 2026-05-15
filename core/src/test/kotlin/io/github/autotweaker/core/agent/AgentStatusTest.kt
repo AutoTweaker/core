@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

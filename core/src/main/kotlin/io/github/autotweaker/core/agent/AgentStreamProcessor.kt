@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult

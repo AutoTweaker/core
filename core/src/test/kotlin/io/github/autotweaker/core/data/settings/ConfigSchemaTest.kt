@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
+import io.github.autotweaker.api.types.settings.find
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

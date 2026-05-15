@@ -16,24 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.impl.cli
+package io.github.autotweaker.api.types.adapter
 
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.core.adapter.api.CoreAPI
-import kotlinx.coroutines.flow.Flow
+import io.github.autotweaker.api.types.Url
 
-interface Command {
-	val name: String
-	val description: String
-	val syntax: Syntax
-	
-	fun init(core: CoreAPI, coreVersion: SemVer) {}
-	fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk>
-	
-	sealed class Chunk {
-		data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : Chunk()
-		data class Done(val exitCode: Int = 0) : Chunk()
-		
-		enum class Channel { STDOUT, STDERR }
-	}
-}
+data class AdapterInfo(
+	val name: String,
+	val description: String,
+	val version: SemVer,
+	val source: Url,
+)

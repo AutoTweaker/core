@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.AgentStatus
 import io.github.autotweaker.core.agent.AgentStreamProcessor
 import io.github.autotweaker.core.agent.StreamProcessResult
 import io.github.autotweaker.core.agent.llm.AgentChatRequest

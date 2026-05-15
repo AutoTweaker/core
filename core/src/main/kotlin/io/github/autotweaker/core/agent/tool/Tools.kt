@@ -19,12 +19,12 @@
 package io.github.autotweaker.core.agent.tool
 
 import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentOutput
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.CancellationException

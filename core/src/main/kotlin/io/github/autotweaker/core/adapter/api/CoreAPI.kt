@@ -20,17 +20,17 @@ package io.github.autotweaker.core.adapter.api
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.provider.ProviderData
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.SessionConfig
-import io.github.autotweaker.core.adapter.api.data.AdapterInfo
-import io.github.autotweaker.core.adapter.config.CoreConfig
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.data.provider.Provider
-import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.session.SessionManager
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import java.util.*
 
 interface CoreAPI {
@@ -88,11 +88,11 @@ interface CoreAPI {
 		fun setProviderType(name: String, type: String)
 		fun setProviderKey(name: String, keyName: String)
 		fun setProviderUrl(name: String, url: Url)
-		fun setProviderRule(name: String, rules: List<Provider.ErrorHandlingRule>)
+		fun setProviderRule(name: String, rules: List<ProviderData.ErrorHandlingRule>)
 		
 		fun listModels(): List<CoreConfig.ProviderConfig.Model>
 		fun listModelIds(): List<ModelId>
-		fun getModelMeta(provider: String, modelId: String): Provider.Model.ModelInfo?
+		fun getModelMeta(provider: String, modelId: String): ProviderData.ModelData.ModelInfo?
 		fun addModel(model: CoreConfig.ProviderConfig.Model)
 		fun removeModel(id: ModelId)
 		fun setModel(id: ModelId, model: CoreConfig.ProviderConfig.Model)

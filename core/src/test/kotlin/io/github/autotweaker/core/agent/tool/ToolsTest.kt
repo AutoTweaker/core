@@ -19,12 +19,12 @@
 package io.github.autotweaker.core.agent.tool
 
 import io.github.autotweaker.api.types.session.ToolResultStatus
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.ToolCallValidator.ValidationResult
-import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.data.settings.SettingKey
-import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.coEvery
@@ -37,6 +37,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.util.*
+import kotlin.io.path.createTempDirectory
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -153,7 +154,7 @@ class ToolsTest {
 		// Activate the tool first so validator sees it
 		val activateResult = tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		assertEquals(ToolResultStatus.SUCCESS, activateResult.result.status)
 		
@@ -197,7 +198,7 @@ class ToolsTest {
 			validationSuccess("bash", "run"),
 			pendingToolCall("c1", "bash_run"),
 			SimpleContainer(),
-			WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		assertTrue(tools.entries[0].active)
@@ -215,13 +216,13 @@ class ToolsTest {
 		// First call: activate
 		tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		// Second call: execute
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
@@ -239,13 +240,13 @@ class ToolsTest {
 		// Activate
 		tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		// Execute
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		assertEquals(ToolResultStatus.FAILURE, result.result.status)
@@ -262,13 +263,13 @@ class ToolsTest {
 		// Activate
 		tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		// Execute - should catch exception and return failure
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		assertEquals(ToolResultStatus.FAILURE, result.result.status)
@@ -285,13 +286,13 @@ class ToolsTest {
 		// Activate
 		tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		assertFailsWith<CancellationException> {
 			tools.executeTool(
 				validationSuccess(), pendingToolCall("c2", "bash_run"),
-				SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+				SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 			)
 		}
 	}
@@ -311,13 +312,13 @@ class ToolsTest {
 		// Activate
 		tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 			onToolOutput = { outputs.add(it.content) },
 		)
 		
@@ -336,7 +337,7 @@ class ToolsTest {
 		val activatedTools = mutableListOf<List<Tool>>()
 		tools.executeTool(
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 			onToolActivated = { activatedTools.add(it) },
 		)
 		
@@ -391,7 +392,7 @@ class ToolsTest {
 		tools.executeTool(
 			validationSuccess("bash", "run"),
 			pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		val result = tools.assembleTools()
@@ -421,7 +422,7 @@ class ToolsTest {
 		tools.executeTool(
 			validationSuccess("bash", "run"),
 			pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
 		val result = tools.assembleTools()

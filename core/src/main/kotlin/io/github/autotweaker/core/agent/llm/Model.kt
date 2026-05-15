@@ -18,22 +18,13 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.provider.ProviderData.ModelData.Config
+import io.github.autotweaker.api.types.provider.ProviderData.ModelData.ModelInfo
 import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
-import io.github.autotweaker.core.data.provider.Provider.Model.Config
-import io.github.autotweaker.core.data.provider.Provider.Model.ModelInfo
 
 data class Model(
 	val provider: Provider,
 	val modelInfo: ModelInfo,
 	val config: Config? = null,
 	val modelId: ModelId,
-)
-
-data class Provider(
-	val name: String,
-	val baseUrl: Url,
-	val apiKey: String,
-	val errorHandlingRules: List<ErrorHandlingRule>
 )

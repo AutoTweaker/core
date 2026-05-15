@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.session.workspace
 
 import io.github.autotweaker.api.types.serializer.UuidListSerializer
+import io.github.autotweaker.api.types.session.WorkspaceMeta
 import kotlinx.serialization.Serializable
 import java.util.*
 

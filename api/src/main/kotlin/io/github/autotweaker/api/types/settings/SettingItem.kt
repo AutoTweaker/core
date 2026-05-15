@@ -16,18 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.data.settings
+package io.github.autotweaker.api.types.settings
 
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.v1.core.Table
-
-object ConfigTable : Table("core_settings") {
-	val keyName = varchar("key_name", 255)
-	val valJson = text("val_json")
-	val description = text("description")
-	
-	override val primaryKey = PrimaryKey(keyName)
-}
 
 @Serializable
 data class SettingItem(

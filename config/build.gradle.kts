@@ -28,6 +28,7 @@ application {
 
 dependencies {
 	implementation(project(":core"))
+	implementation(project(":api"))
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 }
 

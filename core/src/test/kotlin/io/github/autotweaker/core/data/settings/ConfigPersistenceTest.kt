@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.settings.SettingItem
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -74,7 +75,7 @@ class ConfigPersistenceTest {
 	@Test
 	fun `getValueFromRow parses valid JSON`() {
 		val row = mockk<ResultRow>()
-		every { row[ConfigTable.valJson] } returns """{"type":"io.github.autotweaker.core.data.settings.SettingItem.Value.ValInt","value":42}"""
+		every { row[ConfigTable.valJson] } returns """{"type":"io.github.autotweaker.api.types.settings.SettingItem.Value.ValInt","value":42}"""
 		
 		val result = ConfigTable.getValueFromRow(row)
 		assertNotNull(result)

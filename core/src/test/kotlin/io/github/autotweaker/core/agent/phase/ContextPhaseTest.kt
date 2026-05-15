@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
@@ -56,7 +57,7 @@ class ContextPhaseTest {
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
 		every { env.toolRejectedWithFeedbackMessage } returns "Tool rejected: %s"
-		every { env.status } returns io.github.autotweaker.core.agent.AgentStatus.FREE
+		every { env.status } returns AgentStatus.FREE
 		_contextFlow.value = AgentContext(null, null, null, null, null)
 		every { env.context } returns _contextFlow
 		coEvery { env.updateContext(any()) } answers {

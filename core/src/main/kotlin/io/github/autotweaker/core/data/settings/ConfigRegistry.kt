@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.settings.SettingItem
 import org.slf4j.LoggerFactory
 
 object ConfigRegistry {
