@@ -29,7 +29,7 @@ import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.provider.ProviderStore
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.llm.LlmClientLoader
-import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.ProviderService
 import io.github.autotweaker.core.tool.impl.bash.Bash
 import kotlinx.serialization.Serializable

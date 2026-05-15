@@ -27,7 +27,7 @@ import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
-import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory

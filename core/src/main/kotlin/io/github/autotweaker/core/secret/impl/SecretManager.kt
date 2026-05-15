@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.secret
+package io.github.autotweaker.core.secret.impl
 
+import io.github.autotweaker.core.secret.SecretStore
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path

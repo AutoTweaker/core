@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.phase
+package io.github.autotweaker.core.agent.tool
 
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.tool.service.BashServiceImpl

@@ -25,6 +25,7 @@ import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
+import io.github.autotweaker.core.agent.tool.ToolProvider
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.milliseconds

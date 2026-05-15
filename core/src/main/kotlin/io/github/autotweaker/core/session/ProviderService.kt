@@ -24,7 +24,7 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.data.provider.ProviderStore
 import io.github.autotweaker.core.llm.LlmClientLoader
-import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.secret.impl.SecretManager
 
 object ProviderService {
 	fun getInfo(type: String): LlmClient.ProviderInfo = LlmClientLoader.load(type).providerInfo

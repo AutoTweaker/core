@@ -33,7 +33,7 @@ import io.github.autotweaker.core.AutoTweaker
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
 import java.util.*
 

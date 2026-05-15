@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.data
 
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.secret.impl.SecretManager
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull

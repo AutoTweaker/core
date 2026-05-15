@@ -24,6 +24,7 @@ import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
+import io.github.autotweaker.core.agent.tool.ToolProvider
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.tool.impl.bash.BashService
 import io.github.autotweaker.core.tool.impl.read.FileSystemService
