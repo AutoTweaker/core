@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
@@ -174,7 +175,7 @@ class AgentChatRequestExtTest {
 	
 	@Test
 	fun `images in user message`() {
-		val img = io.github.autotweaker.core.Base64("AAAA")
+		val img = Base64("AAAA")
 		val user =
 			AgentContext.Message.User(content = "look at this", images = listOf(img), timestamp = Clock.System.now())
 		val ctx = AgentContext(null, null, null, null, currentRound(user))

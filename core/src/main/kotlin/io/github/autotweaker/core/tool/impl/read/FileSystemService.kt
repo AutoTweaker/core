@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.tool.impl.read
 
-import io.github.autotweaker.core.Unicode
+import io.github.autotweaker.api.types.Unicode
 import java.nio.file.Path
 
 interface FileSystemService {

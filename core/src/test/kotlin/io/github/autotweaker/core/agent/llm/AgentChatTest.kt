@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier

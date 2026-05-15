@@ -16,8 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types
 
+import io.github.autotweaker.api.types.serializer.BigDecimalSerializer
+import io.github.autotweaker.api.types.serializer.CurrencySerializer
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.util.*

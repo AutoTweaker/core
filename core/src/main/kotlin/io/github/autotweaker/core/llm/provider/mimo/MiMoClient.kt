@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.llm.provider.mimo
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient

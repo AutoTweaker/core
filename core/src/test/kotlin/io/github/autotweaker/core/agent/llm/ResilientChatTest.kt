@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.data.provider.Provider.Model.*
@@ -306,7 +307,7 @@ class ResilientChatTest {
 		val imageModelInfo = baseModelInfo.copy(supportsImage = true)
 		val noImageModelInfo = baseModelInfo.copy(supportsImage = false)
 		
-		val img = io.github.autotweaker.core.Base64("AAAA")
+		val img = Base64("AAAA")
 		val requestWithImage = ChatRequest(
 			model = "test-model",
 			messages = listOf(
@@ -444,7 +445,7 @@ class ResilientChatTest {
 			flow { emit(assistantResult("stripped")) }
 		}
 		
-		val img = io.github.autotweaker.core.Base64("AAAA")
+		val img = Base64("AAAA")
 		val requestWithImage = ChatRequest(
 			model = "test",
 			messages = listOf(ChatMessage.UserMessage("look", Clock.System.now(), listOf(img)))

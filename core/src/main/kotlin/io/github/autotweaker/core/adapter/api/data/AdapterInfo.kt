@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.adapter.api.data
 
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Url
 
 data class AdapterInfo(
 	val name: String,

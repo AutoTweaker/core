@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.data.provider.Provider.Model.*

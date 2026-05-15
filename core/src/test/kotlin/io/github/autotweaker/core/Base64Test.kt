@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.types.Base64
 import kotlin.test.*
 
 class Base64Test {

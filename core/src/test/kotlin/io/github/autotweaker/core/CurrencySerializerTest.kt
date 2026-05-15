@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.types.serializer.CurrencySerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.json.Json
 import java.util.*

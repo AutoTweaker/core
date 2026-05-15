@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.llm
 
-import io.github.autotweaker.core.Base64
+import io.github.autotweaker.api.types.Base64
 import io.ktor.http.*
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject

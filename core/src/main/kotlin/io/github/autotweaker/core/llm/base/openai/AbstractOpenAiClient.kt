@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.llm.base.openai
 
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.llm.*
 import io.ktor.client.*
 import io.ktor.client.call.*

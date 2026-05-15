@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.session
 
-import io.github.autotweaker.core.Base64
+import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.session.InstantLongSerializer
 import io.github.autotweaker.core.data.session.UuidSerializer

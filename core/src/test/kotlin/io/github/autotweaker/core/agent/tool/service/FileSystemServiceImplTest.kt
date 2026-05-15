@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
-import io.github.autotweaker.core.Unicode
+import io.github.autotweaker.api.types.Unicode
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
 import java.nio.file.Path

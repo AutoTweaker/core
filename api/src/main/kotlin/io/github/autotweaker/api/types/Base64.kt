@@ -18,7 +18,7 @@
 
 @file:JvmName("Base64")
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types
 
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.ExperimentalEncodingApi

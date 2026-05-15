@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.types.serializer.BigDecimalSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal

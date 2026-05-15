@@ -18,7 +18,7 @@
 
 @file:JvmName("Unicode")
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types
 
 
 @JvmInline

@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.data.provider.Provider
 import java.math.BigDecimal
 import java.util.*

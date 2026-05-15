@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.adapter.api
 
-import io.github.autotweaker.core.Base64
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.adapter.api.data.AdapterInfo
 import io.github.autotweaker.core.adapter.config.CoreConfig
 import io.github.autotweaker.core.agent.AgentCommand

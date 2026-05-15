@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.session
 
-import io.github.autotweaker.core.Base64
+import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.AgentStatus

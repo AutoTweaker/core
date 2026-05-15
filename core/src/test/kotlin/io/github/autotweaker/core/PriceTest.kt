@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.types.Price
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.util.*

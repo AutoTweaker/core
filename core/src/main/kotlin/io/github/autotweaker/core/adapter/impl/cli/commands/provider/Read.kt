@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.adapter.impl.cli.commands.provider
 
-import io.github.autotweaker.core.Price
+import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.core.adapter.api.CoreAPI
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import io.github.autotweaker.core.data.provider.Provider

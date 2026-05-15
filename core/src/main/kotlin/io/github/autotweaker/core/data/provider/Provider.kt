@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.data.provider
 
-import io.github.autotweaker.core.Price
-import io.github.autotweaker.core.Url
+import io.github.autotweaker.api.types.Price
+import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.core.data.session.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*

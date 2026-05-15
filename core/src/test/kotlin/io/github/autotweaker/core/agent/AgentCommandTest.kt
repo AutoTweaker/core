@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent
 
-import io.github.autotweaker.core.Base64
+import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk
 import kotlin.test.*

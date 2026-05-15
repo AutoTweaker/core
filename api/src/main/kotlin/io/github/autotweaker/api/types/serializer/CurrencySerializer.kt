@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types.serializer
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -24,17 +24,17 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.math.BigDecimal
+import java.util.*
 
-object BigDecimalSerializer : KSerializer<BigDecimal> {
+object CurrencySerializer : KSerializer<Currency> {
 	override val descriptor: SerialDescriptor =
-		PrimitiveSerialDescriptor("BigDecimal", PrimitiveKind.STRING)
+		PrimitiveSerialDescriptor("Currency", PrimitiveKind.STRING)
 	
-	override fun serialize(encoder: Encoder, value: BigDecimal) {
-		encoder.encodeString(value.toPlainString())
+	override fun serialize(encoder: Encoder, value: Currency) {
+		encoder.encodeString(value.currencyCode)
 	}
 	
-	override fun deserialize(decoder: Decoder): BigDecimal {
-		return BigDecimal(decoder.decodeString())
+	override fun deserialize(decoder: Decoder): Currency {
+		return Currency.getInstance(decoder.decodeString())
 	}
 }

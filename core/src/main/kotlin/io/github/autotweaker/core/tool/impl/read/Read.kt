@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.tool.impl.read
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.core.Unicode
+import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
 import io.github.autotweaker.core.tool.Tool
