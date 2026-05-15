@@ -16,6 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+package io.github.autotweaker.core
+
+fun main() {
+	AutoTweaker.start()
+	val latch = java.util.concurrent.CountDownLatch(1)
+	Runtime.getRuntime().addShutdownHook(Thread { latch.countDown() })
+	latch.await()
+}
+
 /*
  * 日志规范
  *
@@ -58,12 +67,3 @@
  *    - 成功: "Settings initialized"  "Container started"
  *    - 失败: "Failed to initialize settings"  "Failed to start container"
  */
-
-package io.github.autotweaker.core
-
-fun main() {
-	AutoTweaker.start()
-	val latch = java.util.concurrent.CountDownLatch(1)
-	Runtime.getRuntime().addShutdownHook(Thread { latch.countDown() })
-	latch.await()
-}

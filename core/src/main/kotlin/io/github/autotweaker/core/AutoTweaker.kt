@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.AdapterRegistry
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.adapter.api.AdapterAPI
@@ -38,7 +39,7 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
-object AutoTweaker {
+object AutoTweaker : AdapterRegistry {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	val version: SemVer by lazy {
 		val props = Properties()
@@ -134,15 +135,15 @@ object AutoTweaker {
 		logger.info("AutoTweaker shutdown completed")
 	}
 	
-	fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }
+	override fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }
 	
-	fun startAdapter(name: String) {
+	override fun startAdapter(name: String) {
 		val (adapter, info) = requireAdapter(name)
-		adapter.start(CoreAPIImpl)
+		adapter.start(CoreAPIImpl(this))
 		logger.info("Started adapter  name={}", info.name)
 	}
 	
-	fun stopAdapter(name: String) {
+	override fun stopAdapter(name: String) {
 		val (adapter, info) = requireAdapter(name)
 		adapter.stop()
 		logger.info("Stopped adapter  name={}", info.name)
