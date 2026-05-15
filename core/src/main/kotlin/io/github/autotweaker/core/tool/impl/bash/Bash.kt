@@ -19,24 +19,20 @@
 package io.github.autotweaker.core.tool.impl.bash
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.EnvStorage
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.find
-import io.github.autotweaker.core.secret.SecretManager
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.tool.get
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
-import java.util.*
 
 @AutoService(Tool::class)
 class Bash : Tool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStore.namespace(this::class.java.name)
-	
-	init {
-		if (jsonEntry.get() == null) jsonEntry.set(buildJsonObject { })
-	}
+	private val envStorage = EnvStorage(this::class.java.name)
 	
 	override fun resolveMeta(settings: List<SettingItem>): Tool.Meta {
 		val description: String = settings.find("core.tool.bash.description")
@@ -125,37 +121,11 @@ class Bash : Tool {
 		messageResultTemplate = settings.find("core.tool.bash.message.result.template"),
 	)
 	
-	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
+	fun listEnv(): List<String> = envStorage.listEnv()
 	
-	fun getEnv(id: String): String? {
-		val uuid = getEnvUuidMap()[id] ?: return null
-		return try {
-			SecretManager.get(uuid)
-		} catch (_: Exception) {
-			null
-		}
-	}
+	fun getEnv(id: String): String? = envStorage.getEnv(id)
 	
-	fun setEnv(id: String, value: String) {
-		val current = getEnvUuidMap()
-		current[id]?.let { SecretManager.remove(it) }
-		val uuid = SecretManager.add(value)
-		val updated =
-			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
-		jsonEntry.set(updated)
-	}
+	fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
 	
-	fun removeEnv(id: String) {
-		val current = getEnvUuidMap()
-		current[id]?.let { SecretManager.remove(it) }
-		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
-		jsonEntry.set(updated)
-	}
-	
-	private fun getEnvUuidMap(): Map<String, UUID> {
-		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
-		return obj.mapNotNull { (k, v) ->
-			v.jsonPrimitive.contentOrNull?.let { UUID.fromString(it) }?.let { k to it }
-		}.toMap()
-	}
+	fun removeEnv(id: String) = envStorage.removeEnv(id)
 }

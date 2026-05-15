@@ -19,24 +19,17 @@
 package io.github.autotweaker.core.container
 
 import io.github.autotweaker.core.container.docker.DockerJavaService
-import io.github.autotweaker.core.data.json.JsonStore
+import io.github.autotweaker.core.data.EnvStorage
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.data.settings.find
-import io.github.autotweaker.core.secret.SecretManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
-import java.util.*
-
 
 object ContainerManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val mutex = Mutex()
-	private val jsonEntry = JsonStore.namespace(this::class.java.name)
+	private val envStorage = EnvStorage(this::class.java.name)
 	
 	private val service: ContainerService = DockerJavaService()
 	
@@ -96,52 +89,36 @@ object ContainerManager {
 		return id to svc
 	}
 	
-	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
+	fun listEnv(): List<String> = envStorage.listEnv()
 	
 	fun setEnv(env: Map<String, String>) {
 		logger.debug("Container env set started  count={}", env.size)
-		val current = getEnvUuidMap()
-		val removed = current.keys - env.keys
-		removed.forEach { current[it]?.let { uuid -> SecretManager.remove(uuid) } }
-		val updated = current.filterKeys { it in env.keys }.toMutableMap()
-		for ((id, value) in env) {
-			current[id]?.let { SecretManager.remove(it) }
-			updated[id] = SecretManager.add(value)
-		}
-		saveEnvUuidMap(updated)
-		logger.debug("Container env set  count={}", updated.size)
+		val existing = envStorage.listEnv().toSet()
+		val removed = existing - env.keys
+		removed.forEach { envStorage.removeEnv(it) }
+		env.forEach { (id, value) -> envStorage.setEnv(id, value) }
+		logger.debug("Container env set  count={}", env.size)
 	}
 	
 	fun removeEnv(id: String) {
-		val current = getEnvUuidMap()
-		current[id]?.let { SecretManager.remove(it) }
-		val updated = current.filterKeys { it != id }.toMutableMap()
-		saveEnvUuidMap(updated)
+		envStorage.removeEnv(id)
 		logger.debug("Container env removed  key={}", id)
 	}
 	
 	fun getEnv(id: String? = null): Map<String, String> {
-		val uuidMap = getEnvUuidMap()
-		val ids = if (id != null) listOf(id).filter { it in uuidMap } else uuidMap.keys
+		val ids = if (id != null) {
+			if (id in envStorage.listEnv()) listOf(id) else emptyList()
+		} else {
+			envStorage.listEnv()
+		}
 		return ids.mapNotNull { key ->
-			try {
-				key to SecretManager.get(uuidMap[key]!!)
-			} catch (_: Exception) {
+			val value = envStorage.getEnv(key)
+			if (value == null) {
 				logger.warn("Failed to get env value  key={}", key)
 				null
+			} else {
+				key to value
 			}
 		}.toMap()
-	}
-	
-	private fun getEnvUuidMap(): Map<String, UUID> {
-		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
-		return obj.mapNotNull { (k, v) ->
-			v.jsonPrimitive.contentOrNull?.let { UUID.fromString(it) }?.let { k to it }
-		}.toMap()
-	}
-	
-	private fun saveEnvUuidMap(map: Map<String, UUID>) {
-		val obj = JsonObject(map.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
-		jsonEntry.set(obj)
 	}
 }
