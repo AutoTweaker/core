@@ -124,7 +124,7 @@ object AutoTweaker {
 		registry.values.forEach { (_, info) ->
 			runCatching { stopAdapter(info.name) }
 		}
-		runBlocking { runCatching { SessionManager.SessionAPI.shutdown() } }
+		runBlocking { runCatching { SessionManager.shutdown() } }
 		runBlocking { runCatching { ContainerManager.stop() } }
 		runCatching { AbstractOpenAiClient.close() }
 		runCatching { closePluginClassLoaders() }

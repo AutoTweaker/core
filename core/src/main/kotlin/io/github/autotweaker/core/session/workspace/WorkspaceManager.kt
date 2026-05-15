@@ -40,6 +40,7 @@ object WorkspaceManager {
 	}
 	
 	fun create(meta: WorkspaceMeta) {
+		if (workspaceList.any { it.meta.name == meta.name }) error("Workspace with name ${meta.name} already exists")
 		update(workspaceList.plus(WorkspaceData(meta)))
 		logger.debug("Workspace created  name={}", meta.name)
 	}

@@ -30,7 +30,7 @@ import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.session.SessionManager
+import io.github.autotweaker.core.session.SessionHandle
 import java.util.*
 
 interface CoreAPI {
@@ -49,7 +49,7 @@ interface CoreAPI {
 	fun jsonStore(namespace: String): JsonStore.JsonEntry
 	
 	interface SessionAPI {
-		suspend fun create(workspace: String, config: SessionConfig): SessionManager.SessionHandle
+		suspend fun create(workspace: String, config: SessionConfig): SessionHandle
 		suspend fun delete(sessionId: UUID)
 		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
 		suspend fun stop(sessionId: UUID)
@@ -59,7 +59,7 @@ interface CoreAPI {
 		fun retry(sessionId: UUID)
 		fun compact(sessionId: UUID)
 		fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
-		fun list(): List<SessionManager.SessionHandle>
+		fun list(): List<SessionHandle>
 		fun updateTitle(sessionId: UUID, title: String)
 		fun updateConfig(sessionId: UUID, config: SessionConfig)
 		

@@ -35,6 +35,7 @@ import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
+import io.github.autotweaker.core.session.WorkspaceAPI
 import java.util.*
 
 object CoreAPIImpl : CoreAPI {
@@ -51,44 +52,44 @@ object CoreAPIImpl : CoreAPI {
 	
 	override val session = object : CoreAPI.SessionAPI {
 		override suspend fun create(workspace: String, config: SessionConfig) =
-			SessionManager.SessionAPI.create(workspace, config)
+			SessionManager.create(workspace, config)
 		
-		override suspend fun delete(sessionId: UUID) = SessionManager.SessionAPI.delete(sessionId)
+		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
 		
 		override suspend fun send(sessionId: UUID, content: String, images: List<Base64>?) =
-			SessionManager.SessionAPI.send(sessionId, content, images)
+			SessionManager.send(sessionId, content, images)
 		
-		override suspend fun stop(sessionId: UUID) = SessionManager.SessionAPI.stop(sessionId) ?: Unit
+		override suspend fun stop(sessionId: UUID) = SessionManager.stop(sessionId) ?: Unit
 		
-		override fun pause(sessionId: UUID) = SessionManager.SessionAPI.pauseAgent(sessionId) ?: Unit
+		override fun pause(sessionId: UUID) = SessionManager.pauseAgent(sessionId) ?: Unit
 		
-		override fun resume(sessionId: UUID) = SessionManager.SessionAPI.resumeAgent(sessionId) ?: Unit
+		override fun resume(sessionId: UUID) = SessionManager.resumeAgent(sessionId) ?: Unit
 		
-		override fun cancel(sessionId: UUID) = SessionManager.SessionAPI.cancelAgent(sessionId) ?: Unit
+		override fun cancel(sessionId: UUID) = SessionManager.cancelAgent(sessionId) ?: Unit
 		
-		override fun retry(sessionId: UUID) = SessionManager.SessionAPI.retryAgent(sessionId) ?: Unit
+		override fun retry(sessionId: UUID) = SessionManager.retryAgent(sessionId) ?: Unit
 		
-		override fun compact(sessionId: UUID) = SessionManager.SessionAPI.compactAgent(sessionId) ?: Unit
+		override fun compact(sessionId: UUID) = SessionManager.compactAgent(sessionId) ?: Unit
 		
 		override fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>) =
-			SessionManager.SessionAPI.approveToolCall(sessionId, approvals)
+			SessionManager.approveToolCall(sessionId, approvals)
 		
-		override fun list() = SessionManager.SessionAPI.list()
+		override fun list() = SessionManager.list()
 		
 		override fun updateTitle(sessionId: UUID, title: String) =
-			SessionManager.SessionAPI.updateTitle(sessionId, title)
+			SessionManager.updateTitle(sessionId, title)
 		
 		override fun updateConfig(sessionId: UUID, config: SessionConfig) =
-			SessionManager.SessionAPI.updateConfig(sessionId, config) ?: Unit
+			SessionManager.updateConfig(sessionId, config) ?: Unit
 		
-		override fun createWorkspace(meta: WorkspaceMeta) = SessionManager.WorkspaceAPI.create(meta)
+		override fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		
 		override suspend fun renameWorkspace(name: String, newName: String) =
-			SessionManager.WorkspaceAPI.updateName(name, newName)
+			WorkspaceAPI.updateName(name, newName)
 		
-		override suspend fun deleteWorkspace(name: String) = SessionManager.WorkspaceAPI.delete(name)
+		override suspend fun deleteWorkspace(name: String) = WorkspaceAPI.delete(name)
 		
-		override fun listWorkspaces(): List<WorkspaceMeta> = SessionManager.WorkspaceAPI.list()
+		override fun listWorkspaces(): List<WorkspaceMeta> = WorkspaceAPI.list()
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
