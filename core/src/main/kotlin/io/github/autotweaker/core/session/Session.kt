@@ -19,11 +19,13 @@
 package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.session.*
+import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
 import io.github.autotweaker.core.agent.*
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.data.session.SessionContext
 import io.github.autotweaker.core.data.settings.SettingItem
-import io.github.autotweaker.core.session.SessionContextIndex.CurrentRound
 import io.github.autotweaker.core.session.agent.AgentContextConverter
 import io.github.autotweaker.core.session.agent.SessionContextConverter
 import io.github.autotweaker.core.session.workspace.WorkspaceMeta

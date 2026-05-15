@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import org.slf4j.LoggerFactory
@@ -158,7 +159,7 @@ internal object ContextPhase {
 	internal fun buildToolResult(
 		call: AgentContext.CurrentRound.PendingToolCall,
 		content: String,
-		status: AgentContext.Message.Tool.Result.Status,
+		status: ToolResultStatus,
 	): AgentContext.Message.Tool = AgentContext.Message.Tool(
 		name = call.name,
 		call = AgentContext.Message.Tool.Call(
@@ -180,7 +181,8 @@ internal object ContextPhase {
 	internal fun buildErrorTool(
 		call: AgentContext.CurrentRound.PendingToolCall,
 		errorMsg: String,
-	): AgentContext.Message.Tool = buildToolResult(call, errorMsg, AgentContext.Message.Tool.Result.Status.FAILURE)
+	): AgentContext.Message.Tool =
+		buildToolResult(call, errorMsg, ToolResultStatus.FAILURE)
 	
 	internal fun buildRejectedTool(
 		call: AgentContext.CurrentRound.PendingToolCall,
@@ -189,12 +191,12 @@ internal object ContextPhase {
 	): AgentContext.Message.Tool = buildToolResult(
 		call,
 		if (feedbackReason != null) env.toolRejectedWithFeedbackMessage.format(feedbackReason) else env.toolRejectedMessage,
-		AgentContext.Message.Tool.Result.Status.CANCELLED,
+		ToolResultStatus.CANCELLED,
 	)
 	
 	private fun buildCancelledTool(
 		call: AgentContext.CurrentRound.PendingToolCall,
 		cancelledMessage: String,
 	): AgentContext.Message.Tool =
-		buildToolResult(call, cancelledMessage, AgentContext.Message.Tool.Result.Status.CANCELLED)
+		buildToolResult(call, cancelledMessage, ToolResultStatus.CANCELLED)
 }

@@ -18,12 +18,13 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.*
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
-import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -48,7 +49,11 @@ class HandleApprovalPhaseTest {
 	private val executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool =
 		{ _, call ->
 			executedTools.add(
-				ContextPhase.buildToolResult(call, "executed", AgentContext.Message.Tool.Result.Status.SUCCESS)
+				ContextPhase.buildToolResult(
+					call,
+					"executed",
+					ToolResultStatus.SUCCESS
+				)
 			)
 			executedTools.last()
 		}
@@ -159,7 +164,7 @@ class HandleApprovalPhaseTest {
 		val turns = _contextFlow.value.currentRound?.turns
 		assertNotNull(turns)
 		assertEquals(1, turns.size)
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, turns[0].tools[0].result.status)
+		assertEquals(ToolResultStatus.CANCELLED, turns[0].tools[0].result.status)
 		assertEquals("Tool rejected: unsafe", turns[0].tools[0].result.content)
 	}
 	
@@ -249,7 +254,7 @@ class HandleApprovalPhaseTest {
 		val call = pendingToolCall("c1")
 		val preExistingTool = ContextPhase.buildToolResult(
 			pendingToolCall("c0"), "previous output",
-			AgentContext.Message.Tool.Result.Status.FAILURE
+			ToolResultStatus.FAILURE
 		)
 		agentState.processedTools = listOf(preExistingTool)
 		agentState.pendingApproval = listOf(

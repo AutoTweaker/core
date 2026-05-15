@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.data.session
+package io.github.autotweaker.api.types.serializer
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -24,16 +24,16 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.time.Instant
+import java.nio.file.Path
 
-object InstantLongSerializer : KSerializer<Instant> {
-	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.LONG)
+object PathSerializer : KSerializer<Path> {
+	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
 	
-	override fun serialize(encoder: Encoder, value: Instant) {
-		encoder.encodeLong(value.toEpochMilliseconds())
+	override fun serialize(encoder: Encoder, value: Path) {
+		encoder.encodeString(value.toString())
 	}
 	
-	override fun deserialize(decoder: Decoder): Instant {
-		return Instant.fromEpochMilliseconds(decoder.decodeLong())
+	override fun deserialize(decoder: Decoder): Path {
+		return Path.of(decoder.decodeString())
 	}
 }

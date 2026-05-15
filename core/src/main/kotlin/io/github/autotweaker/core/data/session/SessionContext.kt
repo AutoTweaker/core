@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.core.data.session
 
+import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.core.llm.Usage
 import java.util.*
 

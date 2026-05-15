@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.data.settings.SettingItem
@@ -158,7 +159,7 @@ class Tools(settings: List<SettingItem>) {
 				result = AgentContext.Message.Tool.Result(
 					content = enabledMessage.format(meta.name, meta.functions.size),
 					timestamp = Clock.System.now(),
-					status = AgentContext.Message.Tool.Result.Status.SUCCESS,
+					status = ToolResultStatus.SUCCESS,
 				),
 			)
 		}
@@ -224,8 +225,8 @@ class Tools(settings: List<SettingItem>) {
 			result = AgentContext.Message.Tool.Result(
 				content = output.result,
 				timestamp = Clock.System.now(),
-				status = if (output.success) AgentContext.Message.Tool.Result.Status.SUCCESS
-				else AgentContext.Message.Tool.Result.Status.FAILURE,
+				status = if (output.success) ToolResultStatus.SUCCESS
+				else ToolResultStatus.FAILURE,
 			),
 		)
 	}

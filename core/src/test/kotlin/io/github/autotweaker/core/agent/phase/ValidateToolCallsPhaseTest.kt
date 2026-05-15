@@ -18,12 +18,13 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.*
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
-import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -125,9 +126,9 @@ class ValidateToolCallsPhaseTest {
 		assertNotNull(turns)
 		assertEquals(1, turns.size)
 		assertEquals(2, turns[0].tools.size)
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, turns[0].tools[0].result.status)
+		assertEquals(ToolResultStatus.FAILURE, turns[0].tools[0].result.status)
 		assertEquals("Invalid JSON", turns[0].tools[0].result.content)
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, turns[0].tools[1].result.status)
+		assertEquals(ToolResultStatus.FAILURE, turns[0].tools[1].result.status)
 		assertEquals("Function not found", turns[0].tools[1].result.content)
 		assertNull(agentState.pendingApproval)
 		assertNull(_contextFlow.value.currentRound?.pendingToolCalls)
@@ -181,7 +182,10 @@ class ValidateToolCallsPhaseTest {
 		assertEquals(AgentStatus.WAITING, statusLog.last())
 		assertNotNull(agentState.processedTools)
 		assertEquals(1, agentState.processedTools!!.size)
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, agentState.processedTools!![0].result.status)
+		assertEquals(
+			ToolResultStatus.FAILURE,
+			agentState.processedTools!![0].result.status
+		)
 		assertEquals("Bad JSON", agentState.processedTools!![0].result.content)
 		assertNotNull(agentState.pendingApproval)
 		assertEquals(1, agentState.pendingApproval!!.size)

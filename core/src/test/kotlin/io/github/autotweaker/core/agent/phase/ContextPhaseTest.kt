@@ -18,13 +18,14 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
-import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.justRun
@@ -76,13 +77,13 @@ class ContextPhaseTest {
 		
 		val result = ContextPhase.buildToolResult(
 			call, "execution output",
-			AgentContext.Message.Tool.Result.Status.SUCCESS
+			ToolResultStatus.SUCCESS
 		)
 		
 		assertEquals("bash_run", result.name)
 		assertEquals("c1", result.callId)
 		assertEquals("execution output", result.result.content)
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		assertEquals(call.arguments, result.call.arguments)
 		assertEquals(call.reason, result.call.reason)
 	}
@@ -90,22 +91,25 @@ class ContextPhaseTest {
 	@Test
 	fun `buildToolResult produces FAILURE status`() {
 		val call = pendingToolCall("c1")
-		val result = ContextPhase.buildToolResult(call, "error", AgentContext.Message.Tool.Result.Status.FAILURE)
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
+		val result =
+			ContextPhase.buildToolResult(call, "error", ToolResultStatus.FAILURE)
+		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 	}
 	
 	@Test
 	fun `buildToolResult produces TIMEOUT status`() {
 		val call = pendingToolCall("c1")
-		val result = ContextPhase.buildToolResult(call, "timeout", AgentContext.Message.Tool.Result.Status.TIMEOUT)
-		assertEquals(AgentContext.Message.Tool.Result.Status.TIMEOUT, result.result.status)
+		val result =
+			ContextPhase.buildToolResult(call, "timeout", ToolResultStatus.TIMEOUT)
+		assertEquals(ToolResultStatus.TIMEOUT, result.result.status)
 	}
 	
 	@Test
 	fun `buildToolResult produces CANCELLED status`() {
 		val call = pendingToolCall("c1")
-		val result = ContextPhase.buildToolResult(call, "cancelled", AgentContext.Message.Tool.Result.Status.CANCELLED)
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
+		val result =
+			ContextPhase.buildToolResult(call, "cancelled", ToolResultStatus.CANCELLED)
+		assertEquals(ToolResultStatus.CANCELLED, result.result.status)
 	}
 	
 	// endregion
@@ -116,7 +120,7 @@ class ContextPhaseTest {
 	fun `buildErrorTool creates Tool with FAILURE status and error message`() {
 		val call = pendingToolCall("c1")
 		val result = ContextPhase.buildErrorTool(call, "Something went wrong")
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
+		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 		assertEquals("Something went wrong", result.result.content)
 		assertEquals("c1", result.callId)
 	}
@@ -129,7 +133,7 @@ class ContextPhaseTest {
 	fun `buildRejectedTool with feedback reason uses formatted message`() {
 		val call = pendingToolCall("c1")
 		val result = ContextPhase.buildRejectedTool(call, "unsafe operation", env)
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
+		assertEquals(ToolResultStatus.CANCELLED, result.result.status)
 		assertEquals("Tool rejected: unsafe operation", result.result.content)
 	}
 	
@@ -137,7 +141,7 @@ class ContextPhaseTest {
 	fun `buildRejectedTool without feedback reason uses default message`() {
 		val call = pendingToolCall("c1")
 		val result = ContextPhase.buildRejectedTool(call, null, env)
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
+		assertEquals(ToolResultStatus.CANCELLED, result.result.status)
 		assertEquals("Tool rejected", result.result.content)
 	}
 	
@@ -202,7 +206,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"output",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		val round = currentRound(assistantMessage = assistantMsg)
@@ -249,7 +253,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"output",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, null)
@@ -270,7 +274,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"output1",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)
@@ -283,7 +287,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c2"),
 				"output2",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		ContextPhase.writeToolTurn(env, assistantMsg2, env::updateContext)
@@ -303,7 +307,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"output",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		agentState.approvalReasons.addAll(listOf("reason1", "reason2"))
@@ -332,7 +336,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"output",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		
@@ -356,7 +360,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"output",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		agentState.approvalReasons.add("only one reason")
@@ -427,7 +431,7 @@ class ContextPhaseTest {
 		assertEquals(1, completed.turns.size)
 		val cancelledTool = completed.turns[0].tools[0]
 		assertEquals("Tool cancelled", cancelledTool.result.content)
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, cancelledTool.result.status)
+		assertEquals(ToolResultStatus.CANCELLED, cancelledTool.result.status)
 	}
 	
 	@Test
@@ -449,7 +453,7 @@ class ContextPhaseTest {
 		val assistantMsg = assistantMessage("assistant", model)
 		val processedTool = ContextPhase.buildToolResult(
 			pendingToolCall("call-1"), "output",
-			AgentContext.Message.Tool.Result.Status.SUCCESS
+			ToolResultStatus.SUCCESS
 		)
 		agentState.processedTools = listOf(processedTool)
 		val pendingCall = pendingToolCall("pending-1")
@@ -490,7 +494,7 @@ class ContextPhaseTest {
 				ContextPhase.buildToolResult(
 					pendingToolCall("c0"),
 					"prior output",
-					AgentContext.Message.Tool.Result.Status.SUCCESS
+					ToolResultStatus.SUCCESS
 				),
 			),
 		)
@@ -519,7 +523,7 @@ class ContextPhaseTest {
 				ContextPhase.buildToolResult(
 					pendingToolCall("c0"),
 					"prior output",
-					AgentContext.Message.Tool.Result.Status.SUCCESS
+					ToolResultStatus.SUCCESS
 				),
 			),
 		)
@@ -528,7 +532,7 @@ class ContextPhaseTest {
 			ContextPhase.buildToolResult(
 				pendingToolCall("c1"),
 				"new output",
-				AgentContext.Message.Tool.Result.Status.SUCCESS
+				ToolResultStatus.SUCCESS
 			),
 		)
 		val round = AgentContext.CurrentRound(
@@ -555,7 +559,7 @@ class ContextPhaseTest {
 				ContextPhase.buildToolResult(
 					pendingToolCall("c0"),
 					"prior",
-					AgentContext.Message.Tool.Result.Status.SUCCESS
+					ToolResultStatus.SUCCESS
 				),
 			),
 		)

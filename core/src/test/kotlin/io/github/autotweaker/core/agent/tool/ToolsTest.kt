@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.ToolCallValidator.ValidationResult
@@ -154,7 +155,7 @@ class ToolsTest {
 			validationSuccess(), pendingToolCall("c1", "bash_run"),
 			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
 		)
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, activateResult.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, activateResult.result.status)
 		
 		val calls = listOf(pendingToolCall("c2", "bash_run"))
 		val results = tools.resolveToolCalls(calls)
@@ -200,7 +201,7 @@ class ToolsTest {
 		)
 		
 		assertTrue(tools.entries[0].active)
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		assertTrue(result.result.content.contains("bash"))
 	}
 	
@@ -223,7 +224,7 @@ class ToolsTest {
 			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
 		)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		assertEquals("output ok", result.result.content)
 		coVerify { tool.execute(any()) }
 	}
@@ -247,7 +248,7 @@ class ToolsTest {
 			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
 		)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
+		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 		assertEquals("error happened", result.result.content)
 	}
 	
@@ -270,7 +271,7 @@ class ToolsTest {
 			SimpleContainer(), WorkspaceMeta("test", false, kotlin.io.path.createTempDirectory("test")),
 		)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
+		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 		assertEquals("crash!", result.result.content)
 	}
 	
@@ -320,7 +321,7 @@ class ToolsTest {
 			onToolOutput = { outputs.add(it.content) },
 		)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		assertEquals("done", result.result.content)
 		assertEquals(listOf("progress 1", "progress 2"), outputs)
 	}

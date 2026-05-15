@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.Base64
-import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.data.session.InstantLongSerializer
-import io.github.autotweaker.core.data.session.UuidSerializer
+import io.github.autotweaker.api.types.serializer.InstantLongSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
 import kotlin.time.Instant
@@ -91,7 +90,7 @@ sealed class SessionMessage {
 			
 			override val callId: String,
 			val content: String,
-			val status: AgentContext.Message.Tool.Result.Status
+			val status: ToolResultStatus
 		) : Tool()
 	}
 	

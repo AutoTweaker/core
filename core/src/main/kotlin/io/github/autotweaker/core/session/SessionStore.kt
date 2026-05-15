@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.core.session
 
+import io.github.autotweaker.api.types.session.SessionData
+import io.github.autotweaker.api.types.session.SessionMessage
+import io.github.autotweaker.core.data.session.SessionContext
 import java.util.*
 
 interface SessionStore {

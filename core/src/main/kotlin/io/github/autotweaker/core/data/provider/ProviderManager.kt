@@ -18,12 +18,12 @@
 
 package io.github.autotweaker.core.data.provider
 
+import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.secret.SecretManager
-import io.github.autotweaker.core.session.ModelId
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement

@@ -20,13 +20,13 @@ package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
-import io.github.autotweaker.core.session.ModelId
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject

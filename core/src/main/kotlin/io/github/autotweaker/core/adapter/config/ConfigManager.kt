@@ -19,16 +19,16 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStore
 import io.github.autotweaker.core.data.provider.Provider
 import io.github.autotweaker.core.data.provider.ProviderManager
-import io.github.autotweaker.core.data.session.UuidSerializer
 import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.secret.SecretManager
-import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.tool.impl.bash.Bash
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer

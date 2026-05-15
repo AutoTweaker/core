@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.*
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
@@ -26,7 +28,6 @@ import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.data.settings.SettingItem
 import io.github.autotweaker.core.data.settings.SettingKey
-import io.github.autotweaker.core.session.ModelId
 import io.github.autotweaker.core.session.workspace.WorkspaceMeta
 import io.mockk.coEvery
 import io.mockk.every
@@ -133,14 +134,14 @@ class ExecuteToolPhaseTest {
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "execution output", timestamp = Clock.System.now(),
-				status = AgentContext.Message.Tool.Result.Status.SUCCESS,
+				status = ToolResultStatus.SUCCESS,
 			),
 		)
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } returns toolResult
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		assertEquals("execution output", result.result.content)
 		assertTrue(statusLog.contains(AgentStatus.TOOL_CALLING))
 	}
@@ -152,7 +153,7 @@ class ExecuteToolPhaseTest {
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.result.status)
+		assertEquals(ToolResultStatus.CANCELLED, result.result.status)
 		assertEquals("Tool cancelled", result.result.content)
 	}
 	
@@ -163,7 +164,7 @@ class ExecuteToolPhaseTest {
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
+		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 		assertEquals("Boom", result.result.content)
 	}
 	
@@ -174,7 +175,7 @@ class ExecuteToolPhaseTest {
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, result.result.status)
+		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 		assertEquals("Tool execution failed", result.result.content)
 	}
 	
@@ -222,7 +223,7 @@ class ExecuteToolPhaseTest {
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.TIMEOUT, result.result.status)
+		assertEquals(ToolResultStatus.TIMEOUT, result.result.status)
 		assertEquals("Timeout after 0 seconds", result.result.content)
 	}
 	
@@ -236,7 +237,7 @@ class ExecuteToolPhaseTest {
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		val activation = capturedOutputs.firstOrNull { it is AgentOutput.ToolListUpdate }
 		assertNotNull(activation)
 	}
@@ -251,7 +252,7 @@ class ExecuteToolPhaseTest {
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, result.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		val toolOutput = capturedOutputs.firstOrNull { it is AgentOutput.ToolOutput }
 		assertNotNull(toolOutput)
 		assertEquals("streaming data", (toolOutput as AgentOutput.ToolOutput).content)
@@ -267,7 +268,7 @@ class ExecuteToolPhaseTest {
 		),
 		result = AgentContext.Message.Tool.Result(
 			content = "execution output", timestamp = Clock.System.now(),
-			status = AgentContext.Message.Tool.Result.Status.SUCCESS,
+			status = ToolResultStatus.SUCCESS,
 		),
 	)
 	

@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.api.types.session
 
-import io.github.autotweaker.core.data.session.UuidListSerializer
-import io.github.autotweaker.core.data.session.UuidSerializer
+import io.github.autotweaker.api.types.serializer.UuidListSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
 

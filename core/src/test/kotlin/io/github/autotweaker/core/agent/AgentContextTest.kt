@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.llm.Usage
 import io.mockk.mockk
@@ -105,7 +106,7 @@ class AgentContextTest {
 			model = mockModel
 		)
 		val result = AgentContext.Message.Tool.Result(
-			content = "output", timestamp = now, status = AgentContext.Message.Tool.Result.Status.SUCCESS
+			content = "output", timestamp = now, status = ToolResultStatus.SUCCESS
 		)
 		val msg = AgentContext.Message.Tool(name = "bash", call = call, callId = "call-1", result = result)
 		
@@ -114,7 +115,7 @@ class AgentContextTest {
 		assertEquals("""{"cmd":"ls"}""", msg.call.arguments)
 		assertEquals("test", msg.call.reason)
 		assertEquals("output", msg.result.content)
-		assertEquals(AgentContext.Message.Tool.Result.Status.SUCCESS, msg.result.status)
+		assertEquals(ToolResultStatus.SUCCESS, msg.result.status)
 	}
 	
 	@Test
@@ -126,28 +127,28 @@ class AgentContextTest {
 			model = mockModel
 		)
 		val result = AgentContext.Message.Tool.Result(
-			content = "error", timestamp = now, status = AgentContext.Message.Tool.Result.Status.FAILURE
+			content = "error", timestamp = now, status = ToolResultStatus.FAILURE
 		)
 		val msg = AgentContext.Message.Tool(name = "read", call = call, callId = "call-2", result = result)
 		
 		assertEquals("read", msg.name)
-		assertEquals(AgentContext.Message.Tool.Result.Status.FAILURE, msg.result.status)
+		assertEquals(ToolResultStatus.FAILURE, msg.result.status)
 	}
 	
 	@Test
 	fun `Tool message with timeout status`() {
 		val result = AgentContext.Message.Tool.Result(
-			content = "timeout", timestamp = now, status = AgentContext.Message.Tool.Result.Status.TIMEOUT
+			content = "timeout", timestamp = now, status = ToolResultStatus.TIMEOUT
 		)
-		assertEquals(AgentContext.Message.Tool.Result.Status.TIMEOUT, result.status)
+		assertEquals(ToolResultStatus.TIMEOUT, result.status)
 	}
 	
 	@Test
 	fun `Tool message with cancelled status`() {
 		val result = AgentContext.Message.Tool.Result(
-			content = "cancelled", timestamp = now, status = AgentContext.Message.Tool.Result.Status.CANCELLED
+			content = "cancelled", timestamp = now, status = ToolResultStatus.CANCELLED
 		)
-		assertEquals(AgentContext.Message.Tool.Result.Status.CANCELLED, result.status)
+		assertEquals(ToolResultStatus.CANCELLED, result.status)
 	}
 	
 	@Test
@@ -250,7 +251,7 @@ class AgentContextTest {
 		val result = AgentContext.Message.Tool.Result(
 			content = "ok",
 			timestamp = now,
-			status = AgentContext.Message.Tool.Result.Status.SUCCESS
+			status = ToolResultStatus.SUCCESS
 		)
 		val toolMsg = AgentContext.Message.Tool(name = "bash", call = call, callId = "c1", result = result)
 		val turn = AgentContext.Turn(assistantMsg, listOf(toolMsg))

@@ -19,10 +19,10 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.provider.Provider.Model.Config
 import io.github.autotweaker.core.data.provider.Provider.Model.ModelInfo
-import io.github.autotweaker.core.session.ModelId
 
 data class Model(
 	val provider: Provider,

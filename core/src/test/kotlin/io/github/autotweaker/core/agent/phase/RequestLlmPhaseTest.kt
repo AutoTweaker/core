@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.*
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
-import io.github.autotweaker.core.session.ModelId
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

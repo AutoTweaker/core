@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.session.workspace
 
-import io.github.autotweaker.core.data.session.PathSerializer
+import io.github.autotweaker.api.types.serializer.PathSerializer
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
 

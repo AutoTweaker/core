@@ -16,22 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.api.types.session
 
-import kotlinx.serialization.Serializable
+import java.util.*
 
-@Serializable
-data class ModelId(
-	val provider: String,
-	val modelName: String,
-) {
-	override fun toString(): String = "$provider/$modelName"
+data class SessionData(
+	val id: UUID,
+	val title: String?,
+	val workspaceName: String?,
 	
-	companion object {
-		fun fromString(id: String): ModelId? {
-			val parts = id.split("/", limit = 2)
-			if (parts.size != 2) return null
-			return ModelId(parts[0], parts[1])
-		}
-	}
-}
+	val config: SessionConfig,
+)

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
@@ -62,14 +63,14 @@ internal object ExecuteToolPhase {
 			ContextPhase.buildToolResult(
 				call,
 				timeoutMessage.format(timeoutSeconds),
-				AgentContext.Message.Tool.Result.Status.TIMEOUT
+				ToolResultStatus.TIMEOUT
 			)
 		} catch (_: kotlinx.coroutines.CancellationException) {
 			logger.debug("Tool cancelled  agentId={}  tool={}", env.agentId, call.name)
 			ContextPhase.buildToolResult(
 				call,
 				env.toolCancelledMessage,
-				AgentContext.Message.Tool.Result.Status.CANCELLED
+				ToolResultStatus.CANCELLED
 			)
 		} catch (e: Exception) {
 			logger.error("Failed to execute tool  agentId={}  tool={}", env.agentId, call.name, e)

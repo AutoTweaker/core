@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk
@@ -50,7 +51,7 @@ class ToolCallHistoryImplTest {
 		result = AgentContext.Message.Tool.Result(
 			content = resultContent,
 			timestamp = Clock.System.now(),
-			status = AgentContext.Message.Tool.Result.Status.SUCCESS,
+			status = ToolResultStatus.SUCCESS,
 		),
 	)
 	

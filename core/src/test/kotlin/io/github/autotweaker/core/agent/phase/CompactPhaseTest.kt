@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
@@ -31,7 +33,6 @@ import io.github.autotweaker.core.data.settings.SettingKey
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.Usage
-import io.github.autotweaker.core.session.ModelId
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -253,7 +254,7 @@ class CompactPhaseTest {
 			result = AgentContext.Message.Tool.Result(
 				content = "command output",
 				timestamp = Clock.System.now(),
-				status = AgentContext.Message.Tool.Result.Status.SUCCESS,
+				status = ToolResultStatus.SUCCESS,
 			),
 		)
 		val rounds = listOf(
@@ -487,7 +488,7 @@ class CompactPhaseTest {
 			result = AgentContext.Message.Tool.Result(
 				content = "this is a very long tool output exceeding limit",
 				timestamp = Clock.System.now(),
-				status = AgentContext.Message.Tool.Result.Status.SUCCESS,
+				status = ToolResultStatus.SUCCESS,
 			),
 		)
 		val rounds = listOf(

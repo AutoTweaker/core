@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.session
+package io.github.autotweaker.api.types.session
 
-import java.util.*
+import kotlinx.serialization.Serializable
 
-data class SessionData(
-	val id: UUID,
-	val title: String?,
-	val workspaceName: String?,
-	
-	val config: SessionConfig,
+@Serializable
+data class SessionConfig(
+	val model: ModelId,
+	val fallbackModel: List<ModelId>?,
+	val summarizeModel: ModelId,
+	val thinking: Boolean,
 )

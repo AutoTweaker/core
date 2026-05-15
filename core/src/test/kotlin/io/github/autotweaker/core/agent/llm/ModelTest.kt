@@ -20,11 +20,11 @@ package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule
 import io.github.autotweaker.core.data.provider.Provider.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
-import io.github.autotweaker.core.session.ModelId
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test

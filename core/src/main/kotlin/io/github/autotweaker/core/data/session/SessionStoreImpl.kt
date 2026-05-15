@@ -18,10 +18,9 @@
 
 package io.github.autotweaker.core.data.session
 
+import io.github.autotweaker.api.types.session.SessionData
+import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
-import io.github.autotweaker.core.session.SessionContext
-import io.github.autotweaker.core.session.SessionData
-import io.github.autotweaker.core.session.SessionMessage
 import io.github.autotweaker.core.session.SessionStore
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList

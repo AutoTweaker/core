@@ -21,12 +21,13 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.session.ModelId
+import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.data.provider.Provider.Model.*
 import io.github.autotweaker.core.data.provider.Provider.Model.TokenPrice.PriceTier
 import io.github.autotweaker.core.llm.ChatMessage
 import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.session.ModelId
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.util.*
@@ -79,7 +80,7 @@ class AgentChatRequestExtTest {
 			result = AgentContext.Message.Tool.Result(
 				content = "file content",
 				timestamp = Clock.System.now(),
-				status = AgentContext.Message.Tool.Result.Status.SUCCESS
+				status = ToolResultStatus.SUCCESS
 			),
 		)
 	

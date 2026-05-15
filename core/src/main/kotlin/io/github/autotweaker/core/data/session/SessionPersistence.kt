@@ -18,10 +18,11 @@
 
 package io.github.autotweaker.core.data.session
 
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.api.types.session.SessionConfig
+import io.github.autotweaker.api.types.session.SessionContextIndex
+import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.llm.Usage
-import io.github.autotweaker.core.session.SessionConfig
-import io.github.autotweaker.core.session.SessionContextIndex
-import io.github.autotweaker.core.session.SessionMessage
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
