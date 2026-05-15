@@ -16,18 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
-}
-
 plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+	kotlin("jvm")
+	id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("config")
-include("api")
+dependencies {
+	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+}

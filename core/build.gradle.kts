@@ -39,6 +39,8 @@ tasks.named<JavaExec>("run") {
 }
 
 dependencies {
+	implementation(project(":api"))
+	
 	implementation("io.ktor:ktor-client-core:3.4.3")
 	implementation("io.ktor:ktor-client-java:3.4.3")
 	implementation("io.ktor:ktor-client-cio:3.4.3")
