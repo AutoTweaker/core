@@ -499,12 +499,16 @@ static int handle_daemon_cmd(const char *action) {
 
     for (int i = 0; ACTIONS[i]; i++) {
         if (strcmp(action, ACTIONS[i]) == 0) {
-            char cmd[512];
-            int n = snprintf(cmd, sizeof(cmd),
-                             "systemctl --user %s autotweaker", action);
-            if (n < 0 || (size_t)n >= sizeof(cmd)) return 1;
-            int status = system(cmd);
-            return status == -1 ? 1 : WEXITSTATUS(status);
+            pid_t pid = fork();
+            if (pid == -1) return 1;
+            if (pid == 0) {
+                execlp("systemctl", "systemctl", "--user", action,
+                       "autotweaker", (char *)NULL);
+                _exit(127);
+            }
+            int wstatus;
+            if (waitpid(pid, &wstatus, 0) == -1) return 1;
+            return WIFEXITED(wstatus) ? WEXITSTATUS(wstatus) : 1;
         }
     }
 
