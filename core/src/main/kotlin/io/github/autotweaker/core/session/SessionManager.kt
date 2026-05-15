@@ -28,7 +28,6 @@ import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.container.ContainerManager
-import io.github.autotweaker.core.data.provider.ProviderManager
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.session.workspace.WorkspaceManager
 import kotlinx.coroutines.*
@@ -51,11 +50,11 @@ object SessionManager {
 	private val wsm = WorkspaceManager
 	
 	private val resolveModel: (ModelId) -> Model = { id ->
-		ProviderManager.getModel(id) ?: error("Unknown model: $id")
+		ProviderService.getModel(id) ?: error("Unknown model: $id")
 	}
 	
 	private val defaultModel: Model by lazy {
-		ModelId.fromString(defaultModelId)?.let { ProviderManager.getModel(it) }
+		ModelId.fromString(defaultModelId)?.let { ProviderService.getModel(it) }
 			?: error("Cannot resolve default model")
 	}
 	

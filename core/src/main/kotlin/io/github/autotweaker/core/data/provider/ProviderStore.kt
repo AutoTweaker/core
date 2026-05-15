@@ -18,20 +18,14 @@
 
 package io.github.autotweaker.core.data.provider
 
-import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.llm.LlmClientLoader
-import io.github.autotweaker.core.secret.SecretManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 
-object ProviderManager {
+object ProviderStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStore.namespace(this::class.java.name)
 	
@@ -41,7 +35,7 @@ object ProviderManager {
 		val jsonArray = jsonEntry.get()
 		providers = if (jsonArray == null) emptyList()
 		else Json.decodeFromJsonElement<List<ProviderData>>(jsonArray)
-		logger.info("ProviderManager initialized  providerCount={}", providers.size)
+		logger.info("ProviderStore initialized  providerCount={}", providers.size)
 	}
 	
 	fun add(data: ProviderData) {
@@ -64,8 +58,6 @@ object ProviderManager {
 	
 	fun get(): List<ProviderData> = providers
 	
-	fun getInfo(type: String): LlmClient.ProviderInfo = LlmClientLoader.load(type).providerInfo
-	
 	fun delete(name: String) {
 		update(providers.filterNot { it.name == name })
 		logger.debug("ProviderData deleted  provider={}", name)
@@ -74,20 +66,6 @@ object ProviderManager {
 	fun override(data: ProviderData) {
 		update(providers.map { if (it.name == data.name) data else it })
 		logger.debug("ProviderData overridden  provider={}", data.name)
-	}
-	
-	fun getModel(id: ModelId): Model? {
-		val provider = providers.find { it.name == id.provider } ?: return null
-		val model = provider.models.find { it.name == id.modelName } ?: return null
-		val providerData = Provider(
-			name = provider.providerType,
-			baseUrl = provider.baseUrl,
-			apiKey = SecretManager.get(provider.apiKey),
-			errorHandlingRules = provider.errorHandlingRules
-		)
-		return Model(
-			provider = providerData, modelInfo = model.modelInfo, config = model.config, modelId = id
-		)
 	}
 	
 	private fun update(new: List<ProviderData>) {

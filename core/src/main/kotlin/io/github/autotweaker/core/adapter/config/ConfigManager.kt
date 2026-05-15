@@ -26,10 +26,11 @@ import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.data.provider.ProviderManager
+import io.github.autotweaker.core.data.provider.ProviderStore
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.secret.SecretManager
+import io.github.autotweaker.core.session.ProviderService
 import io.github.autotweaker.core.tool.impl.bash.Bash
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
@@ -84,12 +85,12 @@ object ConfigManager {
 	}
 	
 	object ProviderConfigAPI {
-		private val pm = ProviderManager
+		private val store = ProviderStore
 		
 		object ProviderAPI {
 			fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
-			fun getMeta(type: String) = pm.getInfo(type)
-			fun list() = pm.get().map {
+			fun getMeta(type: String) = ProviderService.getInfo(type)
+			fun list() = store.get().map {
 				CoreConfig.ProviderConfig.Provider(
 					name = it.name,
 					type = it.providerType,
@@ -99,11 +100,11 @@ object ConfigManager {
 				)
 			}
 			
-			fun delete(name: String) = pm.delete(name)
+			fun delete(name: String) = store.delete(name)
 			
 			fun create(provider: CoreConfig.ProviderConfig.Provider) {
-				val meta = pm.getInfo(provider.type)
-				pm.add(
+				val meta = ProviderService.getInfo(provider.type)
+				store.add(
 					ProviderData(
 						name = provider.name,
 						providerType = provider.type,
@@ -115,23 +116,24 @@ object ConfigManager {
 				)
 			}
 			
-			fun updateType(name: String, new: String) = pm.override(get(name).copy(providerType = new))
+			fun updateType(name: String, new: String) = store.override(get(name).copy(providerType = new))
 			
 			fun updateKey(name: String, keyName: String) =
-				pm.override(get(name).copy(apiKey = ApiKeyAPI.getId(keyName)))
+				store.override(get(name).copy(apiKey = ApiKeyAPI.getId(keyName)))
 			
-			fun updateUrl(name: String, url: Url) = pm.override(get(name).copy(baseUrl = url))
+			fun updateUrl(name: String, url: Url) = store.override(get(name).copy(baseUrl = url))
 			
 			fun updateRule(name: String, rules: List<ProviderData.ErrorHandlingRule>) =
-				pm.override(get(name).copy(errorHandlingRules = rules))
+				store.override(get(name).copy(errorHandlingRules = rules))
 			
 			fun rename(name: String, new: String) {
 				val old = get(name)
-				pm.delete(name)
-				pm.add(old.copy(name = new))
+				store.delete(name)
+				store.add(old.copy(name = new))
 			}
 			
-			internal fun get(name: String) = pm.get().find { it.name == name } ?: error("ProviderData $name not found")
+			internal fun get(name: String) =
+				store.get().find { it.name == name } ?: error("ProviderData $name not found")
 		}
 		
 		object ModelAPI {
@@ -145,10 +147,10 @@ object ConfigManager {
 					modelInfo = modelInfo,
 					config = model.config,
 				)
-				pm.addModel(model.providerName, listOf(newModel))
+				store.addModel(model.providerName, listOf(newModel))
 			}
 			
-			fun list() = pm.get().flatMap {
+			fun list() = store.get().flatMap {
 				it.models.map { model ->
 					CoreConfig.ProviderConfig.Model(
 						name = model.name,
@@ -164,7 +166,7 @@ object ConfigManager {
 			fun remove(id: ModelId) {
 				val provider = ProviderAPI.get(id.provider)
 				val updatedModels = provider.models.filterNot { it.name == id.modelName }
-				pm.override(provider.copy(models = updatedModels))
+				store.override(provider.copy(models = updatedModels))
 			}
 			
 			fun update(id: ModelId, model: CoreConfig.ProviderConfig.Model) {
@@ -178,7 +180,7 @@ object ConfigManager {
 				val updatedModels = provider.models.map {
 					if (it.name == id.modelName) newModel else it
 				}
-				pm.override(provider.copy(models = updatedModels))
+				store.override(provider.copy(models = updatedModels))
 			}
 		}
 		
