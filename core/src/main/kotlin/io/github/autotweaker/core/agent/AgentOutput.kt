@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
-import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
 
 sealed class AgentOutput {

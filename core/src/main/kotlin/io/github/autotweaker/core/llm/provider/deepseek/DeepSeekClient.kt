@@ -19,10 +19,14 @@
 package io.github.autotweaker.core.llm.provider.deepseek
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.provider.ProviderData
-import io.github.autotweaker.core.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
 import io.ktor.util.reflect.*

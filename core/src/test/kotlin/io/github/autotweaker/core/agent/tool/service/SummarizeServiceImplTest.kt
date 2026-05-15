@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.agent.llm.ResilientChatResult
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatResult
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkObject

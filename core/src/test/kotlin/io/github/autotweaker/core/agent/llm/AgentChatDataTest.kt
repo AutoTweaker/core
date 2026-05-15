@@ -20,13 +20,13 @@ package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
-import io.ktor.http.*
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test
@@ -64,7 +64,7 @@ class AgentChatDataTest {
 	fun `construct request with all fields`() {
 		val context = AgentContext(null, "system prompt", null, null, null)
 		val tools = listOf(
-			io.github.autotweaker.core.llm.ChatRequest.Tool(
+			ChatRequest.Tool(
 				"read",
 				"read file",
 				kotlinx.serialization.json.Json.parseToJsonElement("{}")
@@ -98,13 +98,13 @@ class AgentChatDataTest {
 	fun `failing result contains errors`() {
 		val now = Clock.System.now()
 		val errors = listOf(
-			AgentChatStreamResult.Failing.Error("error 1", HttpStatusCode.InternalServerError, null, now),
-			AgentChatStreamResult.Failing.Error("error 2", HttpStatusCode.ServiceUnavailable, testModel, now),
+			AgentChatStreamResult.Failing.Error("error 1", 500, null, now),
+			AgentChatStreamResult.Failing.Error("error 2", 503, testModel, now),
 		)
 		val failing = AgentChatStreamResult.Failing(errors)
 		assertEquals(2, failing.errors.size)
 		assertEquals("error 1", failing.errors[0].content)
-		assertEquals(HttpStatusCode.InternalServerError, failing.errors[0].statusCode)
+		assertEquals(500, failing.errors[0].statusCode)
 		assertNull(failing.errors[0].retrying)
 		assertEquals("error 2", failing.errors[1].content)
 		assertEquals(testModel, failing.errors[1].retrying)

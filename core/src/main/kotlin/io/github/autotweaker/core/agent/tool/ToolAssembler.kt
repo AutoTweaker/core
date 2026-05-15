@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.find
-import io.github.autotweaker.core.llm.ChatRequest
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory

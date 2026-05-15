@@ -19,9 +19,9 @@
 package io.github.autotweaker.core.llm.base.openai
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.llm.provider.deepseek.DeepSeekClient
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
@@ -109,7 +109,7 @@ class AbstractOpenAiClientChatTest {
 		
 		assertEquals(1, results.size)
 		assertIs<ChatMessage.ErrorMessage>(results[0].message)
-		assertEquals(HttpStatusCode.InternalServerError, (results[0].message as ChatMessage.ErrorMessage).statusCode)
+		assertEquals(500, (results[0].message as ChatMessage.ErrorMessage).statusCode)
 	}
 	
 	// endregion
@@ -149,9 +149,9 @@ class AbstractOpenAiClientChatTest {
 		assertEquals(ChatResult.FinishReason.Type.TOOL, last.finishReason?.type)
 		val assistantMsg = last.message as ChatMessage.AssistantMessage
 		assertNotNull(assistantMsg.toolCalls)
-		assertEquals(1, assistantMsg.toolCalls.size)
-		assertEquals("call-1", assistantMsg.toolCalls[0].id)
-		assertEquals("read_file", assistantMsg.toolCalls[0].name)
+		assertEquals(1, assistantMsg.toolCalls!!.size)
+		assertEquals("call-1", assistantMsg.toolCalls!![0].id)
+		assertEquals("read_file", assistantMsg.toolCalls!![0].name)
 	}
 	
 	@Test

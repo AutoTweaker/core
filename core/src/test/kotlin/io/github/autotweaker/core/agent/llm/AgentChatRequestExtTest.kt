@@ -21,13 +21,13 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.util.*

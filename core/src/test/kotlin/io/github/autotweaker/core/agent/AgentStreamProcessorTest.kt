@@ -19,13 +19,12 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
-import io.ktor.http.*
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -261,7 +260,7 @@ class AgentStreamProcessorTest {
 					errors = listOf(
 						AgentChatStreamResult.Failing.Error(
 							content = "service down",
-							statusCode = HttpStatusCode.ServiceUnavailable,
+							statusCode = 503,
 							retrying = null,
 							timestamp = Clock.System.now(),
 						)
@@ -315,7 +314,7 @@ class AgentStreamProcessorTest {
 					errors = listOf(
 						AgentChatStreamResult.Failing.Error(
 							content = "error",
-							statusCode = HttpStatusCode.ServiceUnavailable,
+							statusCode = 503,
 							retrying = retryingModel,
 							timestamp = Clock.System.now(),
 						)

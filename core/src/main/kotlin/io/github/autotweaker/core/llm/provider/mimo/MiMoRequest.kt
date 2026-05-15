@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.llm.provider.mimo
 
-import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

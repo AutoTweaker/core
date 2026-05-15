@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.llm
+package io.github.autotweaker.api.types.llm
 
 import io.github.autotweaker.api.types.Base64
-import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -62,6 +61,6 @@ sealed class ChatMessage {
 	data class ErrorMessage(
 		override val content: String?,
 		override val createdAt: Instant,
-		val statusCode: HttpStatusCode?,
+		val statusCode: Int?,
 	) : ChatMessage()
 }

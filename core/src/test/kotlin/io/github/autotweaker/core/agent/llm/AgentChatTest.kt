@@ -20,13 +20,13 @@ package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
@@ -199,7 +199,7 @@ class AgentChatTest {
 		val errorMsg = ChatMessage.ErrorMessage(
 			content = "service unavailable",
 			createdAt = Clock.System.now(),
-			statusCode = io.ktor.http.HttpStatusCode.ServiceUnavailable,
+			statusCode = 503,
 		)
 		val errorChatResult = ChatResult.Assembled(message = errorMsg)
 		
@@ -279,7 +279,7 @@ class AgentChatTest {
 		val errorMsg = ChatMessage.ErrorMessage(
 			content = "error",
 			createdAt = Clock.System.now(),
-			statusCode = io.ktor.http.HttpStatusCode.ServiceUnavailable,
+			statusCode = 503,
 		)
 		val assistantMsg = ChatMessage.AssistantMessage(
 			content = "recovered",

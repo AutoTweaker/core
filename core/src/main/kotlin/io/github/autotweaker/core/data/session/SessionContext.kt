@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.data.session
 
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.SessionContextIndex
-import io.github.autotweaker.core.llm.Usage
 import java.util.*
 
 data class SessionContext(

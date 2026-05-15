@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.llm.provider.deepseek
 
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
 import kotlin.test.*
 import kotlin.time.Clock
@@ -198,8 +198,8 @@ class DeepSeekClientMappingTest {
 		val result = mapToChatResult(response)
 		assertIs<ChatMessage.AssistantMessage>(result.message)
 		assertEquals("hello world", result.message.content)
-		assertEquals("thinking...", result.message.reasoningContent)
-		assertEquals(1, result.message.toolCalls?.size)
+		assertEquals("thinking...", (result.message as ChatMessage.AssistantMessage).reasoningContent)
+		assertEquals(1, (result.message as ChatMessage.AssistantMessage).toolCalls?.size)
 		assertEquals(ChatResult.FinishReason.Type.STOP, result.finishReason?.type)
 		assertEquals(100, result.usage?.totalTokens)
 		assertEquals(10, result.usage?.cacheHitTokens)

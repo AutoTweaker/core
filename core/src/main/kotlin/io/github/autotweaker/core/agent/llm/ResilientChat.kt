@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule.RecoveryStrategy
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
 import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -80,7 +80,7 @@ internal object ResilientChat {
 					val msg = result.message
 					if (msg is ChatMessage.ErrorMessage) {
 						lastError = result
-						lastStatusCode = msg.statusCode?.value
+						lastStatusCode = msg.statusCode
 					} else {
 						emit(ResilientChatResult(result.normalizeEmptyStrings(), retrying = null))
 					}

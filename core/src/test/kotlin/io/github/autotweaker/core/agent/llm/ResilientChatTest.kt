@@ -18,15 +18,20 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule
 import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
 import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.session.ModelId
-import io.github.autotweaker.core.llm.*
+import io.github.autotweaker.core.llm.LlmClientLoader
 import io.mockk.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
@@ -79,7 +84,7 @@ class ResilientChatTest {
 		message = ChatMessage.ErrorMessage(
 			"error",
 			Clock.System.now(),
-			io.ktor.http.HttpStatusCode.fromValue(statusCode)
+			statusCode
 		),
 	)
 	

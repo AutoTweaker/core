@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.llm
+package io.github.autotweaker.api.types.llm
 
 sealed class ChatResult {
 	abstract val message: ChatMessage?

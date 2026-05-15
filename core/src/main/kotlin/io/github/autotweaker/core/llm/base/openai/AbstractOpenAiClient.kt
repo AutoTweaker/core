@@ -18,8 +18,12 @@
 
 package io.github.autotweaker.core.llm.base.openai
 
+import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.core.llm.*
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -119,8 +123,8 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 								val fragments = extractToolCalls(chunk)
 								fragments?.forEach { fragment ->
 									val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
-									if (fragment.id != null) pending.id = fragment.id
-									if (fragment.name != null) pending.name = fragment.name
+									if (fragment.id != null) pending.id = fragment.id!!
+									if (fragment.name != null) pending.name = fragment.name!!
 									if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
 								}
 								
@@ -175,7 +179,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 							message = ChatMessage.ErrorMessage(
 								content = "LLM API Error (${response.status}): $errorBody",
 								createdAt = Clock.System.now(),
-								statusCode = response.status
+								statusCode = response.status.value
 							),
 						)
 					)

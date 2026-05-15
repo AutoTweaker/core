@@ -18,9 +18,10 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
+import kotlin.time.Clock
 
 fun AgentChatRequest.toChatRequest(): ChatRequest {
 	val current = context.currentRound
@@ -47,7 +48,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 	val messages = buildList {
 		//系统提示
 		context.systemPrompt?.let {
-			add(ChatMessage.SystemMessage(it, kotlin.time.Clock.System.now()))
+			add(ChatMessage.SystemMessage(it, Clock.System.now()))
 		}
 		
 		//历史轮次

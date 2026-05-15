@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.core.llm.ChatResult
+import io.github.autotweaker.api.types.llm.ChatResult
 
 data class ResilientChatResult(
 	val result: ChatResult,

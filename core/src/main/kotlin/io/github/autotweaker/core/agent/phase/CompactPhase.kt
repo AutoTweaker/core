@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentContext
@@ -25,10 +29,6 @@ import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.ResilientChat
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -172,7 +172,7 @@ internal object CompactPhase {
 						}
 						val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
 						if (!assistantMsg.content.isNullOrEmpty()) {
-							rawContent = assistantMsg.content
+							rawContent = assistantMsg.content!!
 						}
 						result.usage?.let { lastUsage = it }
 					}

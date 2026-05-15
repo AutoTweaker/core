@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.llm.provider.deepseek
 
-import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName

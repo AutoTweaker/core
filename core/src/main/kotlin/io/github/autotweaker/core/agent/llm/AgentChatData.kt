@@ -18,10 +18,9 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.llm.ChatRequest
-import io.github.autotweaker.core.llm.ChatResult
-import io.ktor.http.*
 import kotlin.time.Instant
 
 data class AgentChatRequest(
@@ -44,7 +43,7 @@ sealed class AgentChatStreamResult {
 	) : AgentChatStreamResult() {
 		data class Error(
 			val content: String?,
-			val statusCode: HttpStatusCode?,
+			val statusCode: Int?,
 			val retrying: Model?,
 			val timestamp: Instant,
 		)

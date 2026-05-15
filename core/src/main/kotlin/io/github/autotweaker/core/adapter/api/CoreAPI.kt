@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.adapter.api
 
+import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -29,7 +30,6 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.data.json.JsonStore
-import io.github.autotweaker.core.llm.LlmClient
 import io.github.autotweaker.core.session.SessionManager
 import java.util.*
 

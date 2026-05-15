@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.ToolResultStatus
 import io.github.autotweaker.api.types.settings.SettingItem
@@ -30,9 +33,6 @@ import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.agent.llm.ResilientChatResult
-import io.github.autotweaker.core.llm.ChatMessage
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow

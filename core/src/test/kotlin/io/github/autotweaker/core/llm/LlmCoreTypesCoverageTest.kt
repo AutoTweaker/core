@@ -19,7 +19,10 @@
 package io.github.autotweaker.core.llm
 
 import io.github.autotweaker.api.types.Base64
-import io.ktor.http.*
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
@@ -89,9 +92,9 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatMessage ErrorMessage with status`() {
-		val msg = ChatMessage.ErrorMessage("error", now, HttpStatusCode.InternalServerError)
+		val msg = ChatMessage.ErrorMessage("error", now, 500)
 		assertEquals("error", msg.content)
-		assertEquals(HttpStatusCode.InternalServerError, msg.statusCode)
+		assertEquals(500, msg.statusCode)
 	}
 	
 	@Test

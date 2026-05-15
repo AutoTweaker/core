@@ -18,12 +18,11 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.llm.ChatResult
-import io.github.autotweaker.core.llm.Usage
 import io.github.autotweaker.core.tool.Tool
-import io.ktor.http.*
 import io.mockk.mockk
 import java.util.*
 import kotlin.test.*
@@ -69,7 +68,7 @@ class AgentOutputTest {
 	fun `StreamError holds failing error`() {
 		val error = AgentChatStreamResult.Failing.Error(
 			content = "error",
-			statusCode = HttpStatusCode.ServiceUnavailable,
+			statusCode = 503,
 			retrying = mockModel,
 			timestamp = Clock.System.now(),
 		)
@@ -195,7 +194,7 @@ class AgentOutputTest {
 		)
 		assertIs<AgentOutput>(
 			AgentOutput.StreamError(
-				AgentChatStreamResult.Failing.Error("e", HttpStatusCode.InternalServerError, null, Clock.System.now())
+				AgentChatStreamResult.Failing.Error("e", 500, null, Clock.System.now())
 			)
 		)
 		assertIs<AgentOutput>(

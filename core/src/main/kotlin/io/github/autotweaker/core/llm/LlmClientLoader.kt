@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.llm
 
+import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.core.loadPlugins
 import org.slf4j.LoggerFactory
 import java.util.*

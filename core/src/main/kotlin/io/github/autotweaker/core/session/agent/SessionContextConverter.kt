@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.session.agent
 
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.ModelId
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.data.session.SessionContext
-import io.github.autotweaker.core.llm.Usage
 import java.util.*
 
 object SessionContextConverter {

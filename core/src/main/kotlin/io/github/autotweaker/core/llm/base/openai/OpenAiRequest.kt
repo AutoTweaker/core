@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.llm.base.openai
 
-import io.github.autotweaker.core.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
