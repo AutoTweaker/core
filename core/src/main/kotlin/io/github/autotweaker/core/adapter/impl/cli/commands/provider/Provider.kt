@@ -43,8 +43,17 @@ class Provider : Command {
 		Syntax.leaf(Param.Value("show", I18n.get("prov.show"), emptyList())),
 		Syntax.leaf(Param.Flag("types", I18n.get("prov.types"), emptyList())),
 		Syntax.leaf(Param.Value("info", I18n.get("prov.info"))),
-		Syntax.leaf(Param.Value("add", I18n.get("prov.add"), emptyList())),
-		Syntax.leaf(Param.Value("rm", I18n.get("prov.rm"), emptyList())),
+		Syntax.all(
+			Syntax.leaf(Param.Flag("add", I18n.get("prov.add")), required = true),
+			Syntax.leaf(Param.Value("name", I18n.get("prov.add.name"), emptyList())),
+			Syntax.leaf(Param.Value("type", I18n.get("prov.add.type"), emptyList())),
+			Syntax.leaf(Param.Value("key", I18n.get("prov.add.key"), emptyList())),
+			Syntax.leaf(Param.Value("url", I18n.get("prov.add.url"), emptyList())),
+		),
+		Syntax.all(
+			Syntax.leaf(Param.Value("remove", I18n.get("prov.remove"), listOf("rm")), required = true),
+			Syntax.leaf(Param.Flag("yes", I18n.get("prov.yes"))),
+		),
 		Syntax.leaf(Param.Value("rename", I18n.get("prov.rename"))),
 		Syntax.leaf(Param.Value("update", I18n.get("prov.update"))),
 	)
@@ -55,6 +64,7 @@ class Provider : Command {
 	
 	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<Chunk> = flow {
 		val read = Read(core)
+		val write = Write(core, prompt)
 		if (request.has("list")) {
 			emitAll(read.list().map { Chunk.Data(it) })
 			emit(Chunk.Done())
@@ -75,13 +85,27 @@ class Provider : Command {
 		}
 		
 		if (request.has("info")) {
-			val name = request.get("info") ?: error("Missing provider name")
+			val name = request.get("info") ?: error("Missing provider type")
 			emitAll(read.info(name).map { Chunk.Data(it) })
 			emit(Chunk.Done())
 			return@flow
 		}
 		
-		emit(Chunk.Done())
+		if (request.has("add")) {
+			val name = request.get("name")
+			val type = request.get("type")
+			val key = request.get("key")
+			val url = request.get("url")
+			emitAll(write.add(name, type, key, url))
+			return@flow
+		}
+		
+		if (request.has("remove")) {
+			emitAll(write.remove(request.get("remove") ?: error("Missing provider name"), request.has("yes")))
+			return@flow
+		}
+		
+		emit(Chunk.Done(1))
 		return@flow
 	}
 }
