@@ -20,7 +20,8 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
@@ -68,11 +69,11 @@ class ProviderDataTest {
 	
 	@Test
 	fun `ModelInfo constructs with all fields`() {
-		val tokenPrice = ProviderData.ModelData.TokenPrice(
+		val tokenPrice = ModelData.TokenPrice(
 			inputPrice = emptyList(),
 			outputPrice = emptyList()
 		)
-		val info = ProviderData.ModelData.ModelInfo(
+		val info = ModelData.ModelInfo(
 			id = "test-model",
 			contextWindow = 128000,
 			maxOutputTokens = 4096,
@@ -100,13 +101,13 @@ class ProviderDataTest {
 	
 	@Test
 	fun `TokenPrice constructs with tiers`() {
-		val tier = ProviderData.ModelData.TokenPrice.PriceTier(
+		val tier = ModelData.TokenPrice.PriceTier(
 			fromTokens = 0,
 			toTokens = 1000000,
 			price = testPrice,
 			cachedPrice = null
 		)
-		val tokenPrice = ProviderData.ModelData.TokenPrice(
+		val tokenPrice = ModelData.TokenPrice(
 			inputPrice = listOf(tier),
 			outputPrice = listOf(tier)
 		)
@@ -121,7 +122,7 @@ class ProviderDataTest {
 	@Test
 	fun `PriceTier with all fields`() {
 		val cachedPrice = Price(BigDecimal("0.0005"), Currency.getInstance("USD"), 1000)
-		val tier = ProviderData.ModelData.TokenPrice.PriceTier(
+		val tier = ModelData.TokenPrice.PriceTier(
 			fromTokens = 0,
 			toTokens = 1000000,
 			price = testPrice,
@@ -135,7 +136,7 @@ class ProviderDataTest {
 	
 	@Test
 	fun `PriceTier with null cachedPrice and toTokens`() {
-		val tier = ProviderData.ModelData.TokenPrice.PriceTier(
+		val tier = ModelData.TokenPrice.PriceTier(
 			fromTokens = 500000,
 			toTokens = null,
 			price = testPrice,
@@ -152,7 +153,7 @@ class ProviderDataTest {
 	
 	@Test
 	fun `Config with all fields set`() {
-		val config = ProviderData.ModelData.Config(
+		val config = ModelData.Config(
 			temperature = 0.7,
 			maxTokens = 4096,
 			compactContextUsage = 0.8,
@@ -166,7 +167,7 @@ class ProviderDataTest {
 	
 	@Test
 	fun `Config with null fields uses defaults`() {
-		val config = ProviderData.ModelData.Config(null, null, null, null)
+		val config = ModelData.Config(null, null, null, null)
 		assertNull(config.temperature)
 		assertNull(config.maxTokens)
 		assertNull(config.compactContextUsage)
@@ -179,19 +180,19 @@ class ProviderDataTest {
 	
 	@Test
 	fun `Model constructs with all fields`() {
-		val modelInfo = ProviderData.ModelData.ModelInfo(
+		val modelInfo = ModelData.ModelInfo(
 			id = "m1",
 			contextWindow = 64000,
 			maxOutputTokens = 2048,
-			price = ProviderData.ModelData.TokenPrice(emptyList(), emptyList()),
+			price = ModelData.TokenPrice(emptyList(), emptyList()),
 			supportsStreaming = true,
 			supportsToolCalls = false,
 			supportsReasoning = false,
 			supportsImage = false,
 			supportsJsonOutput = false,
 		)
-		val config = ProviderData.ModelData.Config(0.5, 1000, null, null)
-		val model = ProviderData.ModelData(name = "gpt-4", modelInfo = modelInfo, config = config)
+		val config = ModelData.Config(0.5, 1000, null, null)
+		val model = ModelData(name = "gpt-4", modelInfo = modelInfo, config = config)
 		assertEquals("gpt-4", model.name)
 		assertEquals(modelInfo, model.modelInfo)
 		assertEquals(config, model.config)
@@ -199,18 +200,18 @@ class ProviderDataTest {
 	
 	@Test
 	fun `Model with null config`() {
-		val modelInfo = ProviderData.ModelData.ModelInfo(
+		val modelInfo = ModelData.ModelInfo(
 			id = "m2",
 			contextWindow = 32000,
 			maxOutputTokens = 1024,
-			price = ProviderData.ModelData.TokenPrice(emptyList(), emptyList()),
+			price = ModelData.TokenPrice(emptyList(), emptyList()),
 			supportsStreaming = false,
 			supportsToolCalls = false,
 			supportsReasoning = false,
 			supportsImage = false,
 			supportsJsonOutput = false,
 		)
-		val model = ProviderData.ModelData(name = "basic", modelInfo = modelInfo, config = null)
+		val model = ModelData(name = "basic", modelInfo = modelInfo, config = null)
 		assertNull(model.config)
 	}
 	
@@ -220,18 +221,18 @@ class ProviderDataTest {
 	
 	@Test
 	fun `Provider constructs with all fields`() {
-		val modelInfo = ProviderData.ModelData.ModelInfo(
+		val modelInfo = ModelData.ModelInfo(
 			id = "p1",
 			contextWindow = 32000,
 			maxOutputTokens = 2048,
-			price = ProviderData.ModelData.TokenPrice(emptyList(), emptyList()),
+			price = ModelData.TokenPrice(emptyList(), emptyList()),
 			supportsStreaming = true,
 			supportsToolCalls = true,
 			supportsReasoning = true,
 			supportsImage = true,
 			supportsJsonOutput = true,
 		)
-		val model = ProviderData.ModelData(name = "premium", modelInfo = modelInfo, config = null)
+		val model = ModelData(name = "premium", modelInfo = modelInfo, config = null)
 		val rule = ProviderData.ErrorHandlingRule(429, ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY)
 		val apiKey = UUID.randomUUID()
 		val providerData = ProviderData(

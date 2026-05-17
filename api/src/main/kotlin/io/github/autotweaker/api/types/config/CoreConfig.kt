@@ -19,7 +19,8 @@
 package io.github.autotweaker.api.types.config
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.settings.SettingItem
 
 sealed class CoreConfig {
@@ -45,8 +46,8 @@ sealed class CoreConfig {
 		data class Model(
 			val name: String,
 			val providerName: String,
-			val meta: ProviderData.ModelData.ModelInfo?,
-			val config: ProviderData.ModelData.Config?,
+			val meta: ModelData.ModelInfo?,
+			val config: ModelData.Config?,
 		)
 		
 		data class ApiKey(

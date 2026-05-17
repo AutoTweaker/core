@@ -18,7 +18,8 @@
 
 package io.github.autotweaker.core.data
 
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.data.json.JsonStoreImpl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -44,7 +45,7 @@ object ProviderStore {
 		logger.debug("ProviderData added  provider={}  type={}", data.name, data.providerType)
 	}
 	
-	fun addModel(provider: String, models: List<ProviderData.ModelData>) {
+	fun addModel(provider: String, models: List<ModelData>) {
 		update(providers.map {
 			if (it.name == provider) {
 				val names = it.models.map { model -> model.name }.toSet()

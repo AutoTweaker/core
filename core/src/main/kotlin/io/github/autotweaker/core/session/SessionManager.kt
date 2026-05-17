@@ -20,7 +20,6 @@ package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionHandle

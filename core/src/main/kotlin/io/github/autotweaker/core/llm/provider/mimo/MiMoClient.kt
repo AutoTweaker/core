@@ -22,11 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
 import io.ktor.util.reflect.*
@@ -40,9 +36,9 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 	responseTypeInfo = typeInfo<MiMoResponse>(),
 	chunkSerializer = serializer<MiMoStreamChunk>(),
 ) {
-	private val mimoProPrice = ProviderData.ModelData.TokenPrice(
+	private val mimoProPrice = ModelData.TokenPrice(
 		inputPrice = listOf(
-			ProviderData.ModelData.TokenPrice.PriceTier(
+			ModelData.TokenPrice.PriceTier(
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
@@ -56,7 +52,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					unit = 100_0000
 				),
 			),
-			ProviderData.ModelData.TokenPrice.PriceTier(
+			ModelData.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
 					amount = BigDecimal("14"),
@@ -71,7 +67,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			)
 		),
 		outputPrice = listOf(
-			ProviderData.ModelData.TokenPrice.PriceTier(
+			ModelData.TokenPrice.PriceTier(
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
@@ -80,7 +76,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					unit = 100_0000
 				),
 			),
-			ProviderData.ModelData.TokenPrice.PriceTier(
+			ModelData.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
 					amount = BigDecimal("42"),
@@ -95,7 +91,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		name = "mimo",
 		baseUrl = Url("https://api.xiaomimimo.com/v1"),
 		models = listOf(
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "mimo-v2-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -106,7 +102,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "mimo-v2.5-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -117,13 +113,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "mimo-v2-omni",
 				contextWindow = 256_000,
 				maxOutputTokens = 128_000,
-				price = ProviderData.ModelData.TokenPrice(
+				price = ModelData.TokenPrice(
 					inputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("2.8"),
@@ -138,7 +134,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						),
 					),
 					outputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("14"),
@@ -154,13 +150,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = true,
 				supportsJsonOutput = true
 			),
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "mimo-v2.5",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
-				price = ProviderData.ModelData.TokenPrice(
+				price = ModelData.TokenPrice(
 					inputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
@@ -174,7 +170,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								unit = 100_0000
 							),
 						),
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal("5.6"),
@@ -189,7 +185,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						)
 					),
 					outputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							toTokens = 256_000,
 							price = Price(
@@ -198,7 +194,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								unit = 100_0000
 							),
 						),
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal("28"),
@@ -214,13 +210,13 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsImage = true,
 				supportsJsonOutput = true
 			),
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "mimo-v2-flash",
 				contextWindow = 256_000,
 				maxOutputTokens = 64_000,
-				price = ProviderData.ModelData.TokenPrice(
+				price = ModelData.TokenPrice(
 					inputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("0.7"),
@@ -235,7 +231,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						),
 					),
 					outputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("2.1"),

@@ -20,7 +20,6 @@ package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
 import io.github.autotweaker.api.types.settings.SettingItem

@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.api.types.session
 
-import io.github.autotweaker.api.types.model.ModelId
 import kotlinx.serialization.Serializable
 
 @Serializable

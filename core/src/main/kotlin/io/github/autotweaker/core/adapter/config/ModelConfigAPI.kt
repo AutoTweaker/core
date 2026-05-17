@@ -19,8 +19,7 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.core.data.ProviderStore
 
 object ModelConfigAPI {
@@ -32,7 +31,7 @@ object ModelConfigAPI {
 	
 	fun add(model: CoreConfig.ProviderConfig.Model) {
 		val modelInfo = model.meta ?: getMeta(model.providerName, model.name) ?: error("Default meta not found")
-		val newModel = ProviderData.ModelData(
+		val newModel = ModelData(
 			name = model.name,
 			modelInfo = modelInfo,
 			config = model.config,
@@ -62,7 +61,7 @@ object ModelConfigAPI {
 	fun update(id: ModelId, model: CoreConfig.ProviderConfig.Model) {
 		val provider = cfg.providerConfig.get(id.provider)
 		val modelInfo = model.meta ?: getMeta(model.providerName, model.name) ?: error("Default meta not found")
-		val newModel = ProviderData.ModelData(
+		val newModel = ModelData(
 			name = model.name,
 			modelInfo = modelInfo,
 			config = model.config,

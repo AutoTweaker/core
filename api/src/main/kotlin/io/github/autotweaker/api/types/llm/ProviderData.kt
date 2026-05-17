@@ -16,22 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.model
+package io.github.autotweaker.api.types.llm
 
+import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
+import java.util.*
 
 @Serializable
-data class ModelId(
-	val provider: String,
-	val modelName: String,
+data class ProviderData(
+	@Serializable(with = UuidSerializer::class) val id: UUID,
+	val displayName: String,
+	val providerType: String,
+	@Serializable(with = UuidSerializer::class) val apiKey: UUID,
+	val baseUrl: Url,
+	val models: List<ModelData>,
+	val errorHandlingRules: List<ErrorHandlingRule>
 ) {
-	override fun toString(): String = "$provider/$modelName"
-	
-	companion object {
-		fun fromString(id: String): ModelId? {
-			val parts = id.split("/", limit = 2)
-			if (parts.size != 2) return null
-			return ModelId(parts[0], parts[1])
+	@Serializable
+	data class ErrorHandlingRule(
+		val statusCode: Int, val strategy: RecoveryStrategy
+	) {
+		@Serializable
+		enum class RecoveryStrategy {
+			RETRY, FALLBACK, CONTEXT_FALLBACK, PROVIDER_FALLBACK,
 		}
 	}
 }

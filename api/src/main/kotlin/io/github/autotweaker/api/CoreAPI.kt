@@ -23,8 +23,8 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.settings.SettingKey
 import java.util.*
@@ -95,7 +95,7 @@ interface CoreAPI {
 		
 		fun listModels(): List<CoreConfig.ProviderConfig.Model>
 		fun listModelIds(): List<ModelId>
-		fun getModelMeta(provider: String, modelId: String): ProviderData.ModelData.ModelInfo?
+		fun getModelMeta(provider: String, modelId: String): ModelData.ModelInfo?
 		fun addModel(model: CoreConfig.ProviderConfig.Model)
 		fun removeModel(id: ModelId)
 		fun setModel(id: ModelId, model: CoreConfig.ProviderConfig.Model)

@@ -20,7 +20,6 @@ package io.github.autotweaker.core.agent.tool.service
 
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.llm.ResilientChat

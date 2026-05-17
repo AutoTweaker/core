@@ -21,7 +21,6 @@ package io.github.autotweaker.core.agent.phase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.agent.ToolResultStatus
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput

@@ -20,7 +20,6 @@ package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolResultStatus
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable

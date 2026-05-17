@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.session.agent
 
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage

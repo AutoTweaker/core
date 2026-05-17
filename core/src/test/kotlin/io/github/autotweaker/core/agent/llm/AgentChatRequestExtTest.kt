@@ -24,9 +24,8 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.*
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.TokenPrice.PriceTier
+import io.github.autotweaker.api.types.llm.ModelData.*
+import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.core.agent.AgentContext
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal

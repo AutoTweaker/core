@@ -21,7 +21,8 @@ package io.github.autotweaker.api
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import kotlinx.coroutines.flow.Flow
 
 interface LlmClient {
@@ -30,7 +31,7 @@ interface LlmClient {
 	data class ProviderInfo(
 		val name: String,
 		val baseUrl: Url,
-		val models: List<ProviderData.ModelData.ModelInfo>,
+		val models: List<ModelData.ModelInfo>,
 		val errorHandlingRules: List<ProviderData.ErrorHandlingRule>
 	)
 	

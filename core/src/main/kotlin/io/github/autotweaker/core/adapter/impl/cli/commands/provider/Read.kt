@@ -20,7 +20,8 @@ package io.github.autotweaker.core.adapter.impl.cli.commands.provider
 
 import io.github.autotweaker.api.CoreAPI
 import io.github.autotweaker.api.types.Price
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -75,7 +76,7 @@ class Read(private val core: CoreAPI) {
 		}
 	}
 	
-	private fun printModelInfo(info: ProviderData.ModelData.ModelInfo): Flow<String> = flow {
+	private fun printModelInfo(info: ModelData.ModelInfo): Flow<String> = flow {
 		val feature = buildList {
 			if (info.supportsStreaming) add(I18n.get("prov.out.model.feature.streaming"))
 			if (info.supportsToolCalls) add(I18n.get("prov.out.model.feature.tool_call"))
@@ -90,8 +91,8 @@ class Read(private val core: CoreAPI) {
 		emitAll(printTokenPrice(info.price))
 	}
 	
-	private fun printTokenPrice(price: ProviderData.ModelData.TokenPrice): Flow<String> = flow {
-		fun processPrice(price: List<ProviderData.ModelData.TokenPrice.PriceTier>): Flow<String> = flow {
+	private fun printTokenPrice(price: ModelData.TokenPrice): Flow<String> = flow {
+		fun processPrice(price: List<ModelData.TokenPrice.PriceTier>): Flow<String> = flow {
 			price.forEach {
 				val from = it.fromTokens
 				val to = it.toTokens

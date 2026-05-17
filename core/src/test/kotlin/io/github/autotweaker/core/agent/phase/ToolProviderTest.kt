@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.agent.phase
 
-import io.github.autotweaker.api.types.model.ModelId
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment

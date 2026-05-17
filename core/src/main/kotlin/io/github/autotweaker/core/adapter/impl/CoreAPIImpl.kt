@@ -26,8 +26,8 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -106,7 +106,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		
 		override fun listModels() = cfg.modelConfig.list()
 		override fun listModelIds() = cfg.modelConfig.listId()
-		override fun getModelMeta(provider: String, modelId: String): ProviderData.ModelData.ModelInfo? =
+		override fun getModelMeta(provider: String, modelId: String): ModelData.ModelInfo? =
 			cfg.modelConfig.getMeta(provider, modelId)
 		
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = cfg.modelConfig.add(model)

@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.api.types.model.ModelId
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.Config
-import io.github.autotweaker.api.types.provider.ProviderData.ModelData.ModelInfo
+import io.github.autotweaker.api.types.llm.ModelData.Config
+import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
+import java.util.*
 
 data class Model(
+	val id: UUID,
 	val provider: Provider,
 	val modelInfo: ModelInfo,
 	val config: Config? = null,
-	val modelId: ModelId,
 )

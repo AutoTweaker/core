@@ -22,7 +22,6 @@ import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.agent.ToolOutput
-import io.github.autotweaker.api.types.model.ModelId
 import kotlin.time.Instant
 
 sealed class SessionOutput {

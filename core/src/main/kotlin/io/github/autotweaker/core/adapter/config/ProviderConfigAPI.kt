@@ -20,7 +20,7 @@ package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.data.ProviderStore
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.session.ProviderService

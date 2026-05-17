@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.ProviderData
 
 data class Provider(
 	val name: String,

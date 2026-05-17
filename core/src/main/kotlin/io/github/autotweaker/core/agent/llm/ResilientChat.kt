@@ -21,7 +21,7 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.provider.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

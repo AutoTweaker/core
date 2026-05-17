@@ -22,11 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.provider.ProviderData
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
 import io.ktor.util.reflect.*
@@ -44,13 +40,13 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		name = "deepseek",
 		baseUrl = Url("https://api.deepseek.com/v1"),
 		models = listOf(
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "deepseek-v4-flash",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
-				price = ProviderData.ModelData.TokenPrice(
+				price = ModelData.TokenPrice(
 					inputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("1"),
@@ -65,7 +61,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						)
 					),
 					outputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("2"),
@@ -81,13 +77,13 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsImage = false,
 				supportsJsonOutput = true
 			),
-			ProviderData.ModelData.ModelInfo(
+			ModelData.ModelInfo(
 				id = "deepseek-v4-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
-				price = ProviderData.ModelData.TokenPrice(
+				price = ModelData.TokenPrice(
 					inputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("3"),
@@ -102,7 +98,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 						)
 					),
 					outputPrice = listOf(
-						ProviderData.ModelData.TokenPrice.PriceTier(
+						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
 							price = Price(
 								amount = BigDecimal("6"),
