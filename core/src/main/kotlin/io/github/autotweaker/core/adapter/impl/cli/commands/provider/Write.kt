@@ -34,8 +34,6 @@ class Write(
 	fun add(name: String?, type: String?, key: String?, url: String?): Flow<Command.Chunk> = flow {
 		val name = name ?: promptOrNull("prov.prompt.add.name", "prov.out.add.missing.name") ?: return@flow
 		val type = type ?: promptOrNull("prov.prompt.add.type", "prov.out.add.missing.type") ?: return@flow
-		val key = key ?: promptOrNull("prov.prompt.add.key", "prov.out.add.missing.key") ?: return@flow
-		val urlString = url ?: promptOrNull("prov.prompt.add.url")
 		
 		if (core.config.listAvailableProviderTypes().find { it == type } == null) {
 			emitI18n("prov.out.add.invalid.type")
@@ -43,11 +41,15 @@ class Write(
 			return@flow
 		}
 		
+		val key = key ?: promptOrNull("prov.prompt.add.key", "prov.out.add.missing.key") ?: return@flow
+		
 		if (core.config.listApiKeyNames().find { it == key } == null) {
 			emitI18n("prov.out.add.invalid.key")
 			emitDone()
 			return@flow
 		}
+		
+		val urlString = url ?: promptOrNull("prov.prompt.add.url")
 		
 		val url = urlString?.let {
 			try {
