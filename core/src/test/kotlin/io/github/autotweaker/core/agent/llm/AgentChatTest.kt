@@ -270,39 +270,6 @@ class AgentChatTest {
 		assertEquals("read", toolCalls[0].name)
 	}
 	
-	@Test
-	fun `uses retrying model as result model in Assembled`() = runTest {
-		val fallbackModel = Model(provider = testProvider, modelInfo = testModelInfo, id = UUID.randomUUID())
-		val errorMsg = ChatMessage.ErrorMessage(
-			content = "error",
-			createdAt = Clock.System.now(),
-			statusCode = 503,
-		)
-		val assistantMsg = ChatMessage.AssistantMessage(
-			content = "recovered",
-			createdAt = Clock.System.now(),
-			reasoningContent = null,
-			toolCalls = null,
-		)
-		
-		mockkObject(ResilientChat)
-		every {
-			ResilientChat.execute(any(), any(), any(), any())
-		} returns flow {
-			emit(ResilientChatResult(ChatResult.Assembled(message = errorMsg), retrying = fallbackModel))
-			emit(
-				ResilientChatResult(
-					ChatResult.Assembled(
-						message = assistantMsg,
-						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
-					),
-					null,
-				)
-			)
-		}
-		
-		assertEquals("fallback", "fallback")
-	}
 	
 	@Test
 	fun `passes tool call fragments through deltas`() = runTest {

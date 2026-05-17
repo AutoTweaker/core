@@ -19,28 +19,9 @@
 package io.github.autotweaker.core.agent.phase
 
 import kotlin.test.Test
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PhaseResultTest {
-	
-	@Test
-	fun `Continue is a data object singleton`() {
-		assertNotNull(PhaseResult.Continue)
-		assertTrue(true)
-	}
-	
-	@Test
-	fun `Done is a data object singleton`() {
-		assertNotNull(PhaseResult.Done)
-		assertTrue(true)
-	}
-	
-	@Test
-	fun `Error is a data object singleton`() {
-		assertNotNull(PhaseResult.Error)
-		assertTrue(true)
-	}
 	
 	@Test
 	fun `all variants are distinct`() {
