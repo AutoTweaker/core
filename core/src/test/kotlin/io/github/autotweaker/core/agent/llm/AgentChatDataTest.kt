@@ -39,7 +39,7 @@ class AgentChatDataTest {
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
-		id = "test-model-id",
+		modelId = "test-model-id",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
 		price = TokenPrice(
@@ -54,10 +54,10 @@ class AgentChatDataTest {
 	)
 	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
 	private val testModel = Model(
-		provider = testProvider, modelInfo = testModelInfo, config = Config(0.7, 2048, null, null), modelId = ModelId(
-			"test-provider",
-			"test-model"
-		)
+		provider = testProvider,
+		modelInfo = testModelInfo,
+		config = Config(0.7, 2048, null, null),
+		id = UUID.randomUUID()
 	)
 	
 	@Test

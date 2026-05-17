@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.agent.ToolOutput
+import java.util.*
 import kotlin.time.Instant
 
 sealed class SessionOutput {
@@ -29,7 +30,7 @@ sealed class SessionOutput {
 	data class LlmError(
 		val content: String?,
 		val statusCode: Int?,
-		val retrying: ModelId?,
+		val retrying: UUID?,
 		val timestamp: Instant,
 	) : SessionOutput()
 	

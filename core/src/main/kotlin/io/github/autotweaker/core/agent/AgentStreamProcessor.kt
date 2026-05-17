@@ -63,7 +63,7 @@ class AgentStreamProcessor(
 							logger.debug(
 								"LLM stream retry initiated  agentId={}  model={}  error={}",
 								agentId,
-								lastError.retrying.modelInfo.id,
+								lastError.retrying.modelInfo.modelId,
 								lastError.content
 							)
 							onStatusChange(AgentStatus.RETRYING)

@@ -26,7 +26,6 @@ import java.util.*
 @Serializable
 data class ModelData(
 	@Serializable(with = UuidSerializer::class) val id: UUID,
-	val name: String,
 	val displayName: String,
 	val modelInfo: ModelInfo,
 	@Serializable(with = UuidSerializer::class) val providerId: UUID,

@@ -34,6 +34,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 import kotlin.test.*
 
 class ToolProviderTest {
@@ -92,10 +93,7 @@ class ToolProviderTest {
 		val provider = mockk<Provider>()
 		every { provider.name } returns "test-provider"
 		return Model(
-			provider = provider, modelInfo = mockk(relaxed = true), modelId = ModelId(
-				"test-provider",
-				"summarize-model"
-			)
+			provider = provider, modelInfo = mockk(relaxed = true), id = UUID.randomUUID()
 		)
 	}
 	// endregion

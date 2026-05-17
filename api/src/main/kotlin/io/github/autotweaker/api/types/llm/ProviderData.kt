@@ -30,7 +30,6 @@ data class ProviderData(
 	val providerType: String,
 	@Serializable(with = UuidSerializer::class) val apiKey: UUID,
 	val baseUrl: Url,
-	val models: List<ModelData>,
 	val errorHandlingRules: List<ErrorHandlingRule>
 ) {
 	@Serializable

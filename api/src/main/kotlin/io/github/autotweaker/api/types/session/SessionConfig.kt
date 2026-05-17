@@ -18,12 +18,14 @@
 
 package io.github.autotweaker.api.types.session
 
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
+import java.util.*
 
 @Serializable
 data class SessionConfig(
-	val model: ModelId,
-	val fallbackModel: List<ModelId>?,
-	val summarizeModel: ModelId,
+	@Serializable(with = UuidSerializer::class) val model: UUID,
+	val fallbackModel: List<@Serializable(with = UuidSerializer::class) UUID>?,
+	@Serializable(with = UuidSerializer::class) val summarizeModel: UUID,
 	val thinking: Boolean,
 )

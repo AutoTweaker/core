@@ -47,7 +47,7 @@ class ResilientChatTest {
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	
 	private val baseModelInfo = ModelInfo(
-		id = "test-id",
+		modelId = "test-id",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
 		price = TokenPrice(
@@ -67,11 +67,10 @@ class ResilientChatTest {
 	) = Provider(name, testUrl, "sk-test", rules)
 	
 	private fun model(
-		name: String = "test-model",
 		provider: Provider = provider(),
 		modelInfo: ModelInfo = baseModelInfo,
 		config: Config? = null,
-	) = Model(provider = provider, modelInfo = modelInfo, config = config, modelId = ModelId(provider.name, name))
+	) = Model(provider = provider, modelInfo = modelInfo, config = config, id = UUID.randomUUID())
 	
 	private fun assistantResult(content: String = "hello") = ChatResult.Assembled(
 		message = ChatMessage.AssistantMessage(content, Clock.System.now(), null, null),
@@ -169,8 +168,8 @@ class ResilientChatTest {
 		
 		val p1 = provider("provider1", listOf(ErrorHandlingRule(503, RecoveryStrategy.FALLBACK)))
 		val p2 = provider("provider2")
-		val m1 = model("model1", p1)
-		val m2 = model("model2", p2)
+		val m1 = model(p1)
+		val m2 = model(p2)
 		
 		val results = ResilientChat.execute(
 			model = m1,
@@ -208,8 +207,8 @@ class ResilientChatTest {
 		val providerOther = provider("other")
 		
 		val results = ResilientChat.execute(
-			model = model("m1", providerSame),
-			fallbackModels = listOf(model("m2", providerSame), model("m3", providerOther)),
+			model = model(providerSame),
+			fallbackModels = listOf(model(providerSame), model(providerOther)),
 			request = chatRequest(),
 		).toList()
 		
@@ -251,10 +250,10 @@ class ResilientChatTest {
 		val p3 = provider("p3")
 		
 		val results = ResilientChat.execute(
-			model = model("m1", p1, baseModelInfo),
+			model = model(p1, baseModelInfo),
 			fallbackModels = listOf(
-				model("m2", p2, smallerModelInfo),
-				model("m3", p3, largerModelInfo),
+				model(p2, smallerModelInfo),
+				model(p3, largerModelInfo),
 			),
 			request = chatRequest(),
 		).toList()
@@ -320,8 +319,8 @@ class ResilientChatTest {
 		)
 		
 		val results = ResilientChat.execute(
-			model = model("m1", provider("p1"), noImageModelInfo),
-			fallbackModels = listOf(model("m2", provider("p2"), imageModelInfo)),
+			model = model(provider("p1"), noImageModelInfo),
+			fallbackModels = listOf(model(provider("p2"), imageModelInfo)),
 			request = requestWithImage,
 		).toList()
 		
@@ -399,8 +398,8 @@ class ResilientChatTest {
 		
 		val p1 = provider("p1")
 		val results = ResilientChat.execute(
-			model = model("m1", p1),
-			fallbackModels = listOf(model("m2", provider("p2"))),
+			model = model(p1),
+			fallbackModels = listOf(model(provider("p2"))),
 			request = chatRequest(),
 		).toList()
 		
@@ -427,8 +426,8 @@ class ResilientChatTest {
 		
 		val p1 = provider("p1", listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY)))
 		val results = ResilientChat.execute(
-			model = model("m1", p1),
-			fallbackModels = listOf(model("m2", provider("p2"))),
+			model = model(p1),
+			fallbackModels = listOf(model(provider("p2"))),
 			request = chatRequest(),
 			maxRetries = 2,
 		).toList()
@@ -456,7 +455,7 @@ class ResilientChatTest {
 		)
 		
 		ResilientChat.execute(
-			model = model("m1", provider("p1"), baseModelInfo.copy(supportsImage = false)),
+			model = model(provider("p1"), baseModelInfo.copy(supportsImage = false)),
 			fallbackModels = null,
 			request = requestWithImage,
 		).toList()
@@ -487,7 +486,7 @@ class ResilientChatTest {
 		)
 		
 		ResilientChat.execute(
-			model = model("m1", provider("p1"), baseModelInfo.copy(supportsReasoning = false)),
+			model = model(provider("p1"), baseModelInfo.copy(supportsReasoning = false)),
 			fallbackModels = null,
 			request = requestWithAssistant,
 		).toList()
@@ -520,7 +519,7 @@ class ResilientChatTest {
 		)
 		
 		ResilientChat.execute(
-			model = model("m1", provider("p1"), baseModelInfo.copy(supportsReasoning = true)),
+			model = model(provider("p1"), baseModelInfo.copy(supportsReasoning = true)),
 			fallbackModels = null,
 			request = request,
 		).toList()

@@ -41,7 +41,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		baseUrl = Url("https://api.deepseek.com/v1"),
 		models = listOf(
 			ModelData.ModelInfo(
-				id = "deepseek-v4-flash",
+				modelId = "deepseek-v4-flash",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
 				price = ModelData.TokenPrice(
@@ -78,7 +78,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsJsonOutput = true
 			),
 			ModelData.ModelInfo(
-				id = "deepseek-v4-pro",
+				modelId = "deepseek-v4-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
 				price = ModelData.TokenPrice(

@@ -32,7 +32,7 @@ class SummarizeServiceImpl(
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
 		val request = ChatRequest(
-			model = model.modelInfo.id,
+			model = model.modelInfo.modelId,
 			messages = listOf(
 				ChatMessage.SystemMessage(prompt, Clock.System.now()),
 				ChatMessage.UserMessage(content, Clock.System.now()),

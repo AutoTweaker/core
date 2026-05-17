@@ -193,8 +193,12 @@ val generateVersionProperties by tasks.registering {
 	
 	doLast {
 		val gitHash = runCatching {
-			ProcessBuilder("git", "rev-parse", "--short", "HEAD").redirectErrorStream(true)
-				.start().inputStream.bufferedReader().readText().trim()
+			val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+				.redirectError(ProcessBuilder.Redirect.DISCARD)
+				.start()
+			val output = process.inputStream.bufferedReader().readText().trim()
+			if (process.waitFor() != 0) throw RuntimeException("git exited non-zero")
+			output
 		}.getOrDefault("unknown")
 		
 		val timestamp = Instant.now().toString().replace(":", "")

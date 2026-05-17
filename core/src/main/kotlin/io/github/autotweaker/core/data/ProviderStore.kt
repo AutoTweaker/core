@@ -18,59 +18,16 @@
 
 package io.github.autotweaker.core.data
 
-import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
-import io.github.autotweaker.core.data.json.JsonStoreImpl
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
-import org.slf4j.LoggerFactory
+import java.util.*
 
 object ProviderStore {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
+	private val store = IdListStore(this::class.java.name, ProviderData.serializer()) { it.id }
 	
-	private var providers: List<ProviderData>
-	
-	init {
-		val jsonArray = jsonEntry.get()
-		providers = if (jsonArray == null) emptyList()
-		else Json.decodeFromJsonElement<List<ProviderData>>(jsonArray)
-		logger.info("ProviderStore initialized  providerCount={}", providers.size)
-	}
-	
-	fun add(data: ProviderData) {
-		if (providers.any { it.name == data.name }) error("ProviderData with name ${data.name} already exists")
-		update(providers + data)
-		logger.debug("ProviderData added  provider={}  type={}", data.name, data.providerType)
-	}
-	
-	fun addModel(provider: String, models: List<ModelData>) {
-		update(providers.map {
-			if (it.name == provider) {
-				val names = it.models.map { model -> model.name }.toSet()
-				val duplicates = models.map { model -> model.name }.filter { name -> name in names }.toSet()
-				if (duplicates.isNotEmpty()) error("Duplicates model found: $duplicates")
-				it.copy(models = it.models + models)
-			} else it
-		})
-		logger.debug("ProviderData models added  provider={}  count={}", provider, models.size)
-	}
-	
-	fun get(): List<ProviderData> = providers
-	
-	fun delete(name: String) {
-		update(providers.filterNot { it.name == name })
-		logger.debug("ProviderData deleted  provider={}", name)
-	}
-	
-	fun override(data: ProviderData) {
-		update(providers.map { if (it.name == data.name) data else it })
-		logger.debug("ProviderData overridden  provider={}", data.name)
-	}
-	
-	private fun update(new: List<ProviderData>) {
-		providers = new
-		jsonEntry.set(Json.encodeToJsonElement(new))
-	}
+	fun add(data: ProviderData) = store.add(data)
+	fun get(): List<ProviderData> = store.get()
+	fun get(id: UUID): ProviderData? = store.get(id)
+	fun delete(id: UUID) = store.delete(id)
+	fun override(data: ProviderData) = store.override(data)
 }
+

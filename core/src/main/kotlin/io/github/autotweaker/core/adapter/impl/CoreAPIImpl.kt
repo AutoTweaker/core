@@ -32,6 +32,7 @@ import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.adapter.config.ConfigManager
+import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
@@ -96,22 +97,26 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override fun listAvailableProviderTypes() = cfg.providerConfig.listAvailable()
 		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = cfg.providerConfig.getMeta(type)
 		override fun addProvider(provider: CoreConfig.ProviderConfig.Provider) = cfg.providerConfig.create(provider)
-		override fun removeProvider(name: String) = cfg.providerConfig.delete(name)
-		override fun renameProvider(name: String, new: String) = cfg.providerConfig.rename(name, new)
-		override fun setProviderType(name: String, type: String) = cfg.providerConfig.updateType(name, type)
-		override fun setProviderKey(name: String, keyName: String) = cfg.providerConfig.updateKey(name, keyName)
-		override fun setProviderUrl(name: String, url: Url) = cfg.providerConfig.updateUrl(name, url)
-		override fun setProviderRule(name: String, rules: List<ProviderData.ErrorHandlingRule>) =
-			cfg.providerConfig.updateRule(name, rules)
+		override fun removeProvider(id: UUID) = cfg.providerConfig.delete(id)
+		override fun setProviderDisplayName(id: UUID, displayName: String) =
+			cfg.providerConfig.updateDisplayName(id, displayName)
+		
+		override fun setProviderType(id: UUID, type: String) = cfg.providerConfig.updateType(id, type)
+		override fun setProviderKey(id: UUID, keyName: String) = cfg.providerConfig.updateKey(id, keyName)
+		override fun setProviderUrl(id: UUID, url: Url) = cfg.providerConfig.updateUrl(id, url)
+		override fun setProviderRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) =
+			cfg.providerConfig.updateRule(id, rules)
 		
 		override fun listModels() = cfg.modelConfig.list()
-		override fun listModelIds() = cfg.modelConfig.listId()
-		override fun getModelMeta(provider: String, modelId: String): ModelData.ModelInfo? =
-			cfg.modelConfig.getMeta(provider, modelId)
+		override fun listModelIds(): List<UUID> = cfg.modelConfig.list().map { it.data.id }
+		override fun getModelMeta(id: UUID): ModelData.ModelInfo? =
+			ModelStore.get(id)?.modelInfo
 		
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = cfg.modelConfig.add(model)
-		override fun removeModel(id: ModelId) = cfg.modelConfig.remove(id)
-		override fun setModel(id: ModelId, model: CoreConfig.ProviderConfig.Model) = cfg.modelConfig.update(id, model)
+		override fun removeModel(id: UUID) = cfg.modelConfig.remove(id)
+		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) =
+			cfg.modelConfig.update(id, model)
+		
 		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = cfg.apiKeyConfig.add(key)
 		override fun listApiKeyNames() = cfg.apiKeyConfig.list()
 		override fun removeApiKey(name: String) = cfg.apiKeyConfig.delete(name)

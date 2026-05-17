@@ -377,10 +377,7 @@ class HandleApprovalPhaseTest {
 		val provider = mockk<Provider>()
 		every { provider.name } returns "test-provider"
 		return Model(
-			provider = provider, modelInfo = mockk(relaxed = true), modelId = ModelId(
-				"test-provider",
-				"test-model"
-			)
+			provider = provider, modelInfo = mockk(relaxed = true), id = UUID.randomUUID()
 		)
 	}
 	

@@ -56,7 +56,7 @@ sealed class SessionMessage {
 		
 		val reasoning: String?,
 		val content: String?,
-		val model: ModelId,
+		@Serializable(with = UuidSerializer::class) val model: UUID,
 	) : SessionMessage()
 	
 	@Serializable

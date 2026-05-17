@@ -30,6 +30,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -40,13 +41,13 @@ class SummarizeServiceImplTest {
 	private val mockModel = Model(
 		provider = Provider("test-provider", mockk(relaxed = true), "key", emptyList()),
 		modelInfo = mockk(relaxed = true),
-		modelId = ModelId("test-provider", "summarizer"),
+		id = UUID.randomUUID(),
 	)
 	
 	private val fallbackModel = Model(
 		provider = Provider("fb-provider", mockk(relaxed = true), "key2", emptyList()),
 		modelInfo = mockk(relaxed = true),
-		modelId = ModelId("fb-provider", "fallback"),
+		id = UUID.randomUUID(),
 	)
 	
 	@Test

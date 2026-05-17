@@ -21,16 +21,18 @@ package io.github.autotweaker.core.session
 import io.github.autotweaker.api.LlmClient
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
+import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.ProviderStore
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.secret.impl.SecretManager
+import java.util.*
 
 object ProviderService {
 	fun getInfo(type: String): LlmClient.ProviderInfo = LlmClientLoader.load(type).providerInfo
 	
-	fun getModel(id: ModelId): Model? {
-		val provider = ProviderStore.get().find { it.name == id.provider } ?: return null
-		val model = provider.models.find { it.name == id.modelName } ?: return null
+	fun getModel(id: UUID): Model? {
+		val model = ModelStore.get(id) ?: return null
+		val provider = ProviderStore.get(model.providerId) ?: return null
 		val providerData = Provider(
 			name = provider.providerType,
 			baseUrl = provider.baseUrl,
@@ -38,7 +40,10 @@ object ProviderService {
 			errorHandlingRules = provider.errorHandlingRules
 		)
 		return Model(
-			provider = providerData, modelInfo = model.modelInfo, config = model.config, modelId = id
+			id = model.id,
+			provider = providerData,
+			modelInfo = model.modelInfo,
+			config = model.config,
 		)
 	}
 }

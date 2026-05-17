@@ -56,7 +56,7 @@ internal object CompactPhase {
 			"Compact started  agentId={}  roundCount={}  summarizeModel={}",
 			env.agentId,
 			rounds.size,
-			summarizeModel.modelInfo.id
+			summarizeModel.modelInfo.modelId
 		)
 		
 		val compactPrompt: String = settings.find("core.agent.compact.prompt")
@@ -134,7 +134,7 @@ internal object CompactPhase {
 		messages: List<ChatMessage>,
 	): CompactRequestResult {
 		val request = ChatRequest(
-			model = summarizeModel.modelInfo.id,
+			model = summarizeModel.modelInfo.modelId,
 			messages = messages,
 			stream = true,
 			thinking = false,
@@ -294,7 +294,7 @@ internal object CompactPhase {
 			createdAt = msg.timestamp,
 			reasoningContent = msg.reasoning ?: "",
 			toolCalls = toolCalls,
-			model = msg.model.modelInfo.id,
+			model = msg.model.modelInfo.modelId,
 		)
 	}
 	
@@ -323,7 +323,7 @@ internal object CompactPhase {
 		fallbackModels: List<Model>?,
 	): String {
 		val request = ChatRequest(
-			model = model.modelInfo.id,
+			model = model.modelInfo.modelId,
 			thinking = false,
 			messages = listOf(
 				ChatMessage.UserMessage(prompt.format(content), Clock.System.now()),

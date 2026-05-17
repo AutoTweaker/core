@@ -30,7 +30,7 @@ object SessionContextConverter {
 	fun toAgentContext(
 		context: SessionContext,
 		messages: List<SessionMessage>,
-		resolveModel: (ModelId) -> Model,
+		resolveModel: (UUID) -> Model,
 		maxCompactedRounds: Int = 0
 	): AgentContext {
 		val messageMap = messages.associateBy { it.id }
@@ -73,7 +73,7 @@ object SessionContextConverter {
 		roundIndex: SessionContextIndex.CompactedRound.CompletedRound,
 		messageMap: Map<UUID, SessionMessage>,
 		usage: Map<UUID, Usage>,
-		resolveModel: (ModelId) -> Model
+		resolveModel: (UUID) -> Model
 	): AgentContext.CompletedRound? {
 		val userMsg = messageMap[roundIndex.userMessage] as? SessionMessage.User ?: return null
 		
@@ -90,7 +90,7 @@ object SessionContextConverter {
 		roundIndex: SessionContextIndex.CurrentRound,
 		messageMap: Map<UUID, SessionMessage>,
 		usage: Map<UUID, Usage>,
-		resolveModel: (ModelId) -> Model
+		resolveModel: (UUID) -> Model
 	): AgentContext.CurrentRound? {
 		val userMsg = messageMap[roundIndex.userMessage] as? SessionMessage.User ?: return null
 		
@@ -124,7 +124,7 @@ object SessionContextConverter {
 		turnIndex: SessionContextIndex.Turn,
 		messageMap: Map<UUID, SessionMessage>,
 		usage: Map<UUID, Usage>,
-		resolveModel: (ModelId) -> Model
+		resolveModel: (UUID) -> Model
 	): AgentContext.Turn? {
 		val assistantMsg = messageMap[turnIndex.assistantMessage] as? SessionMessage.Assistant ?: return null
 		
@@ -161,7 +161,7 @@ object SessionContextConverter {
 	}
 	
 	private fun buildAssistantMessage(
-		msg: SessionMessage.Assistant, usage: Map<UUID, Usage>, resolveModel: (ModelId) -> Model
+		msg: SessionMessage.Assistant, usage: Map<UUID, Usage>, resolveModel: (UUID) -> Model
 	): AgentContext.Message.Assistant {
 		return AgentContext.Message.Assistant(
 			id = msg.id,

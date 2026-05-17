@@ -86,19 +86,19 @@ interface CoreAPI {
 		fun listAvailableProviderTypes(): List<String>
 		fun getProviderMeta(type: String): LlmClient.ProviderInfo
 		fun addProvider(provider: CoreConfig.ProviderConfig.Provider)
-		fun removeProvider(name: String)
-		fun renameProvider(name: String, new: String)
-		fun setProviderType(name: String, type: String)
-		fun setProviderKey(name: String, keyName: String)
-		fun setProviderUrl(name: String, url: Url)
-		fun setProviderRule(name: String, rules: List<ProviderData.ErrorHandlingRule>)
+		fun removeProvider(id: UUID)
+		fun setProviderType(id: UUID, type: String)
+		fun setProviderKey(id: UUID, keyName: String)
+		fun setProviderUrl(id: UUID, url: Url)
+		fun setProviderRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>)
+		fun setProviderDisplayName(id: UUID, displayName: String)
 		
 		fun listModels(): List<CoreConfig.ProviderConfig.Model>
-		fun listModelIds(): List<ModelId>
-		fun getModelMeta(provider: String, modelId: String): ModelData.ModelInfo?
+		fun listModelIds(): List<UUID>
+		fun getModelMeta(id: UUID): ModelData.ModelInfo?
 		fun addModel(model: CoreConfig.ProviderConfig.Model)
-		fun removeModel(id: ModelId)
-		fun setModel(id: ModelId, model: CoreConfig.ProviderConfig.Model)
+		fun removeModel(id: UUID)
+		fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model)
 		
 		fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
 		fun removeApiKey(name: String)

@@ -59,14 +59,14 @@ class Status : Command {
 		emit(Chunk.Data(""))
 		emit(Chunk.Data(I18n.get("status.providers", providers.size)))
 		for (p in providers) {
-			emit(Chunk.Data("  ${p.name}  ${p.type}"))
+			emit(Chunk.Data("  ${p.displayName}  ${p.type}"))
 		}
 		
-		val models = core.config.listModelIds()
+		val models = core.config.listModels()
 		emit(Chunk.Data(""))
 		emit(Chunk.Data(I18n.get("status.models", models.size)))
 		for (m in models) {
-			emit(Chunk.Data("  $m"))
+			emit(Chunk.Data("  ${m.data.displayName}"))
 		}
 		
 		val workspaces = core.session.listWorkspaces()

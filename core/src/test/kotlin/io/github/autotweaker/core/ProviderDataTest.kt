@@ -74,7 +74,7 @@ class ProviderDataTest {
 			outputPrice = emptyList()
 		)
 		val info = ModelData.ModelInfo(
-			id = "test-model",
+			modelId = "test-model",
 			contextWindow = 128000,
 			maxOutputTokens = 4096,
 			price = tokenPrice,
@@ -84,7 +84,7 @@ class ProviderDataTest {
 			supportsImage = false,
 			supportsJsonOutput = true,
 		)
-		assertEquals("test-model", info.id)
+		assertEquals("test-model", info.modelId)
 		assertEquals(128000, info.contextWindow)
 		assertEquals(4096, info.maxOutputTokens)
 		assertEquals(tokenPrice, info.price)
@@ -181,7 +181,7 @@ class ProviderDataTest {
 	@Test
 	fun `Model constructs with all fields`() {
 		val modelInfo = ModelData.ModelInfo(
-			id = "m1",
+			modelId = "m1",
 			contextWindow = 64000,
 			maxOutputTokens = 2048,
 			price = ModelData.TokenPrice(emptyList(), emptyList()),
@@ -192,8 +192,14 @@ class ProviderDataTest {
 			supportsJsonOutput = false,
 		)
 		val config = ModelData.Config(0.5, 1000, null, null)
-		val model = ModelData(name = "gpt-4", modelInfo = modelInfo, config = config)
-		assertEquals("gpt-4", model.name)
+		val model = ModelData(
+			id = UUID.randomUUID(),
+			displayName = "gpt-4",
+			modelInfo = modelInfo,
+			config = config,
+			providerId = UUID.randomUUID(),
+		)
+		assertEquals("gpt-4", model.displayName)
 		assertEquals(modelInfo, model.modelInfo)
 		assertEquals(config, model.config)
 	}
@@ -201,7 +207,7 @@ class ProviderDataTest {
 	@Test
 	fun `Model with null config`() {
 		val modelInfo = ModelData.ModelInfo(
-			id = "m2",
+			modelId = "m2",
 			contextWindow = 32000,
 			maxOutputTokens = 1024,
 			price = ModelData.TokenPrice(emptyList(), emptyList()),
@@ -211,7 +217,13 @@ class ProviderDataTest {
 			supportsImage = false,
 			supportsJsonOutput = false,
 		)
-		val model = ModelData(name = "basic", modelInfo = modelInfo, config = null)
+		val model = ModelData(
+			id = UUID.randomUUID(),
+			displayName = "basic",
+			modelInfo = modelInfo,
+			config = null,
+			providerId = UUID.randomUUID(),
+		)
 		assertNull(model.config)
 	}
 	
@@ -221,56 +233,45 @@ class ProviderDataTest {
 	
 	@Test
 	fun `Provider constructs with all fields`() {
-		val modelInfo = ModelData.ModelInfo(
-			id = "p1",
-			contextWindow = 32000,
-			maxOutputTokens = 2048,
-			price = ModelData.TokenPrice(emptyList(), emptyList()),
-			supportsStreaming = true,
-			supportsToolCalls = true,
-			supportsReasoning = true,
-			supportsImage = true,
-			supportsJsonOutput = true,
-		)
-		val model = ModelData(name = "premium", modelInfo = modelInfo, config = null)
 		val rule = ProviderData.ErrorHandlingRule(429, ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY)
 		val apiKey = UUID.randomUUID()
+		val providerId = UUID.randomUUID()
 		val providerData = ProviderData(
-			name = "test-provider",
+			id = providerId,
+			displayName = "test-provider",
 			providerType = "openai",
 			apiKey = apiKey,
 			baseUrl = testUrl,
-			models = listOf(model),
 			errorHandlingRules = listOf(rule)
 		)
-		assertEquals("test-provider", providerData.name)
+		assertEquals(providerId, providerData.id)
+		assertEquals("test-provider", providerData.displayName)
 		assertEquals("openai", providerData.providerType)
 		assertEquals(apiKey, providerData.apiKey)
 		assertEquals(testUrl, providerData.baseUrl)
-		assertEquals(1, providerData.models.size)
 		assertEquals(1, providerData.errorHandlingRules.size)
 	}
 	
 	@Test
-	fun `Provider with empty models and rules`() {
+	fun `Provider with empty rules`() {
 		val apiKey = UUID.randomUUID()
 		val providerData = ProviderData(
-			name = "empty",
+			id = UUID.randomUUID(),
+			displayName = "empty",
 			providerType = "custom",
 			apiKey = apiKey,
 			baseUrl = testUrl,
-			models = emptyList(),
 			errorHandlingRules = emptyList()
 		)
-		assertTrue(providerData.models.isEmpty())
 		assertTrue(providerData.errorHandlingRules.isEmpty())
 	}
 	
 	@Test
 	fun `Provider data class equality`() {
+		val id = UUID.randomUUID()
 		val apiKey = UUID.randomUUID()
-		val p1 = ProviderData("p", "t", apiKey, testUrl, emptyList(), emptyList())
-		val p2 = ProviderData("p", "t", apiKey, testUrl, emptyList(), emptyList())
+		val p1 = ProviderData(id, "p", "t", apiKey, testUrl, emptyList())
+		val p2 = ProviderData(id, "p", "t", apiKey, testUrl, emptyList())
 		assertEquals(p1, p2)
 		assertEquals(p1.hashCode(), p2.hashCode())
 	}

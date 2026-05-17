@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.data.ProviderStore
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.session.ProviderService
+import java.util.*
 
 object ProviderConfigAPI {
 	private val cfg = ConfigManager
@@ -33,45 +34,43 @@ object ProviderConfigAPI {
 	fun getMeta(type: String) = ProviderService.getInfo(type)
 	fun list() = store.get().map {
 		CoreConfig.ProviderConfig.Provider(
-			name = it.name,
+			id = it.id,
 			type = it.providerType,
 			keyId = cfg.apiKeyConfig.getName(it.apiKey),
 			baseUrl = it.baseUrl,
+			displayName = it.displayName,
 			errorHandlingRules = it.errorHandlingRules,
 		)
 	}
 	
-	fun delete(name: String) = store.delete(name)
+	fun delete(id: UUID) = store.delete(id)
 	
 	fun create(provider: CoreConfig.ProviderConfig.Provider) {
 		val meta = ProviderService.getInfo(provider.type)
 		store.add(
 			ProviderData(
-				name = provider.name,
+				id = provider.id,
+				displayName = provider.displayName,
 				providerType = provider.type,
 				apiKey = cfg.apiKeyConfig.getId(provider.keyId),
 				baseUrl = provider.baseUrl ?: meta.baseUrl,
-				models = emptyList(),
 				errorHandlingRules = provider.errorHandlingRules ?: meta.errorHandlingRules,
 			)
 		)
 	}
 	
-	fun updateType(name: String, new: String) = store.override(get(name).copy(providerType = new))
+	fun updateType(id: UUID, new: String) = store.override(get(id).copy(providerType = new))
 	
-	fun updateKey(name: String, keyName: String) =
-		store.override(get(name).copy(apiKey = cfg.apiKeyConfig.getId(keyName)))
+	fun updateKey(id: UUID, keyName: String) =
+		store.override(get(id).copy(apiKey = cfg.apiKeyConfig.getId(keyName)))
 	
-	fun updateUrl(name: String, url: Url) = store.override(get(name).copy(baseUrl = url))
+	fun updateUrl(id: UUID, url: Url) = store.override(get(id).copy(baseUrl = url))
 	
-	fun updateRule(name: String, rules: List<ProviderData.ErrorHandlingRule>) =
-		store.override(get(name).copy(errorHandlingRules = rules))
+	fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) =
+		store.override(get(id).copy(errorHandlingRules = rules))
 	
-	fun rename(name: String, new: String) {
-		val old = get(name)
-		store.delete(name)
-		store.add(old.copy(name = new))
-	}
+	fun updateDisplayName(id: UUID, displayName: String) =
+		store.override(get(id).copy(displayName = displayName))
 	
-	internal fun get(name: String) = store.get().find { it.name == name } ?: error("ProviderData $name not found")
+	internal fun get(id: UUID) = store.get(id) ?: error("ProviderData $id not found")
 }

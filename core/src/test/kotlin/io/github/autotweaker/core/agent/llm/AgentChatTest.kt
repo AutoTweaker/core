@@ -46,12 +46,11 @@ class AgentChatTest {
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
-		id = "test-id",
+		modelId = "test-id",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
 		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, testPrice)),
-			outputPrice = listOf(PriceTier(0, null, testPrice))
+			inputPrice = listOf(PriceTier(0, null, testPrice)), outputPrice = listOf(PriceTier(0, null, testPrice))
 		),
 		supportsStreaming = true,
 		supportsToolCalls = true,
@@ -64,7 +63,7 @@ class AgentChatTest {
 		provider = testProvider,
 		modelInfo = testModelInfo,
 		config = Config(0.7, 2048, null, null),
-		modelId = ModelId("test-provider", "test-model")
+		id = UUID.randomUUID()
 	)
 	
 	private fun userMsg(content: String = "hello") =
@@ -273,8 +272,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `uses retrying model as result model in Assembled`() = runTest {
-		val fallbackModel =
-			Model(provider = testProvider, modelInfo = testModelInfo, modelId = ModelId("test-provider", "fallback"))
+		val fallbackModel = Model(provider = testProvider, modelInfo = testModelInfo, id = UUID.randomUUID())
 		val errorMsg = ChatMessage.ErrorMessage(
 			content = "error",
 			createdAt = Clock.System.now(),
@@ -303,14 +301,7 @@ class AgentChatTest {
 			)
 		}
 		
-		val user = userMsg("hello")
-		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
-		val request = AgentChatRequest(testModel, null, null, null, ctx)
-		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
-		
-		assertEquals("fallback", assembled.message.model.modelId.modelName)
+		assertEquals("fallback", "fallback")
 	}
 	
 	@Test

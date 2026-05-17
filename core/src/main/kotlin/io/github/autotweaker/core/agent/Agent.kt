@@ -122,8 +122,8 @@ class Agent(
 		logger.info(
 			"Agent created  agentId={}  model={}  fallbackModels={}  thinking={}",
 			agentId,
-			model.modelInfo.id,
-			fallbackModels?.map { it.modelInfo.id },
+			model.modelInfo.modelId,
+			fallbackModels?.map { it.modelInfo.modelId },
 			thinking
 		)
 		startEventLoop()
@@ -177,8 +177,8 @@ class Agent(
 				logger.info(
 					"Model updated  agentId={}  model={}  fallbackModels={}  thinking={}",
 					agentId,
-					directive.model.modelInfo.id,
-					directive.fallbackModels?.map { it.modelInfo.id },
+					directive.model.modelInfo.modelId,
+					directive.fallbackModels?.map { it.modelInfo.modelId },
 					directive.thinking
 				)
 			}
@@ -309,7 +309,7 @@ class Agent(
 	//调用llm
 	private fun requestLlm() {
 		currentJob = scope.launch {
-			logger.debug("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.id)
+			logger.debug("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.modelId)
 			val result = RequestLlmPhase.execute(this@Agent, streamProcessor)
 			if (result == PhaseResult.Done || result == PhaseResult.Continue) {
 				checkAutoCompact()

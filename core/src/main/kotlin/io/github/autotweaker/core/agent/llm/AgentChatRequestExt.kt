@@ -64,7 +64,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 	}
 	
 	return ChatRequest(
-		model = model.modelInfo.id,
+		model = model.modelInfo.modelId,
 		messages = messages,
 		thinking = thinking,
 		tools = tools,

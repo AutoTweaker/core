@@ -34,7 +34,7 @@ internal object RequestLlmPhase {
 	): PhaseResult {
 		logger.debug(
 			"LLM request phase started  agentId={}  model={}  hasFallback={}  thinking={}",
-			env.agentId, env.currentModel.modelInfo.id, env.currentFallbackModels != null, env.currentThinking
+			env.agentId, env.currentModel.modelInfo.modelId, env.currentFallbackModels != null, env.currentThinking
 		)
 		env.updateStatus(AgentStatus.PROCESSING)
 		

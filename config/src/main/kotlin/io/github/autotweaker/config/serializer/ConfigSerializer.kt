@@ -359,12 +359,6 @@ val defaultItems: List<SettingItem> = listOf(
 	
 	// region 会话配置
 	fromPrompt("core.session.system.prompt", "系统提示词，作用于整个项目"),
-	
-	SettingItem(
-		SettingKey("core.session.model.default"),
-		SettingItem.Value.ValString("deepseek/deepseek-v4-flash"),
-		"模型Id无效时使用的默认模型"
-	),
 	// endregion
 )
 

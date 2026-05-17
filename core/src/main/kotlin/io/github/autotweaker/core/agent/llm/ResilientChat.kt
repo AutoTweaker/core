@@ -50,7 +50,7 @@ internal object ResilientChat {
 		
 		logger.debug(
 			"Chat started  provider={}  model={}  candidates={}  maxRetries={}",
-			model.provider.name, model.modelInfo.id, candidates.size, maxRetries
+			model.provider.name, model.modelInfo.modelId, candidates.size, maxRetries
 		)
 		
 		// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
@@ -61,7 +61,7 @@ internal object ResilientChat {
 		var lastModelId: String? = null
 		while (candidates.isNotEmpty()) {
 			val current = candidates.first()
-			lastModelId = current.modelInfo.id
+			lastModelId = current.modelInfo.modelId
 			val rules = current.provider.errorHandlingRules
 			
 			for (retryAttempt in 0 until maxRetries) {
@@ -100,14 +100,14 @@ internal object ResilientChat {
 						if (retryAttempt < maxRetries - 1) {
 							logger.debug(
 								"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
-								current.modelInfo.id, retryAttempt + 1, lastStatusCode
+								current.modelInfo.modelId, retryAttempt + 1, lastStatusCode
 							)
 							emit(ResilientChatResult(error, retrying = current))
 							delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
 							continue
 						}
 						logger.debug(
-							"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.id
+							"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.modelId
 						)
 						candidates = candidates.drop(1)
 					}
@@ -115,7 +115,7 @@ internal object ResilientChat {
 					RecoveryStrategy.CONTEXT_FALLBACK -> {
 						logger.debug(
 							"Fell back to larger context window  model={}  statusCode={}",
-							current.modelInfo.id, lastStatusCode
+							current.modelInfo.modelId, lastStatusCode
 						)
 						candidates = candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
 					}
@@ -123,7 +123,7 @@ internal object ResilientChat {
 					RecoveryStrategy.PROVIDER_FALLBACK -> {
 						logger.debug(
 							"Fell back to different provider  model={}  provider={}  statusCode={}",
-							current.modelInfo.id, current.provider.name, lastStatusCode
+							current.modelInfo.modelId, current.provider.name, lastStatusCode
 						)
 						candidates = candidates.filter { it.provider.name != current.provider.name }
 					}
@@ -131,7 +131,7 @@ internal object ResilientChat {
 					RecoveryStrategy.FALLBACK, null -> {
 						logger.debug(
 							"Fell back to next model  model={}  statusCode={}",
-							current.modelInfo.id, lastStatusCode
+							current.modelInfo.modelId, lastStatusCode
 						)
 						candidates = candidates.drop(1)
 					}
@@ -170,7 +170,7 @@ internal object ResilientChat {
 		val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
 		
 		return copy(
-			model = model.modelInfo.id,
+			model = model.modelInfo.modelId,
 			stream = stream && model.modelInfo.supportsStreaming,
 			thinking = if (stripThinking) null else thinking,
 			temperature = model.config?.temperature,

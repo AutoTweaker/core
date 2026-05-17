@@ -36,7 +36,7 @@ class ModelTest {
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
-		id = "test-model-id",
+		modelId = "test-model-id",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
 		price = TokenPrice(
@@ -58,12 +58,13 @@ class ModelTest {
 			apiKey = "sk-test",
 			errorHandlingRules = emptyList()
 		)
+		val id = UUID.randomUUID()
 		val model = Model(
+			id = id,
 			provider = provider,
 			modelInfo = testModelInfo,
-			modelId = ModelId("test-provider", "test-model"),
 		)
-		assertEquals("test-model", model.modelId.modelName)
+		assertEquals(id, model.id)
 		assertEquals(provider, model.provider)
 		assertEquals(testModelInfo, model.modelInfo)
 		assertNull(model.config)
@@ -73,7 +74,7 @@ class ModelTest {
 	fun `construct model with config`() {
 		val provider = Provider("p", testUrl, "key", emptyList())
 		val config = Config(temperature = 0.7, maxTokens = 2048, compactContextUsage = 0.8, compactTotalTokens = 0.9)
-		val model = Model(provider = provider, modelInfo = testModelInfo, config = config, modelId = ModelId("p", "m"))
+		val model = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo, config = config)
 		assertEquals(config, model.config)
 		assertEquals(0.7, model.config?.temperature)
 		assertEquals(2048, model.config?.maxTokens)
@@ -95,9 +96,10 @@ class ModelTest {
 	
 	@Test
 	fun `model equality`() {
+		val id = UUID.randomUUID()
 		val provider = Provider("p", testUrl, "key", emptyList())
-		val model1 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m"))
-		val model2 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m"))
+		val model1 = Model(id = id, provider = provider, modelInfo = testModelInfo)
+		val model2 = Model(id = id, provider = provider, modelInfo = testModelInfo)
 		assertEquals(model1, model2)
 		assertEquals(model1.hashCode(), model2.hashCode())
 	}
@@ -111,10 +113,10 @@ class ModelTest {
 	}
 	
 	@Test
-	fun `models with different names are not equal`() {
+	fun `models with different ids are not equal`() {
 		val provider = Provider("p", testUrl, "key", emptyList())
-		val model1 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m1"))
-		val model2 = Model(provider = provider, modelInfo = testModelInfo, modelId = ModelId("p", "m2"))
+		val model1 = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo)
+		val model2 = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo)
 		assertTrue(model1 != model2)
 	}
 }

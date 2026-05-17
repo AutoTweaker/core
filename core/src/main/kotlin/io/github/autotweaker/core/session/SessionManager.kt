@@ -39,20 +39,14 @@ object SessionManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val settings = Settings.get()
 	
-	private val defaultModelId: String = settings.find("core.session.model.default")
 	private val systemPrompt: String = settings.find("core.session.system.prompt")
 	
 	private val store =
 		ServiceLoader.load(SessionStore::class.java).firstOrNull() ?: error("No SessionStore implementation found")
 	private val wsm = WorkspaceManager
 	
-	private val resolveModel: (ModelId) -> Model = { id ->
+	private val resolveModel: (UUID) -> Model = { id ->
 		ProviderService.getModel(id) ?: error("Unknown model: $id")
-	}
-	
-	private val defaultModel: Model by lazy {
-		ModelId.fromString(defaultModelId)?.let { ProviderService.getModel(it) }
-			?: error("Cannot resolve default model")
 	}
 	
 	private val sessions: MutableMap<UUID, Session> = mutableMapOf()
@@ -128,7 +122,6 @@ object SessionManager {
 			context = SessionContext.emptyContext(systemPrompt),
 			store = store,
 			resolveModel = resolveModel,
-			defaultModel = defaultModel,
 			workspaceId = data.id,
 			workspace = data.meta,
 			containerConfig = ContainerConfig(),
@@ -165,7 +158,6 @@ object SessionManager {
 			context = context,
 			store = store,
 			resolveModel = resolveModel,
-			defaultModel = defaultModel,
 			workspaceId = workspaceId,
 			workspace = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId"),
 			settings = settings,

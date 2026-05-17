@@ -32,8 +32,8 @@ class Read(private val core: CoreAPI) {
 	fun list(): Flow<String> = flow {
 		val providers = core.config.listProviders()
 		providers.forEachIndexed { index, provider ->
-			val modelCount = core.config.listModelIds().count { provider.name == it.provider }
-			emit(I18n.get("prov.out.name", provider.name))
+			val modelCount = core.config.listModels().count { it.data.providerId == provider.id }
+			emit(I18n.get("prov.out.name", provider.displayName))
 			emit(I18n.get("prov.out.type", provider.type))
 			emit(I18n.get("prov.out.model", modelCount))
 			if (index != providers.lastIndex) emit(LINE)
@@ -41,8 +41,8 @@ class Read(private val core: CoreAPI) {
 	}
 	
 	fun show(name: String): Flow<String> = flow {
-		val provider = core.config.listProviders().firstOrNull { it.name == name } ?: return@flow
-		emit(I18n.get("prov.out.name", provider.name))
+		val provider = core.config.listProviders().firstOrNull { it.displayName == name } ?: return@flow
+		emit(I18n.get("prov.out.name", provider.displayName))
 		emit(I18n.get("prov.out.type", provider.type))
 		emit(I18n.get("prov.out.key", provider.keyId))
 		emit(I18n.get("prov.out.url", provider.baseUrl?.value ?: I18n.get("prov.out.default")))
@@ -84,7 +84,7 @@ class Read(private val core: CoreAPI) {
 			if (info.supportsImage) add(I18n.get("prov.out.model.feature.image"))
 			if (info.supportsJsonOutput) add(I18n.get("prov.out.model.feature.json_output"))
 		}.joinToString(separator = " ") { "[${it}]" }
-		emit(I18n.get("prov.out.model.id", info.id))
+		emit(I18n.get("prov.out.model.id", info.modelId))
 		emit(I18n.get("prov.out.model.context_window", processUnit(info.contextWindow)))
 		emit(I18n.get("prov.out.model.max_output", processUnit(info.maxOutputTokens)))
 		emit(I18n.get("prov.out.model.feature", feature))

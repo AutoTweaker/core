@@ -92,7 +92,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		baseUrl = Url("https://api.xiaomimimo.com/v1"),
 		models = listOf(
 			ModelData.ModelInfo(
-				id = "mimo-v2-pro",
+				modelId = "mimo-v2-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
 				price = mimoProPrice,
@@ -103,7 +103,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsJsonOutput = true
 			),
 			ModelData.ModelInfo(
-				id = "mimo-v2.5-pro",
+				modelId = "mimo-v2.5-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
 				price = mimoProPrice,
@@ -114,7 +114,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsJsonOutput = true
 			),
 			ModelData.ModelInfo(
-				id = "mimo-v2-omni",
+				modelId = "mimo-v2-omni",
 				contextWindow = 256_000,
 				maxOutputTokens = 128_000,
 				price = ModelData.TokenPrice(
@@ -151,7 +151,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsJsonOutput = true
 			),
 			ModelData.ModelInfo(
-				id = "mimo-v2.5",
+				modelId = "mimo-v2.5",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
 				price = ModelData.TokenPrice(
@@ -211,7 +211,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsJsonOutput = true
 			),
 			ModelData.ModelInfo(
-				id = "mimo-v2-flash",
+				modelId = "mimo-v2-flash",
 				contextWindow = 256_000,
 				maxOutputTokens = 64_000,
 				price = ModelData.TokenPrice(

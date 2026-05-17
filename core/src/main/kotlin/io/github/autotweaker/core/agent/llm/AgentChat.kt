@@ -57,7 +57,7 @@ internal object AgentChat {
 		logger.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  messages={}",
 			agentId,
-			request.model.modelInfo.id,
+			request.model.modelInfo.modelId,
 			request.fallbackModels?.size,
 			chatRequest.messages.size
 		)
@@ -101,7 +101,7 @@ internal object AgentChat {
 							logger.debug(
 								"Agent chat error received  agentId={}  model={}  statusCode={}  errorCount={}",
 								agentId,
-								lastRetrying?.modelInfo?.id ?: request.model.modelInfo.id,
+								lastRetrying?.modelInfo?.modelId ?: request.model.modelInfo.modelId,
 								msg.statusCode,
 								errors.size + 1
 							)
@@ -140,7 +140,7 @@ internal object AgentChat {
 			logger.warn(
 				"Failed to complete agent chat  all models exhausted  agentId={}  model={}",
 				agentId,
-				request.model.modelInfo.id
+				request.model.modelInfo.modelId
 			)
 			return@flow
 		}

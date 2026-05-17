@@ -42,8 +42,7 @@ class Session(
 	config: SessionConfig,
 	context: SessionContext,
 	private val store: SessionStore,
-	private val resolveModel: (ModelId) -> Model,
-	private val defaultModel: Model,
+	private val resolveModel: (UUID) -> Model,
 	private val workspaceId: UUID,
 	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
@@ -51,13 +50,6 @@ class Session(
 	private val maxCompactedRounds: Int = 0,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	val safeResolveModel: (ModelId) -> Model = { modelId ->
-		try {
-			resolveModel(modelId)
-		} catch (_: Exception) {
-			defaultModel
-		}
-	}
 	
 	private val _tools: List<Tool> = ServiceLoader.load(Tool::class.java).toList()
 	
@@ -113,7 +105,7 @@ class Session(
 		return SessionContextConverter.toAgentContext(
 			context = _context.value,
 			messages = messages.values.toList(),
-			resolveModel = safeResolveModel,
+			resolveModel = resolveModel,
 			maxCompactedRounds = maxCompactedRounds
 		)
 	}
@@ -163,8 +155,8 @@ class Session(
 		_data.update { _data.value.copy(config = config) }
 		dispatch(
 			AgentCommand.Directive.UpdateModel(
-				model = safeResolveModel(config.model),
-				fallbackModels = config.fallbackModel?.map { safeResolveModel(it) },
+				model = resolveModel(config.model),
+				fallbackModels = config.fallbackModel?.map { resolveModel(it) },
 				thinking = config.thinking,
 			)
 		)
@@ -249,7 +241,7 @@ class Session(
 	private fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {
 		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(output.delta)
 		is AgentOutput.LlmError -> SessionOutput.LlmError(
-			output.error.content, output.error.statusCode, output.error.retrying?.modelId, output.error.timestamp
+			output.error.content, output.error.statusCode, output.error.retrying?.id, output.error.timestamp
 		)
 		
 		is AgentOutput.Compact -> SessionOutput.Compact(output.output)

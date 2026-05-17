@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.settings.SettingItem
+import java.util.*
 
 sealed class CoreConfig {
 	sealed class JsonConfig {
@@ -36,18 +37,16 @@ sealed class CoreConfig {
 	
 	sealed class ProviderConfig {
 		data class Provider(
-			val name: String,
+			val id: UUID,
 			val type: String,
 			val keyId: String,
 			val baseUrl: Url?,
+			val displayName: String,
 			val errorHandlingRules: List<ProviderData.ErrorHandlingRule>?
 		)
 		
 		data class Model(
-			val name: String,
-			val providerName: String,
-			val meta: ModelData.ModelInfo?,
-			val config: ModelData.Config?,
+			val data: ModelData,
 		)
 		
 		data class ApiKey(
