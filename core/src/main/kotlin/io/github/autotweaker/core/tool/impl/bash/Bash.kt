@@ -19,8 +19,7 @@
 package io.github.autotweaker.core.tool.impl.bash
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.find
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.core.data.EnvStorage
 import io.github.autotweaker.core.tool.Tool
 import io.github.autotweaker.core.tool.get
@@ -34,36 +33,36 @@ class Bash : Tool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val envStorage = EnvStorage(this::class.java.name)
 	
-	override fun resolveMeta(settings: List<SettingItem>): Tool.Meta {
-		val description: String = settings.find("core.tool.bash.description")
-		val runDescription: String = settings.find("core.tool.bash.function.description.run")
-		val commandDescription: String = settings.find("core.tool.bash.property.description.command")
-		val timeoutDescription: String = settings.find("core.tool.bash.property.description.timeout.seconds")
-		val envIdsDescription: String = settings.find("core.tool.bash.property.description.env.ids")
-		val defaultTimeoutSeconds: Int = settings.find("core.tool.bash.setting.default.timeout.seconds")
+	override fun resolveMeta(service: SettingService): Tool.Meta {
 		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
 		return Tool.Meta(
 			name = "bash",
-			description = description,
+			description = service.get(BashSettings.Description).value,
 			functions = listOf(
 				Tool.Function(
 					name = "run",
-					description = runDescription,
+					description = service.get(BashSettings.RunFuncDescription).value,
 					parameters = mapOf(
 						"command" to Tool.Function.Property(
-							description = commandDescription,
+							description = service.get(BashSettings.CommandPropDescription).value,
 							required = true,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
 						"timeout_seconds" to Tool.Function.Property(
-							description = timeoutDescription.format(defaultTimeoutSeconds),
+							description = service.get(BashSettings.TimeoutPropDescription).value.format(
+								service.get(
+									BashSettings.DefaultTimeoutSeconds
+								).value
+							),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
 						),
 						"env_ids" to Tool.Function.Property(
-							description = envIdsDescription.format(envIds),
+							description = service.get(BashSettings.EnvIdsPropDescription).value.format(envIds),
 							required = false,
-							valueType = Tool.Function.Property.ValueType.ArrayValue(Tool.Function.Property.ValueType.StringValue()),
+							valueType = Tool.Function.Property.ValueType.ArrayValue(
+								Tool.Function.Property.ValueType.StringValue()
+							),
 						),
 					),
 				),
@@ -72,17 +71,17 @@ class Bash : Tool {
 	}
 	
 	override suspend fun execute(input: Tool.ToolInput): Tool.ToolOutput {
-		val runtime = runtime(input.settings)
-		
+		val s = input.service
 		val command = input.arguments["command"]!!.jsonPrimitive.content
 		if (command.isBlank()) {
 			logger.debug("Rejected blank bash command  tool=bash")
-			return Tool.ToolOutput(runtime.messageInvalidCommand, false)
+			return Tool.ToolOutput(s.get(BashSettings.InvalidCommandMessage).value, false)
 		}
-		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: runtime.defaultTimeoutSeconds
+		val defaultTimeout = s.get(BashSettings.DefaultTimeoutSeconds).value
+		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: defaultTimeout
 		if (timeoutSeconds <= 0) {
 			logger.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
-			return Tool.ToolOutput(runtime.messageInvalidTimeout, false)
+			return Tool.ToolOutput(s.get(BashSettings.InvalidTimeoutMessage).value, false)
 		}
 		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
 		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
@@ -103,23 +102,9 @@ class Bash : Tool {
 			result.timeout
 		)
 		
-		val output = runtime.messageResultTemplate.format(result.exitCode, duration, stdout, stderr)
+		val output = s.get(BashSettings.ResultTemplate).value.format(result.exitCode, duration, stdout, stderr)
 		return Tool.ToolOutput(output, result.exitCode == 0 && !result.timeout)
 	}
-	
-	private data class Runtime(
-		val defaultTimeoutSeconds: Int,
-		val messageInvalidTimeout: String,
-		val messageInvalidCommand: String,
-		val messageResultTemplate: String,
-	)
-	
-	private fun runtime(settings: List<SettingItem>) = Runtime(
-		defaultTimeoutSeconds = settings.find("core.tool.bash.setting.default.timeout.seconds"),
-		messageInvalidTimeout = settings.find("core.tool.bash.message.error.invalid.timeout"),
-		messageInvalidCommand = settings.find("core.tool.bash.message.error.invalid.command"),
-		messageResultTemplate = settings.find("core.tool.bash.message.result.template"),
-	)
 	
 	fun listEnv(): List<String> = envStorage.listEnv()
 	
