@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.container
 
-import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.container.docker.DockerJavaService
 import io.github.autotweaker.core.data.EnvStorage
 import io.github.autotweaker.core.data.settings.Settings
@@ -47,7 +46,7 @@ object ContainerManager {
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
 		val config = ContainerConfig(env = getEnv())
-		val image = Settings.get().find<String>("core.container.docker.image")
+		val image = Settings.get(ContainerSettings.DockerImage).value
 		logger.debug("Container start initiated  image={}", image)
 		val id = service.start(image, config)
 		_containerId = id
