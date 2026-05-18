@@ -23,7 +23,6 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
-import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -32,13 +31,17 @@ object Settings : SettingService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
 	
+	@Volatile
+	private var cache: Map<String, SettingValue> = emptyMap()
+	
 	fun init() {
 		db = H2DatabaseStore.connect("AppConfig")
 		transaction(db) {
 			SchemaUtils.create(ConfigTable)
 		}
 		seedDefaults()
-		logger.info("Settings initialized  count={}", ConfigRegistry.getAll().size)
+		cache = loadAllIntoCache()
+		logger.info("Settings initialized  count={}", cache.size)
 	}
 	
 	private fun seedDefaults() {
@@ -59,14 +62,18 @@ object Settings : SettingService {
 		}
 	}
 	
+	private fun loadAllIntoCache(): Map<String, SettingValue> = transaction(db) {
+		val map = mutableMapOf<String, SettingValue>()
+		ConfigTable.selectAll().forEach { row ->
+			ConfigTable.getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }
+		}
+		map
+	}
+	
 	override fun <V : SettingValue> get(def: SettingDef<V>): V {
 		val id = def::class.qualifiedName!!
-		val row = transaction(db) {
-			ConfigTable.selectAll().where { ConfigTable.keyName eq id }.singleOrNull()
-		} ?: return def.default
-		
-		val stored = ConfigTable.getValueFromRow(row) ?: return def.default
-		@Suppress("UNCHECKED_CAST") return if (stored::class == def.default::class) stored as V else def.default
+		val stored = cache[id]
+		@Suppress("UNCHECKED_CAST") return if (stored != null && stored::class == def.default::class) stored as V else def.default
 	}
 	
 	override fun <V : SettingValue> set(def: SettingDef<V>, value: V) {
@@ -78,6 +85,7 @@ object Settings : SettingService {
 				fillColumn(it, value)
 			}
 		}
+		cache = cache + (id to value)
 		logger.debug("Setting updated by def  id={}  value={}", id, value)
 	}
 	
@@ -95,6 +103,7 @@ object Settings : SettingService {
 				fillColumn(it, value)
 			}
 		}
+		cache = cache + (id to value)
 		logger.debug("Setting updated by id  id={}  value={}", id, value)
 	}
 	

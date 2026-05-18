@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.tool
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonObject
 
 interface Tool {
-	fun resolveMeta(settings: List<SettingItem>): Meta
+	fun resolveMeta(service: SettingService): Meta
 	
 	data class Meta(
 		val name: String,
@@ -57,7 +57,7 @@ interface Tool {
 		val functionName: String,
 		val arguments: JsonObject,
 		val provider: SimpleContainer,
-		val settings: List<SettingItem>,
+		val service: SettingService,
 		val workspace: WorkspaceMeta,
 		val outputChannel: Channel<RuntimeOutput>? = null,
 	)
