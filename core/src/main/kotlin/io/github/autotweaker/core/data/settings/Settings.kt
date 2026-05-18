@@ -18,124 +18,94 @@
 
 package io.github.autotweaker.core.data.settings
 
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.types.config.SettingEntry
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 
-object Settings {
+object Settings : SettingService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
 	
-	@Volatile
-	private var cache: List<SettingItem>? = null
-	
 	fun init() {
 		db = H2DatabaseStore.connect("AppConfig")
-		
-		val rowCount = transaction(db) {
+		transaction(db) {
 			SchemaUtils.create(ConfigTable)
-			ConfigTable.selectAll().count()
 		}
-		
-		if (rowCount == 0L) {
-			val items = runBlocking { SerializeConfig.fetchDefaultConfig() }
-			ConfigRegistry.init(items)
-			transaction(db) { syncDb(items) }
-			cache = items
-			logger.info("Settings initialized from remote  count={}", items.size)
-		} else {
-			cache = loadAll()
-			ConfigRegistry.init(cache!!)
-			logger.info("Settings initialized from local  count={}", cache!!.size)
-			
-			launchBackgroundConfigUpdate()
-		}
+		seedDefaults()
+		logger.info("Settings initialized  count={}", ConfigRegistry.getAll().size)
 	}
 	
-	private fun launchBackgroundConfigUpdate() {
-		val localDb = db
-		Thread({
-			runBlocking {
-				runCatching { SerializeConfig.fetchDefaultConfig() }.onSuccess { remoteItems ->
-					transaction(localDb) { syncDb(remoteItems) }
-					ConfigRegistry.init(remoteItems)
-					cache = loadAll()
-					logger.info("Background config update completed  count={}", remoteItems.size)
-				}.onFailure { e ->
-					logger.warn("Background config update failed  reason={}", e.message)
-				}
-			}
-		}, "config-updater").apply { isDaemon = true }.start()
-	}
-	
-	private fun syncDb(items: List<SettingItem>) {
-		val registeredKeys = items.map { it.key.value }.toSet()
-		
-		items.forEach { item ->
-			val row = ConfigTable.selectAll().where { ConfigTable.keyName eq item.key.value }.singleOrNull()
-			if (row == null) {
-				ConfigTable.insert {
-					it[keyName] = item.key.value
-					it[description] = item.description
-					fillColumn(it, item.value)
-				}
-			} else {
-				val existingValue = ConfigTable.getValueFromRow(row)
-				if (existingValue == null || existingValue::class != item.value::class) {
-					ConfigTable.update({ ConfigTable.keyName eq item.key.value }) {
-						it[description] = item.description
-						fillColumn(it, item.value)
+	private fun seedDefaults() {
+		val existingIds = transaction(db) {
+			ConfigTable.selectAll().map { it[ConfigTable.keyName] }.toSet()
+		}
+		for ((id, def) in ConfigRegistry.getAll()) {
+			if (id !in existingIds) {
+				transaction(db) {
+					ConfigTable.insert {
+						it[keyName] = id
+						it[description] = def.description
+						fillColumn(it, def.default)
 					}
 				}
+				logger.debug("Setting seeded  id={}", id)
 			}
-		}
-		
-		if (registeredKeys.isNotEmpty()) {
-			ConfigTable.deleteWhere { ConfigTable.keyName notInList registeredKeys }
 		}
 	}
 	
-	fun get(): List<SettingItem> = cache ?: throw IllegalStateException("Settings not initialized")
+	override fun <V : SettingValue> get(def: SettingDef<V>): V {
+		val id = def::class.qualifiedName!!
+		val row = transaction(db) {
+			ConfigTable.selectAll().where { ConfigTable.keyName eq id }.singleOrNull()
+		} ?: return def.default
+		
+		val stored = ConfigTable.getValueFromRow(row) ?: return def.default
+		@Suppress("UNCHECKED_CAST") return if (stored::class == def.default::class) stored as V else def.default
+	}
 	
-	fun set(item: SettingItem) {
-		cache ?: throw IllegalStateException("Settings not initialized")
-		
-		val registered = ConfigRegistry.getItem(item.key.value)
-			?: throw IllegalArgumentException("Writing to unregistered key: ${item.key.value}")
-		
-		if (item.value::class != registered.value::class) {
-			throw IllegalArgumentException(
-				"Type mismatch for key '${item.key.value}': expected ${registered.value::class.simpleName}, got ${item.value::class.simpleName}"
-			)
-		}
-		
+	override fun <V : SettingValue> set(def: SettingDef<V>, value: V) {
+		val id = def::class.qualifiedName!!
 		transaction(db) {
 			ConfigTable.upsert {
-				it[keyName] = item.key.value
-				it[description] = item.description
-				fillColumn(it, item.value)
+				it[keyName] = id
+				it[description] = def.description
+				fillColumn(it, value)
 			}
 		}
-		
-		cache = cache!!.filterNot { it.key.value == item.key.value } + item
-		logger.debug("Setting updated  key={}  value={}", item.key.value, item.value)
+		logger.debug("Setting updated by def  id={}  value={}", id, value)
 	}
 	
-	private fun loadAll(): List<SettingItem> {
-		return transaction(db) {
-			ConfigTable.selectAll().map { row ->
-				val key = SettingKey(row[ConfigTable.keyName])
-				val value = ConfigTable.getValueFromRow(row)
-					?: throw IllegalStateException("Failed to parse value for key '${key.value}'")
-				val description = row[ConfigTable.description]
-				SettingItem(key, value, description)
+	override fun set(id: String, value: SettingValue) {
+		val def = ConfigRegistry.get(id) ?: throw IllegalArgumentException("Unknown setting: $id")
+		if (value::class != def.default::class) {
+			throw IllegalArgumentException(
+				"Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}"
+			)
+		}
+		transaction(db) {
+			ConfigTable.upsert {
+				it[keyName] = id
+				it[description] = def.description
+				fillColumn(it, value)
 			}
+		}
+		logger.debug("Setting updated by id  id={}  value={}", id, value)
+	}
+	
+	override fun getAll(): List<SettingEntry> = transaction(db) {
+		ConfigTable.selectAll().map { row ->
+			SettingEntry(
+				id = row[ConfigTable.keyName],
+				value = ConfigTable.getValueFromRow(row)
+					?: throw IllegalStateException("Failed to parse value for key '${row[ConfigTable.keyName]}'"),
+				description = row[ConfigTable.description]
+			)
 		}
 	}
 }

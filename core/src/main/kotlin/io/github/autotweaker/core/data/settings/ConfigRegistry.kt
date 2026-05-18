@@ -18,19 +18,21 @@
 
 package io.github.autotweaker.core.data.settings
 
-import io.github.autotweaker.api.types.settings.SettingItem
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.config.SettingDef
+import java.util.*
 
 object ConfigRegistry {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val _items = mutableSetOf<SettingItem>()
-	
-	fun init(items: Collection<SettingItem>) {
-		_items.clear()
-		_items.addAll(items)
-		logger.info("Config registry initialized  count={}", _items.size)
+	private val _defs: Map<String, SettingDef<*>> = run {
+		val map = mutableMapOf<String, SettingDef<*>>()
+		for (def in ServiceLoader.load(SettingDef::class.java)) {
+			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
+			check(id !in map) { "Duplicate SettingDef id: $id" }
+			map[id] = def
+		}
+		map
 	}
 	
-	fun getItem(key: String): SettingItem? = _items.find { it.key.value == key }
-	fun getAllItems(): Collection<SettingItem> = _items
+	fun get(id: String): SettingDef<*>? = _defs[id]
+	
+	fun getAll(): Map<String, SettingDef<*>> = _defs
 }
