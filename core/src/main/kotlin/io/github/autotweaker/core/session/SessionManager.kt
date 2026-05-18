@@ -23,7 +23,7 @@ import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionHandle
-import io.github.autotweaker.api.types.settings.find
+
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
@@ -37,9 +37,8 @@ import java.util.*
 
 object SessionManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val settings = Settings.get()
 	
-	private val systemPrompt: String = settings.find("core.session.system.prompt")
+	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt).value
 	
 	private val store =
 		ServiceLoader.load(SessionStore::class.java).firstOrNull() ?: error("No SessionStore implementation found")
@@ -125,7 +124,7 @@ object SessionManager {
 			workspaceId = data.id,
 			workspace = data.meta,
 			containerConfig = ContainerConfig(),
-			settings = settings,
+			service = Settings,
 		)
 		sessions[session.data.value.id] = session
 		startMonitor(session)
@@ -160,7 +159,7 @@ object SessionManager {
 			resolveModel = resolveModel,
 			workspaceId = workspaceId,
 			workspace = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId"),
-			settings = settings,
+			service = Settings,
 			containerConfig = ContainerConfig(),
 		)
 		sessions[session.data.value.id] = session

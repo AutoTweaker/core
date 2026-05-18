@@ -18,11 +18,11 @@
 
 package io.github.autotweaker.core.session
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
-import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.core.agent.Agent
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.AgentContext
@@ -46,7 +46,7 @@ class Session(
 	private val workspaceId: UUID,
 	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
-	private val settings: List<SettingItem>,
+	private val service: SettingService,
 	private val maxCompactedRounds: Int = 0,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -140,7 +140,7 @@ class Session(
 			thinking = _data.value.config.thinking,
 			summarizeModel = resolveModel(_data.value.config.summarizeModel),
 			containerConfig = containerConfig,
-			settings = settings,
+			service = service,
 			tools = _tools,
 		)
 		agents[newAgent.agentId] = newAgent
