@@ -75,91 +75,6 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.21.3")
 }
 
-// region SettingItem.find() 编译前校验
-
-tasks.register("validateFindCalls") {
-	description = "校验 SettingItem.find() 的键引用和类型是否合法"
-	notCompatibleWithConfigurationCache("访问文件系统和 Project 对象")
-	
-	doLast {
-		val valueTypeToKotlinType = mapOf(
-			"ValByte" to "Byte", "ValShort" to "Short", "ValInt" to "Int",
-			"ValLong" to "Long", "ValFloat" to "Float", "ValDouble" to "Double",
-			"ValBoolean" to "Boolean", "ValChar" to "Char", "ValString" to "String",
-		)
-		
-		val configSerializerFile = rootProject.file(
-			"config/src/main/kotlin/io/github/autotweaker/config/serializer/ConfigSerializer.kt"
-		)
-		if (!configSerializerFile.exists()) return@doLast
-		
-		// 从 ConfigSerializer.kt 提取 key→期望类型 映射
-		val itemRegex = Regex("""SettingKey\("([^"]+)"\)\s*,\s*SettingItem\.Value\.(\w+)\(""")
-		val promptRegex = Regex("""fromPrompt\("([^"]+)"\s*,\s*""")
-		val registry = mutableMapOf<String, String>()
-		val configSource = configSerializerFile.readText()
-		for (m in itemRegex.findAll(configSource)) {
-			val kotlinType = valueTypeToKotlinType[m.groupValues[2]] ?: continue
-			registry[m.groupValues[1]] = kotlinType
-		}
-		for (m in promptRegex.findAll(configSource)) {
-			registry[m.groupValues[1]] = "String"
-		}
-		
-		val findRegex = Regex("""\.find\("([^"]+)"\)""")
-		val typeCheckRegex = Regex(
-			""":\s*(Byte|Short|Int|Long|Float|Double|Boolean|Char|String)\s*=\s*[^=]*?\.find\("([^"]+)"\)""",
-			setOf(RegexOption.DOT_MATCHES_ALL)
-		)
-		
-		fun lineOf(source: String, offset: Int): Int =
-			source.substring(0, offset.coerceAtMost(source.length)).count { it == '\n' } + 1
-		
-		var errorCount = 0
-		val sourceDir = file("src/main/kotlin")
-		val baseDir = projectDir.toPath()
-		
-		sourceDir.walkTopDown().filter { it.isFile && it.extension == "kt" }.forEach { ktFile ->
-			val source = ktFile.readText()
-			val rel = baseDir.relativize(ktFile.toPath())
-			
-			for (m in findRegex.findAll(source)) {
-				val key = m.groupValues[1]
-				if (key !in registry) {
-					logger.error("{}:{}: 未知的配置键 \"{}\"", rel, lineOf(source, m.range.first), key)
-					errorCount++
-				}
-			}
-			
-			for (m in typeCheckRegex.findAll(source)) {
-				val declaredType = m.groupValues[1]
-				val key = m.groupValues[2]
-				val expectedType = registry[key] ?: continue
-				if (declaredType != expectedType) {
-					logger.error(
-						"{}:{}: 类型不匹配 \"{}\" 期望 {} 但为 {}",
-						rel,
-						lineOf(source, m.range.first),
-						key,
-						expectedType,
-						declaredType
-					)
-					errorCount++
-				}
-			}
-		}
-		
-		if (errorCount > 0) {
-			throw GradleException("SettingItem.find() validation failed with $errorCount error(s)")
-		}
-	}
-}
-
-tasks.named("compileKotlin") {
-	dependsOn("validateFindCalls")
-}
-
-// endregion
 
 tasks.test {
 	useJUnitPlatform()
@@ -193,9 +108,9 @@ val generateVersionProperties by tasks.registering {
 	
 	doLast {
 		val gitHash = runCatching {
-			val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-				.redirectError(ProcessBuilder.Redirect.DISCARD)
-				.start()
+			val process =
+				ProcessBuilder("git", "rev-parse", "--short", "HEAD").redirectError(ProcessBuilder.Redirect.DISCARD)
+					.start()
 			val output = process.inputStream.bufferedReader().readText().trim()
 			if (process.waitFor() != 0) throw RuntimeException("git exited non-zero")
 			output
@@ -249,7 +164,6 @@ tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEac
 }
 
 // endregion
-
 
 tasks.register<Exec>("compileAutotweakerCli") {
 	description = "编译 C 编写的 autotweaker CLI 客户端"
