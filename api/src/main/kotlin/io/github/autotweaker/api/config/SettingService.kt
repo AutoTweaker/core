@@ -25,5 +25,6 @@ interface SettingService {
 	fun <V : SettingValue> get(def: SettingDef<V>): V
 	fun <V : SettingValue> set(def: SettingDef<V>, value: V)
 	fun set(id: String, value: SettingValue)
+	fun setDescription(id: String, description: String)
 	fun getAll(): List<SettingEntry>
 }

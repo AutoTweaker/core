@@ -25,10 +25,10 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.*
-import io.github.autotweaker.api.types.settings.SettingKey
 import java.util.*
 
 interface CoreAPI {
@@ -75,9 +75,10 @@ interface CoreAPI {
 	}
 	
 	interface ConfigAPI {
-		fun getAppConfig(key: SettingKey): CoreConfig.AppConfig?
-		fun setAppConfig(config: CoreConfig.AppConfig)
-		fun getAllAppConfigs(): List<CoreConfig.AppConfig>
+		fun getAppConfig(): List<CoreConfig.AppConfig>
+		fun getDefaultAppConfig(): List<CoreConfig.AppConfig>
+		fun setAppConfigValue(id: String, value: SettingValue)
+		fun setAppConfigDesc(id: String, description: String)
 		
 		fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
 		fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
