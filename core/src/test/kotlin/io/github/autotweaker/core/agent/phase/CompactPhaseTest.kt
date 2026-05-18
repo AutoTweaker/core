@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent.phase
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
@@ -53,11 +54,15 @@ class CompactPhaseTest {
 	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val capturedOutputs = mutableListOf<AgentOutput>()
 	private val settings = listOf(
-		SettingItem(SettingKey("core.agent.compact.prompt"), SettingItem.Value.ValString("Summarize conversation"), ""),
-		SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingItem.Value.ValInt(10000), ""),
+		SettingItem(
+			SettingKey("core.agent.compact.prompt"),
+			SettingValue.ValString("Summarize conversation"),
+			""
+		),
+		SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(10000), ""),
 		SettingItem(
 			SettingKey("core.agent.compact.message.summarize.prompt"),
-			SettingItem.Value.ValString("Summarize: %s"),
+			SettingValue.ValString("Summarize: %s"),
 			""
 		),
 	)
@@ -406,13 +411,13 @@ class CompactPhaseTest {
 		val longContentSettings = listOf(
 			SettingItem(
 				SettingKey("core.agent.compact.prompt"),
-				SettingItem.Value.ValString("Summarize conversation"),
+				SettingValue.ValString("Summarize conversation"),
 				""
 			),
-			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingItem.Value.ValInt(5), ""),
+			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(5), ""),
 			SettingItem(
 				SettingKey("core.agent.compact.message.summarize.prompt"),
-				SettingItem.Value.ValString("Summarize: %s"),
+				SettingValue.ValString("Summarize: %s"),
 				""
 			),
 		)
@@ -461,11 +466,11 @@ class CompactPhaseTest {
 	@Test
 	fun `long tool result triggers summarizeMessage for tool content`() = runTest {
 		val longContentSettings = listOf(
-			SettingItem(SettingKey("core.agent.compact.prompt"), SettingItem.Value.ValString("Compact"), ""),
-			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingItem.Value.ValInt(5), ""),
+			SettingItem(SettingKey("core.agent.compact.prompt"), SettingValue.ValString("Compact"), ""),
+			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(5), ""),
 			SettingItem(
 				SettingKey("core.agent.compact.message.summarize.prompt"),
-				SettingItem.Value.ValString("TLDR: %s"),
+				SettingValue.ValString("TLDR: %s"),
 				""
 			),
 		)
@@ -550,11 +555,11 @@ class CompactPhaseTest {
 	@Test
 	fun `summarizeMessage falls back to original content when result empty`() = runTest {
 		val fallbackSettings = listOf(
-			SettingItem(SettingKey("core.agent.compact.prompt"), SettingItem.Value.ValString("Compact"), ""),
-			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingItem.Value.ValInt(5), ""),
+			SettingItem(SettingKey("core.agent.compact.prompt"), SettingValue.ValString("Compact"), ""),
+			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(5), ""),
 			SettingItem(
 				SettingKey("core.agent.compact.message.summarize.prompt"),
-				SettingItem.Value.ValString("TLDR: %s"),
+				SettingValue.ValString("TLDR: %s"),
 				""
 			),
 		)

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.tool.Tool
@@ -34,7 +35,7 @@ class ToolAssemblerTest {
 	private val defaultSettings: List<SettingItem> = listOf(
 		SettingItem(
 			SettingKey("core.agent.tool.description.reason"),
-			SettingItem.Value.ValString(reasonDesc),
+			SettingValue.ValString(reasonDesc),
 			"",
 		)
 	)

@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent.tool
 
 import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -47,23 +48,31 @@ class ToolsTest {
 	private val enabledMsg = "Tool %s with %d functions enabled"
 	
 	private val defaultSettings: List<SettingItem> = listOf(
-		SettingItem(SettingKey("core.agent.tool.description.reason"), SettingItem.Value.ValString("reason"), ""),
-		SettingItem(SettingKey("core.agent.tool.description.enable"), SettingItem.Value.ValString(enableDesc), ""),
-		SettingItem(SettingKey("core.agent.tool.response.active"), SettingItem.Value.ValString(enabledMsg), ""),
-		SettingItem(SettingKey("core.agent.tool.response.json.error"), SettingItem.Value.ValString("JSON: %s"), ""),
+		SettingItem(SettingKey("core.agent.tool.description.reason"), SettingValue.ValString("reason"), ""),
+		SettingItem(
+			SettingKey("core.agent.tool.description.enable"),
+			SettingValue.ValString(enableDesc),
+			""
+		),
+		SettingItem(SettingKey("core.agent.tool.response.active"), SettingValue.ValString(enabledMsg), ""),
+		SettingItem(
+			SettingKey("core.agent.tool.response.json.error"),
+			SettingValue.ValString("JSON: %s"),
+			""
+		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.missing"),
-			SettingItem.Value.ValString("missing: %s %s"),
+			SettingValue.ValString("missing: %s %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.error"),
-			SettingItem.Value.ValString("error: %s %s %s"),
+			SettingValue.ValString("error: %s %s %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingItem.Value.ValString("name: %s"),
+			SettingValue.ValString("name: %s"),
 			""
 		),
 	)

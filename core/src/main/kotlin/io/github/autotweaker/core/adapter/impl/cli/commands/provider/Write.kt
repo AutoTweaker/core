@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.adapter.impl.cli.commands.provider
 
-import io.github.autotweaker.api.CoreAPI
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.core.adapter.impl.cli.Command

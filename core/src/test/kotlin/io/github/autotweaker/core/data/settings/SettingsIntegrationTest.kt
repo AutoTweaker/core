@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
@@ -39,19 +40,19 @@ class SettingsIntegrationTest {
 		
 		mockkObject(SerializeConfig)
 		coEvery { SerializeConfig.fetchDefaultConfig() } returns listOf(
-			SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1"),
-			SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
+			SettingItem(SettingKey("test.key1"), SettingValue.ValString("default1"), "desc1"),
+			SettingItem(SettingKey("test.key2"), SettingValue.ValInt(42), "desc2")
 		)
 		
 		mockkObject(ConfigRegistry)
 		every { ConfigRegistry.getItem(any()) } returns null
 		every { ConfigRegistry.getItem("test.key1") } returns
-				SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1")
+				SettingItem(SettingKey("test.key1"), SettingValue.ValString("default1"), "desc1")
 		every { ConfigRegistry.getItem("test.key2") } returns
-				SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
+				SettingItem(SettingKey("test.key2"), SettingValue.ValInt(42), "desc2")
 		every { ConfigRegistry.getAllItems() } returns listOf(
-			SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1"),
-			SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
+			SettingItem(SettingKey("test.key1"), SettingValue.ValString("default1"), "desc1"),
+			SettingItem(SettingKey("test.key2"), SettingValue.ValInt(42), "desc2")
 		)
 	}
 	
@@ -72,23 +73,29 @@ class SettingsIntegrationTest {
 		val all = Settings.get()
 		assertTrue(all.isNotEmpty())
 		val item = all.find { it.key.value == "test.key1" }!!
-		assertEquals("default1", (item.value as SettingItem.Value.ValString).value)
+		assertEquals("default1", (item.value as SettingValue.ValString).value)
 	}
 	
 	@Test
 	fun `set updates value`() {
 		Settings.init()
-		Settings.set(SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("updated"), "updated desc"))
+		Settings.set(
+			SettingItem(
+				SettingKey("test.key1"),
+				SettingValue.ValString("updated"),
+				"updated desc"
+			)
+		)
 		val all = Settings.get()
 		val item = all.find { it.key.value == "test.key1" }!!
-		assertEquals("updated", (item.value as SettingItem.Value.ValString).value)
+		assertEquals("updated", (item.value as SettingValue.ValString).value)
 	}
 	
 	@Test
 	fun `set unregistered key throws`() {
 		Settings.init()
 		assertFailsWith<IllegalArgumentException> {
-			Settings.set(SettingItem(SettingKey("zz.unknown"), SettingItem.Value.ValString("x"), "desc"))
+			Settings.set(SettingItem(SettingKey("zz.unknown"), SettingValue.ValString("x"), "desc"))
 		}
 	}
 	
@@ -96,32 +103,32 @@ class SettingsIntegrationTest {
 	fun `set type mismatch throws`() {
 		Settings.init()
 		assertFailsWith<IllegalArgumentException> {
-			Settings.set(SettingItem(SettingKey("test.key1"), SettingItem.Value.ValInt(100), "desc"))
+			Settings.set(SettingItem(SettingKey("test.key1"), SettingValue.ValInt(100), "desc"))
 		}
 	}
 	
 	@Test
 	fun `init detects type mismatch and updates`() {
 		every { ConfigRegistry.getItem("test.key3") } returns
-				SettingItem(SettingKey("test.key3"), SettingItem.Value.ValInt(999), "desc3")
+				SettingItem(SettingKey("test.key3"), SettingValue.ValInt(999), "desc3")
 		every { ConfigRegistry.getAllItems() } returns listOf(
-			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValInt(999), "desc3")
+			SettingItem(SettingKey("test.key3"), SettingValue.ValInt(999), "desc3")
 		)
 		coEvery { SerializeConfig.fetchDefaultConfig() } returns listOf(
-			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValInt(999), "desc3")
+			SettingItem(SettingKey("test.key3"), SettingValue.ValInt(999), "desc3")
 		)
 		Settings.init()
 		
 		val afterFirst = Settings.get().find { it.key.value == "test.key3" }!!
-		assertTrue(afterFirst.value is SettingItem.Value.ValInt)
+		assertTrue(afterFirst.value is SettingValue.ValInt)
 		
 		every { ConfigRegistry.getItem("test.key3") } returns
-				SettingItem(SettingKey("test.key3"), SettingItem.Value.ValString("updated-type"), "desc3")
+				SettingItem(SettingKey("test.key3"), SettingValue.ValString("updated-type"), "desc3")
 		every { ConfigRegistry.getAllItems() } returns listOf(
-			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValString("updated-type"), "desc3")
+			SettingItem(SettingKey("test.key3"), SettingValue.ValString("updated-type"), "desc3")
 		)
 		coEvery { SerializeConfig.fetchDefaultConfig() } returns listOf(
-			SettingItem(SettingKey("test.key3"), SettingItem.Value.ValString("updated-type"), "desc3")
+			SettingItem(SettingKey("test.key3"), SettingValue.ValString("updated-type"), "desc3")
 		)
 		
 		Settings.init()
@@ -129,10 +136,10 @@ class SettingsIntegrationTest {
 		var afterUpdate: SettingItem? = null
 		repeat(50) {
 			afterUpdate = Settings.get().find { it.key.value == "test.key3" }
-			if (afterUpdate?.value is SettingItem.Value.ValString) return@repeat
+			if (afterUpdate?.value is SettingValue.ValString) return@repeat
 			Thread.sleep(50)
 		}
-		assertTrue(afterUpdate?.value is SettingItem.Value.ValString)
+		assertTrue(afterUpdate?.value is SettingValue.ValString)
 	}
 	
 	@Test

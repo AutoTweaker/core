@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.llm.base.openai
 
-import io.github.autotweaker.api.LlmClient
+import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest

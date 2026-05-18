@@ -20,6 +20,7 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -44,38 +45,50 @@ class AgentTest {
 	private val mockSummarizeModel: Model = mockk(relaxed = true)
 	
 	private val agentSettings: List<SettingItem> = listOf(
-		SettingItem(SettingKey("core.agent.tool.description.reason"), SettingItem.Value.ValString("reason"), ""),
-		SettingItem(SettingKey("core.agent.tool.description.enable"), SettingItem.Value.ValString("Enable tool"), ""),
+		SettingItem(SettingKey("core.agent.tool.description.reason"), SettingValue.ValString("reason"), ""),
+		SettingItem(
+			SettingKey("core.agent.tool.description.enable"),
+			SettingValue.ValString("Enable tool"),
+			""
+		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.active"),
-			SettingItem.Value.ValString("Tool %s with %d functions enabled"),
+			SettingValue.ValString("Tool %s with %d functions enabled"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.json.error"),
-			SettingItem.Value.ValString("JSON error: %s"),
+			SettingValue.ValString("JSON error: %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.missing"),
-			SettingItem.Value.ValString("missing: %s %s"),
+			SettingValue.ValString("missing: %s %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.error"),
-			SettingItem.Value.ValString("error: %s %s %s"),
+			SettingValue.ValString("error: %s %s %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingItem.Value.ValString("name error: %s"),
+			SettingValue.ValString("name error: %s"),
 			""
 		),
-		SettingItem(SettingKey("core.agent.tool.response.canceled"), SettingItem.Value.ValString("Tool cancelled"), ""),
-		SettingItem(SettingKey("core.agent.tool.response.rejected"), SettingItem.Value.ValString("Tool rejected"), ""),
+		SettingItem(
+			SettingKey("core.agent.tool.response.canceled"),
+			SettingValue.ValString("Tool cancelled"),
+			""
+		),
+		SettingItem(
+			SettingKey("core.agent.tool.response.rejected"),
+			SettingValue.ValString("Tool rejected"),
+			""
+		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.rejected.with.feedback"),
-			SettingItem.Value.ValString("Tool rejected: %s"),
+			SettingValue.ValString("Tool rejected: %s"),
 			""
 		),
 	)

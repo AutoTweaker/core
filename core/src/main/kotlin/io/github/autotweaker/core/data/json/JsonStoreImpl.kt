@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.data.json
 
-import io.github.autotweaker.api.JsonStore
+import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement

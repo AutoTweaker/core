@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.tool.Tool
@@ -30,22 +31,22 @@ class ToolCallValidatorTest {
 	private val settings: List<SettingItem> = listOf(
 		SettingItem(
 			SettingKey("core.agent.tool.response.json.error"),
-			SettingItem.Value.ValString("JSON error: %s"),
+			SettingValue.ValString("JSON error: %s"),
 			"",
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.missing"),
-			SettingItem.Value.ValString("Missing property in %s: %s"),
+			SettingValue.ValString("Missing property in %s: %s"),
 			"",
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.error"),
-			SettingItem.Value.ValString("Property error in %s: %s should be %s"),
+			SettingValue.ValString("Property error in %s: %s should be %s"),
 			"",
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingItem.Value.ValString("Function not found: %s"),
+			SettingValue.ValString("Function not found: %s"),
 			"",
 		),
 	)

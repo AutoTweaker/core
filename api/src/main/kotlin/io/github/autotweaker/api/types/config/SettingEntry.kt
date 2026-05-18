@@ -16,24 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.types.config
 
-import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.ProviderData
-import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 
-interface LlmClient {
-	val providerInfo: ProviderInfo
-	
-	data class ProviderInfo(
-		val name: String,
-		val baseUrl: Url,
-		val models: List<ModelData.ModelInfo>,
-		val errorHandlingRules: List<ProviderData.ErrorHandlingRule>
-	)
-	
-	suspend fun chat(request: ChatRequest, apiKey: String, baseUrl: Url? = null): Flow<ChatResult>
-}
+@Serializable
+data class SettingEntry(
+	val id: String,
+	val value: SettingValue,
+	val description: String
+)

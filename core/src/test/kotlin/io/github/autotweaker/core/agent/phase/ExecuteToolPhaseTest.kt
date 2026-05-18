@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent.phase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -58,36 +59,40 @@ class ExecuteToolPhaseTest {
 	private val capturedOutputs = mutableListOf<AgentOutput>()
 	private lateinit var tmpDir: Path
 	private val settings = listOf(
-		SettingItem(SettingKey("core.agent.tool.timeout.seconds"), SettingItem.Value.ValInt(2), ""),
+		SettingItem(SettingKey("core.agent.tool.timeout.seconds"), SettingValue.ValInt(2), ""),
 		SettingItem(
 			SettingKey("core.agent.tool.response.timeout"),
-			SettingItem.Value.ValString("Timeout after %d seconds"),
+			SettingValue.ValString("Timeout after %d seconds"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.missing"),
-			SettingItem.Value.ValString("Missing %s"),
+			SettingValue.ValString("Missing %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.property.error"),
-			SettingItem.Value.ValString("Error %s"),
+			SettingValue.ValString("Error %s"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingItem.Value.ValString("Function %s not found"),
+			SettingValue.ValString("Function %s not found"),
 			""
 		),
-		SettingItem(SettingKey("core.agent.tool.description.enable"), SettingItem.Value.ValString("Enable tool"), ""),
+		SettingItem(
+			SettingKey("core.agent.tool.description.enable"),
+			SettingValue.ValString("Enable tool"),
+			""
+		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.active"),
-			SettingItem.Value.ValString("Tool %s with %d functions enabled"),
+			SettingValue.ValString("Tool %s with %d functions enabled"),
 			""
 		),
 		SettingItem(
 			SettingKey("core.agent.tool.response.json.error"),
-			SettingItem.Value.ValString("JSON error: %s"),
+			SettingValue.ValString("JSON error: %s"),
 			""
 		),
 	)
@@ -190,40 +195,40 @@ class ExecuteToolPhaseTest {
 	@Test
 	fun `timeout returns Tool with TIMEOUT status`() = runTest {
 		val timeoutSettings = listOf(
-			SettingItem(SettingKey("core.agent.tool.timeout.seconds"), SettingItem.Value.ValInt(0), ""),
+			SettingItem(SettingKey("core.agent.tool.timeout.seconds"), SettingValue.ValInt(0), ""),
 			SettingItem(
 				SettingKey("core.agent.tool.response.timeout"),
-				SettingItem.Value.ValString("Timeout after %d seconds"),
+				SettingValue.ValString("Timeout after %d seconds"),
 				""
 			),
 			SettingItem(
 				SettingKey("core.agent.tool.response.property.missing"),
-				SettingItem.Value.ValString("Missing %s"),
+				SettingValue.ValString("Missing %s"),
 				""
 			),
 			SettingItem(
 				SettingKey("core.agent.tool.response.property.error"),
-				SettingItem.Value.ValString("Error %s"),
+				SettingValue.ValString("Error %s"),
 				""
 			),
 			SettingItem(
 				SettingKey("core.agent.tool.response.function.name.error"),
-				SettingItem.Value.ValString("Function %s not found"),
+				SettingValue.ValString("Function %s not found"),
 				""
 			),
 			SettingItem(
 				SettingKey("core.agent.tool.description.enable"),
-				SettingItem.Value.ValString("Enable tool"),
+				SettingValue.ValString("Enable tool"),
 				""
 			),
 			SettingItem(
 				SettingKey("core.agent.tool.response.active"),
-				SettingItem.Value.ValString("Tool %s with %d functions enabled"),
+				SettingValue.ValString("Tool %s with %d functions enabled"),
 				""
 			),
 			SettingItem(
 				SettingKey("core.agent.tool.response.json.error"),
-				SettingItem.Value.ValString("JSON error: %s"),
+				SettingValue.ValString("JSON error: %s"),
 				""
 			),
 		)

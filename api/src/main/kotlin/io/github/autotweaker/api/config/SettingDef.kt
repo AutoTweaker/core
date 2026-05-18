@@ -16,25 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.settings
+package io.github.autotweaker.api.config
 
-import kotlinx.serialization.Serializable
+import io.github.autotweaker.api.types.config.SettingValue
 
-@JvmInline
-@Serializable
-value class SettingKey private constructor(val value: String) {
-	companion object {
-		private val SEGMENT_PATTERN = Regex("^[a-z0-9]{2,}$")
-		
-		operator fun invoke(raw: String): SettingKey {
-			require(raw.isNotBlank()) { "SettingKey must not be blank" }
-			require(!raw.startsWith('.')) { "SettingKey must not start with '.'" }
-			require(!raw.endsWith('.')) { "SettingKey must not end with '.'" }
-			val segments = raw.split('.')
-			require(segments.all { SEGMENT_PATTERN.matches(it) }) {
-				"Each segment must be 2+ lowercase letters or digits, got: $raw"
-			}
-			return SettingKey(raw)
-		}
-	}
+interface SettingDef<V : SettingValue> {
+	val default: V
+	val description: String
 }

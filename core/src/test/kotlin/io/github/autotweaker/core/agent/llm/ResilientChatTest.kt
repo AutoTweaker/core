@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.api.LlmClient
+import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url

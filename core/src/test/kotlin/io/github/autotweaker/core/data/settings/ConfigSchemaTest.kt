@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
-import io.github.autotweaker.api.types.settings.find
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -30,55 +30,55 @@ class ConfigSchemaTest {
 	
 	@Test
 	fun `SettingItem Value ValByte`() {
-		val v = SettingItem.Value.ValByte(42.toByte())
+		val v = SettingValue.ValByte(42.toByte())
 		assertEquals(42.toByte(), v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValShort`() {
-		val v = SettingItem.Value.ValShort(100.toShort())
+		val v = SettingValue.ValShort(100.toShort())
 		assertEquals(100.toShort(), v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValInt`() {
-		val v = SettingItem.Value.ValInt(999)
+		val v = SettingValue.ValInt(999)
 		assertEquals(999, v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValLong`() {
-		val v = SettingItem.Value.ValLong(123456789L)
+		val v = SettingValue.ValLong(123456789L)
 		assertEquals(123456789L, v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValFloat`() {
-		val v = SettingItem.Value.ValFloat(3.14f)
+		val v = SettingValue.ValFloat(3.14f)
 		assertEquals(3.14f, v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValDouble`() {
-		val v = SettingItem.Value.ValDouble(2.718)
+		val v = SettingValue.ValDouble(2.718)
 		assertEquals(2.718, v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValBoolean`() {
-		val v = SettingItem.Value.ValBoolean(true)
+		val v = SettingValue.ValBoolean(true)
 		assertEquals(true, v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValChar`() {
-		val v = SettingItem.Value.ValChar('x')
+		val v = SettingValue.ValChar('x')
 		assertEquals('x', v.value)
 	}
 	
 	@Test
 	fun `SettingItem Value ValString`() {
-		val v = SettingItem.Value.ValString("hello")
+		val v = SettingValue.ValString("hello")
 		assertEquals("hello", v.value)
 	}
 	
@@ -86,7 +86,7 @@ class ConfigSchemaTest {
 	fun `find returns value for existing key`() {
 		val item = SettingItem(
 			key = SettingKey("core.test"),
-			value = SettingItem.Value.ValString("found"),
+			value = SettingValue.ValString("found"),
 			description = "desc"
 		)
 		val items = listOf(item)
@@ -103,7 +103,7 @@ class ConfigSchemaTest {
 	fun `find throws for type mismatch`() {
 		val item = SettingItem(
 			key = SettingKey("core.num"),
-			value = SettingItem.Value.ValInt(42),
+			value = SettingValue.ValInt(42),
 			description = "desc"
 		)
 		val items = listOf(item)
@@ -114,7 +114,7 @@ class ConfigSchemaTest {
 	fun `find correct type conversion`() {
 		val item = SettingItem(
 			key = SettingKey("core.flag"),
-			value = SettingItem.Value.ValBoolean(false),
+			value = SettingValue.ValBoolean(false),
 			description = "desc"
 		)
 		val items = listOf(item)
@@ -125,11 +125,11 @@ class ConfigSchemaTest {
 	fun `SettingItem create with all fields`() {
 		val item = SettingItem(
 			key = SettingKey("core.test"),
-			value = SettingItem.Value.ValInt(10),
+			value = SettingValue.ValInt(10),
 			description = "test desc"
 		)
 		assertEquals("core.test", item.key.value)
-		assertIs<SettingItem.Value.ValInt>(item.value)
+		assertIs<SettingValue.ValInt>(item.value)
 		assertEquals("test desc", item.description)
 	}
 }

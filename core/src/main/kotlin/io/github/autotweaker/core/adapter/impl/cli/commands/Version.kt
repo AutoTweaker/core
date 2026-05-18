@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.adapter.impl.cli.commands
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.CoreAPI
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk

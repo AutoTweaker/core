@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.adapter.impl
 
-import io.github.autotweaker.api.AdapterRegistry
-import io.github.autotweaker.api.CoreAPI
-import io.github.autotweaker.api.LlmClient
+import io.github.autotweaker.api.adapter.AdapterRegistry
+import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo

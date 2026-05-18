@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.tool.impl.read
 
 import io.github.autotweaker.api.types.Unicode
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -83,10 +84,10 @@ class ReadTest {
 	}
 	
 	private fun setting(key: String, value: String): SettingItem =
-		SettingItem(SettingKey(key), SettingItem.Value.ValString(value), "")
+		SettingItem(SettingKey(key), SettingValue.ValString(value), "")
 	
 	private fun setting(key: String, value: Int): SettingItem =
-		SettingItem(SettingKey(key), SettingItem.Value.ValInt(value), "")
+		SettingItem(SettingKey(key), SettingValue.ValInt(value), "")
 	
 	private fun ToolInput(
 		functionName: String,

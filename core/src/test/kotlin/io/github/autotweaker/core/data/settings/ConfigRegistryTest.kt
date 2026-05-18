@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
 import kotlin.test.*
@@ -26,7 +27,7 @@ class ConfigRegistryTest {
 	
 	private val testItem = SettingItem(
 		SettingKey("test.key.abc"),
-		SettingItem.Value.ValString("test value"),
+		SettingValue.ValString("test value"),
 		"test description"
 	)
 	

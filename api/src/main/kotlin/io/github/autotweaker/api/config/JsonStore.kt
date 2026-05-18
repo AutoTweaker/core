@@ -16,13 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.config
 
-import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.api.types.adapter.AdapterInfo
+import kotlinx.serialization.json.JsonElement
 
-interface AdapterAPI {
-	fun load(coreVersion: SemVer): AdapterInfo
-	fun start(core: CoreAPI)
-	fun stop()
+interface JsonStore {
+	fun get(): JsonElement?
+	fun set(value: JsonElement)
 }

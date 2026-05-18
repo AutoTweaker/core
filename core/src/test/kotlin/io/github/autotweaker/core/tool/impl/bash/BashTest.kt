@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.tool.impl.bash
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
@@ -70,7 +71,11 @@ class BashTest {
 			setting("core.tool.bash.property.description.command", "The bash command to execute"),
 			setting("core.tool.bash.property.description.timeout.seconds", "Timeout in seconds (default %d)"),
 			setting("core.tool.bash.property.description.env.ids", "Environment variable IDs: %s"),
-			SettingItem(SettingKey("core.tool.bash.setting.default.timeout.seconds"), SettingItem.Value.ValInt(30), ""),
+			SettingItem(
+				SettingKey("core.tool.bash.setting.default.timeout.seconds"),
+				SettingValue.ValInt(30),
+				""
+			),
 			setting("core.tool.bash.message.error.invalid.timeout", "Timeout must be positive"),
 			setting("core.tool.bash.message.error.invalid.command", "Command must not be blank"),
 			setting(
@@ -81,7 +86,7 @@ class BashTest {
 	}
 	
 	private fun setting(key: String, value: String): SettingItem =
-		SettingItem(SettingKey(key), SettingItem.Value.ValString(value), "")
+		SettingItem(SettingKey(key), SettingValue.ValString(value), "")
 	
 	private fun ToolInput(
 		arguments: JsonObject,

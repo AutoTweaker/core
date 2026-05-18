@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.adapter.impl.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.AdapterAPI
-import io.github.autotweaker.api.CoreAPI
+import io.github.autotweaker.api.adapter.AdapterAPI
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo

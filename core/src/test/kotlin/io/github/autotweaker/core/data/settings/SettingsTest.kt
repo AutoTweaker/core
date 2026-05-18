@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.api.types.settings.SettingKey
 import io.mockk.every
@@ -39,12 +40,12 @@ class SettingsTest {
 		mockkObject(ConfigRegistry)
 		every { ConfigRegistry.getItem(any()) } returns null
 		every { ConfigRegistry.getItem("test.key1") } returns
-				SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1")
+				SettingItem(SettingKey("test.key1"), SettingValue.ValString("default1"), "desc1")
 		every { ConfigRegistry.getItem("test.key2") } returns
-				SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
+				SettingItem(SettingKey("test.key2"), SettingValue.ValInt(42), "desc2")
 		every { ConfigRegistry.getAllItems() } returns listOf(
-			SettingItem(SettingKey("test.key1"), SettingItem.Value.ValString("default1"), "desc1"),
-			SettingItem(SettingKey("test.key2"), SettingItem.Value.ValInt(42), "desc2")
+			SettingItem(SettingKey("test.key1"), SettingValue.ValString("default1"), "desc1"),
+			SettingItem(SettingKey("test.key2"), SettingValue.ValInt(42), "desc2")
 		)
 	}
 	
@@ -62,7 +63,7 @@ class SettingsTest {
 		}
 		
 		val key = SettingKey("test.key1")
-		val item = SettingItem(key, SettingItem.Value.ValString("hello"), "desc")
+		val item = SettingItem(key, SettingValue.ValString("hello"), "desc")
 		
 		transaction {
 			// Insert
@@ -86,7 +87,7 @@ class SettingsTest {
 				.single()
 			ConfigTable.getValueFromRow(row)
 		}
-		assertEquals("hello", (restored as SettingItem.Value.ValString).value)
+		assertEquals("hello", (restored as SettingValue.ValString).value)
 	}
 	
 	@Test
@@ -97,15 +98,15 @@ class SettingsTest {
 		}
 		
 		val testCases = listOf(
-			SettingItem.Value.ValByte(1.toByte()) to 1.toByte(),
-			SettingItem.Value.ValShort(2.toShort()) to 2.toShort(),
-			SettingItem.Value.ValInt(3) to 3,
-			SettingItem.Value.ValLong(4L) to 4L,
-			SettingItem.Value.ValFloat(5.5f) to 5.5f,
-			SettingItem.Value.ValDouble(6.6) to 6.6,
-			SettingItem.Value.ValBoolean(true) to true,
-			SettingItem.Value.ValChar('x') to 'x',
-			SettingItem.Value.ValString("test") to "test"
+			SettingValue.ValByte(1.toByte()) to 1.toByte(),
+			SettingValue.ValShort(2.toShort()) to 2.toShort(),
+			SettingValue.ValInt(3) to 3,
+			SettingValue.ValLong(4L) to 4L,
+			SettingValue.ValFloat(5.5f) to 5.5f,
+			SettingValue.ValDouble(6.6) to 6.6,
+			SettingValue.ValBoolean(true) to true,
+			SettingValue.ValChar('x') to 'x',
+			SettingValue.ValString("test") to "test"
 		)
 		
 		var idx = 0
@@ -155,8 +156,8 @@ class SettingsTest {
 			
 			// Insert with wrong type
 			val wrongJson = Json.encodeToString(
-				SettingItem.Value.serializer(),
-				SettingItem.Value.ValInt(999)
+				SettingValue.serializer(),
+				SettingValue.ValInt(999)
 			)
 			ConfigTable.insert {
 				it[ConfigTable.keyName] = "test.key1"
@@ -172,6 +173,6 @@ class SettingsTest {
 			ConfigTable.selectAll().where { ConfigTable.keyName eq "test.key1" }.single()
 		}
 		val stored = ConfigTable.getValueFromRow(row)
-		assertTrue(stored is SettingItem.Value.ValInt)
+		assertTrue(stored is SettingValue.ValInt)
 	}
 }

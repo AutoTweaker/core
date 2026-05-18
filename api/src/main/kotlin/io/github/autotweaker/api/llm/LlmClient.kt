@@ -16,12 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.llm
 
-import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ProviderData
+import kotlinx.coroutines.flow.Flow
 
-interface AdapterRegistry {
-	fun listAdapter(): List<AdapterInfo>
-	fun startAdapter(name: String)
-	fun stopAdapter(name: String)
+interface LlmClient {
+	val providerInfo: ProviderInfo
+	
+	data class ProviderInfo(
+		val name: String,
+		val baseUrl: Url,
+		val models: List<ModelData.ModelInfo>,
+		val errorHandlingRules: List<ProviderData.ErrorHandlingRule>
+	)
+	
+	suspend fun chat(request: ChatRequest, apiKey: String, baseUrl: Url? = null): Flow<ChatResult>
 }

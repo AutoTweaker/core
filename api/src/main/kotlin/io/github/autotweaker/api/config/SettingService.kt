@@ -16,11 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.config
 
-import kotlinx.serialization.json.JsonElement
+import io.github.autotweaker.api.types.config.SettingEntry
+import io.github.autotweaker.api.types.config.SettingValue
 
-interface JsonStore {
-	fun get(): JsonElement?
-	fun set(value: JsonElement)
+interface SettingService {
+	fun <V : SettingValue> get(def: SettingDef<V>): V
+	fun <V : SettingValue> set(def: SettingDef<V>, value: V)
+	fun set(id: String, value: SettingValue)
+	fun getAll(): List<SettingEntry>
 }

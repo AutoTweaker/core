@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.AdapterAPI
-import io.github.autotweaker.api.AdapterRegistry
+import io.github.autotweaker.api.adapter.AdapterAPI
+import io.github.autotweaker.api.adapter.AdapterRegistry
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl

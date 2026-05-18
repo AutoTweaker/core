@@ -18,21 +18,21 @@
 
 package io.github.autotweaker.core.data.settings
 
-import io.github.autotweaker.api.types.settings.SettingItem
+import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 
 private val json = Json { ignoreUnknownKeys = true }
 
-fun ConfigTable.fillColumn(it: UpdateBuilder<*>, value: SettingItem.Value) {
-	it[valJson] = json.encodeToString(SettingItem.Value.serializer(), value)
+fun ConfigTable.fillColumn(it: UpdateBuilder<*>, value: SettingValue) {
+	it[valJson] = json.encodeToString(SettingValue.serializer(), value)
 }
 
-fun ConfigTable.getValueFromRow(row: ResultRow): SettingItem.Value? {
+fun ConfigTable.getValueFromRow(row: ResultRow): SettingValue? {
 	val jsonStr = row[valJson]
 	return try {
-		json.decodeFromString(SettingItem.Value.serializer(), jsonStr)
+		json.decodeFromString(SettingValue.serializer(), jsonStr)
 	} catch (_: Exception) {
 		null
 	}
