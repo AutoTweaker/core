@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
@@ -34,7 +34,7 @@ internal interface AgentEnvironment {
 	val agentState: MutableAgentState
 	
 	val tools: Tools
-	val settings: List<SettingItem>
+	val service: SettingService
 	val workspace: WorkspaceMeta
 	val containerConfig: ContainerConfig
 	

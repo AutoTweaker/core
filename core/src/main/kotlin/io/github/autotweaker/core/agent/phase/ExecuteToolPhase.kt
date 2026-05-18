@@ -20,10 +20,10 @@ package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolResultStatus
-import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
+import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.ToolProvider
 import kotlinx.coroutines.withTimeout
@@ -40,11 +40,13 @@ internal object ExecuteToolPhase {
 	): AgentContext.Message.Tool {
 		logger.debug(
 			"Tool execution started  agentId={}  tool={}  timeout={}s",
-			env.agentId, call.name, env.settings.find<Int>("core.agent.tool.timeout.seconds")
+			env.agentId,
+			call.name,
+			env.service.get(AgentToolSettings.TimeoutSeconds).value
 		)
 		env.updateStatus(AgentStatus.TOOL_CALLING)
-		val timeoutSeconds: Int = env.settings.find("core.agent.tool.timeout.seconds")
-		val timeoutMessage: String = env.settings.find("core.agent.tool.response.timeout")
+		val timeoutSeconds = env.service.get(AgentToolSettings.TimeoutSeconds).value
+		val timeoutMessage = env.service.get(AgentToolSettings.TimeoutMessage).value
 		return try {
 			withTimeout((timeoutSeconds * 1000L).milliseconds) {
 				env.tools.executeTool(
@@ -62,16 +64,12 @@ internal object ExecuteToolPhase {
 		} catch (_: kotlinx.coroutines.TimeoutCancellationException) {
 			logger.warn("Tool timed out  agentId={}  tool={}  timeout={}s", env.agentId, call.name, timeoutSeconds)
 			ContextPhase.buildToolResult(
-				call,
-				timeoutMessage.format(timeoutSeconds),
-				ToolResultStatus.TIMEOUT
+				call, timeoutMessage.format(timeoutSeconds), ToolResultStatus.TIMEOUT
 			)
 		} catch (_: kotlinx.coroutines.CancellationException) {
 			logger.debug("Tool cancelled  agentId={}  tool={}", env.agentId, call.name)
 			ContextPhase.buildToolResult(
-				call,
-				env.toolCancelledMessage,
-				ToolResultStatus.CANCELLED
+				call, env.toolCancelledMessage, ToolResultStatus.CANCELLED
 			)
 		} catch (e: Exception) {
 			logger.error("Failed to execute tool  agentId={}  tool={}", env.agentId, call.name, e)

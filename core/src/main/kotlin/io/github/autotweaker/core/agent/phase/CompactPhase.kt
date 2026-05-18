@@ -18,14 +18,13 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
@@ -50,7 +49,7 @@ internal object CompactPhase {
 		rounds: List<AgentContext.CompletedRound>,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
-		settings: List<SettingItem>,
+		service: SettingService,
 	) {
 		logger.debug(
 			"Compact started  agentId={}  roundCount={}  summarizeModel={}",
@@ -59,9 +58,9 @@ internal object CompactPhase {
 			summarizeModel.modelInfo.modelId
 		)
 		
-		val compactPrompt: String = settings.find("core.agent.compact.prompt")
-		val maxMessageChars: Int = settings.find("core.agent.compact.max.message.chars")
-		val messageSummarizePrompt: String = settings.find("core.agent.compact.message.summarize.prompt")
+		val compactPrompt = service.get(CompactSettings.Prompt).value
+		val maxMessageChars = service.get(CompactSettings.MaxMessageChars).value
+		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt).value
 		
 		val processed =
 			preprocessMessages(rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt)

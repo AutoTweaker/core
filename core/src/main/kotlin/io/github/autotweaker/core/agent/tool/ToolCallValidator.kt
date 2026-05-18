@@ -18,23 +18,17 @@
 
 package io.github.autotweaker.core.agent.tool
 
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.find
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
 class ToolCallValidator(
 	private val tools: List<Tool>,
-	private val settings: List<SettingItem>,
+	private val service: SettingService,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonErrorMessage: String = settings.find("core.agent.tool.response.json.error")
-	private val propertyMissingMessage: String = settings.find("core.agent.tool.response.property.missing")
-	private val propertyErrorMessage: String = settings.find("core.agent.tool.response.property.error")
-	private val functionNotFoundMessage: String = settings.find("core.agent.tool.response.function.name.error")
 	
-	//输出格式
 	sealed class ValidationResult {
 		data class Success(
 			val toolName: String,
@@ -48,39 +42,38 @@ class ToolCallValidator(
 		) : ValidationResult()
 	}
 	
-	//主函数
 	fun validate(toolCallName: String, argumentsJson: String, callId: String = ""): ValidationResult {
-		//解析json参数
 		val arguments = try {
-			Json.parseToJsonElement(argumentsJson) as? JsonObject
-				?: return ValidationResult.Failure(jsonErrorMessage.format("Invalid JSON object")).also {
-					logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
-				}
+			Json.parseToJsonElement(argumentsJson) as? JsonObject ?: return ValidationResult.Failure(
+				service.get(AgentToolSettings.JsonError).value.format("Invalid JSON object")
+			).also {
+				logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
+			}
 		} catch (e: Exception) {
-			return ValidationResult.Failure(jsonErrorMessage.format(e.message ?: "Unknown error")).also {
+			return ValidationResult.Failure(
+				service.get(AgentToolSettings.JsonError).value.format(e.message ?: "Unknown error")
+			).also {
 				logger.debug("Failed to parse tool call JSON  callId={}  name={}", callId, toolCallName)
 			}
 		}
 		
-		//解析工具名称与function名称
 		val parts = toolCallName.split("_", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
-				functionNotFoundMessage.format(toolCallName)
+				service.get(AgentToolSettings.FunctionNameError).value.format(toolCallName)
 			).also { logger.debug("Failed to parse tool call name  callId={}  name={}", callId, toolCallName) }
 		}
 		
 		val toolName = parts[0]
 		val functionName = parts[1]
 		
-		//检查工具是否存在
-		val tool = tools.find { it.resolveMeta(settings).name == toolName } ?: return ValidationResult.Failure(
-			functionNotFoundMessage.format(toolCallName)
+		val tool = tools.find { it.resolveMeta(service).name == toolName } ?: return ValidationResult.Failure(
+			service.get(AgentToolSettings.FunctionNameError).value.format(toolCallName)
 		).also { logger.debug("Failed to find tool  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
-		val meta = tool.resolveMeta(settings)
+		val meta = tool.resolveMeta(service)
 		
 		val function = meta.functions.find { it.name == functionName } ?: return ValidationResult.Failure(
-			functionNotFoundMessage.format(toolCallName)
+			service.get(AgentToolSettings.FunctionNameError).value.format(toolCallName)
 		).also {
 			logger.debug(
 				"Failed to find function  callId={}  name={}  tool={}  function={}",
@@ -91,11 +84,10 @@ class ToolCallValidator(
 			)
 		}
 		
-		//解析工具调用原因
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
-				propertyMissingMessage.format(toolCallName, "reason")
+				service.get(AgentToolSettings.PropertyMissing).value.format(toolCallName, "reason")
 			).also {
 				logger.debug(
 					"Failed to validate tool call reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
@@ -104,15 +96,13 @@ class ToolCallValidator(
 		}
 		val reason = reasonElement.content
 		
-		//排除reason字段
 		val otherArguments = JsonObject(arguments.filterKeys { it != "reason" })
 		
-		//提取必填字段
 		val requiredParams = function.parameters.filter { it.value.required }
 		for ((paramName, _) in requiredParams) {
 			if (!otherArguments.containsKey(paramName)) {
 				return ValidationResult.Failure(
-					propertyMissingMessage.format(toolCallName, paramName)
+					service.get(AgentToolSettings.PropertyMissing).value.format(toolCallName, paramName)
 				).also {
 					logger.debug(
 						"Failed to find required param  callId={}  name={}  tool={}  param={}",
@@ -125,13 +115,12 @@ class ToolCallValidator(
 			}
 		}
 		
-		//检查属性类型
 		for ((paramName, paramDef) in function.parameters) {
 			val paramValue = otherArguments[paramName] ?: continue
 			if (!validateParameterType(paramValue, paramDef.valueType)) {
 				val expectedType = getExpectedTypeName(paramDef.valueType)
 				return ValidationResult.Failure(
-					propertyErrorMessage.format(toolCallName, paramName, expectedType)
+					service.get(AgentToolSettings.PropertyError).value.format(toolCallName, paramName, expectedType)
 				).also {
 					logger.debug(
 						"Param type did not match  name={}  tool={}  param={}  expected={}",
@@ -159,7 +148,6 @@ class ToolCallValidator(
 		)
 	}
 	
-	//检查属性类型
 	private fun validateParameterType(
 		value: JsonElement, expectedType: Tool.Function.Property.ValueType
 	): Boolean {

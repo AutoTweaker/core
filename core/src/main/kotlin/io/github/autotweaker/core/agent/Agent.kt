@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.phase.*
+import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.tool.Tool
@@ -44,16 +44,15 @@ class Agent(
 	thinking: Boolean,
 	override val summarizeModel: Model,
 	override val containerConfig: ContainerConfig,
-	override val settings: List<SettingItem>,
+	override val service: SettingService,
 	tools: List<Tool>,
 ) : AgentEnvironment {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	override val agentId: UUID = UUID.randomUUID()
-	override val toolCancelledMessage: String = settings.find("core.agent.tool.response.canceled")
-	override val toolRejectedMessage: String = settings.find("core.agent.tool.response.rejected")
-	override val toolRejectedWithFeedbackMessage: String =
-		settings.find("core.agent.tool.response.rejected.with.feedback")
+	override val toolCancelledMessage = service.get(AgentToolSettings.Cancelled).value
+	override val toolRejectedMessage = service.get(AgentToolSettings.Rejected).value
+	override val toolRejectedWithFeedbackMessage = service.get(AgentToolSettings.RejectedWithFeedback).value
 	
 	//工具状态
 	override val agentState = MutableAgentState()
@@ -66,7 +65,7 @@ class Agent(
 	}
 	
 	//工具列表
-	override val tools = Tools(settings).also { t -> tools.forEach { t.add(it) } }
+	override val tools = Tools(service).also { t -> tools.forEach { t.add(it) } }
 	
 	//模型数据
 	override var currentModel: Model = model
@@ -333,7 +332,7 @@ class Agent(
 		if (rounds.isNullOrEmpty()) return
 		logger.debug("Compact launched  agentId={}  roundCount={}", agentId, rounds.size)
 		compactJob = scope.launch {
-			CompactPhase.execute(this@Agent, rounds, summarizeModel, currentFallbackModels, settings)
+			CompactPhase.execute(this@Agent, rounds, summarizeModel, currentFallbackModels, service)
 		}
 	}
 	

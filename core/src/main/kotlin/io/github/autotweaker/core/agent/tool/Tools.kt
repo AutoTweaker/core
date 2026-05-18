@@ -18,12 +18,11 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.find
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.tool.SimpleContainer
@@ -37,38 +36,30 @@ import kotlinx.serialization.json.put
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
-class Tools(settings: List<SettingItem>) {
+class Tools(private val service: SettingService) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val _settings = settings
-	private val enableDescription: String = settings.find("core.agent.tool.description.enable")
-	private val enabledMessage: String = settings.find("core.agent.tool.response.active")
 	
-	//存储工具状态
 	data class Entry(
 		val tool: Tool,
 		var active: Boolean = false,
 	)
 	
-	//存储工具列表
 	private val _entries = mutableListOf<Entry>()
 	
 	val entries: List<Entry> get() = _entries
 	
-	//添加工具
 	fun add(tool: Tool) {
-		val meta = tool.resolveMeta(_settings)
+		val meta = tool.resolveMeta(service)
 		logger.debug("Tool added  tool={}  functionCount={}", meta.name, meta.functions.size)
 		_entries.add(Entry(tool))
 	}
 	
-	//用于参数校验的对象
 	private val _validator: ToolCallValidator
 		get() = ToolCallValidator(
 			_entries.filter { it.active }.map { it.tool },
-			_settings,
+			service,
 		)
 	
-	//解析工具调用
 	fun resolveToolCalls(
 		calls: List<AgentContext.CurrentRound.PendingToolCall>,
 		agentId: java.util.UUID = java.util.UUID.randomUUID(),
@@ -102,7 +93,6 @@ class Tools(settings: List<SettingItem>) {
 		return results
 	}
 	
-	//解析输出
 	sealed class ToolCallResolveResult {
 		abstract val callId: String
 		
@@ -117,7 +107,6 @@ class Tools(settings: List<SettingItem>) {
 		) : ToolCallResolveResult()
 	}
 	
-	//调用工具
 	suspend fun executeTool(
 		result: ToolCallValidator.ValidationResult.Success,
 		call: AgentContext.CurrentRound.PendingToolCall,
@@ -127,8 +116,7 @@ class Tools(settings: List<SettingItem>) {
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
 	): AgentContext.Message.Tool {
-		//匹配工具实现
-		val entry = _entries.first { it.tool.resolveMeta(_settings).name == result.toolName }
+		val entry = _entries.first { it.tool.resolveMeta(service).name == result.toolName }
 		
 		logger.debug(
 			"Tool execution started  tool={}  function={}  reason={}  active={}",
@@ -138,15 +126,11 @@ class Tools(settings: List<SettingItem>) {
 			entry.active
 		)
 		
-		//工具未激活
 		if (!entry.active) {
 			logger.debug("Tool activated  tool={}  function={}", result.toolName, result.functionName)
-			//激活
 			entry.active = true
 			onToolActivated?.invoke(_entries.filter { it.active }.map { it.tool })
-			//读取工具参数
-			val meta = entry.tool.resolveMeta(_settings)
-			//返回激活成功的消息
+			val meta = entry.tool.resolveMeta(service)
 			return AgentContext.Message.Tool(
 				name = call.name,
 				call = AgentContext.Message.Tool.Call(
@@ -158,29 +142,25 @@ class Tools(settings: List<SettingItem>) {
 				),
 				callId = call.callId,
 				result = AgentContext.Message.Tool.Result(
-					content = enabledMessage.format(meta.name, meta.functions.size),
+					content = service.get(AgentToolSettings.ActiveMessage).value.format(meta.name, meta.functions.size),
 					timestamp = Clock.System.now(),
 					status = ToolResultStatus.SUCCESS,
 				),
 			)
 		}
 		
-		//创建运行时输出通道
 		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)
 		
-		//构建工具请求
 		val toolInput = Tool.ToolInput(
 			functionName = result.functionName,
 			arguments = result.arguments,
 			provider = provider,
-			settings = _settings,
+			service = service,
 			workspace = workspace,
 			outputChannel = outputChannel,
 		)
 		
-		//调用工具并消费运行时输出
 		val output = coroutineScope {
-			//启动drain协程
 			val drainJob = launch {
 				for (msg in outputChannel) {
 					onToolOutput?.invoke(AgentOutput.Tool(ToolOutput(call.name, call.callId, msg.content)))
@@ -212,7 +192,6 @@ class Tools(settings: List<SettingItem>) {
 			output.success
 		)
 		
-		//返回结果
 		return AgentContext.Message.Tool(
 			name = call.name,
 			call = AgentContext.Message.Tool.Call(
@@ -232,16 +211,13 @@ class Tools(settings: List<SettingItem>) {
 		)
 	}
 	
-	//获取工具参数
 	fun assembleTools(): List<ChatRequest.Tool>? {
-		//提取已激活工具
 		val activeTools = _entries.filter { it.active }.map { it.tool }
-		//构建工具参数
-		val active = ToolAssembler.assemble(activeTools, _settings)
+		val active = ToolAssembler.assemble(activeTools, service)
 		
-		//未激活工具构建特殊function
+		val enableDesc = service.get(AgentToolSettings.EnableDescription).value
 		val inactive = _entries.filter { !it.active }.map { it.tool }.takeIf { it.isNotEmpty() }?.map { tool ->
-			val meta = tool.resolveMeta(_settings)
+			val meta = tool.resolveMeta(service)
 			ChatRequest.Tool(
 				name = meta.name,
 				description = meta.description,
@@ -250,14 +226,13 @@ class Tools(settings: List<SettingItem>) {
 					put("properties", buildJsonObject {
 						put("enable", buildJsonObject {
 							put("type", "boolean")
-							put("description", enableDescription)
+							put("description", enableDesc)
 						})
 					})
 				},
 			)
 		}
 		
-		//返回参数列表
 		return if (active != null || inactive != null) {
 			(active ?: emptyList()) + (inactive ?: emptyList())
 		} else {
