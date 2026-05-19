@@ -52,7 +52,7 @@ object AutoTweaker : AdapterRegistry {
 	}
 	
 	private val allAdapters: List<AdapterAPI> by lazy {
-		val external = loadPlugins<AdapterAPI>("adapter")
+		val external = loadPlugins<AdapterAPI>()
 		val externalNames = external.map { it.load(version).name }.toSet()
 		external + builtInAdapters.filter { it.load(version).name !in externalNames }
 	}
@@ -64,6 +64,7 @@ object AutoTweaker : AdapterRegistry {
 	)
 	
 	fun start() {
+		Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
 		acquireLock()
 		
 		logger.info("AutoTweaker started  version={}", version)

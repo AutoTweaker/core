@@ -31,7 +31,7 @@ object LlmClientLoader {
 	}
 	
 	private val all: List<LlmClient> by lazy {
-		val external = loadPlugins<LlmClient>("provider")
+		val external = loadPlugins<LlmClient>()
 		val externalNames = external.map { it.providerInfo.name }.toSet()
 		val result = external + builtIn.filter { it.providerInfo.name !in externalNames }
 		logger.info(

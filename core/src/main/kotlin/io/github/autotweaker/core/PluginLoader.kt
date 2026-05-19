@@ -26,8 +26,8 @@ import java.util.*
 @PublishedApi
 internal val pluginClassLoaders = mutableListOf<URLClassLoader>()
 
-inline fun <reified T : Any> loadPlugins(subDir: String): List<T> {
-	val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins", subDir)
+inline fun <reified T : Any> loadPlugins(): List<T> {
+	val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
 	if (!Files.isDirectory(dir)) return emptyList()
 	
 	val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()

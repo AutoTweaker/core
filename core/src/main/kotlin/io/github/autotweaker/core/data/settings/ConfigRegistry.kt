@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.data.settings
 
 import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.core.loadPlugins
 import java.util.*
 
 object ConfigRegistry {
@@ -26,7 +27,10 @@ object ConfigRegistry {
 		val map = mutableMapOf<String, SettingDef<*>>()
 		for (def in ServiceLoader.load(SettingDef::class.java)) {
 			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
-			check(id !in map) { "Duplicate SettingDef id: $id" }
+			map[id] = def
+		}
+		for (def in loadPlugins<SettingDef<*>>()) {
+			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
 			map[id] = def
 		}
 		map
