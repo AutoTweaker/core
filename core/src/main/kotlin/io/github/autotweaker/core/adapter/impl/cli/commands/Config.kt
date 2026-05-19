@@ -22,7 +22,6 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Param
 import io.github.autotweaker.core.adapter.impl.cli.Request
@@ -109,16 +108,16 @@ class Config : Command {
 	}
 	
 	private fun list(core: CoreAPI, limit: Int, full: Boolean = false): Flow<Command.Chunk> {
-		val settings = core.config.getAllAppConfigs().take(limit)
+		val settings = core.config.getAppConfig().take(limit)
 		return printConfig(settings, full).map { Command.Chunk.Data(it) }
 	}
 	
 	private fun search(
 		core: CoreAPI, limit: Int, full: Boolean = false, query: String, mode: SearchMode
 	): Flow<Command.Chunk> {
-		val settings = core.config.getAllAppConfigs()
+		val settings = core.config.getAppConfig()
 		val result = when (mode) {
-			SearchMode.KEY -> settings.filter { match(it.setting.key.value, query) }
+			SearchMode.KEY -> settings.filter { match(it.setting.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.setting.value.value.toString(), query) }
 			SearchMode.DESC -> settings.filter { match(it.setting.description, query) }
 		}
@@ -126,19 +125,17 @@ class Config : Command {
 	}
 	
 	private fun set(core: CoreAPI, key: String, value: String): Flow<Command.Chunk> {
-		val config = core.config.getAppConfig(SettingKey(key))?.setting ?: return flowOf(
+		val config = core.config.getAppConfig().find { it.setting.id == key }?.setting ?: return flowOf(
 			Command.Chunk.Data(I18n.get("cfg.set.not_found", key)), Command.Chunk.Done(1)
 		)
-		val new = config.copy(
-			value = try {
-				config.value.parse(value)
-			} catch (_: Exception) {
-				return flowOf(
-					Command.Chunk.Data(I18n.get("cfg.set.type_error")), Command.Chunk.Done(1)
-				)
-			}
-		)
-		core.config.setAppConfig(CoreConfig.AppConfig(new))
+		val newValue = try {
+			config.value.parse(value)
+		} catch (_: Exception) {
+			return flowOf(
+				Command.Chunk.Data(I18n.get("cfg.set.type_error")), Command.Chunk.Done(1)
+			)
+		}
+		core.config.setAppConfigValue(key, newValue)
 		return flowOf(
 			Command.Chunk.Done()
 		)
@@ -147,13 +144,13 @@ class Config : Command {
 	private fun printConfig(settings: List<CoreConfig.AppConfig>, full: Boolean): Flow<String> = flow {
 		if (full) {
 			settings.forEachIndexed { index, setting ->
-				emit(I18n.get("cfg.out.key", sanitize(setting.setting.key.value)))
+				emit(I18n.get("cfg.out.key", sanitize(setting.setting.id)))
 				emit(I18n.get("cfg.out.desc", sanitize(setting.setting.description)))
 				emit(I18n.get("cfg.out.val", sanitize(setting.setting.value.value.toString())))
 				if (index != settings.lastIndex) emit("-".repeat(10))
 			}
 		} else {
-			settings.forEach { emit(sanitize(it.setting.key.value)) }
+			settings.forEach { emit(sanitize(it.setting.id)) }
 		}
 	}
 	

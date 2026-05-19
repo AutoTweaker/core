@@ -26,11 +26,11 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.json.JsonStoreImpl
@@ -86,9 +86,10 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	
 	override val config = object : CoreAPI.ConfigAPI {
 		private val cfg = ConfigManager
-		override fun getAppConfig(key: SettingKey) = cfg.appConfig.get(key)
-		override fun setAppConfig(config: CoreConfig.AppConfig) = cfg.appConfig.set(config)
-		override fun getAllAppConfigs() = cfg.appConfig.getAll()
+		override fun getAppConfig() = cfg.appConfig.list()
+		override fun getDefaultAppConfig() = cfg.appConfig.defaults()
+		override fun setAppConfigValue(id: String, value: SettingValue) = cfg.appConfig.set(id, value)
+		override fun setAppConfigDesc(id: String, description: String) = cfg.appConfig.setDesc(id, description)
 		override fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = cfg.envConfig.list(type)
 		override fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = cfg.envConfig.get(type, id)
 		override fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = cfg.envConfig.set(env)
@@ -109,8 +110,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		
 		override fun listModels() = cfg.modelConfig.list()
 		override fun listModelIds(): List<UUID> = cfg.modelConfig.list().map { it.data.id }
-		override fun getModelMeta(id: UUID): ModelData.ModelInfo? =
-			ModelStore.get(id)?.modelInfo
+		override fun getModelMeta(id: UUID): ModelData.ModelInfo? = ModelStore.get(id)?.modelInfo
 		
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = cfg.modelConfig.add(model)
 		override fun removeModel(id: UUID) = cfg.modelConfig.remove(id)

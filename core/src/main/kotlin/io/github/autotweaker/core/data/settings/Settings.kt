@@ -23,6 +23,7 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -51,7 +52,7 @@ object Settings : SettingService {
 		for ((id, def) in ConfigRegistry.getAll()) {
 			if (id !in existingIds) {
 				transaction(db) {
-					ConfigTable.insert {
+					ConfigTable.upsert {
 						it[keyName] = id
 						it[description] = def.description
 						fillColumn(it, def.default)
@@ -65,7 +66,7 @@ object Settings : SettingService {
 	private fun loadAllIntoCache(): Map<String, SettingValue> = transaction(db) {
 		val map = mutableMapOf<String, SettingValue>()
 		ConfigTable.selectAll().forEach { row ->
-			ConfigTable.getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }
+			getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }
 		}
 		map
 	}
@@ -107,11 +108,21 @@ object Settings : SettingService {
 		logger.debug("Setting updated by id  id={}  value={}", id, value)
 	}
 	
+	override fun setDescription(id: String, description: String) {
+		require(ConfigRegistry.get(id) != null) { "Unknown setting: $id" }
+		transaction(db) {
+			ConfigTable.update({ ConfigTable.keyName eq id }) {
+				it[ConfigTable.description] = description
+			}
+		}
+		logger.debug("Setting description updated  id={}", id)
+	}
+	
 	override fun getAll(): List<SettingEntry> = transaction(db) {
 		ConfigTable.selectAll().map { row ->
 			SettingEntry(
 				id = row[ConfigTable.keyName],
-				value = ConfigTable.getValueFromRow(row)
+				value = getValueFromRow(row)
 					?: throw IllegalStateException("Failed to parse value for key '${row[ConfigTable.keyName]}'"),
 				description = row[ConfigTable.description]
 			)

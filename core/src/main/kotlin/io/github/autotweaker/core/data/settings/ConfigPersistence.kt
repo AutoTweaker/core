@@ -25,12 +25,12 @@ import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 
 private val json = Json { ignoreUnknownKeys = true }
 
-fun ConfigTable.fillColumn(it: UpdateBuilder<*>, value: SettingValue) {
-	it[valJson] = json.encodeToString(SettingValue.serializer(), value)
+fun fillColumn(it: UpdateBuilder<*>, value: SettingValue) {
+	it[ConfigTable.valJson] = json.encodeToString(SettingValue.serializer(), value)
 }
 
-fun ConfigTable.getValueFromRow(row: ResultRow): SettingValue? {
-	val jsonStr = row[valJson]
+fun getValueFromRow(row: ResultRow): SettingValue? {
+	val jsonStr = row[ConfigTable.valJson]
 	return try {
 		json.decodeFromString(SettingValue.serializer(), jsonStr)
 	} catch (_: Exception) {

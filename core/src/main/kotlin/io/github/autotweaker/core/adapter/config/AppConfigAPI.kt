@@ -19,15 +19,18 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.settings.SettingKey
+import io.github.autotweaker.api.types.config.SettingEntry
+import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.core.data.settings.ConfigRegistry
 import io.github.autotweaker.core.data.settings.Settings
 
 object AppConfigAPI {
-	private val cfg = Settings
+	fun list(): List<CoreConfig.AppConfig> = Settings.getAll().map { CoreConfig.AppConfig(it) }
 	
-	fun get(id: SettingKey): CoreConfig.AppConfig? =
-		cfg.get().find { it.key == id }?.let { CoreConfig.AppConfig(it) }
+	fun defaults(): List<CoreConfig.AppConfig> = ConfigRegistry.getAll()
+		.map { (id, def) -> CoreConfig.AppConfig(SettingEntry(id, def.default, def.description)) }
 	
-	fun set(setting: CoreConfig.AppConfig) = cfg.set(setting.setting)
-	fun getAll(): List<CoreConfig.AppConfig> = cfg.get().map { CoreConfig.AppConfig(it) }
+	fun set(id: String, value: SettingValue) = Settings.set(id, value)
+	
+	fun setDesc(id: String, description: String) = Settings.setDescription(id, description)
 }
