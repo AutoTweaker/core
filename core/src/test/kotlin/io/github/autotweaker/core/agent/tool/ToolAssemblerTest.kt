@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.every
 import io.mockk.mockk
@@ -32,13 +32,10 @@ import kotlin.test.*
 class ToolAssemblerTest {
 	
 	private val reasonDesc = "The reason you are calling this function"
-	private val defaultSettings: List<SettingItem> = listOf(
-		SettingItem(
-			SettingKey("core.agent.tool.description.reason"),
-			SettingValue.ValString(reasonDesc),
-			"",
-		)
-	)
+	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		every { svc.get(AgentToolSettings.ReasonDescription) } returns SettingValue.ValString("The reason you are calling this function")
+	}
 	
 	// region helpers
 	

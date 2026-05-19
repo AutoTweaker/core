@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.core.tool.impl.bash
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.tool.SimpleContainer
@@ -64,39 +64,29 @@ class BashTest {
 		unmockkObject(JsonStoreImpl)
 	}
 	
-	private val defaultSettings: List<SettingItem> by lazy {
-		listOf(
-			setting("core.tool.bash.description", "Execute bash commands"),
-			setting("core.tool.bash.function.description.run", "Run a bash command with timeout %d seconds"),
-			setting("core.tool.bash.property.description.command", "The bash command to execute"),
-			setting("core.tool.bash.property.description.timeout.seconds", "Timeout in seconds (default %d)"),
-			setting("core.tool.bash.property.description.env.ids", "Environment variable IDs: %s"),
-			SettingItem(
-				SettingKey("core.tool.bash.setting.default.timeout.seconds"),
-				SettingValue.ValInt(30),
-				""
-			),
-			setting("core.tool.bash.message.error.invalid.timeout", "Timeout must be positive"),
-			setting("core.tool.bash.message.error.invalid.command", "Command must not be blank"),
-			setting(
-				"core.tool.bash.message.result.template",
-				"Exit code: %d\nDuration: %s seconds\n\nStdout:\n%s\n\nStderr:\n%s"
-			),
-		)
+	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		// Override with test-specific values that differ from SettingDef defaults
+		every { svc.get(BashSettings.DefaultTimeoutSeconds) } returns SettingValue.ValInt(30)
+		every { svc.get(BashSettings.Description) } returns SettingValue.ValString("Execute bash commands")
+		every { svc.get(BashSettings.CommandPropDescription) } returns SettingValue.ValString("The bash command to execute")
+		every { svc.get(BashSettings.TimeoutPropDescription) } returns SettingValue.ValString("Timeout in seconds (default %d)")
+		every { svc.get(BashSettings.EnvIdsPropDescription) } returns SettingValue.ValString("Environment variable IDs: %s")
+		every { svc.get(BashSettings.InvalidTimeoutMessage) } returns SettingValue.ValString("Timeout must be positive")
+		every { svc.get(BashSettings.InvalidCommandMessage) } returns SettingValue.ValString("Command must not be blank")
+		every { svc.get(BashSettings.ResultTemplate) } returns SettingValue.ValString("Exit code: %d\nDuration: %s seconds\n\nStdout:\n%s\n\nStderr:\n%s")
+		every { svc.get(BashSettings.RunFuncDescription) } returns SettingValue.ValString("Run a bash command with timeout %d seconds")
 	}
-	
-	private fun setting(key: String, value: String): SettingItem =
-		SettingItem(SettingKey(key), SettingValue.ValString(value), "")
 	
 	private fun ToolInput(
 		arguments: JsonObject,
 		provider: SimpleContainer,
-		settings: List<SettingItem> = defaultSettings,
+		settings: SettingService = defaultSettings,
 	): Tool.ToolInput = Tool.ToolInput(
 		functionName = "run",
 		arguments = arguments,
 		provider = provider,
-		settings = settings,
+		service = settings,
 		workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		outputChannel = null,
 	)

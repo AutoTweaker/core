@@ -45,7 +45,7 @@ class RequestLlmPhaseTest {
 	fun setUp() {
 		agentState = MutableAgentState()
 		model = mockModel()
-		streamProcessor = mockk()
+		streamProcessor = mockk<AgentStreamProcessor>()
 		
 		env = mockk(relaxUnitFun = true)
 		every { env.agentId } returns UUID.randomUUID()

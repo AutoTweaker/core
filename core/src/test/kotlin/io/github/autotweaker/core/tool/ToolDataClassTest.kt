@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.core.tool
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
+import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -258,7 +259,7 @@ class ToolDataClassTest {
 			functionName = "run",
 			arguments = buildJsonObject { put("cmd", JsonPrimitive("echo hello")) },
 			provider = SimpleContainer(),
-			settings = emptyList(),
+			service = mockk(),
 			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		)
 		assertEquals("run", input.functionName)
@@ -272,7 +273,7 @@ class ToolDataClassTest {
 			functionName = "run",
 			arguments = buildJsonObject { },
 			provider = SimpleContainer(),
-			settings = emptyList(),
+			service = mockk(),
 			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 			outputChannel = channel,
 		)
@@ -285,7 +286,7 @@ class ToolDataClassTest {
 			functionName = "run",
 			arguments = buildJsonObject { },
 			provider = SimpleContainer(),
-			settings = emptyList(),
+			service = mockk(),
 			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		)
 		val copied = input.copy(functionName = "execute")
@@ -300,7 +301,7 @@ class ToolDataClassTest {
 	fun `DependencyProvider inline extension with SimpleContainer`() {
 		val container = SimpleContainer()
 		val svc = object : Tool {
-			override fun resolveMeta(settings: List<SettingItem>): Tool.Meta =
+			override fun resolveMeta(service: SettingService): Tool.Meta =
 				Tool.Meta("test", "desc", emptyList())
 			
 			override suspend fun execute(input: Tool.ToolInput): Tool.ToolOutput =

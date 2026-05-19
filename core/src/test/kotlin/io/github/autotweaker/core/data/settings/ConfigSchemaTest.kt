@@ -18,118 +18,96 @@
 
 package io.github.autotweaker.core.data.settings
 
+import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 class ConfigSchemaTest {
 	
 	@Test
-	fun `SettingItem Value ValByte`() {
+	fun `SettingValue ValByte`() {
 		val v = SettingValue.ValByte(42.toByte())
 		assertEquals(42.toByte(), v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValShort`() {
+	fun `SettingValue ValShort`() {
 		val v = SettingValue.ValShort(100.toShort())
 		assertEquals(100.toShort(), v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValInt`() {
+	fun `SettingValue ValInt`() {
 		val v = SettingValue.ValInt(999)
 		assertEquals(999, v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValLong`() {
+	fun `SettingValue ValLong`() {
 		val v = SettingValue.ValLong(123456789L)
 		assertEquals(123456789L, v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValFloat`() {
+	fun `SettingValue ValFloat`() {
 		val v = SettingValue.ValFloat(3.14f)
 		assertEquals(3.14f, v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValDouble`() {
+	fun `SettingValue ValDouble`() {
 		val v = SettingValue.ValDouble(2.718)
 		assertEquals(2.718, v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValBoolean`() {
+	fun `SettingValue ValBoolean`() {
 		val v = SettingValue.ValBoolean(true)
 		assertEquals(true, v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValChar`() {
+	fun `SettingValue ValChar`() {
 		val v = SettingValue.ValChar('x')
 		assertEquals('x', v.value)
 	}
 	
 	@Test
-	fun `SettingItem Value ValString`() {
+	fun `SettingValue ValString`() {
 		val v = SettingValue.ValString("hello")
 		assertEquals("hello", v.value)
 	}
 	
 	@Test
-	fun `find returns value for existing key`() {
-		val item = SettingItem(
-			key = SettingKey("core.test"),
-			value = SettingValue.ValString("found"),
-			description = "desc"
+	fun `SettingEntry create with all fields`() {
+		val item = SettingEntry(
+			id = "core.test",
+			value = SettingValue.ValInt(10),
+			description = "test desc"
 		)
-		val items = listOf(item)
-		assertEquals("found", items.find<String>("core.test"))
+		assertEquals("core.test", item.id)
+		assertIs<SettingValue.ValInt>(item.value)
+		assertEquals("test desc", item.description)
 	}
 	
 	@Test
-	fun `find throws for missing key`() {
-		val items = listOf<SettingItem>()
-		assertFailsWith<IllegalArgumentException> { items.find<String>("missing") }
-	}
-	
-	@Test
-	fun `find throws for type mismatch`() {
-		val item = SettingItem(
-			key = SettingKey("core.num"),
-			value = SettingValue.ValInt(42),
-			description = "desc"
-		)
-		val items = listOf(item)
-		assertFailsWith<IllegalArgumentException> { items.find<String>("core.num") }
-	}
-	
-	@Test
-	fun `find correct type conversion`() {
-		val item = SettingItem(
-			key = SettingKey("core.flag"),
+	fun `SettingEntry find by id`() {
+		val item = SettingEntry(
+			id = "core.flag",
 			value = SettingValue.ValBoolean(false),
 			description = "desc"
 		)
 		val items = listOf(item)
-		assertEquals(false, items.find<Boolean>("core.flag"))
+		val found = items.find { it.id == "core.flag" }
+		assertEquals(false, (found!!.value as SettingValue.ValBoolean).value)
 	}
 	
 	@Test
-	fun `SettingItem create with all fields`() {
-		val item = SettingItem(
-			key = SettingKey("core.test"),
-			value = SettingValue.ValInt(10),
-			description = "test desc"
-		)
-		assertEquals("core.test", item.key.value)
-		assertIs<SettingValue.ValInt>(item.value)
-		assertEquals("test desc", item.description)
+	fun `SettingEntry find returns null for missing id`() {
+		val items = listOf<SettingEntry>()
+		val found = items.find { it.id == "missing" }
+		assertEquals(null, found)
 	}
 }

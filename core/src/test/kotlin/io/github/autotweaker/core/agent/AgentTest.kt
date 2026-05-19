@@ -18,14 +18,16 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.container.ContainerConfig
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -44,54 +46,20 @@ class AgentTest {
 	private val mockModel: Model = mockk(relaxed = true)
 	private val mockSummarizeModel: Model = mockk(relaxed = true)
 	
-	private val agentSettings: List<SettingItem> = listOf(
-		SettingItem(SettingKey("core.agent.tool.description.reason"), SettingValue.ValString("reason"), ""),
-		SettingItem(
-			SettingKey("core.agent.tool.description.enable"),
-			SettingValue.ValString("Enable tool"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.active"),
-			SettingValue.ValString("Tool %s with %d functions enabled"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.json.error"),
-			SettingValue.ValString("JSON error: %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.property.missing"),
-			SettingValue.ValString("missing: %s %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.property.error"),
-			SettingValue.ValString("error: %s %s %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingValue.ValString("name error: %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.canceled"),
-			SettingValue.ValString("Tool cancelled"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.rejected"),
-			SettingValue.ValString("Tool rejected"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.rejected.with.feedback"),
-			SettingValue.ValString("Tool rejected: %s"),
-			""
-		),
-	)
+	private val agentSettings: SettingService = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		every { svc.get(AgentToolSettings.Cancelled) } returns SettingValue.ValString("Tool cancelled")
+		every { svc.get(AgentToolSettings.Rejected) } returns SettingValue.ValString("Tool rejected")
+		every { svc.get(AgentToolSettings.RejectedWithFeedback) } returns SettingValue.ValString("Tool rejected: %s")
+		every { svc.get(AgentToolSettings.PropertyMissing) } returns SettingValue.ValString("missing: %s %s")
+		every { svc.get(AgentToolSettings.PropertyError) } returns SettingValue.ValString("error: %s %s %s")
+		every { svc.get(AgentToolSettings.FunctionNameError) } returns SettingValue.ValString("name error: %s")
+		every { svc.get(AgentToolSettings.JsonError) } returns SettingValue.ValString("JSON error: %s")
+		every { svc.get(AgentToolSettings.ReasonDescription) } returns SettingValue.ValString("reason")
+		every { svc.get(AgentToolSettings.TimeoutMessage) } returns SettingValue.ValString("Timeout after %d seconds")
+		every { svc.get(AgentToolSettings.EnableDescription) } returns SettingValue.ValString("Enable tool")
+		every { svc.get(AgentToolSettings.ActiveMessage) } returns SettingValue.ValString("Tool %s with %d functions enabled")
+	}
 	
 	private fun createWorkspace(): WorkspaceMeta {
 		val tmpDir = createTempDirectory("agent-test")
@@ -113,7 +81,7 @@ class AgentTest {
 			thinking = thinking,
 			summarizeModel = mockSummarizeModel,
 			containerConfig = ContainerConfig(),
-			settings = agentSettings,
+			service = agentSettings,
 			tools = tools,
 		)
 	}
@@ -157,7 +125,7 @@ class AgentTest {
 			thinking = false,
 			summarizeModel = mockSummarizeModel,
 			containerConfig = ContainerConfig(),
-			settings = agentSettings,
+			service = agentSettings,
 			tools = emptyList(),
 		)
 		assertEquals(ws, agent.workspace)
@@ -178,7 +146,7 @@ class AgentTest {
 	@Test
 	fun `settings are stored`() {
 		val agent = createAgent()
-		assertEquals(agentSettings, agent.settings)
+		assertEquals(agentSettings, agent.service)
 	}
 	
 	@Test

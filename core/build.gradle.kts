@@ -76,22 +76,42 @@ dependencies {
 }
 
 
-tasks.test {
-	useJUnitPlatform()
-	jvmArgs(
-		"-Dnet.bytebuddy.experimental=true",
-		"--add-opens", "java.base/java.util=ALL-UNNAMED",
-		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
-		"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
-	)
-	finalizedBy(tasks.jacocoTestReport)
-}
+val inDocker = System.getenv("DOCKER_TEST") == "true"
 
-tasks.jacocoTestReport {
-	dependsOn(tasks.test)
-	reports {
-		xml.required = true
-		html.required = true
+if (inDocker) {
+	// 容器内：使用原生 JUnit 执行
+	tasks.test {
+		useJUnitPlatform()
+		jvmArgs(
+			"-Dnet.bytebuddy.experimental=true",
+			"--add-opens", "java.base/java.util=ALL-UNNAMED",
+			"--add-opens", "java.base/java.lang=ALL-UNNAMED",
+			"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
+		)
+		finalizedBy(tasks.jacocoTestReport)
+	}
+} else {
+	// 宿主机：test 禁用，用 testInDocker 代替
+	tasks.test { enabled = false }
+	
+	val testInDocker by tasks.registering(Exec::class) {
+		group = "verification"
+		description = "在 Docker 容器中运行单元测试"
+		workingDir = rootProject.projectDir
+		commandLine(
+			listOf("bash", "scripts/docker-test.sh") + (project.findProperty("testArgs") as String? ?: "").split(" ")
+				.filter { it.isNotEmpty() })
+		outputs.upToDateWhen { false }
+	}
+	
+	tasks.check { dependsOn(testInDocker) }
+	
+	tasks.jacocoTestReport {
+		dependsOn(testInDocker)
+		reports {
+			xml.required = true
+			html.required = true
+		}
 	}
 }
 

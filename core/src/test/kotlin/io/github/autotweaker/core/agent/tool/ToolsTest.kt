@@ -18,11 +18,11 @@
 
 package io.github.autotweaker.core.agent.tool
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.ToolCallValidator.ValidationResult
@@ -43,39 +43,9 @@ import kotlin.test.*
 import kotlin.time.Clock
 
 class ToolsTest {
-	
-	private val enableDesc = "Set true to enable this tool"
-	private val enabledMsg = "Tool %s with %d functions enabled"
-	
-	private val defaultSettings: List<SettingItem> = listOf(
-		SettingItem(SettingKey("core.agent.tool.description.reason"), SettingValue.ValString("reason"), ""),
-		SettingItem(
-			SettingKey("core.agent.tool.description.enable"),
-			SettingValue.ValString(enableDesc),
-			""
-		),
-		SettingItem(SettingKey("core.agent.tool.response.active"), SettingValue.ValString(enabledMsg), ""),
-		SettingItem(
-			SettingKey("core.agent.tool.response.json.error"),
-			SettingValue.ValString("JSON: %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.property.missing"),
-			SettingValue.ValString("missing: %s %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.property.error"),
-			SettingValue.ValString("error: %s %s %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingValue.ValString("name: %s"),
-			""
-		),
-	)
+	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+	}
 	
 	private val mockModel: Model = mockk(relaxed = true)
 	

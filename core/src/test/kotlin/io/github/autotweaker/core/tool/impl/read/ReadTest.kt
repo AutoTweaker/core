@@ -18,13 +18,14 @@
 
 package io.github.autotweaker.core.tool.impl.read
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
+import io.github.autotweaker.core.tool.impl.ToolSettings
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -41,64 +42,41 @@ class ReadTest {
 	
 	// region helpers
 	
-	private val defaultSettings: List<SettingItem> by lazy {
-		listOf(
-			setting("core.tool.read.description", "Read files and summarize content"),
-			setting("core.tool.read.property.description.file.path", "Path to the file"),
-			setting("core.tool.read.property.description.start.line", "Start line number"),
-			setting("core.tool.read.property.description.end.line", "End line number"),
-			setting("core.tool.read.function.description.file", "Read file content (max %d chars, max %d lines)"),
-			setting("core.tool.read.function.description.file.property.line.number", "Include line numbers"),
-			setting(
-				"core.tool.read.function.description.summarize",
-				"Summarize file (max input %d chars, min %d chars, max %d lines)"
-			),
-			setting("core.tool.read.function.description.summarize.property.prompt", "Custom prompt"),
-			setting("core.tool.read.function.description.unicode", "Read unicode characters"),
-			setting("core.tool.read.function.description.unicode.property.max.chars", "Max chars: %d"),
-			setting("core.tool.read.function.file.setting.max.chars", 1000),
-			setting("core.tool.read.function.file.setting.max.lines", 50),
-			setting("core.tool.read.function.summarize.setting.max.input.chars", 5000),
-			setting("core.tool.read.function.summarize.setting.max.output.chars", 200),
-			setting("core.tool.read.function.summarize.setting.min.chars", 10),
-			setting("core.tool.read.function.summarize.setting.max.lines", 100),
-			setting("core.tool.read.function.unicode.setting.max.chars", 500),
-			setting("core.tool.read.summarize.prompt", "Summarize the following content"),
-			setting("core.tool.message.path.error", "Invalid file path"),
-			setting("core.tool.read.message.error.file.not.found", "File not found"),
-			setting("core.tool.read.message.error.file.can.not.read", "Cannot read file"),
-			setting("core.tool.read.message.error.start.line", "Start line must be >= 1"),
-			setting("core.tool.read.message.error.start.line.bigger.than.end.line", "Start line bigger than end line"),
-			setting("core.tool.read.message.error.too.many.lines", "Too many lines (max %d)"),
-			setting("core.tool.read.function.message.error.unicode.too.many.chars", "Too many chars (max %d)"),
-			setting("core.tool.read.function.message.file.truncate", "\n... truncated at %d chars"),
-			setting("core.tool.read.function.message.error.file.duplicate", "Duplicate read (sha256: %s)"),
-			setting("core.tool.read.function.message.summarize.input.truncate", "\n... input truncated at %d chars"),
-			setting(
-				"core.tool.read.function.message.summarize.output.truncate",
-				"\n... output truncated from %d chars"
-			),
-			setting("core.tool.read.function.message.error.summarize.too.few", "Content too short (%d chars, min %d)"),
-			setting("core.tool.read.function.message.error.summarize.failed", "Summarize failed: %s"),
-		)
+	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		// Override with test-specific values that differ from SettingDef defaults
+		every { svc.get(ReadSettings.FileMaxCharsSetting) } returns SettingValue.ValInt(1000)
+		every { svc.get(ReadSettings.FileMaxLinesSetting) } returns SettingValue.ValInt(50)
+		every { svc.get(ReadSettings.SummarizeMaxInputCharsSetting) } returns SettingValue.ValInt(5000)
+		every { svc.get(ReadSettings.SummarizeMaxOutputCharsSetting) } returns SettingValue.ValInt(200)
+		every { svc.get(ReadSettings.SummarizeMinCharsSetting) } returns SettingValue.ValInt(10)
+		every { svc.get(ReadSettings.SummarizeMaxLinesSetting) } returns SettingValue.ValInt(100)
+		every { svc.get(ReadSettings.SummarizePromptSetting) } returns SettingValue.ValString("Summarize the following content")
+		every { svc.get(ReadSettings.MessageFileNotFoundSetting) } returns SettingValue.ValString("File not found")
+		every { svc.get(ReadSettings.MessageFileCannotReadSetting) } returns SettingValue.ValString("Cannot read file")
+		every { svc.get(ReadSettings.MessageStartLineErrorSetting) } returns SettingValue.ValString("Start line must be >= 1")
+		every { svc.get(ReadSettings.MessageStartLineBiggerThanEndSetting) } returns SettingValue.ValString("Start line bigger than end line")
+		every { svc.get(ReadSettings.MessageTooManyLinesSetting) } returns SettingValue.ValString("Too many lines (max %d)")
+		every { svc.get(ReadSettings.UnicodeMessageTooManyCharsSetting) } returns SettingValue.ValString("Too many chars (max %d)")
+		every { svc.get(ReadSettings.SummarizeMessageTooFewSetting) } returns SettingValue.ValString("Content too short (%d chars, min %d)")
+		every { svc.get(ReadSettings.SummarizeMessageFailedSetting) } returns SettingValue.ValString("Summarize failed: %s")
+		every { svc.get(ReadSettings.FileMessageTruncateSetting) } returns SettingValue.ValString("\n... truncated at %d chars")
+		every { svc.get(ReadSettings.SummarizeMessageOutputTruncateSetting) } returns SettingValue.ValString("\n... output truncated from %d chars")
+		every { svc.get(ReadSettings.SummarizeMessageInputTruncateSetting) } returns SettingValue.ValString("\n... input truncated at %d chars")
+		every { svc.get(ReadSettings.FileMessageDuplicateSetting) } returns SettingValue.ValString("Duplicate read (sha256: %s)")
+		every { svc.get(ToolSettings.PathErrorMessage) } returns SettingValue.ValString("Invalid file path")
 	}
-	
-	private fun setting(key: String, value: String): SettingItem =
-		SettingItem(SettingKey(key), SettingValue.ValString(value), "")
-	
-	private fun setting(key: String, value: Int): SettingItem =
-		SettingItem(SettingKey(key), SettingValue.ValInt(value), "")
 	
 	private fun ToolInput(
 		functionName: String,
 		arguments: JsonObject,
 		provider: SimpleContainer,
-		settings: List<SettingItem> = defaultSettings,
+		settings: SettingService = defaultSettings,
 	): Tool.ToolInput = Tool.ToolInput(
 		functionName = functionName,
 		arguments = arguments,
 		provider = provider,
-		settings = settings,
+		service = settings,
 		workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		outputChannel = null,
 	)

@@ -39,7 +39,7 @@ class ConfigPersistenceTest {
 		every { builder[ConfigTable.valJson] = capture(jsonSlot) } answers {}
 		
 		val value = SettingValue.ValInt(42)
-		ConfigTable.fillColumn(builder, value)
+		fillColumn(builder, value)
 		
 		val captured = jsonSlot.captured
 		val decoded = json.decodeFromString(SettingValue.serializer(), captured)
@@ -52,7 +52,7 @@ class ConfigPersistenceTest {
 		val jsonSlot = slot<String>()
 		every { builder[ConfigTable.valJson] = capture(jsonSlot) } answers {}
 		
-		ConfigTable.fillColumn(builder, SettingValue.ValString("hello"))
+		fillColumn(builder, SettingValue.ValString("hello"))
 		
 		val decoded = json.decodeFromString(SettingValue.serializer(), jsonSlot.captured)
 		assertIs<SettingValue.ValString>(decoded)
@@ -65,7 +65,7 @@ class ConfigPersistenceTest {
 		val jsonSlot = slot<String>()
 		every { builder[ConfigTable.valJson] = capture(jsonSlot) } answers {}
 		
-		ConfigTable.fillColumn(builder, SettingValue.ValBoolean(true))
+		fillColumn(builder, SettingValue.ValBoolean(true))
 		
 		val decoded = json.decodeFromString(SettingValue.serializer(), jsonSlot.captured)
 		assertIs<SettingValue.ValBoolean>(decoded)
@@ -75,9 +75,9 @@ class ConfigPersistenceTest {
 	@Test
 	fun `getValueFromRow parses valid JSON`() {
 		val row = mockk<ResultRow>()
-		every { row[ConfigTable.valJson] } returns """{"type":"io.github.autotweaker.api.types.settings.SettingItem.SettingValue.ValInt","value":42}"""
+		every { row[ConfigTable.valJson] } returns """{"type":"io.github.autotweaker.api.types.config.SettingValue.ValInt","value":42}"""
 		
-		val result = ConfigTable.getValueFromRow(row)
+		val result = getValueFromRow(row)
 		assertNotNull(result)
 		assertIs<SettingValue.ValInt>(result)
 		assertEquals(42, result.value)
@@ -88,7 +88,7 @@ class ConfigPersistenceTest {
 		val row = mockk<ResultRow>()
 		every { row[ConfigTable.valJson] } returns "not valid json"
 		
-		val result = ConfigTable.getValueFromRow(row)
+		val result = getValueFromRow(row)
 		assertNull(result)
 	}
 	
@@ -99,12 +99,12 @@ class ConfigPersistenceTest {
 		every { builder[ConfigTable.valJson] = capture(jsonSlot) } answers {}
 		
 		val original = SettingValue.ValDouble(3.14159)
-		ConfigTable.fillColumn(builder, original)
+		fillColumn(builder, original)
 		
 		val row = mockk<ResultRow>()
 		every { row[ConfigTable.valJson] } returns jsonSlot.captured
 		
-		val restored = ConfigTable.getValueFromRow(row)
+		val restored = getValueFromRow(row)
 		assertNotNull(restored)
 		assertIs<SettingValue.ValDouble>(restored)
 		assertEquals(3.14159, restored.value)

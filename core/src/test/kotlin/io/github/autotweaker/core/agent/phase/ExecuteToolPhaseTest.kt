@@ -18,19 +18,20 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
+import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
@@ -58,44 +59,17 @@ class ExecuteToolPhaseTest {
 	private val statusLog = mutableListOf<AgentStatus>()
 	private val capturedOutputs = mutableListOf<AgentOutput>()
 	private lateinit var tmpDir: Path
-	private val settings = listOf(
-		SettingItem(SettingKey("core.agent.tool.timeout.seconds"), SettingValue.ValInt(2), ""),
-		SettingItem(
-			SettingKey("core.agent.tool.response.timeout"),
-			SettingValue.ValString("Timeout after %d seconds"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.property.missing"),
-			SettingValue.ValString("Missing %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.property.error"),
-			SettingValue.ValString("Error %s"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.function.name.error"),
-			SettingValue.ValString("Function %s not found"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.description.enable"),
-			SettingValue.ValString("Enable tool"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.active"),
-			SettingValue.ValString("Tool %s with %d functions enabled"),
-			""
-		),
-		SettingItem(
-			SettingKey("core.agent.tool.response.json.error"),
-			SettingValue.ValString("JSON error: %s"),
-			""
-		),
-	)
+	private val settings = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		every { svc.get(AgentToolSettings.TimeoutSeconds) } returns SettingValue.ValInt(999)
+		every { svc.get(AgentToolSettings.TimeoutMessage) } returns SettingValue.ValString("Timeout after %d seconds")
+		every { svc.get(AgentToolSettings.PropertyMissing) } returns SettingValue.ValString("Missing %s")
+		every { svc.get(AgentToolSettings.PropertyError) } returns SettingValue.ValString("Error %s")
+		every { svc.get(AgentToolSettings.FunctionNameError) } returns SettingValue.ValString("Function %s not found")
+		every { svc.get(AgentToolSettings.EnableDescription) } returns SettingValue.ValString("Enable tool")
+		every { svc.get(AgentToolSettings.ActiveMessage) } returns SettingValue.ValString("Tool %s with %d functions enabled")
+		every { svc.get(AgentToolSettings.JsonError) } returns SettingValue.ValString("JSON error: %s")
+	}
 	
 	@BeforeTest
 	fun setUp() {
@@ -118,7 +92,7 @@ class ExecuteToolPhaseTest {
 		every { env.agentId } returns UUID.randomUUID()
 		every { env.agentState } returns agentState
 		every { env.tools } returns tools
-		every { env.settings } returns settings
+		every { env.service } returns settings
 		every { env.workspace } returns WorkspaceMeta("test", false, tmpDir)
 		every { env.containerConfig } returns ContainerConfig(workDir = tmpDir, workspaceHostPath = tmpDir)
 		every { env.summarizeModel } returns model
@@ -194,45 +168,12 @@ class ExecuteToolPhaseTest {
 	
 	@Test
 	fun `timeout returns Tool with TIMEOUT status`() = runTest {
-		val timeoutSettings = listOf(
-			SettingItem(SettingKey("core.agent.tool.timeout.seconds"), SettingValue.ValInt(0), ""),
-			SettingItem(
-				SettingKey("core.agent.tool.response.timeout"),
-				SettingValue.ValString("Timeout after %d seconds"),
-				""
-			),
-			SettingItem(
-				SettingKey("core.agent.tool.response.property.missing"),
-				SettingValue.ValString("Missing %s"),
-				""
-			),
-			SettingItem(
-				SettingKey("core.agent.tool.response.property.error"),
-				SettingValue.ValString("Error %s"),
-				""
-			),
-			SettingItem(
-				SettingKey("core.agent.tool.response.function.name.error"),
-				SettingValue.ValString("Function %s not found"),
-				""
-			),
-			SettingItem(
-				SettingKey("core.agent.tool.description.enable"),
-				SettingValue.ValString("Enable tool"),
-				""
-			),
-			SettingItem(
-				SettingKey("core.agent.tool.response.active"),
-				SettingValue.ValString("Tool %s with %d functions enabled"),
-				""
-			),
-			SettingItem(
-				SettingKey("core.agent.tool.response.json.error"),
-				SettingValue.ValString("JSON error: %s"),
-				""
-			),
-		)
-		every { env.settings } returns timeoutSettings
+		val timeoutSettings = mockk<SettingService>().also { svc ->
+			every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+			every { svc.get(AgentToolSettings.TimeoutSeconds) } returns SettingValue.ValInt(0)
+			every { svc.get(AgentToolSettings.TimeoutMessage) } returns SettingValue.ValString("Timeout after %d seconds")
+		}
+		every { env.service } returns timeoutSettings
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		

@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
@@ -25,8 +27,6 @@ import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.settings.SettingItem
-import io.github.autotweaker.api.types.settings.SettingKey
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
@@ -53,19 +53,9 @@ class CompactPhaseTest {
 	private lateinit var model: Model
 	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val capturedOutputs = mutableListOf<AgentOutput>()
-	private val settings = listOf(
-		SettingItem(
-			SettingKey("core.agent.compact.prompt"),
-			SettingValue.ValString("Summarize conversation"),
-			""
-		),
-		SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(10000), ""),
-		SettingItem(
-			SettingKey("core.agent.compact.message.summarize.prompt"),
-			SettingValue.ValString("Summarize: %s"),
-			""
-		),
-	)
+	private val settings = mockk<SettingService>().also {
+		every { it.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+	}
 	
 	@BeforeTest
 	fun setUp() {
@@ -129,7 +119,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		assertEquals("compacted conversation summary", _contextFlow.value.summarizedMessage?.content)
 	}
@@ -159,7 +149,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -192,7 +182,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		// Should have attempted MAX_COMPACT_RETRIES (5) times before giving up
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
@@ -226,7 +216,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		assertEquals("real summary here", _contextFlow.value.summarizedMessage?.content)
 	}
@@ -273,7 +263,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
 		assertNotNull(_contextFlow.value.summarizedMessage?.content)
@@ -302,7 +292,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -344,7 +334,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		val outputting = capturedOutputs.filterIsInstance<AgentOutput.Compact>()
 			.firstOrNull { it.output.status == CompactOutput.Status.OUTPUTTING }
@@ -367,7 +357,7 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
@@ -401,26 +391,16 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		assertEquals("summary with images", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
 	fun `long messages trigger summarizeMessage`() = runTest {
-		val longContentSettings = listOf(
-			SettingItem(
-				SettingKey("core.agent.compact.prompt"),
-				SettingValue.ValString("Summarize conversation"),
-				""
-			),
-			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(5), ""),
-			SettingItem(
-				SettingKey("core.agent.compact.message.summarize.prompt"),
-				SettingValue.ValString("Summarize: %s"),
-				""
-			),
-		)
+		val longContentSettings = mockk<SettingService>().also {
+			every { it.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		}
 		val summaryContent = "<summary>compacted</summary>"
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
@@ -457,7 +437,7 @@ class CompactPhaseTest {
 			rounds,
 			summarizeModel = model,
 			fallbackModels = null,
-			settings = longContentSettings
+			service = longContentSettings
 		)
 		
 		assertEquals("compacted", _contextFlow.value.summarizedMessage?.content)
@@ -465,15 +445,9 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `long tool result triggers summarizeMessage for tool content`() = runTest {
-		val longContentSettings = listOf(
-			SettingItem(SettingKey("core.agent.compact.prompt"), SettingValue.ValString("Compact"), ""),
-			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(5), ""),
-			SettingItem(
-				SettingKey("core.agent.compact.message.summarize.prompt"),
-				SettingValue.ValString("TLDR: %s"),
-				""
-			),
-		)
+		val longContentSettings = mockk<SettingService>().also {
+			every { it.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		}
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = "<summary>done</summary>", createdAt = Clock.System.now(), model = "summarize-model",
@@ -518,7 +492,7 @@ class CompactPhaseTest {
 			rounds,
 			summarizeModel = model,
 			fallbackModels = null,
-			settings = longContentSettings
+			service = longContentSettings
 		)
 		
 		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
@@ -547,22 +521,16 @@ class CompactPhaseTest {
 			),
 		)
 		
-		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, settings = settings)
+		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
 		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
 	}
 	
 	@Test
 	fun `summarizeMessage falls back to original content when result empty`() = runTest {
-		val fallbackSettings = listOf(
-			SettingItem(SettingKey("core.agent.compact.prompt"), SettingValue.ValString("Compact"), ""),
-			SettingItem(SettingKey("core.agent.compact.max.message.chars"), SettingValue.ValInt(5), ""),
-			SettingItem(
-				SettingKey("core.agent.compact.message.summarize.prompt"),
-				SettingValue.ValString("TLDR: %s"),
-				""
-			),
-		)
+		val fallbackSettings = mockk<SettingService>().also {
+			every { it.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+		}
 		// First call (summarizeMessage for long user msg): retrying non-null, result has null message
 		// Second call (summarizeMessage for long assistant msg): same
 		// Third call (runCompactRequest): success with summary
@@ -601,7 +569,7 @@ class CompactPhaseTest {
 			rounds,
 			summarizeModel = model,
 			fallbackModels = null,
-			settings = fallbackSettings
+			service = fallbackSettings
 		)
 		
 		assertEquals("final", _contextFlow.value.summarizedMessage?.content)
@@ -628,7 +596,7 @@ class CompactPhaseTest {
 				rounds,
 				summarizeModel = model,
 				fallbackModels = null,
-				settings = settings
+				service = settings
 			)
 		}
 		job.join()
