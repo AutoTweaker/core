@@ -42,4 +42,16 @@ object CompactSettings {
 			SettingValue.ValString("请对以下消息内容进行概括，输出不要太长\n\n" + "<message>\n%s\n</message>")
 		override val description = "上下文压缩前对字符数过多的消息进行单独总结时的提示词"
 	}
+	
+	@AutoService(SettingDef::class)
+	object MaxCompactRetries : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(5)
+		override val description = "上下文压缩的最大重试次数"
+	}
+	
+	@AutoService(SettingDef::class)
+	object MinSummaryLength : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(50)
+		override val description = "上下文压缩输出的最小字符数，小于此值的总结会视为无效"
+	}
 }

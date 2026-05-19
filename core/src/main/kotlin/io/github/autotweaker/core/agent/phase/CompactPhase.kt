@@ -38,9 +38,6 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
 
-private const val MAX_COMPACT_RETRIES = 5
-private const val MIN_SUMMARY_LENGTH = 10
-
 internal object CompactPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
@@ -73,7 +70,7 @@ internal object CompactPhase {
 			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages)
 			attempt++
 			
-			if (finalResult.success || attempt >= MAX_COMPACT_RETRIES) break
+			if (finalResult.success || attempt >= service.get(CompactSettings.MaxCompactRetries).value) break
 		}
 		
 		val cleaned = finalResult.rawContent
@@ -194,7 +191,7 @@ internal object CompactPhase {
 		if (hasError) return CompactRequestResult(rawContent, lastUsage, success = false)
 		
 		val extracted = extractSummary(rawContent)
-		val valid = extracted.length >= MIN_SUMMARY_LENGTH
+		val valid = extracted.length >= service.get(CompactSettings.MinSummaryLength).value
 		
 		if (valid) {
 			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastUsage)))
