@@ -39,7 +39,6 @@ sealed class CliMessage {
 			return if (idx >= 0) args.getOrNull(idx + 1) else null
 		}
 		
-		@Suppress("unused")
 		fun flag(name: String): Boolean = name in args
 	}
 	
