@@ -19,13 +19,13 @@
 package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.*
@@ -75,10 +75,7 @@ interface CoreAPI {
 	}
 	
 	interface ConfigAPI {
-		fun getAppConfig(): List<CoreConfig.AppConfig>
-		fun getDefaultAppConfig(): List<CoreConfig.AppConfig>
-		fun setAppConfigValue(id: String, value: SettingValue)
-		fun setAppConfigDesc(id: String, description: String)
+		fun settingService(): SettingService
 		
 		fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
 		fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?

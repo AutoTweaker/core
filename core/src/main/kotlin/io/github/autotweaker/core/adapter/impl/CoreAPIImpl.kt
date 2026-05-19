@@ -20,13 +20,13 @@ package io.github.autotweaker.core.adapter.impl
 
 import io.github.autotweaker.api.adapter.AdapterRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
@@ -34,6 +34,7 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.json.JsonStoreImpl
+import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
 import io.github.autotweaker.core.session.WorkspaceAPI
@@ -86,10 +87,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	
 	override val config = object : CoreAPI.ConfigAPI {
 		private val cfg = ConfigManager
-		override fun getAppConfig() = cfg.appConfig.list()
-		override fun getDefaultAppConfig() = cfg.appConfig.defaults()
-		override fun setAppConfigValue(id: String, value: SettingValue) = cfg.appConfig.set(id, value)
-		override fun setAppConfigDesc(id: String, description: String) = cfg.appConfig.setDesc(id, description)
+		override fun settingService(): SettingService = Settings
 		override fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = cfg.envConfig.list(type)
 		override fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = cfg.envConfig.get(type, id)
 		override fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = cfg.envConfig.set(env)

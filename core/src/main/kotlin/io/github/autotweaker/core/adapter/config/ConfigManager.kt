@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.adapter.config
 
 object ConfigManager {
-	val appConfig = AppConfigAPI
 	val envConfig = EnvConfigAPI
 	val providerConfig = ProviderConfigAPI
 	val apiKeyConfig = ApiKeyConfigAPI
