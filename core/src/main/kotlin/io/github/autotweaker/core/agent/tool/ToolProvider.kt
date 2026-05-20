@@ -40,7 +40,7 @@ internal object ToolProvider {
 		)
 		container.register(
 			SummarizeService::class,
-			SummarizeServiceImpl(env.summarizeModel, env.currentFallbackModels),
+			SummarizeServiceImpl(env.summarizeModel, env.currentFallbackModels, env.service),
 		)
 		container.register(BashService::class, BashServiceImpl(workspace.path, workspace.inContainer, config.workDir))
 		container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context.value))

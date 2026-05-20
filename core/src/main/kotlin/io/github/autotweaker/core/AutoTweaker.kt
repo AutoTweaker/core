@@ -72,7 +72,7 @@ object AutoTweaker : AdapterRegistry {
 		JsonStoreImpl.init()
 		Settings.init()
 		try {
-			SecretManager.init()
+			SecretManager.init(Settings)
 		} catch (e: Exception) {
 			logger.error("Failed to initialize SecretManager", e)
 			throw e

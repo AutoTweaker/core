@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -51,7 +52,11 @@ internal object AgentChat {
 		}
 	}
 	
-	internal fun execute(request: AgentChatRequest, agentId: UUID): Flow<AgentChatStreamResult> = flow {
+	internal fun execute(
+		request: AgentChatRequest,
+		agentId: UUID,
+		service: SettingService
+	): Flow<AgentChatStreamResult> = flow {
 		val chatRequest = request.toChatRequest().copy(stream = true)
 		
 		logger.debug(
@@ -66,6 +71,7 @@ internal object AgentChat {
 			model = request.model,
 			fallbackModels = request.fallbackModels,
 			request = chatRequest,
+			service = service,
 		)
 		
 		var lastRetrying: Model? = null

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
@@ -56,6 +57,7 @@ class ToolProviderTest {
 		)
 		every { env.summarizeModel } returns model
 		every { env.currentFallbackModels } returns null
+		every { env.service } returns mockk<SettingService>(relaxed = true)
 		every { env.context } returns MutableStateFlow(agentContext)
 	}
 	

@@ -60,14 +60,14 @@ internal object CompactPhase {
 		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt).value
 		
 		val processed =
-			preprocessMessages(rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt)
+			preprocessMessages(rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, service)
 		
 		val systemAndMessages = processed + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
 		
 		var attempt = 0
 		var finalResult: CompactRequestResult
 		while (true) {
-			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages)
+			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages, service)
 			attempt++
 			
 			if (finalResult.success || attempt >= service.get(CompactSettings.MaxCompactRetries).value) break
@@ -128,6 +128,7 @@ internal object CompactPhase {
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
 		messages: List<ChatMessage>,
+		service: SettingService,
 	): CompactRequestResult {
 		val request = ChatRequest(
 			model = summarizeModel.modelInfo.modelId,
@@ -140,7 +141,7 @@ internal object CompactPhase {
 		var lastUsage: Usage? = null
 		var hasError = false
 		try {
-			val results = ResilientChat.execute(summarizeModel, fallbackModels, request)
+			val results = ResilientChat.execute(summarizeModel, fallbackModels, request, service)
 			results.collect { resilientResult ->
 				currentCoroutineContext().ensureActive()
 				when (val result = resilientResult.result) {
@@ -211,11 +212,12 @@ internal object CompactPhase {
 		fallbackModels: List<Model>?,
 		maxMessageChars: Int,
 		messageSummarizePrompt: String,
+		service: SettingService,
 	): List<ChatMessage> = buildList {
 		for (round in rounds) {
 			add(
 				convertUserMessage(
-					round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
+					round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service
 				)
 			)
 			round.turns?.forEach { turn ->
@@ -233,13 +235,14 @@ internal object CompactPhase {
 						maxMessageChars,
 						messageSummarizePrompt,
 						summarizeModel,
-						fallbackModels
+						fallbackModels,
+						service,
 					)
 				)
 				turn.tools.forEach {
 					add(
 						convertToolMessage(
-							it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
+							it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
 						)
 					)
 				}
@@ -247,7 +250,7 @@ internal object CompactPhase {
 			round.finalAssistantMessage?.let {
 				add(
 					convertAssistantMessage(
-						it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
+						it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
 					)
 				)
 			}
@@ -260,6 +263,7 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
+		service: SettingService,
 	): ChatMessage.UserMessage {
 		val content = buildString {
 			if (!msg.images.isNullOrEmpty()) {
@@ -268,7 +272,7 @@ internal object CompactPhase {
 			append(msg.content)
 		}
 		val finalContent = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
 		} else content
 		return ChatMessage.UserMessage(finalContent, msg.timestamp)
 	}
@@ -280,10 +284,11 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
+		service: SettingService,
 	): ChatMessage.AssistantMessage {
 		val content = msg.content ?: ""
 		val finalContent = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
 		} else content
 		return ChatMessage.AssistantMessage(
 			content = finalContent,
@@ -300,10 +305,11 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
+		service: SettingService,
 	): ChatMessage.ToolMessage {
 		val content = msg.result.content
 		val finalContent = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
 		} else content
 		return ChatMessage.ToolMessage(
 			content = finalContent,
@@ -317,6 +323,7 @@ internal object CompactPhase {
 		prompt: String,
 		model: Model,
 		fallbackModels: List<Model>?,
+		service: SettingService,
 	): String {
 		val request = ChatRequest(
 			model = model.modelInfo.modelId,
@@ -326,7 +333,7 @@ internal object CompactPhase {
 			),
 			stream = false,
 		)
-		val results = ResilientChat.execute(model, fallbackModels, request).toList()
+		val results = ResilientChat.execute(model, fallbackModels, request, service).toList()
 		val success = results.filter { it.retrying == null }.map { it.result }
 		return success.firstNotNullOfOrNull { it.message?.content } ?: content
 	}

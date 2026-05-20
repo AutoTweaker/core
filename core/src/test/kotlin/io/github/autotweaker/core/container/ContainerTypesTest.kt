@@ -115,7 +115,7 @@ class ContainerConfigTest {
 class ContainerServiceTest {
 	
 	private suspend fun callExecWithDefaults(service: ContainerService): CommandResult {
-		return service.exec("id", listOf("cmd"))
+		return service.exec("id", listOf("cmd"), timeoutSeconds = 30)
 	}
 	
 	@Test

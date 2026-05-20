@@ -26,7 +26,7 @@ interface ContainerService {
 		containerId: String,
 		command: List<String>,
 		workDir: String? = null,
-		timeoutSeconds: Long = 30,
+		timeoutSeconds: Long,
 		env: Map<String, String> = emptyMap(),
 	): CommandResult
 }

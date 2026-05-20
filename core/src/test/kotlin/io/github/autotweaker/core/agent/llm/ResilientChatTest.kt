@@ -18,10 +18,12 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -36,13 +38,28 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.util.*
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class ResilientChatTest {
 	
+	@BeforeEach
+	fun setup() {
+		every { mockService.get(ResilientChatSettings.MaxRetries) } returns SettingValue.ValInt(3)
+		every { mockService.get(ResilientChatSettings.RetryBaseDelaySeconds) } returns SettingValue.ValInt(1)
+		every { mockService.get(ResilientChatSettings.MaxRetryDelaySeconds) } returns SettingValue.ValInt(60)
+		every { mockService.get(ResilientChatSettings.RetryJitterEnabled) } returns SettingValue.ValBoolean(true)
+	}
+	
+	
+	private val mockService: SettingService = mockk(relaxed = true)
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	
@@ -108,7 +125,7 @@ class ResilientChatTest {
 		val results = ResilientChat.execute(
 			model = model(),
 			fallbackModels = null,
-			request = chatRequest(),
+			request = chatRequest(), service = mockService
 		).toList()
 		
 		assertEquals(1, results.size)
@@ -140,7 +157,7 @@ class ResilientChatTest {
 			model = model(provider = providerWithRetry),
 			fallbackModels = null,
 			request = chatRequest(),
-			maxRetries = 3,
+			service = mockService,
 		).toList()
 		
 		// First call: error + retrying signal
@@ -174,7 +191,7 @@ class ResilientChatTest {
 		val results = ResilientChat.execute(
 			model = m1,
 			fallbackModels = listOf(m2),
-			request = chatRequest(),
+			request = chatRequest(), service = mockService
 		).toList()
 		
 		assertEquals(2, results.size)
@@ -210,6 +227,7 @@ class ResilientChatTest {
 			model = model(providerSame),
 			fallbackModels = listOf(model(providerSame), model(providerOther)),
 			request = chatRequest(),
+			service = mockService,
 		).toList()
 		
 		// m1 fails → filters m2 (same provider) → m3 succeeds
@@ -256,6 +274,7 @@ class ResilientChatTest {
 				model(p3, largerModelInfo),
 			),
 			request = chatRequest(),
+			service = mockService,
 		).toList()
 		
 		// m2 is filtered (smaller context), m3 is used
@@ -277,7 +296,7 @@ class ResilientChatTest {
 			ResilientChat.execute(
 				model = model(provider = p),
 				fallbackModels = null,
-				request = chatRequest(),
+				request = chatRequest(), service = mockService
 			).toList()
 		}
 		assertTrue(ex.message!!.contains("All candidate models exhausted"))
@@ -286,11 +305,12 @@ class ResilientChatTest {
 	@Test
 	fun `maxRetries must be positive`() = runTest {
 		val ex = assertFailsWith<IllegalArgumentException> {
+			every { mockService.get(ResilientChatSettings.MaxRetries) } returns SettingValue.ValInt(0)
 			ResilientChat.execute(
 				model = model(),
 				fallbackModels = null,
 				request = chatRequest(),
-				maxRetries = 0,
+				service = mockService,
 			).toList()
 		}
 		assertTrue(ex.message!!.contains("maxRetries must be positive"))
@@ -322,6 +342,7 @@ class ResilientChatTest {
 			model = model(provider("p1"), noImageModelInfo),
 			fallbackModels = listOf(model(provider("p2"), imageModelInfo)),
 			request = requestWithImage,
+			service = mockService,
 		).toList()
 		
 		// m1 should be filtered out (no image support), m2 should be used
@@ -345,7 +366,7 @@ class ResilientChatTest {
 		val results = ResilientChat.execute(
 			model = model(),
 			fallbackModels = null,
-			request = chatRequest(),
+			request = chatRequest(), service = mockService
 		).toList()
 		
 		val msg = results[0].result.message as ChatMessage.AssistantMessage
@@ -369,7 +390,7 @@ class ResilientChatTest {
 		val results = ResilientChat.execute(
 			model = model(),
 			fallbackModels = null,
-			request = chatRequest(),
+			request = chatRequest(), service = mockService
 		).toList()
 		
 		val msg = results[0].result.message as ChatMessage.AssistantMessage
@@ -401,6 +422,7 @@ class ResilientChatTest {
 			model = model(p1),
 			fallbackModels = listOf(model(provider("p2"))),
 			request = chatRequest(),
+			service = mockService,
 		).toList()
 		
 		assertEquals(2, results.size)
@@ -424,12 +446,13 @@ class ResilientChatTest {
 			)
 		} returns flow { emit(assistantResult("success after retry exhaust")) }
 		
+		every { mockService.get(ResilientChatSettings.MaxRetries) } returns SettingValue.ValInt(2)
 		val p1 = provider("p1", listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY)))
 		val results = ResilientChat.execute(
 			model = model(p1),
 			fallbackModels = listOf(model(provider("p2"))),
 			request = chatRequest(),
-			maxRetries = 2,
+			service = mockService,
 		).toList()
 		
 		assertEquals(3, results.size)
@@ -458,6 +481,7 @@ class ResilientChatTest {
 			model = model(provider("p1"), baseModelInfo.copy(supportsImage = false)),
 			fallbackModels = null,
 			request = requestWithImage,
+			service = mockService,
 		).toList()
 		
 		val userMsg = capturedRequest!!.messages[0] as ChatMessage.UserMessage
@@ -489,6 +513,7 @@ class ResilientChatTest {
 			model = model(provider("p1"), baseModelInfo.copy(supportsReasoning = false)),
 			fallbackModels = null,
 			request = requestWithAssistant,
+			service = mockService,
 		).toList()
 		
 		val asstMsg = capturedRequest!!.messages[1] as ChatMessage.AssistantMessage
@@ -522,6 +547,7 @@ class ResilientChatTest {
 			model = model(provider("p1"), baseModelInfo.copy(supportsReasoning = true)),
 			fallbackModels = null,
 			request = request,
+			service = mockService,
 		).toList()
 		
 		val msg1 = capturedRequest!!.messages[1] as ChatMessage.AssistantMessage

@@ -46,7 +46,7 @@ internal object RequestLlmPhase {
 			context = env.context.value,
 		)
 		
-		return when (streamProcessor.process(request)) {
+		return when (streamProcessor.process(request, env.service)) {
 			is StreamProcessResult.Completed -> {
 				ContextPhase.archiveCurrentRound(env, env::updateContext)
 				env.updateStatus(AgentStatus.FREE)

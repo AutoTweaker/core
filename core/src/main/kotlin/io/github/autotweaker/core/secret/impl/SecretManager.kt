@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.secret.impl
 
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.secret.SecretStore
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
@@ -31,7 +35,15 @@ object SecretManager : SecretStore {
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")
 	private val markerFile = rootDir.resolve(".verify")
-	private const val KEY_UID = "AutoTweaker(core.secret)@autogen.local"
+	
+	@AutoService(SettingDef::class)
+	object KeyUid : SettingDef<SettingValue.ValString> {
+		override val default = SettingValue.ValString("AutoTweaker(core.secret)@autogen.local")
+		override val description = "项目自动生成GPG密钥的UID"
+	}
+	
+	private lateinit var service: SettingService
+	private val keyUid: String get() = service.get(KeyUid).value
 	
 	@Volatile
 	private var password: String? = null
@@ -47,7 +59,8 @@ object SecretManager : SecretStore {
 		}
 	}
 	
-	fun init() {
+	fun init(service: SettingService) {
+		this.service = service
 		try {
 			unlock("")
 		} catch (e: Exception) {
@@ -104,7 +117,7 @@ object SecretManager : SecretStore {
 	
 	//检查gpg密钥存在
 	private fun hasSecretKey(): Boolean = try {
-		gpg("--list-secret-keys", "--with-colons", KEY_UID).lines().any {
+		gpg("--list-secret-keys", "--with-colons", keyUid).lines().any {
 			it.startsWith("sec:")
 		}
 	} catch (_: Exception) {
@@ -117,7 +130,7 @@ object SecretManager : SecretStore {
 		"--pinentry-mode",
 		"loopback",
 		"--quick-generate-key",
-		KEY_UID,
+		keyUid,
 		"rsa4096",
 		"encrypt",
 		"never",
@@ -151,15 +164,15 @@ object SecretManager : SecretStore {
 	}
 	
 	private fun fingerprint(): String =
-		gpg("--list-keys", "--with-colons", "--fingerprint", KEY_UID).lines().first { it.startsWith("fpr:") }.split(":")
-			.getOrNull(9) ?: error("Cannot find fingerprint for $KEY_UID")
+		gpg("--list-keys", "--with-colons", "--fingerprint", keyUid).lines().first { it.startsWith("fpr:") }.split(":")
+			.getOrNull(9) ?: error("Cannot find fingerprint for $keyUid")
 	
 	//删除密钥
 	private fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", fingerprint())
 	
 	//加密
 	private fun encryptTo(input: String, output: Path) = gpg(
-		"--batch", "--yes", "--trust-model", "always", "-r", KEY_UID, "-a", "-e", "-o", output.toString(), input = input
+		"--batch", "--yes", "--trust-model", "always", "-r", keyUid, "-a", "-e", "-o", output.toString(), input = input
 	)
 	
 	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {

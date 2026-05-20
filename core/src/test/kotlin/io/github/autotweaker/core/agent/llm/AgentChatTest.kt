@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -27,22 +28,24 @@ import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.AgentContext
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class AgentChatTest {
 	
+	private val mockService: SettingService = mockk(relaxed = true)
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
@@ -99,7 +102,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		assertTrue(results.any { it is AgentChatStreamResult.Assembled })
 		
@@ -130,7 +133,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
 		assertEquals("let me think", delta.delta.reasoningContent)
@@ -181,7 +184,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
 		assertEquals(2, deltas.size)
@@ -212,7 +215,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		val failings = results.filterIsInstance<AgentChatStreamResult.Failing>()
 		assertEquals(1, failings.size)
@@ -232,7 +235,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		assertTrue(results.none { it is AgentChatStreamResult.Assembled })
 	}
@@ -261,7 +264,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		val toolCalls = assertNotNull(assembled.toolCalls)
@@ -308,7 +311,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
 		val frags = assertNotNull(delta.delta.toolCallFragments)

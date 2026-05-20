@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.StreamDelta
@@ -35,13 +36,16 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.util.*
-import kotlin.test.*
+import kotlin.test.assertIs
 import kotlin.time.Clock
 
 class AgentStreamProcessorTest {
 	
 	private val mockModel: Model = mockk(relaxed = true)
+	private val mockService: SettingService = mockk(relaxed = true)
 	private val emittedOutputs = mutableListOf<AgentOutput>()
 	private val statusChanges = mutableListOf<AgentStatus>()
 	private var contextUpdateTransform: (suspend (AgentContext) -> AgentContext)? = null
@@ -79,7 +83,7 @@ class AgentStreamProcessorTest {
 	fun `process emits stream delta and context update for text response`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Delta(
 					delta = StreamDelta(
@@ -100,7 +104,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest())
+		newProcessor().process(createRequest(), mockService)
 		
 		assertTrue(emittedOutputs.any {
 			it is AgentOutput.LlmDelta && it.delta.content == "hi"
@@ -111,7 +115,7 @@ class AgentStreamProcessorTest {
 	fun `process emits stream delta with reasoning when reasoning content arrives`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Delta(
 					delta = StreamDelta(
@@ -144,7 +148,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest())
+		newProcessor().process(createRequest(), mockService)
 		
 		assertTrue(emittedOutputs.any {
 			it is AgentOutput.LlmDelta && it.delta.reasoningContent == "let me think"
@@ -166,7 +170,7 @@ class AgentStreamProcessorTest {
 		)
 		
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
@@ -178,7 +182,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.ToolCallsRequired>(result)
 		assertEquals("c1", result.toolCalls[0].callId)
@@ -197,7 +201,7 @@ class AgentStreamProcessorTest {
 		)
 		
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = assistantMsg,
@@ -207,7 +211,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest())
+		newProcessor().process(createRequest(), mockService)
 		
 		assertNotNull(contextUpdateTransform)
 		
@@ -237,7 +241,7 @@ class AgentStreamProcessorTest {
 		)
 		
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = assistantMsg,
@@ -247,7 +251,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest())
+		newProcessor().process(createRequest(), mockService)
 		
 		assertNotNull(contextUpdateTransform)
 		
@@ -267,7 +271,7 @@ class AgentStreamProcessorTest {
 	fun `process emits Error when Failing without retrying`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Failing(
 					errors = listOf(
@@ -282,7 +286,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(emittedOutputs.any { it is AgentOutput.Error && it.error.type == AgentError.Type.LLM })
@@ -292,7 +296,7 @@ class AgentStreamProcessorTest {
 	fun `Failing with null content uses default error message`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Failing(
 					errors = listOf(
@@ -307,7 +311,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertEquals("All retries exhausted", result.message)
@@ -321,7 +325,7 @@ class AgentStreamProcessorTest {
 		val retryingModel: Model = mockk(relaxed = true)
 		
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
 				AgentChatStreamResult.Failing(
 					errors = listOf(
@@ -345,7 +349,7 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest())
+		newProcessor().process(createRequest(), mockService)
 		
 		assertTrue(statusChanges.contains(AgentStatus.RETRYING))
 		assertTrue(emittedOutputs.any { it is AgentOutput.LlmError })
@@ -359,11 +363,11 @@ class AgentStreamProcessorTest {
 	fun `process returns Cancelled on CancellationException`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw CancellationException("cancelled")
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Cancelled>(result)
 	}
@@ -372,11 +376,11 @@ class AgentStreamProcessorTest {
 	fun `process returns Failed on generic exception with message and cause`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw RuntimeException("outer", IllegalStateException("inner"))
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
@@ -389,11 +393,11 @@ class AgentStreamProcessorTest {
 	fun `exception with null message omits colon and message text`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw RuntimeException()
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
@@ -404,11 +408,11 @@ class AgentStreamProcessorTest {
 	fun `exception with null cause does not include cause section`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw RuntimeException("some error")
 		}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
@@ -424,9 +428,9 @@ class AgentStreamProcessorTest {
 	fun `process returns Completed when flow emits nothing`() = runTest {
 		createProcessor()
 		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any()) } returns flow {}
+		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {}
 		
-		val result = newProcessor().process(createRequest())
+		val result = newProcessor().process(createRequest(), mockService)
 		
 		assertIs<StreamProcessResult.Completed>(result)
 	}

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.agent.llm.Model
@@ -29,6 +30,7 @@ import kotlin.time.Clock
 class SummarizeServiceImpl(
 	private val model: Model,
 	private val fallbackModels: List<Model>? = null,
+	private val service: SettingService,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
 		val request = ChatRequest(
@@ -40,7 +42,7 @@ class SummarizeServiceImpl(
 			stream = false,
 		)
 		
-		val results = ResilientChat.execute(model, fallbackModels, request).toList()
+		val results = ResilientChat.execute(model, fallbackModels, request, service).toList()
 		val success = results.filter { it.retrying == null }.map { it.result }
 		return success.firstNotNullOfOrNull { it.message?.content }
 			?: throw IllegalStateException("No response from LLM")

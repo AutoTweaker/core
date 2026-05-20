@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.agent.llm.Model
@@ -27,6 +28,7 @@ import io.github.autotweaker.core.agent.llm.ResilientChatResult
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkObject
+
 import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -37,6 +39,7 @@ import kotlin.test.assertFailsWith
 import kotlin.time.Clock
 
 class SummarizeServiceImplTest {
+	private val mockService: SettingService = mockk(relaxed = true)
 	
 	private val mockModel = Model(
 		provider = Provider("test-provider", mockk(relaxed = true), "key", emptyList()),
@@ -62,7 +65,7 @@ class SummarizeServiceImplTest {
 			)
 		)
 		
-		val service = SummarizeServiceImpl(mockModel)
+		val service = SummarizeServiceImpl(mockModel, service = mockService)
 		val result = service.summarize("long content", "summarize this")
 		
 		assertEquals("summarized content", result)
@@ -86,7 +89,7 @@ class SummarizeServiceImplTest {
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
+		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel), mockService)
 		val result = service.summarize("content", "summarize")
 		
 		assertEquals("fallback result", result)
@@ -104,7 +107,7 @@ class SummarizeServiceImplTest {
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
+		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel), mockService)
 		
 		assertFailsWith<IllegalStateException> {
 			service.summarize("content", "summarize")
@@ -118,7 +121,7 @@ class SummarizeServiceImplTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf()
 		
-		val service = SummarizeServiceImpl(mockModel)
+		val service = SummarizeServiceImpl(mockModel, service = mockService)
 		
 		assertFailsWith<IllegalStateException> {
 			service.summarize("content", "summarize")
@@ -139,7 +142,7 @@ class SummarizeServiceImplTest {
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
+		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel), mockService)
 		val result = service.summarize("content", "summarize")
 		
 		assertEquals("first success", result)

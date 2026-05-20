@@ -20,8 +20,10 @@ package io.github.autotweaker.core.adapter.impl.cli.commands
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingEntry
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.adapter.impl.cli.Command
 import io.github.autotweaker.core.adapter.impl.cli.Param
 import io.github.autotweaker.core.adapter.impl.cli.Request
@@ -31,6 +33,12 @@ import kotlinx.coroutines.flow.*
 
 @AutoService(Command::class)
 class Config : Command {
+	@AutoService(SettingDef::class)
+	object DefaultLimit : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(1000)
+		override val description = "cfg命令的默认limit参数值"
+	}
+	
 	lateinit var core: CoreAPI
 	
 	override val name: String = "cfg"
@@ -72,9 +80,9 @@ class Config : Command {
 	): Flow<Command.Chunk> = flow {
 		val full: Boolean = request.get("full").toBoolean()
 		val limit: Int = try {
-			request.get("limit")?.toInt() ?: DEFAULT_LIMIT
+			request.get("limit")?.toInt() ?: core.config.settingService().get(DefaultLimit).value
 		} catch (_: Exception) {
-			DEFAULT_LIMIT
+			core.config.settingService().get(DefaultLimit).value
 		}
 		
 		if (request.has("list")) {
@@ -171,7 +179,6 @@ class Config : Command {
 	}
 	
 	companion object {
-		private const val DEFAULT_LIMIT = 1000
 		private val ANSI_PATTERN = Regex("\u001B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])")
 	}
 }

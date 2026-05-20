@@ -70,7 +70,7 @@ class BashServiceImpl(
 		val wrapped = "cd ${
 			containerWorkDir.toString().shellEscape()
 		} && timeout ${timeoutSeconds}s bash -lc ${command.shellEscape()}"
-		val result = ContainerManager.execShell(wrapped, env = env)
+		val result = ContainerManager.execShell(wrapped, timeoutSeconds = timeoutSeconds.toLong(), env = env)
 		val timeout = result.exitCode == 124
 		val durationSeconds = (System.nanoTime() - startNs) / 1_000_000_000.0
 		return BashService.Result(result.exitCode, result.stdout, result.stderr, timeout, durationSeconds)

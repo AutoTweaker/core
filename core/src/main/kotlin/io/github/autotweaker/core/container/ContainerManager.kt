@@ -45,7 +45,7 @@ object ContainerManager {
 			logger.warn("Container already started  containerId={}", _containerId)
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
-		val config = ContainerConfig(env = getEnv())
+		val config = ContainerConfig(name = Settings.get(ContainerSettings.ContainerName).value, env = getEnv())
 		val image = Settings.get(ContainerSettings.DockerImage).value
 		logger.debug("Container start initiated  image={}", image)
 		val id = service.start(image, config)
@@ -70,16 +70,16 @@ object ContainerManager {
 	}
 	
 	@Suppress("unused")
-	suspend fun exec(vararg cmd: String, env: Map<String, String> = emptyMap()): CommandResult {
+	suspend fun exec(vararg cmd: String, timeoutSeconds: Long, env: Map<String, String> = emptyMap()): CommandResult {
 		val (id, svc) = requireContainer()
 		logger.debug("Container command started  containerId={}  cmd={}", id, cmd.joinToString(" "))
-		return svc.exec(id, cmd.toList(), env = env)
+		return svc.exec(id, cmd.toList(), timeoutSeconds = timeoutSeconds, env = env)
 	}
 	
-	suspend fun execShell(command: String, env: Map<String, String> = emptyMap()): CommandResult {
+	suspend fun execShell(command: String, timeoutSeconds: Long, env: Map<String, String> = emptyMap()): CommandResult {
 		val (id, svc) = requireContainer()
 		logger.debug("Container shell started  containerId={}  command={}", id, command)
-		return svc.exec(id, listOf("bash", "-lc", command), env = env)
+		return svc.exec(id, listOf("bash", "-lc", command), timeoutSeconds = timeoutSeconds, env = env)
 	}
 	
 	private fun requireContainer(): Pair<String, ContainerService> {

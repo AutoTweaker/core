@@ -236,7 +236,7 @@ class DockerJavaServiceTest {
 		every { client.inspectExecCmd("exec-789") } returns inspectCmd
 		
 		val service = DockerJavaService()
-		val result = service.exec("container-123", listOf("echo", "hello"))
+		val result = service.exec("container-123", listOf("echo", "hello"), timeoutSeconds = 30)
 		
 		assertEquals(0, result.exitCode)
 		assertEquals("hello\nworld", result.stdout)
@@ -276,7 +276,7 @@ class DockerJavaServiceTest {
 		}
 		
 		val service = DockerJavaService()
-		val result = service.exec("container-123", listOf("pwd"), workDir = "/tmp/work")
+		val result = service.exec("container-123", listOf("pwd"), timeoutSeconds = 30, workDir = "/tmp/work")
 		
 		assertEquals(0, result.exitCode)
 		
@@ -313,7 +313,7 @@ class DockerJavaServiceTest {
 		}
 		
 		val service = DockerJavaService()
-		val result = service.exec("container-123", listOf("cmd"))
+		val result = service.exec("container-123", listOf("cmd"), timeoutSeconds = 30)
 		
 		assertEquals(-1, result.exitCode)
 		
@@ -327,7 +327,7 @@ class DockerJavaServiceTest {
 		
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
-			service.exec("container-gone", listOf("ls"))
+			service.exec("container-gone", listOf("ls"), timeoutSeconds = 30)
 		}
 		assertTrue(ex.message!!.contains("Container not found"))
 		
@@ -341,7 +341,7 @@ class DockerJavaServiceTest {
 		
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
-			service.exec("container-123", listOf("ls"))
+			service.exec("container-123", listOf("ls"), timeoutSeconds = 30)
 		}
 		assertTrue(ex.message!!.contains("Failed to exec command"))
 		assertTrue(ex.message!!.contains("exec error"))

@@ -18,8 +18,11 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.github.autotweaker.core.adapter.impl.cli.commands.Help
 import io.github.autotweaker.core.adapter.impl.cli.i18n.I18n
@@ -31,7 +34,15 @@ import java.util.*
 class CommandRouter(core: CoreAPI, coreVersion: SemVer, commands: List<Command>) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val handlers: Map<String, Command>
-	private val maxArgsCount = 100_000
+	
+	@AutoService(SettingDef::class)
+	object MaxArgsCount : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(100_000)
+		override val description = "CLI命令的最大参数数量，超出会报错"
+	}
+	
+	private val storedCore = core
+	private val maxArgsCount = storedCore.config.settingService().get(MaxArgsCount).value
 	
 	init {
 		commands.forEach { it.init(core, coreVersion) }

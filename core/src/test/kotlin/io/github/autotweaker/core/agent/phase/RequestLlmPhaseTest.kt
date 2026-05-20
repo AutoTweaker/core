@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.*
 import io.github.autotweaker.core.agent.llm.Model
@@ -53,6 +54,7 @@ class RequestLlmPhaseTest {
 		every { env.currentModel } returns model
 		every { env.currentFallbackModels } returns null
 		every { env.currentThinking } returns false
+		every { env.service } returns mockk<SettingService>(relaxed = true)
 		every { env.tools } returns mockk(relaxed = true)
 		every { env.toolCancelledMessage } returns "Tool cancelled"
 		every { env.toolRejectedMessage } returns "Tool rejected"
@@ -76,7 +78,7 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("done"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Completed
+		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Completed
 		
 		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
@@ -93,7 +95,7 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("calling tools"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.ToolCallsRequired(emptyList())
+		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.ToolCallsRequired(emptyList())
 		
 		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
@@ -107,7 +109,7 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("cancelled"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Cancelled
+		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Cancelled
 		
 		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
@@ -124,7 +126,7 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("failed"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Failed("LLM error")
+		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Failed("LLM error")
 		
 		val result = RequestLlmPhase.execute(env, streamProcessor)
 		
@@ -134,7 +136,7 @@ class RequestLlmPhaseTest {
 	
 	@Test
 	fun `updates status to PROCESSING on entry`() = runTest {
-		coEvery { streamProcessor.process(any()) } returns StreamProcessResult.Completed
+		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Completed
 		val round = AgentContext.CurrentRound(
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("done"),

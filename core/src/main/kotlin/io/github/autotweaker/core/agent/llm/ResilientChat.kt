@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -27,10 +28,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-
-private const val DEFAULT_MAX_RETRIES = 3
-private val RETRY_BASE_DELAY = 1.seconds
 
 internal object ResilientChat {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -39,8 +39,9 @@ internal object ResilientChat {
 		model: Model,
 		fallbackModels: List<Model>?,
 		request: ChatRequest,
-		maxRetries: Int = DEFAULT_MAX_RETRIES,
+		service: SettingService,
 	): Flow<ResilientChatResult> = flow {
+		val maxRetries = service.get(ResilientChatSettings.MaxRetries).value
 		require(maxRetries > 0) { "maxRetries must be positive" }
 		
 		var candidates = buildList {
@@ -103,7 +104,14 @@ internal object ResilientChat {
 								current.modelInfo.modelId, retryAttempt + 1, lastStatusCode
 							)
 							emit(ResilientChatResult(error, retrying = current))
-							delay(RETRY_BASE_DELAY * (1 shl retryAttempt))
+							val baseDelay = service.get(ResilientChatSettings.RetryBaseDelaySeconds).value
+							val maxDelay = service.get(ResilientChatSettings.MaxRetryDelaySeconds).value
+							val jitterEnabled = service.get(ResilientChatSettings.RetryJitterEnabled).value
+							val capped = minOf(baseDelay.seconds * (1 shl retryAttempt), maxDelay.seconds)
+							val finalDelay = if (jitterEnabled) {
+								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
+							} else capped
+							delay(finalDelay)
 							continue
 						}
 						logger.debug(

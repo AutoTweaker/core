@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.adapter.impl.cli
 
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
@@ -35,7 +39,14 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
 
-class CliServer {
+class CliServer(service: SettingService) {
+	@AutoService(SettingDef::class)
+	object MaxLineLength : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(10_485_760)
+		override val description = "CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
+	}
+	
+	private val maxLineLength = service.get(MaxLineLength).value
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -151,7 +162,7 @@ class CliServer {
 				sb.append(chunk, 0, nl)
 				return sb.toString()
 			}
-			if (sb.length > MAX_LINE_LENGTH) {
+			if (sb.length > maxLineLength) {
 				logger.warn("Line exceeded max length  length={}", sb.length)
 				return null
 			}
@@ -169,8 +180,6 @@ class CliServer {
 	}
 	
 	companion object {
-		private const val MAX_LINE_LENGTH = 10_485_760  // 10 MB
-		
 		private fun socketPath(): Path = Path.of(
 			System.getProperty("user.home"),
 			".config", "autotweaker", "cli.sock",

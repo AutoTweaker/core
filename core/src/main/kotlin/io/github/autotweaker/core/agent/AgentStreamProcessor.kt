@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent
 
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.llm.AgentChat
@@ -47,11 +48,12 @@ class AgentStreamProcessor(
 	
 	suspend fun process(
 		request: AgentChatRequest,
+		service: SettingService,
 	): StreamProcessResult {
 		var earlyResult: StreamProcessResult? = null
 		
 		try {
-			AgentChat.execute(request, agentId).collect { result ->
+			AgentChat.execute(request, agentId, service).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Delta -> {
 						emitOutput(AgentOutput.LlmDelta(result.delta))

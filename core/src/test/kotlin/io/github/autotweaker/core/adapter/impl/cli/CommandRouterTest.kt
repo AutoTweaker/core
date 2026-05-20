@@ -19,7 +19,9 @@
 package io.github.autotweaker.core.adapter.impl.cli
 
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.adapter.impl.cli.Command.Chunk
 import io.mockk.every
 import io.mockk.mockk
@@ -40,6 +42,11 @@ class CommandRouterTest {
 	@BeforeEach
 	fun setUp() {
 		commands.clear()
+		val config = mockk<CoreAPI.ConfigAPI>(relaxed = true)
+		val settingService = mockk<SettingService>(relaxed = true)
+		every { core.config } returns config
+		every { config.settingService() } returns settingService
+		every { settingService.get(CommandRouter.MaxArgsCount) } returns SettingValue.ValInt(100_000)
 		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 	}
 	
