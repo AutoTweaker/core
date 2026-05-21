@@ -192,9 +192,11 @@ object AgentContextConverter {
 		
 		ctx.compactedRounds?.forEach { compacted ->
 			compacted.rounds.forEach { collectFromRound(it) }
+			compacted.summarizedMessage.usage?.let { usage[compacted.summarizedMessage.id] = it }
 		}
 		ctx.historyRounds?.forEach { collectFromRound(it) }
 		ctx.currentRound?.let { collectFromCurrent(it) }
+		ctx.summarizedMessage?.usage?.let { usage[ctx.summarizedMessage.id] = it }
 		
 		return usage
 	}

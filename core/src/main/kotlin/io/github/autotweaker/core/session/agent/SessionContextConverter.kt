@@ -44,7 +44,8 @@ object SessionContextConverter {
 			if (rounds.any { it == null }) return@mapNotNull null
 			AgentContext.CompactedRound(
 				rounds = rounds.filterNotNull(), summarizedMessage = AgentContext.SummarizedMessage(
-					id = compactMsg.id, timestamp = compactMsg.timestamp, content = compactMsg.content
+					id = compactMsg.id, timestamp = compactMsg.timestamp, content = compactMsg.content,
+					usage = context.usage[compactMsg.id]
 				)
 			)
 		}
@@ -58,7 +59,12 @@ object SessionContextConverter {
 		}
 		
 		val summarizedMessage = context.index.summarizedMessage?.let { messageMap[it] as? SessionMessage.Compact }
-			?.let { AgentContext.SummarizedMessage(id = it.id, timestamp = it.timestamp, content = it.content) }
+			?.let {
+				AgentContext.SummarizedMessage(
+					id = it.id, timestamp = it.timestamp, content = it.content,
+					usage = context.usage[it.id]
+				)
+			}
 		
 		return AgentContext(
 			compactedRounds = compactedRounds,
