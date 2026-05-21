@@ -25,7 +25,6 @@ import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.container.ContainerConfig
 import io.mockk.every
 import io.mockk.mockk
@@ -48,17 +47,6 @@ class AgentTest {
 	
 	private val agentSettings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-		every { svc.get(AgentToolSettings.Cancelled) } returns SettingValue.ValString("Tool cancelled")
-		every { svc.get(AgentToolSettings.Rejected) } returns SettingValue.ValString("Tool rejected")
-		every { svc.get(AgentToolSettings.RejectedWithFeedback) } returns SettingValue.ValString("Tool rejected: %s")
-		every { svc.get(AgentToolSettings.PropertyMissing) } returns SettingValue.ValString("missing: %s %s")
-		every { svc.get(AgentToolSettings.PropertyError) } returns SettingValue.ValString("error: %s %s %s")
-		every { svc.get(AgentToolSettings.FunctionNameError) } returns SettingValue.ValString("name error: %s")
-		every { svc.get(AgentToolSettings.JsonError) } returns SettingValue.ValString("JSON error: %s")
-		every { svc.get(AgentToolSettings.ReasonDescription) } returns SettingValue.ValString("reason")
-		every { svc.get(AgentToolSettings.TimeoutMessage) } returns SettingValue.ValString("Timeout after %d seconds")
-		every { svc.get(AgentToolSettings.EnableDescription) } returns SettingValue.ValString("Enable tool")
-		every { svc.get(AgentToolSettings.ActiveMessage) } returns SettingValue.ValString("Tool %s with %d functions enabled")
 	}
 	
 	private fun createWorkspace(): WorkspaceMeta {
@@ -152,9 +140,12 @@ class AgentTest {
 	@Test
 	fun `tool messages use settings values`() {
 		val agent = createAgent()
-		assertEquals("Tool cancelled", agent.toolCancelledMessage)
-		assertEquals("Tool rejected", agent.toolRejectedMessage)
-		assertEquals("Tool rejected: %s", agent.toolRejectedWithFeedbackMessage)
+		assertEquals("工具调用已取消", agent.toolCancelledMessage)
+		assertEquals(
+			"工具调用已被用户拒绝，工具未被执行。请停止当前操作；向用户解释为什么要执行这个操作；询问用户意见；等待用户告知如何继续",
+			agent.toolRejectedMessage
+		)
+		assertEquals("工具未被执行，用户拒绝了工具调用，并留言：%s", agent.toolRejectedWithFeedbackMessage)
 	}
 	
 	@Test

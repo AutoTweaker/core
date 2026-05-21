@@ -45,13 +45,13 @@ class ToolCallValidator(
 	fun validate(toolCallName: String, argumentsJson: String, callId: String = ""): ValidationResult {
 		val arguments = try {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject ?: return ValidationResult.Failure(
-				service.get(AgentToolSettings.JsonError).value.format("Invalid JSON object")
+				service.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
 			).also {
 				logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
 			}
 		} catch (e: Exception) {
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.JsonError).value.format(e.message ?: "Unknown error")
+				service.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
 			).also {
 				logger.debug("Failed to parse tool call JSON  callId={}  name={}", callId, toolCallName)
 			}
@@ -60,7 +60,7 @@ class ToolCallValidator(
 		val parts = toolCallName.split("_", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.FunctionNameError).value.format(toolCallName)
+				service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 			).also { logger.debug("Failed to parse tool call name  callId={}  name={}", callId, toolCallName) }
 		}
 		
@@ -68,12 +68,12 @@ class ToolCallValidator(
 		val functionName = parts[1]
 		
 		val tool = tools.find { it.resolveMeta(service).name == toolName } ?: return ValidationResult.Failure(
-			service.get(AgentToolSettings.FunctionNameError).value.format(toolCallName)
+			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 		).also { logger.debug("Failed to find tool  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
 		val meta = tool.resolveMeta(service)
 		
 		val function = meta.functions.find { it.name == functionName } ?: return ValidationResult.Failure(
-			service.get(AgentToolSettings.FunctionNameError).value.format(toolCallName)
+			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 		).also {
 			logger.debug(
 				"Failed to find function  callId={}  name={}  tool={}  function={}",
@@ -87,7 +87,7 @@ class ToolCallValidator(
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.PropertyMissing).value.format(toolCallName, "reason")
+				service.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, "reason")
 			).also {
 				logger.debug(
 					"Failed to validate tool call reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
@@ -102,7 +102,7 @@ class ToolCallValidator(
 		for ((paramName, _) in requiredParams) {
 			if (!otherArguments.containsKey(paramName)) {
 				return ValidationResult.Failure(
-					service.get(AgentToolSettings.PropertyMissing).value.format(toolCallName, paramName)
+					service.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, paramName)
 				).also {
 					logger.debug(
 						"Failed to find required param  callId={}  name={}  tool={}  param={}",
@@ -120,7 +120,7 @@ class ToolCallValidator(
 			if (!validateParameterType(paramValue, paramDef.valueType)) {
 				val expectedType = getExpectedTypeName(paramDef.valueType)
 				return ValidationResult.Failure(
-					service.get(AgentToolSettings.PropertyError).value.format(toolCallName, paramName, expectedType)
+					service.get(AgentToolSettings.PropertyError()).value.format(toolCallName, paramName, expectedType)
 				).also {
 					logger.debug(
 						"Param type did not match  name={}  tool={}  param={}  expected={}",

@@ -52,9 +52,9 @@ object AutoTweaker : AdapterRegistry {
 	}
 	
 	private val allAdapters: List<AdapterAPI> by lazy {
-		val external = loadPlugins<AdapterAPI>()
-		val externalNames = external.map { it.load(version).name }.toSet()
-		external + builtInAdapters.filter { it.load(version).name !in externalNames }
+		val all = (builtInAdapters + loadPlugins<AdapterAPI>()).map { it to it.load(version) }
+		all.groupBy { (_, info) -> info.name }
+			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version }.first }
 	}
 	
 	private val registry: MutableMap<String, Pair<AdapterAPI, AdapterInfo>> = mutableMapOf()

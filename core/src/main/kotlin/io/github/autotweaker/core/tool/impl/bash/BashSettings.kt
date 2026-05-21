@@ -25,31 +25,31 @@ import io.github.autotweaker.core.data.ResourcesLoader
 
 object BashSettings {
 	@AutoService(SettingDef::class)
-	object Description : SettingDef<SettingValue.ValString> {
+	class Description : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("运行一条bash命令，可选设置超时时间并按id注入一次性环境变量")
 		override val description = "bash工具的描述"
 	}
 	
 	@AutoService(SettingDef::class)
-	object RunFuncDescription : SettingDef<SettingValue.ValString> {
+	class RunFuncDescription : SettingDef<SettingValue.ValString> {
 		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("bash_run")) }
 		override val description = "bash_run工具的描述"
 	}
 	
 	@AutoService(SettingDef::class)
-	object CommandPropDescription : SettingDef<SettingValue.ValString> {
+	class CommandPropDescription : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("要执行的bash命令内容")
 		override val description = "bash_run工具command参数的描述"
 	}
 	
 	@AutoService(SettingDef::class)
-	object TimeoutPropDescription : SettingDef<SettingValue.ValString> {
+	class TimeoutPropDescription : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("命令超时时间（秒），必须大于0，默认%s秒")
 		override val description = "bash_run工具timeout_seconds参数的描述"
 	}
 	
 	@AutoService(SettingDef::class)
-	object EnvIdsPropDescription : SettingDef<SettingValue.ValString> {
+	class EnvIdsPropDescription : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString(
 			"要注入的环境变量列表，对于敏感信息，严禁令环境变量以任何形式打印到输出或写入文件中。可用列表：%s"
 		)
@@ -57,19 +57,19 @@ object BashSettings {
 	}
 	
 	@AutoService(SettingDef::class)
-	object InvalidTimeoutMessage : SettingDef<SettingValue.ValString> {
+	class InvalidTimeoutMessage : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("timeout_seconds必须大于0")
 		override val description = "bash_run工具timeout_seconds非法时的描述"
 	}
 	
 	@AutoService(SettingDef::class)
-	object InvalidCommandMessage : SettingDef<SettingValue.ValString> {
+	class InvalidCommandMessage : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("command参数不能为空")
 		override val description = "bash_run工具command非法时的描述"
 	}
 	
 	@AutoService(SettingDef::class)
-	object ResultTemplate : SettingDef<SettingValue.ValString> {
+	class ResultTemplate : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString(
 			"""
 			命令已执行，退出码：%s，执行时间：%s秒
@@ -87,7 +87,7 @@ object BashSettings {
 	}
 	
 	@AutoService(SettingDef::class)
-	object DefaultTimeoutSeconds : SettingDef<SettingValue.ValInt> {
+	class DefaultTimeoutSeconds : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(60)
 		override val description = "bash_run工具默认超时时间（秒）"
 	}

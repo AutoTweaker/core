@@ -45,8 +45,8 @@ object ContainerManager {
 			logger.warn("Container already started  containerId={}", _containerId)
 			throw ContainerAlreadyRunningException(_containerId!!)
 		}
-		val config = ContainerConfig(name = Settings.get(ContainerSettings.ContainerName).value, env = getEnv())
-		val image = Settings.get(ContainerSettings.DockerImage).value
+		val config = ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
+		val image = Settings.get(ContainerSettings.DockerImage()).value
 		logger.debug("Container start initiated  image={}", image)
 		val id = service.start(image, config)
 		_containerId = id

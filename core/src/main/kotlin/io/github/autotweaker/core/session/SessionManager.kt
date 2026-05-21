@@ -38,7 +38,7 @@ import java.util.*
 object SessionManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt).value
+	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value
 	
 	private val store =
 		ServiceLoader.load(SessionStore::class.java).firstOrNull() ?: error("No SessionStore implementation found")

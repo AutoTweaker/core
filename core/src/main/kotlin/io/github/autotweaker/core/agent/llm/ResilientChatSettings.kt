@@ -24,25 +24,25 @@ import io.github.autotweaker.api.types.config.SettingValue
 
 object ResilientChatSettings {
 	@AutoService(SettingDef::class)
-	object MaxRetries : SettingDef<SettingValue.ValInt> {
+	class MaxRetries : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(3)
 		override val description = "大模型请求的最大重试次数"
 	}
 	
 	@AutoService(SettingDef::class)
-	object RetryBaseDelaySeconds : SettingDef<SettingValue.ValInt> {
+	class RetryBaseDelaySeconds : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(1)
 		override val description = "大模型请求重试前的基础等待时间（秒），多次重试会在此基础上累加（指数退避）"
 	}
 	
 	@AutoService(SettingDef::class)
-	object MaxRetryDelaySeconds : SettingDef<SettingValue.ValInt> {
+	class MaxRetryDelaySeconds : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(60)
 		override val description = "大模型请求重试前的最大等待时间（秒），指数退避的上限"
 	}
 	
 	@AutoService(SettingDef::class)
-	object RetryJitterEnabled : SettingDef<SettingValue.ValBoolean> {
+	class RetryJitterEnabled : SettingDef<SettingValue.ValBoolean> {
 		override val default = SettingValue.ValBoolean(true)
 		override val description = "大模型请求重试的等待时间是否加入随机抖动"
 	}

@@ -55,9 +55,9 @@ internal object CompactPhase {
 			summarizeModel.modelInfo.modelId
 		)
 		
-		val compactPrompt = service.get(CompactSettings.Prompt).value
-		val maxMessageChars = service.get(CompactSettings.MaxMessageChars).value
-		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt).value
+		val compactPrompt = service.get(CompactSettings.Prompt()).value
+		val maxMessageChars = service.get(CompactSettings.MaxMessageChars()).value
+		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt()).value
 		
 		val processed =
 			preprocessMessages(rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, service)
@@ -70,7 +70,7 @@ internal object CompactPhase {
 			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages, service)
 			attempt++
 			
-			if (finalResult.success || attempt >= service.get(CompactSettings.MaxCompactRetries).value) break
+			if (finalResult.success || attempt >= service.get(CompactSettings.MaxCompactRetries()).value) break
 		}
 		
 		val cleaned = finalResult.rawContent
@@ -192,7 +192,7 @@ internal object CompactPhase {
 		if (hasError) return CompactRequestResult(rawContent, lastUsage, success = false)
 		
 		val extracted = extractSummary(rawContent)
-		val valid = extracted.length >= service.get(CompactSettings.MinSummaryLength).value
+		val valid = extracted.length >= service.get(CompactSettings.MinSummaryLength()).value
 		
 		if (valid) {
 			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastUsage)))

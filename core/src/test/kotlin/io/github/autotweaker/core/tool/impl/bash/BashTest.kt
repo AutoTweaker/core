@@ -67,15 +67,6 @@ class BashTest {
 	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
 		// Override with test-specific values that differ from SettingDef defaults
-		every { svc.get(BashSettings.DefaultTimeoutSeconds) } returns SettingValue.ValInt(30)
-		every { svc.get(BashSettings.Description) } returns SettingValue.ValString("Execute bash commands")
-		every { svc.get(BashSettings.CommandPropDescription) } returns SettingValue.ValString("The bash command to execute")
-		every { svc.get(BashSettings.TimeoutPropDescription) } returns SettingValue.ValString("Timeout in seconds (default %d)")
-		every { svc.get(BashSettings.EnvIdsPropDescription) } returns SettingValue.ValString("Environment variable IDs: %s")
-		every { svc.get(BashSettings.InvalidTimeoutMessage) } returns SettingValue.ValString("Timeout must be positive")
-		every { svc.get(BashSettings.InvalidCommandMessage) } returns SettingValue.ValString("Command must not be blank")
-		every { svc.get(BashSettings.ResultTemplate) } returns SettingValue.ValString("Exit code: %d\nDuration: %s seconds\n\nStdout:\n%s\n\nStderr:\n%s")
-		every { svc.get(BashSettings.RunFuncDescription) } returns SettingValue.ValString("Run a bash command with timeout %d seconds")
 	}
 	
 	private fun ToolInput(
@@ -156,7 +147,7 @@ class BashTest {
 		val meta = bash.resolveMeta(defaultSettings)
 		val runFunc = meta.functions.first()
 		val timeout = runFunc.parameters["timeout_seconds"]!!
-		assertTrue(timeout.description.contains("30"))
+		assertTrue(timeout.description.contains("60"))
 	}
 	
 	@Test
@@ -178,7 +169,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Command must not be blank", result.result)
+		assertEquals("command参数不能为空", result.result)
 	}
 	
 	@Test
@@ -188,7 +179,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Command must not be blank", result.result)
+		assertEquals("command参数不能为空", result.result)
 	}
 	
 	// endregion
@@ -202,7 +193,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Timeout must be positive", result.result)
+		assertEquals("timeout_seconds必须大于0", result.result)
 	}
 	
 	@Test
@@ -212,7 +203,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Timeout must be positive", result.result)
+		assertEquals("timeout_seconds必须大于0", result.result)
 	}
 	
 	// endregion
@@ -222,7 +213,7 @@ class BashTest {
 	@Test
 	fun `successful command returns success true`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo hello", 30, emptyMap()) } returns BashService.Result(
+		coEvery { bashService.run("echo hello", 60, emptyMap()) } returns BashService.Result(
 			exitCode = 0, stdout = "hello", stderr = "", timeout = false, durationSeconds = 0.123
 		)
 		
@@ -230,7 +221,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
-		assertTrue(result.result.contains("Exit code: 0"))
+		assertTrue(result.result.contains("退出码：0"))
 		assertTrue(result.result.contains("0.123"))
 		assertTrue(result.result.contains("hello"))
 	}
@@ -238,7 +229,7 @@ class BashTest {
 	@Test
 	fun `non-zero exit code returns success false`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("false", 30, emptyMap()) } returns BashService.Result(
+		coEvery { bashService.run("false", 60, emptyMap()) } returns BashService.Result(
 			exitCode = 1, stdout = "", stderr = "error msg", timeout = false, durationSeconds = 0.05
 		)
 		
@@ -246,7 +237,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
-		assertTrue(result.result.contains("Exit code: 1"))
+		assertTrue(result.result.contains("退出码：1"))
 	}
 	
 	@Test
@@ -278,14 +269,14 @@ class BashTest {
 	@Test
 	fun `missing timeout uses default from settings`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo hi", 30, emptyMap()) } returns BashService.Result(
+		coEvery { bashService.run("echo hi", 60, emptyMap()) } returns BashService.Result(
 			exitCode = 0, stdout = "hi", stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		
 		val input = ToolInput(args("echo hi"), container(bashService))
 		bash.execute(input)
 		
-		coVerify { bashService.run("echo hi", 30, emptyMap()) }
+		coVerify { bashService.run("echo hi", 60, emptyMap()) }
 	}
 	
 	// endregion
@@ -343,9 +334,9 @@ class BashTest {
 		val input = ToolInput(args("cmd"), container(bashService))
 		val result = bash.execute(input)
 		
-		assertTrue(result.result.contains("Stdout:"))
-		assertTrue(result.result.contains("Stderr:"))
-		assertTrue(result.result.contains("Duration:"))
+		assertTrue(result.result.contains("标准输出："))
+		assertTrue(result.result.contains("标准错误："))
+		assertTrue(result.result.contains("执行时间："))
 	}
 	
 	// endregion
@@ -357,7 +348,7 @@ class BashTest {
 		bash.setEnv("MY_VAR", "my_value")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run($$"echo $MY_VAR", 30, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
+		coEvery { bashService.run($$"echo $MY_VAR", 60, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
 			exitCode = 0, stdout = "my_value", stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		
@@ -367,7 +358,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
-		coVerify { bashService.run($$"echo $MY_VAR", 30, mapOf("MY_VAR" to "my_value")) }
+		coVerify { bashService.run($$"echo $MY_VAR", 60, mapOf("MY_VAR" to "my_value")) }
 	}
 	
 	@Test
@@ -385,7 +376,7 @@ class BashTest {
 		)
 		bash.execute(input)
 		
-		coVerify { bashService.run("cmd", 30, mapOf("A" to "1", "B" to "2")) }
+		coVerify { bashService.run("cmd", 60, mapOf("A" to "1", "B" to "2")) }
 	}
 	
 	@Test
@@ -393,7 +384,7 @@ class BashTest {
 		bash.setEnv("EXISTING", "val")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("cmd", 30, mapOf("EXISTING" to "val")) } returns BashService.Result(
+		coEvery { bashService.run("cmd", 60, mapOf("EXISTING" to "val")) } returns BashService.Result(
 			exitCode = 0, stdout = "", stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		
@@ -402,7 +393,7 @@ class BashTest {
 		)
 		bash.execute(input)
 		
-		coVerify { bashService.run("cmd", 30, mapOf("EXISTING" to "val")) }
+		coVerify { bashService.run("cmd", 60, mapOf("EXISTING" to "val")) }
 	}
 	
 	// endregion
@@ -412,7 +403,7 @@ class BashTest {
 	@Test
 	fun `command with special characters works`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo \"hello world\"", 30, emptyMap()) } returns BashService.Result(
+		coEvery { bashService.run("echo \"hello world\"", 60, emptyMap()) } returns BashService.Result(
 			exitCode = 0, stdout = "hello world", stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		
@@ -426,7 +417,7 @@ class BashTest {
 	fun `very long command works`() = runTest {
 		val longCmd = "echo " + "x".repeat(1000)
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(longCmd, 30, emptyMap()) } returns BashService.Result(
+		coEvery { bashService.run(longCmd, 60, emptyMap()) } returns BashService.Result(
 			exitCode = 0, stdout = "x".repeat(1000), stderr = "", timeout = false, durationSeconds = 0.01
 		)
 		

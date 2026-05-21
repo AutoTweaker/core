@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.config.SettingValue
 
 object ToolSettings {
 	@AutoService(SettingDef::class)
-	object PathErrorMessage : SettingDef<SettingValue.ValString> {
+	class PathErrorMessage : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("提供的路径不合法，请检查提供的路径参数")
 		override val description = "路径解析失败时的描述"
 	}

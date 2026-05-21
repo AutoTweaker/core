@@ -41,7 +41,7 @@ internal object ResilientChat {
 		request: ChatRequest,
 		service: SettingService,
 	): Flow<ResilientChatResult> = flow {
-		val maxRetries = service.get(ResilientChatSettings.MaxRetries).value
+		val maxRetries = service.get(ResilientChatSettings.MaxRetries()).value
 		require(maxRetries > 0) { "maxRetries must be positive" }
 		
 		var candidates = buildList {
@@ -104,9 +104,9 @@ internal object ResilientChat {
 								current.modelInfo.modelId, retryAttempt + 1, lastStatusCode
 							)
 							emit(ResilientChatResult(error, retrying = current))
-							val baseDelay = service.get(ResilientChatSettings.RetryBaseDelaySeconds).value
-							val maxDelay = service.get(ResilientChatSettings.MaxRetryDelaySeconds).value
-							val jitterEnabled = service.get(ResilientChatSettings.RetryJitterEnabled).value
+							val baseDelay = service.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
+							val maxDelay = service.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
+							val jitterEnabled = service.get(ResilientChatSettings.RetryJitterEnabled()).value
 							val capped = minOf(baseDelay.seconds * (1 shl retryAttempt), maxDelay.seconds)
 							val finalDelay = if (jitterEnabled) {
 								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds

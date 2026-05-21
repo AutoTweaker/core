@@ -25,32 +25,32 @@ import io.github.autotweaker.core.data.ResourcesLoader
 
 object CompactSettings {
 	@AutoService(SettingDef::class)
-	object Prompt : SettingDef<SettingValue.ValString> {
+	class Prompt : SettingDef<SettingValue.ValString> {
 		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("compact")) }
 		override val description = "用于上下文压缩的提示词"
 	}
 	
 	@AutoService(SettingDef::class)
-	object MaxMessageChars : SettingDef<SettingValue.ValInt> {
+	class MaxMessageChars : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(10000)
 		override val description = "上下文压缩前对字符数大于此值的消息进行单独总结"
 	}
 	
 	@AutoService(SettingDef::class)
-	object MessageSummarizePrompt : SettingDef<SettingValue.ValString> {
+	class MessageSummarizePrompt : SettingDef<SettingValue.ValString> {
 		override val default =
 			SettingValue.ValString("请对以下消息内容进行概括，输出不要太长\n\n" + "<message>\n%s\n</message>")
 		override val description = "上下文压缩前对字符数过多的消息进行单独总结时的提示词"
 	}
 	
 	@AutoService(SettingDef::class)
-	object MaxCompactRetries : SettingDef<SettingValue.ValInt> {
+	class MaxCompactRetries : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(5)
 		override val description = "上下文压缩的最大重试次数"
 	}
 	
 	@AutoService(SettingDef::class)
-	object MinSummaryLength : SettingDef<SettingValue.ValInt> {
+	class MinSummaryLength : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(50)
 		override val description = "上下文压缩输出的最小字符数，小于此值的总结会视为无效"
 	}

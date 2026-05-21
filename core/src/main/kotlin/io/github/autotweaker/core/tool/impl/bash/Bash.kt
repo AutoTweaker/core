@@ -37,28 +37,28 @@ class Bash : Tool {
 		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
 		return Tool.Meta(
 			name = "bash",
-			description = service.get(BashSettings.Description).value,
+			description = service.get(BashSettings.Description()).value,
 			functions = listOf(
 				Tool.Function(
 					name = "run",
-					description = service.get(BashSettings.RunFuncDescription).value,
+					description = service.get(BashSettings.RunFuncDescription()).value,
 					parameters = mapOf(
 						"command" to Tool.Function.Property(
-							description = service.get(BashSettings.CommandPropDescription).value,
+							description = service.get(BashSettings.CommandPropDescription()).value,
 							required = true,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
 						"timeout_seconds" to Tool.Function.Property(
-							description = service.get(BashSettings.TimeoutPropDescription).value.format(
+							description = service.get(BashSettings.TimeoutPropDescription()).value.format(
 								service.get(
-									BashSettings.DefaultTimeoutSeconds
+									BashSettings.DefaultTimeoutSeconds()
 								).value
 							),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
 						),
 						"env_ids" to Tool.Function.Property(
-							description = service.get(BashSettings.EnvIdsPropDescription).value.format(envIds),
+							description = service.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.ArrayValue(
 								Tool.Function.Property.ValueType.StringValue()
@@ -75,13 +75,13 @@ class Bash : Tool {
 		val command = input.arguments["command"]!!.jsonPrimitive.content
 		if (command.isBlank()) {
 			logger.debug("Rejected blank bash command  tool=bash")
-			return Tool.ToolOutput(s.get(BashSettings.InvalidCommandMessage).value, false)
+			return Tool.ToolOutput(s.get(BashSettings.InvalidCommandMessage()).value, false)
 		}
-		val defaultTimeout = s.get(BashSettings.DefaultTimeoutSeconds).value
+		val defaultTimeout = s.get(BashSettings.DefaultTimeoutSeconds()).value
 		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: defaultTimeout
 		if (timeoutSeconds <= 0) {
 			logger.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
-			return Tool.ToolOutput(s.get(BashSettings.InvalidTimeoutMessage).value, false)
+			return Tool.ToolOutput(s.get(BashSettings.InvalidTimeoutMessage()).value, false)
 		}
 		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
 		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
@@ -102,7 +102,7 @@ class Bash : Tool {
 			result.timeout
 		)
 		
-		val output = s.get(BashSettings.ResultTemplate).value.format(result.exitCode, duration, stdout, stderr)
+		val output = s.get(BashSettings.ResultTemplate()).value.format(result.exitCode, duration, stdout, stderr)
 		return Tool.ToolOutput(output, result.exitCode == 0 && !result.timeout)
 	}
 	

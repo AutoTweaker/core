@@ -37,13 +37,13 @@ object SecretManager : SecretStore {
 	private val markerFile = rootDir.resolve(".verify")
 	
 	@AutoService(SettingDef::class)
-	object KeyUid : SettingDef<SettingValue.ValString> {
+	class KeyUid : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("AutoTweaker(core.secret)@autogen.local")
 		override val description = "项目自动生成GPG密钥的UID"
 	}
 	
 	private lateinit var service: SettingService
-	private val keyUid: String get() = service.get(KeyUid).value
+	private val keyUid: String get() = service.get(KeyUid()).value
 	
 	@Volatile
 	private var password: String? = null

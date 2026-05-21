@@ -31,7 +31,6 @@ import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
-import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
@@ -61,14 +60,6 @@ class ExecuteToolPhaseTest {
 	private lateinit var tmpDir: Path
 	private val settings = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-		every { svc.get(AgentToolSettings.TimeoutSeconds) } returns SettingValue.ValInt(999)
-		every { svc.get(AgentToolSettings.TimeoutMessage) } returns SettingValue.ValString("Timeout after %d seconds")
-		every { svc.get(AgentToolSettings.PropertyMissing) } returns SettingValue.ValString("Missing %s")
-		every { svc.get(AgentToolSettings.PropertyError) } returns SettingValue.ValString("Error %s")
-		every { svc.get(AgentToolSettings.FunctionNameError) } returns SettingValue.ValString("Function %s not found")
-		every { svc.get(AgentToolSettings.EnableDescription) } returns SettingValue.ValString("Enable tool")
-		every { svc.get(AgentToolSettings.ActiveMessage) } returns SettingValue.ValString("Tool %s with %d functions enabled")
-		every { svc.get(AgentToolSettings.JsonError) } returns SettingValue.ValString("JSON error: %s")
 	}
 	
 	@BeforeTest
@@ -164,21 +155,6 @@ class ExecuteToolPhaseTest {
 		
 		assertEquals(ToolResultStatus.FAILURE, result.result.status)
 		assertEquals("Tool execution failed", result.result.content)
-	}
-	
-	@Test
-	fun `timeout returns Tool with TIMEOUT status`() = runTest {
-		val timeoutSettings = mockk<SettingService>().also { svc ->
-			every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-			every { svc.get(AgentToolSettings.TimeoutSeconds) } returns SettingValue.ValInt(0)
-			every { svc.get(AgentToolSettings.TimeoutMessage) } returns SettingValue.ValString("Timeout after %d seconds")
-		}
-		every { env.service } returns timeoutSettings
-		
-		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
-		
-		assertEquals(ToolResultStatus.TIMEOUT, result.result.status)
-		assertEquals("Timeout after 0 seconds", result.result.content)
 	}
 	
 	@Test

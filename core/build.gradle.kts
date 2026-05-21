@@ -185,38 +185,3 @@ tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEac
 
 // endregion
 
-tasks.register<Exec>("compileAutotweakerCli") {
-	description = "编译 C 编写的 autotweaker CLI 客户端"
-	workingDir = file("${rootProject.projectDir}/cli")
-	commandLine("make")
-	inputs.dir(workingDir).withPropertyName("cliSourceDir").withPathSensitivity(PathSensitivity.RELATIVE)
-	outputs.file("${workingDir}/build/autotweaker")
-}
-
-tasks.register<Exec>("buildDeb") {
-	description = "构建 .deb 包"
-	dependsOn("installDist", "compileAutotweakerCli")
-	workingDir = rootProject.projectDir
-	commandLine("bash", "scripts/build-deb.sh", project.version.toString())
-}
-
-tasks.register<Exec>("releaseTag") {
-	description = "基于当前版本号打 tag 并推送"
-	workingDir = rootProject.projectDir
-	commandLine(
-		"bash", "-c", """
-		set -e
-		if ! git diff --quiet || ! git diff --cached --quiet; then
-			echo "错误: 工作区存在未提交的更改，请先提交或暂存所有更改后再执行 releaseTag" >&2
-			exit 1
-		fi
-		git fetch origin main
-		if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-			echo "错误: 本地 main 分支与 origin/main 不同步，请先同步后再执行 releaseTag" >&2
-			exit 1
-		fi
-		git tag -a "v${project.version}" -m "AutoTweaker v${project.version}"
-		git push origin "v${project.version}"
-	""".trimIndent()
-	)
-}

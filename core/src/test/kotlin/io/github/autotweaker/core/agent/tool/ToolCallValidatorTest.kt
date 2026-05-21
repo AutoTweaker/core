@@ -30,10 +30,6 @@ class ToolCallValidatorTest {
 	
 	private val settings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-		every { svc.get(AgentToolSettings.JsonError) } returns SettingValue.ValString("JSON error: %s")
-		every { svc.get(AgentToolSettings.FunctionNameError) } returns SettingValue.ValString("Function not found: %s")
-		every { svc.get(AgentToolSettings.PropertyMissing) } returns SettingValue.ValString("missing: %s %s")
-		every { svc.get(AgentToolSettings.PropertyError) } returns SettingValue.ValString("error: %s %s %s")
 	}
 	
 	// region helpers
@@ -119,7 +115,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate("bash_run", "not json")
 		
 		assertIs<ToolCallValidator.ValidationResult.Failure>(result)
-		assertTrue(result.errorMessage.contains("JSON error:"))
+		assertTrue(result.errorMessage.contains("JSON对象"))
 	}
 	
 	@Test
@@ -147,7 +143,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate("bash", successArguments())
 		
 		assertIs<ToolCallValidator.ValidationResult.Failure>(result)
-		assertTrue(result.errorMessage.contains("Function not found:"))
+		assertTrue(result.errorMessage.contains("工具不存在"))
 	}
 	
 	@Test

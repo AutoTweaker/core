@@ -142,7 +142,10 @@ class Tools(private val service: SettingService) {
 				),
 				callId = call.callId,
 				result = AgentContext.Message.Tool.Result(
-					content = service.get(AgentToolSettings.ActiveMessage).value.format(meta.name, meta.functions.size),
+					content = service.get(AgentToolSettings.ActiveMessage()).value.format(
+						meta.name,
+						meta.functions.size
+					),
 					timestamp = Clock.System.now(),
 					status = ToolResultStatus.SUCCESS,
 				),
@@ -215,7 +218,7 @@ class Tools(private val service: SettingService) {
 		val activeTools = _entries.filter { it.active }.map { it.tool }
 		val active = ToolAssembler.assemble(activeTools, service)
 		
-		val enableDesc = service.get(AgentToolSettings.EnableDescription).value
+		val enableDesc = service.get(AgentToolSettings.EnableDescription()).value
 		val inactive = _entries.filter { !it.active }.map { it.tool }.takeIf { it.isNotEmpty() }?.map { tool ->
 			val meta = tool.resolveMeta(service)
 			ChatRequest.Tool(

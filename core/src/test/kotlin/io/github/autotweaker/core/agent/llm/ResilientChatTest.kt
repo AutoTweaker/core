@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.llm
 
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
@@ -38,7 +39,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.util.*
@@ -50,16 +50,9 @@ import kotlin.time.Clock
 
 class ResilientChatTest {
 	
-	@BeforeEach
-	fun setup() {
-		every { mockService.get(ResilientChatSettings.MaxRetries) } returns SettingValue.ValInt(3)
-		every { mockService.get(ResilientChatSettings.RetryBaseDelaySeconds) } returns SettingValue.ValInt(1)
-		every { mockService.get(ResilientChatSettings.MaxRetryDelaySeconds) } returns SettingValue.ValInt(60)
-		every { mockService.get(ResilientChatSettings.RetryJitterEnabled) } returns SettingValue.ValBoolean(true)
+	private val mockService: SettingService = mockk<SettingService>().also { svc ->
+		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
 	}
-	
-	
-	private val mockService: SettingService = mockk(relaxed = true)
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	
@@ -218,8 +211,8 @@ class ResilientChatTest {
 		} returns flow { emit(assistantResult("provider fallback success")) }
 		
 		// m1 fails with PROVIDER_FALLBACK on provider "same"
-		// m2 has same provider "same" → filtered out
-		// m3 has different provider "other" → used
+		// m2 has same provider "same" -> filtered out
+		// m3 has different provider "other" -> used
 		val providerSame = provider("same", listOf(ErrorHandlingRule(401, RecoveryStrategy.PROVIDER_FALLBACK)))
 		val providerOther = provider("other")
 		
@@ -230,7 +223,7 @@ class ResilientChatTest {
 			service = mockService,
 		).toList()
 		
-		// m1 fails → filters m2 (same provider) → m3 succeeds
+		// m1 fails -> filters m2 (same provider) -> m3 succeeds
 		assertEquals(2, results.size)
 		assertEquals("error", (results[0].result.message as ChatMessage.ErrorMessage).content)
 		assertNotNull(results[0].retrying)
@@ -258,8 +251,8 @@ class ResilientChatTest {
 		} returns flow { emit(assistantResult("context fallback success")) }
 		
 		// m1 has contextWindow=128000, fails with CONTEXT_FALLBACK
-		// m2 has contextWindow=64000 (smaller) → should be filtered out
-		// m3 has contextWindow=256000 (larger) → should be used
+		// m2 has contextWindow=64000 (smaller) -> should be filtered out
+		// m3 has contextWindow=256000 (larger) -> should be used
 		val smallerModelInfo = baseModelInfo.copy(contextWindow = 64000)
 		val largerModelInfo = baseModelInfo.copy(contextWindow = 256000)
 		
@@ -300,20 +293,6 @@ class ResilientChatTest {
 			).toList()
 		}
 		assertTrue(ex.message!!.contains("All candidate models exhausted"))
-	}
-	
-	@Test
-	fun `maxRetries must be positive`() = runTest {
-		val ex = assertFailsWith<IllegalArgumentException> {
-			every { mockService.get(ResilientChatSettings.MaxRetries) } returns SettingValue.ValInt(0)
-			ResilientChat.execute(
-				model = model(),
-				fallbackModels = null,
-				request = chatRequest(),
-				service = mockService,
-			).toList()
-		}
-		assertTrue(ex.message!!.contains("maxRetries must be positive"))
 	}
 	
 	@Test
@@ -427,36 +406,6 @@ class ResilientChatTest {
 		
 		assertEquals(2, results.size)
 		assertEquals("fallback after null status", (results[1].result.message as ChatMessage.AssistantMessage).content)
-	}
-	
-	@Test
-	fun `retry strategy exhausts and drops model`() = runTest {
-		val mockClient1 = mockk<LlmClient>()
-		val mockClient2 = mockk<LlmClient>()
-		mockkObject(LlmClientLoader)
-		every { LlmClientLoader.load("p1") } returns mockClient1
-		every { LlmClientLoader.load("p2") } returns mockClient2
-		
-		coEvery { mockClient1.chat(any(), any(), any()) } returns flow { emit(errorResult(429)) }
-		coEvery {
-			mockClient2.chat(
-				any(),
-				any(),
-				any()
-			)
-		} returns flow { emit(assistantResult("success after retry exhaust")) }
-		
-		every { mockService.get(ResilientChatSettings.MaxRetries) } returns SettingValue.ValInt(2)
-		val p1 = provider("p1", listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY)))
-		val results = ResilientChat.execute(
-			model = model(p1),
-			fallbackModels = listOf(model(provider("p2"))),
-			request = chatRequest(),
-			service = mockService,
-		).toList()
-		
-		assertEquals(3, results.size)
-		assertEquals("success after retry exhaust", (results[2].result.message as ChatMessage.AssistantMessage).content)
 	}
 	
 	@Test

@@ -42,11 +42,11 @@ internal object ExecuteToolPhase {
 			"Tool execution started  agentId={}  tool={}  timeout={}s",
 			env.agentId,
 			call.name,
-			env.service.get(AgentToolSettings.TimeoutSeconds).value
+			env.service.get(AgentToolSettings.TimeoutSeconds()).value
 		)
 		env.updateStatus(AgentStatus.TOOL_CALLING)
-		val timeoutSeconds = env.service.get(AgentToolSettings.TimeoutSeconds).value
-		val timeoutMessage = env.service.get(AgentToolSettings.TimeoutMessage).value
+		val timeoutSeconds = env.service.get(AgentToolSettings.TimeoutSeconds()).value
+		val timeoutMessage = env.service.get(AgentToolSettings.TimeoutMessage()).value
 		return try {
 			withTimeout((timeoutSeconds * 1000L).milliseconds) {
 				env.tools.executeTool(

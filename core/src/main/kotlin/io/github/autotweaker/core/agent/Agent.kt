@@ -50,9 +50,9 @@ class Agent(
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	override val agentId: UUID = UUID.randomUUID()
-	override val toolCancelledMessage = service.get(AgentToolSettings.Cancelled).value
-	override val toolRejectedMessage = service.get(AgentToolSettings.Rejected).value
-	override val toolRejectedWithFeedbackMessage = service.get(AgentToolSettings.RejectedWithFeedback).value
+	override val toolCancelledMessage = service.get(AgentToolSettings.Cancelled()).value
+	override val toolRejectedMessage = service.get(AgentToolSettings.Rejected()).value
+	override val toolRejectedWithFeedbackMessage = service.get(AgentToolSettings.RejectedWithFeedback()).value
 	
 	//工具状态
 	override val agentState = MutableAgentState()

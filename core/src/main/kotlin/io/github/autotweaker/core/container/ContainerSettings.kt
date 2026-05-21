@@ -24,15 +24,14 @@ import io.github.autotweaker.api.types.config.SettingValue
 
 object ContainerSettings {
 	@AutoService(SettingDef::class)
-	object DockerImage : SettingDef<SettingValue.ValString> {
+	class DockerImage : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("buildpack-deps:stable")
 		override val description = "容器内工作区所使用的docker镜像id"
 	}
 	
 	@AutoService(SettingDef::class)
-	object ContainerName : SettingDef<SettingValue.ValString> {
+	class ContainerName : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString("autotweaker-workspace")
 		override val description = "运行时docker容器名称"
 	}
-	
 }

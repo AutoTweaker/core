@@ -25,7 +25,7 @@ import io.github.autotweaker.core.data.ResourcesLoader
 
 object SessionSettings {
 	@AutoService(SettingDef::class)
-	object SystemPrompt : SettingDef<SettingValue.ValString> {
+	class SystemPrompt : SettingDef<SettingValue.ValString> {
 		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("system")) }
 		override val description = "系统提示词，作用于整个项目"
 	}

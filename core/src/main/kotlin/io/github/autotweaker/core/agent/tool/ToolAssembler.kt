@@ -32,7 +32,7 @@ object ToolAssembler {
 		
 		logger.debug("Tool assembly started  toolCount={}  source=ToolAssembler", tools.size)
 		
-		val reasonDescription: String = service.get(AgentToolSettings.ReasonDescription).value
+		val reasonDescription: String = service.get(AgentToolSettings.ReasonDescription()).value
 		val metas = tools.map { it.resolveMeta(service) }
 		
 		return metas.flatMap { meta ->

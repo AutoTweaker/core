@@ -36,33 +36,33 @@ class Read : Tool {
 	override fun resolveMeta(service: SettingService): Tool.Meta {
 		val commonProperties: Map<String, Tool.Function.Property> = mapOf(
 			"file_path" to Tool.Function.Property(
-				description = service.get(ReadSettings.FilePathPropDescriptionSetting).value,
+				description = service.get(ReadSettings.FilePathPropDescriptionSetting()).value,
 				required = true,
 				valueType = Tool.Function.Property.ValueType.StringValue(),
 			),
 			"start_line" to Tool.Function.Property(
-				description = service.get(ReadSettings.StartLinePropDescriptionSetting).value,
+				description = service.get(ReadSettings.StartLinePropDescriptionSetting()).value,
 				required = true,
 				valueType = Tool.Function.Property.ValueType.IntegerValue(),
 			),
 			"end_line" to Tool.Function.Property(
-				description = service.get(ReadSettings.EndLinePropDescriptionSetting).value,
+				description = service.get(ReadSettings.EndLinePropDescriptionSetting()).value,
 				required = true,
 				valueType = Tool.Function.Property.ValueType.IntegerValue(),
 			),
 		)
 		
 		return Tool.Meta(
-			name = "read", description = service.get(ReadSettings.DescriptionSetting).value, functions = listOf(
+			name = "read", description = service.get(ReadSettings.DescriptionSetting()).value, functions = listOf(
 				Tool.Function(
 					name = "file",
-					description = service.get(ReadSettings.FileFuncDescriptionSetting).value.format(
-						service.get(ReadSettings.FileMaxCharsSetting).value,
-						service.get(ReadSettings.FileMaxLinesSetting).value
+					description = service.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
+						service.get(ReadSettings.FileMaxCharsSetting()).value,
+						service.get(ReadSettings.FileMaxLinesSetting()).value
 					),
 					parameters = commonProperties + mapOf(
 						"line_number" to Tool.Function.Property(
-							description = service.get(ReadSettings.LineNumberPropDescriptionSetting).value,
+							description = service.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
 							required = false,
 							valueType = Tool.Function.Property.ValueType.BooleanValue,
 						),
@@ -70,14 +70,14 @@ class Read : Tool {
 				),
 				Tool.Function(
 					name = "summarize",
-					description = service.get(ReadSettings.SummarizeFuncDescriptionSetting).value.format(
-						service.get(ReadSettings.SummarizeMaxInputCharsSetting).value,
-						service.get(ReadSettings.SummarizeMinCharsSetting).value,
-						service.get(ReadSettings.SummarizeMaxLinesSetting).value
+					description = service.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
+						service.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
+						service.get(ReadSettings.SummarizeMinCharsSetting()).value,
+						service.get(ReadSettings.SummarizeMaxLinesSetting()).value
 					),
 					parameters = commonProperties + mapOf(
 						"prompt" to Tool.Function.Property(
-							description = service.get(ReadSettings.SummarizePromptPropDescriptionSetting).value,
+							description = service.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
 							required = false,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
@@ -85,16 +85,16 @@ class Read : Tool {
 				),
 				Tool.Function(
 					name = "unicode",
-					description = service.get(ReadSettings.UnicodeFuncDescriptionSetting).value,
+					description = service.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
 					parameters = mapOf(
 						"file_path" to Tool.Function.Property(
-							description = service.get(ReadSettings.FilePathPropDescriptionSetting).value,
+							description = service.get(ReadSettings.FilePathPropDescriptionSetting()).value,
 							required = true,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
 						"max_chars" to Tool.Function.Property(
-							description = service.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting).value.format(
-								service.get(ReadSettings.UnicodeMaxCharsSetting).value
+							description = service.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting()).value.format(
+								service.get(ReadSettings.UnicodeMaxCharsSetting()).value
 							),
 							required = true,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
@@ -119,13 +119,13 @@ class Read : Tool {
 		val normalizedPath = try {
 			fs.normalize(filePath)
 		} catch (_: Exception) {
-			return ToolOutput(s.get(ToolSettings.PathErrorMessage).value, false)
+			return ToolOutput(s.get(ToolSettings.PathErrorMessage()).value, false)
 		}
 		if (!fs.exists(normalizedPath)) {
-			return ToolOutput(s.get(ReadSettings.MessageFileNotFoundSetting).value, false)
+			return ToolOutput(s.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
 		}
 		if (!fs.isRegularFile(normalizedPath)) {
-			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting).value, false)
+			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		
 		return when (functionName) {
@@ -133,10 +133,10 @@ class Read : Tool {
 				val startLine = args["start_line"]!!.jsonPrimitive.int
 				val endLine = args["end_line"]!!.jsonPrimitive.int
 				if (startLine < 1) {
-					return ToolOutput(s.get(ReadSettings.MessageStartLineErrorSetting).value, false)
+					return ToolOutput(s.get(ReadSettings.MessageStartLineErrorSetting()).value, false)
 				}
 				if (endLine < startLine) {
-					return ToolOutput(s.get(ReadSettings.MessageStartLineBiggerThanEndSetting).value, false)
+					return ToolOutput(s.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false)
 				}
 				if (functionName == "file") {
 					executeFile(input, fs, s, normalizedPath, startLine, endLine)
@@ -147,10 +147,10 @@ class Read : Tool {
 			
 			"unicode" -> {
 				val maxChars = args["max_chars"]!!.jsonPrimitive.int
-				val unicodeMaxChars = s.get(ReadSettings.UnicodeMaxCharsSetting).value
+				val unicodeMaxChars = s.get(ReadSettings.UnicodeMaxCharsSetting()).value
 				if (maxChars > unicodeMaxChars) {
 					return ToolOutput(
-						s.get(ReadSettings.UnicodeMessageTooManyCharsSetting).value.format(unicodeMaxChars), false
+						s.get(ReadSettings.UnicodeMessageTooManyCharsSetting()).value.format(unicodeMaxChars), false
 					)
 				}
 				executeUnicode(fs, s, normalizedPath, maxChars)
@@ -168,10 +168,10 @@ class Read : Tool {
 		startLine: Int,
 		endLine: Int,
 	): ToolOutput {
-		val fileMaxLines = s.get(ReadSettings.FileMaxLinesSetting).value
+		val fileMaxLines = s.get(ReadSettings.FileMaxLinesSetting()).value
 		if (endLine - startLine + 1 > fileMaxLines) {
 			return ToolOutput(
-				s.get(ReadSettings.MessageTooManyLinesSetting).value.format(fileMaxLines), false
+				s.get(ReadSettings.MessageTooManyLinesSetting()).value.format(fileMaxLines), false
 			)
 		}
 		
@@ -180,18 +180,18 @@ class Read : Tool {
 		val content = try {
 			readFileContent(
 				fs, normalizedPath, startLine, endLine,
-				maxChars = s.get(ReadSettings.FileMaxCharsSetting).value,
-				truncateMessage = s.get(ReadSettings.FileMessageTruncateSetting).value,
+				maxChars = s.get(ReadSettings.FileMaxCharsSetting()).value,
+				truncateMessage = s.get(ReadSettings.FileMessageTruncateSetting()).value,
 				lineNumber = lineNumber,
 			)
 		} catch (_: IllegalStateException) {
-			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting).value, false)
+			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		
 		val sha256 = try {
 			fs.sha256(normalizedPath)
 		} catch (_: Exception) {
-			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting).value, false)
+			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		
 		val previousReads = buildList {
@@ -227,7 +227,7 @@ class Read : Tool {
 				}
 			}) {
 			return ToolOutput(
-				s.get(ReadSettings.FileMessageDuplicateSetting).value.format(sha256), true
+				s.get(ReadSettings.FileMessageDuplicateSetting()).value.format(sha256), true
 			)
 		}
 		
@@ -242,10 +242,10 @@ class Read : Tool {
 		startLine: Int,
 		endLine: Int,
 	): ToolOutput {
-		val summarizeMaxLines = s.get(ReadSettings.SummarizeMaxLinesSetting).value
+		val summarizeMaxLines = s.get(ReadSettings.SummarizeMaxLinesSetting()).value
 		if (endLine - startLine + 1 > summarizeMaxLines) {
 			return ToolOutput(
-				s.get(ReadSettings.MessageTooManyLinesSetting).value.format(summarizeMaxLines), false
+				s.get(ReadSettings.MessageTooManyLinesSetting()).value.format(summarizeMaxLines), false
 			)
 		}
 		
@@ -254,22 +254,23 @@ class Read : Tool {
 		val content = try {
 			readFileContent(
 				fs, normalizedPath, startLine, endLine,
-				maxChars = s.get(ReadSettings.SummarizeMaxInputCharsSetting).value,
-				truncateMessage = s.get(ReadSettings.SummarizeMessageInputTruncateSetting).value,
+				maxChars = s.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
+				truncateMessage = s.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false,
 			)
 		} catch (_: IllegalStateException) {
-			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting).value, false)
+			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		
-		val summarizeMinChars = s.get(ReadSettings.SummarizeMinCharsSetting).value
+		val summarizeMinChars = s.get(ReadSettings.SummarizeMinCharsSetting()).value
 		if (content.length < summarizeMinChars) {
 			return ToolOutput(
-				s.get(ReadSettings.SummarizeMessageTooFewSetting).value.format(content.length, summarizeMinChars), false
+				s.get(ReadSettings.SummarizeMessageTooFewSetting()).value.format(content.length, summarizeMinChars),
+				false
 			)
 		}
 		
-		val summarizePrompt = s.get(ReadSettings.SummarizePromptSetting).value
+		val summarizePrompt = s.get(ReadSettings.SummarizePromptSetting()).value
 		val prompt = args["prompt"]?.jsonPrimitive?.content?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		
 		val summarizeService = input.provider.get<SummarizeService>()
@@ -278,14 +279,14 @@ class Read : Tool {
 			summarizeService.summarize(content, prompt)
 		} catch (e: Exception) {
 			return ToolOutput(
-				s.get(ReadSettings.SummarizeMessageFailedSetting).value.format(e.message), false
+				s.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message), false
 			)
 		}
 		
-		val summarizeMaxOutputChars = s.get(ReadSettings.SummarizeMaxOutputCharsSetting).value
+		val summarizeMaxOutputChars = s.get(ReadSettings.SummarizeMaxOutputCharsSetting()).value
 		return if (output.length > summarizeMaxOutputChars) {
 			ToolOutput(
-				output.take(summarizeMaxOutputChars) + s.get(ReadSettings.SummarizeMessageOutputTruncateSetting).value.format(
+				output.take(summarizeMaxOutputChars) + s.get(ReadSettings.SummarizeMessageOutputTruncateSetting()).value.format(
 					output.length
 				), true
 			)
@@ -303,7 +304,7 @@ class Read : Tool {
 		val allUnicode: List<Unicode> = try {
 			fs.readUnicode(normalizedPath)
 		} catch (_: Exception) {
-			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting).value, false)
+			return ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		
 		return ToolOutput(

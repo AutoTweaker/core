@@ -30,3 +30,4 @@ rootProject.name = "AutoTweaker"
 
 include("core")
 include("api")
+include("cli-adapter")

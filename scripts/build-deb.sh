@@ -19,7 +19,8 @@
 
 set -e
 
-VERSION="${1:?Usage: $0 <version>}"
+VERSION="${1:?Usage: $0 <version> <cli-adapter-jar>}"
+CLI_ADAPTER_JAR="${2:?Usage: $0 <version> <cli-adapter-jar>}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
@@ -37,8 +38,11 @@ mkdir -p "$PKG_ROOT/usr/bin"
 # 产物（installDist 由 buildDeb task 管理依赖）
 cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
 
+# cli-adapter 插件 JAR
+install -m 644 "$CLI_ADAPTER_JAR" "$PKG_ROOT/usr/share/autotweaker/cli-adapter.jar"
+
 # CLI 脚本和服务（由 dpkg 管理）
-install -m 755 -D "$PROJECT_DIR/cli/build/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
+install -m 755 -D "$PROJECT_DIR/cli-client/build/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
 install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
 install -m 644 -D "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/lib/systemd/user/autotweaker.service"
 

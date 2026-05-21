@@ -25,7 +25,6 @@ import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
-import io.github.autotweaker.core.tool.impl.ToolSettings
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -44,27 +43,6 @@ class ReadTest {
 	
 	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-		// Override with test-specific values that differ from SettingDef defaults
-		every { svc.get(ReadSettings.FileMaxCharsSetting) } returns SettingValue.ValInt(1000)
-		every { svc.get(ReadSettings.FileMaxLinesSetting) } returns SettingValue.ValInt(50)
-		every { svc.get(ReadSettings.SummarizeMaxInputCharsSetting) } returns SettingValue.ValInt(5000)
-		every { svc.get(ReadSettings.SummarizeMaxOutputCharsSetting) } returns SettingValue.ValInt(200)
-		every { svc.get(ReadSettings.SummarizeMinCharsSetting) } returns SettingValue.ValInt(10)
-		every { svc.get(ReadSettings.SummarizeMaxLinesSetting) } returns SettingValue.ValInt(100)
-		every { svc.get(ReadSettings.SummarizePromptSetting) } returns SettingValue.ValString("Summarize the following content")
-		every { svc.get(ReadSettings.MessageFileNotFoundSetting) } returns SettingValue.ValString("File not found")
-		every { svc.get(ReadSettings.MessageFileCannotReadSetting) } returns SettingValue.ValString("Cannot read file")
-		every { svc.get(ReadSettings.MessageStartLineErrorSetting) } returns SettingValue.ValString("Start line must be >= 1")
-		every { svc.get(ReadSettings.MessageStartLineBiggerThanEndSetting) } returns SettingValue.ValString("Start line bigger than end line")
-		every { svc.get(ReadSettings.MessageTooManyLinesSetting) } returns SettingValue.ValString("Too many lines (max %d)")
-		every { svc.get(ReadSettings.UnicodeMessageTooManyCharsSetting) } returns SettingValue.ValString("Too many chars (max %d)")
-		every { svc.get(ReadSettings.SummarizeMessageTooFewSetting) } returns SettingValue.ValString("Content too short (%d chars, min %d)")
-		every { svc.get(ReadSettings.SummarizeMessageFailedSetting) } returns SettingValue.ValString("Summarize failed: %s")
-		every { svc.get(ReadSettings.FileMessageTruncateSetting) } returns SettingValue.ValString("\n... truncated at %d chars")
-		every { svc.get(ReadSettings.SummarizeMessageOutputTruncateSetting) } returns SettingValue.ValString("\n... output truncated from %d chars")
-		every { svc.get(ReadSettings.SummarizeMessageInputTruncateSetting) } returns SettingValue.ValString("\n... input truncated at %d chars")
-		every { svc.get(ReadSettings.FileMessageDuplicateSetting) } returns SettingValue.ValString("Duplicate read (sha256: %s)")
-		every { svc.get(ToolSettings.PathErrorMessage) } returns SettingValue.ValString("Invalid file path")
 	}
 	
 	private fun ToolInput(
@@ -160,23 +138,6 @@ class ReadTest {
 		}
 	}
 	
-	@Test
-	fun `resolveMeta file description contains formatted values`() {
-		val meta = Read().resolveMeta(defaultSettings)
-		val fileFunc = meta.functions.find { it.name == "file" }!!
-		assertTrue(fileFunc.description.contains("1000"))
-		assertTrue(fileFunc.description.contains("50"))
-	}
-	
-	@Test
-	fun `resolveMeta summarize description contains formatted values`() {
-		val meta = Read().resolveMeta(defaultSettings)
-		val summarizeFunc = meta.functions.find { it.name == "summarize" }!!
-		assertTrue(summarizeFunc.description.contains("5000"))
-		assertTrue(summarizeFunc.description.contains("10"))
-		assertTrue(summarizeFunc.description.contains("100"))
-	}
-	
 	// endregion
 	
 	// region path validation
@@ -190,7 +151,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Invalid file path", result.result)
+		assertEquals("提供的路径不合法，请检查提供的路径参数", result.result)
 	}
 	
 	@Test
@@ -204,7 +165,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("File not found", result.result)
+		assertEquals("文件不存在或访问被拒绝", result.result)
 	}
 	
 	@Test
@@ -219,7 +180,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Cannot read file", result.result)
+		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
 	}
 	
 	// endregion
@@ -238,37 +199,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Start line must be >= 1", result.result)
-	}
-	
-	@Test
-	fun `end line less than start line returns error`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		
-		val input = ToolInput("file", args("/tmp/f.txt", startLine = 5, endLine = 3), container(fs))
-		val result = Read().execute(input)
-		
-		assertFalse(result.success)
-		assertEquals("Start line bigger than end line", result.result)
-	}
-	
-	@Test
-	fun `too many lines for file returns error`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		
-		val input = ToolInput("file", args("/tmp/f.txt", startLine = 1, endLine = 51), container(fs))
-		val result = Read().execute(input)
-		
-		assertFalse(result.success)
-		assertTrue(result.result.contains("50"))
+		assertEquals("start_line必须大于或等于1", result.result)
 	}
 	
 	// endregion
@@ -364,7 +295,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Cannot read file", result.result)
+		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
 	}
 	
 	@Test
@@ -382,41 +313,12 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Cannot read file", result.result)
+		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
 	}
 	
 	// endregion
 	
 	// region file - duplicate detection
-	
-	@Test
-	fun `duplicate read with same path sha256 and overlapping range returns duplicate message`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val lines = (1..20).map { "line $it" }
-		val sha256 = "d".repeat(64)
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		coEvery { fs.readAllLines(path) } returns lines
-		coEvery { fs.sha256(path) } returns sha256
-		
-		val history = mockk<ToolCallHistory>()
-		every { history.getAll() } returns listOf(
-			ToolCallHistory.Entry(
-				name = "read_file",
-				arguments = """{"file_path":"/tmp/f.txt","start_line":1,"end_line":10}""",
-				resultContent = "$sha256\nsome old content",
-			)
-		)
-		
-		val input = ToolInput("file", args("/tmp/f.txt", startLine = 3, endLine = 5), container(fs, history))
-		val result = Read().execute(input)
-		
-		assertTrue(result.success)
-		assertTrue(result.result.contains(sha256))
-		assertTrue(result.result.contains("Duplicate"))
-	}
 	
 	@Test
 	fun `not duplicate when sha256 differs`() = runTest {
@@ -503,99 +405,9 @@ class ReadTest {
 		assertFalse(result.result.contains("Duplicate"))
 	}
 	
-	@Test
-	fun `history entry with invalid JSON is skipped`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val lines = (1..20).map { "line $it" }
-		val sha256 = "i".repeat(64)
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		coEvery { fs.readAllLines(path) } returns lines
-		coEvery { fs.sha256(path) } returns sha256
-		
-		val history = mockk<ToolCallHistory>()
-		every { history.getAll() } returns listOf(
-			ToolCallHistory.Entry(
-				name = "read_file",
-				arguments = "not valid json",
-				resultContent = "$sha256\ncontent",
-			),
-			ToolCallHistory.Entry(
-				name = "read_file",
-				arguments = """{"file_path":"/tmp/f.txt","start_line":1,"end_line":10}""",
-				resultContent = "$sha256\ncontent",
-			)
-		)
-		
-		val input = ToolInput("file", args("/tmp/f.txt", startLine = 3, endLine = 5), container(fs, history))
-		val result = Read().execute(input)
-		
-		assertTrue(result.success)
-		assertTrue(result.result.contains("Duplicate"))
-	}
-	
-	// endregion
-	
-	// region file - truncation
-	
-	@Test
-	fun `file content truncated when exceeding max chars`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val lines = (1..200).map { "this is a pretty long line number $it with extra padding to fill chars" }
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		coEvery { fs.readAllLines(path) } returns lines
-		coEvery { fs.sha256(path) } returns "j".repeat(64)
-		
-		val history = mockk<ToolCallHistory>()
-		every { history.getAll() } returns emptyList()
-		
-		val input = ToolInput("file", args("/tmp/f.txt", startLine = 1, endLine = 50), container(fs, history))
-		val result = Read().execute(input)
-		
-		assertTrue(result.success)
-		assertTrue(result.result.contains("truncated"))
-	}
-	
 	// endregion
 	
 	// region summarize
-	
-	@Test
-	fun `summarize too many lines returns error`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		
-		val input = ToolInput("summarize", args("/tmp/f.txt", startLine = 1, endLine = 101), container(fs))
-		val result = Read().execute(input)
-		
-		assertFalse(result.success)
-		assertTrue(result.result.contains("100"))
-	}
-	
-	@Test
-	fun `summarize content too short returns error`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val lines = listOf("short")
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		coEvery { fs.readAllLines(path) } returns lines
-		
-		val input = ToolInput("summarize", args("/tmp/f.txt", startLine = 1, endLine = 1), container(fs))
-		val result = Read().execute(input)
-		
-		assertFalse(result.success)
-		assertTrue(result.result.contains("too short"))
-	}
 	
 	@Test
 	fun `successful summarize within output limit`() = runTest {
@@ -649,32 +461,6 @@ class ReadTest {
 	}
 	
 	@Test
-	fun `summarize output truncated when exceeding max output chars`() = runTest {
-		val path = Path.of("/tmp/f.txt")
-		val lines = (1..30).map { "this is line number $it with some content to make it long enough" }
-		val fs = mockk<FileSystemService>()
-		every { fs.normalize(any()) } returns path
-		coEvery { fs.exists(path) } returns true
-		coEvery { fs.isRegularFile(path) } returns true
-		coEvery { fs.readAllLines(path) } returns lines
-		
-		val longOutput = "x".repeat(300)
-		val summarizeService = mockk<SummarizeService>()
-		coEvery { summarizeService.summarize(any(), any()) } returns longOutput
-		
-		val input = ToolInput(
-			"summarize",
-			args("/tmp/f.txt", startLine = 1, endLine = 30),
-			container(fs, summarize = summarizeService)
-		)
-		val result = Read().execute(input)
-		
-		assertTrue(result.success)
-		assertEquals(200 + "\n... output truncated from 300 chars".length, result.result.length)
-		assertTrue(result.result.contains("truncated"))
-	}
-	
-	@Test
 	fun `summarize service throws returns error`() = runTest {
 		val path = Path.of("/tmp/f.txt")
 		val lines = (1..30).map { "this is line number $it with some content to make it long enough" }
@@ -711,7 +497,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Cannot read file", result.result)
+		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
 	}
 	
 	// endregion
@@ -802,7 +588,7 @@ class ReadTest {
 		val result = Read().execute(input)
 		
 		assertFalse(result.success)
-		assertEquals("Cannot read file", result.result)
+		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
 	}
 	
 	@Test

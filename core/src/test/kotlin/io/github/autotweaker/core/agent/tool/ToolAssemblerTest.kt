@@ -31,10 +31,9 @@ import kotlin.test.*
 
 class ToolAssemblerTest {
 	
-	private val reasonDesc = "The reason you are calling this function"
+	private val reasonDesc = "简要描述调用此工具的目的"
 	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-		every { svc.get(AgentToolSettings.ReasonDescription) } returns SettingValue.ValString("The reason you are calling this function")
 	}
 	
 	// region helpers
