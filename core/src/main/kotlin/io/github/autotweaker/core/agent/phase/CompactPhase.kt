@@ -22,7 +22,6 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.AgentContext
@@ -130,18 +129,18 @@ internal object CompactPhase {
 		messages: List<ChatMessage>,
 		service: SettingService,
 	): CompactRequestResult {
-		val request = ChatRequest(
-			model = summarizeModel.modelInfo.modelId,
-			messages = messages,
-			stream = true,
-			thinking = false,
-		)
-		
 		var rawContent = ""
 		var lastUsage: Usage? = null
 		var hasError = false
 		try {
-			val results = ResilientChat.execute(summarizeModel, fallbackModels, request, service)
+			val results = ResilientChat.execute(
+				model = summarizeModel,
+				fallbackModels = fallbackModels,
+				messages = messages,
+				stream = true,
+				thinking = false,
+				service = service,
+			)
 			results.collect { resilientResult ->
 				currentCoroutineContext().ensureActive()
 				when (val result = resilientResult.result) {
@@ -325,15 +324,15 @@ internal object CompactPhase {
 		fallbackModels: List<Model>?,
 		service: SettingService,
 	): String {
-		val request = ChatRequest(
-			model = model.modelInfo.modelId,
-			thinking = false,
+		val results = ResilientChat.execute(
+			model = model,
+			fallbackModels = fallbackModels,
 			messages = listOf(
 				ChatMessage.UserMessage(prompt.format(content), Clock.System.now()),
 			),
-			stream = false,
-		)
-		val results = ResilientChat.execute(model, fallbackModels, request, service).toList()
+			thinking = false,
+			service = service,
+		).toList()
 		val success = results.filter { it.retrying == null }.map { it.result }
 		return success.firstNotNullOfOrNull { it.message?.content } ?: content
 	}

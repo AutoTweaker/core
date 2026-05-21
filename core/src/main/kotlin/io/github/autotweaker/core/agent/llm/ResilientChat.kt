@@ -38,7 +38,11 @@ internal object ResilientChat {
 	internal fun execute(
 		model: Model,
 		fallbackModels: List<Model>?,
-		request: ChatRequest,
+		messages: List<ChatMessage>,
+		tools: List<ChatRequest.Tool>? = null,
+		responseFormat: ChatRequest.ResponseFormat? = null,
+		stream: Boolean = false,
+		thinking: Boolean? = null,
 		service: SettingService,
 	): Flow<ResilientChatResult> = flow {
 		val maxRetries = service.get(ResilientChatSettings.MaxRetries()).value
@@ -55,7 +59,7 @@ internal object ResilientChat {
 		)
 		
 		// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
-		if (request.messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
+		if (messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
 			candidates = candidates.filter { it.modelInfo.supportsImage }.ifEmpty { candidates }
 		}
 		
@@ -66,7 +70,7 @@ internal object ResilientChat {
 			val rules = current.provider.errorHandlingRules
 			
 			for (retryAttempt in 0 until maxRetries) {
-				val chatRequest = request.adapt(current)
+				val chatRequest = buildRequest(current, messages, tools, responseFormat, stream, thinking)
 				val client = LlmClientLoader.load(current.provider.name)
 				val results = client.chat(
 					request = chatRequest,
@@ -171,18 +175,21 @@ internal object ResilientChat {
 		}
 	}
 	
-	private fun ChatRequest.adapt(model: Model): ChatRequest {
+	private fun buildRequest(
+		model: Model,
+		messages: List<ChatMessage>,
+		tools: List<ChatRequest.Tool>?,
+		responseFormat: ChatRequest.ResponseFormat?,
+		stream: Boolean,
+		thinking: Boolean?,
+	): ChatRequest {
 		val stripPictures = !model.modelInfo.supportsImage &&
 				messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
 		val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
 		val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
 		
-		return copy(
+		return ChatRequest(
 			model = model.modelInfo.modelId,
-			stream = stream && model.modelInfo.supportsStreaming,
-			thinking = if (stripThinking) null else thinking,
-			temperature = model.config?.temperature,
-			maxTokens = model.config?.maxTokens,
 			messages = messages.mapIndexed { _, msg ->
 				var result = msg
 				if (stripPictures && result is ChatMessage.UserMessage) {
@@ -197,6 +204,12 @@ internal object ResilientChat {
 				}
 				result
 			},
+			tools = tools,
+			responseFormat = responseFormat,
+			stream = stream && model.modelInfo.supportsStreaming,
+			thinking = if (stripThinking) null else thinking,
+			temperature = model.config?.temperature,
+			maxTokens = model.config?.maxTokens,
 		)
 	}
 }

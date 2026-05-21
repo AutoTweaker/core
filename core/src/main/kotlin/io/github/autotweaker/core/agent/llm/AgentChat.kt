@@ -57,20 +57,23 @@ internal object AgentChat {
 		agentId: UUID,
 		service: SettingService
 	): Flow<AgentChatStreamResult> = flow {
-		val chatRequest = request.toChatRequest().copy(stream = true)
+		val messages = request.toChatMessages()
 		
 		logger.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  messages={}",
 			agentId,
 			request.model.modelInfo.modelId,
 			request.fallbackModels?.size,
-			chatRequest.messages.size
+			messages.size
 		)
 		
 		val results = ResilientChat.execute(
 			model = request.model,
 			fallbackModels = request.fallbackModels,
-			request = chatRequest,
+			messages = messages,
+			tools = request.tools,
+			stream = true,
+			thinking = request.thinking,
 			service = service,
 		)
 		

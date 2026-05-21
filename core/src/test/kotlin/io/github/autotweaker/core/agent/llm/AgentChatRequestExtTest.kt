@@ -34,7 +34,7 @@ import kotlin.test.*
 import kotlin.time.Clock
 
 class AgentChatRequestExtTest {
-	
+
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
@@ -58,14 +58,14 @@ class AgentChatRequestExtTest {
 		config = Config(0.7, 2048, null, null),
 		id = UUID.randomUUID()
 	)
-	
+
 	private fun userMsg(content: String = "hello") =
 		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
-	
+
 	private fun assistantMsg(content: String = "response") = AgentContext.Message.Assistant(
 		content = content, model = testModel, timestamp = Clock.System.now()
 	)
-	
+
 	private fun toolResult() =
 		AgentContext.Message.Tool(
 			name = "read",
@@ -82,72 +82,67 @@ class AgentChatRequestExtTest {
 				status = ToolResultStatus.SUCCESS
 			),
 		)
-	
+
 	private fun currentRound(userMsg: AgentContext.Message.User) =
 		AgentContext.CurrentRound(userMsg, null, null, null)
-	
+
 	private fun request(
 		model: Model = testModel,
 		context: AgentContext,
 		thinking: Boolean? = null,
 		tools: List<ChatRequest.Tool>? = null,
 	) = AgentChatRequest(model, null, thinking, tools, context)
-	
+
 	@Test
 	fun `basic user message conversion`() {
 		val user = userMsg("hello world")
 		val ctx = AgentContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals("test-model-id", chatReq.model)
-		assertEquals(1, chatReq.messages.size)
-		val msg = chatReq.messages[0] as ChatMessage.UserMessage
+
+		val messages = req.toChatMessages()
+
+		assertEquals(1, messages.size)
+		val msg = messages[0] as ChatMessage.UserMessage
 		assertTrue(msg.content.contains("hello world"))
 		assertTrue(msg.content.contains("<time>"))
 		assertNull(msg.pictures)
 	}
-	
+
 	@Test
 	fun `system prompt included`() {
 		val user = userMsg("hello")
 		val ctx = AgentContext(null, "you are a helpful assistant", null, null, currentRound(user))
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals(2, chatReq.messages.size)
-		val sysMsg = chatReq.messages[0] as ChatMessage.SystemMessage
+
+		val messages = req.toChatMessages()
+
+		assertEquals(2, messages.size)
+		val sysMsg = messages[0] as ChatMessage.SystemMessage
 		assertEquals("you are a helpful assistant", sysMsg.content)
-		val userMsg = chatReq.messages[1] as ChatMessage.UserMessage
+		val userMsg = messages[1] as ChatMessage.UserMessage
 		assertTrue(userMsg.content.contains("hello"))
 	}
-	
+
 	@Test
 	fun `thinking parameter passed through`() {
 		val user = userMsg("hello")
 		val ctx = AgentContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx, thinking = true)
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals(true, chatReq.thinking)
+
+		assertEquals(true, req.thinking)
 	}
-	
+
 	@Test
 	fun `tools parameter passed through`() {
 		val user = userMsg("hello")
 		val ctx = AgentContext(null, null, null, null, currentRound(user))
 		val tool = ChatRequest.Tool("read", "read a file", Json.parseToJsonElement("{}"))
 		val req = request(context = ctx, tools = listOf(tool))
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals(1, chatReq.tools?.size)
-		assertEquals("read", chatReq.tools!![0].name)
+
+		assertEquals(1, req.tools?.size)
+		assertEquals("read", req.tools!![0].name)
 	}
-	
+
 	@Test
 	fun `summarized message included in user content`() {
 		val user = userMsg("continue")
@@ -163,16 +158,16 @@ class AgentChatRequestExtTest {
 			currentRound(user)
 		)
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		val msg = chatReq.messages[0] as ChatMessage.UserMessage
+
+		val messages = req.toChatMessages()
+
+		val msg = messages[0] as ChatMessage.UserMessage
 		assertTrue(msg.content.contains("<summary>"))
 		assertTrue(msg.content.contains("previous summary"))
 		assertTrue(msg.content.contains("</summary>"))
 		assertTrue(msg.content.contains("continue"))
 	}
-	
+
 	@Test
 	fun `images in user message`() {
 		val img = Base64("AAAA")
@@ -180,23 +175,23 @@ class AgentChatRequestExtTest {
 			AgentContext.Message.User(content = "look at this", images = listOf(img), timestamp = Clock.System.now())
 		val ctx = AgentContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		val msg = chatReq.messages[0] as ChatMessage.UserMessage
+
+		val messages = req.toChatMessages()
+
+		val msg = messages[0] as ChatMessage.UserMessage
 		assertEquals(1, msg.pictures?.size)
 		assertEquals(img, msg.pictures!![0])
 	}
-	
+
 	@Test
 	fun `throws when no current round`() {
 		val ctx = AgentContext(null, null, null, null, null)
 		val req = request(context = ctx)
-		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatRequest() }
+
+		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages() }
 		assertTrue(ex.message!!.contains("No current round"))
 	}
-	
+
 	@Test
 	fun `throws when current round has assistant message set`() {
 		val user = userMsg("hello")
@@ -204,11 +199,11 @@ class AgentChatRequestExtTest {
 		val round = AgentContext.CurrentRound(user, null, asst, null)
 		val ctx = AgentContext(null, null, null, null, round)
 		val req = request(context = ctx)
-		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatRequest() }
+
+		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages() }
 		assertTrue(ex.message!!.contains("Last message is an assistant message"))
 	}
-	
+
 	@Test
 	fun `throws when pending tool calls exist`() {
 		val user = userMsg("hello")
@@ -225,11 +220,11 @@ class AgentChatRequestExtTest {
 		val round = AgentContext.CurrentRound(user, null, null, pending)
 		val ctx = AgentContext(null, null, null, null, round)
 		val req = request(context = ctx)
-		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatRequest() }
+
+		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages() }
 		assertTrue(ex.message!!.contains("Pending tool calls exist"))
 	}
-	
+
 	@Test
 	fun `turns with tool calls included in messages`() {
 		val user = userMsg("read file")
@@ -239,24 +234,24 @@ class AgentChatRequestExtTest {
 		val round = AgentContext.CurrentRound(user, listOf(turn), null, null)
 		val ctx = AgentContext(null, null, null, null, round)
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals(3, chatReq.messages.size)
-		val userChatMsg = chatReq.messages[0] as ChatMessage.UserMessage
+
+		val messages = req.toChatMessages()
+
+		assertEquals(3, messages.size)
+		val userChatMsg = messages[0] as ChatMessage.UserMessage
 		assertTrue(userChatMsg.content.contains("read file"))
-		
-		val asstChatMsg = chatReq.messages[1] as ChatMessage.AssistantMessage
+
+		val asstChatMsg = messages[1] as ChatMessage.AssistantMessage
 		assertEquals("I will read it", asstChatMsg.content)
 		val toolCalls = assertNotNull(asstChatMsg.toolCalls)
 		assertEquals(1, toolCalls.size)
 		assertEquals("call-1", toolCalls[0].id)
-		
-		val toolChatMsg = chatReq.messages[2] as ChatMessage.ToolMessage
+
+		val toolChatMsg = messages[2] as ChatMessage.ToolMessage
 		assertEquals("file content", toolChatMsg.content)
 		assertEquals("call-1", toolChatMsg.toolCallId)
 	}
-	
+
 	@Test
 	fun `history rounds included in messages`() {
 		val user = userMsg("current question")
@@ -270,18 +265,18 @@ class AgentChatRequestExtTest {
 			currentRound = currentRound(user),
 		)
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals(3, chatReq.messages.size)
-		val histUserMsg = chatReq.messages[0] as ChatMessage.UserMessage
+
+		val messages = req.toChatMessages()
+
+		assertEquals(3, messages.size)
+		val histUserMsg = messages[0] as ChatMessage.UserMessage
 		assertTrue(histUserMsg.content.contains("previous question"))
-		val histAsstMsg = chatReq.messages[1] as ChatMessage.AssistantMessage
+		val histAsstMsg = messages[1] as ChatMessage.AssistantMessage
 		assertEquals("previous answer", histAsstMsg.content)
-		val curUserMsg = chatReq.messages[2] as ChatMessage.UserMessage
+		val curUserMsg = messages[2] as ChatMessage.UserMessage
 		assertTrue(curUserMsg.content.contains("current question"))
 	}
-	
+
 	@Test
 	fun `multiple history rounds`() {
 		val user = userMsg("current")
@@ -295,25 +290,23 @@ class AgentChatRequestExtTest {
 		)
 		val ctx = AgentContext(null, null, histRounds, null, currentRound(user))
 		val req = request(context = ctx)
-		
-		val chatReq = req.toChatRequest()
-		
-		assertEquals(5, chatReq.messages.size)
+
+		val messages = req.toChatMessages()
+
+		assertEquals(5, messages.size)
 	}
-	
+
 	@Test
 	fun `tool result as last message allows conversion`() {
 		val user = userMsg("read file")
 		val asst = assistantMsg("calling tool")
 		val tool = toolResult()
 		val turn = AgentContext.Turn(asst, listOf(tool))
-		// assistantMessage is null, turns exist with tool result last
 		val round = AgentContext.CurrentRound(user, listOf(turn), null, null)
 		val ctx = AgentContext(null, null, null, null, round)
 		val req = request(context = ctx)
-		
-		// should not throw because last message is Tool, not Assistant
-		val chatReq = req.toChatRequest()
-		assertNotNull(chatReq)
+
+		val messages = req.toChatMessages()
+		assertNotNull(messages)
 	}
 }

@@ -19,11 +19,10 @@
 package io.github.autotweaker.core.agent.llm
 
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.agent.AgentContext
 import kotlin.time.Clock
 
-fun AgentChatRequest.toChatRequest(): ChatRequest {
+fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 	val current = context.currentRound
 		?: throw IllegalStateException("No current round available")
 	
@@ -45,7 +44,7 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 		throw IllegalStateException("Pending tool calls exist, cannot send request")
 	}
 	
-	val messages = buildList {
+	return buildList {
 		//系统提示
 		context.systemPrompt?.let {
 			add(ChatMessage.SystemMessage(it, Clock.System.now()))
@@ -62,13 +61,6 @@ fun AgentChatRequest.toChatRequest(): ChatRequest {
 		add(current.userMessage.toChatMessage(context.summarizedMessage?.content))
 		current.turns?.forEach { addTurn(it) }
 	}
-	
-	return ChatRequest(
-		model = model.modelInfo.modelId,
-		messages = messages,
-		thinking = thinking,
-		tools = tools,
-	)
 }
 
 private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {

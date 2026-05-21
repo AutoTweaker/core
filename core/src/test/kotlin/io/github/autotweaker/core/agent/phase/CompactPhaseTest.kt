@@ -102,7 +102,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -134,7 +134,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -167,7 +167,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = blankResult, retrying = null)
 		)
 		
@@ -201,7 +201,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -232,7 +232,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -277,7 +277,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = errorResult, retrying = null)
 		)
 		
@@ -318,7 +318,7 @@ class CompactPhaseTest {
 			),
 			usage = usage,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chunkResult, retrying = null),
 			ResilientChatResult(result = assembledResult, retrying = null),
 		)
@@ -344,7 +344,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `runCompactRequest handles exception from chat flow`() = runTest {
-		every { ResilientChat.execute(any(), any(), any(), any()) } throws RuntimeException("chat failed")
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException("chat failed")
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(
@@ -372,7 +372,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -410,7 +410,7 @@ class CompactPhaseTest {
 		)
 		// First call: summarizeMessage for user message, second call: summarizeMessage for assistant message,
 		// third call: runCompactRequest
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		) andThen flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
@@ -455,7 +455,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		// summarizeMessage called for each long message + main compact request
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -506,7 +506,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(result = chatResult, retrying = null)
 		)
 		
@@ -541,7 +541,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any()) } returnsMany listOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returnsMany listOf(
 			flowOf(
 				ResilientChatResult(result = emptyResult, retrying = model),
 				ResilientChatResult(result = emptyResult, retrying = null)
@@ -577,7 +577,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `CancellationException is rethrown not swallowed`() = runTest {
-		every { ResilientChat.execute(any(), any(), any(), any()) } throws CancellationException("cancelled")
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } throws CancellationException("cancelled")
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(

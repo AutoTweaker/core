@@ -56,7 +56,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize returns response on success`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("summarized content", Clock.System.now()),
@@ -76,7 +76,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize skips retrying results and uses success`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Chunk(message = null),
 				retrying = mockModel,
@@ -100,7 +100,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize throws when no successful response`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Chunk(message = null),
 				retrying = mockModel,
@@ -119,7 +119,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize empty flow throws`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf()
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf()
 		
 		val service = SummarizeServiceImpl(mockModel, service = mockService)
 		
@@ -133,7 +133,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize bypasses fallback when first model succeeds`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			ResilientChatResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("first success", Clock.System.now()),

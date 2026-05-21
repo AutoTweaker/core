@@ -93,7 +93,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(chatResult, null))
 		}
@@ -123,7 +123,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(chunkResult, null))
 			emit(ResilientChatResult(assembledResult, null))
@@ -150,7 +150,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(
 				ResilientChatResult(
@@ -206,7 +206,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(errorChatResult, null))
 		}
@@ -226,7 +226,7 @@ class AgentChatTest {
 	fun `handles all models exhausted silently`() = runTest {
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			throw IllegalStateException("All candidate models exhausted without success")
 		}
@@ -255,7 +255,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(ResilientChatResult(chatResult, null))
 		}
@@ -283,7 +283,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			// chunk with tool call fragments
 			emit(
