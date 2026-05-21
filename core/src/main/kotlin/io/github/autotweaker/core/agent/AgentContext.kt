@@ -36,6 +36,7 @@ data class AgentContext(
 		val id: UUID,
 		val timestamp: Instant,
 		val content: String,
+		val usage: Usage? = null,
 	)
 	
 	sealed class Message {
