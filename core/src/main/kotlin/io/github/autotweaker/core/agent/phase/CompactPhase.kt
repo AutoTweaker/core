@@ -73,14 +73,19 @@ internal object CompactPhase {
 		}
 		
 		val cleaned = finalResult.rawContent
-		if (cleaned.isBlank()) {
+		val minSummaryLength = service.get(CompactSettings.MinSummaryLength()).value
+		if (cleaned.length < minSummaryLength) {
 			logger.warn(
-				"Failed to produce compact summary  result was empty  agentId={}  attempts={}", env.agentId, attempt
+				"Failed to produce compact summary  result too short  agentId={}  attempts={}  length={}",
+				env.agentId,
+				attempt,
+				cleaned.length
 			)
 			env.emitOutput(
 				AgentOutput.Error(
 					AgentError(
-						"Compact produced empty summary after $attempt attempts", AgentError.Type.COMPACT
+						"Compact produced summary shorter than $minSummaryLength chars after $attempt attempts",
+						AgentError.Type.COMPACT
 					)
 				)
 			)

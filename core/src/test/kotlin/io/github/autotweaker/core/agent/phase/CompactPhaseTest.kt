@@ -93,7 +93,8 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `compactPhase updates context with summarized message`() = runTest {
-		val summaryContent = "<summary>compacted conversation summary</summary>"
+		val summaryContent =
+			"<summary>compacted conversation summary with enough characters to pass validation check</summary>"
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent,
@@ -121,7 +122,10 @@ class CompactPhaseTest {
 		
 		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
-		assertEquals("compacted conversation summary", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"compacted conversation summary with enough characters to pass validation check",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
@@ -154,7 +158,7 @@ class CompactPhaseTest {
 		val error = capturedOutputs.firstOrNull { it is AgentOutput.Error }
 		assertNotNull(error)
 		assertEquals(AgentError.Type.COMPACT, (error as AgentOutput.Error).error.type)
-		assertTrue(error.error.message.contains("empty summary"))
+		assertTrue(error.error.message.contains("shorter than 50 chars"))
 	}
 	
 	@Test
@@ -192,7 +196,8 @@ class CompactPhaseTest {
 	@Test
 	fun `extractSummary extracts content inside tags`() = runTest {
 		// extractSummary is private, tested indirectly through compactPhase
-		val summaryContent = "prefix text <summary>real summary here</summary> suffix text"
+		val summaryContent =
+			"prefix text <summary>the real extracted summary content that is definitely long enough to pass the validation check successfully</summary> suffix text"
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent,
@@ -218,12 +223,16 @@ class CompactPhaseTest {
 		
 		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
-		assertEquals("real summary here", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"the real extracted summary content that is definitely long enough to pass the validation check successfully",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
 	fun `compactPhase preprocesses rounds with turns`() = runTest {
-		val summaryContent = "<summary>done</summary>"
+		val summaryContent =
+			"<summary>this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion</summary>"
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent,
@@ -265,7 +274,10 @@ class CompactPhaseTest {
 		
 		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
-		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion",
+			_contextFlow.value.summarizedMessage?.content
+		)
 		assertNotNull(_contextFlow.value.summarizedMessage?.content)
 	}
 	
@@ -344,7 +356,9 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `runCompactRequest handles exception from chat flow`() = runTest {
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException("chat failed")
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException(
+			"chat failed"
+		)
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(
@@ -365,7 +379,8 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `convertUserMessage handles images by inserting placeholders`() = runTest {
-		val summaryContent = "<summary>summary with images</summary>"
+		val summaryContent =
+			"<summary>this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion</summary>"
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent, createdAt = Clock.System.now(), model = "summarize-model",
@@ -393,7 +408,10 @@ class CompactPhaseTest {
 		
 		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
-		assertEquals("summary with images", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
@@ -401,7 +419,8 @@ class CompactPhaseTest {
 		val longContentSettings = mockk<SettingService>().also {
 			every { it.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
 		}
-		val summaryContent = "<summary>compacted</summary>"
+		val summaryContent =
+			"<summary>this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion</summary>"
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
 				content = summaryContent, createdAt = Clock.System.now(), model = "summarize-model",
@@ -440,7 +459,10 @@ class CompactPhaseTest {
 			service = longContentSettings
 		)
 		
-		assertEquals("compacted", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
@@ -450,7 +472,9 @@ class CompactPhaseTest {
 		}
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
-				content = "<summary>done</summary>", createdAt = Clock.System.now(), model = "summarize-model",
+				content = "<summary>this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion</summary>",
+				createdAt = Clock.System.now(),
+				model = "summarize-model",
 			),
 			usage = null,
 		)
@@ -495,14 +519,19 @@ class CompactPhaseTest {
 			service = longContentSettings
 		)
 		
-		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
 	fun `null assistant content and reasoning edge cases are handled`() = runTest {
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
-				content = "<summary>done</summary>", createdAt = Clock.System.now(), model = "summarize-model",
+				content = "<summary>this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion</summary>",
+				createdAt = Clock.System.now(),
+				model = "summarize-model",
 			),
 			usage = null,
 		)
@@ -523,7 +552,10 @@ class CompactPhaseTest {
 		
 		CompactPhase.execute(env, rounds, summarizeModel = model, fallbackModels = null, service = settings)
 		
-		assertEquals("done", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
@@ -537,7 +569,9 @@ class CompactPhaseTest {
 		val emptyResult = ChatResult.Chunk(message = null, usage = null)
 		val successResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage(
-				content = "<summary>final</summary>", createdAt = Clock.System.now(), model = "summarize-model",
+				content = "<summary>this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion</summary>",
+				createdAt = Clock.System.now(),
+				model = "summarize-model",
 			),
 			usage = null,
 		)
@@ -572,12 +606,26 @@ class CompactPhaseTest {
 			service = fallbackSettings
 		)
 		
-		assertEquals("final", _contextFlow.value.summarizedMessage?.content)
+		assertEquals(
+			"this is a comprehensive yet concise summary of the conversation that covers all key points made during the discussion",
+			_contextFlow.value.summarizedMessage?.content
+		)
 	}
 	
 	@Test
 	fun `CancellationException is rethrown not swallowed`() = runTest {
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } throws CancellationException("cancelled")
+		every {
+			ResilientChat.execute(
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} throws CancellationException("cancelled")
 		
 		val rounds = listOf(
 			AgentContext.CompletedRound(
