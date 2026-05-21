@@ -105,4 +105,13 @@ sealed class SessionMessage {
 		
 		val content: String,
 	) : SessionMessage()
+	
+	@Serializable
+	data class UsageRecord(
+		@Serializable(with = UuidSerializer::class)
+		override val id: UUID,
+		
+		@Serializable(with = InstantLongSerializer::class)
+		override val timestamp: Instant,
+	) : SessionMessage()
 }

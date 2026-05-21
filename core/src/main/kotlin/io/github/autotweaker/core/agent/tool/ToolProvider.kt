@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.agent.tool
 
 import io.github.autotweaker.core.agent.AgentEnvironment
+import io.github.autotweaker.core.agent.AgentOutput
 import io.github.autotweaker.core.agent.tool.service.BashServiceImpl
 import io.github.autotweaker.core.agent.tool.service.FileSystemServiceImpl
 import io.github.autotweaker.core.agent.tool.service.SummarizeServiceImpl
@@ -28,6 +29,7 @@ import io.github.autotweaker.core.tool.impl.bash.BashService
 import io.github.autotweaker.core.tool.impl.read.FileSystemService
 import io.github.autotweaker.core.tool.impl.read.SummarizeService
 import io.github.autotweaker.core.tool.impl.read.ToolCallHistory
+import kotlin.time.Clock
 
 internal object ToolProvider {
 	internal fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
@@ -40,7 +42,10 @@ internal object ToolProvider {
 		)
 		container.register(
 			SummarizeService::class,
-			SummarizeServiceImpl(env.summarizeModel, env.currentFallbackModels, env.service),
+			SummarizeServiceImpl(
+				env.summarizeModel, env.currentFallbackModels, env.service,
+				onUsage = { usage -> env.emitOutput(AgentOutput.UsageConsumed(Clock.System.now(), usage)) },
+			),
 		)
 		container.register(BashService::class, BashServiceImpl(workspace.path, workspace.inContainer, config.workDir))
 		container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context.value))

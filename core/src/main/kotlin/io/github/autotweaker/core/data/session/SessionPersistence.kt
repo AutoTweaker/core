@@ -117,6 +117,7 @@ fun typeOf(msg: SessionMessage): String = when (msg) {
 	is SessionMessage.Tool.Call -> "TOOL_CALL"
 	is SessionMessage.Tool.Result -> "TOOL_RESULT"
 	is SessionMessage.Compact -> "COMPACT"
+	is SessionMessage.UsageRecord -> "USAGE_RECORD"
 }
 
 // endregion

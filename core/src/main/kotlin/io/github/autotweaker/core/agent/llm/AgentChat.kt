@@ -119,6 +119,7 @@ internal object AgentChat {
 								statusCode = msg.statusCode,
 								retrying = resilientResult.retrying,
 								timestamp = msg.createdAt,
+								usage = result.usage,
 							)
 							emit(AgentChatStreamResult.Failing(errors = errors.toList()))
 							return@collect

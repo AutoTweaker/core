@@ -238,7 +238,7 @@ class Session(
 		return ids
 	}
 	
-	private fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {
+	private suspend fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {
 		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(output.delta)
 		is AgentOutput.LlmError -> SessionOutput.LlmError(
 			output.error.content, output.error.statusCode, output.error.retrying?.id, output.error.timestamp
@@ -248,6 +248,17 @@ class Session(
 		is AgentOutput.Error -> SessionOutput.Error(output.error)
 		is AgentOutput.Tool -> SessionOutput.Tool(output.output)
 		is AgentOutput.ToolRequest -> SessionOutput.ToolRequest(output.requests)
+		is AgentOutput.UsageConsumed -> {
+			val record = SessionMessage.UsageRecord(
+				id = UUID.randomUUID(),
+				timestamp = output.timestamp,
+			)
+			messages[record.id] = record
+			_context.update { it.copy(usage = it.usage + (record.id to output.usage)) }
+			save()
+			null
+		}
+		
 		else -> null
 	}
 }

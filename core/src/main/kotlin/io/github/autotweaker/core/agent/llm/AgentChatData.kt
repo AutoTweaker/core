@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent.llm
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.AgentContext
 import kotlin.time.Instant
 
@@ -45,6 +46,7 @@ sealed class AgentChatStreamResult {
 			val statusCode: Int?,
 			val retrying: Model?,
 			val timestamp: Instant,
+			val usage: Usage? = null,
 		)
 	}
 	

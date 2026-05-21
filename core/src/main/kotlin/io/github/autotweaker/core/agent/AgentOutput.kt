@@ -22,8 +22,10 @@ import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.agent.ToolOutput
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
+import kotlin.time.Instant
 
 sealed class AgentOutput {
 	data class LlmDelta(val delta: StreamDelta) : AgentOutput()
@@ -48,4 +50,6 @@ sealed class AgentOutput {
 	data class Error(
 		val error: AgentError
 	) : AgentOutput()
+	
+	data class UsageConsumed(val timestamp: Instant, val usage: Usage) : AgentOutput()
 }

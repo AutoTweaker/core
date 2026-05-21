@@ -20,6 +20,7 @@ package io.github.autotweaker.core.agent.tool.service
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.tool.impl.read.SummarizeService
@@ -30,6 +31,7 @@ class SummarizeServiceImpl(
 	private val model: Model,
 	private val fallbackModels: List<Model>? = null,
 	private val service: SettingService,
+	private val onUsage: (suspend (Usage) -> Unit)? = null,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
 		val results = ResilientChat.execute(
@@ -42,7 +44,9 @@ class SummarizeServiceImpl(
 			service = service,
 		).toList()
 		val success = results.filter { it.retrying == null }.map { it.result }
-		return success.firstNotNullOfOrNull { it.message?.content }
+		val finalResult = success.lastOrNull()
+		finalResult?.usage?.let { onUsage?.invoke(it) }
+		return finalResult?.message?.content
 			?: throw IllegalStateException("No response from LLM")
 	}
 }
