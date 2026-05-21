@@ -65,9 +65,11 @@ internal object CompactPhase {
 		
 		var attempt = 0
 		var finalResult: CompactRequestResult
+		var accumulatedUsage: Usage? = null
 		while (true) {
 			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages, service)
 			attempt++
+			finalResult.usage?.let { accumulatedUsage = accumulatedUsage?.plus(it) ?: it }
 			
 			if (finalResult.success || attempt >= service.get(CompactSettings.MaxCompactRetries()).value) break
 		}
@@ -106,7 +108,7 @@ internal object CompactPhase {
 			val dropped = ctx.historyRounds?.filter { it.userMessage.id in compactedIds }
 			val remaining = ctx.historyRounds?.filter { it.userMessage.id !in compactedIds }?.ifEmpty { null }
 			val compactMsg = AgentContext.SummarizedMessage(
-				id = UUID.randomUUID(), timestamp = Clock.System.now(), content = cleaned
+				id = UUID.randomUUID(), timestamp = Clock.System.now(), content = cleaned, usage = accumulatedUsage
 			)
 			ctx.copy(
 				historyRounds = remaining,
