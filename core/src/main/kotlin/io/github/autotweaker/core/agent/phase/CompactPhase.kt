@@ -131,7 +131,6 @@ internal object CompactPhase {
 	): CompactRequestResult {
 		var rawContent = ""
 		var lastUsage: Usage? = null
-		var hasError = false
 		try {
 			val results = ResilientChat.execute(
 				model = summarizeModel,
@@ -160,19 +159,7 @@ internal object CompactPhase {
 					}
 					
 					is ChatResult.Assembled -> {
-						val msg = result.message
-						if (msg is ChatMessage.ErrorMessage) {
-							env.emitOutput(
-								AgentOutput.Compact(
-									CompactOutput(
-										CompactOutput.Status.FAILED, rawContent, null
-									)
-								)
-							)
-							hasError = true
-							return@collect
-						}
-						val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
+						val assistantMsg = result.message as? ChatMessage.AssistantMessage ?: return@collect
 						if (!assistantMsg.content.isNullOrEmpty()) {
 							rawContent = assistantMsg.content!!
 						}
@@ -187,8 +174,6 @@ internal object CompactPhase {
 			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastUsage, success = false)
 		}
-		
-		if (hasError) return CompactRequestResult(rawContent, lastUsage, success = false)
 		
 		val extracted = extractSummary(rawContent)
 		val valid = extracted.length >= service.get(CompactSettings.MinSummaryLength()).value
