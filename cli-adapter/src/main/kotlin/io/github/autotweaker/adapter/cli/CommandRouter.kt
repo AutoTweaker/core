@@ -19,7 +19,7 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.Help
+import io.github.autotweaker.adapter.cli.commands.help.Help
 import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef

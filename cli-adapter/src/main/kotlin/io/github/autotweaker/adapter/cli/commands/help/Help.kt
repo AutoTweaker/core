@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands
+package io.github.autotweaker.adapter.cli.commands.help
 
 import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Param
