@@ -164,7 +164,7 @@ class RequestLlmPhaseTest {
 	private fun assistantMessage(content: String): AgentContext.Message.Assistant =
 		AgentContext.Message.Assistant(
 			content = content, model = model,
-			timestamp = Clock.System.now(), usage = null,
+			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 	// endregion
 }

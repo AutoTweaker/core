@@ -159,7 +159,7 @@ class LlmCoreTypesCoverageTest {
 		val result = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage("ok", now, model = "m"),
 			finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
-			usage = Usage(100, 40, 60, reasoningTokens = 10, cacheHitTokens = 5)
+			usage = Usage(promptTokens = 40, completionTokens = 60, reasoningTokens = 10, cacheHitTokens = 5)
 		)
 		assertEquals("ok", result.message.content)
 		assertEquals(ChatResult.FinishReason.Type.STOP, result.finishReason?.type)
@@ -180,12 +180,10 @@ class LlmCoreTypesCoverageTest {
 	@Test
 	fun `Usage all fields`() {
 		val usage = Usage(
-			totalTokens = 100,
 			promptTokens = 40,
 			completionTokens = 60,
 			reasoningTokens = 10,
 			cacheHitTokens = 20,
-			cacheMissTokens = 20,
 			imageTokens = 5
 		)
 		assertEquals(100, usage.totalTokens)
@@ -199,7 +197,7 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `Usage minimal fields`() {
-		val usage = Usage(10, 5, 5)
+		val usage = Usage(5, 5)
 		assertEquals(10, usage.totalTokens)
 		assertNull(usage.reasoningTokens)
 		assertNull(usage.cacheHitTokens)

@@ -276,7 +276,7 @@ class ValidateToolCallsPhaseTest {
 	private fun assistantMessage(): AgentContext.Message.Assistant =
 		AgentContext.Message.Assistant(
 			content = "ok", model = model,
-			timestamp = Clock.System.now(), usage = null,
+			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 	// endregion
 }

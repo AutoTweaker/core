@@ -620,7 +620,7 @@ class ContextPhaseTest {
 	private fun assistantMessage(content: String, model: Model): AgentContext.Message.Assistant =
 		AgentContext.Message.Assistant(
 			content = content, model = model,
-			timestamp = Clock.System.now(), usage = null,
+			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 	// endregion
 }

@@ -59,7 +59,7 @@ class ToolCallHistoryImplTest {
 		content = content,
 		model = mockModel,
 		timestamp = Clock.System.now(),
-		usage = null,
+		usageSnapshot = null,
 	)
 	
 	private fun userMessage(content: String = "user") = AgentContext.Message.User(

@@ -110,7 +110,7 @@ class CompactPhaseTest {
 		val userMsg = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now())
 		val assistantMsg = AgentContext.Message.Assistant(
 			content = "hi there", model = model,
-			timestamp = Clock.System.now(), usage = null,
+			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 		val rounds = listOf(
 			AgentContext.CompletedRound(
@@ -148,7 +148,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -181,7 +181,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -216,7 +216,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -248,7 +248,7 @@ class CompactPhaseTest {
 		val userMsg = AgentContext.Message.User(content = "run command", timestamp = Clock.System.now())
 		val assistantMsg = AgentContext.Message.Assistant(
 			content = "calling tool", model = model,
-			timestamp = Clock.System.now(), usage = null,
+			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 		val toolMsg = AgentContext.Message.Tool(
 			name = "bash", callId = "call-1",
@@ -299,7 +299,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -313,7 +313,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `runCompactRequest accumulates content from Chunk and captures usage`() = runTest {
-		val usage = Usage(100, 40, 60)
+		val usage = Usage(promptTokens = 40, completionTokens = 60)
 		val chunkResult = ChatResult.Chunk(
 			message = ChatMessage.AssistantMessage(
 				content = "partial summary",
@@ -341,7 +341,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -366,7 +366,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -401,7 +401,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "image described", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -446,7 +446,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "very long assistant response",
-					model = model, timestamp = Clock.System.now(), usage = null,
+					model = model, timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -502,7 +502,7 @@ class CompactPhaseTest {
 					AgentContext.Turn(
 						assistantMessage = AgentContext.Message.Assistant(
 							content = "ok", model = model,
-							timestamp = Clock.System.now(), usage = null,
+							timestamp = Clock.System.now(), usageSnapshot = null,
 						),
 						tools = listOf(toolMsg),
 					)
@@ -545,7 +545,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = null, reasoning = null, model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -593,7 +593,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "very long assistant response that also exceeds",
-					model = model, timestamp = Clock.System.now(), usage = null,
+					model = model, timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -633,7 +633,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "hi", model = model,
-					timestamp = Clock.System.now(), usage = null,
+					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)

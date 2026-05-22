@@ -21,6 +21,7 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.llm.Model
 import io.mockk.mockk
 import java.util.*
@@ -68,7 +69,7 @@ class AgentContextTest {
 		assertEquals("answer", msg.content)
 		assertNull(msg.reasoning)
 		assertEquals(mockModel, msg.model)
-		assertNull(msg.usage)
+		assertNull(msg.usageSnapshot)
 	}
 	
 	@Test
@@ -78,11 +79,11 @@ class AgentContextTest {
 			content = "answer",
 			model = mockModel,
 			timestamp = now,
-			usage = Usage(10, 5, 5)
+			usageSnapshot = UsageSnapshot(usage = Usage(5, 5), model = mockModel.modelInfo)
 		)
 		assertEquals("thinking", msg.reasoning)
 		assertEquals("answer", msg.content)
-		assertEquals(Usage(10, 5, 5), msg.usage)
+		assertEquals(Usage(5, 5), msg.usageSnapshot?.usage)
 	}
 	
 	@Test

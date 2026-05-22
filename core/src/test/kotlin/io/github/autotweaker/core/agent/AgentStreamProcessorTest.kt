@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
@@ -96,7 +97,10 @@ class AgentStreamProcessorTest {
 			emit(
 				AgentChatStreamResult.Assembled(
 					message = AgentContext.Message.Assistant(
-						content = "hi", model = mockModel, timestamp = Clock.System.now(), usage = Usage(10, 5, 5)
+						content = "hi",
+						model = mockModel,
+						timestamp = Clock.System.now(),
+						usageSnapshot = UsageSnapshot(usage = Usage(5, 5), model = mockModel.modelInfo)
 					),
 					toolCalls = null,
 					finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
@@ -197,7 +201,7 @@ class AgentStreamProcessorTest {
 			content = "answer",
 			model = mockModel,
 			timestamp = now,
-			usage = Usage(10, 5, 5)
+			usageSnapshot = UsageSnapshot(usage = Usage(5, 5), model = mockModel.modelInfo)
 		)
 		
 		mockkObject(AgentChat)
@@ -221,7 +225,7 @@ class AgentStreamProcessorTest {
 		
 		assertEquals("answer", updatedCtx.currentRound?.assistantMessage?.content)
 		assertEquals("think", updatedCtx.currentRound?.assistantMessage?.reasoning)
-		assertEquals(Usage(10, 5, 5), updatedCtx.currentRound?.assistantMessage?.usage)
+		assertEquals(Usage(5, 5), updatedCtx.currentRound?.assistantMessage?.usageSnapshot?.usage)
 	}
 	
 	@Test

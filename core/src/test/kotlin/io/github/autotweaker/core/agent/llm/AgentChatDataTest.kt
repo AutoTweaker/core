@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.AgentContext
 import java.math.BigDecimal
 import java.util.*
@@ -172,7 +173,7 @@ class AgentChatDataTest {
 			content = "done",
 			model = testModel,
 			timestamp = now,
-			usage = Usage(100, 50, 50),
+			usageSnapshot = UsageSnapshot(usage = Usage(50, 50), model = testModel.modelInfo),
 		)
 		val toolCalls = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
