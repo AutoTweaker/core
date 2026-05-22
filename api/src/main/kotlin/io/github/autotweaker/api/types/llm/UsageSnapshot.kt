@@ -16,20 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.llm
 
-import java.util.*
+import kotlinx.serialization.Serializable
 
-data class SessionContext(
-	val systemPrompt: String,
-	val index: SessionContextIndex,
-	val droppedMessages: List<UUID>?,
-) {
-	companion object {
-		fun emptyContext(systemPrompt: String) = SessionContext(
-			systemPrompt = systemPrompt, index = SessionContextIndex(
-				compactedRounds = null, historyRounds = null, currentRound = null, summarizedMessage = null
-			), droppedMessages = null
-		)
-	}
-}
+@Serializable
+data class UsageSnapshot(
+	val usage: Usage,
+	val model: ModelData.ModelInfo,
+)

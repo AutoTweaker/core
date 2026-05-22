@@ -23,7 +23,7 @@ import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
@@ -58,24 +58,19 @@ internal object CompactPhase {
 		val maxMessageChars = service.get(CompactSettings.MaxMessageChars()).value
 		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt()).value
 		
-		val (processed, preprocessUsage) = preprocessMessages(
-			rounds,
-			summarizeModel,
-			fallbackModels,
-			maxMessageChars,
-			messageSummarizePrompt,
-			service
+		val (processed, preprocessSnapshots) = preprocessMessages(
+			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, service
 		)
 		
 		val systemAndMessages = processed + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
 		
 		var attempt = 0
 		var finalResult: CompactRequestResult
-		var accumulatedUsage: Usage? = preprocessUsage
+		val snapshots = preprocessSnapshots.toMutableList()
 		while (true) {
 			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages, service)
 			attempt++
-			finalResult.usage?.let { accumulatedUsage = accumulatedUsage?.plus(it) ?: it }
+			finalResult.snapshot?.let { snapshots.add(it) }
 			
 			if (finalResult.success || attempt >= service.get(CompactSettings.MaxCompactRetries()).value) break
 		}
@@ -89,8 +84,14 @@ internal object CompactPhase {
 				attempt,
 				cleaned.length
 			)
-			accumulatedUsage?.let {
-				env.emitOutput(AgentOutput.UsageConsumed(timestamp = Clock.System.now(), usage = it))
+			snapshots.forEach {
+				env.emitOutput(
+					AgentOutput.UsageConsumed(
+						timestamp = Clock.System.now(),
+						usage = it.usage,
+						modelInfo = it.model,
+					)
+				)
 			}
 			env.emitOutput(
 				AgentOutput.Error(
@@ -117,7 +118,10 @@ internal object CompactPhase {
 			val dropped = ctx.historyRounds?.filter { it.userMessage.id in compactedIds }
 			val remaining = ctx.historyRounds?.filter { it.userMessage.id !in compactedIds }?.ifEmpty { null }
 			val compactMsg = AgentContext.SummarizedMessage(
-				id = UUID.randomUUID(), timestamp = Clock.System.now(), content = cleaned, usage = accumulatedUsage
+				id = UUID.randomUUID(),
+				timestamp = Clock.System.now(),
+				content = cleaned,
+				snapshots = snapshots.takeIf { it.isNotEmpty() },
 			)
 			ctx.copy(
 				historyRounds = remaining,
@@ -134,7 +138,7 @@ internal object CompactPhase {
 	
 	private data class CompactRequestResult(
 		val rawContent: String,
-		val usage: Usage?,
+		val snapshot: UsageSnapshot?,
 		val success: Boolean,
 	)
 	
@@ -146,7 +150,7 @@ internal object CompactPhase {
 		service: SettingService,
 	): CompactRequestResult {
 		var rawContent = ""
-		var lastUsage: Usage? = null
+		var lastSnapshot: UsageSnapshot? = null
 		try {
 			val results = ResilientChat.execute(
 				model = summarizeModel,
@@ -178,7 +182,7 @@ internal object CompactPhase {
 						if (!assistantMsg.content.isNullOrEmpty()) {
 							rawContent = assistantMsg.content!!
 						}
-						result.usage?.let { lastUsage = it }
+						result.usage?.let { lastSnapshot = UsageSnapshot(it, summarizeModel.modelInfo) }
 					}
 				}
 			}
@@ -187,27 +191,41 @@ internal object CompactPhase {
 		} catch (_: Exception) {
 			logger.warn("Failed to send compact request  agentId={}", env.agentId)
 			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
-			return CompactRequestResult(rawContent, lastUsage, success = false)
+			return CompactRequestResult(rawContent, lastSnapshot, success = false)
 		}
 		
 		val extracted = extractSummary(rawContent)
 		val valid = extracted.length >= service.get(CompactSettings.MinSummaryLength()).value
 		
 		if (valid) {
-			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastUsage)))
+			env.emitOutput(
+				AgentOutput.Compact(
+					CompactOutput(
+						CompactOutput.Status.FINISHED,
+						rawContent,
+						lastSnapshot?.let { CompactOutput.CompactUsage(it.usage.totalTokens, it.usage.promptTokens) })
+				)
+			)
 		} else {
 			logger.debug(
 				"Compact summary found too short  agentId={}  length={}", env.agentId, extracted.length
 			)
-			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastUsage)))
+			env.emitOutput(
+				AgentOutput.Compact(
+					CompactOutput(
+						CompactOutput.Status.FAILED,
+						rawContent,
+						lastSnapshot?.let { CompactOutput.CompactUsage(it.usage.totalTokens, it.usage.promptTokens) })
+				)
+			)
 		}
 		
-		return CompactRequestResult(extracted, lastUsage, success = valid)
+		return CompactRequestResult(extracted, lastSnapshot, success = valid)
 	}
 	
 	private data class PreprocessResult(
 		val messages: List<ChatMessage>,
-		val usage: Usage?,
+		val snapshots: List<UsageSnapshot>,
 	)
 	
 	private suspend fun preprocessMessages(
@@ -219,13 +237,13 @@ internal object CompactPhase {
 		service: SettingService,
 	): PreprocessResult {
 		val messages = mutableListOf<ChatMessage>()
-		var usage: Usage? = null
+		val snapshots = mutableListOf<UsageSnapshot>()
 		
 		for (round in rounds) {
-			val (userMsg, userUsage) = convertUserMessage(
+			val (userMsg, userSnapshot) = convertUserMessage(
 				round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service
 			)
-			userUsage?.let { usage = usage?.plus(it) ?: it }
+			userSnapshot?.let { snapshots.add(it) }
 			messages.add(userMsg)
 			
 			round.turns?.forEach { turn ->
@@ -236,7 +254,7 @@ internal object CompactPhase {
 						arguments = tool.call.arguments,
 					)
 				}
-				val (assistantMsg, assistantUsage) = convertAssistantMessage(
+				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
 					turn.assistantMessage,
 					toolCalls,
 					maxMessageChars,
@@ -245,26 +263,26 @@ internal object CompactPhase {
 					fallbackModels,
 					service,
 				)
-				assistantUsage?.let { usage = usage?.plus(it) ?: it }
+				assistantSnapshot?.let { snapshots.add(it) }
 				messages.add(assistantMsg)
 				turn.tools.forEach {
-					val (toolMsg, toolUsage) = convertToolMessage(
+					val (toolMsg, toolSnapshot) = convertToolMessage(
 						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
 					)
-					toolUsage?.let { usage = usage?.plus(it) ?: it }
+					toolSnapshot?.let { snapshots.add(it) }
 					messages.add(toolMsg)
 				}
 			}
 			round.finalAssistantMessage?.let {
-				val (assistantMsg, assistantUsage) = convertAssistantMessage(
+				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
 					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
 				)
-				assistantUsage?.let { usage = usage?.plus(it) ?: it }
+				assistantSnapshot?.let { snapshots.add(it) }
 				messages.add(assistantMsg)
 			}
 		}
 		
-		return PreprocessResult(messages, usage)
+		return PreprocessResult(messages, snapshots)
 	}
 	
 	private suspend fun convertUserMessage(
@@ -274,17 +292,17 @@ internal object CompactPhase {
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
 		service: SettingService,
-	): Pair<ChatMessage.UserMessage, Usage?> {
+	): Pair<ChatMessage.UserMessage, UsageSnapshot?> {
 		val content = buildString {
 			if (!msg.images.isNullOrEmpty()) {
 				repeat(msg.images.size) { appendLine("<image_placeholder/>") }
 			}
 			append(msg.content)
 		}
-		val (finalContent, usage) = if (content.length > maxMessageChars) {
+		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
 			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
 		} else content to null
-		return ChatMessage.UserMessage(finalContent, msg.timestamp) to usage
+		return ChatMessage.UserMessage(finalContent, msg.timestamp) to snapshot
 	}
 	
 	private suspend fun convertAssistantMessage(
@@ -295,9 +313,9 @@ internal object CompactPhase {
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
 		service: SettingService,
-	): Pair<ChatMessage.AssistantMessage, Usage?> {
+	): Pair<ChatMessage.AssistantMessage, UsageSnapshot?> {
 		val content = msg.content ?: ""
-		val (finalContent, usage) = if (content.length > maxMessageChars) {
+		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
 			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
 		} else content to null
 		return ChatMessage.AssistantMessage(
@@ -306,7 +324,7 @@ internal object CompactPhase {
 			reasoningContent = msg.reasoning ?: "",
 			toolCalls = toolCalls,
 			model = msg.model.modelInfo.modelId,
-		) to usage
+		) to snapshot
 	}
 	
 	private suspend fun convertToolMessage(
@@ -316,16 +334,16 @@ internal object CompactPhase {
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
 		service: SettingService,
-	): Pair<ChatMessage.ToolMessage, Usage?> {
+	): Pair<ChatMessage.ToolMessage, UsageSnapshot?> {
 		val content = msg.result.content
-		val (finalContent, usage) = if (content.length > maxMessageChars) {
+		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
 			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
 		} else content to null
 		return ChatMessage.ToolMessage(
 			content = finalContent,
 			createdAt = msg.result.timestamp,
 			toolCallId = msg.callId,
-		) to usage
+		) to snapshot
 	}
 	
 	private suspend fun summarizeMessage(
@@ -334,7 +352,7 @@ internal object CompactPhase {
 		model: Model,
 		fallbackModels: List<Model>?,
 		service: SettingService,
-	): Pair<String, Usage?> {
+	): Pair<String, UsageSnapshot?> {
 		val results = ResilientChat.execute(
 			model = model,
 			fallbackModels = fallbackModels,
@@ -344,10 +362,12 @@ internal object CompactPhase {
 			thinking = false,
 			service = service,
 		).toList()
-		var usage: Usage? = null
-		results.forEach { (it.result as? ChatResult.Assembled)?.usage?.let { u -> usage = usage?.plus(u) ?: u } }
 		val success = results.filter { it.retrying == null }.map { it.result }
-		return (success.firstNotNullOfOrNull { it.message?.content } ?: content) to usage
+		val finalResult = success.lastOrNull()
+		val snapshot = (finalResult as? ChatResult.Assembled)?.usage?.let {
+			UsageSnapshot(it, model.modelInfo)
+		}
+		return (finalResult?.message?.content ?: content) to snapshot
 	}
 	
 	private fun extractSummary(text: String): String {

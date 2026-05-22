@@ -44,7 +44,11 @@ internal object ToolProvider {
 			SummarizeService::class,
 			SummarizeServiceImpl(
 				env.summarizeModel, env.currentFallbackModels, env.service,
-				onUsage = { usage -> env.emitOutput(AgentOutput.UsageConsumed(Clock.System.now(), usage)) },
+				onUsage = { snapshot ->
+					env.emitOutput(
+						AgentOutput.UsageConsumed(Clock.System.now(), snapshot.usage, snapshot.model)
+					)
+				},
 			),
 		)
 		container.register(BashService::class, BashServiceImpl(workspace.path, workspace.inContainer, config.workDir))

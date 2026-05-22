@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.agent.ToolOutput
+import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
@@ -51,5 +52,9 @@ sealed class AgentOutput {
 		val error: AgentError
 	) : AgentOutput()
 	
-	data class UsageConsumed(val timestamp: Instant, val usage: Usage) : AgentOutput()
+	data class UsageConsumed(
+		val timestamp: Instant,
+		val usage: Usage,
+		val modelInfo: ModelData.ModelInfo,
+	) : AgentOutput()
 }

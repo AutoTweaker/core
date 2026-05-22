@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.session.agent
 
-import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
@@ -26,7 +25,6 @@ import io.github.autotweaker.core.agent.AgentContext
 import java.util.*
 
 object AgentContextConverter {
-	//从AgentContext提取messages和索引
 	fun sync(ctx: AgentContext, oldCtx: SessionContext): Result {
 		val newMessages = extractMessages(ctx)
 		val newMessageIds = newMessages.map { it.id }.toSet()
@@ -35,12 +33,9 @@ object AgentContextConverter {
 		val dropped = ((oldNonCompactedIds - newMessageIds) + (oldCtx.droppedMessages ?: emptyList()))
 			.toList().takeIf { it.isNotEmpty() }
 		
-		val newUsage = buildUsageMap(ctx) + oldCtx.usage.filterKeys { it in dropped.orEmpty() }
-		
 		return Result(
 			messages = newMessages,
 			index = buildIndex(ctx, oldCtx),
-			usage = newUsage,
 			droppedMessageIds = dropped
 		)
 	}
@@ -48,14 +43,12 @@ object AgentContextConverter {
 	data class Result(
 		val messages: List<SessionMessage>,
 		val index: SessionContextIndex,
-		val usage: Map<UUID, Usage>,
 		val droppedMessageIds: List<UUID>?,
 	)
 	
 	// region Message extraction
 	
 	private fun extractMessages(ctx: AgentContext): List<SessionMessage> {
-		//遍历AgentContext并提取出所有消息
 		val messages = mutableListOf<SessionMessage>()
 		
 		ctx.compactedRounds?.forEach { compacted ->
@@ -63,7 +56,8 @@ object AgentContextConverter {
 				SessionMessage.Compact(
 					id = compacted.summarizedMessage.id,
 					timestamp = compacted.summarizedMessage.timestamp,
-					content = compacted.summarizedMessage.content
+					content = compacted.summarizedMessage.content,
+					snapshots = compacted.summarizedMessage.snapshots
 				)
 			)
 			compacted.rounds.forEach { round ->
@@ -170,39 +164,6 @@ object AgentContextConverter {
 	
 	// endregion
 	
-	// region Usage
-	
-	private fun buildUsageMap(ctx: AgentContext): Map<UUID, Usage> {
-		//从AgentContext中的Message.Assistant提取键值对形式的Usage
-		val usage = mutableMapOf<UUID, Usage>()
-		
-		fun collectFromRound(round: AgentContext.CompletedRound) {
-			round.finalAssistantMessage?.let { it.usage?.let { u -> usage[it.id] = u } }
-			round.turns?.forEach { turn ->
-				turn.assistantMessage.usage?.let { usage[turn.assistantMessage.id] = it }
-			}
-		}
-		
-		fun collectFromCurrent(round: AgentContext.CurrentRound) {
-			round.assistantMessage?.let { it.usage?.let { u -> usage[it.id] = u } }
-			round.turns?.forEach { turn ->
-				turn.assistantMessage.usage?.let { usage[turn.assistantMessage.id] = it }
-			}
-		}
-		
-		ctx.compactedRounds?.forEach { compacted ->
-			compacted.rounds.forEach { collectFromRound(it) }
-			compacted.summarizedMessage.usage?.let { usage[compacted.summarizedMessage.id] = it }
-		}
-		ctx.historyRounds?.forEach { collectFromRound(it) }
-		ctx.currentRound?.let { collectFromCurrent(it) }
-		ctx.summarizedMessage?.usage?.let { usage[ctx.summarizedMessage.id] = it }
-		
-		return usage
-	}
-	
-	// endregion
-	
 	// region Message conversion
 	
 	private fun convertUser(msg: AgentContext.Message.User): SessionMessage.User {
@@ -220,7 +181,8 @@ object AgentContextConverter {
 			timestamp = msg.timestamp,
 			reasoning = msg.reasoning,
 			content = msg.content,
-			model = msg.model.id
+			model = msg.model.id,
+			usageSnapshot = msg.usageSnapshot
 		)
 	}
 	
@@ -251,7 +213,6 @@ object AgentContextConverter {
 	// region Dropped tracking
 	
 	private fun collectNonCompactedIds(ctx: SessionContext): Set<UUID> {
-		//提取除了CompactedRound之外的全部消息ID
 		val ids = mutableSetOf<UUID>()
 		val index = ctx.index
 		

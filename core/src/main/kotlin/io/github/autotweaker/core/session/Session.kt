@@ -21,6 +21,7 @@ package io.github.autotweaker.core.session
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
 import io.github.autotweaker.core.agent.Agent
@@ -80,7 +81,6 @@ class Session(
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
-	//初始化
 	init {
 		val ids = collectMessageIds(_context.value, maxCompactedRounds).toList()
 		if (ids.isNotEmpty()) {
@@ -100,7 +100,6 @@ class Session(
 		}
 	}
 	
-	//toAgentContext封装
 	private fun toAgentContext(): AgentContext {
 		return SessionContextConverter.toAgentContext(
 			context = _context.value,
@@ -110,7 +109,6 @@ class Session(
 		)
 	}
 	
-	//保存上下文
 	private suspend fun save() {
 		store.saveContext(_data.value.id, _context.value)
 		if (messages.isNotEmpty()) {
@@ -118,13 +116,11 @@ class Session(
 		}
 	}
 	
-	//更新上下文索引
 	private suspend fun updateContext(context: SessionContext) {
 		_context.update { context }
 		save()
 	}
 	
-	//更新消息列表
 	private suspend fun saveMessages(newMessages: List<SessionMessage>) {
 		newMessages.forEach { messages[it.id] = it }
 		save()
@@ -204,7 +200,6 @@ class Session(
 		scope.cancel()
 	}
 	
-	//更新SessionContext
 	suspend fun syncContext(ctx: AgentContext) {
 		val oldCtx = _context.value
 		val result = AgentContextConverter.sync(ctx, oldCtx)
@@ -212,15 +207,11 @@ class Session(
 		saveMessages(result.messages)
 		updateContext(
 			SessionContext(
-				systemPrompt = oldCtx.systemPrompt,
-				usage = result.usage,
-				index = result.index,
-				droppedMessages = result.droppedMessageIds
+				systemPrompt = oldCtx.systemPrompt, index = result.index, droppedMessages = result.droppedMessageIds
 			)
 		)
 	}
 	
-	//收集消息id
 	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int): Set<UUID> {
 		val ids = mutableSetOf<UUID>()
 		val index = ctx.index
@@ -252,9 +243,9 @@ class Session(
 			val record = SessionMessage.UsageRecord(
 				id = UUID.randomUUID(),
 				timestamp = output.timestamp,
+				snapshot = UsageSnapshot(output.usage, output.modelInfo),
 			)
 			messages[record.id] = record
-			_context.update { it.copy(usage = it.usage + (record.id to output.usage)) }
 			save()
 			null
 		}

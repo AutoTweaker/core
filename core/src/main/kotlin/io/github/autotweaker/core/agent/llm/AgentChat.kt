@@ -22,6 +22,7 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.AgentContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -53,9 +54,7 @@ internal object AgentChat {
 	}
 	
 	internal fun execute(
-		request: AgentChatRequest,
-		agentId: UUID,
-		service: SettingService
+		request: AgentChatRequest, agentId: UUID, service: SettingService
 	): Flow<AgentChatStreamResult> = flow {
 		val messages = request.toChatMessages()
 		
@@ -127,12 +126,15 @@ internal object AgentChat {
 						
 						val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
 						val resultModel = lastRetrying ?: request.model
+						val snapshot = result.usage?.let {
+							UsageSnapshot(it, resultModel.modelInfo)
+						}
 						val assistantMessage = AgentContext.Message.Assistant(
 							reasoning = assistantMsg.reasoningContent,
 							content = assistantMsg.content,
 							model = resultModel,
 							timestamp = assistantMsg.createdAt,
-							usage = result.usage,
+							usageSnapshot = snapshot,
 						)
 						emit(
 							AgentChatStreamResult.Assembled(

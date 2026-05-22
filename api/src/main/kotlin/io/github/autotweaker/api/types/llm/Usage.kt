@@ -22,21 +22,27 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Usage(
-	val totalTokens: Int, val promptTokens: Int, val completionTokens: Int,
-	
-	val reasoningTokens: Int? = null, val cacheHitTokens: Int? = null, val cacheMissTokens: Int? = null,
-	
-	val imageTokens: Int? = null
+	val promptTokens: Int,
+	val completionTokens: Int,
+	val reasoningTokens: Int? = null,
+	val cacheHitTokens: Int? = null,
+	val imageTokens: Int? = null,
 ) {
+	val totalTokens: Int get() = promptTokens + completionTokens
+	
+	val cacheMissTokens: Int get() = promptTokens - (cacheHitTokens ?: 0)
+	
 	operator fun plus(other: Usage): Usage = Usage(
-		totalTokens = totalTokens + other.totalTokens,
 		promptTokens = promptTokens + other.promptTokens,
 		completionTokens = completionTokens + other.completionTokens,
 		reasoningTokens = merge(reasoningTokens, other.reasoningTokens),
 		cacheHitTokens = merge(cacheHitTokens, other.cacheHitTokens),
-		cacheMissTokens = merge(cacheMissTokens, other.cacheMissTokens),
 		imageTokens = merge(imageTokens, other.imageTokens),
 	)
 	
-	private fun merge(a: Int?, b: Int?): Int? = if (a == null && b == null) null else (a ?: 0) + (b ?: 0)
+	companion object {
+		val ZERO = Usage(promptTokens = 0, completionTokens = 0)
+		
+		private fun merge(a: Int?, b: Int?): Int? = if (a == null && b == null) null else (a ?: 0) + (b ?: 0)
+	}
 }

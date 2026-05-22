@@ -20,7 +20,7 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolResultStatus
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.llm.Model
 import java.util.*
 import kotlin.time.Instant
@@ -36,7 +36,7 @@ data class AgentContext(
 		val id: UUID,
 		val timestamp: Instant,
 		val content: String,
-		val usage: Usage? = null,
+		val snapshots: List<UsageSnapshot>? = null,
 	)
 	
 	sealed class Message {
@@ -53,7 +53,7 @@ data class AgentContext(
 			val content: String? = null,
 			val model: Model,
 			val timestamp: Instant,
-			val usage: Usage? = null,
+			val usageSnapshot: UsageSnapshot? = null,
 		) : Message()
 		
 		data class Tool(
@@ -81,8 +81,7 @@ data class AgentContext(
 	}
 	
 	data class CompactedRound(
-		val rounds: List<CompletedRound>,
-		val summarizedMessage: SummarizedMessage
+		val rounds: List<CompletedRound>, val summarizedMessage: SummarizedMessage
 	)
 	
 	data class CompletedRound(
