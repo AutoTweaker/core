@@ -39,6 +39,7 @@ import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.data.settings.Settings
 import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
+import io.github.autotweaker.core.session.UsageStore
 import io.github.autotweaker.core.session.WorkspaceAPI
 import java.util.*
 
@@ -81,6 +82,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
 		override suspend fun loadContext(sessionId: UUID) = SessionManager.loadContext(sessionId)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
+		override fun getUsageSnapshots() = UsageStore.getSnapshots()
 		
 		override fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)

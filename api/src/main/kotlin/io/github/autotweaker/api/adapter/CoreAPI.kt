@@ -29,6 +29,7 @@ import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
+import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
 import java.util.*
 
@@ -69,6 +70,8 @@ interface CoreAPI {
 		suspend fun loadData(ids: List<UUID>): List<SessionData>?
 		suspend fun loadContext(sessionId: UUID): SessionContext?
 		suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>?
+		
+		fun getUsageSnapshots(): List<UsageSnapshot>
 		
 		fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
 		suspend fun renameWorkspace(id: UUID, newName: String)

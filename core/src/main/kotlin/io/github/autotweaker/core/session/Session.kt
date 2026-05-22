@@ -86,6 +86,7 @@ class Session(
 		if (ids.isNotEmpty()) {
 			val messages = runBlocking { store.loadMessages(ids) }
 			messages?.forEach { this.messages[it.id] = it }
+			messages?.let { UsageStore.collect(it) }
 		}
 		createAgent()
 		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.name)
@@ -123,6 +124,7 @@ class Session(
 	
 	private suspend fun saveMessages(newMessages: List<SessionMessage>) {
 		newMessages.forEach { messages[it.id] = it }
+		UsageStore.collect(newMessages)
 		save()
 	}
 	
