@@ -16,16 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.config
+package io.github.autotweaker.api.i18n
 
-import io.github.autotweaker.api.types.config.SettingEntry
-import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.api.types.i18n.I18nEntry
+import java.util.*
 
-interface SettingService {
-	fun <V : SettingValue> get(def: SettingDef<V>): V
-	fun getDefault(id: String): SettingDef<*>?
-	fun <V : SettingValue> set(def: SettingDef<V>, value: V)
-	fun set(id: String, value: SettingValue)
-	fun setDescription(id: String, description: String)
-	fun getAll(): List<SettingEntry>
+interface I18nService {
+	fun get(def: I18nDef): String
+	fun getDefault(id: String): I18nDef?
+	fun set(id: String, text: String, languageCode: Locale)
+	fun getAll(): List<I18nEntry>
 }

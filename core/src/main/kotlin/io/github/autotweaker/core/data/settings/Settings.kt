@@ -128,4 +128,6 @@ object Settings : SettingService {
 			)
 		}
 	}
+	
+	override fun getDefault(id: String): SettingDef<*>? = ConfigRegistry.get(id)
 }
