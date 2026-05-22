@@ -48,3 +48,37 @@ jobs:
             .temp/deb/*.deb
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Update index repository
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "${{ secrets.WEBSITE_DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
+          # Get project clone URL and construct deb URL
+          CLONE_URL=$(git remote get-url origin)
+          DEB_VERSION="${VERSION//-/.}"
+          DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/autotweaker_${DEB_VERSION}_amd64.deb"
+
+          # Clone index repo
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key"
+          git clone git@github.com:AutoTweaker/index.git /tmp/index-repo
+          cd /tmp/index-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Overwrite index.json
+          jq -n --arg url "$CLONE_URL" --arg v "$VERSION" --arg deb "$DEB_URL" \
+            '{core: {clone_url: $url, version: $v, deb_url: $deb}}' \
+            > index.json
+
+          # Commit and push
+          git add index.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update core to v${VERSION}"
+            git push origin main
+          fi
