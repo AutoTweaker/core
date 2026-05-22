@@ -32,7 +32,6 @@ object SessionDataTable : Table("session_data") {
 object SessionContextTable : Table("session_context") {
 	val sessionId = varchar("session_id", 36)
 	val systemPrompt = text("system_prompt")
-	val usageJson = text("usage_json")
 	val indexJson = text("index_json")
 	val droppedMessagesJson = text("dropped_messages_json")
 	

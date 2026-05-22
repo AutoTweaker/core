@@ -37,9 +37,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 	chunkSerializer = serializer<DeepSeekStreamChunk>(),
 ) {
 	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
-		name = "deepseek",
-		baseUrl = Url("https://api.deepseek.com/v1"),
-		models = listOf(
+		name = "deepseek", baseUrl = Url("https://api.deepseek.com/v1"), models = listOf(
 			ModelData.ModelInfo(
 				modelId = "deepseek-v4-flash",
 				contextWindow = 100_0000,
@@ -47,13 +45,9 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				price = ModelData.TokenPrice(
 					inputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							price = Price(
-								amount = BigDecimal("1"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
-							),
-							cachedPrice = Price(
+							fromTokens = 0, price = Price(
+								amount = BigDecimal("1"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+							), cachedPrice = Price(
 								amount = BigDecimal("0.02"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
@@ -62,11 +56,8 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 					),
 					outputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							price = Price(
-								amount = BigDecimal("2"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
+							fromTokens = 0, price = Price(
+								amount = BigDecimal("2"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 							)
 						)
 					),
@@ -76,21 +67,16 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsReasoning = true,
 				supportsImage = false,
 				supportsJsonOutput = true
-			),
-			ModelData.ModelInfo(
+			), ModelData.ModelInfo(
 				modelId = "deepseek-v4-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 384_000,
 				price = ModelData.TokenPrice(
 					inputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							price = Price(
-								amount = BigDecimal("3"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
-							),
-							cachedPrice = Price(
+							fromTokens = 0, price = Price(
+								amount = BigDecimal("3"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+							), cachedPrice = Price(
 								amount = BigDecimal("0.025"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
@@ -99,11 +85,8 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 					),
 					outputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							price = Price(
-								amount = BigDecimal("6"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
+							fromTokens = 0, price = Price(
+								amount = BigDecimal("6"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 							)
 						)
 					),
@@ -114,8 +97,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsImage = false,
 				supportsJsonOutput = true
 			)
-		),
-		errorHandlingRules = listOf(
+		), errorHandlingRules = listOf(
 			ProviderData.ErrorHandlingRule(
 				statusCode = 400,
 				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK,
@@ -163,18 +145,14 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 					reasoningContent = msg.reasoningContent,
 					toolCalls = msg.toolCalls?.map { tc ->
 						DeepSeekMessage.AssistantMessage.ToolCall(
-							id = tc.id,
-							function = DeepSeekMessage.AssistantMessage.ToolCall.Function(
-								name = tc.name,
-								arguments = tc.arguments
+							id = tc.id, function = DeepSeekMessage.AssistantMessage.ToolCall.Function(
+								name = tc.name, arguments = tc.arguments
 							)
 						)
-					}
-				)
+					})
 				
 				is ChatMessage.ToolMessage -> DeepSeekMessage.ToolMessage(
-					content = msg.content,
-					toolCallId = msg.toolCallId
+					content = msg.content, toolCallId = msg.toolCallId
 				)
 				
 				is ChatMessage.ErrorMessage -> null
@@ -192,9 +170,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			tools = request.tools?.map { tool ->
 				OpenAiRequest.Tool(
 					function = OpenAiRequest.Tool.Function(
-						name = tool.name,
-						description = tool.description,
-						parameters = tool.parameters
+						name = tool.name, description = tool.description, parameters = tool.parameters
 					)
 				)
 			},
@@ -227,25 +203,19 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				reasoningContent = msg?.reasoningContent,
 				toolCalls = msg?.toolCalls?.map { tc ->
 					ChatMessage.AssistantMessage.ToolCall(
-						id = tc.id,
-						name = tc.function.name,
-						arguments = tc.function.arguments
+						id = tc.id, name = tc.function.name, arguments = tc.function.arguments
 					)
 				},
 				createdAt = response.created,
 				model = response.model
-			),
-			usage = response.usage.let { u ->
+			), usage = response.usage.let { u ->
 				Usage(
-					totalTokens = u.totalTokens,
 					promptTokens = u.promptTokens,
 					completionTokens = u.completionTokens,
 					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
 					cacheHitTokens = u.promptCacheHitTokens,
-					cacheMissTokens = u.promptCacheMissTokens
 				)
-			},
-			finishReason = choice?.finishReason?.toFinishReason()
+			}, finishReason = choice?.finishReason?.toFinishReason()
 		)
 	}
 	
@@ -259,24 +229,19 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				reasoningContent = delta?.reasoningContent,
 				createdAt = chunk.created,
 				model = chunk.model
-			),
-			usage = chunk.usage?.let { u ->
+			), usage = chunk.usage?.let { u ->
 				Usage(
-					totalTokens = u.totalTokens,
 					promptTokens = u.promptTokens,
 					completionTokens = u.completionTokens,
 					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
 					cacheHitTokens = u.promptCacheHitTokens,
-					cacheMissTokens = u.promptCacheMissTokens
 				)
-			},
-			finishReason = choice?.finishReason?.toFinishReason()
+			}, finishReason = choice?.finishReason?.toFinishReason()
 		)
 	}
 	
 	private fun DeepSeekFinishReason.toFinishReason() = ChatResult.FinishReason(
-		reason = value,
-		type = when (this) {
+		reason = value, type = when (this) {
 			DeepSeekFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
 			DeepSeekFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
 			DeepSeekFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
@@ -288,10 +253,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 	override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ChatResult.ChunkToolCall>? {
 		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
 			ChatResult.ChunkToolCall(
-				index = tc.index,
-				id = tc.id,
-				name = tc.function?.name,
-				arguments = tc.function?.arguments
+				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
 			)
 		}
 	}

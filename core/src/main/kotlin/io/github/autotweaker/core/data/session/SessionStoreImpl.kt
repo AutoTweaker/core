@@ -115,7 +115,6 @@ class SessionStoreImpl : SessionStore {
 			SessionContextTable.upsert {
 				it[SessionContextTable.sessionId] = sessionId.toString()
 				it[systemPrompt] = context.systemPrompt
-				fillUsage(it, context.usage)
 				fillIndex(it, context.index)
 				fillDroppedMessages(it, context.droppedMessages)
 			}
@@ -129,7 +128,6 @@ class SessionStoreImpl : SessionStore {
 				.singleOrNull()?.let { row ->
 					SessionContext(
 						systemPrompt = row[SessionContextTable.systemPrompt],
-						usage = SessionContextTable.readUsage(row),
 						index = SessionContextTable.readIndex(row),
 						droppedMessages = SessionContextTable.readDroppedMessages(row),
 					)

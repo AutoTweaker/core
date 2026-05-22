@@ -42,27 +42,18 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
-					amount = BigDecimal("7"),
-					currency = Currency.getInstance(Locale.CHINA),
-					unit = 100_0000
+					amount = BigDecimal("7"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 				),
 				cachedPrice = Price(
-					amount = BigDecimal("1.4"),
-					currency = Currency.getInstance(Locale.CHINA),
-					unit = 100_0000
+					amount = BigDecimal("1.4"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 				),
-			),
-			ModelData.TokenPrice.PriceTier(
+			), ModelData.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
-					amount = BigDecimal("14"),
-					currency = Currency.getInstance(Locale.CHINA),
-					unit = 100_0000
+					amount = BigDecimal("14"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 				),
 				cachedPrice = Price(
-					amount = BigDecimal("2.8"),
-					currency = Currency.getInstance(Locale.CHINA),
-					unit = 100_0000
+					amount = BigDecimal("2.8"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 				),
 			)
 		),
@@ -71,17 +62,12 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				fromTokens = 0,
 				toTokens = 256_000,
 				price = Price(
-					amount = BigDecimal("21"),
-					currency = Currency.getInstance(Locale.CHINA),
-					unit = 100_0000
+					amount = BigDecimal("21"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 				),
-			),
-			ModelData.TokenPrice.PriceTier(
+			), ModelData.TokenPrice.PriceTier(
 				fromTokens = 256_000,
 				price = Price(
-					amount = BigDecimal("42"),
-					currency = Currency.getInstance(Locale.CHINA),
-					unit = 100_0000
+					amount = BigDecimal("42"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 				),
 			)
 		),
@@ -101,8 +87,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsReasoning = true,
 				supportsImage = false,
 				supportsJsonOutput = true
-			),
-			ModelData.ModelInfo(
+			), ModelData.ModelInfo(
 				modelId = "mimo-v2.5-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -112,8 +97,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsReasoning = true,
 				supportsImage = false,
 				supportsJsonOutput = true
-			),
-			ModelData.ModelInfo(
+			), ModelData.ModelInfo(
 				modelId = "mimo-v2-omni",
 				contextWindow = 256_000,
 				maxOutputTokens = 128_000,
@@ -149,8 +133,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsReasoning = true,
 				supportsImage = true,
 				supportsJsonOutput = true
-			),
-			ModelData.ModelInfo(
+			), ModelData.ModelInfo(
 				modelId = "mimo-v2.5",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
@@ -169,8 +152,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
-						),
-						ModelData.TokenPrice.PriceTier(
+						), ModelData.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal("5.6"),
@@ -193,8 +175,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
-						),
-						ModelData.TokenPrice.PriceTier(
+						), ModelData.TokenPrice.PriceTier(
 							fromTokens = 256_000,
 							price = Price(
 								amount = BigDecimal("28"),
@@ -209,8 +190,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsReasoning = true,
 				supportsImage = true,
 				supportsJsonOutput = true
-			),
-			ModelData.ModelInfo(
+			), ModelData.ModelInfo(
 				modelId = "mimo-v2-flash",
 				contextWindow = 256_000,
 				maxOutputTokens = 64_000,
@@ -250,36 +230,21 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		),
 		errorHandlingRules = listOf(
 			ProviderData.ErrorHandlingRule(
-				statusCode = 400,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 401,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 402,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 403,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 421,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 429,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 500,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 503,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
+				statusCode = 400, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 401, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 402, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 403, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 421, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 429, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 500, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 503, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
 			)
 		),
 	)
@@ -297,26 +262,21 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 							MiMoMessage.Content.ImagePart(
 								imageUrl = MiMoMessage.Content.ImagePart.Url(base64.value)
 							)
-						}
-				)
+						})
 				
 				is ChatMessage.AssistantMessage -> MiMoMessage.AssistantMessage(
 					content = if (msg.content != null) listOf(MiMoMessage.Content.TextPart(text = msg.content!!)) else null,
 					reasoningContent = msg.reasoningContent,
 					toolCalls = msg.toolCalls?.map { tc ->
 						MiMoToolCall(
-							id = tc.id,
-							function = MiMoToolCall.Function(
-								name = tc.name,
-								arguments = tc.arguments
+							id = tc.id, function = MiMoToolCall.Function(
+								name = tc.name, arguments = tc.arguments
 							)
 						)
-					}
-				)
+					})
 				
 				is ChatMessage.ToolMessage -> MiMoMessage.ToolMessage(
-					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)),
-					toolCallId = msg.toolCallId
+					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)), toolCallId = msg.toolCallId
 				)
 				
 				is ChatMessage.ErrorMessage -> null
@@ -330,9 +290,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			tools = request.tools?.map { tool ->
 				OpenAiRequest.Tool(
 					function = OpenAiRequest.Tool.Function(
-						name = tool.name,
-						description = tool.description,
-						parameters = tool.parameters
+						name = tool.name, description = tool.description, parameters = tool.parameters
 					)
 				)
 			},
@@ -361,26 +319,20 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				reasoningContent = msg?.reasoningContent,
 				toolCalls = msg?.toolCalls?.map { tc ->
 					ChatMessage.AssistantMessage.ToolCall(
-						id = tc.id,
-						name = tc.function.name,
-						arguments = tc.function.arguments
+						id = tc.id, name = tc.function.name, arguments = tc.function.arguments
 					)
 				},
 				createdAt = response.created,
 				model = response.model
-			),
-			usage = response.usage.let { u ->
+			), usage = response.usage.let { u ->
 				Usage(
-					totalTokens = u.totalTokens,
 					promptTokens = u.promptTokens,
 					completionTokens = u.completionTokens,
 					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
 					cacheHitTokens = u.promptTokensDetails?.cachedTokens,
-					cacheMissTokens = if (u.promptTokensDetails?.cachedTokens != null) u.promptTokens - u.promptTokensDetails.cachedTokens else null,
 					imageTokens = u.promptTokensDetails?.imageTokens
 				)
-			},
-			finishReason = choice?.finishReason?.toFinishReason()
+			}, finishReason = choice?.finishReason?.toFinishReason()
 		)
 	}
 	
@@ -394,25 +346,20 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				reasoningContent = delta?.reasoningContent,
 				createdAt = chunk.created,
 				model = chunk.model
-			),
-			usage = chunk.usage?.let { u ->
+			), usage = chunk.usage?.let { u ->
 				Usage(
-					totalTokens = u.totalTokens,
 					promptTokens = u.promptTokens,
 					completionTokens = u.completionTokens,
 					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
 					cacheHitTokens = u.promptTokensDetails?.cachedTokens,
-					cacheMissTokens = if (u.promptTokensDetails?.cachedTokens != null) u.promptTokens - u.promptTokensDetails.cachedTokens else null,
 					imageTokens = u.promptTokensDetails?.imageTokens
 				)
-			},
-			finishReason = choice?.finishReason?.toFinishReason()
+			}, finishReason = choice?.finishReason?.toFinishReason()
 		)
 	}
 	
 	private fun MiMoFinishReason.toFinishReason() = ChatResult.FinishReason(
-		reason = value,
-		type = when (this) {
+		reason = value, type = when (this) {
 			MiMoFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
 			MiMoFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
 			MiMoFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
@@ -424,10 +371,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? {
 		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
 			ChatResult.ChunkToolCall(
-				index = tc.index,
-				id = tc.id,
-				name = tc.function?.name,
-				arguments = tc.function?.arguments
+				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
 			)
 		}
 	}

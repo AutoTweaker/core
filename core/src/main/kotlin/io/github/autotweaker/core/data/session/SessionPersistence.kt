@@ -18,12 +18,10 @@
 
 package io.github.autotweaker.core.data.session
 
-import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -42,16 +40,11 @@ val sessionJson = Json {
 			subclass(SessionMessage.Tool.Call::class)
 			subclass(SessionMessage.Tool.Result::class)
 			subclass(SessionMessage.Compact::class)
+			subclass(SessionMessage.UsageRecord::class)
 		}
 	}
 }
 
-@Serializable
-data class UsageEntry(
-	@Serializable(with = UuidSerializer::class)
-	val id: UUID,
-	val usage: Usage
-)
 
 // region SessionData column helpers
 
@@ -75,17 +68,6 @@ fun SessionContextTable.readIndex(row: ResultRow): SessionContextIndex {
 	return sessionJson.decodeFromString(SessionContextIndex.serializer(), row[indexJson])
 }
 
-fun SessionContextTable.fillUsage(it: UpdateBuilder<*>, usage: Map<UUID, Usage>) {
-	val list = usage.map { (k, v) -> UsageEntry(k, v) }
-	it[usageJson] = sessionJson.encodeToString(ListSerializer(UsageEntry.serializer()), list)
-}
-
-fun SessionContextTable.readUsage(row: ResultRow): Map<UUID, Usage> {
-	val jsonStr = row[usageJson]
-	if (jsonStr.isBlank()) return emptyMap()
-	val list = sessionJson.decodeFromString(ListSerializer(UsageEntry.serializer()), jsonStr)
-	return list.associate { it.id to it.usage }
-}
 
 fun SessionContextTable.fillDroppedMessages(it: UpdateBuilder<*>, dropped: List<UUID>?) {
 	it[droppedMessagesJson] = dropped?.let {

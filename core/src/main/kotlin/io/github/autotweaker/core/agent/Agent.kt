@@ -342,7 +342,7 @@ class Agent(
 		val rounds = _context.value.historyRounds
 		if (rounds.isNullOrEmpty()) return
 		val config = currentModel.config ?: return
-		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usage ?: return
+		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usageSnapshot?.usage ?: return
 		val contextWindow = currentModel.modelInfo.contextWindow
 		val shouldCompact =
 			(config.compactContextUsage != null && usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage!!) || (config.compactTotalTokens != null && usage.totalTokens >= config.compactTotalTokens!!)

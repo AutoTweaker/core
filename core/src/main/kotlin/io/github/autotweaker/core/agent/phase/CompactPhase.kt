@@ -201,9 +201,8 @@ internal object CompactPhase {
 			env.emitOutput(
 				AgentOutput.Compact(
 					CompactOutput(
-						CompactOutput.Status.FINISHED,
-						rawContent,
-						lastSnapshot?.let { CompactOutput.CompactUsage(it.usage.totalTokens, it.usage.promptTokens) })
+						CompactOutput.Status.FINISHED, rawContent, lastSnapshot?.usage
+					)
 				)
 			)
 		} else {
@@ -213,9 +212,8 @@ internal object CompactPhase {
 			env.emitOutput(
 				AgentOutput.Compact(
 					CompactOutput(
-						CompactOutput.Status.FAILED,
-						rawContent,
-						lastSnapshot?.let { CompactOutput.CompactUsage(it.usage.totalTokens, it.usage.promptTokens) })
+						CompactOutput.Status.FAILED, rawContent, lastSnapshot?.usage
+					)
 				)
 			)
 		}
@@ -269,7 +267,7 @@ internal object CompactPhase {
 					val (toolMsg, toolSnapshot) = convertToolMessage(
 						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
 					)
-					toolSnapshot?.let { snapshots.add(it) }
+					toolSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 					messages.add(toolMsg)
 				}
 			}
@@ -277,7 +275,7 @@ internal object CompactPhase {
 				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
 					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
 				)
-				assistantSnapshot?.let { snapshots.add(it) }
+				assistantSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 				messages.add(assistantMsg)
 			}
 		}
