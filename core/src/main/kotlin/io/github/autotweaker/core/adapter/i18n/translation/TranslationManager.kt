@@ -34,7 +34,6 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 import java.util.*
 
-@Suppress("unused")
 object TranslationManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(TranslationManager::class.java.name)
