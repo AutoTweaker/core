@@ -16,27 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.i18n
+package io.github.autotweaker.adapter.cli.commands.version
 
-import java.text.MessageFormat
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
-object I18n {
-	private val bundle: ResourceBundle? get() = I18n_bundle ?: bundledFallback()
-	
-	@Volatile
-	private var I18n_bundle: ResourceBundle? = null
-	
-	fun init(component: String) {
-		I18n_bundle = I18nLoader.fetchBundle(component) { I18n_bundle = it }
-	}
-	
-	private fun bundledFallback(): ResourceBundle? = runCatching {
-		ResourceBundle.getBundle("i18n.cli-adapter.messages")
-	}.getOrNull()
-	
-	fun get(key: String, vararg args: Any): String {
-		val pattern = bundle?.let { runCatching { it.getString(key) }.getOrNull() } ?: key
-		return if (args.isEmpty()) pattern else MessageFormat.format(pattern, *args)
+object VersionI18n {
+	@AutoService(I18nDef::class)
+	class Desc : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.ENGLISH, "Show AutoTweaker version"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "显示应用版本号"),
+		)
 	}
 }

@@ -22,31 +22,30 @@ import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Param
 import io.github.autotweaker.adapter.cli.Request
 import io.github.autotweaker.adapter.cli.Syntax
-import io.github.autotweaker.adapter.cli.i18n.I18n
+import io.github.autotweaker.api.i18n.I18nService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
-class Help(private val loaded: List<Command>) : Command {
+class Help(private val loaded: List<Command>, private val i18n: I18nService) : Command {
 	override val name = "help"
-	override val description get() = I18n.get("cmd.help.desc")
+	override val description get() = i18n.get(HelpI18n.HelpDesc())
 	override val syntax
 		get() = Syntax.all(
-			Syntax.leaf(Param.Positional("command", I18n.get("cmd.help.param.command"))),
+			Syntax.leaf(Param.Positional("command", i18n.get(HelpI18n.HelpParamCommand()))),
 			required = false,
 		)
 	
 	private val all: List<Command> get() = loaded + this
 	
 	override fun handle(
-		request: Request,
-		prompt: suspend (text: String, echo: Boolean) -> String
+		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<Command.Chunk> = flow {
 		val target = request.positional.firstOrNull()
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emit(Command.Chunk.Data(I18n.get("cmd.unknown", target), Command.Chunk.Channel.STDERR))
+				emit(Command.Chunk.Data(i18n.get(HelpI18n.Unknown()).format(target), Command.Chunk.Channel.STDERR))
 				emit(Command.Chunk.Done(1))
 				return@flow
 			}
@@ -54,12 +53,12 @@ class Help(private val loaded: List<Command>) : Command {
 			emit(Command.Chunk.Done())
 			return@flow
 		}
-		emit(Command.Chunk.Data(I18n.get("cmd.available")))
+		emit(Command.Chunk.Data(i18n.get(HelpI18n.Available())))
 		for (cmd in all.sortedBy { it.name }) {
 			emit(Command.Chunk.Data("  ${cmd.name}  —  ${cmd.description}"))
 		}
 		emit(Command.Chunk.Data(""))
-		emit(Command.Chunk.Data(I18n.get("cmd.help_hint", request.prog)))
+		emit(Command.Chunk.Data(i18n.get(HelpI18n.HelpHint()).format(request.prog)))
 		emit(Command.Chunk.Done())
 	}
 	
@@ -68,96 +67,94 @@ class Help(private val loaded: List<Command>) : Command {
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
 			emit(Command.Chunk.Data(""))
-			emit(Command.Chunk.Data(I18n.get("cmd.params")))
+			emit(Command.Chunk.Data(i18n.get(HelpI18n.Params())))
 			for (line in lines) {
 				emit(Command.Chunk.Data(line))
 			}
 		}
 	}
 	
-	companion object {
-		private sealed class ContentNode {
-			data class Label(val text: String, val children: List<ContentNode>) : ContentNode()
-			data class Group(val children: List<ContentNode>) : ContentNode()
-			data class Leaf(val text: String) : ContentNode()
+	private sealed class ContentNode {
+		data class Label(val text: String, val children: List<ContentNode>) : ContentNode()
+		data class Group(val children: List<ContentNode>) : ContentNode()
+		data class Leaf(val text: String) : ContentNode()
+	}
+	
+	private fun Syntax.toContent(ancestorOptional: Boolean = false): ContentNode {
+		val isOptional = ancestorOptional || when (this) {
+			is Syntax.Leaf -> !required
+			is Syntax.Xor -> !required
+			is Syntax.All -> !required
 		}
-		
-		private fun Syntax.toContent(ancestorOptional: Boolean = false): ContentNode {
-			val isOptional = ancestorOptional || when (this) {
-				is Syntax.Leaf -> !required
-				is Syntax.Xor -> !required
-				is Syntax.All -> !required
+		return when (this) {
+			is Syntax.Leaf -> {
+				val opt = if (isOptional) " ${i18n.get(HelpI18n.ParamOptional())}" else ""
+				ContentNode.Leaf("${param.format()}  —  ${param.description}$opt")
 			}
-			return when (this) {
-				is Syntax.Leaf -> {
-					val opt = if (isOptional) " ${I18n.get("param.optional")}" else ""
-					ContentNode.Leaf("${param.format()}  —  ${param.description}$opt")
-				}
-				
-				is Syntax.All -> ContentNode.Group(children.map { it.toContent(isOptional) })
-				is Syntax.Xor -> {
-					val opt = if (isOptional) " ${I18n.get("param.optional")}" else ""
-					ContentNode.Label(
-						I18n.get("syntax.xor") + opt,
-						children.map { it.toContent(isOptional) },
-					)
-				}
+			
+			is Syntax.All -> ContentNode.Group(children.map { it.toContent(isOptional) })
+			is Syntax.Xor -> {
+				val opt = if (isOptional) " ${i18n.get(HelpI18n.ParamOptional())}" else ""
+				ContentNode.Label(
+					i18n.get(HelpI18n.SyntaxXorLabel()) + opt,
+					children.map { it.toContent(isOptional) },
+				)
 			}
 		}
-		
-		fun formatSyntax(root: Syntax): List<String> {
-			return renderRoot(root.toContent())
-		}
-		
-		private fun renderRoot(node: ContentNode): List<String> {
-			return when (node) {
-				is ContentNode.Label -> {
-					val result = mutableListOf(node.text)
-					for (i in node.children.indices) {
-						result.addAll(render(node.children[i], "", i == node.children.lastIndex))
-					}
-					result
+	}
+	
+	private fun formatSyntax(root: Syntax): List<String> {
+		return renderRoot(root.toContent())
+	}
+	
+	private fun renderRoot(node: ContentNode): List<String> {
+		return when (node) {
+			is ContentNode.Label -> {
+				val result = mutableListOf(node.text)
+				for (i in node.children.indices) {
+					result.addAll(render(node.children[i], "", i == node.children.lastIndex))
 				}
-				
-				is ContentNode.Group -> {
-					val result = mutableListOf<String>()
-					for (i in node.children.indices) {
-						result.addAll(render(node.children[i], "", i == node.children.lastIndex))
-					}
-					result
-				}
-				
-				is ContentNode.Leaf -> listOf(node.text)
+				result
 			}
+			
+			is ContentNode.Group -> {
+				val result = mutableListOf<String>()
+				for (i in node.children.indices) {
+					result.addAll(render(node.children[i], "", i == node.children.lastIndex))
+				}
+				result
+			}
+			
+			is ContentNode.Leaf -> listOf(node.text)
 		}
-		
-		private fun render(node: ContentNode, bars: String, isLast: Boolean): List<String> {
-			val connector = if (isLast) "└── " else "├── "
-			return when (node) {
-				is ContentNode.Leaf -> listOf("$bars$connector${node.text}")
-				is ContentNode.Label -> {
-					val result = mutableListOf("$bars$connector${node.text}")
-					val childBars = bars + if (isLast) "    " else "│   "
-					for (i in node.children.indices) {
-						result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
-					}
-					result
+	}
+	
+	private fun render(node: ContentNode, bars: String, isLast: Boolean): List<String> {
+		val connector = if (isLast) "└── " else "├── "
+		return when (node) {
+			is ContentNode.Leaf -> listOf("$bars$connector${node.text}")
+			is ContentNode.Label -> {
+				val result = mutableListOf("$bars$connector${node.text}")
+				val childBars = bars + if (isLast) "    " else "│   "
+				for (i in node.children.indices) {
+					result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
 				}
+				result
+			}
+			
+			is ContentNode.Group -> {
+				if (node.children.isEmpty()) return emptyList()
+				val result = mutableListOf<String>()
+				val hasMore = node.children.size > 1
 				
-				is ContentNode.Group -> {
-					if (node.children.isEmpty()) return emptyList()
-					val result = mutableListOf<String>()
-					val hasMore = node.children.size > 1
-					
-					val firstIsLast = isLast && (bars.isEmpty() || !hasMore)
-					result.addAll(render(node.children.first(), bars, firstIsLast))
-					
-					val childBars = bars + if (firstIsLast) "    " else "│   "
-					for (i in 1 until node.children.size) {
-						result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
-					}
-					result
+				val firstIsLast = isLast && (bars.isEmpty() || !hasMore)
+				result.addAll(render(node.children.first(), bars, firstIsLast))
+				
+				val childBars = bars + if (firstIsLast) "    " else "│   "
+				for (i in 1 until node.children.size) {
+					result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
 				}
+				result
 			}
 		}
 	}

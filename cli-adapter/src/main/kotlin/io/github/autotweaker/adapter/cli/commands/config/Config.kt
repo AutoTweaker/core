@@ -23,8 +23,8 @@ import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Param
 import io.github.autotweaker.adapter.cli.Request
 import io.github.autotweaker.adapter.cli.Syntax
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingEntry
@@ -40,34 +40,35 @@ class Config : Command {
 	}
 	
 	lateinit var core: CoreAPI
+		private val i18n: I18nService get() = core.i18nService()
 	
 	override val name: String = "cfg"
 	override val description: String
-		get() = I18n.get("cfg.desc")
+		get() = i18n.get(CfgI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.all(
 				Syntax.xor(
 					Syntax.all(
-						Syntax.leaf(Param.Flag("list", I18n.get("cfg.list")), required = true),
+						Syntax.leaf(Param.Flag("list", i18n.get(CfgI18n.List())), required = true),
 					),
 					Syntax.all(
 						Syntax.leaf(
-							Param.Value("search", I18n.get("cfg.search"), aliases = emptyList()), required = true
+							Param.Value("search", i18n.get(CfgI18n.Search()), aliases = emptyList()), required = true
 						),
 						Syntax.xor(
-							Syntax.leaf(Param.Flag("key", I18n.get("cfg.search.key"), aliases = emptyList())),
-							Syntax.leaf(Param.Flag("value", I18n.get("cfg.search.value"), aliases = emptyList())),
-							Syntax.leaf(Param.Flag("desc", I18n.get("cfg.search.desc"), aliases = emptyList())),
+							Syntax.leaf(Param.Flag("key", i18n.get(CfgI18n.SearchKey()), aliases = emptyList())),
+							Syntax.leaf(Param.Flag("value", i18n.get(CfgI18n.SearchValue()), aliases = emptyList())),
+							Syntax.leaf(Param.Flag("desc", i18n.get(CfgI18n.SearchDesc()), aliases = emptyList())),
 							required = false,
 						),
 					),
 				),
-				Syntax.leaf(Param.Value("limit", I18n.get("cfg.limit"), aliases = emptyList())),
-				Syntax.leaf(Param.Flag("full", I18n.get("cfg.full"))),
+				Syntax.leaf(Param.Value("limit", i18n.get(CfgI18n.Limit()), aliases = emptyList())),
+				Syntax.leaf(Param.Flag("full", i18n.get(CfgI18n.Full()))),
 			), Syntax.all(
-				Syntax.leaf(Param.Value("set", I18n.get("cfg.set")), required = true),
-				Syntax.leaf(Param.Positional("value", I18n.get("cfg.set.value")), required = true),
+				Syntax.leaf(Param.Value("set", i18n.get(CfgI18n.Set())), required = true),
+				Syntax.leaf(Param.Positional("value", i18n.get(CfgI18n.SetValue())), required = true),
 			)
 		)
 	
@@ -134,13 +135,13 @@ class Config : Command {
 	
 	private fun set(core: CoreAPI, key: String, value: String): Flow<Command.Chunk> {
 		val config = core.config.settingService().getAll().find { it.id == key } ?: return flowOf(
-			Command.Chunk.Data(I18n.get("cfg.set.not_found", key)), Command.Chunk.Done(1)
+			Command.Chunk.Data(i18n.get(CfgI18n.SetNotFound()).format(key)), Command.Chunk.Done(1)
 		)
 		val newValue = try {
 			config.value.parse(value)
 		} catch (_: Exception) {
 			return flowOf(
-				Command.Chunk.Data(I18n.get("cfg.set.type_error")), Command.Chunk.Done(1)
+				Command.Chunk.Data(i18n.get(CfgI18n.SetTypeError())), Command.Chunk.Done(1)
 			)
 		}
 		core.config.settingService().set(key, newValue)
@@ -152,9 +153,9 @@ class Config : Command {
 	private fun printConfig(settings: List<SettingEntry>, full: Boolean): Flow<String> = flow {
 		if (full) {
 			settings.forEachIndexed { index, setting ->
-				emit(I18n.get("cfg.out.key", sanitize(setting.id)))
-				emit(I18n.get("cfg.out.desc", sanitize(setting.description)))
-				emit(I18n.get("cfg.out.val", sanitize(setting.value.value.toString())))
+				emit(i18n.get(CfgI18n.OutKey()).format(sanitize(setting.id)))
+				emit(i18n.get(CfgI18n.OutDesc()).format(sanitize(setting.description)))
+				emit(i18n.get(CfgI18n.OutVal()).format(sanitize(setting.value.value.toString())))
 				if (index != settings.lastIndex) emit("-".repeat(10))
 			}
 		} else {

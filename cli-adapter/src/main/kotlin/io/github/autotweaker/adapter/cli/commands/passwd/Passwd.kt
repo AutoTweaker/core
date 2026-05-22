@@ -23,8 +23,8 @@ import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Param
 import io.github.autotweaker.adapter.cli.Request
 import io.github.autotweaker.adapter.cli.Syntax
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -35,14 +35,15 @@ import org.slf4j.LoggerFactory
 class Passwd : Command {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	override val name = "passwd"
-	override val description get() = I18n.get("cmd.passwd.desc")
+	override val description get() = i18n.get(PasswdI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("unlock", I18n.get("passwd.param.unlock"))),
-			Syntax.leaf(Param.Flag("remove", I18n.get("passwd.param.remove"))),
+			Syntax.leaf(Param.Flag("unlock", i18n.get(PasswdI18n.ParamUnlock()))),
+			Syntax.leaf(Param.Flag("remove", i18n.get(PasswdI18n.ParamRemove()))),
 			required = false,
 		)
 	private lateinit var core: CoreAPI
+		private val i18n: I18nService get() = core.i18nService()
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
@@ -68,26 +69,26 @@ class Passwd : Command {
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<Command.Chunk> = flow {
 		if (core.isPasswordEmpty) {
 			logger.debug("Unlock skipped  command=passwd  reason=no_password_set")
-			emit(Command.Chunk.Data(I18n.get("unlock.no_password")))
+			emit(Command.Chunk.Data(i18n.get(PasswdI18n.UnlockNoPassword())))
 			emit(Command.Chunk.Done())
 			return@flow
 		}
 		
 		if (core.isUnlocked) {
 			logger.debug("Unlock skipped  command=passwd  reason=already_unlocked")
-			emit(Command.Chunk.Data(I18n.get("unlock.already")))
+			emit(Command.Chunk.Data(i18n.get(PasswdI18n.UnlockAlready())))
 			emit(Command.Chunk.Done())
 			return@flow
 		}
 		
-		val password = prompt(I18n.get("unlock.prompt"), false).also { emit(Command.Chunk.Data("")) }
+		val password = prompt(i18n.get(PasswdI18n.UnlockPrompt()), false).also { emit(Command.Chunk.Data("")) }
 		
 		try {
 			core.unlock(password)
 			logger.info("Keystore unlocked  command=passwd")
 		} catch (_: Exception) {
 			logger.warn("Failed to unlock keystore  command=passwd")
-			emit(Command.Chunk.Data(I18n.get("unlock.failed"), Command.Chunk.Channel.STDERR))
+			emit(Command.Chunk.Data(i18n.get(PasswdI18n.UnlockFailed()), Command.Chunk.Channel.STDERR))
 			emit(Command.Chunk.Done(1))
 			return@flow
 		}
@@ -95,7 +96,7 @@ class Passwd : Command {
 	}
 	
 	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<Command.Chunk> = flow {
-		val password = prompt(I18n.get("unlock.prompt"), false)
+		val password = prompt(i18n.get(PasswdI18n.UnlockPrompt()), false)
 		emit(Command.Chunk.Data(""))
 		try {
 			if (!core.isUnlocked) {
@@ -105,7 +106,7 @@ class Passwd : Command {
 			logger.info("Password removed  command=passwd")
 		} catch (_: Exception) {
 			logger.warn("Failed to remove password  command=passwd")
-			emit(Command.Chunk.Data(I18n.get("passwd.invalid"), Command.Chunk.Channel.STDERR))
+			emit(Command.Chunk.Data(i18n.get(PasswdI18n.Invalid()), Command.Chunk.Channel.STDERR))
 			emit(Command.Chunk.Done(1))
 			return@flow
 		}
@@ -116,17 +117,17 @@ class Passwd : Command {
 		val oldPassword = if (core.isPasswordEmpty) {
 			""
 		} else {
-			prompt(I18n.get("unlock.prompt"), false).also { emit(Command.Chunk.Data("")) }
+			prompt(i18n.get(PasswdI18n.UnlockPrompt()), false).also { emit(Command.Chunk.Data("")) }
 		}
 		
-		val newPassword = prompt(I18n.get("passwd.prompt_new"), false)
-		emit(Command.Chunk.Data(" " + I18n.get("passwd.length", newPassword.length)))
-		val confirm = prompt(I18n.get("passwd.prompt_confirm"), false)
+		val newPassword = prompt(i18n.get(PasswdI18n.PromptNew()), false)
+		emit(Command.Chunk.Data(" " + i18n.get(PasswdI18n.Length()).format(newPassword.length)))
+		val confirm = prompt(i18n.get(PasswdI18n.PromptConfirm()), false)
 		emit(Command.Chunk.Data(""))
 		
 		if (newPassword != confirm) {
 			logger.debug("Password change aborted  command=passwd  reason=confirmation_mismatch")
-			emit(Command.Chunk.Data(I18n.get("passwd.mismatch"), Command.Chunk.Channel.STDERR))
+			emit(Command.Chunk.Data(i18n.get(PasswdI18n.Mismatch()), Command.Chunk.Channel.STDERR))
 			emit(Command.Chunk.Done(1))
 			return@flow
 		}
@@ -139,7 +140,7 @@ class Passwd : Command {
 			logger.info("Password changed  command=passwd")
 		} catch (_: Exception) {
 			logger.warn("Failed to change password  command=passwd")
-			emit(Command.Chunk.Data(I18n.get("passwd.invalid"), Command.Chunk.Channel.STDERR))
+			emit(Command.Chunk.Data(i18n.get(PasswdI18n.Invalid()), Command.Chunk.Channel.STDERR))
 			emit(Command.Chunk.Done(1))
 			return@flow
 		}

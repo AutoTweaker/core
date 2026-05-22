@@ -20,7 +20,6 @@ package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.help.Help
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.SemVer
@@ -30,7 +29,7 @@ import kotlinx.coroutines.flow.flowOf
 import org.slf4j.LoggerFactory
 import java.util.*
 
-class CommandRouter(core: CoreAPI, coreVersion: SemVer, commands: List<Command>) {
+class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: List<Command>) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val handlers: Map<String, Command>
 	
@@ -40,12 +39,12 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer, commands: List<Command>)
 		override val description = "CLI命令的最大参数数量，超出会报错"
 	}
 	
-	private val storedCore = core
-	private val maxArgsCount = storedCore.config.settingService().get(MaxArgsCount()).value
+	private val maxArgsCount = core.config.settingService().get(MaxArgsCount()).value
+	private val i18n = core.i18nService()
 	
 	init {
 		commands.forEach { it.init(core, coreVersion) }
-		val help = Help(commands)
+		val help = Help(commands, i18n)
 		handlers = (commands + help).associateBy { it.name }
 		logger.debug("CommandRouter loaded  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
@@ -73,7 +72,10 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer, commands: List<Command>)
 		if (handler == null) {
 			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
 			return flowOf(
-				Command.Chunk.Data(I18n.get("cmd.unknown_hint", cmd, request.prog), Command.Chunk.Channel.STDERR),
+				Command.Chunk.Data(
+					i18n.get(CmdI18n.UnknownHint()).format(cmd, request.prog),
+					Command.Chunk.Channel.STDERR
+				),
 				Command.Chunk.Done(1),
 			)
 		}
@@ -92,7 +94,10 @@ class CommandRouter(core: CoreAPI, coreVersion: SemVer, commands: List<Command>)
 		if (parsed == null) {
 			logger.debug("Invalid arguments for command  command={}", cmd)
 			return flowOf(
-				Command.Chunk.Data(I18n.get("cmd.invalid_args", cmd, request.prog), Command.Chunk.Channel.STDERR),
+				Command.Chunk.Data(
+					i18n.get(CmdI18n.InvalidArgs()).format(cmd, request.prog),
+					Command.Chunk.Channel.STDERR
+				),
 				Command.Chunk.Done(1),
 			)
 		}

@@ -19,8 +19,9 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import io.github.autotweaker.adapter.cli.Command
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import kotlinx.coroutines.flow.Flow
@@ -28,34 +29,36 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import java.util.*
 
-class Write(
+class ProviderCommands(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
+	private val i18n: I18nService get() = core.i18nService()
+
 	fun add(name: String?, type: String?, key: String?, url: String?): Flow<Command.Chunk> = flow {
-		val name = name ?: promptOrNull("prov.prompt.add.name", "prov.out.add.missing.name") ?: return@flow
-		val type = type ?: promptOrNull("prov.prompt.add.type", "prov.out.add.missing.type") ?: return@flow
+		val name = name ?: promptOrNull(ProvCommandsI18n.PromptAddName(), ProvCommandsI18n.OutAddMissingName()) ?: return@flow
+		val type = type ?: promptOrNull(ProvCommandsI18n.PromptAddType(), ProvCommandsI18n.OutAddMissingType()) ?: return@flow
 		
 		if (core.config.listAvailableProviderTypes().find { it == type } == null) {
-			emitI18n("prov.out.add.invalid.type")
+			emitI18n(ProvCommandsI18n.OutAddInvalidType())
 			emit(Command.Chunk.Done(1))
 			return@flow
 		}
 		
-		val key = key ?: promptOrNull("prov.prompt.add.key", "prov.out.add.missing.key") ?: return@flow
+		val key = key ?: promptOrNull(ProvCommandsI18n.PromptAddKey(), ProvCommandsI18n.OutAddMissingKey()) ?: return@flow
 		
 		if (core.config.listApiKeyNames().find { it == key } == null) {
-			emitI18n("prov.out.add.invalid.key")
+			emitI18n(ProvCommandsI18n.OutAddInvalidKey())
 			emitDone()
 			return@flow
 		}
 		
-		val urlString = url ?: promptOrNull("prov.prompt.add.url")
+		val urlString = url ?: promptOrNull(ProvCommandsI18n.PromptAddUrl())
 		
 		val url = urlString?.let {
 			try {
 				Url(it)
 			} catch (e: IllegalArgumentException) {
-				emitI18n("prov.out.add.invalid.url", e.message ?: "Unknown Error")
+				emitI18n(ProvCommandsI18n.OutAddInvalidUrl(), e.message ?: "Unknown Error")
 				emitDone()
 				return@flow
 			}
@@ -77,14 +80,14 @@ class Write(
 	fun remove(name: String, yes: Boolean): Flow<Command.Chunk> = flow {
 		val ids = core.config.listProviders().filter { it.displayName == name }.map { it.id }
 		if (ids.isEmpty()) {
-			emitI18n("prov.out.remove.not.found", name)
+			emitI18n(ProvCommandsI18n.OutRemoveNotFound(), name)
 			emitDone()
 			return@flow
 		}
 		if (!yes) {
-			emitI18n("prov.prompt.remove.list", core.config.listProviders().count { it.displayName == name })
+			emitI18n(ProvCommandsI18n.PromptRemoveList(), core.config.listProviders().count { it.displayName == name })
 			ids.forEach { emit(Command.Chunk.Data(it.toString())) }
-			val sure = promptOrNull("prov.prompt.remove.sure")
+			val sure = promptOrNull(ProvCommandsI18n.PromptRemoveSure())
 			if (sure != "yes" && sure != "y") {
 				emitDone(1)
 				return@flow
@@ -94,12 +97,12 @@ class Write(
 	}
 	
 	private suspend fun FlowCollector<Command.Chunk>.promptOrNull(
-		i18nKey: String, i18nKeyOnEmpty: String? = null
+		def: I18nDef, defOnEmpty: I18nDef? = null
 	): String? {
-		val result = prompt(I18n.get(i18nKey) + " ", true)
+		val result = prompt(i18n.get(def) + " ", true)
 		if (result.isBlank()) {
-			i18nKeyOnEmpty?.let {
-				emit(Command.Chunk.Data(I18n.get(it)))
+			defOnEmpty?.let {
+				emit(Command.Chunk.Data(i18n.get(it)))
 				emitDone()
 			}
 			return null
@@ -107,8 +110,8 @@ class Write(
 		return result
 	}
 	
-	private suspend fun FlowCollector<Command.Chunk>.emitI18n(key: String, vararg args: Any) =
-		emit(Command.Chunk.Data(I18n.get(key, args)))
+	private suspend fun FlowCollector<Command.Chunk>.emitI18n(def: I18nDef, vararg args: Any) =
+		emit(Command.Chunk.Data(i18n.get(def).format(*args)))
 	
 	private suspend fun FlowCollector<Command.Chunk>.emitDone(exitCode: Int = 1) = emit(Command.Chunk.Done(exitCode))
 }

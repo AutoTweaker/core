@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.adapter.cli.commands.provider
 
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
@@ -28,37 +28,40 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
-class Read(private val core: CoreAPI) {
+class ProviderQueries(private val core: CoreAPI) {
+	private val i18n: I18nService get() = core.i18nService()
 	fun list(): Flow<String> = flow {
 		val providers = core.config.listProviders()
 		providers.forEachIndexed { index, provider ->
 			val modelCount = core.config.listModels().count { it.data.providerId == provider.id }
-			emit(I18n.get("prov.out.name", provider.displayName))
-			emit(I18n.get("prov.out.type", provider.type))
-			emit(I18n.get("prov.out.model", modelCount))
+			emit(i18n.get(ProvQueriesI18n.OutName()).format(provider.displayName))
+			emit(i18n.get(ProvQueriesI18n.OutType()).format(provider.type))
+			emit(i18n.get(ProvQueriesI18n.OutModel()).format(modelCount))
 			if (index != providers.lastIndex) emit(LINE)
 		}
 	}
 	
 	fun show(name: String): Flow<String> = flow {
 		val provider = core.config.listProviders().firstOrNull { it.displayName == name } ?: return@flow
-		emit(I18n.get("prov.out.name", provider.displayName))
-		emit(I18n.get("prov.out.type", provider.type))
-		emit(I18n.get("prov.out.key", provider.keyId))
-		emit(I18n.get("prov.out.url", provider.baseUrl?.value ?: I18n.get("prov.out.default")))
+		emit(i18n.get(ProvQueriesI18n.OutName()).format(provider.displayName))
+		emit(i18n.get(ProvQueriesI18n.OutType()).format(provider.type))
+		emit(i18n.get(ProvQueriesI18n.OutKey()).format(provider.keyId))
+		emit(
+			i18n.get(ProvQueriesI18n.OutUrl()).format(provider.baseUrl?.value ?: i18n.get(ProvQueriesI18n.OutDefault()))
+		)
 		provider.errorHandlingRules?.let {
-			emit(I18n.get("prov.out.rule"))
+			emit(i18n.get(ProvQueriesI18n.OutRule()))
 			emitAll(printRules(it))
-		} ?: emit(I18n.get("prov.out.rule") + " " + I18n.get("prov.out.default"))
+		} ?: emit(i18n.get(ProvQueriesI18n.OutRule()) + " " + i18n.get(ProvQueriesI18n.OutDefault()))
 	}
 	
 	fun types(): Flow<String> = core.config.listAvailableProviderTypes().asFlow()
 	
 	fun info(name: String): Flow<String> = flow {
 		val meta = core.config.getProviderMeta(name)
-		emit(I18n.get("prov.out.name", meta.name))
-		emit(I18n.get("prov.out.url", meta.baseUrl.value))
-		emit(I18n.get("prov.out.rule"))
+		emit(i18n.get(ProvQueriesI18n.OutName()).format(meta.name))
+		emit(i18n.get(ProvQueriesI18n.OutUrl()).format(meta.baseUrl.value))
+		emit(i18n.get(ProvQueriesI18n.OutRule()))
 		emitAll(printRules(meta.errorHandlingRules))
 		meta.models.forEach {
 			emit(LINE)
@@ -69,25 +72,25 @@ class Read(private val core: CoreAPI) {
 	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {
 		rules.forEach {
 			emit(
-				SPACE + I18n.get("prov.out.rule.status", it.statusCode) + " | " + I18n.get(
-					"prov.out.rule.strategy", it.strategy
-				)
+				SPACE + i18n.get(ProvQueriesI18n.OutRuleStatus()).format(it.statusCode) + " | " + i18n.get(
+					ProvQueriesI18n.OutRuleStrategy()
+				).format(it.strategy)
 			)
 		}
 	}
 	
 	private fun printModelInfo(info: ModelData.ModelInfo): Flow<String> = flow {
 		val feature = buildList {
-			if (info.supportsStreaming) add(I18n.get("prov.out.model.feature.streaming"))
-			if (info.supportsToolCalls) add(I18n.get("prov.out.model.feature.tool_call"))
-			if (info.supportsReasoning) add(I18n.get("prov.out.model.feature.reasoning"))
-			if (info.supportsImage) add(I18n.get("prov.out.model.feature.image"))
-			if (info.supportsJsonOutput) add(I18n.get("prov.out.model.feature.json_output"))
+			if (info.supportsStreaming) add(i18n.get(ProvQueriesI18n.OutModelFeatureStreaming()))
+			if (info.supportsToolCalls) add(i18n.get(ProvQueriesI18n.OutModelFeatureToolCall()))
+			if (info.supportsReasoning) add(i18n.get(ProvQueriesI18n.OutModelFeatureReasoning()))
+			if (info.supportsImage) add(i18n.get(ProvQueriesI18n.OutModelFeatureImage()))
+			if (info.supportsJsonOutput) add(i18n.get(ProvQueriesI18n.OutModelFeatureJsonOutput()))
 		}.joinToString(separator = " ") { "[${it}]" }
-		emit(I18n.get("prov.out.model.id", info.modelId))
-		emit(I18n.get("prov.out.model.context_window", processUnit(info.contextWindow)))
-		emit(I18n.get("prov.out.model.max_output", processUnit(info.maxOutputTokens)))
-		emit(I18n.get("prov.out.model.feature", feature))
+		emit(i18n.get(ProvQueriesI18n.OutModelId()).format(info.modelId))
+		emit(i18n.get(ProvQueriesI18n.OutModelContextWindow()).format(processUnit(info.contextWindow)))
+		emit(i18n.get(ProvQueriesI18n.OutModelMaxOutput()).format(processUnit(info.maxOutputTokens)))
+		emit(i18n.get(ProvQueriesI18n.OutModelFeature()).format(feature))
 		emitAll(printTokenPrice(info.price))
 	}
 	
@@ -115,9 +118,9 @@ class Read(private val core: CoreAPI) {
 				)
 			}
 		}
-		emit(I18n.get("prov.out.model.price.input"))
+		emit(i18n.get(ProvQueriesI18n.OutModelPriceInput()))
 		emitAll(processPrice(price.inputPrice))
-		emit(I18n.get("prov.out.model.price.output"))
+		emit(i18n.get(ProvQueriesI18n.OutModelPriceOutput()))
 		emitAll(processPrice(price.outputPrice))
 	}
 	
@@ -127,7 +130,11 @@ class Read(private val core: CoreAPI) {
 			"${price.amount.toPlainString()} ${price.currency} / ${processUnit(price.unit)} tokens"
 		
 		if (cached == null) return processPrice(price)
-		return "${processPrice(price)} ${I18n.get("prov.out.or")} ${processPrice(cached)} ${I18n.get("prov.out.model.price.cached")}"
+		return "${processPrice(price)} ${i18n.get(ProvQueriesI18n.OutOr())} ${processPrice(cached)} ${
+			i18n.get(
+				ProvQueriesI18n.OutModelPriceCached()
+			)
+		}"
 	}
 	
 	private fun processUnit(number: Int): String = when {

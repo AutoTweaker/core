@@ -19,7 +19,6 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.AdapterAPI
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
@@ -51,7 +50,6 @@ class CliAdapter : AdapterAPI {
 	}
 	
 	override fun start(core: CoreAPI) {
-		I18n.init(adapterName)
 		server = CliServer(core.config.settingService())
 		val router = CommandRouter.fromServiceLoader(core, coreVersion ?: error("CliAdapter not initialized"))
 		server.start(router)

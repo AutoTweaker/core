@@ -23,8 +23,8 @@ import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Param
 import io.github.autotweaker.adapter.cli.Request
 import io.github.autotweaker.adapter.cli.Syntax
-import io.github.autotweaker.adapter.cli.i18n.I18n
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -34,27 +34,28 @@ import kotlinx.coroutines.flow.map
 @AutoService(Command::class)
 class Provider : Command {
 	lateinit var core: CoreAPI
+		private val i18n: I18nService get() = core.i18nService()
 	
 	override val name = "prov"
-	override val description get() = I18n.get("prov.desc")
+	override val description get() = i18n.get(ProvI18n.Desc())
 	override val syntax = Syntax.xor(
-		Syntax.leaf(Param.Flag("list", I18n.get("prov.list"))),
-		Syntax.leaf(Param.Value("show", I18n.get("prov.show"), emptyList())),
-		Syntax.leaf(Param.Flag("types", I18n.get("prov.types"), emptyList())),
-		Syntax.leaf(Param.Value("info", I18n.get("prov.info"))),
+		Syntax.leaf(Param.Flag("list", i18n.get(ProvI18n.List()))),
+		Syntax.leaf(Param.Value("show", i18n.get(ProvI18n.Show()), emptyList())),
+		Syntax.leaf(Param.Flag("types", i18n.get(ProvI18n.Types()), emptyList())),
+		Syntax.leaf(Param.Value("info", i18n.get(ProvI18n.Info()))),
 		Syntax.all(
-			Syntax.leaf(Param.Flag("add", I18n.get("prov.add")), required = true),
-			Syntax.leaf(Param.Value("name", I18n.get("prov.add.name"), emptyList())),
-			Syntax.leaf(Param.Value("type", I18n.get("prov.add.type"), emptyList())),
-			Syntax.leaf(Param.Value("key", I18n.get("prov.add.key"), emptyList())),
-			Syntax.leaf(Param.Value("url", I18n.get("prov.add.url"), emptyList())),
+			Syntax.leaf(Param.Flag("add", i18n.get(ProvI18n.Add())), required = true),
+			Syntax.leaf(Param.Value("name", i18n.get(ProvI18n.AddName()), emptyList())),
+			Syntax.leaf(Param.Value("type", i18n.get(ProvI18n.AddType()), emptyList())),
+			Syntax.leaf(Param.Value("key", i18n.get(ProvI18n.AddKey()), emptyList())),
+			Syntax.leaf(Param.Value("url", i18n.get(ProvI18n.AddUrl()), emptyList())),
 		),
 		Syntax.all(
-			Syntax.leaf(Param.Value("remove", I18n.get("prov.remove"), listOf("rm")), required = true),
-			Syntax.leaf(Param.Flag("yes", I18n.get("prov.yes"))),
+			Syntax.leaf(Param.Value("remove", i18n.get(ProvI18n.Remove()), listOf("rm")), required = true),
+			Syntax.leaf(Param.Flag("yes", i18n.get(ProvI18n.Yes()))),
 		),
-		Syntax.leaf(Param.Value("rename", I18n.get("prov.rename"))),
-		Syntax.leaf(Param.Value("update", I18n.get("prov.update"))),
+		Syntax.leaf(Param.Value("rename", i18n.get(ProvI18n.Rename()))),
+		Syntax.leaf(Param.Value("update", i18n.get(ProvI18n.Update()))),
 	)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
@@ -62,33 +63,32 @@ class Provider : Command {
 	}
 	
 	override fun handle(
-		request: Request,
-		prompt: suspend (text: String, echo: Boolean) -> String
+		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<Command.Chunk> = flow {
-		val read = Read(core)
-		val write = Write(core, prompt)
+		val queries = ProviderQueries(core)
+		val commands = ProviderCommands(core, prompt)
 		if (request.has("list")) {
-			emitAll(read.list().map { Command.Chunk.Data(it) })
+			emitAll(queries.list().map { Command.Chunk.Data(it) })
 			emit(Command.Chunk.Done())
 			return@flow
 		}
 		
 		if (request.has("show")) {
 			val name = request.get("show") ?: error("Missing provider name")
-			emitAll(read.show(name).map { Command.Chunk.Data(it) })
+			emitAll(queries.show(name).map { Command.Chunk.Data(it) })
 			emit(Command.Chunk.Done())
 			return@flow
 		}
 		
 		if (request.has(("types"))) {
-			emitAll(read.types().map { Command.Chunk.Data(it) })
+			emitAll(queries.types().map { Command.Chunk.Data(it) })
 			emit(Command.Chunk.Done())
 			return@flow
 		}
 		
 		if (request.has("info")) {
 			val name = request.get("info") ?: error("Missing provider type")
-			emitAll(read.info(name).map { Command.Chunk.Data(it) })
+			emitAll(queries.info(name).map { Command.Chunk.Data(it) })
 			emit(Command.Chunk.Done())
 			return@flow
 		}
@@ -98,12 +98,12 @@ class Provider : Command {
 			val type = request.get("type")
 			val key = request.get("key")
 			val url = request.get("url")
-			emitAll(write.add(name, type, key, url))
+			emitAll(commands.add(name, type, key, url))
 			return@flow
 		}
 		
 		if (request.has("remove")) {
-			emitAll(write.remove(request.get("remove") ?: error("Missing provider name"), request.has("yes")))
+			emitAll(commands.remove(request.get("remove") ?: error("Missing provider name"), request.has("yes")))
 			return@flow
 		}
 		
