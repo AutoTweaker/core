@@ -20,6 +20,7 @@ package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
@@ -45,6 +46,7 @@ interface CoreAPI {
 	fun stopAdapter(name: String)
 	
 	fun jsonStore(namespace: String): JsonStore
+	fun i18nService(): I18nService
 	
 	interface SessionAPI {
 		suspend fun create(config: SessionConfig): SessionHandle

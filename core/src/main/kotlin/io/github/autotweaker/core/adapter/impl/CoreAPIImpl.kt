@@ -21,6 +21,7 @@ package io.github.autotweaker.core.adapter.impl
 import io.github.autotweaker.api.adapter.AdapterRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
@@ -32,6 +33,7 @@ import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.adapter.config.ConfigManager
+import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.data.settings.Settings
@@ -49,6 +51,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	override fun startAdapter(name: String) = adapterRegistry.startAdapter(name)
 	override fun stopAdapter(name: String) = adapterRegistry.stopAdapter(name)
 	override fun jsonStore(namespace: String) = JsonStoreImpl.namespace(namespace)
+	override fun i18nService(): I18nService = I18nServiceImpl
 	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
 	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty
 	
