@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
 import java.math.BigDecimal
 import java.util.*

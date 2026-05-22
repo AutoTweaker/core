@@ -20,7 +20,6 @@ package io.github.autotweaker.core.llm.provider.deepseek
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient

@@ -20,8 +20,8 @@ package io.github.autotweaker.adapter.cli.commands.provider
 
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
-import io.github.autotweaker.api.types.Price
 import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow

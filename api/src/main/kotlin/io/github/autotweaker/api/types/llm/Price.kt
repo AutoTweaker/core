@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types
+package io.github.autotweaker.api.types.llm
 
 import io.github.autotweaker.api.types.serializer.BigDecimalSerializer
 import io.github.autotweaker.api.types.serializer.CurrencySerializer
