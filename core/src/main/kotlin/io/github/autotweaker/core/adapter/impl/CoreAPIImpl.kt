@@ -34,6 +34,7 @@ import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
+import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.json.JsonStoreImpl
 import io.github.autotweaker.core.data.settings.Settings
@@ -123,5 +124,14 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = cfg.apiKeyConfig.add(key)
 		override fun listApiKeyNames() = cfg.apiKeyConfig.list()
 		override fun removeApiKey(name: String) = cfg.apiKeyConfig.delete(name)
+	}
+	
+	override val translation = object : CoreAPI.TranslationAPI {
+		override fun getStatus() = TranslationManager.status
+		override fun updateModel(modelId: UUID) = TranslationManager.updateModel(modelId)
+		override fun updateLanguage(locale: Locale) = TranslationManager.updateLanguage(locale)
+		override fun startTranslation() = TranslationManager.startTranslation(config.settingService())
+		override fun getModel() = TranslationManager.getModel()
+		override fun getLanguage() = TranslationManager.getLanguage()
 	}
 }

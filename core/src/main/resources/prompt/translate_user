@@ -1,0 +1,5 @@
+目标语言: {{target_language}}
+
+将以下内容翻译为 {{target_language}}，每个键提供了所有已有语言版本作为参考，每个键对应一个 {{target_language}} 语言的字符串，输出必须是有效的 Json 对象，不要输出多余的内容，不要使用代码块包裹输出，注意特殊字符的转义，注意换行符等特殊标记的正确处理
+
+{{content_to_translate}}

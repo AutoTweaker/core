@@ -22,6 +22,7 @@ import io.github.autotweaker.api.adapter.AdapterAPI
 import io.github.autotweaker.api.adapter.AdapterRegistry
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.json.JsonStoreImpl
@@ -78,6 +79,8 @@ object AutoTweaker : AdapterRegistry {
 			throw e
 		}
 		
+		TranslationManager.startTranslation(Settings)
+
 		val adapters = allAdapters
 		if (adapters.isEmpty()) {
 			val noAdapterError =

@@ -27,15 +27,18 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
+import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
 interface CoreAPI {
 	val session: SessionAPI
 	val config: ConfigAPI
+	val translation: TranslationAPI
 	
 	fun unlock(password: String)
 	fun changePassword(oldPassword: String, newPassword: String)
@@ -77,6 +80,15 @@ interface CoreAPI {
 		suspend fun renameWorkspace(id: UUID, newName: String)
 		suspend fun deleteWorkspace(id: UUID)
 		fun listWorkspaces(): List<WorkspaceData>
+	}
+	
+	interface TranslationAPI {
+		fun getStatus(): StateFlow<TranslationStatus>
+		fun updateModel(modelId: UUID)
+		fun updateLanguage(locale: Locale)
+		fun startTranslation()
+		fun getModel(): UUID?
+		fun getLanguage(): Locale?
 	}
 	
 	interface ConfigAPI {
