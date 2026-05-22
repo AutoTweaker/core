@@ -23,6 +23,8 @@ jobs:
 
       - name: Build
         run: ./gradlew build
+        env:
+          DOCKER_TEST: "true"
 
       - name: Package distributions
         run: ./gradlew :core:distZip :core:distTar
