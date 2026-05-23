@@ -109,6 +109,10 @@ class Secret : Command {
 			emit(CmdOutput.Done(1))
 			return@flow
 		}
+		
+		if (request.has("env")) {
+			val em = EnvManager(core, prompt)
+		}
 	}
 	
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {

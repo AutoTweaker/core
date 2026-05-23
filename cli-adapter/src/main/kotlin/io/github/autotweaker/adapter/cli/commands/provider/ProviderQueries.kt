@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
-class ProviderQueries(private val core: CoreAPI) {
+internal class ProviderQueries(private val core: CoreAPI) {
 	private val i18n: I18nService get() = core.i18nService()
 	fun list(): Flow<String> = flow {
 		val providers = core.config.listProviders()

@@ -23,7 +23,7 @@ import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
-object VersionI18n {
+internal object VersionI18n {
 	@AutoService(I18nDef::class)
 	class Desc : I18nDef {
 		override val localizations = listOf(

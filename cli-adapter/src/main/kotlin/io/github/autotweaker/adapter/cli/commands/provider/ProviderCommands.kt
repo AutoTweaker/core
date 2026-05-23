@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import java.util.*
 
-class ProviderCommands(
+internal class ProviderCommands(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
 	private val i18n: I18nService get() = core.i18nService()
