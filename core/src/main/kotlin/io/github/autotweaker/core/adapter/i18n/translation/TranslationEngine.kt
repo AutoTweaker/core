@@ -20,6 +20,7 @@ package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.adapter.i18n.I18nRegistry
@@ -120,12 +121,11 @@ internal object TranslationEngine {
 			stream = false,
 			thinking = false,
 			service = job.svc,
+			responseFormat = ChatRequest.ResponseFormat(type = ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		).toList()
 		
 		val finalResult = results.filter { it.retrying == null }.map { it.result }.lastOrNull() ?: return BatchResult(
-			emptyMap(),
-			job.batch,
-			job.target
+			emptyMap(), job.batch, job.target
 		)
 		if (finalResult.message is ChatMessage.ErrorMessage) return BatchResult(emptyMap(), job.batch, job.target)
 		
@@ -138,9 +138,7 @@ internal object TranslationEngine {
 		}
 		
 		val text = (finalResult.message as? ChatMessage.AssistantMessage)?.content ?: return BatchResult(
-			emptyMap(),
-			job.batch,
-			job.target
+			emptyMap(), job.batch, job.target
 		)
 		return BatchResult(parseResponse(text), job.batch, job.target)
 	}
