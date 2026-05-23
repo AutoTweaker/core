@@ -19,6 +19,7 @@
 package io.github.autotweaker.adapter.cli.commands.version
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Request
 import io.github.autotweaker.adapter.cli.Syntax
@@ -36,7 +37,7 @@ class Version : Command {
 	private var coreVersion: SemVer = SemVer.parse("0.0.0")
 	private lateinit var core: CoreAPI
 	private val i18n: I18nService get() = core.i18nService()
-
+	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
 		this.coreVersion = coreVersion
@@ -45,9 +46,9 @@ class Version : Command {
 	override fun handle(
 		request: Request,
 		prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<Command.Chunk> =
+	): Flow<CmdOutput> =
 		flowOf(
-			Command.Chunk.Data(coreVersion.toString()),
-			Command.Chunk.Done(),
+			CmdOutput.Data(coreVersion.toString()),
+			CmdOutput.Done(),
 		)
 }

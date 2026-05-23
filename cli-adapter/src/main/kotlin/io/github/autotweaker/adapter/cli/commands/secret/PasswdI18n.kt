@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.passwd
+package io.github.autotweaker.adapter.cli.commands.secret
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.i18n.I18nDef
@@ -25,22 +25,6 @@ import java.util.*
 
 object PasswdI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Manage password"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "管理密码"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
-	class ParamUnlock : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Unlock the keystore"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "解锁密钥库"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
 	class ParamRemove : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Remove password"),
@@ -48,37 +32,6 @@ object PasswdI18n {
 		)
 	}
 	
-	@AutoService(I18nDef::class)
-	class UnlockAlready : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Keystore is already unlocked"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "密钥库已解锁"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
-	class UnlockNoPassword : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "No password set. Set a password first."),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未设置密码，请先设置密码"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
-	class UnlockPrompt : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Please enter password:"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入密码:"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
-	class UnlockFailed : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Failed to unlock keystore"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "密钥库解锁失败"),
-		)
-	}
 	
 	@AutoService(I18nDef::class)
 	class PromptNew : I18nDef {
@@ -109,14 +62,6 @@ object PasswdI18n {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Passwords do not match"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "两次密码不一致"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
-	class Invalid : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Invalid password"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "密码错误"),
 		)
 	}
 }

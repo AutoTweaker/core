@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.adapter.cli.commands.help
 
-import io.github.autotweaker.adapter.cli.Command
-import io.github.autotweaker.adapter.cli.Param
-import io.github.autotweaker.adapter.cli.Request
-import io.github.autotweaker.adapter.cli.Syntax
+import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.api.i18n.I18nService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -40,36 +37,36 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 	
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<Command.Chunk> = flow {
+	): Flow<CmdOutput> = flow {
 		val target = request.positional.firstOrNull()
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emit(Command.Chunk.Data(i18n.get(HelpI18n.Unknown()).format(target), Command.Chunk.Channel.STDERR))
-				emit(Command.Chunk.Done(1))
+				emit(CmdOutput.Data(i18n.get(HelpI18n.Unknown()).format(target), CmdOutput.Channel.STDERR))
+				emit(CmdOutput.Done(1))
 				return@flow
 			}
 			emitAll(formatDetail(cmd))
-			emit(Command.Chunk.Done())
+			emit(CmdOutput.Done())
 			return@flow
 		}
-		emit(Command.Chunk.Data(i18n.get(HelpI18n.Available())))
+		emit(CmdOutput.Data(i18n.get(HelpI18n.Available())))
 		for (cmd in all.sortedBy { it.name }) {
-			emit(Command.Chunk.Data("  ${cmd.name}  —  ${cmd.description}"))
+			emit(CmdOutput.Data("  ${cmd.name}  —  ${cmd.description}"))
 		}
-		emit(Command.Chunk.Data(""))
-		emit(Command.Chunk.Data(i18n.get(HelpI18n.HelpHint()).format(request.prog)))
-		emit(Command.Chunk.Done())
+		emit(CmdOutput.Data(""))
+		emit(CmdOutput.Data(i18n.get(HelpI18n.HelpHint()).format(request.prog)))
+		emit(CmdOutput.Done())
 	}
 	
-	private fun formatDetail(cmd: Command): Flow<Command.Chunk> = flow {
-		emit(Command.Chunk.Data("${cmd.name}  —  ${cmd.description}"))
+	private fun formatDetail(cmd: Command): Flow<CmdOutput> = flow {
+		emit(CmdOutput.Data("${cmd.name}  —  ${cmd.description}"))
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
-			emit(Command.Chunk.Data(""))
-			emit(Command.Chunk.Data(i18n.get(HelpI18n.Params())))
+			emit(CmdOutput.Data(""))
+			emit(CmdOutput.Data(i18n.get(HelpI18n.Params())))
 			for (line in lines) {
-				emit(Command.Chunk.Data(line))
+				emit(CmdOutput.Data(line))
 			}
 		}
 	}

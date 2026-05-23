@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.adapter.cli.Command.Chunk
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.SemVer
@@ -50,7 +49,7 @@ class CommandRouterTest {
 		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 	}
 	
-	private fun registerCommand(name: String, syntax: Syntax, handle: (Request) -> List<Chunk>): Command {
+	private fun registerCommand(name: String, syntax: Syntax, handle: (Request) -> List<CmdOutput>): Command {
 		val cmd = mockk<Command>()
 		every { cmd.name } returns name
 		every { cmd.description } returns ""
@@ -67,20 +66,20 @@ class CommandRouterTest {
 	
 	@Suppress("SameParameterValue")
 	private fun simpleCommand(name: String, syntax: Syntax): Command =
-		registerCommand(name, syntax) { listOf(Chunk.Done(0)) }
+		registerCommand(name, syntax) { listOf(CmdOutput.Done(0)) }
 	
-	private fun dispatch(vararg args: String): List<Chunk> = runBlocking {
+	private fun dispatch(vararg args: String): List<CmdOutput> = runBlocking {
 		router.dispatch(
 			CliMessage.Command(args = args.toList()),
 		) { _, _ -> "" }.toList()
 	}
 	
-	private fun List<Chunk>.done(): Chunk.Done = last() as Chunk.Done
-	private fun List<Chunk>.stdout(): List<String> =
-		filter { it is Chunk.Data && it.channel == Chunk.Channel.STDOUT }.map { (it as Chunk.Data).text }
+	private fun List<CmdOutput>.done(): CmdOutput.Done = last() as CmdOutput.Done
+	private fun List<CmdOutput>.stdout(): List<String> =
+		filter { it is CmdOutput.Data && it.channel == CmdOutput.Channel.STDOUT }.map { (it as CmdOutput.Data).text }
 	
-	private fun List<Chunk>.stderr(): List<String> =
-		filter { it is Chunk.Data && it.channel == Chunk.Channel.STDERR }.map { (it as Chunk.Data).text }
+	private fun List<CmdOutput>.stderr(): List<String> =
+		filter { it is CmdOutput.Data && it.channel == CmdOutput.Channel.STDERR }.map { (it as CmdOutput.Data).text }
 	
 	@Test
 	fun `empty command shows copyright`() {
@@ -114,7 +113,7 @@ class CommandRouterTest {
 	fun `short flag parsed`() {
 		var captured: Request? = null
 		registerCommand("test", Syntax.all(Syntax.leaf(Param.Flag("verbose", "verbose")))) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-v")
 		assertTrue(captured!!.has("verbose"))
@@ -124,7 +123,7 @@ class CommandRouterTest {
 	fun `long flag parsed`() {
 		var captured: Request? = null
 		registerCommand("test", Syntax.all(Syntax.leaf(Param.Flag("verbose", "verbose")))) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--verbose")
 		assertTrue(captured!!.has("verbose"))
@@ -138,7 +137,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Flag("verbose", "verbose")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-v")
 		// alias "v" (auto-inferred) resolves to canonical "verbose"
@@ -154,7 +153,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Value("count", "count")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-c", "42")
 		assertEquals("42", captured!!.get("count"))
@@ -168,7 +167,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Value("count", "count")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--count=42")
 		assertEquals("42", captured!!.get("count"))
@@ -182,7 +181,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Value("count", "count")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-c=42")
 		assertEquals("42", captured!!.get("count"))
@@ -197,7 +196,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Flag("beta", "beta")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-ab")
 		assertTrue(captured!!.has("alpha"))
@@ -212,7 +211,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Positional("file", "file")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--", "--verbose")
 		assertEquals(listOf("--verbose"), captured!!.positional)
@@ -238,7 +237,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Positional("file", "file")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "myfile.txt")
 		assertEquals(listOf("myfile.txt"), captured!!.positional)
@@ -305,7 +304,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Flag("beta", "beta")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-a")
 		assertTrue(captured!!.has("alpha"))
@@ -371,7 +370,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// Pick alpha branch
 		dispatch("test", "-a")
@@ -396,7 +395,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// Pick first branch, fast variant
 		dispatch("test", "-m", "--fast")
@@ -435,7 +434,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// verbose only, optional xor skipped
 		dispatch("test", "--verbose")
@@ -458,7 +457,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// detail in first branch
 		dispatch("test", "--mode", "--detail")
@@ -475,7 +474,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Flag("tag", "version b")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// flag is present in both branches, distinctBy keeps first
 		dispatch("test", "-f")
@@ -491,7 +490,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Positional("dst", "dst")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "data.txt", "other.txt")
 		assertEquals(listOf("data.txt", "other.txt"), captured!!.positional)
@@ -514,7 +513,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// Pick second branch
 		dispatch("test", "--mode")
@@ -537,7 +536,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--mode")
 		assertTrue(captured!!.has("mode"))
@@ -552,7 +551,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Positional("file", "")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--verbose", "input.txt")
 		assertTrue(captured!!.has("verbose"))
@@ -589,7 +588,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Positional("file", ""), required = true),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "input.txt")
 		assertEquals(listOf("input.txt"), captured!!.positional)
@@ -605,7 +604,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Positional("dst", "")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "a.txt", "b.txt")
 		assertEquals(listOf("a.txt", "b.txt"), captured!!.positional)
@@ -620,7 +619,7 @@ class CommandRouterTest {
 				Syntax.leaf(Param.Flag("verbose", "")),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// "--verbose" is always parsed as a flag regardless of position
 		dispatch("test", "file.txt", "--verbose")
@@ -680,7 +679,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// list mode with full
 		dispatch("test", "--list", "--full")
@@ -717,7 +716,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// set mode
 		dispatch("test", "--put", "newval")
@@ -754,7 +753,7 @@ class CommandRouterTest {
 				),
 			)
 		) {
-			captured = it; listOf(Chunk.Done(0))
+			captured = it; listOf(CmdOutput.Done(0))
 		}
 		// search mode with key filter, full detail
 		dispatch("test", "--search", "--key", "--full")

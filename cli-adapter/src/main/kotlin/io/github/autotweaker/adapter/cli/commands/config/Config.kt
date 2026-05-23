@@ -19,13 +19,10 @@
 package io.github.autotweaker.adapter.cli.commands.config
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.Command
-import io.github.autotweaker.adapter.cli.Param
-import io.github.autotweaker.adapter.cli.Request
-import io.github.autotweaker.adapter.cli.Syntax
+import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
@@ -40,7 +37,7 @@ class Config : Command {
 	}
 	
 	lateinit var core: CoreAPI
-		private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18nService()
 	
 	override val name: String = "cfg"
 	override val description: String
@@ -78,7 +75,7 @@ class Config : Command {
 	
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<Command.Chunk> = flow {
+	): Flow<CmdOutput> = flow {
 		val full: Boolean = request.get("full").toBoolean()
 		val limit: Int = try {
 			request.get("limit")?.toInt() ?: core.config.settingService().get(DefaultLimit()).value
@@ -88,7 +85,7 @@ class Config : Command {
 		
 		if (request.has("list")) {
 			emitAll(list(core, limit, full))
-			emit(Command.Chunk.Done())
+			emit(CmdOutput.Done())
 			return@flow
 		}
 		
@@ -101,7 +98,7 @@ class Config : Command {
 				else -> SearchMode.VALUE
 			}
 			emitAll(search(core, limit, full, query, mode))
-			emit(Command.Chunk.Done())
+			emit(CmdOutput.Done())
 			return@flow
 		}
 		
@@ -112,41 +109,41 @@ class Config : Command {
 			return@flow
 		}
 		
-		emit(Command.Chunk.Done(1))
+		emit(CmdOutput.Done(1))
 		return@flow
 	}
 	
-	private fun list(core: CoreAPI, limit: Int, full: Boolean = false): Flow<Command.Chunk> {
+	private fun list(core: CoreAPI, limit: Int, full: Boolean = false): Flow<CmdOutput> {
 		val settings = core.config.settingService().getAll().take(limit)
-		return printConfig(settings, full).map { Command.Chunk.Data(it) }
+		return printConfig(settings, full).map { CmdOutput.Data(it) }
 	}
 	
 	private fun search(
 		core: CoreAPI, limit: Int, full: Boolean = false, query: String, mode: SearchMode
-	): Flow<Command.Chunk> {
+	): Flow<CmdOutput> {
 		val settings = core.config.settingService().getAll()
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.value.value.toString(), query) }
 			SearchMode.DESC -> settings.filter { match(it.description, query) }
 		}
-		return printConfig(result.take(limit), full).map { Command.Chunk.Data(it) }
+		return printConfig(result.take(limit), full).map { CmdOutput.Data(it) }
 	}
 	
-	private fun set(core: CoreAPI, key: String, value: String): Flow<Command.Chunk> {
+	private fun set(core: CoreAPI, key: String, value: String): Flow<CmdOutput> {
 		val config = core.config.settingService().getAll().find { it.id == key } ?: return flowOf(
-			Command.Chunk.Data(i18n.get(CfgI18n.SetNotFound()).format(key)), Command.Chunk.Done(1)
+			CmdOutput.Data(i18n.get(CfgI18n.SetNotFound()).format(key), CmdOutput.Channel.STDERR), CmdOutput.Done(1)
 		)
 		val newValue = try {
 			config.value.parse(value)
 		} catch (_: Exception) {
 			return flowOf(
-				Command.Chunk.Data(i18n.get(CfgI18n.SetTypeError())), Command.Chunk.Done(1)
+				CmdOutput.Data(i18n.get(CfgI18n.SetTypeError()), CmdOutput.Channel.STDERR), CmdOutput.Done(1)
 			)
 		}
 		core.config.settingService().set(key, newValue)
 		return flowOf(
-			Command.Chunk.Done()
+			CmdOutput.Done()
 		)
 	}
 	

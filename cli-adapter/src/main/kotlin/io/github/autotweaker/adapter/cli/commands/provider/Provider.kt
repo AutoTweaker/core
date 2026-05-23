@@ -19,10 +19,7 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.Command
-import io.github.autotweaker.adapter.cli.Param
-import io.github.autotweaker.adapter.cli.Request
-import io.github.autotweaker.adapter.cli.Syntax
+import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
@@ -34,7 +31,7 @@ import kotlinx.coroutines.flow.map
 @AutoService(Command::class)
 class Provider : Command {
 	lateinit var core: CoreAPI
-		private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18nService()
 	
 	override val name = "prov"
 	override val description get() = i18n.get(ProvI18n.Desc())
@@ -64,32 +61,32 @@ class Provider : Command {
 	
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<Command.Chunk> = flow {
+	): Flow<CmdOutput> = flow {
 		val queries = ProviderQueries(core)
 		val commands = ProviderCommands(core, prompt)
 		if (request.has("list")) {
-			emitAll(queries.list().map { Command.Chunk.Data(it) })
-			emit(Command.Chunk.Done())
+			emitAll(queries.list().map { CmdOutput.Data(it) })
+			emit(CmdOutput.Done())
 			return@flow
 		}
 		
 		if (request.has("show")) {
 			val name = request.get("show") ?: error("Missing provider name")
-			emitAll(queries.show(name).map { Command.Chunk.Data(it) })
-			emit(Command.Chunk.Done())
+			emitAll(queries.show(name).map { CmdOutput.Data(it) })
+			emit(CmdOutput.Done())
 			return@flow
 		}
 		
 		if (request.has(("types"))) {
-			emitAll(queries.types().map { Command.Chunk.Data(it) })
-			emit(Command.Chunk.Done())
+			emitAll(queries.types().map { CmdOutput.Data(it) })
+			emit(CmdOutput.Done())
 			return@flow
 		}
 		
 		if (request.has("info")) {
 			val name = request.get("info") ?: error("Missing provider type")
-			emitAll(queries.info(name).map { Command.Chunk.Data(it) })
-			emit(Command.Chunk.Done())
+			emitAll(queries.info(name).map { CmdOutput.Data(it) })
+			emit(CmdOutput.Done())
 			return@flow
 		}
 		
@@ -107,7 +104,7 @@ class Provider : Command {
 			return@flow
 		}
 		
-		emit(Command.Chunk.Done(1))
+		emit(CmdOutput.Done(1))
 		return@flow
 	}
 }

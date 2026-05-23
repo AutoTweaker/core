@@ -18,15 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.types.SemVer
-import kotlinx.coroutines.flow.Flow
-
-interface Command {
-	val name: String
-	val description: String
-	val syntax: Syntax
+sealed class CmdOutput {
+	data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : CmdOutput()
+	data class Done(val exitCode: Int = 0) : CmdOutput()
 	
-	fun init(core: CoreAPI, coreVersion: SemVer) {}
-	fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput>
+	enum class Channel { STDOUT, STDERR }
 }

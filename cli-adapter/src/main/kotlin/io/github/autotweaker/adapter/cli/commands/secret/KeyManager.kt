@@ -1,0 +1,74 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.adapter.cli.commands.secret
+
+import io.github.autotweaker.adapter.cli.CmdOutput
+import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.types.config.CoreConfig
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+class KeyManager(
+	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
+) {
+	private val i18n: I18nService get() = core.i18nService()
+	
+	fun list(): Flow<CmdOutput> = flow {
+		core.config.listApiKeyNames().forEach { emit(CmdOutput.Data(it)) }
+		emit(CmdOutput.Done())
+	}
+	
+	fun add(name: String): Flow<CmdOutput> = flow {
+		if (name.isBlank()) {
+			emit(CmdOutput.Data(i18n.get(SecretI18n.EmptyNameError()), CmdOutput.Channel.STDERR))
+			emit(CmdOutput.Done(1))
+			return@flow
+		}
+		val key = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
+		
+		if (key.isBlank()) {
+			emit(CmdOutput.Data(i18n.get(SecretI18n.EmptyKeyError()), CmdOutput.Channel.STDERR))
+			emit(CmdOutput.Done(1))
+			return@flow
+		}
+		if (core.config.listApiKeyNames().any { it == name }) {
+			emit(CmdOutput.Data(i18n.get(SecretI18n.KeyExistsError()).format(name), CmdOutput.Channel.STDERR))
+			emit(CmdOutput.Done(1))
+			return@flow
+		}
+		
+		core.config.addApiKey(
+			CoreConfig.ProviderConfig.ApiKey(
+				name, key
+			)
+		)
+		emit(CmdOutput.Done())
+	}
+	
+	fun remove(name: String): Flow<CmdOutput> = flow {
+		if (core.config.listApiKeyNames().any { it == name }) {
+			core.config.removeApiKey(name)
+			emit(CmdOutput.Done())
+		} else {
+			emit(CmdOutput.Data(i18n.get(SecretI18n.KeyNotFoundError()).format(name), CmdOutput.Channel.STDERR))
+			emit(CmdOutput.Done(1))
+		}
+	}
+}

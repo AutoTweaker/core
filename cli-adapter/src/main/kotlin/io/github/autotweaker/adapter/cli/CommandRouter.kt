@@ -61,22 +61,22 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	fun dispatch(
 		request: CliMessage.Command,
 		prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<Command.Chunk> {
+	): Flow<CmdOutput> {
 		val cmd = request.command()
 		if (cmd.isEmpty()) {
 			return flowOf(
-				Command.Chunk.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"), Command.Chunk.Done()
+				CmdOutput.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"), CmdOutput.Done()
 			)
 		}
 		val handler = handlers[cmd]
 		if (handler == null) {
 			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
 			return flowOf(
-				Command.Chunk.Data(
+				CmdOutput.Data(
 					i18n.get(CmdI18n.UnknownHint()).format(cmd, request.prog),
-					Command.Chunk.Channel.STDERR
+					CmdOutput.Channel.STDERR
 				),
-				Command.Chunk.Done(1),
+				CmdOutput.Done(1),
 			)
 		}
 		
@@ -84,8 +84,8 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		if (conflicts.isNotEmpty()) {
 			logger.warn("Param name conflict in command  command={}  conflicts={}", cmd, conflicts)
 			return flowOf(
-				Command.Chunk.Data(conflicts.first(), Command.Chunk.Channel.STDERR),
-				Command.Chunk.Done(1),
+				CmdOutput.Data(conflicts.first(), CmdOutput.Channel.STDERR),
+				CmdOutput.Done(1),
 			)
 		}
 		
@@ -94,11 +94,11 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		if (parsed == null) {
 			logger.debug("Invalid arguments for command  command={}", cmd)
 			return flowOf(
-				Command.Chunk.Data(
+				CmdOutput.Data(
 					i18n.get(CmdI18n.InvalidArgs()).format(cmd, request.prog),
-					Command.Chunk.Channel.STDERR
+					CmdOutput.Channel.STDERR
 				),
-				Command.Chunk.Done(1),
+				CmdOutput.Done(1),
 			)
 		}
 		

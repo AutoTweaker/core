@@ -111,13 +111,13 @@ class CliServer(service: SettingService) {
 			try {
 				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
-						is Command.Chunk.Data -> write(
+						is CmdOutput.Data -> write(
 							client, json.encodeToString<CliResponse>(
 								CliResponse.Data(chunk.text, chunk.channel.name.lowercase(), chunk.newline)
 							)
 						)
 						
-						is Command.Chunk.Done -> {
+						is CmdOutput.Done -> {
 							sawDone = true
 							write(client, json.encodeToString<CliResponse>(CliResponse.Done(chunk.exitCode)))
 							return@collect
