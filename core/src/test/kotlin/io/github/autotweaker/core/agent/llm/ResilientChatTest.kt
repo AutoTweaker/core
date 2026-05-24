@@ -57,8 +57,7 @@ class ResilientChatTest {
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
 		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, testPrice)),
-			outputPrice = listOf(PriceTier(0, null, testPrice))
+			inputPrice = listOf(PriceTier(0, null, testPrice)), outputPrice = listOf(PriceTier(0, null, testPrice))
 		),
 		supportsStreaming = true,
 		supportsToolCalls = true,
@@ -86,9 +85,7 @@ class ResilientChatTest {
 	
 	private fun errorResult(statusCode: Int = 500) = ChatResult.Assembled(
 		message = ChatMessage.ErrorMessage(
-			"error",
-			Clock.System.now(),
-			statusCode
+			"error", Clock.System.now(), statusCode
 		),
 	)
 	
@@ -140,8 +137,9 @@ class ResilientChatTest {
 		val providerWithRetry = provider(
 			rules = listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY))
 		)
+		val m1 = model(provider = providerWithRetry)
 		val results = ResilientChat.execute(
-			model = model(provider = providerWithRetry),
+			model = m1,
 			fallbackModels = null,
 			messages = messages(),
 			service = mockService,
@@ -149,11 +147,12 @@ class ResilientChatTest {
 		
 		assertEquals(3, results.size)
 		assertEquals("error", (results[0].result.message as ChatMessage.ErrorMessage).content)
-		assertNotNull(results[0].retrying)
+		assertEquals(m1.id, results[0].model)
 		assertEquals("error", (results[1].result.message as ChatMessage.ErrorMessage).content)
-		assertNotNull(results[1].retrying)
+		assertEquals(m1.id, results[1].model)
 		val lastMsg = results[2].result.message as ChatMessage.AssistantMessage
 		assertEquals("success after retry", lastMsg.content)
+		assertEquals(m1.id, results[2].model)
 	}
 	
 	@Test
@@ -181,8 +180,9 @@ class ResilientChatTest {
 		
 		assertEquals(2, results.size)
 		assertEquals("error", (results[0].result.message as ChatMessage.ErrorMessage).content)
-		assertEquals(m2, results[0].retrying)
+		assertEquals(m1.id, results[0].model)
 		assertEquals("fallback success", (results[1].result.message as ChatMessage.AssistantMessage).content)
+		assertEquals(m2.id, results[1].model)
 	}
 	
 	@Test
@@ -196,9 +196,7 @@ class ResilientChatTest {
 		coEvery { mockClient1.chat(any(), any(), any()) } returns flow { emit(errorResult(401)) }
 		coEvery {
 			mockClient2.chat(
-				any(),
-				any(),
-				any()
+				any(), any(), any()
 			)
 		} returns flow { emit(assistantResult("provider fallback success")) }
 		
@@ -214,7 +212,7 @@ class ResilientChatTest {
 		
 		assertEquals(2, results.size)
 		assertEquals("error", (results[0].result.message as ChatMessage.ErrorMessage).content)
-		assertNotNull(results[0].retrying)
+		assertNotNull(results[0].model)
 		assertEquals("provider fallback success", (results[1].result.message as ChatMessage.AssistantMessage).content)
 	}
 	
@@ -232,9 +230,7 @@ class ResilientChatTest {
 		coEvery { mockClient2.chat(any(), any(), any()) } returns flow { emit(assistantResult("should not be used")) }
 		coEvery {
 			mockClient3.chat(
-				any(),
-				any(),
-				any()
+				any(), any(), any()
 			)
 		} returns flow { emit(assistantResult("context fallback success")) }
 		
@@ -257,7 +253,7 @@ class ResilientChatTest {
 		
 		assertEquals(2, results.size)
 		assertEquals("error", (results[0].result.message as ChatMessage.ErrorMessage).content)
-		assertNotNull(results[0].retrying)
+		assertNotNull(results[0].model)
 		assertEquals("context fallback success", (results[1].result.message as ChatMessage.AssistantMessage).content)
 	}
 	
@@ -373,9 +369,7 @@ class ResilientChatTest {
 		}
 		coEvery {
 			mockClient2.chat(
-				any(),
-				any(),
-				any()
+				any(), any(), any()
 			)
 		} returns flow { emit(assistantResult("fallback after null status")) }
 		

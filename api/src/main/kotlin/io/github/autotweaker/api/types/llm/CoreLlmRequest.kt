@@ -16,16 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ProviderData
 import java.util.*
 
-data class Provider(
-	val id: UUID,
-	val name: String,
-	val baseUrl: Url,
-	val apiKey: String,
-	val errorHandlingRules: List<ProviderData.ErrorHandlingRule>
+data class CoreLlmRequest(
+	val model: UUID,
+	val fallbackModels: List<UUID>?,
+	val messages: List<ChatMessage>,
+	val tools: List<ChatRequest.Tool>? = null,
+	val responseFormat: ChatRequest.ResponseFormat? = null,
+	val stream: Boolean = false,
+	val thinking: Boolean? = null,
 )

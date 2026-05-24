@@ -22,6 +22,7 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.llm.LlmClientLoader
 import kotlinx.coroutines.delay
@@ -35,6 +36,8 @@ import kotlin.time.Duration.Companion.seconds
 internal object ResilientChat {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
+	private class StatusCodeNullException : Exception()
+	
 	internal fun execute(
 		model: Model,
 		fallbackModels: List<Model>?,
@@ -44,119 +47,138 @@ internal object ResilientChat {
 		stream: Boolean = false,
 		thinking: Boolean? = null,
 		service: SettingService,
-	): Flow<ResilientChatResult> = flow {
+	): Flow<CoreLlmResult> = flow {
 		val maxRetries = service.get(ResilientChatSettings.MaxRetries()).value
-		require(maxRetries > 0) { "maxRetries must be positive" }
-		
-		var candidates = buildList {
-			add(model)
-			addAll(fallbackModels.orEmpty())
-		}
+		val llmChatRetries = service.get(ResilientChatSettings.LlmChatRetries()).value
 		
 		logger.debug(
-			"Chat started  provider={}  model={}  candidates={}  maxRetries={}",
-			model.provider.name, model.modelInfo.modelId, candidates.size, maxRetries
+			"Chat started  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
+			model.provider.name,
+			model.modelInfo.modelId,
+			(fallbackModels?.size ?: 0) + 1,
+			maxRetries,
+			llmChatRetries
 		)
 		
-		// 图像兼容性预处理：存在支持图像的模型时，屏蔽所有不支持的
-		if (messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }) {
-			candidates = candidates.filter { it.modelInfo.supportsImage }.ifEmpty { candidates }
+		val userMsg = messages.filterIsInstance<ChatMessage.UserMessage>()
+		
+		suspend fun attempt(target: Model): Int? {
+			val chatRequest = buildRequest(target, messages, tools, responseFormat, stream, thinking)
+			val client = LlmClientLoader.load(target.provider.name)
+			val results = client.chat(
+				request = chatRequest,
+				apiKey = target.provider.apiKey,
+				baseUrl = target.provider.baseUrl,
+			)
+			
+			var errorStatusCode: Int? = null
+			
+			results.collect { result ->
+				val msg = result.message
+				if (msg is ChatMessage.ErrorMessage) {
+					emit(CoreLlmResult(result, model = target.id))
+					val sc = msg.statusCode ?: throw StatusCodeNullException()
+					errorStatusCode = sc
+				} else {
+					emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
+				}
+			}
+			
+			return errorStatusCode
 		}
 		
-		var lastModelId: String? = null
-		while (candidates.isNotEmpty()) {
-			val current = candidates.first()
-			lastModelId = current.modelInfo.modelId
-			val rules = current.provider.errorHandlingRules
+		for (round in 0..llmChatRetries) {
+			var candidates = buildList {
+				add(model)
+				addAll(fallbackModels.orEmpty())
+			}
+			if (userMsg.any { !it.pictures.isNullOrEmpty() } && candidates.any { it.modelInfo.supportsImage }) {
+				candidates =
+					candidates.filter { it.modelInfo.supportsImage } + candidates.filter { !it.modelInfo.supportsImage }
+			}
 			
-			for (retryAttempt in 0 until maxRetries) {
-				val chatRequest = buildRequest(current, messages, tools, responseFormat, stream, thinking)
-				val client = LlmClientLoader.load(current.provider.name)
-				val results = client.chat(
-					request = chatRequest,
-					apiKey = current.provider.apiKey,
-					baseUrl = current.provider.baseUrl,
-				)
+			while (candidates.isNotEmpty()) {
+				val current = candidates.first()
+				val rules = current.provider.errorHandlingRules
 				
-				var lastError: ChatResult? = null
-				var lastStatusCode: Int? = null
-				
-				results.collect { result ->
-					val msg = result.message
-					if (msg is ChatMessage.ErrorMessage) {
-						lastError = result
-						lastStatusCode = msg.statusCode
-					} else {
-						emit(ResilientChatResult(result.normalizeEmptyStrings(), retrying = null))
-					}
-				}
-				
-				val error = lastError ?: return@flow
-				
-				// 匹配错误处理规则
-				val matchedRule = if (lastStatusCode != null) {
-					rules.find { it.statusCode == lastStatusCode }
-				} else {
-					null
-				}
-				
-				when (matchedRule?.strategy) {
-					RecoveryStrategy.RETRY -> {
-						if (retryAttempt < maxRetries - 1) {
-							logger.debug(
-								"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
-								current.modelInfo.modelId, retryAttempt + 1, lastStatusCode
-							)
-							emit(ResilientChatResult(error, retrying = current))
-							val baseDelay = service.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
-							val maxDelay = service.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
-							val jitterEnabled = service.get(ResilientChatSettings.RetryJitterEnabled()).value
-							val capped = minOf(baseDelay.seconds * (1 shl retryAttempt), maxDelay.seconds)
-							val finalDelay = if (jitterEnabled) {
-								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
-							} else capped
-							delay(finalDelay)
-							continue
+				try {
+					suspend fun handle(statusCode: Int, retriesUsed: Int): Boolean {
+						when (rules.find { it.statusCode == statusCode }?.strategy) {
+							RecoveryStrategy.RETRY -> {
+								if (retriesUsed >= maxRetries - 1) {
+									logger.debug(
+										"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.modelId
+									)
+									candidates = candidates.drop(1)
+									return false
+								}
+								logger.debug(
+									"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
+									current.modelInfo.modelId,
+									retriesUsed + 1,
+									statusCode
+								)
+								val baseDelay = service.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
+								val maxDelay = service.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
+								val jitterEnabled = service.get(ResilientChatSettings.RetryJitterEnabled()).value
+								val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
+								val finalDelay = if (jitterEnabled) {
+									Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
+								} else capped
+								delay(finalDelay)
+								
+								val nextCode = attempt(current) ?: return true
+								return handle(nextCode, retriesUsed + 1)
+							}
+							
+							RecoveryStrategy.CONTEXT_FALLBACK -> {
+								logger.debug(
+									"Fell back to larger context window  model={}  statusCode={}",
+									current.modelInfo.modelId,
+									statusCode
+								)
+								candidates =
+									candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
+								return false
+							}
+							
+							RecoveryStrategy.PROVIDER_FALLBACK -> {
+								logger.debug(
+									"Fell back to different provider  model={}  provider={}  statusCode={}",
+									current.modelInfo.modelId,
+									current.provider.id,
+									statusCode
+								)
+								candidates = candidates.filter { it.provider.id != current.provider.id }
+								return false
+							}
+							
+							RecoveryStrategy.FALLBACK, null -> {
+								logger.debug(
+									"Fell back to next model  model={}  statusCode={}",
+									current.modelInfo.modelId,
+									statusCode
+								)
+								candidates = candidates.drop(1)
+								return false
+							}
 						}
-						logger.debug(
-							"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.modelId
-						)
-						candidates = candidates.drop(1)
 					}
 					
-					RecoveryStrategy.CONTEXT_FALLBACK -> {
-						logger.debug(
-							"Fell back to larger context window  model={}  statusCode={}",
-							current.modelInfo.modelId, lastStatusCode
-						)
-						candidates = candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
-					}
-					
-					RecoveryStrategy.PROVIDER_FALLBACK -> {
-						logger.debug(
-							"Fell back to different provider  model={}  provider={}  statusCode={}",
-							current.modelInfo.modelId, current.provider.name, lastStatusCode
-						)
-						candidates = candidates.filter { it.provider.name != current.provider.name }
-					}
-					
-					RecoveryStrategy.FALLBACK, null -> {
-						logger.debug(
-							"Fell back to next model  model={}  statusCode={}",
-							current.modelInfo.modelId, lastStatusCode
-						)
-						candidates = candidates.drop(1)
-					}
+					val firstCode = attempt(current) ?: return@flow
+					if (handle(firstCode, 0)) return@flow
+				} catch (_: StatusCodeNullException) {
+					candidates = candidates.drop(1)
 				}
-				
-				emit(ResilientChatResult(error, retrying = candidates.firstOrNull()))
-				
-				break // 跳出当前模型的重试循环，回到外层取下一个候选
+			}
+			
+			if (round < llmChatRetries) {
+				logger.debug("All candidate models exhausted  restarting  round={}", round + 1)
 			}
 		}
 		
-		logger.warn("All candidate models exhausted  lastModel={}  candidates={}", lastModelId, 0)
-		throw IllegalStateException("All candidate models exhausted without success")
+		logger.warn("All LLM chat retries exhausted")
+		throw IllegalStateException("All LLM chat retries exhausted without success")
 	}
 	
 	private fun ChatResult.normalizeEmptyStrings(): ChatResult {
@@ -183,14 +205,13 @@ internal object ResilientChat {
 		stream: Boolean,
 		thinking: Boolean?,
 	): ChatRequest {
-		val stripPictures = !model.modelInfo.supportsImage &&
-				messages.any { it is ChatMessage.UserMessage && !it.pictures.isNullOrEmpty() }
+		val stripPictures = !model.modelInfo.supportsImage
 		val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
 		val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
 		
 		return ChatRequest(
 			model = model.modelInfo.modelId,
-			messages = messages.mapIndexed { _, msg ->
+			messages = messages.map { msg ->
 				var result = msg
 				if (stripPictures && result is ChatMessage.UserMessage) {
 					result = result.copy(pictures = null)
@@ -198,7 +219,7 @@ internal object ResilientChat {
 				if (result is ChatMessage.AssistantMessage) {
 					result = when {
 						shouldStripReasoning -> result.copy(reasoningContent = null)
-						result.reasoningContent == null -> result.copy(reasoningContent = "")
+						!shouldStripReasoning && result.reasoningContent == null -> result.copy(reasoningContent = "</think>")
 						else -> result
 					}
 				}

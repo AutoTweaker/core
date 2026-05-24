@@ -25,8 +25,14 @@ import io.github.autotweaker.api.types.config.SettingValue
 object ResilientChatSettings {
 	@AutoService(SettingDef::class)
 	class MaxRetries : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(5)
+		override val description = "单轮大模型请求的最大重试次数"
+	}
+	
+	@AutoService(SettingDef::class)
+	class LlmChatRetries : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(3)
-		override val description = "大模型请求的最大重试次数"
+		override val description = "大模型请求的重试/回退策略耗尽后重头开始的最大次数"
 	}
 	
 	@AutoService(SettingDef::class)

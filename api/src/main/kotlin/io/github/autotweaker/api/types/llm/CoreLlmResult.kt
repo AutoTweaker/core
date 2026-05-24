@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.types.llm.ChatResult
+import java.util.*
 
-data class ResilientChatResult(
+data class CoreLlmResult(
 	val result: ChatResult,
-	val retrying: Model?,
+	val model: UUID,
 )
