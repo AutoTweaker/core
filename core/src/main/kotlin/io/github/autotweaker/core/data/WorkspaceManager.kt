@@ -32,7 +32,7 @@ import java.util.*
 object WorkspaceManager {
 	val DEFAULT_WORKSPACE_ID: UUID = UUID.nameUUIDFromBytes("autotweaker-default-workspace".toByteArray())
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	
 	private var workspaceList: List<WorkspaceData>
 	

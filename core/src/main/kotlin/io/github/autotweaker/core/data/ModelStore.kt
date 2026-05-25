@@ -22,7 +22,7 @@ import io.github.autotweaker.api.types.llm.ModelData
 import java.util.*
 
 object ModelStore {
-	private val store = IdListStore(this::class.java.name, ModelData.serializer()) { it.id }
+	private val store = IdListStore(this::class, ModelData.serializer()) { it.id }
 	
 	fun add(data: ModelData) = store.add(data)
 	fun get(): List<ModelData> = store.get()

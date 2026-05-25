@@ -27,6 +27,7 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KClass
 
 object JsonStoreImpl {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -47,12 +48,13 @@ object JsonStoreImpl {
 		if (!initialized) init()
 	}
 	
-	fun namespace(name: String): JsonStore {
+	fun namespace(kClass: KClass<*>): JsonStore {
 		ensureInit()
-		return JsonEntry(name)
+		return JsonEntry(kClass)
 	}
 	
-	class JsonEntry(private val namespace: String) : JsonStore {
+	private class JsonEntry(kClass: KClass<*>) : JsonStore {
+		private val namespace = kClass.java.name
 		override fun get(): JsonElement? {
 			return transaction(db) {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->

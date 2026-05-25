@@ -30,7 +30,7 @@ import java.util.*
 
 object ApiKeyConfigAPI {
 	private val secret = SecretManager
-	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	private val keyMap: MutableMap<String, @Serializable(with = UuidSerializer::class) UUID> = mutableMapOf()
 	
 	fun add(key: CoreConfig.ProviderConfig.ApiKey) {

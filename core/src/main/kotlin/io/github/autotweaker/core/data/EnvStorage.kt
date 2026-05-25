@@ -25,9 +25,10 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.util.*
+import kotlin.reflect.KClass
 
-class EnvStorage(namespace: String) {
-	private val jsonEntry = JsonStoreImpl.namespace(namespace)
+class EnvStorage(kClass: KClass<*>) {
+	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	
 	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
 	

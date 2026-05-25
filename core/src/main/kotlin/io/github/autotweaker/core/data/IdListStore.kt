@@ -25,14 +25,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 import java.util.*
+import kotlin.reflect.KClass
 
 internal class IdListStore<T : Any>(
-	namespace: String,
+	kClass: KClass<*>,
 	serializer: KSerializer<T>,
 	private val idOf: (T) -> UUID,
 ) {
 	private val logger = LoggerFactory.getLogger(IdListStore::class.java)
-	private val jsonEntry = JsonStoreImpl.namespace(namespace)
+	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	
 	private val listSerializer = ListSerializer(serializer)
 	private var items: List<T>

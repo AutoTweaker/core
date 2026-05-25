@@ -50,13 +50,13 @@ class JsonStoreImplTest {
 	@Test
 	fun `init then get returns null`() {
 		JsonStoreImpl.init()
-		assertNull(JsonStoreImpl.namespace("empty_ns").get())
+		assertNull(JsonStoreImpl.namespace(String::class).get())
 	}
 	
 	@Test
 	fun `namespace and set then get`() {
 		JsonStoreImpl.init()
-		val entry = JsonStoreImpl.namespace("test_ns")
+		val entry = JsonStoreImpl.namespace(Int::class)
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
 		entry.set(data)
 		assertNotNull(entry.get())
@@ -67,10 +67,10 @@ class JsonStoreImplTest {
 		JsonStoreImpl.init()
 		transaction {
 			JsonStoreTable.insert {
-				it[JsonStoreTable.namespace] = "corrupt"
+				it[JsonStoreTable.namespace] = Boolean::class.java.name
 				it[JsonStoreTable.content] = "bad json"
 			}
 		}
-		assertNull(JsonStoreImpl.namespace("corrupt").get())
+		assertNull(JsonStoreImpl.namespace(Boolean::class).get())
 	}
 }

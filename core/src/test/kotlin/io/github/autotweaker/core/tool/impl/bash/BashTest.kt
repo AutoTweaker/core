@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.tool.impl.bash
 
+import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
@@ -44,7 +45,7 @@ class BashTest {
 	fun setUp() {
 		storedJson = null
 		mockkObject(JsonStoreImpl)
-		val mockEntry = mockk<JsonStoreImpl.JsonEntry>()
+		val mockEntry = mockk<JsonStore>()
 		every { mockEntry.get() } answers { storedJson }
 		every { mockEntry.set(any()) } answers { storedJson = firstArg() }
 		every { JsonStoreImpl.namespace(any()) } returns mockEntry

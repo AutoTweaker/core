@@ -36,7 +36,7 @@ import java.util.*
 
 object TranslationManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStoreImpl.namespace(TranslationManager::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	
 	private val sessionStore: SessionStore by lazy {
 		ServiceLoader.load(SessionStore::class.java).firstOrNull() ?: error("No SessionStore implementation found")

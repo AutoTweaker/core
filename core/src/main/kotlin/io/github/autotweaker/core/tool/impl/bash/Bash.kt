@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory
 @AutoService(Tool::class)
 class Bash : Tool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val envStorage = EnvStorage(this::class.java.name)
+	private val envStorage = EnvStorage(this::class)
 	
 	override fun resolveMeta(service: SettingService): Tool.Meta {
 		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }

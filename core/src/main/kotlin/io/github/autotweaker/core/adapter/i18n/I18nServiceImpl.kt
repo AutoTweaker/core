@@ -31,7 +31,7 @@ import java.util.*
 
 object I18nServiceImpl : I18nService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStoreImpl.namespace(this::class.java.name)
+	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	
 	@Volatile
 	private var cache: List<I18nEntry> = emptyList()

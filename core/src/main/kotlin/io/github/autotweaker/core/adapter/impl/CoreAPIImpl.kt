@@ -43,6 +43,7 @@ import io.github.autotweaker.core.session.SessionManager
 import io.github.autotweaker.core.session.UsageStore
 import io.github.autotweaker.core.session.WorkspaceAPI
 import java.util.*
+import kotlin.reflect.KClass
 
 class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	override fun changePassword(oldPassword: String, newPassword: String) =
@@ -52,7 +53,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 	override fun listAdapter(): List<AdapterInfo> = adapterRegistry.listAdapter()
 	override fun startAdapter(name: String) = adapterRegistry.startAdapter(name)
 	override fun stopAdapter(name: String) = adapterRegistry.stopAdapter(name)
-	override fun jsonStore(namespace: String) = JsonStoreImpl.namespace(namespace)
+	override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
 	override fun i18nService(): I18nService = I18nServiceImpl
 	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
 	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty

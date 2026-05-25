@@ -34,6 +34,7 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
+import kotlin.reflect.KClass
 
 interface CoreAPI {
 	val session: SessionAPI
@@ -49,7 +50,7 @@ interface CoreAPI {
 	fun startAdapter(name: String)
 	fun stopAdapter(name: String)
 	
-	fun jsonStore(namespace: String): JsonStore
+	fun jsonStore(kClass: KClass<*>): JsonStore
 	fun i18nService(): I18nService
 	
 	interface SessionAPI {

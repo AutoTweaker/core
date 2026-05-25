@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory
 object ContainerManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val mutex = Mutex()
-	private val envStorage = EnvStorage(this::class.java.name)
+	private val envStorage = EnvStorage(this::class)
 	
 	private val service: ContainerService = DockerJavaService()
 	
