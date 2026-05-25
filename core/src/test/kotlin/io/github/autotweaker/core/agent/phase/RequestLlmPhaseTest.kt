@@ -20,33 +20,40 @@ package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.core.agent.*
+import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.agent.AgentEnvironment
+import io.github.autotweaker.core.agent.AgentStreamProcessor
+import io.github.autotweaker.core.agent.AgentStreamProcessor.StreamProcessResult
+import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
+import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.*
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class RequestLlmPhaseTest {
 	
 	private lateinit var env: AgentEnvironment
-	private lateinit var streamProcessor: AgentStreamProcessor
 	private lateinit var agentState: MutableAgentState
 	private lateinit var model: Model
 	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val statusLog = mutableListOf<AgentStatus>()
 	
-	@BeforeTest
+	@BeforeEach
 	fun setUp() {
+		mockkObject(AgentStreamProcessor)
 		agentState = MutableAgentState()
 		model = mockModel()
-		streamProcessor = mockk<AgentStreamProcessor>()
 		
 		env = mockk(relaxUnitFun = true)
 		every { env.agentId } returns UUID.randomUUID()
@@ -71,6 +78,11 @@ class RequestLlmPhaseTest {
 		every { env.updateStatus(any()) } answers { statusLog.add(firstArg()) }
 	}
 	
+	@AfterEach
+	fun tearDown() {
+		unmockkObject(AgentStreamProcessor)
+	}
+	
 	@Test
 	fun `StreamProcessResult Completed archives round and returns Done`() = runTest {
 		val round = AgentContext.CurrentRound(
@@ -78,9 +90,17 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("done"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Completed
+		coEvery {
+			AgentStreamProcessor.processRequest(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns StreamProcessResult.Completed
 		
-		val result = RequestLlmPhase.execute(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertNull(_contextFlow.value.currentRound)
@@ -95,9 +115,17 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("calling tools"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.ToolCallsRequired(emptyList())
+		coEvery {
+			AgentStreamProcessor.processRequest(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns StreamProcessResult.ToolCallsRequired(emptyList())
 		
-		val result = RequestLlmPhase.execute(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env)
 		
 		assertEquals(PhaseResult.Continue, result)
 	}
@@ -109,9 +137,17 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("cancelled"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Cancelled
+		coEvery {
+			AgentStreamProcessor.processRequest(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns StreamProcessResult.Cancelled
 		
-		val result = RequestLlmPhase.execute(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env)
 		
 		assertEquals(PhaseResult.Done, result)
 		assertNull(_contextFlow.value.currentRound)
@@ -126,9 +162,17 @@ class RequestLlmPhaseTest {
 			assistantMessage = assistantMessage("failed"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Failed("LLM error")
+		coEvery {
+			AgentStreamProcessor.processRequest(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns StreamProcessResult.Failed("LLM error")
 		
-		val result = RequestLlmPhase.execute(env, streamProcessor)
+		val result = RequestLlmPhase.execute(env)
 		
 		assertEquals(PhaseResult.Error, result)
 		assertTrue(statusLog.contains(AgentStatus.ERROR))
@@ -136,14 +180,22 @@ class RequestLlmPhaseTest {
 	
 	@Test
 	fun `updates status to PROCESSING on entry`() = runTest {
-		coEvery { streamProcessor.process(any(), any()) } returns StreamProcessResult.Completed
+		coEvery {
+			AgentStreamProcessor.processRequest(
+				any(),
+				any(),
+				any(),
+				any(),
+				any()
+			)
+		} returns StreamProcessResult.Completed
 		val round = AgentContext.CurrentRound(
 			userMessage = userMessage(), turns = null,
 			assistantMessage = assistantMessage("done"),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		RequestLlmPhase.execute(env, streamProcessor)
+		RequestLlmPhase.execute(env)
 		
 		assertTrue(statusLog.contains(AgentStatus.PROCESSING))
 	}

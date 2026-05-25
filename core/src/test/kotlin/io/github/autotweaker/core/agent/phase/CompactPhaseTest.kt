@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
@@ -34,7 +35,6 @@ import io.github.autotweaker.core.agent.MutableAgentState
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.llm.ResilientChat
-import io.github.autotweaker.core.agent.llm.ResilientChatResult
 import io.mockk.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,7 +104,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val userMsg = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now())
@@ -139,7 +139,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -172,7 +172,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = blankResult, retrying = null)
+			CoreLlmResult(result = blankResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -207,7 +207,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -242,7 +242,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val userMsg = AgentContext.Message.User(content = "run command", timestamp = Clock.System.now())
@@ -290,7 +290,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = errorResult, retrying = null)
+			CoreLlmResult(result = errorResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -331,8 +331,8 @@ class CompactPhaseTest {
 			usage = usage,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chunkResult, retrying = null),
-			ResilientChatResult(result = assembledResult, retrying = null),
+			CoreLlmResult(result = chunkResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000")),
+			CoreLlmResult(result = assembledResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000")),
 		)
 		
 		val rounds = listOf(
@@ -388,7 +388,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -430,11 +430,11 @@ class CompactPhaseTest {
 		// First call: summarizeMessage for user message, second call: summarizeMessage for assistant message,
 		// third call: runCompactRequest
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		) andThen flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		) andThen flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -480,7 +480,7 @@ class CompactPhaseTest {
 		)
 		// summarizeMessage called for each long message + main compact request
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val toolMsg = AgentContext.Message.Tool(
@@ -536,7 +536,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(result = chatResult, retrying = null)
+			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val rounds = listOf(
@@ -577,11 +577,21 @@ class CompactPhaseTest {
 		)
 		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returnsMany listOf(
 			flowOf(
-				ResilientChatResult(result = emptyResult, retrying = model),
-				ResilientChatResult(result = emptyResult, retrying = null)
+				CoreLlmResult(result = emptyResult, model = model.id),
+				CoreLlmResult(result = emptyResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 			),
-			flowOf(ResilientChatResult(result = emptyResult, retrying = null)),
-			flowOf(ResilientChatResult(result = successResult, retrying = null)),
+			flowOf(
+				CoreLlmResult(
+					result = emptyResult,
+					model = UUID.fromString("00000000-0000-0000-0000-000000000000")
+				)
+			),
+			flowOf(
+				CoreLlmResult(
+					result = successResult,
+					model = UUID.fromString("00000000-0000-0000-0000-000000000000")
+				)
+			),
 		)
 		
 		val rounds = listOf(

@@ -69,7 +69,7 @@ class ResilientChatTest {
 	private fun provider(
 		name: String = "test-provider",
 		rules: List<ErrorHandlingRule> = emptyList(),
-	) = Provider(name, testUrl, "sk-test", rules)
+	) = Provider(UUID.randomUUID(), name, testUrl, "sk-test", rules)
 	
 	private fun model(
 		provider: Provider = provider(),
@@ -273,7 +273,7 @@ class ResilientChatTest {
 				service = mockService,
 			).toList()
 		}
-		assertTrue(ex.message!!.contains("All candidate models exhausted"))
+		assertTrue(ex.message!!.contains("All LLM chat retries exhausted"))
 	}
 	
 	@Test
@@ -469,7 +469,7 @@ class ResilientChatTest {
 		
 		val msg1 = capturedRequest!!.messages[1] as ChatMessage.AssistantMessage
 		val msg2 = capturedRequest!!.messages[2] as ChatMessage.AssistantMessage
-		assertEquals("", msg1.reasoningContent)
+		assertEquals("</think>", msg1.reasoningContent)
 		assertEquals("think", msg2.reasoningContent)
 	}
 }

@@ -21,14 +21,13 @@ package io.github.autotweaker.core.agent.tool.service
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.agent.llm.ResilientChat
-import io.github.autotweaker.core.agent.llm.ResilientChatResult
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkObject
-
 import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -42,13 +41,13 @@ class SummarizeServiceImplTest {
 	private val mockService: SettingService = mockk(relaxed = true)
 	
 	private val mockModel = Model(
-		provider = Provider("test-provider", mockk(relaxed = true), "key", emptyList()),
+		provider = Provider(UUID.randomUUID(), "test-provider", mockk(relaxed = true), "key", emptyList()),
 		modelInfo = mockk(relaxed = true),
 		id = UUID.randomUUID(),
 	)
 	
 	private val fallbackModel = Model(
-		provider = Provider("fb-provider", mockk(relaxed = true), "key2", emptyList()),
+		provider = Provider(UUID.randomUUID(), "fb-provider", mockk(relaxed = true), "key2", emptyList()),
 		modelInfo = mockk(relaxed = true),
 		id = UUID.randomUUID(),
 	)
@@ -57,11 +56,11 @@ class SummarizeServiceImplTest {
 	fun `summarize returns response on success`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(
+			CoreLlmResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("summarized content", Clock.System.now()),
 				),
-				retrying = null,
+				model = UUID.fromString("00000000-0000-0000-0000-000000000000"),
 			)
 		)
 		
@@ -77,15 +76,15 @@ class SummarizeServiceImplTest {
 	fun `summarize skips retrying results and uses success`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(
+			CoreLlmResult(
 				result = ChatResult.Chunk(message = null),
-				retrying = mockModel,
+				model = mockModel.id,
 			),
-			ResilientChatResult(
+			CoreLlmResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("fallback result", Clock.System.now()),
 				),
-				retrying = null,
+				model = UUID.fromString("00000000-0000-0000-0000-000000000000"),
 			),
 		)
 		
@@ -101,9 +100,9 @@ class SummarizeServiceImplTest {
 	fun `summarize throws when no successful response`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(
+			CoreLlmResult(
 				result = ChatResult.Chunk(message = null),
-				retrying = mockModel,
+				model = mockModel.id,
 			),
 		)
 		
@@ -134,11 +133,11 @@ class SummarizeServiceImplTest {
 	fun `summarize bypasses fallback when first model succeeds`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			ResilientChatResult(
+			CoreLlmResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("first success", Clock.System.now()),
 				),
-				retrying = null,
+				model = UUID.fromString("00000000-0000-0000-0000-000000000000"),
 			),
 		)
 		

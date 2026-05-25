@@ -56,6 +56,7 @@ class ModelTest {
 			name = "test-provider",
 			baseUrl = testUrl,
 			apiKey = "sk-test",
+			id = UUID.randomUUID(),
 			errorHandlingRules = emptyList()
 		)
 		val id = UUID.randomUUID()
@@ -72,7 +73,7 @@ class ModelTest {
 	
 	@Test
 	fun `construct model with config`() {
-		val provider = Provider("p", testUrl, "key", emptyList())
+		val provider = Provider(UUID.randomUUID(), "p", testUrl, "key", emptyList())
 		val config = Config(temperature = 0.7, maxTokens = 2048, compactContextUsage = 0.8, compactTotalTokens = 0.9)
 		val model = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo, config = config)
 		assertEquals(config, model.config)
@@ -88,7 +89,7 @@ class ModelTest {
 			ErrorHandlingRule(400, RecoveryStrategy.CONTEXT_FALLBACK),
 			ErrorHandlingRule(401, RecoveryStrategy.PROVIDER_FALLBACK),
 		)
-		val provider = Provider("p", testUrl, "key", rules)
+		val provider = Provider(UUID.randomUUID(), "p", testUrl, "key", rules)
 		assertEquals(4, provider.errorHandlingRules.size)
 		assertEquals(RecoveryStrategy.RETRY, provider.errorHandlingRules[0].strategy)
 		assertEquals(429, provider.errorHandlingRules[0].statusCode)
@@ -97,7 +98,7 @@ class ModelTest {
 	@Test
 	fun `model equality`() {
 		val id = UUID.randomUUID()
-		val provider = Provider("p", testUrl, "key", emptyList())
+		val provider = Provider(UUID.randomUUID(), "p", testUrl, "key", emptyList())
 		val model1 = Model(id = id, provider = provider, modelInfo = testModelInfo)
 		val model2 = Model(id = id, provider = provider, modelInfo = testModelInfo)
 		assertEquals(model1, model2)
@@ -107,14 +108,15 @@ class ModelTest {
 	@Test
 	fun `provider equality`() {
 		val rules = listOf(ErrorHandlingRule(429, RecoveryStrategy.RETRY))
-		val p1 = Provider("p", testUrl, "key", rules)
-		val p2 = Provider("p", testUrl, "key", rules)
+		val providerId = UUID.randomUUID()
+		val p1 = Provider(providerId, "p", testUrl, "key", rules)
+		val p2 = Provider(providerId, "p", testUrl, "key", rules)
 		assertEquals(p1, p2)
 	}
 	
 	@Test
 	fun `models with different ids are not equal`() {
-		val provider = Provider("p", testUrl, "key", emptyList())
+		val provider = Provider(UUID.randomUUID(), "p", testUrl, "key", emptyList())
 		val model1 = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo)
 		val model2 = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo)
 		assertTrue(model1 != model2)

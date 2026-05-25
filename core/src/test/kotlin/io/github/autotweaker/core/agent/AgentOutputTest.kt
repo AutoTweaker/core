@@ -29,6 +29,7 @@ import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
 import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.mockk
+import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -84,7 +85,7 @@ class AgentOutputTest {
 		val error = AgentChatStreamResult.Failing.Error(
 			content = "error",
 			statusCode = 503,
-			retrying = mockModel,
+			model = mockModel.id,
 			timestamp = Clock.System.now(),
 		)
 		val output = AgentOutput.LlmError(error)
@@ -205,7 +206,12 @@ class AgentOutputTest {
 		)
 		assertIs<AgentOutput>(
 			AgentOutput.LlmError(
-				AgentChatStreamResult.Failing.Error("e", 500, null, Clock.System.now())
+				AgentChatStreamResult.Failing.Error(
+					"e",
+					500,
+					UUID.fromString("00000000-0000-0000-0000-000000000000"),
+					Clock.System.now()
+				)
 			)
 		)
 		assertIs<AgentOutput>(

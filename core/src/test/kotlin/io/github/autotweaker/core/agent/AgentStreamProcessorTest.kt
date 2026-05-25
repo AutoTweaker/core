@@ -19,12 +19,11 @@
 package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.types.agent.AgentError
-import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.core.agent.AgentStreamProcessor.StreamProcessResult
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
@@ -37,7 +36,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.test.assertIs
@@ -48,21 +48,6 @@ class AgentStreamProcessorTest {
 	private val mockModel: Model = mockk(relaxed = true)
 	private val mockService: SettingService = mockk(relaxed = true)
 	private val emittedOutputs = mutableListOf<AgentOutput>()
-	private val statusChanges = mutableListOf<AgentStatus>()
-	private var contextUpdateTransform: (suspend (AgentContext) -> AgentContext)? = null
-	
-	private fun createProcessor() {
-		emittedOutputs.clear()
-		statusChanges.clear()
-		contextUpdateTransform = null
-	}
-	
-	private fun newProcessor() = AgentStreamProcessor(
-		agentId = UUID.randomUUID(),
-		emitOutput = { emittedOutputs.add(it) },
-		onStatusChange = { statusChanges.add(it) },
-		onContextUpdate = { transform -> contextUpdateTransform = transform },
-	)
 	
 	private fun userMsg(content: String = "hello") =
 		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
@@ -82,7 +67,6 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `process emits stream delta and context update for text response`() = runTest {
-		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
@@ -108,7 +92,10 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest(), mockService)
+		AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { emittedOutputs.add(it) }
+		)
 		
 		assertTrue(emittedOutputs.any {
 			it is AgentOutput.LlmDelta && it.delta.content == "hi"
@@ -117,7 +104,6 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `process emits stream delta with reasoning when reasoning content arrives`() = runTest {
-		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
@@ -152,7 +138,10 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest(), mockService)
+		AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { emittedOutputs.add(it) }
+		)
 		
 		assertTrue(emittedOutputs.any {
 			it is AgentOutput.LlmDelta && it.delta.reasoningContent == "let me think"
@@ -161,7 +150,6 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `process returns ToolCallsRequired when tool calls present`() = runTest {
-		createProcessor()
 		val toolCalls = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
 				callId = "c1",
@@ -186,7 +174,10 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		val result = newProcessor().process(createRequest(), mockService)
+		val result = AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { }
+		)
 		
 		assertIs<StreamProcessResult.ToolCallsRequired>(result)
 		assertEquals("c1", result.toolCalls[0].callId)
@@ -194,7 +185,6 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `onContextUpdate transform sets assistant message on current round`() = runTest {
-		createProcessor()
 		val now = Clock.System.now()
 		val assistantMsg = AgentContext.Message.Assistant(
 			reasoning = "think",
@@ -203,6 +193,8 @@ class AgentStreamProcessorTest {
 			timestamp = now,
 			usageSnapshot = UsageSnapshot(usage = Usage(5, 5), model = mockModel.modelInfo)
 		)
+		
+		var capturedTransform: (suspend (AgentContext) -> AgentContext)? = null
 		
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
@@ -215,13 +207,15 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest(), mockService)
-		
-		assertNotNull(contextUpdateTransform)
+		AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { capturedTransform = it },
+			onOutput = { }
+		)
 		
 		val user = userMsg("hello")
 		val originalCtx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null))
-		val updatedCtx = contextUpdateTransform!!(originalCtx)
+		val updatedCtx = capturedTransform!!(originalCtx)
 		
 		assertEquals("answer", updatedCtx.currentRound?.assistantMessage?.content)
 		assertEquals("think", updatedCtx.currentRound?.assistantMessage?.reasoning)
@@ -230,7 +224,6 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `onContextUpdate transform sets tool calls on current round`() = runTest {
-		createProcessor()
 		val now = Clock.System.now()
 		val assistantMsg = AgentContext.Message.Assistant(model = mockModel, timestamp = now)
 		val toolCalls = listOf(
@@ -244,6 +237,8 @@ class AgentStreamProcessorTest {
 			)
 		)
 		
+		var capturedTransform: (suspend (AgentContext) -> AgentContext)? = null
+		
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
@@ -255,13 +250,15 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest(), mockService)
-		
-		assertNotNull(contextUpdateTransform)
+		AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { capturedTransform = it },
+			onOutput = { }
+		)
 		
 		val user = userMsg("read")
 		val originalCtx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null))
-		val updatedCtx = contextUpdateTransform!!(originalCtx)
+		val updatedCtx = capturedTransform!!(originalCtx)
 		
 		assertEquals(1, updatedCtx.currentRound?.pendingToolCalls?.size)
 		assertEquals("c1", updatedCtx.currentRound?.pendingToolCalls?.get(0)?.callId)
@@ -269,65 +266,10 @@ class AgentStreamProcessorTest {
 	
 	// endregion
 	
-	// region error path: Failing
+	// region error path: Failing + success after retry
 	
 	@Test
-	fun `process emits Error when Failing without retrying`() = runTest {
-		createProcessor()
-		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
-			emit(
-				AgentChatStreamResult.Failing(
-					errors = listOf(
-						AgentChatStreamResult.Failing.Error(
-							content = "service down",
-							statusCode = 503,
-							retrying = null,
-							timestamp = Clock.System.now(),
-						)
-					)
-				)
-			)
-		}
-		
-		val result = newProcessor().process(createRequest(), mockService)
-		
-		assertIs<StreamProcessResult.Failed>(result)
-		assertTrue(emittedOutputs.any { it is AgentOutput.Error && it.error.type == AgentError.Type.LLM })
-	}
-	
-	@Test
-	fun `Failing with null content uses default error message`() = runTest {
-		createProcessor()
-		mockkObject(AgentChat)
-		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
-			emit(
-				AgentChatStreamResult.Failing(
-					errors = listOf(
-						AgentChatStreamResult.Failing.Error(
-							content = null,
-							statusCode = null,
-							retrying = null,
-							timestamp = Clock.System.now(),
-						)
-					)
-				)
-			)
-		}
-		
-		val result = newProcessor().process(createRequest(), mockService)
-		
-		assertIs<StreamProcessResult.Failed>(result)
-		assertEquals("All retries exhausted", result.message)
-		val errorOutput = emittedOutputs.filterIsInstance<AgentOutput.Error>().first()
-		assertEquals("All retries exhausted", errorOutput.error.message)
-	}
-	
-	@Test
-	fun `process changes status to RETRYING on failing with retrying model`() = runTest {
-		createProcessor()
-		val retryingModel: Model = mockk(relaxed = true)
-		
+	fun `process emits LlmError on failing and continues`() = runTest {
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			emit(
@@ -336,7 +278,7 @@ class AgentStreamProcessorTest {
 						AgentChatStreamResult.Failing.Error(
 							content = "error",
 							statusCode = 503,
-							retrying = retryingModel,
+							model = UUID.randomUUID(),
 							timestamp = Clock.System.now(),
 						)
 					)
@@ -353,9 +295,11 @@ class AgentStreamProcessorTest {
 			)
 		}
 		
-		newProcessor().process(createRequest(), mockService)
+		AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { emittedOutputs.add(it) }
+		)
 		
-		assertTrue(statusChanges.contains(AgentStatus.RETRYING))
 		assertTrue(emittedOutputs.any { it is AgentOutput.LlmError })
 	}
 	
@@ -365,26 +309,30 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `process returns Cancelled on CancellationException`() = runTest {
-		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw CancellationException("cancelled")
 		}
 		
-		val result = newProcessor().process(createRequest(), mockService)
+		val result = AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { }
+		)
 		
 		assertIs<StreamProcessResult.Cancelled>(result)
 	}
 	
 	@Test
 	fun `process returns Failed on generic exception with message and cause`() = runTest {
-		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw RuntimeException("outer", IllegalStateException("inner"))
 		}
 		
-		val result = newProcessor().process(createRequest(), mockService)
+		val result = AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { emittedOutputs.add(it) }
+		)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
@@ -395,13 +343,15 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `exception with null message omits colon and message text`() = runTest {
-		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw RuntimeException()
 		}
 		
-		val result = newProcessor().process(createRequest(), mockService)
+		val result = AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { }
+		)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
@@ -410,13 +360,15 @@ class AgentStreamProcessorTest {
 	
 	@Test
 	fun `exception with null cause does not include cause section`() = runTest {
-		createProcessor()
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {
 			throw RuntimeException("some error")
 		}
 		
-		val result = newProcessor().process(createRequest(), mockService)
+		val result = AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { }
+		)
 		
 		assertIs<StreamProcessResult.Failed>(result)
 		assertTrue(result.message.contains("RuntimeException"))
@@ -429,14 +381,16 @@ class AgentStreamProcessorTest {
 	// region no emission
 	
 	@Test
-	fun `process returns Completed when flow emits nothing`() = runTest {
-		createProcessor()
+	fun `process returns Failed when flow emits nothing`() = runTest {
 		mockkObject(AgentChat)
 		every { AgentChat.execute(any<AgentChatRequest>(), any(), any<SettingService>()) } returns flow {}
 		
-		val result = newProcessor().process(createRequest(), mockService)
+		val result = AgentStreamProcessor.processRequest(
+			createRequest(), UUID.randomUUID(), mockService,
+			onContextUpdate = { }, onOutput = { }
+		)
 		
-		assertIs<StreamProcessResult.Completed>(result)
+		assertIs<StreamProcessResult.Failed>(result)
 	}
 	
 	// endregion

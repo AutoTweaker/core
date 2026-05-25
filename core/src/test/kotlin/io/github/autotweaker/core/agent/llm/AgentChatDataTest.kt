@@ -49,7 +49,7 @@ class AgentChatDataTest {
 		supportsImage = false,
 		supportsJsonOutput = true,
 	)
-	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
+	private val testProvider = Provider(UUID.randomUUID(), "test-provider", testUrl, "sk-test", emptyList())
 	private val testModel = Model(
 		provider = testProvider,
 		modelInfo = testModelInfo,
@@ -95,16 +95,21 @@ class AgentChatDataTest {
 	fun `failing result contains errors`() {
 		val now = Clock.System.now()
 		val errors = listOf(
-			AgentChatStreamResult.Failing.Error("error 1", 500, null, now),
-			AgentChatStreamResult.Failing.Error("error 2", 503, testModel, now),
+			AgentChatStreamResult.Failing.Error(
+				"error 1",
+				500,
+				UUID.fromString("00000000-0000-0000-0000-000000000000"),
+				now
+			),
+			AgentChatStreamResult.Failing.Error("error 2", 503, testModel.id, now),
 		)
 		val failing = AgentChatStreamResult.Failing(errors)
 		assertEquals(2, failing.errors.size)
 		assertEquals("error 1", failing.errors[0].content)
 		assertEquals(500, failing.errors[0].statusCode)
-		assertNull(failing.errors[0].retrying)
+		assertEquals(UUID.fromString("00000000-0000-0000-0000-000000000000"), failing.errors[0].model)
 		assertEquals("error 2", failing.errors[1].content)
-		assertEquals(testModel, failing.errors[1].retrying)
+		assertEquals(testModel.id, failing.errors[1].model)
 	}
 	
 	@Test

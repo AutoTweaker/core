@@ -28,7 +28,7 @@ class AgentStatusTest {
 	
 	@Test
 	fun `all seven status values exist`() {
-		assertEquals(7, AgentStatus.entries.size)
+		assertEquals(6, AgentStatus.entries.size)
 	}
 	
 	@Test
@@ -69,10 +69,6 @@ class AgentStatusTest {
 		assertEquals(AgentStatus.WAITING, AgentStatus.valueOf("WAITING"))
 	}
 	
-	@Test
-	fun `RETRYING exists`() {
-		assertEquals(AgentStatus.RETRYING, AgentStatus.valueOf("RETRYING"))
-	}
 	
 	@Test
 	fun `PAUSED exists`() {

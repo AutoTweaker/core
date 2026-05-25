@@ -51,7 +51,7 @@ class AgentChatRequestExtTest {
 		supportsImage = false,
 		supportsJsonOutput = true,
 	)
-	private val testProvider = Provider("test-provider", testUrl, "sk-test", emptyList())
+	private val testProvider = Provider(UUID.randomUUID(), "test-provider", testUrl, "sk-test", emptyList())
 	private val testModel = Model(
 		provider = testProvider,
 		modelInfo = testModelInfo,

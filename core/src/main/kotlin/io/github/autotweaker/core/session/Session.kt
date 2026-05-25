@@ -202,7 +202,7 @@ class Session(
 		scope.cancel()
 	}
 	
-	suspend fun syncContext(ctx: AgentContext) {
+	private suspend fun syncContext(ctx: AgentContext) {
 		val oldCtx = _context.value
 		val result = AgentContextConverter.sync(ctx, oldCtx)
 		
