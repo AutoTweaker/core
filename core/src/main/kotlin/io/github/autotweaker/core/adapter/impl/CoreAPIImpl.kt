@@ -28,6 +28,8 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.llm.CoreLlmRequest
+import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
@@ -42,6 +44,7 @@ import io.github.autotweaker.core.secret.impl.SecretManager
 import io.github.autotweaker.core.session.SessionManager
 import io.github.autotweaker.core.session.UsageStore
 import io.github.autotweaker.core.session.WorkspaceAPI
+import kotlinx.coroutines.flow.Flow
 import java.util.*
 import kotlin.reflect.KClass
 
@@ -90,6 +93,8 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
 		override fun listWorkspaces() = WorkspaceAPI.list()
+		
+		override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = SessionManager.chat(request)
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {

@@ -20,17 +20,21 @@ package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
+import io.github.autotweaker.api.types.llm.CoreLlmRequest
+import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionHandle
 
 import io.github.autotweaker.core.agent.AgentCommand
 import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.WorkspaceManager
 import io.github.autotweaker.core.data.settings.Settings
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -59,6 +63,17 @@ object SessionManager {
 			session.data.collectLatest { store.saveSessions(listOf(it)) }
 		}
 	}
+	
+	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ResilientChat.execute(
+		model = resolveModel(request.model),
+		fallbackModels = request.fallbackModels?.map { resolveModel(it) },
+		messages = request.messages,
+		tools = request.tools,
+		responseFormat = request.responseFormat,
+		stream = request.stream,
+		thinking = request.thinking,
+		service = Settings
+	)
 	
 	suspend fun send(session: UUID, content: String, images: List<Base64>? = null) {
 		val session = if (sessions[session] == null) sessions[session]

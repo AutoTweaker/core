@@ -28,10 +28,9 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.ProviderData
-import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.session.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.reflect.KClass
@@ -81,6 +80,8 @@ interface CoreAPI {
 		suspend fun renameWorkspace(id: UUID, newName: String)
 		suspend fun deleteWorkspace(id: UUID)
 		fun listWorkspaces(): List<WorkspaceData>
+		
+		fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	}
 	
 	interface TranslationAPI {
