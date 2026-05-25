@@ -124,9 +124,11 @@ internal object TranslationEngine {
 			responseFormat = ChatRequest.ResponseFormat(type = ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		).toList()
 		
-		val finalResult = results.filter { it.retrying == null }.map { it.result }.lastOrNull() ?: return BatchResult(
-			emptyMap(), job.batch, job.target
-		)
+		val finalResult =
+			results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }.lastOrNull()
+				?: return BatchResult(
+					emptyMap(), job.batch, job.target
+				)
 		if (finalResult.message is ChatMessage.ErrorMessage) return BatchResult(emptyMap(), job.batch, job.target)
 		
 		finalResult.usage?.let { usage ->

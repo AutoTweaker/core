@@ -21,7 +21,7 @@ package io.github.autotweaker.core.agent.phase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentStreamProcessor
-import io.github.autotweaker.core.agent.StreamProcessResult
+import io.github.autotweaker.core.agent.AgentStreamProcessor.StreamProcessResult
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import org.slf4j.LoggerFactory
 
@@ -30,11 +30,13 @@ internal object RequestLlmPhase {
 	
 	internal suspend fun execute(
 		env: AgentEnvironment,
-		streamProcessor: AgentStreamProcessor,
 	): PhaseResult {
 		logger.debug(
 			"LLM request phase started  agentId={}  model={}  hasFallback={}  thinking={}",
-			env.agentId, env.currentModel.modelInfo.modelId, env.currentFallbackModels != null, env.currentThinking
+			env.agentId,
+			env.currentModel.modelInfo.modelId,
+			env.currentFallbackModels != null,
+			env.currentThinking
 		)
 		env.updateStatus(AgentStatus.PROCESSING)
 		
@@ -46,7 +48,9 @@ internal object RequestLlmPhase {
 			context = env.context.value,
 		)
 		
-		return when (streamProcessor.process(request, env.service)) {
+		return when (AgentStreamProcessor.processRequest(
+			request, env.agentId, env.service, env::updateContext, env::emitOutput
+		)) {
 			is StreamProcessResult.Completed -> {
 				ContextPhase.archiveCurrentRound(env, env::updateContext)
 				env.updateStatus(AgentStatus.FREE)

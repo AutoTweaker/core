@@ -34,6 +34,7 @@ object ProviderService {
 		val model = ModelStore.get(id) ?: return null
 		val provider = ProviderStore.get(model.providerId) ?: return null
 		val providerData = Provider(
+			id = provider.id,
 			name = provider.providerType,
 			baseUrl = provider.baseUrl,
 			apiKey = SecretManager.get(provider.apiKey),

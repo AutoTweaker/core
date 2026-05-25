@@ -43,7 +43,7 @@ class SummarizeServiceImpl(
 			),
 			service = service,
 		).toList()
-		val success = results.filter { it.retrying == null }.map { it.result }
+		val success = results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }
 		val finalResult = success.lastOrNull()
 		finalResult?.usage?.let { onUsage?.invoke(UsageSnapshot(it, model.modelInfo)) }
 		return finalResult?.message?.content ?: throw IllegalStateException("No response from LLM")

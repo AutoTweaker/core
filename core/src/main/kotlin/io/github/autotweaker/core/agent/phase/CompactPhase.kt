@@ -360,7 +360,7 @@ internal object CompactPhase {
 			thinking = false,
 			service = service,
 		).toList()
-		val success = results.filter { it.retrying == null }.map { it.result }
+		val success = results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }
 		val finalResult = success.lastOrNull()
 		val snapshot = (finalResult as? ChatResult.Assembled)?.usage?.let {
 			UsageSnapshot(it, model.modelInfo)

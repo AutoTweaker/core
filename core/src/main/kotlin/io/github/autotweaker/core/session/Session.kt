@@ -234,7 +234,7 @@ class Session(
 	private suspend fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {
 		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(output.delta)
 		is AgentOutput.LlmError -> SessionOutput.LlmError(
-			output.error.content, output.error.statusCode, output.error.retrying?.id, output.error.timestamp
+			output.error.content, output.error.statusCode, output.error.model, output.error.timestamp
 		)
 		
 		is AgentOutput.Compact -> SessionOutput.Compact(output.output)

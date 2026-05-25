@@ -20,7 +20,6 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
-import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
@@ -28,59 +27,43 @@ import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.util.*
 
-sealed class StreamProcessResult {
-	data object Completed : StreamProcessResult()
-	data class ToolCallsRequired(
-		val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
-	) : StreamProcessResult()
+internal object AgentStreamProcessor {
+	sealed class StreamProcessResult {
+		data object Completed : StreamProcessResult()
+		data class ToolCallsRequired(
+			val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>,
+		) : StreamProcessResult()
+		
+		data object Cancelled : StreamProcessResult()
+		data class Failed(val message: String) : StreamProcessResult()
+	}
 	
-	data object Cancelled : StreamProcessResult()
-	data class Failed(val message: String) : StreamProcessResult()
-}
-
-class AgentStreamProcessor(
-	private val agentId: UUID,
-	private val emitOutput: suspend (AgentOutput) -> Unit,
-	private val onStatusChange: (AgentStatus) -> Unit,
-	private val onContextUpdate: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
-) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	suspend fun process(
+	internal suspend fun processRequest(
 		request: AgentChatRequest,
+		agentId: UUID,
 		service: SettingService,
+		onContextUpdate: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
+		onOutput: suspend (AgentOutput) -> Unit,
 	): StreamProcessResult {
-		var earlyResult: StreamProcessResult? = null
-		
+		var streamResult: StreamProcessResult? = null
 		try {
 			AgentChat.execute(request, agentId, service).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Delta -> {
-						emitOutput(AgentOutput.LlmDelta(result.delta))
+						onOutput(AgentOutput.LlmDelta(result.delta))
 					}
 					
 					is AgentChatStreamResult.Failing -> {
-						val lastError = result.errors.lastOrNull()
-						if (lastError?.retrying != null) {
-							logger.debug(
-								"LLM stream retry initiated  agentId={}  model={}  error={}",
-								agentId,
-								lastError.retrying.modelInfo.modelId,
-								lastError.content
-							)
-							onStatusChange(AgentStatus.RETRYING)
-							emitOutput(AgentOutput.LlmError(lastError))
-						} else {
-							val errorMessage = lastError?.content ?: "All retries exhausted"
-							logger.warn(
-								"Failed to receive LLM stream  retries exhausted  agentId={}  error={}",
-								agentId,
-								errorMessage
-							)
-							emitOutput(AgentOutput.Error(AgentError(errorMessage, AgentError.Type.LLM)))
-							earlyResult = StreamProcessResult.Failed(errorMessage)
-							return@collect
-						}
+						val lastError = result.errors.lastOrNull() ?: return@collect
+						logger.debug(
+							"LLM stream retry initiated  agentId={}  model={}  error={}",
+							agentId,
+							lastError.model,
+							lastError.content
+						)
+						onOutput(AgentOutput.LlmError(lastError))
 					}
 					
 					is AgentChatStreamResult.Assembled -> {
@@ -100,16 +83,16 @@ class AgentStreamProcessor(
 								agentId,
 								resultToolCalls.size
 							)
-							earlyResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
+							streamResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
 						} else {
 							logger.debug("LLM stream completed  agentId={}", agentId)
-							earlyResult = StreamProcessResult.Completed
+							streamResult = StreamProcessResult.Completed
 						}
-						return@collect
 					}
 				}
 			}
-			return earlyResult ?: StreamProcessResult.Completed
+			
+			return streamResult ?: StreamProcessResult.Failed("LLM stream ended without result")
 		} catch (_: CancellationException) {
 			logger.debug("LLM stream cancelled  agentId={}", agentId)
 			return StreamProcessResult.Cancelled
@@ -123,7 +106,7 @@ class AgentStreamProcessor(
 					cause::class.simpleName ?: cause::class.qualifiedName
 				).append(")")
 			}
-			emitOutput(AgentOutput.Error(AgentError(message, AgentError.Type.LLM)))
+			onOutput(AgentOutput.Error(AgentError(message, AgentError.Type.LLM)))
 			return StreamProcessResult.Failed(message)
 		}
 	}

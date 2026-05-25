@@ -91,14 +91,6 @@ class Agent(
 	//工作触发信号
 	private val workTrigger = Channel<Unit>(Channel.CONFLATED)
 	
-	//llm输出转agentOutput
-	private val streamProcessor = AgentStreamProcessor(
-		agentId = agentId,
-		emitOutput = { _output.emit(it) },
-		onStatusChange = { _status.value = it },
-		onContextUpdate = { transform -> updateContext(transform) },
-	)
-	
 	//协程
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
@@ -309,7 +301,7 @@ class Agent(
 	private fun requestLlm() {
 		currentJob = scope.launch {
 			logger.debug("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.modelId)
-			val result = RequestLlmPhase.execute(this@Agent, streamProcessor)
+			val result = RequestLlmPhase.execute(this@Agent)
 			if (result == PhaseResult.Done || result == PhaseResult.Continue) {
 				checkAutoCompact()
 			}

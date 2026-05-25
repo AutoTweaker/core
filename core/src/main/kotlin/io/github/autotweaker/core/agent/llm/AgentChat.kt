@@ -66,6 +66,11 @@ internal object AgentChat {
 			messages.size
 		)
 		
+		val modelById = buildMap {
+			put(request.model.id, request.model)
+			request.fallbackModels?.forEach { put(it.id, it) }
+		}
+		
 		val results = ResilientChat.execute(
 			model = request.model,
 			fallbackModels = request.fallbackModels,
@@ -76,85 +81,72 @@ internal object AgentChat {
 			service = service,
 		)
 		
-		var lastRetrying: Model? = null
 		val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
 		
-		try {
-			results.collect { resilientResult ->
-				val result = resilientResult.result
-				
-				if (resilientResult.retrying != null) {
-					lastRetrying = resilientResult.retrying
-				}
-				
-				when (result) {
-					is ChatResult.Chunk -> {
-						val msg = result.message
-						if (msg != null) {
-							emit(
-								AgentChatStreamResult.Delta(
-									StreamDelta(
-										content = msg.content,
-										reasoningContent = msg.reasoningContent,
-										toolCallFragments = result.toolCalls,
-									)
+		results.collect { resilientResult ->
+			when (val result = resilientResult.result) {
+				is ChatResult.Chunk -> {
+					val msg = result.message
+					if (msg != null) {
+						emit(
+							AgentChatStreamResult.Delta(
+								StreamDelta(
+									content = msg.content,
+									reasoningContent = msg.reasoningContent,
+									toolCallFragments = result.toolCalls,
 								)
 							)
-						}
+						)
 					}
-					
-					is ChatResult.Assembled -> {
-						val msg = result.message
-						if (msg is ChatMessage.ErrorMessage) {
+				}
+				
+				is ChatResult.Assembled -> {
+					when (val msg = result.message) {
+						is ChatMessage.ErrorMessage -> {
 							logger.debug(
 								"Agent chat error received  agentId={}  model={}  statusCode={}  errorCount={}",
 								agentId,
-								lastRetrying?.modelInfo?.modelId ?: request.model.modelInfo.modelId,
+								resilientResult.model,
 								msg.statusCode,
 								errors.size + 1
 							)
 							errors += AgentChatStreamResult.Failing.Error(
 								content = msg.content,
 								statusCode = msg.statusCode,
-								retrying = resilientResult.retrying,
+								model = resilientResult.model,
 								timestamp = msg.createdAt,
 								usage = result.usage,
 							)
 							emit(AgentChatStreamResult.Failing(errors = errors.toList()))
-							return@collect
 						}
 						
-						val assistantMsg = msg as? ChatMessage.AssistantMessage ?: return@collect
-						val resultModel = lastRetrying ?: request.model
-						val snapshot = result.usage?.let {
-							UsageSnapshot(it, resultModel.modelInfo)
-						}
-						val assistantMessage = AgentContext.Message.Assistant(
-							reasoning = assistantMsg.reasoningContent,
-							content = assistantMsg.content,
-							model = resultModel,
-							timestamp = assistantMsg.createdAt,
-							usageSnapshot = snapshot,
-						)
-						emit(
-							AgentChatStreamResult.Assembled(
-								message = assistantMessage,
-								toolCalls = toPendingToolCalls(
-									assistantMsg.toolCalls, assistantMessage.id, assistantMsg.createdAt, resultModel
-								),
-								finishReason = result.finishReason,
+						is ChatMessage.AssistantMessage -> {
+							val resultModel = modelById[resilientResult.model] ?: request.model
+							val snapshot = result.usage?.let {
+								UsageSnapshot(it, resultModel.modelInfo)
+							}
+							val assistantMessage = AgentContext.Message.Assistant(
+								reasoning = msg.reasoningContent,
+								content = msg.content,
+								model = resultModel,
+								timestamp = msg.createdAt,
+								usageSnapshot = snapshot,
 							)
-						)
+							emit(
+								AgentChatStreamResult.Assembled(
+									message = assistantMessage,
+									toolCalls = toPendingToolCalls(
+										msg.toolCalls, assistantMessage.id, msg.createdAt, resultModel
+									),
+									finishReason = result.finishReason,
+								)
+							)
+						}
+						
+						else -> return@collect
 					}
 				}
 			}
-		} catch (_: IllegalStateException) {
-			logger.warn(
-				"Failed to complete agent chat  all models exhausted  agentId={}  model={}",
-				agentId,
-				request.model.modelInfo.modelId
-			)
-			return@flow
 		}
 	}
 }

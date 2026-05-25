@@ -19,11 +19,5 @@
 package io.github.autotweaker.api.types.agent
 
 enum class AgentStatus {
-	FREE,
-	PROCESSING,
-	RETRYING,
-	TOOL_CALLING,
-	WAITING,
-	PAUSED,
-	ERROR
+	FREE, PROCESSING, TOOL_CALLING, WAITING, PAUSED, ERROR
 }

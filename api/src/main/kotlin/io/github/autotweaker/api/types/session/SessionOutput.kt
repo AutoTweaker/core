@@ -30,7 +30,7 @@ sealed class SessionOutput {
 	data class LlmError(
 		val content: String?,
 		val statusCode: Int?,
-		val retrying: UUID?,
+		val model: UUID,
 		val timestamp: Instant,
 	) : SessionOutput()
 	
