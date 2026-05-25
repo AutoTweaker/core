@@ -21,7 +21,8 @@ package io.github.autotweaker.core.llm.provider.deepseek
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.core.llm.base.openai.OpenAiRequest
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
+import io.github.autotweaker.core.infrastructure.llm.provider.deepseek.*
 import kotlin.test.*
 import kotlin.time.Clock
 

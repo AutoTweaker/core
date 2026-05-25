@@ -20,8 +20,9 @@ package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import io.github.autotweaker.core.data.json.JsonStoreImpl
-import io.github.autotweaker.core.session.SessionStore
+import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,8 +39,18 @@ object TranslationManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	
-	private val sessionStore: SessionStore by lazy {
-		ServiceLoader.load(SessionStore::class.java).firstOrNull() ?: error("No SessionStore implementation found")
+	private lateinit var sessionRepository: SessionRepository
+	private lateinit var modelRepo: ModelRepository
+	private lateinit var settings: SettingService
+	
+	fun init(
+		sessionRepository: SessionRepository,
+		modelRepo: ModelRepository,
+		settings: SettingService,
+	) {
+		this.sessionRepository = sessionRepository
+		this.modelRepo = modelRepo
+		this.settings = settings
 	}
 	
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
@@ -61,7 +72,7 @@ object TranslationManager {
 		logger.debug("Translation target updated  target={}", locale.toLanguageTag())
 	}
 	
-	fun startTranslation(svc: SettingService) {
+	fun startTranslation() {
 		if (_status.value == TranslationStatus.TRANSLATING) {
 			logger.debug("Translation already in progress  action=skip")
 			return
@@ -83,7 +94,7 @@ object TranslationManager {
 		_status.value = TranslationStatus.TRANSLATING
 		CoroutineScope(Dispatchers.Default).launch {
 			try {
-				TranslationEngine.run(svc, modelId, target, sessionStore)
+				TranslationEngine.run(settings, modelId, target, sessionRepository, modelRepo)
 			} catch (e: Exception) {
 				logger.error("Failed to translate  target={}", target.toLanguageTag(), e)
 			} finally {

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.data.store.h2
 
+import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

@@ -23,10 +23,12 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.data.json.JsonStoreImpl
-import io.github.autotweaker.core.secret.impl.SecretManager
-import io.github.autotweaker.core.tool.SimpleContainer
-import io.github.autotweaker.core.tool.Tool
+import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.domain.tool.impl.bash.Bash
+import io.github.autotweaker.core.domain.tool.port.BashService
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*

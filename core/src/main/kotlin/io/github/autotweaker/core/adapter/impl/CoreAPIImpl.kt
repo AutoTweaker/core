@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.adapter.impl
 
-import io.github.autotweaker.api.adapter.AdapterRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
@@ -37,25 +36,26 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
-import io.github.autotweaker.core.data.ModelStore
-import io.github.autotweaker.core.data.json.JsonStoreImpl
-import io.github.autotweaker.core.data.settings.Settings
-import io.github.autotweaker.core.secret.impl.SecretManager
-import io.github.autotweaker.core.session.SessionManager
-import io.github.autotweaker.core.session.UsageStore
-import io.github.autotweaker.core.session.WorkspaceAPI
+import io.github.autotweaker.core.application.chat.ChatService
+import io.github.autotweaker.core.domain.session.SessionManager
+import io.github.autotweaker.core.domain.session.UsageStore
+import io.github.autotweaker.core.domain.session.WorkspaceAPI
+import io.github.autotweaker.core.infrastructure.persistence.ModelStore
+import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.coroutines.flow.Flow
 import java.util.*
 import kotlin.reflect.KClass
 
-class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
+class CoreAPIImpl(private val adapterAPI: CoreAPI.AdapterAPI) : CoreAPI {
 	override fun changePassword(oldPassword: String, newPassword: String) =
 		SecretManager.changePassword(oldPassword, newPassword)
 	
 	override fun unlock(password: String) = SecretManager.unlock(password)
-	override fun listAdapter(): List<AdapterInfo> = adapterRegistry.listAdapter()
-	override fun startAdapter(name: String) = adapterRegistry.startAdapter(name)
-	override fun stopAdapter(name: String) = adapterRegistry.stopAdapter(name)
+	override fun listAdapter(): List<AdapterInfo> = adapterAPI.listAdapter()
+	override fun startAdapter(name: String) = adapterAPI.startAdapter(name)
+	override fun stopAdapter(name: String) = adapterAPI.stopAdapter(name)
 	override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
 	override fun i18nService(): I18nService = I18nServiceImpl
 	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
@@ -94,7 +94,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
 		override fun listWorkspaces() = WorkspaceAPI.list()
 		
-		override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = SessionManager.chat(request)
+		override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
@@ -132,7 +132,7 @@ class CoreAPIImpl(private val adapterRegistry: AdapterRegistry) : CoreAPI {
 		override fun removeApiKey(name: String) = cfg.apiKeyConfig.delete(name)
 	}
 	
-	override val translation = object : CoreAPI.TranslationAPI {
+	override val translation = object : CoreAPI.I18nAPI {
 		override fun getStatus() = TranslationManager.status
 		override fun updateModel(modelId: UUID) = TranslationManager.updateModel(modelId)
 		override fun updateLanguage(locale: Locale) = TranslationManager.updateLanguage(locale)

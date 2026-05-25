@@ -24,8 +24,12 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.domain.agent.Agent
+import io.github.autotweaker.core.domain.agent.AgentCommand
+import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.delay
@@ -59,7 +63,7 @@ class AgentTest {
 		model: Model = mockModel,
 		fallbackModels: List<Model>? = null,
 		thinking: Boolean = false,
-		tools: List<io.github.autotweaker.core.tool.Tool> = emptyList(),
+		tools: List<Tool> = emptyList(),
 	): Agent {
 		return Agent(
 			context = context,

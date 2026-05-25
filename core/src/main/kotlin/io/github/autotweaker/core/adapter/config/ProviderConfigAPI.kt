@@ -21,9 +21,9 @@ package io.github.autotweaker.core.adapter.config
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ProviderData
-import io.github.autotweaker.core.data.ProviderStore
-import io.github.autotweaker.core.llm.LlmClientLoader
-import io.github.autotweaker.core.session.ProviderService
+import io.github.autotweaker.core.domain.session.ProviderService
+import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
+import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
 import java.util.*
 
 object ProviderConfigAPI {

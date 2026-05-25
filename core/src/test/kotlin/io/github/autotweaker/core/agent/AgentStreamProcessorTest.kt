@@ -23,10 +23,13 @@ import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.core.agent.AgentStreamProcessor.StreamProcessResult
-import io.github.autotweaker.core.agent.llm.AgentChat
-import io.github.autotweaker.core.agent.llm.AgentChatRequest
-import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.chat.AgentChat
+import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
+import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
+import io.github.autotweaker.core.domain.agent.chat.AgentStreamProcessor
+import io.github.autotweaker.core.domain.agent.chat.AgentStreamProcessor.StreamProcessResult
 import io.github.autotweaker.core.domain.model.Model
 import io.mockk.every
 import io.mockk.mockk

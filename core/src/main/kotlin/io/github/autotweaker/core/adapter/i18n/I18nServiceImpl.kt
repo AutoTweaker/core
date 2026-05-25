@@ -22,7 +22,7 @@ import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.LocalizedString
-import io.github.autotweaker.core.data.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement

@@ -18,20 +18,12 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.adapter.AdapterAPI
-import io.github.autotweaker.api.adapter.AdapterRegistry
+import io.github.autotweaker.api.adapter.Adapter
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
-import io.github.autotweaker.core.container.ContainerManager
-import io.github.autotweaker.core.data.json.JsonStoreImpl
-import io.github.autotweaker.core.data.settings.Settings
-import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
-import io.github.autotweaker.core.llm.base.openai.AbstractOpenAiClient
-import io.github.autotweaker.core.secret.impl.SecretManager
-import io.github.autotweaker.core.session.SessionManager
-import kotlinx.coroutines.runBlocking
+import io.github.autotweaker.core.application.Launcher
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -40,7 +32,7 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
-object AutoTweaker : AdapterRegistry {
+object AutoTweaker : CoreAPI.AdapterAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	val version: SemVer by lazy {
 		val props = Properties()
@@ -48,17 +40,11 @@ object AutoTweaker : AdapterRegistry {
 		SemVer.parse(props.getProperty("version"))
 	}
 	
-	private val builtInAdapters: List<AdapterAPI> by lazy {
-		ServiceLoader.load(AdapterAPI::class.java).toList()
+	private val builtInAdapters: List<Adapter> by lazy {
+		ServiceLoader.load(Adapter::class.java).toList()
 	}
 	
-	private val allAdapters: List<AdapterAPI> by lazy {
-		val all = (builtInAdapters + loadPlugins<AdapterAPI>()).map { it to it.load(version) }
-		all.groupBy { (_, info) -> info.name }
-			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version }.first }
-	}
-	
-	private val registry: MutableMap<String, Pair<AdapterAPI, AdapterInfo>> = mutableMapOf()
+	private val registry: MutableMap<String, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	
 	private val lockFile: Path = Path.of(
 		System.getProperty("user.home"), ".config", "autotweaker", "autotweaker.lock"
@@ -70,42 +56,13 @@ object AutoTweaker : AdapterRegistry {
 		
 		logger.info("AutoTweaker started  version={}", version)
 		
-		JsonStoreImpl.init()
-		Settings.init()
-		try {
-			SecretManager.init(Settings)
-		} catch (e: Exception) {
-			logger.error("Failed to initialize SecretManager", e)
-			throw e
-		}
-		
-		TranslationManager.startTranslation(Settings)
-
-		val adapters = allAdapters
-		if (adapters.isEmpty()) {
-			val noAdapterError =
-				IllegalStateException("No AdapterAPI implementations found. At least one adapter is required.")
-			logger.error("Failed to load any adapter", noAdapterError)
-			throw noAdapterError
-		}
-		
-		logger.info(
-			"Found adapters to start  count={}  builtIn={}  external={}",
-			adapters.size,
-			builtInAdapters.size,
-			adapters.size - builtInAdapters.size
-		)
-		adapters.forEach { adapter ->
-			val info = adapter.load(version)
-			registry[info.name] = adapter to info
-			logger.info(
-				"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
-			)
-			startAdapter(info.name)
-		}
-		
+		Launcher.start(version, builtInAdapters, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
-			shutdown()
+			logger.info("AutoTweaker shutdown initiated")
+			Launcher.shutdown(registry)
+			closePluginClassLoaders()
+			lockFile.deleteIfExists()
+			logger.info("AutoTweaker shutdown completed")
 		})
 	}
 	
@@ -124,21 +81,6 @@ object AutoTweaker : AdapterRegistry {
 		lockFile.writeText(ProcessHandle.current().pid().toString())
 	}
 	
-	private fun shutdown() {
-		logger.info("AutoTweaker shutdown initiated")
-		registry.values.forEach { (_, info) ->
-			runCatching { stopAdapter(info.name) }
-		}
-		runBlocking { runCatching { SessionManager.shutdown() } }
-		runBlocking { runCatching { ContainerManager.stop() } }
-		runCatching { AbstractOpenAiClient.close() }
-		runCatching { closePluginClassLoaders() }
-		runCatching { SecretManager.killGpgAgent() }
-		runCatching { H2DatabaseStore.shutdown() }
-		runCatching { lockFile.deleteIfExists() }
-		logger.info("AutoTweaker shutdown completed")
-	}
-	
 	override fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }
 	
 	override fun startAdapter(name: String) {
@@ -153,6 +95,6 @@ object AutoTweaker : AdapterRegistry {
 		logger.info("Stopped adapter  name={}", info.name)
 	}
 	
-	private fun requireAdapter(name: String): Pair<AdapterAPI, AdapterInfo> =
+	private fun requireAdapter(name: String): Pair<Adapter, AdapterInfo> =
 		registry[name] ?: error("Unknown adapter: $name")
 }

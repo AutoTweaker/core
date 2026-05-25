@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.llm.provider.deepseek
 
+import io.github.autotweaker.core.infrastructure.llm.provider.deepseek.ToolChoice
 import io.mockk.mockk
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException

@@ -25,15 +25,17 @@ import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.AgentOutput
-import io.github.autotweaker.core.agent.MutableAgentState
-import io.github.autotweaker.core.agent.tool.ToolCallValidator
-import io.github.autotweaker.core.agent.tool.Tools
-import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.MutableAgentState
+import io.github.autotweaker.core.domain.agent.phase.ExecuteToolPhase
+import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
+import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
+import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -160,7 +162,7 @@ class ExecuteToolPhaseTest {
 	@Test
 	fun `tool callbacks fire onToolActivated`() = runTest {
 		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } coAnswers {
-			val onToolActivated = arg<suspend (List<io.github.autotweaker.core.tool.Tool>) -> Unit>(5)
+			val onToolActivated = arg<suspend (List<Tool>) -> Unit>(5)
 			onToolActivated.invoke(emptyList())
 			toolResultForTest()
 		}

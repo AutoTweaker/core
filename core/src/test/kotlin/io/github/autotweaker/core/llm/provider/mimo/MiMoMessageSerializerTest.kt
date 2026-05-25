@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.llm.provider.mimo
 
+import io.github.autotweaker.core.infrastructure.llm.provider.mimo.MiMoMessage
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.llm.provider.deepseek
 
+import io.github.autotweaker.core.infrastructure.llm.provider.deepseek.DeepSeekMessage
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals

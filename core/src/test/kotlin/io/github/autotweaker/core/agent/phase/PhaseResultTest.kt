@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.agent.phase
 
+import io.github.autotweaker.core.domain.agent.phase.PhaseResult
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

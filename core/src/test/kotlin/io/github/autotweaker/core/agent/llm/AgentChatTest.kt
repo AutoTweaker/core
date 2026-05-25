@@ -23,7 +23,11 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.chat.AgentChat
+import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
+import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
+import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.every

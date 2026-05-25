@@ -20,16 +20,16 @@ package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.tool.ToolProvider
-import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
-import io.github.autotweaker.core.tool.impl.bash.BashService
-import io.github.autotweaker.core.tool.impl.read.FileSystemService
-import io.github.autotweaker.core.tool.impl.read.SummarizeService
-import io.github.autotweaker.core.tool.impl.read.ToolCallHistory
+import io.github.autotweaker.core.domain.tool.port.BashService
+import io.github.autotweaker.core.domain.tool.port.FileSystemService
+import io.github.autotweaker.core.domain.tool.port.SummarizeService
+import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow

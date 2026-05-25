@@ -23,8 +23,12 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.tool.SimpleContainer
-import io.github.autotweaker.core.tool.Tool
+import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.domain.tool.impl.read.Read
+import io.github.autotweaker.core.domain.tool.port.FileSystemService
+import io.github.autotweaker.core.domain.tool.port.SummarizeService
+import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.core.data.ModelStore
+import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import java.util.*
 
 object ModelConfigAPI {

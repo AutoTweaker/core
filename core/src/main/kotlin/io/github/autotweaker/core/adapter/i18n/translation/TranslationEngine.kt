@@ -21,15 +21,16 @@ package io.github.autotweaker.core.adapter.i18n.translation
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.adapter.i18n.I18nRegistry
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
-import io.github.autotweaker.core.agent.llm.ResilientChat
+import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.session.ProviderService
-import io.github.autotweaker.core.session.SessionStore
-import io.github.autotweaker.core.session.UsageStore
+import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.session.UsageStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -61,9 +62,10 @@ internal object TranslationEngine {
 	)
 	
 	internal suspend fun run(
-		svc: SettingService, modelId: UUID, target: Locale, sessionStore: SessionStore,
+		svc: SettingService, modelId: UUID, target: Locale, sessionRepository: SessionRepository,
+		modelRepo: ModelRepository,
 	) {
-		val model = ProviderService.getModel(modelId) ?: throw IllegalStateException("Model not found: $modelId")
+		val model = modelRepo.resolve(modelId) ?: throw IllegalStateException("Model not found: $modelId")
 		val systemPrompt =
 			svc.get(TranslateSettings.SystemPrompt()).value.replace("{{target_language}}", target.displayName)
 		val userPromptTemplate = svc.get(TranslateSettings.UserPrompt()).value
@@ -80,7 +82,7 @@ internal object TranslationEngine {
 		coroutineScope {
 			jobs.map { job ->
 				async {
-					semaphore.withPermit { translateBatch(job, sessionStore) }
+					semaphore.withPermit { translateBatch(job, sessionRepository) }
 				}
 			}.awaitAll().forEach { r ->
 				persistResults(r)
@@ -106,13 +108,13 @@ internal object TranslationEngine {
 		}
 	}
 	
-	private suspend fun translateBatch(job: BatchJob, sessionStore: SessionStore): BatchResult {
+	private suspend fun translateBatch(job: BatchJob, sessionRepository: SessionRepository): BatchResult {
 		val contentJson = buildContentJson(job.batch)
 		val userPrompt = job.userPromptTemplate.replace("{{target_language}}", job.target.displayName)
 			.replace("{{content_to_translate}}", contentJson)
 		
-		val results = ResilientChat.execute(
-			model = job.model,
+		val request = CoreLlmRequest(
+			model = job.model.id,
 			fallbackModels = null,
 			messages = listOf(
 				ChatMessage.SystemMessage(job.systemPrompt, Clock.System.now()),
@@ -120,9 +122,9 @@ internal object TranslationEngine {
 			),
 			stream = false,
 			thinking = false,
-			service = job.svc,
 			responseFormat = ChatRequest.ResponseFormat(type = ChatRequest.ResponseFormat.Type.JSON_OBJECT)
-		).toList()
+		)
+		val results = ChatService.chat(request).toList()
 		
 		val finalResult =
 			results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }.lastOrNull()
@@ -136,7 +138,7 @@ internal object TranslationEngine {
 				UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, job.model.modelInfo)
 			)
 			UsageStore.collect(listOf(record))
-			sessionStore.saveMessages(listOf(record))
+			sessionRepository.saveMessages(listOf(record))
 		}
 		
 		val text = (finalResult.message as? ChatMessage.AssistantMessage)?.content ?: return BatchResult(

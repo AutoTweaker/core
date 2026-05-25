@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.llm.base.openai
 
+import io.github.autotweaker.core.infrastructure.llm.openai.InstantAsLongSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.test.Test

@@ -36,21 +36,19 @@ import java.util.*
 import kotlin.reflect.KClass
 
 interface CoreAPI {
+	val adapter: AdapterAPI
 	val session: SessionAPI
 	val config: ConfigAPI
-	val translation: TranslationAPI
+	val secret: SecretAPI
+	val i18n: I18nAPI
 	
-	fun unlock(password: String)
-	fun changePassword(oldPassword: String, newPassword: String)
-	val isUnlocked: Boolean
-	val isPasswordEmpty: Boolean
+	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	
-	fun listAdapter(): List<AdapterInfo>
-	fun startAdapter(name: String)
-	fun stopAdapter(name: String)
-	
-	fun jsonStore(kClass: KClass<*>): JsonStore
-	fun i18nService(): I18nService
+	interface AdapterAPI {
+		fun listAdapter(): List<AdapterInfo>
+		fun startAdapter(name: String)
+		fun stopAdapter(name: String)
+	}
 	
 	interface SessionAPI {
 		suspend fun create(config: SessionConfig): SessionHandle
@@ -80,21 +78,11 @@ interface CoreAPI {
 		suspend fun renameWorkspace(id: UUID, newName: String)
 		suspend fun deleteWorkspace(id: UUID)
 		fun listWorkspaces(): List<WorkspaceData>
-		
-		fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
-	}
-	
-	interface TranslationAPI {
-		fun getStatus(): StateFlow<TranslationStatus>
-		fun updateModel(modelId: UUID)
-		fun updateLanguage(locale: Locale)
-		fun startTranslation()
-		fun getModel(): UUID?
-		fun getLanguage(): Locale?
 	}
 	
 	interface ConfigAPI {
-		fun settingService(): SettingService
+		val settingService: SettingService
+		fun jsonStore(kClass: KClass<*>): JsonStore
 		
 		fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
 		fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
@@ -122,5 +110,26 @@ interface CoreAPI {
 		fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
 		fun removeApiKey(name: String)
 		fun listApiKeyNames(): List<String>
+	}
+	
+	interface SecretAPI {
+		fun isUnlocked(): Boolean
+		fun isPasswordEmpty(): Boolean
+		
+		fun unlock(password: String)
+		fun changePassword(oldPassword: String, newPassword: String)
+	}
+	
+	interface I18nAPI {
+		val i18nService: I18nService
+		
+		fun updateLanguage(locale: Locale)
+		fun getLanguage(): Locale?
+		
+		fun updateTranslationModel(modelId: UUID)
+		fun getTranslationModel(): UUID?
+		
+		fun startTranslation()
+		fun getTranslationStatus(): StateFlow<TranslationStatus>
 	}
 }

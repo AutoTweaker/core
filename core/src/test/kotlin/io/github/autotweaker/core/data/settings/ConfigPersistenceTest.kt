@@ -19,6 +19,9 @@
 package io.github.autotweaker.core.data.settings
 
 import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.core.infrastructure.persistence.config.ConfigTable
+import io.github.autotweaker.core.infrastructure.persistence.config.fillColumn
+import io.github.autotweaker.core.infrastructure.persistence.config.getValueFromRow
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot

@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.tool
 
-import io.github.autotweaker.core.tool.impl.bash.BashService
+import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.get
+import io.github.autotweaker.core.domain.tool.port.BashService
 import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

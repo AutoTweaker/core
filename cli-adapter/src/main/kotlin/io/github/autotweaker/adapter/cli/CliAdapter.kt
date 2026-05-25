@@ -19,15 +19,15 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.adapter.AdapterAPI
+import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import org.slf4j.LoggerFactory
 
-@AutoService(AdapterAPI::class)
-class CliAdapter : AdapterAPI {
+@AutoService(Adapter::class)
+class CliAdapter : Adapter {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val adapterVersion = SemVer.parse("0.1.0")
 	private lateinit var server: CliServer

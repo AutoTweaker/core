@@ -28,11 +28,12 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.AgentOutput
-import io.github.autotweaker.core.agent.MutableAgentState
-import io.github.autotweaker.core.agent.llm.ResilientChat
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.MutableAgentState
+import io.github.autotweaker.core.domain.agent.phase.CompactPhase
+import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.*

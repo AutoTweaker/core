@@ -20,8 +20,8 @@ package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.core.data.json.JsonStoreImpl
-import io.github.autotweaker.core.secret.impl.SecretManager
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer

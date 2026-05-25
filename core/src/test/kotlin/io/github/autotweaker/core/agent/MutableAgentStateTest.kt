@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.agent
 
-import io.github.autotweaker.core.agent.tool.Tools
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.MutableAgentState
+import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -21,7 +21,7 @@ package io.github.autotweaker.core.adapter.i18n.translation
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.data.ResourcesLoader
+import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 
 object TranslateSettings {
 	@AutoService(SettingDef::class)

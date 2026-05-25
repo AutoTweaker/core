@@ -1,0 +1,377 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.core.infrastructure.llm.provider.mimo
+
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
+import io.ktor.util.reflect.*
+import kotlinx.serialization.serializer
+import java.math.BigDecimal
+import java.util.*
+
+@AutoService(LlmClient::class)
+class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChunk>(
+	requestTypeInfo = typeInfo<MiMoRequest>(),
+	responseTypeInfo = typeInfo<MiMoResponse>(),
+	chunkSerializer = serializer<MiMoStreamChunk>(),
+) {
+	private val mimoProPrice = ModelData.TokenPrice(
+		inputPrice = listOf(
+			ModelData.TokenPrice.PriceTier(
+				fromTokens = 0,
+				toTokens = 256_000,
+				price = Price(
+					amount = BigDecimal("7"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+				),
+				cachedPrice = Price(
+					amount = BigDecimal("1.4"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+				),
+			), ModelData.TokenPrice.PriceTier(
+				fromTokens = 256_000,
+				price = Price(
+					amount = BigDecimal("14"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+				),
+				cachedPrice = Price(
+					amount = BigDecimal("2.8"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+				),
+			)
+		),
+		outputPrice = listOf(
+			ModelData.TokenPrice.PriceTier(
+				fromTokens = 0,
+				toTokens = 256_000,
+				price = Price(
+					amount = BigDecimal("21"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+				),
+			), ModelData.TokenPrice.PriceTier(
+				fromTokens = 256_000,
+				price = Price(
+					amount = BigDecimal("42"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+				),
+			)
+		),
+	)
+	
+	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
+		name = "mimo",
+		baseUrl = Url("https://api.xiaomimimo.com/v1"),
+		models = listOf(
+			ModelData.ModelInfo(
+				modelId = "mimo-v2-pro",
+				contextWindow = 100_0000,
+				maxOutputTokens = 128_000,
+				price = mimoProPrice,
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = false,
+				supportsJsonOutput = true
+			), ModelData.ModelInfo(
+				modelId = "mimo-v2.5-pro",
+				contextWindow = 100_0000,
+				maxOutputTokens = 128_000,
+				price = mimoProPrice,
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = false,
+				supportsJsonOutput = true
+			), ModelData.ModelInfo(
+				modelId = "mimo-v2-omni",
+				contextWindow = 256_000,
+				maxOutputTokens = 128_000,
+				price = ModelData.TokenPrice(
+					inputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal("2.8"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("0.56"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						),
+					),
+					outputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal("14"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						),
+					),
+				),
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = true,
+				supportsJsonOutput = true
+			), ModelData.ModelInfo(
+				modelId = "mimo-v2.5",
+				contextWindow = 100_0000,
+				maxOutputTokens = 128_000,
+				price = ModelData.TokenPrice(
+					inputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							toTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("2.8"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("0.56"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						), ModelData.TokenPrice.PriceTier(
+							fromTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("5.6"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("1.12"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						)
+					),
+					outputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							toTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("14"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						), ModelData.TokenPrice.PriceTier(
+							fromTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("28"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						)
+					),
+				),
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = true,
+				supportsJsonOutput = true
+			), ModelData.ModelInfo(
+				modelId = "mimo-v2-flash",
+				contextWindow = 256_000,
+				maxOutputTokens = 64_000,
+				price = ModelData.TokenPrice(
+					inputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal("0.7"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("0.07"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						),
+					),
+					outputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal("2.1"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						),
+					),
+				),
+				supportsStreaming = true,
+				supportsToolCalls = true,
+				supportsReasoning = true,
+				supportsImage = false,
+				supportsJsonOutput = true
+			)
+		),
+		errorHandlingRules = listOf(
+			ProviderData.ErrorHandlingRule(
+				statusCode = 400, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 401, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 402, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 403, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 421, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 429, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 500, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
+			), ProviderData.ErrorHandlingRule(
+				statusCode = 503, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
+			)
+		),
+	)
+	
+	override fun createRequestBody(request: ChatRequest): MiMoRequest {
+		val mappedMessages = request.messages.mapNotNull { msg ->
+			when (msg) {
+				is ChatMessage.SystemMessage -> MiMoMessage.DeveloperMessage(
+					content = listOf(MiMoMessage.Content.TextPart(text = msg.content))
+				)
+				
+				is ChatMessage.UserMessage -> MiMoMessage.UserMessage(
+					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)) + msg.pictures.orEmpty()
+						.map { base64 ->
+							MiMoMessage.Content.ImagePart(
+								imageUrl = MiMoMessage.Content.ImagePart.Url(base64.value)
+							)
+						})
+				
+				is ChatMessage.AssistantMessage -> MiMoMessage.AssistantMessage(
+					content = if (msg.content != null) listOf(MiMoMessage.Content.TextPart(text = msg.content!!)) else null,
+					reasoningContent = msg.reasoningContent,
+					toolCalls = msg.toolCalls?.map { tc ->
+						MiMoToolCall(
+							id = tc.id, function = MiMoToolCall.Function(
+								name = tc.name, arguments = tc.arguments
+							)
+						)
+					})
+				
+				is ChatMessage.ToolMessage -> MiMoMessage.ToolMessage(
+					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)), toolCallId = msg.toolCallId
+				)
+				
+				is ChatMessage.ErrorMessage -> null
+			}
+		}
+		
+		return MiMoRequest(
+			model = request.model,
+			messages = mappedMessages,
+			stream = request.stream,
+			tools = request.tools?.map { tool ->
+				OpenAiRequest.Tool(
+					function = OpenAiRequest.Tool.Function(
+						name = tool.name, description = tool.description, parameters = tool.parameters
+					)
+				)
+			},
+			thinking = when (request.thinking) {
+				true -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED)
+				false -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.DISABLED)
+				null -> null
+			},
+			temperature = request.temperature,
+			maxCompletionTokens = request.maxTokens,
+			topP = request.topP,
+			frequencyPenalty = request.frequencyPenalty,
+			presencePenalty = request.presencePenalty,
+			responseFormat = request.responseFormat,
+			toolChoice = if (request.toolCallRequired == true) "auto" else null,
+		)
+	}
+	
+	override fun mapToChatResult(response: MiMoResponse): ChatResult {
+		val choice = response.choices.firstOrNull()
+		val msg = choice?.message
+		
+		return ChatResult.Assembled(
+			message = ChatMessage.AssistantMessage(
+				content = msg?.content,
+				reasoningContent = msg?.reasoningContent,
+				toolCalls = msg?.toolCalls?.map { tc ->
+					ChatMessage.AssistantMessage.ToolCall(
+						id = tc.id, name = tc.function.name, arguments = tc.function.arguments
+					)
+				},
+				createdAt = response.created,
+				model = response.model
+			), usage = response.usage.let { u ->
+				Usage(
+					promptTokens = u.promptTokens,
+					completionTokens = u.completionTokens,
+					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
+					cacheHitTokens = u.promptTokensDetails?.cachedTokens,
+					imageTokens = u.promptTokensDetails?.imageTokens
+				)
+			}, finishReason = choice?.finishReason?.toFinishReason()
+		)
+	}
+	
+	override fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult {
+		val choice = chunk.choices.firstOrNull()
+		val delta = choice?.delta
+		
+		return ChatResult.Chunk(
+			message = ChatMessage.AssistantMessage(
+				content = delta?.content,
+				reasoningContent = delta?.reasoningContent,
+				createdAt = chunk.created,
+				model = chunk.model
+			), usage = chunk.usage?.let { u ->
+				Usage(
+					promptTokens = u.promptTokens,
+					completionTokens = u.completionTokens,
+					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
+					cacheHitTokens = u.promptTokensDetails?.cachedTokens,
+					imageTokens = u.promptTokensDetails?.imageTokens
+				)
+			}, finishReason = choice?.finishReason?.toFinishReason()
+		)
+	}
+	
+	private fun MiMoFinishReason.toFinishReason() = ChatResult.FinishReason(
+		reason = value, type = when (this) {
+			MiMoFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
+			MiMoFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
+			MiMoFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
+			MiMoFinishReason.LENGTH -> ChatResult.FinishReason.Type.LENGTH
+			MiMoFinishReason.REPETITION_TRUNCATION -> ChatResult.FinishReason.Type.ERROR
+		}
+	)
+	
+	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? {
+		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
+			ChatResult.ChunkToolCall(
+				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
+			)
+		}
+	}
+}

@@ -20,12 +20,14 @@ package io.github.autotweaker.core.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolResultStatus
-import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.AgentEnvironment
-import io.github.autotweaker.core.agent.AgentOutput
-import io.github.autotweaker.core.agent.MutableAgentState
-import io.github.autotweaker.core.agent.tool.ToolCallValidator
-import io.github.autotweaker.core.agent.tool.Tools
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.MutableAgentState
+import io.github.autotweaker.core.domain.agent.phase.PhaseResult
+import io.github.autotweaker.core.domain.agent.phase.ValidateToolCallsPhase
+import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
+import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.coEvery

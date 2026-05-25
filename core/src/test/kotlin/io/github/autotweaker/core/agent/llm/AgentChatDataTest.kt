@@ -23,7 +23,9 @@ import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
+import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import java.math.BigDecimal

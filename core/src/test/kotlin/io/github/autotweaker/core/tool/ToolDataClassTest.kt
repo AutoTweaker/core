@@ -20,6 +20,9 @@ package io.github.autotweaker.core.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.domain.tool.get
 import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonPrimitive

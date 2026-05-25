@@ -24,5 +24,5 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import kotlinx.coroutines.flow.Flow
 
 interface LlmGateway {
-	fun send(request: ChatRequest, apiKey: String, baseUrl: Url, providerType: String): Flow<ChatResult>
+	suspend fun send(request: ChatRequest, apiKey: String, baseUrl: Url, providerType: String): Flow<ChatResult>
 }

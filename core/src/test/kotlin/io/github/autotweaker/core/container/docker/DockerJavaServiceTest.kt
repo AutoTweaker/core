@@ -26,8 +26,9 @@ import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import com.github.dockerjava.core.DockerClientImpl
-import io.github.autotweaker.core.container.ContainerConfig
-import io.github.autotweaker.core.container.ContainerOperationException
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
+import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
+import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

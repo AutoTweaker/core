@@ -22,7 +22,8 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.core.agent.llm.ResilientChat
+import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
+import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.coEvery

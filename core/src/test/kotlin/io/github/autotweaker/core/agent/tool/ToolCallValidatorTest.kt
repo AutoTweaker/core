@@ -21,7 +21,8 @@ package io.github.autotweaker.core.agent.tool
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.tool.Tool
+import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
+import io.github.autotweaker.core.domain.tool.Tool
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.test.*

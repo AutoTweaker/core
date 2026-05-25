@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.adapter.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.core.container.ContainerManager
-import io.github.autotweaker.core.tool.impl.bash.Bash
+import io.github.autotweaker.core.domain.tool.impl.bash.Bash
+import io.github.autotweaker.core.infrastructure.container.ContainerManager
 
 object EnvConfigAPI {
 	private val bash = Bash()

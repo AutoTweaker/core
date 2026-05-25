@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.data.json
 
-import io.github.autotweaker.core.data.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreTable
+import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
