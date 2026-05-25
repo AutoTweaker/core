@@ -612,7 +612,7 @@ class ContextPhaseTest {
 		name: String = "test_function",
 		model: Model = mockModel(),
 	): AgentContext.CurrentRound.PendingToolCall = AgentContext.CurrentRound.PendingToolCall(
-		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, model = model,
+		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, modelId = model.id,
 		arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
 	)
 	
@@ -621,7 +621,7 @@ class ContextPhaseTest {
 	
 	private fun assistantMessage(content: String, model: Model): AgentContext.Message.Assistant =
 		AgentContext.Message.Assistant(
-			content = content, model = model,
+			content = content, modelId = model.id,
 			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 	// endregion

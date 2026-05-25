@@ -104,13 +104,13 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val userMsg = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now())
 		val assistantMsg = AgentContext.Message.Assistant(
-			content = "hi there", model = model,
+			content = "hi there", modelId = model.id,
 			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 		val rounds = listOf(
@@ -139,7 +139,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -148,7 +148,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -172,7 +172,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = blankResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -181,7 +181,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -207,7 +207,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -216,7 +216,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -242,20 +242,20 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
 		val userMsg = AgentContext.Message.User(content = "run command", timestamp = Clock.System.now())
 		val assistantMsg = AgentContext.Message.Assistant(
-			content = "calling tool", model = model,
+			content = "calling tool", modelId = model.id,
 			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 		val toolMsg = AgentContext.Message.Tool(
 			name = "bash", callId = "call-1",
 			call = AgentContext.Message.Tool.Call(
 				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "needed",
-				timestamp = Clock.System.now(), model = model,
+				timestamp = Clock.System.now(), modelId = model.id,
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "command output",
@@ -290,7 +290,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = errorResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -299,7 +299,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -331,7 +331,7 @@ class CompactPhaseTest {
 			),
 			usage = usage,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chunkResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000")),
 			CoreLlmResult(result = assembledResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000")),
 		)
@@ -341,7 +341,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -357,7 +357,7 @@ class CompactPhaseTest {
 	
 	@Test
 	fun `runCompactRequest handles exception from chat flow`() = runTest {
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException(
 			"chat failed"
 		)
 		
@@ -366,7 +366,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -388,7 +388,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -401,7 +401,7 @@ class CompactPhaseTest {
 				),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "image described", model = model,
+					content = "image described", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -430,7 +430,7 @@ class CompactPhaseTest {
 		)
 		// First call: summarizeMessage for user message, second call: summarizeMessage for assistant message,
 		// third call: runCompactRequest
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		) andThen flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
@@ -447,7 +447,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "very long assistant response",
-					model = model, timestamp = Clock.System.now(), usageSnapshot = null,
+					modelId = model.id, timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -480,7 +480,7 @@ class CompactPhaseTest {
 			usage = null,
 		)
 		// summarizeMessage called for each long message + main compact request
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -488,7 +488,7 @@ class CompactPhaseTest {
 			name = "bash", callId = "call-1",
 			call = AgentContext.Message.Tool.Call(
 				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "needed",
-				timestamp = Clock.System.now(), model = model,
+				timestamp = Clock.System.now(), modelId = model.id,
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "this is a very long tool output exceeding limit",
@@ -502,7 +502,7 @@ class CompactPhaseTest {
 				turns = listOf(
 					AgentContext.Turn(
 						assistantMessage = AgentContext.Message.Assistant(
-							content = "ok", model = model,
+							content = "ok", modelId = model.id,
 							timestamp = Clock.System.now(), usageSnapshot = null,
 						),
 						tools = listOf(toolMsg),
@@ -536,7 +536,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(result = chatResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
 		)
 		
@@ -545,7 +545,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = null, reasoning = null, model = model,
+					content = null, reasoning = null, modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
@@ -576,7 +576,7 @@ class CompactPhaseTest {
 			),
 			usage = null,
 		)
-		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returnsMany listOf(
+		every { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returnsMany listOf(
 			flowOf(
 				CoreLlmResult(result = emptyResult, model = model.id),
 				CoreLlmResult(result = emptyResult, model = UUID.fromString("00000000-0000-0000-0000-000000000000"))
@@ -604,7 +604,7 @@ class CompactPhaseTest {
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
 					content = "very long assistant response that also exceeds",
-					model = model, timestamp = Clock.System.now(), usageSnapshot = null,
+					modelId = model.id, timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),
 		)
@@ -633,7 +633,6 @@ class CompactPhaseTest {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} throws CancellationException("cancelled")
@@ -643,7 +642,7 @@ class CompactPhaseTest {
 				userMessage = AgentContext.Message.User(content = "hello", timestamp = Clock.System.now()),
 				turns = null,
 				finalAssistantMessage = AgentContext.Message.Assistant(
-					content = "hi", model = model,
+					content = "hi", modelId = model.id,
 					timestamp = Clock.System.now(), usageSnapshot = null,
 				),
 			),

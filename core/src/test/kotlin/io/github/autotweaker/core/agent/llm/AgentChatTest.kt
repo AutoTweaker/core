@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.agent.llm
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.*
@@ -31,7 +30,6 @@ import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flow
@@ -45,8 +43,6 @@ import java.util.*
 import kotlin.time.Clock
 
 class AgentChatTest {
-	
-	private val mockService: SettingService = mockk(relaxed = true)
 	private val testUrl = Url("https://api.test.com/v1")
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	
@@ -89,7 +85,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(CoreLlmResult(chatResult, model = UUID.randomUUID()))
 		}
@@ -98,7 +94,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		assertTrue(results.any { it is AgentChatStreamResult.Assembled })
 		
@@ -119,7 +115,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(CoreLlmResult(chunkResult, model = UUID.randomUUID()))
 			emit(CoreLlmResult(assembledResult, model = UUID.randomUUID()))
@@ -129,7 +125,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
 		assertEquals("let me think", delta.delta.reasoningContent)
@@ -146,7 +142,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(
 				CoreLlmResult(
@@ -180,7 +176,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
 		assertEquals(2, deltas.size)
@@ -201,7 +197,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(CoreLlmResult(errorChatResult, model = UUID.randomUUID()))
 		}
@@ -210,7 +206,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val failings = results.filterIsInstance<AgentChatStreamResult.Failing>()
 		assertEquals(1, failings.size)
@@ -229,7 +225,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(CoreLlmResult(chatResult, model = UUID.randomUUID()))
 		}
@@ -238,7 +234,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals(Usage(100, 50, 50), assembled.message.usageSnapshot?.usage)
@@ -253,7 +249,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(CoreLlmResult(chatResult, model = UUID.randomUUID()))
 		}
@@ -262,7 +258,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals("thinking...", assembled.message.reasoning)
@@ -284,7 +280,7 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(
 				CoreLlmResult(
@@ -306,7 +302,7 @@ class AgentChatTest {
 		val ctx = AgentContext(null, null, null, null, AgentContext.CurrentRound(user, null, null, null))
 		val request = AgentChatRequest(testModel, null, null, null, ctx)
 		
-		val results = AgentChat.execute(request, UUID.randomUUID(), mockService).toList()
+		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().last()
 		assertEquals(1, assembled.toolCalls?.size)

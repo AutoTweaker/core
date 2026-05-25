@@ -46,7 +46,7 @@ class ToolCallHistoryImplTest {
 			arguments = arguments,
 			reason = "test",
 			timestamp = Clock.System.now(),
-			model = mockModel,
+			modelId = mockModel.id,
 		),
 		callId = "call-1",
 		result = AgentContext.Message.Tool.Result(
@@ -58,7 +58,7 @@ class ToolCallHistoryImplTest {
 	
 	private fun assistantMessage(content: String = "assistant") = AgentContext.Message.Assistant(
 		content = content,
-		model = mockModel,
+		modelId = mockModel.id,
 		timestamp = Clock.System.now(),
 		usageSnapshot = null,
 	)

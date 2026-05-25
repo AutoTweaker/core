@@ -37,7 +37,7 @@ class Config : Command {
 	}
 	
 	lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name: String = "cfg"
 	override val description: String
@@ -78,9 +78,9 @@ class Config : Command {
 	): Flow<CmdOutput> = flow {
 		val full: Boolean = request.get("full").toBoolean()
 		val limit: Int = try {
-			request.get("limit")?.toInt() ?: core.config.settingService().get(DefaultLimit()).value
+			request.get("limit")?.toInt() ?: core.config.settingService.get(DefaultLimit()).value
 		} catch (_: Exception) {
-			core.config.settingService().get(DefaultLimit()).value
+			core.config.settingService.get(DefaultLimit()).value
 		}
 		
 		if (request.has("list")) {
@@ -114,14 +114,14 @@ class Config : Command {
 	}
 	
 	private fun list(core: CoreAPI, limit: Int, full: Boolean = false): Flow<CmdOutput> {
-		val settings = core.config.settingService().getAll().take(limit)
+		val settings = core.config.settingService.getAll().take(limit)
 		return printConfig(settings, full).map { CmdOutput.Data(it) }
 	}
 	
 	private fun search(
 		core: CoreAPI, limit: Int, full: Boolean = false, query: String, mode: SearchMode
 	): Flow<CmdOutput> {
-		val settings = core.config.settingService().getAll()
+		val settings = core.config.settingService.getAll()
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.value.value.toString(), query) }
@@ -131,7 +131,7 @@ class Config : Command {
 	}
 	
 	private fun set(core: CoreAPI, key: String, value: String): Flow<CmdOutput> {
-		val config = core.config.settingService().getAll().find { it.id == key } ?: return flowOf(
+		val config = core.config.settingService.getAll().find { it.id == key } ?: return flowOf(
 			CmdOutput.Data(i18n.get(CfgI18n.SetNotFound()).format(key), CmdOutput.Channel.STDERR), CmdOutput.Done(1)
 		)
 		val newValue = try {
@@ -141,7 +141,7 @@ class Config : Command {
 				CmdOutput.Data(i18n.get(CfgI18n.SetTypeError()), CmdOutput.Channel.STDERR), CmdOutput.Done(1)
 			)
 		}
-		core.config.settingService().set(key, newValue)
+		core.config.settingService.set(key, newValue)
 		return flowOf(
 			CmdOutput.Done()
 		)

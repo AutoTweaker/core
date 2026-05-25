@@ -176,7 +176,7 @@ class AgentChatDataTest {
 		val assistantMsg = AgentContext.Message.Assistant(
 			reasoning = "think",
 			content = "done",
-			model = testModel,
+			modelId = testModel.id,
 			timestamp = now,
 			usageSnapshot = UsageSnapshot(usage = Usage(50, 50), model = testModel.modelInfo),
 		)
@@ -185,7 +185,7 @@ class AgentChatDataTest {
 				callId = "id1",
 				assistantMessageId = UUID.randomUUID(),
 				name = "read",
-				model = testModel,
+				modelId = testModel.id,
 				arguments = "{}",
 				timestamp = now
 			)
@@ -202,7 +202,7 @@ class AgentChatDataTest {
 	@Test
 	fun `assembled result without tool calls`() {
 		val now = Clock.System.now()
-		val assistantMsg = AgentContext.Message.Assistant(content = "done", model = testModel, timestamp = now)
+		val assistantMsg = AgentContext.Message.Assistant(content = "done", modelId = testModel.id, timestamp = now)
 		val assembled = AgentChatStreamResult.Assembled(assistantMsg, null, null)
 		
 		assertNull(assembled.toolCalls)

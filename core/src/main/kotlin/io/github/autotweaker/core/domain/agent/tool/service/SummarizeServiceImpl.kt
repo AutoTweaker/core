@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -30,7 +29,6 @@ import kotlin.time.Clock
 class SummarizeServiceImpl(
 	private val model: Model,
 	private val fallbackModels: List<Model>? = null,
-	private val service: SettingService,
 	private val onUsage: (suspend (UsageSnapshot) -> Unit)? = null,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
@@ -41,7 +39,6 @@ class SummarizeServiceImpl(
 				ChatMessage.SystemMessage(prompt, Clock.System.now()),
 				ChatMessage.UserMessage(content, Clock.System.now()),
 			),
-			service = service,
 		).toList()
 		val success = results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }
 		val finalResult = success.lastOrNull()

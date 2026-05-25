@@ -16,11 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.config
+package io.github.autotweaker.core.domain.port
 
-object ConfigManager {
-	val envConfig = EnvConfigAPI
-	val providerConfig = ProviderConfigAPI
-	val apiKeyConfig = ApiKeyConfigAPI
-	val modelConfig = ModelConfigAPI
+import io.github.autotweaker.api.types.config.CoreConfig
+
+interface ApiKeyRepository {
+	fun add(key: CoreConfig.ProviderConfig.ApiKey)
+	fun list(): List<String>
+	fun get(name: String): String
+	fun delete(name: String)
 }

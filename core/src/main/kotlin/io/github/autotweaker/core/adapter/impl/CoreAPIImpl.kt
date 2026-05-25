@@ -27,16 +27,20 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.adapter.config.ConfigManager
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.application.chat.ChatService
+import io.github.autotweaker.core.domain.port.ApiKeyRepository
+import io.github.autotweaker.core.domain.port.EnvRepository
+import io.github.autotweaker.core.domain.port.ModelConfigRepository
+import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
@@ -45,21 +49,22 @@ import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.reflect.KClass
 
-class CoreAPIImpl(private val adapterAPI: CoreAPI.AdapterAPI) : CoreAPI {
-	override fun changePassword(oldPassword: String, newPassword: String) =
-		SecretManager.changePassword(oldPassword, newPassword)
-	
-	override fun unlock(password: String) = SecretManager.unlock(password)
-	override fun listAdapter(): List<AdapterInfo> = adapterAPI.listAdapter()
-	override fun startAdapter(name: String) = adapterAPI.startAdapter(name)
-	override fun stopAdapter(name: String) = adapterAPI.stopAdapter(name)
-	override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
-	override fun i18nService(): I18nService = I18nServiceImpl
-	override val isUnlocked: Boolean get() = SecretManager.isUnlocked
-	override val isPasswordEmpty: Boolean get() = SecretManager.isPasswordEmpty
+class CoreAPIImpl(
+	private val adapterAPI: CoreAPI.AdapterAPI,
+	private val envRepo: EnvRepository,
+	private val providerRepo: ProviderRepository,
+	private val modelRepo: ModelConfigRepository,
+	private val apiKeyRepo: ApiKeyRepository,
+) : CoreAPI {
+	override val adapter = object : CoreAPI.AdapterAPI {
+		override fun listAdapter(): List<AdapterInfo> = adapterAPI.listAdapter()
+		override fun startAdapter(name: String) = adapterAPI.startAdapter(name)
+		override fun stopAdapter(name: String) = adapterAPI.stopAdapter(name)
+	}
 	
 	override val session = object : CoreAPI.SessionAPI {
 		override suspend fun create(config: SessionConfig) = SessionManager.create(config)
@@ -93,51 +98,61 @@ class CoreAPIImpl(private val adapterAPI: CoreAPI.AdapterAPI) : CoreAPI {
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
 		override fun listWorkspaces() = WorkspaceAPI.list()
-		
-		override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
-		private val cfg = ConfigManager
-		override fun settingService(): SettingService = Settings
-		override fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = cfg.envConfig.list(type)
-		override fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = cfg.envConfig.get(type, id)
-		override fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = cfg.envConfig.set(env)
-		override fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = cfg.envConfig.remove(type, id)
-		override fun listProviders() = cfg.providerConfig.list()
-		override fun listAvailableProviderTypes() = cfg.providerConfig.listAvailable()
-		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = cfg.providerConfig.getMeta(type)
-		override fun addProvider(provider: CoreConfig.ProviderConfig.Provider) = cfg.providerConfig.create(provider)
-		override fun removeProvider(id: UUID) = cfg.providerConfig.delete(id)
+		override val settingService: SettingService = Settings
+		override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
+		
+		override fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
+		override fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
+		override fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
+		override fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
+		
+		override fun listProviders() = providerRepo.list()
+		override fun listAvailableProviderTypes() = providerRepo.listAvailable()
+		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = providerRepo.getMeta(type)
+		override fun addProvider(provider: CoreConfig.ProviderConfig.Provider) = providerRepo.create(provider)
+		override fun removeProvider(id: UUID) = providerRepo.delete(id)
 		override fun setProviderDisplayName(id: UUID, displayName: String) =
-			cfg.providerConfig.updateDisplayName(id, displayName)
+			providerRepo.updateDisplayName(id, displayName)
 		
-		override fun setProviderType(id: UUID, type: String) = cfg.providerConfig.updateType(id, type)
-		override fun setProviderKey(id: UUID, keyName: String) = cfg.providerConfig.updateKey(id, keyName)
-		override fun setProviderUrl(id: UUID, url: Url) = cfg.providerConfig.updateUrl(id, url)
+		override fun setProviderType(id: UUID, type: String) = providerRepo.updateType(id, type)
+		override fun setProviderKey(id: UUID, keyName: String) = providerRepo.updateKey(id, keyName)
+		override fun setProviderUrl(id: UUID, url: Url) = providerRepo.updateUrl(id, url)
 		override fun setProviderRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) =
-			cfg.providerConfig.updateRule(id, rules)
+			providerRepo.updateRule(id, rules)
 		
-		override fun listModels() = cfg.modelConfig.list()
-		override fun listModelIds(): List<UUID> = cfg.modelConfig.list().map { it.data.id }
+		override fun listModels() = modelRepo.list()
+		override fun listModelIds(): List<UUID> = modelRepo.list().map { it.data.id }
 		override fun getModelMeta(id: UUID): ModelData.ModelInfo? = ModelStore.get(id)?.modelInfo
+		override fun addModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.add(model)
+		override fun removeModel(id: UUID) = modelRepo.remove(id)
+		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) = modelRepo.update(id, model)
 		
-		override fun addModel(model: CoreConfig.ProviderConfig.Model) = cfg.modelConfig.add(model)
-		override fun removeModel(id: UUID) = cfg.modelConfig.remove(id)
-		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) =
-			cfg.modelConfig.update(id, model)
-		
-		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = cfg.apiKeyConfig.add(key)
-		override fun listApiKeyNames() = cfg.apiKeyConfig.list()
-		override fun removeApiKey(name: String) = cfg.apiKeyConfig.delete(name)
+		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
+		override fun listApiKeyNames() = apiKeyRepo.list()
+		override fun removeApiKey(name: String) = apiKeyRepo.delete(name)
 	}
 	
-	override val translation = object : CoreAPI.I18nAPI {
-		override fun getStatus() = TranslationManager.status
-		override fun updateModel(modelId: UUID) = TranslationManager.updateModel(modelId)
-		override fun updateLanguage(locale: Locale) = TranslationManager.updateLanguage(locale)
-		override fun startTranslation() = TranslationManager.startTranslation(config.settingService())
-		override fun getModel() = TranslationManager.getModel()
-		override fun getLanguage() = TranslationManager.getLanguage()
+	override val secret = object : CoreAPI.SecretAPI {
+		override fun isUnlocked() = SecretManager.isUnlocked
+		override fun isPasswordEmpty() = SecretManager.isPasswordEmpty
+		override fun unlock(password: String) = SecretManager.unlock(password)
+		override fun changePassword(oldPassword: String, newPassword: String) =
+			SecretManager.changePassword(oldPassword, newPassword)
 	}
+	
+	override val i18n = object : CoreAPI.I18nAPI {
+		override val i18nService: I18nService = I18nServiceImpl
+		
+		override fun updateLanguage(locale: Locale) = TranslationManager.updateLanguage(locale)
+		override fun getLanguage(): Locale? = TranslationManager.getLanguage()
+		override fun updateTranslationModel(modelId: UUID) = TranslationManager.updateModel(modelId)
+		override fun getTranslationModel(): UUID? = TranslationManager.getModel()
+		override fun startTranslation() = TranslationManager.startTranslation()
+		override fun getTranslationStatus(): StateFlow<TranslationStatus> = TranslationManager.status
+	}
+	
+	override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
 }

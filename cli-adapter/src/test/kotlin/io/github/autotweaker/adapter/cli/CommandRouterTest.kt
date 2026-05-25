@@ -44,7 +44,7 @@ class CommandRouterTest {
 		val config = mockk<CoreAPI.ConfigAPI>(relaxed = true)
 		val settingService = mockk<SettingService>(relaxed = true)
 		every { core.config } returns config
-		every { config.settingService() } returns settingService
+		every { config.settingService } returns settingService
 		every { settingService.get<SettingValue.ValInt>(any()) } returns SettingValue.ValInt(100_000)
 		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 	}

@@ -97,7 +97,6 @@ class RequestLlmPhaseTest {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} returns StreamProcessResult.Completed
@@ -122,7 +121,6 @@ class RequestLlmPhaseTest {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} returns StreamProcessResult.ToolCallsRequired(emptyList())
@@ -141,7 +139,6 @@ class RequestLlmPhaseTest {
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		coEvery {
 			AgentStreamProcessor.processRequest(
-				any(),
 				any(),
 				any(),
 				any(),
@@ -169,7 +166,6 @@ class RequestLlmPhaseTest {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} returns StreamProcessResult.Failed("LLM error")
@@ -184,7 +180,6 @@ class RequestLlmPhaseTest {
 	fun `updates status to PROCESSING on entry`() = runTest {
 		coEvery {
 			AgentStreamProcessor.processRequest(
-				any(),
 				any(),
 				any(),
 				any(),
@@ -217,7 +212,7 @@ class RequestLlmPhaseTest {
 	
 	private fun assistantMessage(content: String): AgentContext.Message.Assistant =
 		AgentContext.Message.Assistant(
-			content = content, model = model,
+			content = content, modelId = model.id,
 			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 	// endregion

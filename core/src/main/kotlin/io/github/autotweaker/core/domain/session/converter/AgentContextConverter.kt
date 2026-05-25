@@ -181,7 +181,7 @@ object AgentContextConverter {
 			timestamp = msg.timestamp,
 			reasoning = msg.reasoning,
 			content = msg.content,
-			model = msg.model.id,
+			model = msg.modelId,
 			usageSnapshot = msg.usageSnapshot
 		)
 	}

@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
@@ -42,13 +41,12 @@ internal object AgentStreamProcessor {
 	internal suspend fun processRequest(
 		request: AgentChatRequest,
 		agentId: UUID,
-		service: SettingService,
 		onContextUpdate: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
 		onOutput: suspend (AgentOutput) -> Unit,
 	): StreamProcessResult {
 		var streamResult: StreamProcessResult? = null
 		try {
-			AgentChat.execute(request, agentId, service).collect { result ->
+			AgentChat.execute(request, agentId).collect { result ->
 				when (result) {
 					is AgentChatStreamResult.Delta -> {
 						onOutput(AgentOutput.LlmDelta(result.delta))

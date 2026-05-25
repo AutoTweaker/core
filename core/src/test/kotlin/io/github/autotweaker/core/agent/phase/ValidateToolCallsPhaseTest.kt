@@ -268,7 +268,7 @@ class ValidateToolCallsPhaseTest {
 		name: String = "test_function",
 		model: Model = mockModel(),
 	): AgentContext.CurrentRound.PendingToolCall = AgentContext.CurrentRound.PendingToolCall(
-		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, model = model,
+		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, modelId = model.id,
 		arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
 	)
 	
@@ -277,7 +277,7 @@ class ValidateToolCallsPhaseTest {
 	
 	private fun assistantMessage(): AgentContext.Message.Assistant =
 		AgentContext.Message.Assistant(
-			content = "ok", model = model,
+			content = "ok", modelId = model.id,
 			timestamp = Clock.System.now(), usageSnapshot = null,
 		)
 	// endregion

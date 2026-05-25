@@ -22,7 +22,6 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.application.Launcher
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
@@ -85,7 +84,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	
 	override fun startAdapter(name: String) {
 		val (adapter, info) = requireAdapter(name)
-		adapter.start(CoreAPIImpl(this))
+		adapter.start(Launcher.createCoreAPI(this))
 		logger.info("Started adapter  name={}", info.name)
 	}
 	

@@ -70,3 +70,14 @@ tasks.register<Exec>("releaseTag") {
     """.trimIndent()
 	)
 }
+
+tasks.register<Exec>("testInDocker") {
+	dependsOn(subprojects.map { "${it.path}:compileKotlin" })
+	group = "verification"
+	description = "在 Docker 容器中运行单元测试"
+	workingDir = projectDir
+	commandLine(
+		listOf("bash", "scripts/docker-test.sh") + (project.findProperty("testArgs") as String? ?: "").split(" ")
+			.filter { it.isNotEmpty() })
+	outputs.upToDateWhen { false }
+}

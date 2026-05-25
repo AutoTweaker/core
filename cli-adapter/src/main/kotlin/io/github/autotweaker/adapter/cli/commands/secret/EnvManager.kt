@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.flow
 internal class EnvManager(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
-	private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	fun list(type: EnvType): Flow<CmdOutput> = flow {}
 	fun add(type: EnvType, name: String): Flow<CmdOutput> = flow {}

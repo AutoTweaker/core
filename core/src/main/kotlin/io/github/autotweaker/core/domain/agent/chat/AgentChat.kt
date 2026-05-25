@@ -18,14 +18,12 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
@@ -39,7 +37,7 @@ internal object AgentChat {
 		toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
 		assistantMessageId: UUID,
 		timestamp: Instant,
-		model: Model,
+		modelId: UUID,
 	): List<AgentContext.CurrentRound.PendingToolCall>? {
 		if (toolCalls.isNullOrEmpty()) return null
 		return toolCalls.map {
@@ -49,14 +47,14 @@ internal object AgentChat {
 				name = it.name,
 				arguments = it.arguments,
 				timestamp = timestamp,
-				model = model,
+				modelId = modelId,
 				reason = null
 			)
 		}
 	}
 	
 	internal fun execute(
-		request: AgentChatRequest, agentId: UUID, service: SettingService
+		request: AgentChatRequest, agentId: UUID
 	): Flow<AgentChatStreamResult> = flow {
 		val messages = request.toChatMessages()
 		
@@ -80,7 +78,6 @@ internal object AgentChat {
 			tools = request.tools,
 			stream = true,
 			thinking = request.thinking,
-			service = service,
 		)
 		
 		val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
@@ -124,13 +121,13 @@ internal object AgentChat {
 						
 						is ChatMessage.AssistantMessage -> {
 							val resultModel = modelById[resilientResult.model] ?: request.model
-							val snapshot = result.usage?.let {
-								UsageSnapshot(it, resultModel.modelInfo)
+							val snapshot = result.usage?.let { usage ->
+								UsageSnapshot(usage, resultModel.modelInfo)
 							}
 							val assistantMessage = AgentContext.Message.Assistant(
 								reasoning = msg.reasoningContent,
 								content = msg.content,
-								model = resultModel,
+								modelId = resilientResult.model,
 								timestamp = msg.createdAt,
 								usageSnapshot = snapshot,
 							)
@@ -138,7 +135,7 @@ internal object AgentChat {
 								AgentChatStreamResult.Assembled(
 									message = assistantMessage,
 									toolCalls = toPendingToolCalls(
-										msg.toolCalls, assistantMessage.id, msg.createdAt, resultModel
+										msg.toolCalls, assistantMessage.id, msg.createdAt, resilientResult.model
 									),
 									finishReason = result.finishReason,
 								)

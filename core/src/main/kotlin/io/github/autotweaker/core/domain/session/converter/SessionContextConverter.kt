@@ -22,14 +22,12 @@ import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.agent.AgentContext
-import io.github.autotweaker.core.domain.model.Model
 import java.util.*
 
 object SessionContextConverter {
 	fun toAgentContext(
 		context: SessionContext,
 		messages: List<SessionMessage>,
-		resolveModel: (UUID) -> Model,
 		maxCompactedRounds: Int = 0
 	): AgentContext {
 		val messageMap = messages.associateBy { it.id }
@@ -39,7 +37,7 @@ object SessionContextConverter {
 			if (compacted.rounds.isEmpty()) return@mapNotNull null
 			val compactMsg =
 				messageMap[compacted.summarizedMessage] as? SessionMessage.Compact ?: return@mapNotNull null
-			val rounds = compacted.rounds.map { buildCompletedRound(it, messageMap, resolveModel) }
+			val rounds = compacted.rounds.map { buildCompletedRound(it, messageMap) }
 			if (rounds.any { it == null }) return@mapNotNull null
 			AgentContext.CompactedRound(
 				rounds = rounds.filterNotNull(), summarizedMessage = AgentContext.SummarizedMessage(
@@ -52,11 +50,11 @@ object SessionContextConverter {
 		}
 		
 		val historyRounds = context.index.historyRounds?.mapNotNull {
-			buildCompletedRound(it, messageMap, resolveModel)
+			buildCompletedRound(it, messageMap)
 		}
 		
 		val currentRound = context.index.currentRound?.let {
-			buildCurrentRound(it, messageMap, resolveModel)
+			buildCurrentRound(it, messageMap)
 		}
 		
 		val summarizedMessage =
@@ -77,14 +75,13 @@ object SessionContextConverter {
 	
 	private fun buildCompletedRound(
 		roundIndex: SessionContextIndex.CompactedRound.CompletedRound,
-		messageMap: Map<UUID, SessionMessage>,
-		resolveModel: (UUID) -> Model
+		messageMap: Map<UUID, SessionMessage>
 	): AgentContext.CompletedRound? {
 		val userMsg = messageMap[roundIndex.userMessage] as? SessionMessage.User ?: return null
 		
-		val turns = roundIndex.turns?.mapNotNull { buildTurn(it, messageMap, resolveModel) }
+		val turns = roundIndex.turns?.mapNotNull { buildTurn(it, messageMap) }
 		val finalAssistant = roundIndex.finalAssistantMessage?.let { messageMap[it] as? SessionMessage.Assistant }
-			?.let { buildAssistantMessage(it, resolveModel) }
+			?.let { buildAssistantMessage(it) }
 		
 		return AgentContext.CompletedRound(
 			userMessage = buildUserMessage(userMsg), turns = turns, finalAssistantMessage = finalAssistant
@@ -93,12 +90,11 @@ object SessionContextConverter {
 	
 	private fun buildCurrentRound(
 		roundIndex: SessionContextIndex.CurrentRound,
-		messageMap: Map<UUID, SessionMessage>,
-		resolveModel: (UUID) -> Model
+		messageMap: Map<UUID, SessionMessage>
 	): AgentContext.CurrentRound? {
 		val userMsg = messageMap[roundIndex.userMessage] as? SessionMessage.User ?: return null
 		
-		val turns = roundIndex.turns?.mapNotNull { buildTurn(it, messageMap, resolveModel) }
+		val turns = roundIndex.turns?.mapNotNull { buildTurn(it, messageMap) }
 		
 		val assistantMsg = roundIndex.assistantMessage?.let { messageMap[it] as? SessionMessage.Assistant }
 		
@@ -110,7 +106,7 @@ object SessionContextConverter {
 				callId = call.callId,
 				assistantMessageId = call.assistantMessage,
 				name = call.name,
-				model = resolveModel(assistantModel),
+				modelId = assistantModel,
 				arguments = call.arguments,
 				reason = call.reason,
 				timestamp = call.timestamp
@@ -120,12 +116,12 @@ object SessionContextConverter {
 		return AgentContext.CurrentRound(
 			userMessage = buildUserMessage(userMsg),
 			turns = turns,
-			assistantMessage = assistantMsg?.let { buildAssistantMessage(it, resolveModel) },
+			assistantMessage = assistantMsg?.let { buildAssistantMessage(it) },
 			pendingToolCalls = pendingToolCalls?.takeIf { it.isNotEmpty() })
 	}
 	
 	private fun buildTurn(
-		turnIndex: SessionContextIndex.Turn, messageMap: Map<UUID, SessionMessage>, resolveModel: (UUID) -> Model
+		turnIndex: SessionContextIndex.Turn, messageMap: Map<UUID, SessionMessage>
 	): AgentContext.Turn? {
 		val assistantMsg = messageMap[turnIndex.assistantMessage] as? SessionMessage.Assistant ?: return null
 		
@@ -140,7 +136,7 @@ object SessionContextConverter {
 					arguments = callMsg.arguments,
 					reason = callMsg.reason,
 					timestamp = callMsg.timestamp,
-					model = resolveModel(assistantMsg.model)
+					modelId = assistantMsg.model,
 				), callId = callMsg.callId, result = AgentContext.Message.Tool.Result(
 					id = resultMsg.id,
 					content = resultMsg.content,
@@ -151,7 +147,7 @@ object SessionContextConverter {
 		}
 		
 		return AgentContext.Turn(
-			assistantMessage = buildAssistantMessage(assistantMsg, resolveModel), tools = tools
+			assistantMessage = buildAssistantMessage(assistantMsg), tools = tools
 		)
 	}
 	
@@ -162,13 +158,13 @@ object SessionContextConverter {
 	}
 	
 	private fun buildAssistantMessage(
-		msg: SessionMessage.Assistant, resolveModel: (UUID) -> Model
+		msg: SessionMessage.Assistant
 	): AgentContext.Message.Assistant {
 		return AgentContext.Message.Assistant(
 			id = msg.id,
 			reasoning = msg.reasoning,
 			content = msg.content,
-			model = resolveModel(msg.model),
+			modelId = msg.model,
 			timestamp = msg.timestamp,
 			usageSnapshot = msg.usageSnapshot
 		)

@@ -39,8 +39,8 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		override val description = "CLI命令的最大参数数量，超出会报错"
 	}
 	
-	private val maxArgsCount = core.config.settingService().get(MaxArgsCount()).value
-	private val i18n = core.i18nService()
+	private val maxArgsCount = core.config.settingService.get(MaxArgsCount()).value
+	private val i18n = core.i18n.i18nService
 	
 	init {
 		commands.forEach { it.init(core, coreVersion) }

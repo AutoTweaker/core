@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
 internal class ProviderQueries(private val core: CoreAPI) {
-	private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18n.i18nService
 	fun list(): Flow<String> = flow {
 		val providers = core.config.listProviders()
 		providers.forEachIndexed { index, provider ->

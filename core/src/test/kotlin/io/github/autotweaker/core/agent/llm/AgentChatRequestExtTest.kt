@@ -67,7 +67,7 @@ class AgentChatRequestExtTest {
 		AgentContext.Message.User(content = content, timestamp = Clock.System.now())
 	
 	private fun assistantMsg(content: String = "response") = AgentContext.Message.Assistant(
-		content = content, model = testModel, timestamp = Clock.System.now()
+		content = content, modelId = testModel.id, timestamp = Clock.System.now()
 	)
 	
 	private fun toolResult() =
@@ -77,7 +77,7 @@ class AgentChatRequestExtTest {
 				assistantMessageId = UUID.randomUUID(),
 				arguments = "{}",
 				timestamp = Clock.System.now(),
-				model = testModel
+				modelId = testModel.id
 			),
 			callId = "call-1",
 			result = AgentContext.Message.Tool.Result(
@@ -216,7 +216,7 @@ class AgentChatRequestExtTest {
 				callId = "id1",
 				assistantMessageId = UUID.randomUUID(),
 				name = "read",
-				model = testModel,
+				modelId = testModel.id,
 				arguments = "{}",
 				timestamp = Clock.System.now()
 			)

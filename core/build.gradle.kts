@@ -75,11 +75,9 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.21.3")
 }
 
-
 val inDocker = System.getenv("DOCKER_TEST") == "true"
 
 if (inDocker) {
-	// 容器内：使用原生 JUnit 执行
 	tasks.test {
 		useJUnitPlatform()
 		jvmArgs(
@@ -91,23 +89,10 @@ if (inDocker) {
 		finalizedBy(tasks.jacocoTestReport)
 	}
 } else {
-	// 宿主机：test 禁用，用 testInDocker 代替
 	tasks.test { enabled = false }
-	
-	val testInDocker by tasks.registering(Exec::class) {
-		group = "verification"
-		description = "在 Docker 容器中运行单元测试"
-		workingDir = rootProject.projectDir
-		commandLine(
-			listOf("bash", "scripts/docker-test.sh") + (project.findProperty("testArgs") as String? ?: "").split(" ")
-				.filter { it.isNotEmpty() })
-		outputs.upToDateWhen { false }
-	}
-	
-	tasks.check { dependsOn(testInDocker) }
-	
+	tasks.check { dependsOn(rootProject.tasks.named("testInDocker")) }
 	tasks.jacocoTestReport {
-		dependsOn(testInDocker)
+		dependsOn(rootProject.tasks.named("testInDocker"))
 		reports {
 			xml.required = true
 			html.required = true

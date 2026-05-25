@@ -36,7 +36,7 @@ class Version : Command {
 	override val syntax = Syntax.none()
 	private var coreVersion: SemVer = SemVer.parse("0.0.0")
 	private lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core

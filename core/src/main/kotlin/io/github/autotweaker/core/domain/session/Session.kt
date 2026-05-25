@@ -106,7 +106,6 @@ class Session(
 		return SessionContextConverter.toAgentContext(
 			context = _context.value,
 			messages = messages.values.toList(),
-			resolveModel = resolveModel,
 			maxCompactedRounds = maxCompactedRounds
 		)
 	}

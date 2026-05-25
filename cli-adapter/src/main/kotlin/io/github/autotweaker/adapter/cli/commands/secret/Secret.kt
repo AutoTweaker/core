@@ -65,7 +65,7 @@ class Secret : Command {
 			),
 		)
 	private lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
@@ -116,14 +116,14 @@ class Secret : Command {
 	}
 	
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
-		if (core.isPasswordEmpty) {
+		if (core.secret.isPasswordEmpty()) {
 			logger.debug("Unlock skipped  command=secret  reason=no_password_set")
 			emit(CmdOutput.Data(i18n.get(SecretI18n.UnlockNoPassword())))
 			emit(CmdOutput.Done())
 			return@flow
 		}
 		
-		if (core.isUnlocked) {
+		if (core.secret.isUnlocked()) {
 			logger.debug("Unlock skipped  command=secret  reason=already_unlocked")
 			emit(CmdOutput.Data(i18n.get(SecretI18n.UnlockAlready())))
 			emit(CmdOutput.Done())
@@ -133,7 +133,7 @@ class Secret : Command {
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false).also { emit(CmdOutput.Data("")) }
 		
 		try {
-			core.unlock(password)
+			core.secret.unlock(password)
 			logger.info("Keystore unlocked  command=secret")
 		} catch (_: Exception) {
 			logger.warn("Failed to unlock keystore  command=secret")
@@ -148,10 +148,10 @@ class Secret : Command {
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		emit(CmdOutput.Data(""))
 		try {
-			if (!core.isUnlocked) {
-				core.unlock(password)
+			if (!core.secret.isUnlocked()) {
+				core.secret.unlock(password)
 			}
-			core.changePassword(password, "")
+			core.secret.changePassword(password, "")
 			logger.info("Password removed  command=secret")
 		} catch (_: Exception) {
 			logger.warn("Failed to remove password  command=secret")
@@ -163,7 +163,7 @@ class Secret : Command {
 	}
 	
 	private fun handleChange(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
-		val oldPassword = if (core.isPasswordEmpty) {
+		val oldPassword = if (core.secret.isPasswordEmpty()) {
 			""
 		} else {
 			prompt(i18n.get(SecretI18n.UnlockPrompt()), false).also { emit(CmdOutput.Data("")) }
@@ -182,10 +182,10 @@ class Secret : Command {
 		}
 		
 		try {
-			if (!core.isUnlocked) {
-				core.unlock(oldPassword)
+			if (!core.secret.isUnlocked()) {
+				core.secret.unlock(oldPassword)
 			}
-			core.changePassword(oldPassword, newPassword)
+			core.secret.changePassword(oldPassword, newPassword)
 			logger.info("Password changed  command=secret")
 		} catch (_: Exception) {
 			logger.warn("Failed to change password  command=secret")

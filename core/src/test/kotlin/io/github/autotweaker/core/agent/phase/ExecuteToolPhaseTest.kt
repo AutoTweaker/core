@@ -77,7 +77,7 @@ class ExecuteToolPhaseTest {
 			arguments = buildJsonObject {},
 		)
 		pendingCall = AgentContext.CurrentRound.PendingToolCall(
-			callId = "c1", assistantMessageId = UUID.randomUUID(), name = "bash_run", model = model,
+			callId = "c1", assistantMessageId = UUID.randomUUID(), name = "bash_run", modelId = model.id,
 			arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
 		)
 		
@@ -110,7 +110,7 @@ class ExecuteToolPhaseTest {
 			name = "bash_run", callId = "c1",
 			call = AgentContext.Message.Tool.Call(
 				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "test reason",
-				timestamp = pendingCall.timestamp, model = model,
+				timestamp = pendingCall.timestamp, modelId = model.id,
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "execution output", timestamp = Clock.System.now(),
@@ -196,7 +196,7 @@ class ExecuteToolPhaseTest {
 		name = "bash_run", callId = "c1",
 		call = AgentContext.Message.Tool.Call(
 			assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "test reason",
-			timestamp = pendingCall.timestamp, model = model,
+			timestamp = pendingCall.timestamp, modelId = model.id,
 		),
 		result = AgentContext.Message.Tool.Result(
 			content = "execution output", timestamp = Clock.System.now(),

@@ -16,60 +16,60 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.config
+package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ProviderData
-import io.github.autotweaker.core.domain.session.ProviderService
+import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
 import java.util.*
 
-object ProviderConfigAPI {
-	private val cfg = ConfigManager
+object ProviderConfigAPI : ProviderRepository {
+	private val apiKeyConfig = ApiKeyConfigAPI
 	private val store = ProviderStore
 	
-	fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
-	fun getMeta(type: String) = ProviderService.getInfo(type)
-	fun list() = store.get().map {
+	override fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
+	override fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo
+	override fun list() = store.get().map {
 		CoreConfig.ProviderConfig.Provider(
 			id = it.id,
 			type = it.providerType,
-			keyId = cfg.apiKeyConfig.getName(it.apiKey),
+			keyId = apiKeyConfig.getName(it.apiKey),
 			baseUrl = it.baseUrl,
 			displayName = it.displayName,
 			errorHandlingRules = it.errorHandlingRules,
 		)
 	}
 	
-	fun delete(id: UUID) = store.delete(id)
+	override fun delete(id: UUID) = store.delete(id)
 	
-	fun create(provider: CoreConfig.ProviderConfig.Provider) {
-		val meta = ProviderService.getInfo(provider.type)
+	override fun create(provider: CoreConfig.ProviderConfig.Provider) {
+		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.add(
 			ProviderData(
 				id = provider.id,
 				displayName = provider.displayName,
 				providerType = provider.type,
-				apiKey = cfg.apiKeyConfig.getId(provider.keyId),
+				apiKey = apiKeyConfig.getId(provider.keyId),
 				baseUrl = provider.baseUrl ?: meta.baseUrl,
 				errorHandlingRules = provider.errorHandlingRules ?: meta.errorHandlingRules,
 			)
 		)
 	}
 	
-	fun updateType(id: UUID, new: String) = store.override(get(id).copy(providerType = new))
+	override fun updateType(id: UUID, new: String) = store.override(get(id).copy(providerType = new))
 	
-	fun updateKey(id: UUID, keyName: String) =
-		store.override(get(id).copy(apiKey = cfg.apiKeyConfig.getId(keyName)))
+	override fun updateKey(id: UUID, keyName: String) =
+		store.override(get(id).copy(apiKey = apiKeyConfig.getId(keyName)))
 	
-	fun updateUrl(id: UUID, url: Url) = store.override(get(id).copy(baseUrl = url))
+	override fun updateUrl(id: UUID, url: Url) = store.override(get(id).copy(baseUrl = url))
 	
-	fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) =
+	override fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) =
 		store.override(get(id).copy(errorHandlingRules = rules))
 	
-	fun updateDisplayName(id: UUID, displayName: String) =
+	override fun updateDisplayName(id: UUID, displayName: String) =
 		store.override(get(id).copy(displayName = displayName))
 	
 	internal fun get(id: UUID) = store.get(id) ?: error("ProviderData $id not found")

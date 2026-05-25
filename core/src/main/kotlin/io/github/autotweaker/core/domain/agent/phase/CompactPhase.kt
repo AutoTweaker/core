@@ -59,7 +59,7 @@ internal object CompactPhase {
 		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt()).value
 		
 		val (processed, preprocessSnapshots) = preprocessMessages(
-			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, service
+			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt
 		)
 		
 		val systemAndMessages = processed + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
@@ -158,7 +158,6 @@ internal object CompactPhase {
 				messages = messages,
 				stream = true,
 				thinking = false,
-				service = service,
 			)
 			results.collect { resilientResult ->
 				currentCoroutineContext().ensureActive()
@@ -232,14 +231,13 @@ internal object CompactPhase {
 		fallbackModels: List<Model>?,
 		maxMessageChars: Int,
 		messageSummarizePrompt: String,
-		service: SettingService,
 	): PreprocessResult {
 		val messages = mutableListOf<ChatMessage>()
 		val snapshots = mutableListOf<UsageSnapshot>()
 		
 		for (round in rounds) {
 			val (userMsg, userSnapshot) = convertUserMessage(
-				round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service
+				round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
 			)
 			userSnapshot?.let { snapshots.add(it) }
 			messages.add(userMsg)
@@ -259,13 +257,12 @@ internal object CompactPhase {
 					messageSummarizePrompt,
 					summarizeModel,
 					fallbackModels,
-					service,
 				)
 				assistantSnapshot?.let { snapshots.add(it) }
 				messages.add(assistantMsg)
 				turn.tools.forEach {
 					val (toolMsg, toolSnapshot) = convertToolMessage(
-						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
+						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels,
 					)
 					toolSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 					messages.add(toolMsg)
@@ -273,7 +270,7 @@ internal object CompactPhase {
 			}
 			round.finalAssistantMessage?.let {
 				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
-					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, service,
+					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels,
 				)
 				assistantSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 				messages.add(assistantMsg)
@@ -289,7 +286,6 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
-		service: SettingService,
 	): Pair<ChatMessage.UserMessage, UsageSnapshot?> {
 		val content = buildString {
 			if (!msg.images.isNullOrEmpty()) {
@@ -298,7 +294,7 @@ internal object CompactPhase {
 			append(msg.content)
 		}
 		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
 		} else content to null
 		return ChatMessage.UserMessage(finalContent, msg.timestamp) to snapshot
 	}
@@ -310,18 +306,17 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
-		service: SettingService,
 	): Pair<ChatMessage.AssistantMessage, UsageSnapshot?> {
 		val content = msg.content ?: ""
 		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
 		} else content to null
 		return ChatMessage.AssistantMessage(
 			content = finalContent,
 			createdAt = msg.timestamp,
 			reasoningContent = msg.reasoning ?: "",
 			toolCalls = toolCalls,
-			model = msg.model.modelInfo.modelId,
+			model = null,
 		) to snapshot
 	}
 	
@@ -331,11 +326,10 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
-		service: SettingService,
 	): Pair<ChatMessage.ToolMessage, UsageSnapshot?> {
 		val content = msg.result.content
 		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, service)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
 		} else content to null
 		return ChatMessage.ToolMessage(
 			content = finalContent,
@@ -349,7 +343,6 @@ internal object CompactPhase {
 		prompt: String,
 		model: Model,
 		fallbackModels: List<Model>?,
-		service: SettingService,
 	): Pair<String, UsageSnapshot?> {
 		val results = ResilientChat.execute(
 			model = model,
@@ -358,7 +351,6 @@ internal object CompactPhase {
 				ChatMessage.UserMessage(prompt.format(content), Clock.System.now()),
 			),
 			thinking = false,
-			service = service,
 		).toList()
 		val success = results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }
 		val finalResult = success.lastOrNull()

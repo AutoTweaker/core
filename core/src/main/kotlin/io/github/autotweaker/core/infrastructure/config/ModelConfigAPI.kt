@@ -16,24 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.config
+package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import java.util.*
 
-object ModelConfigAPI {
+object ModelConfigAPI : ModelConfigRepository {
 	private val store = ModelStore
 	
-	fun add(model: CoreConfig.ProviderConfig.Model) {
+	override fun add(model: CoreConfig.ProviderConfig.Model) {
 		store.add(model.data)
 	}
 	
-	fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
+	override fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
 	
-	fun remove(id: UUID) = store.delete(id)
+	override fun remove(id: UUID) = store.delete(id)
 	
-	fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
+	override fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
 		store.override(model.data.copy(id = id))
 	}
 }

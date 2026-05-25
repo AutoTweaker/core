@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.config
+package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.serialization.Serializable
@@ -28,20 +29,20 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.util.*
 
-object ApiKeyConfigAPI {
+object ApiKeyConfigAPI : ApiKeyRepository {
 	private val secret = SecretManager
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	private val keyMap: MutableMap<String, @Serializable(with = UuidSerializer::class) UUID> = mutableMapOf()
 	
-	fun add(key: CoreConfig.ProviderConfig.ApiKey) {
+	override fun add(key: CoreConfig.ProviderConfig.ApiKey) {
 		if (keyMap[key.name] != null) error("Key ${key.name} already exists")
 		keyMap[key.name] = secret.add(key.key)
 		saveMap()
 	}
 	
-	fun list(): List<String> = keyMap.keys.toList()
-	fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
-	fun delete(name: String) {
+	override fun list(): List<String> = keyMap.keys.toList()
+	override fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
+	override fun delete(name: String) {
 		val id = keyMap.remove(name) ?: error("Key $name not found")
 		secret.remove(id)
 		saveMap()

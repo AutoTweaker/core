@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.map
 @AutoService(Command::class)
 class Provider : Command {
 	lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18nService()
+	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name = "prov"
 	override val description get() = i18n.get(ProvI18n.Desc())

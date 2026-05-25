@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.agent.tool.service
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmResult
@@ -39,8 +38,6 @@ import kotlin.test.assertFailsWith
 import kotlin.time.Clock
 
 class SummarizeServiceImplTest {
-	private val mockService: SettingService = mockk(relaxed = true)
-	
 	private val mockModel = Model(
 		provider = Provider(UUID.randomUUID(), "test-provider", mockk(relaxed = true), "key", emptyList()),
 		modelInfo = mockk(relaxed = true),
@@ -56,7 +53,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize returns response on success`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("summarized content", Clock.System.now()),
@@ -65,7 +62,7 @@ class SummarizeServiceImplTest {
 			)
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, service = mockService)
+		val service = SummarizeServiceImpl(mockModel)
 		val result = service.summarize("long content", "summarize this")
 		
 		assertEquals("summarized content", result)
@@ -76,7 +73,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize skips retrying results and uses success`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(
 				result = ChatResult.Chunk(message = null),
 				model = mockModel.id,
@@ -89,7 +86,7 @@ class SummarizeServiceImplTest {
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel), mockService)
+		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
 		val result = service.summarize("content", "summarize")
 		
 		assertEquals("fallback result", result)
@@ -100,14 +97,14 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize throws when no successful response`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(
 				result = ChatResult.Chunk(message = null),
 				model = mockModel.id,
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel), mockService)
+		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
 		
 		assertFailsWith<IllegalStateException> {
 			service.summarize("content", "summarize")
@@ -119,9 +116,9 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize empty flow throws`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf()
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf()
 		
-		val service = SummarizeServiceImpl(mockModel, service = mockService)
+		val service = SummarizeServiceImpl(mockModel)
 		
 		assertFailsWith<IllegalStateException> {
 			service.summarize("content", "summarize")
@@ -133,7 +130,7 @@ class SummarizeServiceImplTest {
 	@Test
 	fun `summarize bypasses fallback when first model succeeds`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
+		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(
 				result = ChatResult.Assembled(
 					message = ChatMessage.AssistantMessage("first success", Clock.System.now()),
@@ -142,7 +139,7 @@ class SummarizeServiceImplTest {
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel), mockService)
+		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
 		val result = service.summarize("content", "summarize")
 		
 		assertEquals("first success", result)

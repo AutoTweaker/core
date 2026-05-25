@@ -23,7 +23,6 @@ import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentContext
-import io.github.autotweaker.core.domain.model.Model
 import io.mockk.mockk
 import java.util.*
 import kotlin.test.Test
@@ -34,10 +33,8 @@ import kotlin.time.Clock
 
 class AgentContextTest {
 	
-	private val mockModel: Model = mockk(relaxed = true)
+	private val mockModelId: UUID = UUID.randomUUID()
 	private val now: kotlin.time.Instant = Clock.System.now()
-	
-	// region Message.User
 	
 	@Test
 	fun `User message with content`() {
@@ -60,16 +57,12 @@ class AgentContextTest {
 		assertEquals("", msg.content)
 	}
 	
-	// endregion
-	
-	// region Message.Assistant
-	
 	@Test
 	fun `Assistant message with content`() {
-		val msg = AgentContext.Message.Assistant(content = "answer", model = mockModel, timestamp = now)
+		val msg = AgentContext.Message.Assistant(content = "answer", modelId = mockModelId, timestamp = now)
 		assertEquals("answer", msg.content)
 		assertNull(msg.reasoning)
-		assertEquals(mockModel, msg.model)
+		assertEquals(mockModelId, msg.modelId)
 		assertNull(msg.usageSnapshot)
 	}
 	
@@ -78,9 +71,9 @@ class AgentContextTest {
 		val msg = AgentContext.Message.Assistant(
 			reasoning = "thinking",
 			content = "answer",
-			model = mockModel,
+			modelId = mockModelId,
 			timestamp = now,
-			usageSnapshot = UsageSnapshot(usage = Usage(5, 5), model = mockModel.modelInfo)
+			usageSnapshot = UsageSnapshot(usage = Usage(5, 5), model = mockk())
 		)
 		assertEquals("thinking", msg.reasoning)
 		assertEquals("answer", msg.content)
@@ -89,14 +82,10 @@ class AgentContextTest {
 	
 	@Test
 	fun `Assistant message with null content and reasoning`() {
-		val msg = AgentContext.Message.Assistant(model = mockModel, timestamp = now)
+		val msg = AgentContext.Message.Assistant(modelId = mockModelId, timestamp = now)
 		assertNull(msg.content)
 		assertNull(msg.reasoning)
 	}
-	
-	// endregion
-	
-	// region Message.Tool
 	
 	@Test
 	fun `Tool message with success result`() {
@@ -105,7 +94,7 @@ class AgentContextTest {
 			arguments = """{"cmd":"ls"}""",
 			reason = "test",
 			timestamp = now,
-			model = mockModel
+			modelId = mockModelId
 		)
 		val result = AgentContext.Message.Tool.Result(
 			content = "output", timestamp = now, status = ToolResultStatus.SUCCESS
@@ -126,7 +115,7 @@ class AgentContextTest {
 			assistantMessageId = UUID.randomUUID(),
 			arguments = "{}",
 			timestamp = now,
-			model = mockModel
+			modelId = mockModelId
 		)
 		val result = AgentContext.Message.Tool.Result(
 			content = "error", timestamp = now, status = ToolResultStatus.FAILURE
@@ -159,19 +148,15 @@ class AgentContextTest {
 			assistantMessageId = UUID.randomUUID(),
 			arguments = "{}",
 			timestamp = now,
-			model = mockModel
+			modelId = mockModelId
 		)
 		assertNull(call.reason)
 	}
 	
-	// endregion
-	
-	// region CompletedRound
-	
 	@Test
 	fun `CompletedRound with turns and final message`() {
 		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
-		val assistantMsg = AgentContext.Message.Assistant(content = "hi", model = mockModel, timestamp = now)
+		val assistantMsg = AgentContext.Message.Assistant(content = "hi", modelId = mockModelId, timestamp = now)
 		val turn = AgentContext.Turn(assistantMsg, emptyList())
 		val round = AgentContext.CompletedRound(userMsg, listOf(turn), assistantMsg)
 		
@@ -189,10 +174,6 @@ class AgentContextTest {
 		assertNull(round.finalAssistantMessage)
 	}
 	
-	// endregion
-	
-	// region CurrentRound
-	
 	@Test
 	fun `CurrentRound with user message only`() {
 		val userMsg = AgentContext.Message.User(content = "hello", timestamp = now)
@@ -209,7 +190,7 @@ class AgentContextTest {
 		val userMsg = AgentContext.Message.User(content = "read file", timestamp = now)
 		val pending = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
-				callId = "c1", assistantMessageId = UUID.randomUUID(), name = "read_file", model = mockModel,
+				callId = "c1", assistantMessageId = UUID.randomUUID(), name = "read_file", modelId = mockModelId,
 				arguments = """{"path":"/tmp"}""", reason = "need to read", timestamp = now
 			)
 		)
@@ -219,7 +200,7 @@ class AgentContextTest {
 		assertEquals(1, calls.size)
 		assertEquals("c1", calls[0].callId)
 		assertEquals("read_file", calls[0].name)
-		assertEquals(mockModel, calls[0].model)
+		assertEquals(mockModelId, calls[0].modelId)
 		assertEquals("""{"path":"/tmp"}""", calls[0].arguments)
 		assertEquals("need to read", calls[0].reason)
 	}
@@ -230,25 +211,21 @@ class AgentContextTest {
 			callId = "c1",
 			assistantMessageId = UUID.randomUUID(),
 			name = "bash_run",
-			model = mockModel,
+			modelId = mockModelId,
 			arguments = "{}",
 			timestamp = now
 		)
 		assertNull(pending.reason)
 	}
 	
-	// endregion
-	
-	// region Turn
-	
 	@Test
 	fun `Turn holds assistant message and tools`() {
-		val assistantMsg = AgentContext.Message.Assistant(content = "done", model = mockModel, timestamp = now)
+		val assistantMsg = AgentContext.Message.Assistant(content = "done", modelId = mockModelId, timestamp = now)
 		val call = AgentContext.Message.Tool.Call(
 			assistantMessageId = UUID.randomUUID(),
 			arguments = "{}",
 			timestamp = now,
-			model = mockModel
+			modelId = mockModelId
 		)
 		val result = AgentContext.Message.Tool.Result(
 			content = "ok",
@@ -265,15 +242,11 @@ class AgentContextTest {
 	
 	@Test
 	fun `Turn with empty tools`() {
-		val assistantMsg = AgentContext.Message.Assistant(content = "text only", model = mockModel, timestamp = now)
+		val assistantMsg = AgentContext.Message.Assistant(content = "text only", modelId = mockModelId, timestamp = now)
 		val turn = AgentContext.Turn(assistantMsg, emptyList())
 		
 		assertTrue(turn.tools.isEmpty())
 	}
-	
-	// endregion
-	
-	// region AgentContext
 	
 	@Test
 	fun `empty AgentContext has all null fields`() {
@@ -340,6 +313,4 @@ class AgentContextTest {
 		assertEquals(1, compactedList.size)
 		assertEquals(now, compactedList[0].summarizedMessage.timestamp)
 	}
-	
-	// endregion
 }

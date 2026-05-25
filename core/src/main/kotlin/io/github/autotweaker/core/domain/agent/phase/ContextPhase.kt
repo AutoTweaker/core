@@ -167,7 +167,7 @@ internal object ContextPhase {
 			arguments = call.arguments,
 			reason = call.reason,
 			timestamp = call.timestamp,
-			model = call.model,
+			modelId = call.modelId,
 		),
 		callId = call.callId,
 		result = AgentContext.Message.Tool.Result(

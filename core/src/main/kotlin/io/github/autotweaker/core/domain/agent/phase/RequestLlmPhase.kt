@@ -49,7 +49,7 @@ internal object RequestLlmPhase {
 		)
 		
 		return when (AgentStreamProcessor.processRequest(
-			request, env.agentId, env.service, env::updateContext, env::emitOutput
+			request, env.agentId, env::updateContext, env::emitOutput
 		)) {
 			is StreamProcessResult.Completed -> {
 				ContextPhase.archiveCurrentRound(env, env::updateContext)

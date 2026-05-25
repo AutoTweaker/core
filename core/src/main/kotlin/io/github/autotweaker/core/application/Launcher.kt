@@ -25,6 +25,10 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.domain.session.SessionManager
+import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
+import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
+import io.github.autotweaker.core.infrastructure.config.ModelConfigAPI
+import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
@@ -75,10 +79,13 @@ object Launcher {
 			logger.info(
 				"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
 			)
-			adapter.start(CoreAPIImpl(adapterAPI))
+			adapter.start(createCoreAPI(adapterAPI))
 			logger.info("Started adapter  name={}", info.name)
 		}
 	}
+	
+	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) =
+		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI)
 	
 	fun shutdown(registry: Map<String, Pair<Adapter, AdapterInfo>>) {
 		registry.values.forEach { (adapter, _) ->

@@ -43,7 +43,7 @@ internal object ToolProvider {
 		container.register(
 			SummarizeService::class,
 			SummarizeServiceImpl(
-				env.summarizeModel, env.currentFallbackModels, env.service,
+				env.summarizeModel, env.currentFallbackModels,
 				onUsage = { snapshot ->
 					env.emitOutput(
 						AgentOutput.UsageConsumed(Clock.System.now(), snapshot.usage, snapshot.model)
