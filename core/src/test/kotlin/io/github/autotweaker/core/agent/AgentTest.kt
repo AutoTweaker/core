@@ -24,8 +24,8 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.domain.model.Model
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.delay

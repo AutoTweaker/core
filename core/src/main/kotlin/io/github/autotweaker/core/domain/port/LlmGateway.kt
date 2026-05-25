@@ -16,15 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.core.domain.port
 
-import io.github.autotweaker.api.types.llm.ModelData.Config
-import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
-import java.util.*
+import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
+import kotlinx.coroutines.flow.Flow
 
-data class Model(
-	val id: UUID,
-	val provider: Provider,
-	val modelInfo: ModelInfo,
-	val config: Config? = null,
-)
+interface LlmGateway {
+	fun send(request: ChatRequest, apiKey: String, baseUrl: Url, providerType: String): Flow<ChatResult>
+}

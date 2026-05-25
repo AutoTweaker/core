@@ -25,14 +25,13 @@ import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionHandle
-
 import io.github.autotweaker.core.agent.AgentCommand
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.ResilientChat
 import io.github.autotweaker.core.container.ContainerConfig
 import io.github.autotweaker.core.container.ContainerManager
 import io.github.autotweaker.core.data.WorkspaceManager
 import io.github.autotweaker.core.data.settings.Settings
+import io.github.autotweaker.core.domain.model.Model
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest

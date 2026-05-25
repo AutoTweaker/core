@@ -24,7 +24,8 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
-import io.github.autotweaker.core.llm.LlmClientLoader
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -36,6 +37,14 @@ import kotlin.time.Duration.Companion.seconds
 internal object ResilientChat {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
+	private lateinit var gateway: LlmGateway
+	private lateinit var settings: SettingService
+	
+	fun init(gateway: LlmGateway, settings: SettingService) {
+		this.gateway = gateway
+		this.settings = settings
+	}
+	
 	private class StatusCodeNullException : Exception()
 	
 	internal fun execute(
@@ -46,10 +55,9 @@ internal object ResilientChat {
 		responseFormat: ChatRequest.ResponseFormat? = null,
 		stream: Boolean = false,
 		thinking: Boolean? = null,
-		service: SettingService,
 	): Flow<CoreLlmResult> = flow {
-		val maxRetries = service.get(ResilientChatSettings.MaxRetries()).value
-		val llmChatRetries = service.get(ResilientChatSettings.LlmChatRetries()).value
+		val maxRetries = settings.get(ResilientChatSettings.MaxRetries()).value
+		val llmChatRetries = settings.get(ResilientChatSettings.LlmChatRetries()).value
 		
 		logger.debug(
 			"Chat started  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
@@ -64,11 +72,11 @@ internal object ResilientChat {
 		
 		suspend fun attempt(target: Model): Int? {
 			val chatRequest = buildRequest(target, messages, tools, responseFormat, stream, thinking)
-			val client = LlmClientLoader.load(target.provider.name)
-			val results = client.chat(
+			val results = gateway.send(
 				request = chatRequest,
 				apiKey = target.provider.apiKey,
 				baseUrl = target.provider.baseUrl,
+				providerType = target.provider.name,
 			)
 			
 			var errorStatusCode: Int? = null
@@ -118,9 +126,9 @@ internal object ResilientChat {
 									retriesUsed + 1,
 									statusCode
 								)
-								val baseDelay = service.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
-								val maxDelay = service.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
-								val jitterEnabled = service.get(ResilientChatSettings.RetryJitterEnabled()).value
+								val baseDelay = settings.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
+								val maxDelay = settings.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
+								val jitterEnabled = settings.get(ResilientChatSettings.RetryJitterEnabled()).value
 								val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
 								val finalDelay = if (jitterEnabled) {
 									Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds

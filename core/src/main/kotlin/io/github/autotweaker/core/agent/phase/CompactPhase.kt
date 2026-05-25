@@ -27,8 +27,8 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.agent.AgentContext
 import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentOutput
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.ResilientChat
+import io.github.autotweaker.core.domain.model.Model
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive

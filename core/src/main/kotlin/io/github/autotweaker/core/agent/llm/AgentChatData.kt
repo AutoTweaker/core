@@ -23,6 +23,7 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.domain.model.Model
 import java.util.*
 import kotlin.time.Instant
 

@@ -22,7 +22,7 @@ import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.domain.model.Model
 import io.mockk.mockk
 import java.util.*
 import kotlin.test.Test

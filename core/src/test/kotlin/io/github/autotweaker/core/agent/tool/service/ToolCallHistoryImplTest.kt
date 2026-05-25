@@ -20,7 +20,7 @@ package io.github.autotweaker.core.agent.tool.service
 
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.domain.model.Model
 import io.mockk.mockk
 import java.util.*
 import kotlin.test.Test

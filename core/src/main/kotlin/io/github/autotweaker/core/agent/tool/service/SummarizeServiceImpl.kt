@@ -21,8 +21,8 @@ package io.github.autotweaker.core.agent.tool.service
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.ResilientChat
+import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.tool.impl.read.SummarizeService
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Clock

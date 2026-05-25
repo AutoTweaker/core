@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.agent.llm
+package io.github.autotweaker.core.domain.model
 
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ProviderData

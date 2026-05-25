@@ -25,8 +25,8 @@ import io.github.autotweaker.core.agent.AgentEnvironment
 import io.github.autotweaker.core.agent.AgentStreamProcessor
 import io.github.autotweaker.core.agent.AgentStreamProcessor.StreamProcessResult
 import io.github.autotweaker.core.agent.MutableAgentState
-import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.agent.llm.Provider
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking

@@ -24,6 +24,8 @@ import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.model.Provider
 import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test

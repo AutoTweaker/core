@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
-import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.mockk
 import java.util.*

@@ -20,7 +20,7 @@ package io.github.autotweaker.core.agent
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.domain.model.Model
 import java.util.*
 import kotlin.time.Instant
 

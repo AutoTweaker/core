@@ -27,7 +27,7 @@ import io.github.autotweaker.core.agent.AgentStreamProcessor.StreamProcessResult
 import io.github.autotweaker.core.agent.llm.AgentChat
 import io.github.autotweaker.core.agent.llm.AgentChatRequest
 import io.github.autotweaker.core.agent.llm.AgentChatStreamResult
-import io.github.autotweaker.core.agent.llm.Model
+import io.github.autotweaker.core.domain.model.Model
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject

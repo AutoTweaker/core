@@ -29,6 +29,8 @@ import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.model.Provider
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.mockk.*
 import kotlinx.coroutines.flow.flow

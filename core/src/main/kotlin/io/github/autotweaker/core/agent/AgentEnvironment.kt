@@ -21,9 +21,9 @@ package io.github.autotweaker.core.agent
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.domain.model.Model
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 

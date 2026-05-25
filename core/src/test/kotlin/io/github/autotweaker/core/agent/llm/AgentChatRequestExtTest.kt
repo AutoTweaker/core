@@ -27,6 +27,8 @@ import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.core.agent.AgentContext
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.model.Provider
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.util.*

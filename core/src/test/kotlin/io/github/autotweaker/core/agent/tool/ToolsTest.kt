@@ -24,8 +24,8 @@ import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.agent.AgentContext
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.tool.ToolCallValidator.ValidationResult
+import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.tool.SimpleContainer
 import io.github.autotweaker.core.tool.Tool
 import io.mockk.coEvery

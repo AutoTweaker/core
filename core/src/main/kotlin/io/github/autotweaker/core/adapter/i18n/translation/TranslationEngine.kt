@@ -25,8 +25,8 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.adapter.i18n.I18nRegistry
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.llm.ResilientChat
+import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.session.ProviderService
 import io.github.autotweaker.core.session.SessionStore
 import io.github.autotweaker.core.session.UsageStore

@@ -22,11 +22,11 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.agent.llm.Model
 import io.github.autotweaker.core.agent.phase.*
 import io.github.autotweaker.core.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.agent.tool.Tools
 import io.github.autotweaker.core.container.ContainerConfig
+import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.tool.Tool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel

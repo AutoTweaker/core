@@ -19,10 +19,10 @@
 package io.github.autotweaker.core.session
 
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.core.agent.llm.Model
-import io.github.autotweaker.core.agent.llm.Provider
 import io.github.autotweaker.core.data.ModelStore
 import io.github.autotweaker.core.data.ProviderStore
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.model.Provider
 import io.github.autotweaker.core.llm.LlmClientLoader
 import io.github.autotweaker.core.secret.impl.SecretManager
 import java.util.*
