@@ -21,6 +21,7 @@ package io.github.autotweaker.adapter.cli.commands.secret
 import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.types.config.CoreConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -29,10 +30,37 @@ internal class EnvManager(
 ) {
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
-	fun list(type: EnvType): Flow<CmdOutput> = flow {}
-	fun add(type: EnvType, name: String): Flow<CmdOutput> = flow {}
-	fun get(type: EnvType, name: String): Flow<CmdOutput> = flow {}
-	fun remove(type: EnvType, name: String): Flow<CmdOutput> = flow {}
+	fun list(type: EnvType): Flow<CmdOutput> = flow {
+		core.config.listEnv(
+			type.toCoreConfig()
+		).forEach {
+			emit(CmdOutput.Data(it))
+		}.also {
+			emit(CmdOutput.Done())
+		}
+	}
+	
+	fun add(type: EnvType, name: String): Flow<CmdOutput> = flow {
+		val value = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
+		
+		core.config.setEnv(listOf(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig())))
+		emit(CmdOutput.Done())
+	}
+	
+	fun get(type: EnvType, name: String): Flow<CmdOutput> = flow {
+		core.config.getEnv(type.toCoreConfig(), name)?.let { emit(CmdOutput.Data(it)) }
+		emit(CmdOutput.Done())
+	}
+	
+	fun remove(type: EnvType, name: String): Flow<CmdOutput> = flow {
+		core.config.removeEnv(type.toCoreConfig(), name)
+		emit(CmdOutput.Done())
+	}
+	
+	private fun EnvType.toCoreConfig(): CoreConfig.JsonConfig.Env.Type = when (this) {
+		EnvType.BASH -> CoreConfig.JsonConfig.Env.Type.BASH_ENV
+		EnvType.CONTAINER -> CoreConfig.JsonConfig.Env.Type.CONTAINER_ENV
+	}
 	
 	internal enum class EnvType { BASH, CONTAINER }
 }

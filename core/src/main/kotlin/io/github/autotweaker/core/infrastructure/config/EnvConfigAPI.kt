@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.CoreConfig.JsonConfig.Env.Type
 import io.github.autotweaker.core.domain.port.EnvRepository
 import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
@@ -27,31 +28,25 @@ object EnvConfigAPI : EnvRepository {
 	private val bash = Bash()
 	private val con = ContainerManager
 	
-	override fun list(type: CoreConfig.JsonConfig.Env.Type): List<String> =
-		if (type == CoreConfig.JsonConfig.Env.Type.BASH_ENV) {
-			bash.listEnv()
-		} else {
-			con.listEnv()
-		}
+	override fun list(type: Type): List<String> = when (type) {
+		Type.BASH_ENV -> bash.listEnv()
+		Type.CONTAINER_ENV -> con.listEnv()
+	}
 	
 	override fun set(env: List<CoreConfig.JsonConfig.Env>) {
-		val bashEnv = env.filter { it.type == CoreConfig.JsonConfig.Env.Type.BASH_ENV }
-		val conEnv = env.filter { it.type == CoreConfig.JsonConfig.Env.Type.CONTAINER_ENV }
+		val bashEnv = env.filter { it.type == Type.BASH_ENV }
+		val conEnv = env.filter { it.type == Type.CONTAINER_ENV }
 		bashEnv.forEach { bash.setEnv(it.id, it.value) }
 		con.setEnv(conEnv.associateBy({ it.id }, { it.value }))
 	}
 	
-	override fun get(type: CoreConfig.JsonConfig.Env.Type, id: String): String? =
-		if (type == CoreConfig.JsonConfig.Env.Type.CONTAINER_ENV) {
-			con.getEnv(id)[id]
-		} else {
-			bash.getEnv(id)
-		}
+	override fun get(type: Type, id: String): String? = when (type) {
+		Type.CONTAINER_ENV -> con.getEnv(id)[id]
+		Type.BASH_ENV -> bash.getEnv(id)
+	}
 	
-	override fun remove(type: CoreConfig.JsonConfig.Env.Type, id: String) =
-		if (type == CoreConfig.JsonConfig.Env.Type.CONTAINER_ENV) {
-			con.removeEnv(id)
-		} else {
-			bash.removeEnv(id)
-		}
+	override fun remove(type: Type, id: String) = when (type) {
+		Type.CONTAINER_ENV -> con.removeEnv(id)
+		Type.BASH_ENV -> bash.removeEnv(id)
+	}
 }

@@ -87,7 +87,7 @@ internal object SecretI18n {
 		override val localizations: List<LocalizedString> = listOf(
 			LocalizedString(
 				Locale.SIMPLIFIED_CHINESE,
-				"""指定环境变量的类型，可选值"container"表示容器内工作区所在容器的系统环境变量，可选值"bash"表示大模型运行命令可请求注入的环境变量"""
+				"""指定环境变量的类型，可选值"container"表示容器内工作区所在容器的系统环境变量，可选值"bash"表示大模型运行命令时可请求注入的环境变量"""
 			)
 		)
 	}

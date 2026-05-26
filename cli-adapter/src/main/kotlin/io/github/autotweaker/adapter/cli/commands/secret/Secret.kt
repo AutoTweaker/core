@@ -79,6 +79,11 @@ class Secret : Command {
 			return@flow
 		}
 		
+		suspend fun emitInvalidArg() {
+			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidArg()), CmdOutput.Channel.STDERR))
+			emit(CmdOutput.Done(1))
+		}
+		
 		if (request.has("passwd")) {
 			if (request.has("reset")) {
 				emitAll(handleRemove(prompt))
@@ -96,23 +101,70 @@ class Secret : Command {
 				return@flow
 			}
 			if (request.has("add")) {
-				val name = request.get("add") ?: error("Missing key name")
+				val name = request.get("add") ?: run {
+					emitInvalidArg()
+					return@flow
+				}
 				emitAll(km.add(name))
 				return@flow
 			}
 			if (request.has("remove")) {
-				val name = request.get("add") ?: error("Missing key name")
+				val name = request.get("add") ?: run {
+					emitInvalidArg()
+					return@flow
+				}
 				emitAll(km.remove(name))
 				return@flow
 			}
-			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidArg()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitInvalidArg()
 			return@flow
 		}
 		
-		if (request.has("env")) {
+		if (request.has("env") && request.has("type")) {
 			val em = EnvManager(core, prompt)
+			val type = when (request.get("type")) {
+				"bash" -> EnvManager.EnvType.BASH
+				"container" -> EnvManager.EnvType.CONTAINER
+				else -> {
+					emitInvalidArg()
+					return@flow
+				}
+			}
+			
+			if (request.has("list")) {
+				emitAll(em.list(type))
+				return@flow
+			}
+			if (request.has("add")) {
+				val name = request.get("add") ?: run {
+					emitInvalidArg()
+					return@flow
+				}
+				emitAll(em.add(type, name))
+				return@flow
+			}
+			if (request.has("get")) {
+				val name = request.get("get") ?: run {
+					emitInvalidArg()
+					return@flow
+				}
+				emitAll(em.get(type, name))
+				return@flow
+			}
+			if (request.has("remove")) {
+				val name = request.get("add") ?: run {
+					emitInvalidArg()
+					return@flow
+				}
+				emitAll(em.remove(type, name))
+				return@flow
+			}
+			emitInvalidArg()
+			return@flow
 		}
+		
+		emitInvalidArg()
+		return@flow
 	}
 	
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
