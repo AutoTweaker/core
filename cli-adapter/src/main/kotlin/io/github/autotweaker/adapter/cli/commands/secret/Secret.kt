@@ -58,7 +58,7 @@ class Secret : Command {
 							Param.Flag("env", i18n.get(SecretI18n.ParamEnv())), required = true
 						),
 						Syntax.leaf(
-							Param.Value("type", i18n.get(SecretI18n.ParamEnvType())),
+							Param.Value("type", i18n.get(SecretI18n.ParamEnvType())), required = true
 						),
 					),
 				),

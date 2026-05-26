@@ -50,17 +50,13 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	}
 	
 	companion object {
-		fun fromServiceLoader(core: CoreAPI, coreVersion: SemVer): CommandRouter =
-			CommandRouter(
-				core,
-				coreVersion,
-				ServiceLoader.load(Command::class.java, Command::class.java.classLoader).toList()
-			)
+		fun fromServiceLoader(core: CoreAPI, coreVersion: SemVer): CommandRouter = CommandRouter(
+			core, coreVersion, ServiceLoader.load(Command::class.java, Command::class.java.classLoader).toList()
+		)
 	}
 	
 	fun dispatch(
-		request: CliMessage.Command,
-		prompt: suspend (text: String, echo: Boolean) -> String
+		request: CliMessage.Command, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> {
 		val cmd = request.command()
 		if (cmd.isEmpty()) {
@@ -73,8 +69,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
 			return flowOf(
 				CmdOutput.Data(
-					i18n.get(CmdI18n.UnknownHint()).format(cmd, request.prog),
-					CmdOutput.Channel.STDERR
+					i18n.get(CmdI18n.UnknownHint()).format(cmd, request.prog), CmdOutput.Channel.STDERR
 				),
 				CmdOutput.Done(1),
 			)
@@ -95,8 +90,18 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 			logger.debug("Invalid arguments for command  command={}", cmd)
 			return flowOf(
 				CmdOutput.Data(
-					i18n.get(CmdI18n.InvalidArgs()).format(cmd, request.prog),
-					CmdOutput.Channel.STDERR
+					i18n.get(CmdI18n.InvalidArgs()).format(cmd, request.prog), CmdOutput.Channel.STDERR
+				),
+				CmdOutput.Done(1),
+			)
+		}
+		
+		val isSecretUnlock = cmd == "secret" && (parsed.has("unlock") || parsed.has("passwd"))
+		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked()) {
+			logger.debug("Rejected command, keystore locked  command={}", cmd)
+			return flowOf(
+				CmdOutput.Data(
+					i18n.get(CmdI18n.KeystoreLocked()).format(request.prog), CmdOutput.Channel.STDERR
 				),
 				CmdOutput.Done(1),
 			)

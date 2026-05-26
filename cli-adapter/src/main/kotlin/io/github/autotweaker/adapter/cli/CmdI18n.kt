@@ -39,4 +39,11 @@ object CmdI18n {
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, $$"无效的参数。运行 %2$s help %1$s 查看用法"),
 		)
 	}
+	
+	@AutoService(I18nDef::class)
+	class KeystoreLocked : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "密钥库已锁定。运行 %s help 查看帮助"),
+		)
+	}
 }

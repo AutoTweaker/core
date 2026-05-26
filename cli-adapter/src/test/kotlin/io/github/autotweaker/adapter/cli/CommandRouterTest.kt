@@ -46,6 +46,9 @@ class CommandRouterTest {
 		every { core.config } returns config
 		every { config.settingService } returns settingService
 		every { settingService.get<SettingValue.ValInt>(any()) } returns SettingValue.ValInt(100_000)
+		val secret = mockk<CoreAPI.SecretAPI>()
+		every { core.secret } returns secret
+		every { secret.isUnlocked() } returns true
 		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 	}
 	
