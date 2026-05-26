@@ -79,11 +79,6 @@ class Secret : Command {
 			return@flow
 		}
 		
-		suspend fun emitInvalidArg() {
-			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidArg()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
-		}
-		
 		if (request.has("passwd")) {
 			if (request.has("reset")) {
 				emitAll(handleRemove(prompt))
@@ -92,6 +87,11 @@ class Secret : Command {
 				emitAll(handleChange(prompt))
 				return@flow
 			}
+		}
+		
+		suspend fun emitInvalidArg() {
+			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidArg()), CmdOutput.Channel.STDERR))
+			emit(CmdOutput.Done(1))
 		}
 		
 		if (request.has("key")) {
