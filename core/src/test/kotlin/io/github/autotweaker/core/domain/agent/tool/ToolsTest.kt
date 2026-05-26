@@ -421,9 +421,13 @@ class ToolsTest {
 			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 		)
 		
-		val deactivatedCalls = mutableListOf<List<Tool>>()
 		tools.executeTool(
 			validationSuccess("a"), pendingToolCall("c3", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		val deactivatedCalls = mutableListOf<List<Tool>>()
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c4", "a_run"),
 			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
 			onToolDeactivated = { deactivatedCalls.add(it) },
 		)
