@@ -41,25 +41,26 @@ import kotlin.test.*
 
 class ReadTest {
 	
-	// region helpers
-	
 	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
 	}
 	
-	private fun newRead(
-		settings: SettingService = defaultSettings,
+	private fun readMeta(settings: SettingService = defaultSettings): Read {
+		val r = Read()
+		r.init(settings)
+		return r
+	}
+	
+	private fun container(
 		fs: FileSystemService? = null,
 		history: ToolCallHistory = mockk(relaxed = true),
 		summarize: SummarizeService = mockk(relaxed = true),
-	): Read {
-		val r = Read()
+	): SimpleContainer {
 		val c = SimpleContainer()
 		if (fs != null) c.register(FileSystemService::class, fs)
 		c.register(ToolCallHistory::class, history)
 		c.register(SummarizeService::class, summarize)
-		r.init(settings, c)
-		return r
+		return c
 	}
 	
 	private fun ToolInput(
@@ -85,26 +86,23 @@ class ReadTest {
 		for ((k, v) in extras) put(k, v)
 	}
 	
-	// endregion
-	
 	// region meta
 	
 	@Test
 	fun `meta returns correct name`() {
-		val meta = newRead().meta
-		assertEquals("read", meta.name)
+		assertEquals("read", readMeta().meta.name)
 	}
 	
 	@Test
 	fun `meta returns three functions`() {
-		val meta = newRead().meta
+		val meta = readMeta().meta
 		assertEquals(3, meta.functions.size)
 		assertEquals(setOf("file", "summarize", "unicode"), meta.functions.map { it.name }.toSet())
 	}
 	
 	@Test
 	fun `meta file function has line_number optional boolean parameter`() {
-		val meta = newRead().meta
+		val meta = readMeta().meta
 		val fileFunc = meta.functions.find { it.name == "file" }!!
 		val lineNumber = fileFunc.parameters["line_number"]!!
 		assertFalse(lineNumber.required)
@@ -113,7 +111,7 @@ class ReadTest {
 	
 	@Test
 	fun `meta summarize function has prompt optional string parameter`() {
-		val meta = newRead().meta
+		val meta = readMeta().meta
 		val summarizeFunc = meta.functions.find { it.name == "summarize" }!!
 		val prompt = summarizeFunc.parameters["prompt"]!!
 		assertFalse(prompt.required)
@@ -122,7 +120,7 @@ class ReadTest {
 	
 	@Test
 	fun `meta unicode function has max_chars required integer parameter`() {
-		val meta = newRead().meta
+		val meta = readMeta().meta
 		val unicodeFunc = meta.functions.find { it.name == "unicode" }!!
 		val maxChars = unicodeFunc.parameters["max_chars"]!!
 		assertTrue(maxChars.required)
@@ -131,7 +129,7 @@ class ReadTest {
 	
 	@Test
 	fun `meta common properties are required`() {
-		val meta = newRead().meta
+		val meta = readMeta().meta
 		for (func in meta.functions) {
 			if (func.name == "unicode") continue
 			assertTrue(func.parameters["file_path"]!!.required)
@@ -149,9 +147,9 @@ class ReadTest {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } throws RuntimeException("bad path")
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("file", args("/bad"))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("提供的路径不合法，请检查提供的路径参数", result.result)
@@ -164,9 +162,9 @@ class ReadTest {
 		every { fs.normalize(any()) } returns path
 		coEvery { fs.exists(path) } returns false
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/nonexistent"))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("文件不存在或访问被拒绝", result.result)
@@ -180,9 +178,9 @@ class ReadTest {
 		coEvery { fs.exists(path) } returns true
 		coEvery { fs.isRegularFile(path) } returns false
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/dir"))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
@@ -200,9 +198,9 @@ class ReadTest {
 		coEvery { fs.exists(path) } returns true
 		coEvery { fs.isRegularFile(path) } returns true
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt", startLine = 0, endLine = 5))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("start_line必须大于或等于1", result.result)
@@ -226,9 +224,9 @@ class ReadTest {
 		val history = mockk<ToolCallHistory>()
 		every { history.getAll() } returns emptyList()
 		
-		val read = newRead(fs = fs, history = history)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt", startLine = 1, endLine = 5))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, history = history), input)
 		
 		assertTrue(result.success)
 		assertTrue(result.result.startsWith("a".repeat(64) + "\n"))
@@ -252,10 +250,10 @@ class ReadTest {
 		val history = mockk<ToolCallHistory>()
 		every { history.getAll() } returns emptyList()
 		
-		val read = newRead(fs = fs, history = history)
+		val read = readMeta()
 		val a = args("/tmp/f.txt", startLine = 1, endLine = 3, "line_number" to JsonPrimitive(false))
 		val input = ToolInput("file", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, history = history), input)
 		
 		assertTrue(result.success)
 		val content = result.result.substringAfter('\n')
@@ -277,9 +275,9 @@ class ReadTest {
 		val history = mockk<ToolCallHistory>()
 		every { history.getAll() } returns emptyList()
 		
-		val read = newRead(fs = fs, history = history)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt", startLine = 1, endLine = 10))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, history = history), input)
 		
 		assertTrue(result.success)
 		val content = result.result.substringAfter('\n')
@@ -300,9 +298,9 @@ class ReadTest {
 		coEvery { fs.isRegularFile(path) } returns true
 		coEvery { fs.readAllLines(path) } throws RuntimeException("io error")
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt"))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
@@ -319,9 +317,9 @@ class ReadTest {
 		coEvery { fs.readAllLines(path) } returns lines
 		coEvery { fs.sha256(path) } throws RuntimeException("hash error")
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt"))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
@@ -352,9 +350,9 @@ class ReadTest {
 			)
 		)
 		
-		val read = newRead(fs = fs, history = history)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt", startLine = 1, endLine = 5))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, history = history), input)
 		
 		assertTrue(result.success)
 		assertFalse(result.result.contains("Duplicate"))
@@ -381,9 +379,9 @@ class ReadTest {
 			)
 		)
 		
-		val read = newRead(fs = fs, history = history)
+		val read = readMeta()
 		val input = ToolInput("file", args("/tmp/f.txt", startLine = 1, endLine = 10))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, history = history), input)
 		
 		assertTrue(result.success)
 		assertFalse(result.result.contains("Duplicate"))
@@ -410,10 +408,10 @@ class ReadTest {
 			)
 		)
 		
-		val read = newRead(fs = fs, history = history)
+		val read = readMeta()
 		val a = args("/tmp/f.txt", startLine = 3, endLine = 5, "line_number" to JsonPrimitive(true))
 		val input = ToolInput("file", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, history = history), input)
 		
 		assertTrue(result.success)
 		assertFalse(result.result.contains("Duplicate"))
@@ -436,9 +434,9 @@ class ReadTest {
 		val summarizeService = mockk<SummarizeService>()
 		coEvery { summarizeService.summarize(any(), any()) } returns "summary"
 		
-		val read = newRead(fs = fs, summarize = summarizeService)
+		val read = readMeta()
 		val input = ToolInput("summarize", args("/tmp/f.txt", startLine = 1, endLine = 30))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, summarize = summarizeService), input)
 		
 		assertTrue(result.success)
 		assertEquals("summary", result.result)
@@ -457,10 +455,10 @@ class ReadTest {
 		val summarizeService = mockk<SummarizeService>()
 		coEvery { summarizeService.summarize(any(), any()) } returns "custom summary"
 		
-		val read = newRead(fs = fs, summarize = summarizeService)
+		val read = readMeta()
 		val a = args("/tmp/f.txt", startLine = 1, endLine = 30, "prompt" to JsonPrimitive("extra instruction"))
 		val input = ToolInput("summarize", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, summarize = summarizeService), input)
 		
 		assertTrue(result.success)
 		assertEquals("custom summary", result.result)
@@ -485,9 +483,9 @@ class ReadTest {
 		val summarizeService = mockk<SummarizeService>()
 		coEvery { summarizeService.summarize(any(), any()) } throws RuntimeException("api error")
 		
-		val read = newRead(fs = fs, summarize = summarizeService)
+		val read = readMeta()
 		val input = ToolInput("summarize", args("/tmp/f.txt", startLine = 1, endLine = 30))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs, summarize = summarizeService), input)
 		
 		assertFalse(result.success)
 		assertTrue(result.result.contains("api error"))
@@ -502,9 +500,9 @@ class ReadTest {
 		coEvery { fs.isRegularFile(path) } returns true
 		coEvery { fs.readAllLines(path) } throws RuntimeException("io error")
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("summarize", args("/tmp/f.txt"))
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
@@ -522,13 +520,13 @@ class ReadTest {
 		coEvery { fs.exists(path) } returns true
 		coEvery { fs.isRegularFile(path) } returns true
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val a = buildJsonObject {
 			put("file_path", JsonPrimitive("/tmp/f.txt"))
 			put("max_chars", JsonPrimitive(501))
 		}
 		val input = ToolInput("unicode", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertTrue(result.result.contains("500"))
@@ -549,13 +547,13 @@ class ReadTest {
 			Unicode.fromChar('o'),
 		)
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val a = buildJsonObject {
 			put("file_path", JsonPrimitive("/tmp/f.txt"))
 			put("max_chars", JsonPrimitive(10))
 		}
 		val input = ToolInput("unicode", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertTrue(result.success)
 		assertTrue(result.result.contains("\\u0048"))
@@ -572,13 +570,13 @@ class ReadTest {
 		coEvery { fs.isRegularFile(path) } returns true
 		coEvery { fs.readUnicode(path) } returns chars
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val a = buildJsonObject {
 			put("file_path", JsonPrimitive("/tmp/f.txt"))
 			put("max_chars", JsonPrimitive(5))
 		}
 		val input = ToolInput("unicode", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertTrue(result.success)
 		assertEquals(5 * 6, result.result.length)
@@ -593,13 +591,13 @@ class ReadTest {
 		coEvery { fs.isRegularFile(path) } returns true
 		coEvery { fs.readUnicode(path) } throws RuntimeException("read error")
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val a = buildJsonObject {
 			put("file_path", JsonPrimitive("/tmp/f.txt"))
 			put("max_chars", JsonPrimitive(10))
 		}
 		val input = ToolInput("unicode", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
 		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
@@ -614,13 +612,13 @@ class ReadTest {
 		coEvery { fs.isRegularFile(path) } returns true
 		coEvery { fs.readUnicode(path) } returns listOf(Unicode.fromChar('A'))
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val a = buildJsonObject {
 			put("file_path", JsonPrimitive("/tmp/f.txt"))
 			put("max_chars", JsonPrimitive(500))
 		}
 		val input = ToolInput("unicode", a)
-		val result = read.execute(input)
+		val result = read.coreExec(container(fs = fs), input)
 		
 		assertTrue(result.success)
 	}
@@ -637,9 +635,9 @@ class ReadTest {
 		coEvery { fs.exists(path) } returns true
 		coEvery { fs.isRegularFile(path) } returns true
 		
-		val read = newRead(fs = fs)
+		val read = readMeta()
 		val input = ToolInput("nonexistent", args("/tmp/f.txt"))
-		val ex = assertFailsWith<IllegalArgumentException> { read.execute(input) }
+		val ex = assertFailsWith<IllegalArgumentException> { read.coreExec(container(fs = fs), input) }
 		assertEquals("Unknown function: nonexistent", ex.message)
 	}
 	

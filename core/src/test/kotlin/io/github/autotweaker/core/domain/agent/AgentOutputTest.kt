@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
@@ -166,7 +165,7 @@ class AgentOutputTest {
 	
 	@Test
 	fun `ToolListUpdate wraps active tools`() {
-		val tools: List<Tool> = emptyList()
+		val tools: List<String> = emptyList()
 		val output = AgentOutput.ToolListUpdate(tools)
 		assertTrue(output.activeTools.isEmpty())
 	}

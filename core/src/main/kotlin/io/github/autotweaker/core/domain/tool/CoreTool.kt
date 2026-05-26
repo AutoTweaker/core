@@ -25,5 +25,7 @@ import io.github.autotweaker.api.tool.Tool.ToolOutput
 
 interface CoreTool : Tool {
 	fun init(service: SettingService)
-	fun coreExec(container: SimpleContainer, input: ToolInput): ToolOutput
+	suspend fun coreExec(container: SimpleContainer, input: ToolInput): ToolOutput
+	
+	override suspend fun execute(input: ToolInput): ToolOutput = throw UnsupportedOperationException("Use coreExec")
 }

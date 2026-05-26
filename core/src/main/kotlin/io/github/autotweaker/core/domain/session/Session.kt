@@ -55,7 +55,15 @@ class Session(
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	private val _tools: List<Tool> = ServiceLoader.load(CoreTool::class.java).toList() + loadPlugins<Tool>()
+	private val _tools: List<Tool> = run {
+		val cores = ServiceLoader.load(CoreTool::class.java).toList()
+		cores.forEach { it.init(service) }
+		val coreNames = cores.map { it.meta.name }
+		val duplicates = coreNames.groupingBy { it }.eachCount().filter { it.value > 1 }
+		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
+		val plugins = loadPlugins<Tool>().distinctBy { it.meta.name }
+		cores + plugins.filter { it.meta.name !in coreNames }
+	}
 	
 	private val _data = MutableStateFlow(
 		SessionData(
@@ -106,9 +114,7 @@ class Session(
 	
 	private fun toAgentContext(): AgentContext {
 		return SessionContextConverter.toAgentContext(
-			context = _context.value,
-			messages = messages.values.toList(),
-			maxCompactedRounds = maxCompactedRounds
+			context = _context.value, messages = messages.values.toList(), maxCompactedRounds = maxCompactedRounds
 		)
 	}
 	

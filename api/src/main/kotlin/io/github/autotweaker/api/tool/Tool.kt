@@ -68,6 +68,5 @@ interface Tool {
 		val success: Boolean
 	)
 	
-	
 	suspend fun execute(input: ToolInput): ToolOutput
 }

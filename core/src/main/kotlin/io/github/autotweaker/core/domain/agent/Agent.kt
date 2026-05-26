@@ -25,7 +25,6 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.phase.*
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
-import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
@@ -66,8 +65,7 @@ class Agent(
 	}
 	
 	//工具列表
-	private val container = ToolProvider.buildToolProvider(this)
-	override val tools = Tools(service).also { t -> tools.forEach { t.add(it, container) } }
+	override val tools = Tools(service).also { t -> tools.forEach { t.add(it) } }
 	
 	//模型数据
 	override var currentModel: Model = model

@@ -50,9 +50,9 @@ class Tools(private val service: SettingService) {
 	
 	val entries: List<Entry> get() = _entries
 	
-	fun add(tool: Tool, container: SimpleContainer) {
+	fun add(tool: Tool) {
 		if (tool is CoreTool) {
-			tool.init(service, container)
+			tool.init(service)
 		}
 		logger.debug("Tool added  tool={}  functionCount={}", tool.meta.name, tool.meta.functions.size)
 		_entries.add(Entry(tool))
@@ -114,7 +114,8 @@ class Tools(private val service: SettingService) {
 	suspend fun executeTool(
 		result: ToolCallValidator.ValidationResult.Success,
 		call: AgentContext.CurrentRound.PendingToolCall,
-		agentId: UUID = UUID.randomUUID(),
+		provider: SimpleContainer,
+		agentId: UUID,
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolDeactivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
@@ -196,7 +197,10 @@ class Tools(private val service: SettingService) {
 				}
 			}
 			val result = try {
-				tool.execute(toolInput)
+				when (tool) {
+					is CoreTool -> tool.coreExec(provider, toolInput)
+					else -> tool.execute(toolInput)
+				}
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {

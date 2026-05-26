@@ -120,7 +120,7 @@ class ExecuteToolPhaseTest {
 				status = ToolResultStatus.SUCCESS,
 			),
 		)
-		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } returns toolResult
+		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } returns toolResult
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
 		
@@ -131,7 +131,7 @@ class ExecuteToolPhaseTest {
 	
 	@Test
 	fun `cancellation returns Tool with CANCELLED status`() = runTest {
-		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } throws
+		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } throws
 				CancellationException("cancelled")
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
@@ -142,7 +142,7 @@ class ExecuteToolPhaseTest {
 	
 	@Test
 	fun `generic exception returns Tool with FAILURE status`() = runTest {
-		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } throws
+		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } throws
 				RuntimeException("Boom")
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
@@ -153,7 +153,7 @@ class ExecuteToolPhaseTest {
 	
 	@Test
 	fun `generic exception with null message uses fallback`() = runTest {
-		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } throws
+		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } throws
 				RuntimeException()
 		
 		val result = ExecuteToolPhase.execute(env, validationResult, pendingCall)
@@ -164,7 +164,7 @@ class ExecuteToolPhaseTest {
 	
 	@Test
 	fun `tool callbacks fire onToolActivated`() = runTest {
-		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } coAnswers {
+		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } coAnswers {
 			val onToolActivated = arg<suspend (List<Tool>) -> Unit>(5)
 			onToolActivated.invoke(emptyList())
 			toolResultForTest()
@@ -179,7 +179,7 @@ class ExecuteToolPhaseTest {
 	
 	@Test
 	fun `tool callbacks fire onToolOutput`() = runTest {
-		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any()) } coAnswers {
+		coEvery { tools.executeTool(any(), any(), any(), any(), any(), any(), any()) } coAnswers {
 			val onToolOutput = arg<suspend (AgentOutput.Tool) -> Unit>(6)
 			onToolOutput.invoke(AgentOutput.Tool(ToolOutput(name = "bash", callId = "c1", content = "streaming data")))
 			toolResultForTest()
