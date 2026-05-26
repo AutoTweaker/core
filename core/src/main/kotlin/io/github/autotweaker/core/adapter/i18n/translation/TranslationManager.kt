@@ -19,7 +19,9 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.TranslationStatus
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
@@ -29,9 +31,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -42,34 +43,28 @@ object TranslationManager {
 	private lateinit var sessionRepository: SessionRepository
 	private lateinit var modelRepo: ModelRepository
 	private lateinit var settings: SettingService
+	private lateinit var i18nService: I18nService
 	
 	fun init(
 		sessionRepository: SessionRepository,
 		modelRepo: ModelRepository,
 		settings: SettingService,
+		i18nService: I18nService,
 	) {
 		this.sessionRepository = sessionRepository
 		this.modelRepo = modelRepo
 		this.settings = settings
+		this.i18nService = i18nService
 	}
 	
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
 	private val _status = MutableStateFlow(TranslationStatus.IDLE)
 	
-	fun getModel(): UUID? = loadData().modelId
+	fun getModel(): UUID? = loadModelId()
 	
-	fun getLanguage(): Locale? = loadData().target
-	
-	fun updateModel(modelId: UUID) {
-		val current = loadData()
-		saveData(current.copy(modelId = modelId))
+	fun setModel(modelId: UUID?) {
+		saveModelId(modelId)
 		logger.debug("Translation model updated  modelId={}", modelId)
-	}
-	
-	fun updateLanguage(locale: Locale) {
-		val current = loadData()
-		saveData(current.copy(target = locale))
-		logger.debug("Translation target updated  target={}", locale.toLanguageTag())
 	}
 	
 	fun startTranslation() {
@@ -78,15 +73,14 @@ object TranslationManager {
 			return
 		}
 		
-		val data = loadData()
-		val modelId = data.modelId
+		val modelId = loadModelId()
 		if (modelId == null) {
 			logger.info("Translation model not configured  action=skip")
 			return
 		}
 		
-		val target = data.target ?: Locale.getDefault()
-		if (TranslationEngine.isLanguageCovered(target)) {
+		val target = i18nService.getLanguage()
+		if (TranslationEngine.isLanguageCovered(target, i18nService)) {
 			logger.info("Translations already complete for target  target={}  action=skip", target.toLanguageTag())
 			return
 		}
@@ -94,7 +88,7 @@ object TranslationManager {
 		_status.value = TranslationStatus.TRANSLATING
 		CoroutineScope(Dispatchers.Default).launch {
 			try {
-				TranslationEngine.run(settings, modelId, target, sessionRepository, modelRepo)
+				TranslationEngine.run(settings, modelId, target, sessionRepository, modelRepo, i18nService)
 			} catch (e: Exception) {
 				logger.error("Failed to translate  target={}", target.toLanguageTag(), e)
 			} finally {
@@ -104,12 +98,12 @@ object TranslationManager {
 		logger.info("Translation started  target={}  modelId={}", target.toLanguageTag(), modelId)
 	}
 	
-	private fun loadData(): TranslationData {
-		val element = jsonEntry.get() ?: return TranslationData()
-		return Json.decodeFromJsonElement(element)
+	private fun loadModelId(): UUID? {
+		val element = jsonEntry.get() ?: return null
+		return Json.decodeFromJsonElement(UuidSerializer.nullable, element)
 	}
 	
-	private fun saveData(data: TranslationData) {
-		jsonEntry.set(Json.encodeToJsonElement(data))
+	private fun saveModelId(modelId: UUID?) {
+		jsonEntry.set(Json.encodeToJsonElement(UuidSerializer.nullable, modelId))
 	}
 }

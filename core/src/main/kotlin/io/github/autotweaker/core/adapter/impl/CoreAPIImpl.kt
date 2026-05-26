@@ -93,7 +93,6 @@ class CoreAPIImpl(
 		override suspend fun loadContext(sessionId: UUID) = SessionManager.loadContext(sessionId)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
 		override fun getUsageSnapshots() = UsageStore.getSnapshots()
-		
 		override fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
@@ -103,12 +102,10 @@ class CoreAPIImpl(
 	override val config = object : CoreAPI.ConfigAPI {
 		override val settingService: SettingService = Settings
 		override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
-		
 		override fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
 		override fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
 		override fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
 		override fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
-		
 		override fun listProviders() = providerRepo.list()
 		override fun listAvailableProviderTypes() = providerRepo.listAvailable()
 		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = providerRepo.getMeta(type)
@@ -129,7 +126,6 @@ class CoreAPIImpl(
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.add(model)
 		override fun removeModel(id: UUID) = modelRepo.remove(id)
 		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) = modelRepo.update(id, model)
-		
 		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
 		override fun listApiKeyNames() = apiKeyRepo.list()
 		override fun removeApiKey(name: String) = apiKeyRepo.delete(name)
@@ -145,10 +141,7 @@ class CoreAPIImpl(
 	
 	override val i18n = object : CoreAPI.I18nAPI {
 		override val i18nService: I18nService = I18nServiceImpl
-		
-		override fun updateLanguage(locale: Locale) = TranslationManager.updateLanguage(locale)
-		override fun getLanguage(): Locale? = TranslationManager.getLanguage()
-		override fun updateTranslationModel(modelId: UUID) = TranslationManager.updateModel(modelId)
+		override fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)
 		override fun getTranslationModel(): UUID? = TranslationManager.getModel()
 		override fun startTranslation() = TranslationManager.startTranslation()
 		override fun getTranslationStatus(): StateFlow<TranslationStatus> = TranslationManager.status

@@ -123,10 +123,7 @@ interface CoreAPI {
 	interface I18nAPI {
 		val i18nService: I18nService
 		
-		fun updateLanguage(locale: Locale)
-		fun getLanguage(): Locale?
-		
-		fun updateTranslationModel(modelId: UUID)
+		fun setTranslationModel(modelId: UUID?)
 		fun getTranslationModel(): UUID?
 		
 		fun startTranslation()

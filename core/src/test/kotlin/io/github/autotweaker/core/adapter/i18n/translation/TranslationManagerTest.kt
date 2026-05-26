@@ -22,22 +22,23 @@ import io.github.autotweaker.api.types.i18n.TranslationStatus
 import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TranslationManagerTest {
 	
 	@Test
-	fun `updateModel and getModel roundtrip`() {
+	fun `setModel and getModel roundtrip`() {
 		val id = UUID.randomUUID()
-		TranslationManager.updateModel(id)
+		TranslationManager.setModel(id)
 		assertEquals(id, TranslationManager.getModel())
 	}
 	
 	@Test
-	fun `updateLanguage and getLanguage roundtrip`() {
-		val locale = Locale.GERMANY
-		TranslationManager.updateLanguage(locale)
-		assertEquals(locale, TranslationManager.getLanguage())
+	fun `setModel null clears model`() {
+		TranslationManager.setModel(UUID.randomUUID())
+		TranslationManager.setModel(null)
+		assertNull(TranslationManager.getModel())
 	}
 	
 	@Test

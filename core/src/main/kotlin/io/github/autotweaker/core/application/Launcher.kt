@@ -22,6 +22,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.domain.session.SessionManager
@@ -56,7 +57,7 @@ object Launcher {
 		
 		Wiring.init()
 		
-		TranslationManager.init(SessionRepositoryImpl, ModelRepositoryImpl, Settings)
+		TranslationManager.init(SessionRepositoryImpl, ModelRepositoryImpl, Settings, I18nServiceImpl)
 		TranslationManager.startTranslation()
 		
 		val all = (builtInAdapters + loadPlugins<Adapter>()).map { it to it.load(version) }

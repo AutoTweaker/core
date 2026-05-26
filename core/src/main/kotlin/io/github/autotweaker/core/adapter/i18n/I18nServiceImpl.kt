@@ -22,7 +22,9 @@ import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.LocalizedString
+import io.github.autotweaker.api.types.serializer.LocaleSerializer
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -36,6 +38,14 @@ object I18nServiceImpl : I18nService {
 	@Volatile
 	private var cache: List<I18nEntry> = emptyList()
 	private var initialized = false
+	private var language: Locale = Locale.getDefault()
+	
+	override fun setLanguage(locale: Locale) {
+		this.language = locale
+		save()
+	}
+	
+	override fun getLanguage(): Locale = language
 	
 	private fun ensureInit() {
 		if (initialized) return
@@ -53,11 +63,13 @@ object I18nServiceImpl : I18nService {
 	
 	private fun load() {
 		val json = jsonEntry.get() ?: return
-		cache = Json.decodeFromJsonElement(json)
+		val data = Json.decodeFromJsonElement<Store>(json)
+		cache = data.entries
+		language = data.language
 	}
 	
 	private fun save() {
-		jsonEntry.set(Json.encodeToJsonElement(cache))
+		jsonEntry.set(Json.encodeToJsonElement(Store(cache, language)))
 	}
 	
 	private fun seedFromRegistry(): List<I18nEntry> =
@@ -65,7 +77,7 @@ object I18nServiceImpl : I18nService {
 	
 	override fun get(def: I18nDef): String {
 		val key = def::class.qualifiedName!!
-		return resolve(key, Locale.getDefault())
+		return resolve(key, language)
 	}
 	
 	override fun getDefault(id: String): I18nDef? = I18nRegistry.get(id)
@@ -102,4 +114,9 @@ object I18nServiceImpl : I18nService {
 		localizations.firstOrNull()?.let { return it.text }
 		return key
 	}
+	
+	@Serializable
+	private data class Store(
+		val entries: List<I18nEntry>, val language: @Serializable(with = LocaleSerializer::class) Locale
+	)
 }

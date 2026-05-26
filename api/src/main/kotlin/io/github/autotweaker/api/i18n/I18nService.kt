@@ -26,4 +26,6 @@ interface I18nService {
 	fun getDefault(id: String): I18nDef?
 	fun set(id: String, text: String, languageCode: Locale)
 	fun getAll(): List<I18nEntry>
+	fun setLanguage(locale: Locale)
+	fun getLanguage(): Locale
 }
