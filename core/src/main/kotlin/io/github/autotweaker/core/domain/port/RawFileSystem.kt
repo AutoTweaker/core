@@ -16,22 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.container
+package io.github.autotweaker.core.domain.port
 
-import io.github.autotweaker.api.types.shell.ShellEvent
-import kotlinx.coroutines.flow.Flow
+import io.github.autotweaker.api.types.Unicode
 import java.nio.file.Path
-import kotlin.time.Duration
 
-interface ContainerService {
-	suspend fun start(image: String, config: ContainerConfig): String
-	suspend fun stop(containerId: String)
-	fun shutdown() {}
-	fun execStream(
-		containerId: String,
-		command: List<String>,
-		workDir: Path? = null,
-		timeout: Duration,
-		env: Map<String, String> = emptyMap(),
-	): Flow<ShellEvent>
+interface RawFileSystem {
+	suspend fun exists(path: Path): Boolean
+	suspend fun isRegularFile(path: Path): Boolean
+	suspend fun readString(path: Path): String
+	suspend fun readAllLines(path: Path): List<String>
+	suspend fun readUnicode(path: Path): List<Unicode>
+	suspend fun sha256(path: Path): String
 }

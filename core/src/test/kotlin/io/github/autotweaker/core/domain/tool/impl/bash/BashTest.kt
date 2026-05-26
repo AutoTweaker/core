@@ -23,17 +23,21 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.Tool
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import io.mockk.*
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*
 import java.nio.file.Path
 import java.util.*
 import kotlin.test.*
+import kotlin.time.Duration.Companion.seconds
 
 class BashTest {
 	
@@ -68,7 +72,6 @@ class BashTest {
 	
 	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-		// Override with test-specific values that differ from SettingDef defaults
 	}
 	
 	private fun ToolInput(
@@ -99,6 +102,14 @@ class BashTest {
 		if (timeoutSeconds != null) put("timeout_seconds", JsonPrimitive(timeoutSeconds))
 		if (envIds != null) put("env_ids", JsonArray(envIds.map { JsonPrimitive(it) }))
 	}
+	
+	private fun mockResult(
+		exitCode: Int, stdout: String, stderr: String = "", timeout: Boolean = false, durationSeconds: Double = 0.01
+	) = flowOf(
+		ShellEvent.Stdout(if (stdout.isNotEmpty()) "$stdout\n" else ""),
+		ShellEvent.Stderr(if (stderr.isNotEmpty()) "$stderr\n" else ""),
+		ShellEvent.Exit(ShellResult(exitCode, timeout, durationSeconds.seconds)),
+	)
 	
 	// endregion
 	
@@ -215,8 +226,8 @@ class BashTest {
 	@Test
 	fun `successful command returns success true`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo hello", 60, emptyMap()) } returns BashService.Result(
-			exitCode = 0, stdout = "hello", stderr = "", timeout = false, durationSeconds = 0.123
+		coEvery { bashService.run("echo hello", 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 0, stdout = "hello", durationSeconds = 0.123
 		)
 		
 		val input = ToolInput(args("echo hello"), container(bashService))
@@ -231,8 +242,8 @@ class BashTest {
 	@Test
 	fun `non-zero exit code returns success false`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("false", 60, emptyMap()) } returns BashService.Result(
-			exitCode = 1, stdout = "", stderr = "error msg", timeout = false, durationSeconds = 0.05
+		coEvery { bashService.run("false", 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 1, stdout = "", stderr = "error msg", durationSeconds = 0.05
 		)
 		
 		val input = ToolInput(args("false"), container(bashService))
@@ -245,8 +256,8 @@ class BashTest {
 	@Test
 	fun `timeout returns success false`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("sleep 100", 1, emptyMap()) } returns BashService.Result(
-			exitCode = -1, stdout = "", stderr = "", timeout = true, durationSeconds = 1.0
+		coEvery { bashService.run("sleep 100", 1.seconds, emptyMap()) } returns mockResult(
+			exitCode = -1, stdout = "", timeout = true, durationSeconds = 1.0
 		)
 		
 		val input = ToolInput(args("sleep 100", timeoutSeconds = 1), container(bashService))
@@ -258,27 +269,27 @@ class BashTest {
 	@Test
 	fun `custom timeout is passed to BashService`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo hi", 60, emptyMap()) } returns BashService.Result(
-			exitCode = 0, stdout = "hi", stderr = "", timeout = false, durationSeconds = 0.01
+		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 0, stdout = "hi"
 		)
 		
 		val input = ToolInput(args("echo hi", timeoutSeconds = 60), container(bashService))
 		bash.execute(input)
 		
-		coVerify { bashService.run("echo hi", 60, emptyMap()) }
+		coVerify { bashService.run("echo hi", 60.seconds, emptyMap()) }
 	}
 	
 	@Test
 	fun `missing timeout uses default from settings`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo hi", 60, emptyMap()) } returns BashService.Result(
-			exitCode = 0, stdout = "hi", stderr = "", timeout = false, durationSeconds = 0.01
+		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 0, stdout = "hi"
 		)
 		
 		val input = ToolInput(args("echo hi"), container(bashService))
 		bash.execute(input)
 		
-		coVerify { bashService.run("echo hi", 60, emptyMap()) }
+		coVerify { bashService.run("echo hi", 60.seconds, emptyMap()) }
 	}
 	
 	// endregion
@@ -288,8 +299,8 @@ class BashTest {
 	@Test
 	fun `empty stdout shows placeholder`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(any(), any(), any()) } returns BashService.Result(
-			exitCode = 0, stdout = "", stderr = "some error", timeout = false, durationSeconds = 0.1
+		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
+			exitCode = 0, stdout = "", stderr = "some error", durationSeconds = 0.1
 		)
 		
 		val input = ToolInput(args("cmd"), container(bashService))
@@ -302,8 +313,8 @@ class BashTest {
 	@Test
 	fun `empty stderr shows placeholder`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(any(), any(), any()) } returns BashService.Result(
-			exitCode = 0, stdout = "out", stderr = "", timeout = false, durationSeconds = 0.1
+		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
+			exitCode = 0, stdout = "out", stderr = "", durationSeconds = 0.1
 		)
 		
 		val input = ToolInput(args("cmd"), container(bashService))
@@ -316,8 +327,8 @@ class BashTest {
 	@Test
 	fun `output contains duration formatted to 3 decimal places`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(any(), any(), any()) } returns BashService.Result(
-			exitCode = 0, stdout = "out", stderr = "", timeout = false, durationSeconds = 2.5
+		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
+			exitCode = 0, stdout = "out", durationSeconds = 2.5
 		)
 		
 		val input = ToolInput(args("cmd"), container(bashService))
@@ -329,8 +340,8 @@ class BashTest {
 	@Test
 	fun `output contains formatted result template sections`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(any(), any(), any()) } returns BashService.Result(
-			exitCode = 0, stdout = "out", stderr = "err", timeout = false, durationSeconds = 0.001
+		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
+			exitCode = 0, stdout = "out", stderr = "err", durationSeconds = 0.001
 		)
 		
 		val input = ToolInput(args("cmd"), container(bashService))
@@ -350,8 +361,8 @@ class BashTest {
 		bash.setEnv("MY_VAR", "my_value")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run($$"echo $MY_VAR", 60, mapOf("MY_VAR" to "my_value")) } returns BashService.Result(
-			exitCode = 0, stdout = "my_value", stderr = "", timeout = false, durationSeconds = 0.01
+		coEvery { bashService.run($$"echo $MY_VAR", 60.seconds, mapOf("MY_VAR" to "my_value")) } returns mockResult(
+			exitCode = 0, stdout = "my_value"
 		)
 		
 		val input = ToolInput(
@@ -360,7 +371,7 @@ class BashTest {
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
-		coVerify { bashService.run($$"echo $MY_VAR", 60, mapOf("MY_VAR" to "my_value")) }
+		coVerify { bashService.run($$"echo $MY_VAR", 60.seconds, mapOf("MY_VAR" to "my_value")) }
 	}
 	
 	@Test
@@ -369,16 +380,14 @@ class BashTest {
 		bash.setEnv("B", "2")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(any(), any(), any()) } returns BashService.Result(
-			exitCode = 0, stdout = "", stderr = "", timeout = false, durationSeconds = 0.01
-		)
+		coEvery { bashService.run(any(), any(), any()) } returns mockResult(exitCode = 0, stdout = "")
 		
 		val input = ToolInput(
 			args("cmd", envIds = listOf("A", "B")), container(bashService)
 		)
 		bash.execute(input)
 		
-		coVerify { bashService.run("cmd", 60, mapOf("A" to "1", "B" to "2")) }
+		coVerify { bashService.run("cmd", 60.seconds, mapOf("A" to "1", "B" to "2")) }
 	}
 	
 	@Test
@@ -386,8 +395,9 @@ class BashTest {
 		bash.setEnv("EXISTING", "val")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("cmd", 60, mapOf("EXISTING" to "val")) } returns BashService.Result(
-			exitCode = 0, stdout = "", stderr = "", timeout = false, durationSeconds = 0.01
+		coEvery { bashService.run("cmd", 60.seconds, mapOf("EXISTING" to "val")) } returns mockResult(
+			exitCode = 0,
+			stdout = ""
 		)
 		
 		val input = ToolInput(
@@ -395,7 +405,7 @@ class BashTest {
 		)
 		bash.execute(input)
 		
-		coVerify { bashService.run("cmd", 60, mapOf("EXISTING" to "val")) }
+		coVerify { bashService.run("cmd", 60.seconds, mapOf("EXISTING" to "val")) }
 	}
 	
 	// endregion
@@ -405,8 +415,8 @@ class BashTest {
 	@Test
 	fun `command with special characters works`() = runTest {
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("echo \"hello world\"", 60, emptyMap()) } returns BashService.Result(
-			exitCode = 0, stdout = "hello world", stderr = "", timeout = false, durationSeconds = 0.01
+		coEvery { bashService.run("echo \"hello world\"", 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 0, stdout = "hello world"
 		)
 		
 		val input = ToolInput(args("echo \"hello world\""), container(bashService))
@@ -419,8 +429,8 @@ class BashTest {
 	fun `very long command works`() = runTest {
 		val longCmd = "echo " + "x".repeat(1000)
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run(longCmd, 60, emptyMap()) } returns BashService.Result(
-			exitCode = 0, stdout = "x".repeat(1000), stderr = "", timeout = false, durationSeconds = 0.01
+		coEvery { bashService.run(longCmd, 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 0, stdout = "x".repeat(1000)
 		)
 		
 		val input = ToolInput(args(longCmd), container(bashService))

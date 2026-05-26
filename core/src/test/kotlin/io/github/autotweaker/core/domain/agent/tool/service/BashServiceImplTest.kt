@@ -18,133 +18,71 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.core.infrastructure.container.CommandResult
-import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
+import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellExec
+import io.github.autotweaker.api.types.shell.ShellResult
+import io.github.autotweaker.core.domain.port.ShellExecutor
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.*
+import kotlin.time.Duration.Companion.seconds
 
 class BashServiceImplTest {
 	
-	private lateinit var tmpDir: Path
-	private lateinit var originalHome: String
-	
-	@BeforeTest
-	fun setUp() {
-		tmpDir = Files.createTempDirectory("bash-test")
-		originalHome = System.getProperty("user.home")
-		System.setProperty("user.home", tmpDir.toString())
-	}
-	
-	@AfterTest
-	fun tearDown() {
-		System.setProperty("user.home", originalHome)
-		tmpDir.toFile().deleteRecursively()
+	@Test
+	fun `run constructs ShellExec and delegates to executor`() = runTest {
+		val executor = mockk<ShellExecutor>(relaxed = true)
+		every { executor.exec(any()) } returns flowOf(
+			ShellEvent.Stdout("hello\n"),
+			ShellEvent.Exit(ShellResult(0, false, 0.01.seconds)),
+		)
+		
+		val service = BashServiceImpl(executor, Path.of("/ws"), inContainer = false)
+		val result = mutableListOf<ShellEvent>()
+		service.run("echo hello", 10.seconds, emptyMap()).collect { result.add(it) }
+		
+		assertEquals(2, result.size)
+		assertIs<ShellEvent.Stdout>(result[0])
+		assertEquals("hello\n", (result[0] as ShellEvent.Stdout).text)
+		val exit = result[1] as ShellEvent.Exit
+		assertEquals(0, exit.result.exitCode)
+		assertFalse(exit.result.timeout)
 	}
 	
 	@Test
-	fun `run local echo command succeeds`() = runTest {
-		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run("echo hello", timeoutSeconds = 10, emptyMap())
+	fun `run passes inContainer flag to ShellExec`() = runTest {
+		val slot = slot<ShellExec>()
+		val executor = mockk<ShellExecutor>(relaxed = true)
+		every { executor.exec(capture(slot)) } returns flowOf(
+			ShellEvent.Exit(ShellResult(0, false, 0.seconds)),
+		)
 		
-		assertEquals(0, result.exitCode)
-		assertEquals("hello\n", result.stdout)
-		assertEquals("", result.stderr)
-		assertFalse(result.timeout)
-		assertTrue(result.durationSeconds > 0)
+		val service = BashServiceImpl(executor, Path.of("/ws"), inContainer = true)
+		service.run("cmd", 30.seconds, mapOf("K" to "V")).collect {}
+		
+		assertTrue(slot.captured.container)
+		assertEquals("/ws", slot.captured.directory.toString())
+		assertEquals("cmd", slot.captured.command)
+		assertEquals(mapOf("K" to "V"), slot.captured.environment)
+		assertEquals(30.seconds, slot.captured.timeout)
 	}
 	
 	@Test
-	fun `run local failed command returns non zero exit`() = runTest {
-		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run("false", timeoutSeconds = 10, emptyMap())
+	fun `run passes non-container environment variables`() = runTest {
+		val slot = slot<ShellExec>()
+		val executor = mockk<ShellExecutor>(relaxed = true)
+		every { executor.exec(capture(slot)) } returns flowOf(
+			ShellEvent.Exit(ShellResult(0, false, 0.seconds)),
+		)
 		
-		assertEquals(1, result.exitCode)
-		assertFalse(result.timeout)
-	}
-	
-	@Test
-	fun `run local timeout`() = runTest {
-		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run("sleep 100", timeoutSeconds = 1, emptyMap())
+		val service = BashServiceImpl(executor, Path.of("/tmp"), inContainer = false)
+		service.run("echo test", 5.seconds, mapOf("KEY" to "VAL")).collect {}
 		
-		assertEquals(-1, result.exitCode)
-		assertTrue(result.timeout)
-	}
-	
-	@Test
-	fun `run local with environment variables`() = runTest {
-		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run($$"echo $MY_VAR", timeoutSeconds = 10, mapOf("MY_VAR" to "test_value"))
-		
-		assertEquals(0, result.exitCode)
-		assertEquals("test_value\n", result.stdout)
-	}
-	
-	@Test
-	fun `run local stderr capture`() = runTest {
-		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run("echo error >&2", timeoutSeconds = 10, emptyMap())
-		
-		assertEquals(0, result.exitCode)
-		assertEquals("error\n", result.stderr)
-	}
-	
-	@Test
-	fun `run local complex command`() = runTest {
-		val service = BashServiceImpl(tmpDir, inContainer = false, containerWorkDir = tmpDir)
-		val result = service.run("echo start && echo end", timeoutSeconds = 10, emptyMap())
-		
-		assertEquals(0, result.exitCode)
-		assertTrue(result.stdout.contains("start"))
-		assertTrue(result.stdout.contains("end"))
-	}
-	
-	@Test
-	fun `run in container delegates to ContainerManager`() = runTest {
-		mockkObject(ContainerManager)
-		coEvery { ContainerManager.execShell(any(), any(), env = any()) } returns CommandResult(0, "container out", "")
-		
-		val service = BashServiceImpl(tmpDir, inContainer = true, containerWorkDir = tmpDir)
-		val result = service.run("echo hello", timeoutSeconds = 10, emptyMap())
-		
-		assertEquals(0, result.exitCode)
-		assertEquals("container out", result.stdout)
-		assertFalse(result.timeout)
-		
-		unmockkObject(ContainerManager)
-	}
-	
-	@Test
-	fun `run in container timeout exit code 124`() = runTest {
-		mockkObject(ContainerManager)
-		coEvery { ContainerManager.execShell(any(), any(), env = any()) } returns CommandResult(124, "", "timeout")
-		
-		val service = BashServiceImpl(tmpDir, inContainer = true, containerWorkDir = tmpDir)
-		val result = service.run("sleep 100", timeoutSeconds = 5, emptyMap())
-		
-		assertEquals(124, result.exitCode)
-		assertTrue(result.timeout)
-		
-		unmockkObject(ContainerManager)
-	}
-	
-	@Test
-	fun `run in container with env vars`() = runTest {
-		mockkObject(ContainerManager)
-		coEvery { ContainerManager.execShell(any(), any(), env = any()) } returns CommandResult(0, "ok", "")
-		
-		val service = BashServiceImpl(tmpDir, inContainer = true, containerWorkDir = tmpDir)
-		val result = service.run("echo test", timeoutSeconds = 10, mapOf("KEY" to "VAL"))
-		
-		assertEquals(0, result.exitCode)
-		coVerify { ContainerManager.execShell(any(), any(), env = mapOf("KEY" to "VAL")) }
-		
-		unmockkObject(ContainerManager)
+		assertFalse(slot.captured.container)
+		assertEquals(mapOf("KEY" to "VAL"), slot.captured.environment)
 	}
 }

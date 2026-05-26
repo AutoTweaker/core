@@ -18,9 +18,14 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellResult
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Path
 import kotlin.test.*
+import kotlin.time.Duration
 
 class ContainerExceptionsTest {
 	
@@ -114,26 +119,21 @@ class ContainerConfigTest {
 
 class ContainerServiceTest {
 	
-	private suspend fun callExecWithDefaults(service: ContainerService): CommandResult {
-		return service.exec("id", listOf("cmd"), timeoutSeconds = 30)
-	}
-	
 	@Test
-	fun `exec with default workDir and timeout`() = runTest {
+	fun `execStream is called with correct parameters`() = runTest {
+		var capturedCommand: List<String>? = null
 		val impl = object : ContainerService {
 			override suspend fun start(image: String, config: ContainerConfig) = "test"
 			override suspend fun stop(containerId: String) {}
-			override suspend fun exec(
-				containerId: String,
-				command: List<String>,
-				workDir: String?,
-				timeoutSeconds: Long,
-				env: Map<String, String>,
-			) = CommandResult(0, workDir ?: "default", timeoutSeconds.toString())
+			override fun execStream(
+				containerId: String, command: List<String>, workDir: Path?, timeout: Duration, env: Map<String, String>,
+			): Flow<ShellEvent> {
+				capturedCommand = command
+				return flowOf(ShellEvent.Exit(ShellResult(0, false, Duration.ZERO)))
+			}
 		}
 		
-		val result = callExecWithDefaults(impl)
-		assertEquals("default", result.stdout)
-		assertEquals("30", result.stderr)
+		impl.execStream("id", listOf("echo", "hello"), timeout = Duration.parse("30s")).collect {}
+		assertEquals(listOf("echo", "hello"), capturedCommand)
 	}
 }

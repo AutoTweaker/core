@@ -16,22 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.container
+package io.github.autotweaker.core.infrastructure.tool
 
 import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellResult
+import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.nio.file.Path
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
-interface ContainerService {
-	suspend fun start(image: String, config: ContainerConfig): String
-	suspend fun stop(containerId: String)
-	fun shutdown() {}
-	fun execStream(
-		containerId: String,
-		command: List<String>,
-		workDir: Path? = null,
-		timeout: Duration,
-		env: Map<String, String> = emptyMap(),
-	): Flow<ShellEvent>
+class ContainerShellExecutor {
+	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> = flow {
+		val startNs = System.nanoTime()
+		ContainerManager.execShellStream(command, workDir, timeout, env).collect { event ->
+			when (event) {
+				is ShellEvent.Exit -> {
+					val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
+					emit(ShellEvent.Exit(ShellResult(event.result.exitCode, event.result.timeout, duration)))
+				}
+				
+				else -> emit(event)
+			}
+		}
+	}
 }

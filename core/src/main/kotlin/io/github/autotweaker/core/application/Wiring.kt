@@ -19,17 +19,20 @@
 package io.github.autotweaker.core.application
 
 import io.github.autotweaker.core.application.chat.ChatService
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
+import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring {
 	fun init() {
 		ResilientChat.init(gateway = LlmGatewayImpl, settings = Settings)
 		ChatService.init(modelRepo = ModelRepositoryImpl, resilientChat = ResilientChat)
 		SessionManager.init(store = SessionRepositoryImpl, modelRepo = ModelRepositoryImpl)
+		ToolProvider.init(shellExecutor = ShellRouter(), rawFileSystem = RawFileSystemImpl())
 	}
 }

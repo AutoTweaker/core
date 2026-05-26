@@ -18,12 +18,16 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
+import java.nio.file.Path
+import kotlin.time.Duration
 
 object ContainerManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -69,23 +73,11 @@ object ContainerManager {
 		}
 	}
 	
-	@Suppress("unused")
-	suspend fun exec(vararg cmd: String, timeoutSeconds: Long, env: Map<String, String> = emptyMap()): CommandResult {
-		val (id, svc) = requireContainer()
-		logger.debug("Container command started  containerId={}  cmd={}", id, cmd.joinToString(" "))
-		return svc.exec(id, cmd.toList(), timeoutSeconds = timeoutSeconds, env = env)
-	}
-	
-	suspend fun execShell(command: String, timeoutSeconds: Long, env: Map<String, String> = emptyMap()): CommandResult {
-		val (id, svc) = requireContainer()
-		logger.debug("Container shell started  containerId={}  command={}", id, command)
-		return svc.exec(id, listOf("bash", "-lc", command), timeoutSeconds = timeoutSeconds, env = env)
-	}
-	
-	private fun requireContainer(): Pair<String, ContainerService> {
+	fun execShellStream(
+		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
+	): Flow<ShellEvent> {
 		val id = _containerId ?: throw NoContainerRunningException()
-		val svc = service
-		return id to svc
+		return service.execStream(id, listOf("bash", "-lc", command), workDir = workDir, timeout = timeout, env = env)
 	}
 	
 	fun listEnv(): List<String> = envStorage.listEnv()

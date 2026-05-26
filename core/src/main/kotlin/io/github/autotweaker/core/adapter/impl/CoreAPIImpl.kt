@@ -34,8 +34,11 @@ import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
+import io.github.autotweaker.core.application.ShellRouter
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.EnvRepository
@@ -148,4 +151,5 @@ class CoreAPIImpl(
 	}
 	
 	override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
+	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter().exec(arg)
 }

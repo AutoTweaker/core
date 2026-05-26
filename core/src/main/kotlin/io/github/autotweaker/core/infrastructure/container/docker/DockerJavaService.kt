@@ -25,15 +25,20 @@ import com.github.dockerjava.api.exception.ConflictException
 import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.model.*
 import com.github.dockerjava.core.DockerClientImpl
-import io.github.autotweaker.core.infrastructure.container.CommandResult
+import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
 import io.github.autotweaker.core.infrastructure.container.ContainerService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 
 class DockerJavaService : ContainerService {
 	
@@ -96,53 +101,51 @@ class DockerJavaService : ContainerService {
 		}
 	}
 	
-	override suspend fun exec(
-		containerId: String,
-		command: List<String>,
-		workDir: String?,
-		timeoutSeconds: Long,
-		env: Map<String, String>,
-	): CommandResult = withContext(Dispatchers.IO) {
+	override fun execStream(
+		containerId: String, command: List<String>, workDir: Path?, timeout: Duration, env: Map<String, String>,
+	): Flow<ShellEvent> = callbackFlow {
 		logger.debug(
-			"Command execution started  containerId={}  cmd={}  timeoutSeconds={}",
-			containerId,
-			command.joinToString(" "),
-			timeoutSeconds
+			"Streaming exec started  containerId={}  cmd={}", containerId, command.joinToString(" ")
 		)
-		try {
-			val execCmd = client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
-				.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
-			if (workDir != null) {
-				execCmd.withWorkingDir(workDir)
-			}
-			val execId = execCmd.exec().id
-			
-			val stdout = StringBuilder()
-			val stderr = StringBuilder()
-			
-			client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
-				override fun onNext(frame: Frame) {
-					when (frame.streamType) {
-						StreamType.STDOUT -> stdout.append(String(frame.payload, Charsets.UTF_8))
-						StreamType.STDERR -> stderr.append(String(frame.payload, Charsets.UTF_8))
-						else -> {}
-					}
+		withContext(Dispatchers.IO) {
+			try {
+				val execCmd =
+					client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
+						.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
+				if (workDir != null) {
+					execCmd.withWorkingDir(workDir.toString())
 				}
-			}).awaitCompletion(timeoutSeconds, TimeUnit.SECONDS)
-			
-			val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong
-			
-			CommandResult(
-				exitCode = exitCode?.toInt() ?: -1,
-				stdout = stdout.toString(),
-				stderr = stderr.toString(),
-			)
-		} catch (e: NotFoundException) {
-			logger.warn("Failed to find container  containerId={}", containerId)
-			throw ContainerOperationException("Container not found: $containerId", e)
-		} catch (e: Exception) {
-			logger.error("Failed to exec command  containerId={}", containerId, e)
-			throw ContainerOperationException("Failed to exec command: ${e.message}", e)
+				val execId = execCmd.exec().id
+				
+				val completed = client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
+					override fun onNext(frame: Frame) {
+						val text = String(frame.payload, Charsets.UTF_8)
+						when (frame.streamType) {
+							StreamType.STDOUT -> trySend(ShellEvent.Stdout(text))
+							StreamType.STDERR -> trySend(ShellEvent.Stderr(text))
+							else -> {}
+						}
+					}
+				}).awaitCompletion(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+				
+				val exitCode = if (completed) client.inspectExecCmd(execId).exec().exitCodeLong else null
+				trySend(
+					ShellEvent.Exit(
+						ShellResult(
+							exitCode = exitCode?.toInt() ?: -1,
+							timeout = !completed,
+							duration = Duration.ZERO,
+						)
+					)
+				)
+			} catch (e: NotFoundException) {
+				logger.warn("Failed to find container  containerId={}", containerId)
+				throw ContainerOperationException("Container not found: $containerId", e)
+			} catch (e: Exception) {
+				logger.error("Failed to exec command  containerId={}", containerId, e)
+				throw ContainerOperationException("Failed to exec command: ${e.message}", e)
+			}
 		}
+		close()
 	}
 }

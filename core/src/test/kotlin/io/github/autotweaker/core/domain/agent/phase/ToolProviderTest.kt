@@ -25,6 +25,8 @@ import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
+import io.github.autotweaker.core.domain.port.RawFileSystem
+import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
@@ -59,6 +61,7 @@ class ToolProviderTest {
 		every { env.currentFallbackModels } returns null
 		every { env.service } returns mockk<SettingService>(relaxed = true)
 		every { env.context } returns MutableStateFlow(agentContext)
+		ToolProvider.init(mockk<ShellExecutor>(relaxed = true), mockk<RawFileSystem>(relaxed = true))
 	}
 	
 	@AfterTest

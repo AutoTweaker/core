@@ -26,14 +26,18 @@ import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import com.github.dockerjava.core.DockerClientImpl
+import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
 import io.mockk.*
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 
 class DockerJavaServiceTest {
 	
@@ -200,10 +204,10 @@ class DockerJavaServiceTest {
 	
 	// endregion
 	
-	// region exec
+	// region execStream
 	
 	@Test
-	fun `exec returns CommandResult with captured stdout and stderr`() = runTest {
+	fun `execStream emits stdout stderr and exit events`() = runTest {
 		val client = setupClient()
 		
 		val execCreateResponse = mockk<ExecCreateCmdResponse>()
@@ -220,10 +224,8 @@ class DockerJavaServiceTest {
 		val callbackSlot = slot<ResultCallback<Frame>>()
 		val execStartCmd = mockk<ExecStartCmd>()
 		every { execStartCmd.exec(capture(callbackSlot)) } answers {
-			callbackSlot.captured.onNext(createFrame(StreamType.STDOUT, "hello\n"))
-			callbackSlot.captured.onNext(createFrame(StreamType.STDERR, "error\n"))
-			callbackSlot.captured.onNext(createFrame(StreamType.RAW, "ignored"))
-			callbackSlot.captured.onNext(createFrame(StreamType.STDOUT, "world"))
+			callbackSlot.captured.onNext(createFrame(StreamType.STDOUT, "hello"))
+			callbackSlot.captured.onNext(createFrame(StreamType.STDERR, "error"))
 			callbackSlot.captured.onComplete()
 			callbackSlot.captured
 		}
@@ -236,17 +238,20 @@ class DockerJavaServiceTest {
 		every { client.inspectExecCmd("exec-789") } returns inspectCmd
 		
 		val service = DockerJavaService()
-		val result = service.exec("container-123", listOf("echo", "hello"), timeoutSeconds = 30)
+		val events =
+			service.execStream("container-123", listOf("echo", "hello"), timeout = Duration.parse("30s")).toList()
 		
-		assertEquals(0, result.exitCode)
-		assertEquals("hello\nworld", result.stdout)
-		assertEquals("error\n", result.stderr)
+		assertEquals(3, events.size)
+		assertEquals("hello", (events[0] as ShellEvent.Stdout).text)
+		assertEquals("error", (events[1] as ShellEvent.Stderr).text)
+		val exit = events[2] as ShellEvent.Exit
+		assertEquals(0, exit.result.exitCode)
 		
 		unmockkStatic(DockerClientImpl::class)
 	}
 	
 	@Test
-	fun `exec passes workDir to exec create command`() = runTest {
+	fun `execStream passes workDir to exec create command`() = runTest {
 		val client = setupClient()
 		
 		val execCreateResponse = mockk<ExecCreateCmdResponse>()
@@ -276,15 +281,18 @@ class DockerJavaServiceTest {
 		}
 		
 		val service = DockerJavaService()
-		val result = service.exec("container-123", listOf("pwd"), timeoutSeconds = 30, workDir = "/tmp/work")
+		val events = service.execStream(
+			"container-123", listOf("pwd"), timeout = Duration.parse("30s"), workDir = Path.of("/tmp/work")
+		).toList()
 		
-		assertEquals(0, result.exitCode)
+		val exit = events.last() as ShellEvent.Exit
+		assertEquals(0, exit.result.exitCode)
 		
 		unmockkStatic(DockerClientImpl::class)
 	}
 	
 	@Test
-	fun `exec returns exitCode -1 when exitCodeLong is null`() = runTest {
+	fun `execStream exitCode -1 when exitCodeLong is null`() = runTest {
 		val client = setupClient()
 		
 		val execCreateResponse = mockk<ExecCreateCmdResponse>()
@@ -313,21 +321,22 @@ class DockerJavaServiceTest {
 		}
 		
 		val service = DockerJavaService()
-		val result = service.exec("container-123", listOf("cmd"), timeoutSeconds = 30)
+		val events = service.execStream("container-123", listOf("cmd"), timeout = Duration.parse("30s")).toList()
 		
-		assertEquals(-1, result.exitCode)
+		val exit = events.last() as ShellEvent.Exit
+		assertEquals(-1, exit.result.exitCode)
 		
 		unmockkStatic(DockerClientImpl::class)
 	}
 	
 	@Test
-	fun `exec throws ContainerOperationException on NotFoundException`() = runTest {
+	fun `execStream throws ContainerOperationException on NotFoundException`() = runTest {
 		val client = setupClient()
 		every { client.execCreateCmd(any()) } throws NotFoundException("no such container")
 		
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
-			service.exec("container-gone", listOf("ls"), timeoutSeconds = 30)
+			service.execStream("container-gone", listOf("ls"), timeout = Duration.parse("30s")).collect {}
 		}
 		assertTrue(ex.message!!.contains("Container not found"))
 		
@@ -335,13 +344,13 @@ class DockerJavaServiceTest {
 	}
 	
 	@Test
-	fun `exec throws ContainerOperationException on generic exception`() = runTest {
+	fun `execStream throws ContainerOperationException on generic exception`() = runTest {
 		val client = setupClient()
 		every { client.execCreateCmd(any()) } throws RuntimeException("exec error")
 		
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
-			service.exec("container-123", listOf("ls"), timeoutSeconds = 30)
+			service.execStream("container-123", listOf("ls"), timeout = Duration.parse("30s")).collect {}
 		}
 		assertTrue(ex.message!!.contains("Failed to exec command"))
 		assertTrue(ex.message!!.contains("exec error"))

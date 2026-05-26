@@ -16,22 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.container
+package io.github.autotweaker.api.types.shell
 
-import io.github.autotweaker.api.types.shell.ShellEvent
-import kotlinx.coroutines.flow.Flow
-import java.nio.file.Path
-import kotlin.time.Duration
-
-interface ContainerService {
-	suspend fun start(image: String, config: ContainerConfig): String
-	suspend fun stop(containerId: String)
-	fun shutdown() {}
-	fun execStream(
-		containerId: String,
-		command: List<String>,
-		workDir: Path? = null,
-		timeout: Duration,
-		env: Map<String, String> = emptyMap(),
-	): Flow<ShellEvent>
+sealed class ShellEvent {
+	data class Stdout(val text: String) : ShellEvent()
+	data class Stderr(val text: String) : ShellEvent()
+	data class Exit(val result: ShellResult) : ShellEvent()
 }

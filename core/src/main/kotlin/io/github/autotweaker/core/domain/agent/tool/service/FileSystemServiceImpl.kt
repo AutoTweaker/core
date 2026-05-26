@@ -19,50 +19,34 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.types.Unicode
+import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 
 class FileSystemServiceImpl(
-	workspaceRoot: Path,
+	private val fs: RawFileSystem,
+	private val root: Path,
 	private val inContainer: Boolean = false,
-	containerRoot: Path? = null,
-	hostRoot: Path? = null,
+	private val containerMount: Path = root,
+	private val hostMount: Path = root,
 ) : FileSystemService {
-	private val root: Path = workspaceRoot.toRealPath()
-	private val containerMount: Path = containerRoot?.toRealPath() ?: root
-	private val hostMount: Path = hostRoot?.toRealPath() ?: root
-	
 	override fun normalize(filePath: String): Path {
 		val path = Path.of(filePath)
-		val resolved = if (path.isAbsolute) path.normalize() else root.resolve(path).normalize()
-		if (!inContainer) return resolved
-		return hostMount.resolve(containerMount.relativize(resolved)).normalize()
+		return if (path.isAbsolute) path.normalize() else root.resolve(path).normalize()
 	}
 	
-	override suspend fun exists(path: Path): Boolean = withContext(Dispatchers.IO) { Files.exists(path) }
-	
-	override suspend fun isRegularFile(path: Path): Boolean = withContext(Dispatchers.IO) { Files.isRegularFile(path) }
-	
-	override suspend fun readUnicode(path: Path): List<Unicode> = withContext(Dispatchers.IO) {
-		Files.readString(path).map { Unicode.fromChar(it) }
+	private fun resolve(path: Path): Path {
+		if (!inContainer) return path
+		return hostMount.resolve(containerMount.relativize(path)).normalize()
 	}
 	
-	override suspend fun readAllLines(path: Path): List<String> =
-		withContext(Dispatchers.IO) { Files.readAllLines(path) }
+	override suspend fun exists(path: Path): Boolean = fs.exists(resolve(path))
 	
-	override suspend fun sha256(path: Path): String = withContext(Dispatchers.IO) {
-		val digest = MessageDigest.getInstance("SHA-256")
-		Files.newInputStream(path).use { input ->
-			val buffer = ByteArray(8192)
-			var bytesRead: Int
-			while (input.read(buffer).also { bytesRead = it } != -1) {
-				digest.update(buffer, 0, bytesRead)
-			}
-		}
-		digest.digest().joinToString("") { "%02x".format(it) }
-	}
+	override suspend fun isRegularFile(path: Path): Boolean = fs.isRegularFile(resolve(path))
+	
+	override suspend fun readUnicode(path: Path): List<Unicode> = fs.readUnicode(resolve(path))
+	
+	override suspend fun readAllLines(path: Path): List<String> = fs.readAllLines(resolve(path))
+	
+	override suspend fun sha256(path: Path): String = fs.sha256(resolve(path))
 }

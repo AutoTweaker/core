@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.core.domain.tool.Tool
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
@@ -28,6 +29,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration.Companion.seconds
 
 @AutoService(Tool::class)
 class Bash : Tool {
@@ -51,9 +53,7 @@ class Bash : Tool {
 						),
 						"timeout_seconds" to Tool.Function.Property(
 							description = service.get(BashSettings.TimeoutPropDescription()).value.format(
-								service.get(
-									BashSettings.DefaultTimeoutSeconds()
-								).value
+								service.get(BashSettings.DefaultTimeoutSeconds()).value
 							),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
@@ -91,27 +91,45 @@ class Bash : Tool {
 			"Bash execution started  tool=bash  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds
 		)
 		
-		val result = input.provider.get<BashService>().run(command, timeoutSeconds, selectedEnv)
-		val stdout = result.stdout.ifBlank { "<empty>" }
-		val stderr = result.stderr.ifBlank { "<empty>" }
-		val duration = String.format("%.3f", result.durationSeconds)
+		val stdout = StringBuilder()
+		val stderr = StringBuilder()
+		var result: ShellEvent.Exit? = null
+		
+		input.provider.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
+			when (event) {
+				is ShellEvent.Stdout -> {
+					input.outputChannel?.send(Tool.RuntimeOutput(event.text))
+					stdout.appendLine(event.text)
+				}
+				
+				is ShellEvent.Stderr -> {
+					input.outputChannel?.send(Tool.RuntimeOutput(event.text))
+					stderr.appendLine(event.text)
+				}
+				
+				is ShellEvent.Exit -> result = event
+			}
+		}
+		
+		val r = result ?: return Tool.ToolOutput("No result", false)
+		val stdoutStr = stdout.toString().trimEnd().ifBlank { "<empty>" }
+		val stderrStr = stderr.toString().trimEnd().ifBlank { "<empty>" }
+		val duration = String.format("%.3f", r.result.duration.inWholeMicroseconds / 1_000_000.0)
 		
 		logger.debug(
 			"Bash completed  tool=bash  exitCode={}  duration={}s  timeout={}",
-			result.exitCode,
+			r.result.exitCode,
 			duration,
-			result.timeout
+			r.result.timeout
 		)
 		
-		val output = s.get(BashSettings.ResultTemplate()).value.format(result.exitCode, duration, stdout, stderr)
-		return Tool.ToolOutput(output, result.exitCode == 0 && !result.timeout)
+		val output =
+			s.get(BashSettings.ResultTemplate()).value.format(r.result.exitCode, duration, stdoutStr, stderrStr)
+		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	
 	fun listEnv(): List<String> = envStorage.listEnv()
-	
 	fun getEnv(id: String): String? = envStorage.getEnv(id)
-	
 	fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
-	
 	fun removeEnv(id: String) = envStorage.removeEnv(id)
 }

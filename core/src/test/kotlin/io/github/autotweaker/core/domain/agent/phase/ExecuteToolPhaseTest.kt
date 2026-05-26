@@ -30,9 +30,12 @@ import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.MutableAgentState
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
+import io.github.autotweaker.core.domain.port.RawFileSystem
+import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.Tool
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.coEvery
@@ -96,6 +99,7 @@ class ExecuteToolPhaseTest {
 		capturedOutputs.clear()
 		coEvery { env.emitOutput(any()) } answers { capturedOutputs.add(firstArg()) }
 		every { env.updateStatus(any()) } answers { statusLog.add(firstArg()) }
+		ToolProvider.init(mockk<ShellExecutor>(relaxed = true), mockk<RawFileSystem>(relaxed = true))
 	}
 	
 	@AfterTest

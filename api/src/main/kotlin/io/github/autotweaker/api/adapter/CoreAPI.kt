@@ -30,6 +30,8 @@ import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.session.*
+import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellExec
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
@@ -43,6 +45,7 @@ interface CoreAPI {
 	val i18n: I18nAPI
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
+	fun bash(arg: ShellExec): Flow<ShellEvent>
 	
 	interface AdapterAPI {
 		fun listAdapter(): List<AdapterInfo>
