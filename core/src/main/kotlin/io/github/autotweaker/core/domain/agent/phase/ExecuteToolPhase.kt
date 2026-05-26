@@ -56,6 +56,9 @@ internal object ExecuteToolPhase {
 					onToolActivated = { activeTools ->
 						env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
 					},
+					onToolDeactivated = { activeTools ->
+						env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
+					},
 					onToolOutput = { output ->
 						env.emitOutput(output)
 					},

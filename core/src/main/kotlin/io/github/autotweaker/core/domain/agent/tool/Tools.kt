@@ -43,6 +43,7 @@ class Tools(private val service: SettingService) {
 	data class Entry(
 		val tool: Tool,
 		var active: Boolean = false,
+		var consecutiveUnused: Int = 0,
 	)
 	
 	private val _entries = mutableListOf<Entry>()
@@ -115,6 +116,7 @@ class Tools(private val service: SettingService) {
 		workspace: WorkspaceMeta,
 		agentId: UUID = UUID.randomUUID(),
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
+		onToolDeactivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
 	): AgentContext.Message.Tool {
 		val entry = _entries.first { it.tool.resolveMeta(service).name == result.toolName }
@@ -126,6 +128,32 @@ class Tools(private val service: SettingService) {
 			result.reason,
 			entry.active
 		)
+		
+		val threshold = service.get(AgentToolSettings.DeactivationThreshold()).value
+		if (threshold > 0) {
+			entry.consecutiveUnused = 0
+			for (other in _entries) {
+				if (other.active && other != entry) {
+					other.consecutiveUnused++
+				}
+			}
+			val toDeactivate = _entries.filter {
+				it.active && it != entry && it.consecutiveUnused > threshold
+			}
+			if (toDeactivate.isNotEmpty()) {
+				for (deact in toDeactivate) {
+					logger.debug(
+						"Tool deactivated  tool={}  consecutiveUnused={}  threshold={}",
+						deact.tool.resolveMeta(service).name,
+						deact.consecutiveUnused,
+						threshold
+					)
+					deact.active = false
+					deact.consecutiveUnused = 0
+				}
+				onToolDeactivated?.invoke(_entries.filter { it.active }.map { it.tool })
+			}
+		}
 		
 		if (!entry.active) {
 			logger.debug("Tool activated  tool={}  function={}", result.toolName, result.functionName)
@@ -144,8 +172,7 @@ class Tools(private val service: SettingService) {
 				callId = call.callId,
 				result = AgentContext.Message.Tool.Result(
 					content = service.get(AgentToolSettings.ActiveMessage()).value.format(
-						meta.name,
-						meta.functions.size
+						meta.name, meta.functions.size
 					),
 					timestamp = Clock.System.now(),
 					status = ToolResultStatus.SUCCESS,

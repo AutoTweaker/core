@@ -96,4 +96,10 @@ object AgentToolSettings {
 		override val default = SettingValue.ValString("工具%s已激活，包含%s个function，检查你的工具列表来了解如何使用")
 		override val description = "激活工具后的ToolResult"
 	}
+	
+	@AutoService(SettingDef::class)
+	class DeactivationThreshold : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(50)
+		override val description = "工具将在连续指定次数未使用后被自动禁用，设为0以禁用此特性"
+	}
 }

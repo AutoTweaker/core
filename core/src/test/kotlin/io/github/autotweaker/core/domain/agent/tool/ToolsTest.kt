@@ -84,6 +84,18 @@ class ToolsTest {
 		toolName = toolName, functionName = functionName,
 		reason = "test", arguments = buildJsonObject { put("cmd", "echo") },
 	)
+	
+	private fun settingsWithThreshold(threshold: Int): SettingService =
+		mockk<SettingService>().also { svc ->
+			every { svc.get<SettingValue>(any()) } answers {
+				val def = firstArg<SettingDef<*>>()
+				if (def is AgentToolSettings.DeactivationThreshold) {
+					SettingValue.ValInt(threshold)
+				} else {
+					def.default
+				}
+			}
+		}
 	// endregion
 	
 	// region basic
@@ -322,6 +334,138 @@ class ToolsTest {
 		
 		assertEquals(1, activatedTools.size)
 		assertTrue(activatedTools[0].contains(tool))
+	}
+	
+	@Test
+	fun `executeTool deactivates unused tool after threshold`() = runTest {
+		val svc = settingsWithThreshold(2)
+		val tools = Tools(svc)
+		val toolA = mockTool("a")
+		val toolB = mockTool("b")
+		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		tools.add(toolA)
+		tools.add(toolB)
+		
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c1", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		tools.executeTool(
+			validationSuccess("b"), pendingToolCall("c2", "b_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		
+		assertTrue(tools.entries[0].active)
+		assertTrue(tools.entries[1].active)
+		
+		repeat(3) {
+			tools.executeTool(
+				validationSuccess("a"), pendingToolCall("c${it + 3}", "a_run"),
+				SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+			)
+		}
+		
+		assertTrue(tools.entries[0].active)
+		assertFalse(tools.entries[1].active)
+	}
+	
+	@Test
+	fun `executeTool does not deactivate when threshold is zero`() = runTest {
+		val svc = settingsWithThreshold(0)
+		val tools = Tools(svc)
+		val toolA = mockTool("a")
+		val toolB = mockTool("b")
+		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		tools.add(toolA)
+		tools.add(toolB)
+		
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c1", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		tools.executeTool(
+			validationSuccess("b"), pendingToolCall("c2", "b_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		
+		repeat(100) {
+			tools.executeTool(
+				validationSuccess("a"), pendingToolCall("c${it + 3}", "a_run"),
+				SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+			)
+		}
+		
+		assertTrue(tools.entries[0].active)
+		assertTrue(tools.entries[1].active)
+	}
+	
+	@Test
+	fun `executeTool calls onToolDeactivated when tool deactivated`() = runTest {
+		val svc = settingsWithThreshold(1)
+		val tools = Tools(svc)
+		val toolA = mockTool("a")
+		val toolB = mockTool("b")
+		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		tools.add(toolA)
+		tools.add(toolB)
+		
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c1", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		tools.executeTool(
+			validationSuccess("b"), pendingToolCall("c2", "b_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		
+		val deactivatedCalls = mutableListOf<List<Tool>>()
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c3", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+			onToolDeactivated = { deactivatedCalls.add(it) },
+		)
+		
+		assertEquals(1, deactivatedCalls.size)
+		assertTrue(deactivatedCalls[0].contains(toolA))
+		assertFalse(deactivatedCalls[0].contains(toolB))
+	}
+	
+	@Test
+	fun `executeTool resets called tool counter and increments others`() = runTest {
+		val svc = settingsWithThreshold(5)
+		val tools = Tools(svc)
+		val toolA = mockTool("a")
+		val toolB = mockTool("b")
+		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		tools.add(toolA)
+		tools.add(toolB)
+		
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c1", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		tools.executeTool(
+			validationSuccess("b"), pendingToolCall("c2", "b_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		
+		tools.executeTool(
+			validationSuccess("a"), pendingToolCall("c3", "a_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		assertEquals(0, tools.entries[0].consecutiveUnused)
+		assertEquals(1, tools.entries[1].consecutiveUnused)
+		
+		tools.executeTool(
+			validationSuccess("b"), pendingToolCall("c4", "b_run"),
+			SimpleContainer(), WorkspaceMeta("test", false, createTempDirectory("test")),
+		)
+		assertEquals(1, tools.entries[0].consecutiveUnused)
+		assertEquals(0, tools.entries[1].consecutiveUnused)
 	}
 	// endregion
 	
