@@ -58,9 +58,10 @@ internal object CompactPhase {
 		val compactPrompt = service.get(CompactSettings.Prompt()).value
 		val maxMessageChars = service.get(CompactSettings.MaxMessageChars()).value
 		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt()).value
+		val thinkingEnabled = service.get(CompactSettings.Thinking()).value
 		
 		val (processed, preprocessSnapshots) = preprocessMessages(
-			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt
+			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, thinkingEnabled
 		)
 		
 		val withPreviousSummary = processed.mountSummary(env.context.value.summarizedMessage?.content)
@@ -70,7 +71,8 @@ internal object CompactPhase {
 		var finalResult: CompactRequestResult
 		val snapshots = preprocessSnapshots.toMutableList()
 		while (true) {
-			finalResult = runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages, service)
+			finalResult =
+				runCompactRequest(env, summarizeModel, fallbackModels, systemAndMessages, thinkingEnabled, service)
 			attempt++
 			finalResult.snapshot?.let { snapshots.add(it) }
 			
@@ -149,6 +151,7 @@ internal object CompactPhase {
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
 		messages: List<ChatMessage>,
+		thinkingEnabled: Boolean,
 		service: SettingService,
 	): CompactRequestResult {
 		var rawContent = ""
@@ -159,7 +162,7 @@ internal object CompactPhase {
 				fallbackModels = fallbackModels,
 				messages = messages,
 				stream = true,
-				thinking = false,
+				thinking = thinkingEnabled,
 			)
 			results.collect { resilientResult ->
 				currentCoroutineContext().ensureActive()
@@ -233,13 +236,15 @@ internal object CompactPhase {
 		fallbackModels: List<Model>?,
 		maxMessageChars: Int,
 		messageSummarizePrompt: String,
+		thinkingEnabled: Boolean,
 	): PreprocessResult {
 		val messages = mutableListOf<ChatMessage>()
 		val snapshots = mutableListOf<UsageSnapshot>()
 		
 		for (round in rounds) {
 			val (userMsg, userSnapshot) = convertUserMessage(
-				round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels
+				round.userMessage, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels,
+				thinkingEnabled,
 			)
 			userSnapshot?.let { snapshots.add(it) }
 			messages.add(userMsg)
@@ -259,12 +264,14 @@ internal object CompactPhase {
 					messageSummarizePrompt,
 					summarizeModel,
 					fallbackModels,
+					thinkingEnabled,
 				)
 				assistantSnapshot?.let { snapshots.add(it) }
 				messages.add(assistantMsg)
 				turn.tools.forEach {
 					val (toolMsg, toolSnapshot) = convertToolMessage(
 						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels,
+						thinkingEnabled,
 					)
 					toolSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 					messages.add(toolMsg)
@@ -273,6 +280,7 @@ internal object CompactPhase {
 			round.finalAssistantMessage?.let {
 				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
 					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels,
+					thinkingEnabled,
 				)
 				assistantSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 				messages.add(assistantMsg)
@@ -288,6 +296,7 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
+		thinkingEnabled: Boolean,
 	): Pair<ChatMessage.UserMessage, UsageSnapshot?> {
 		val content = buildString {
 			if (!msg.images.isNullOrEmpty()) {
@@ -296,7 +305,7 @@ internal object CompactPhase {
 			append(msg.content)
 		}
 		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled)
 		} else content to null
 		return ChatMessage.UserMessage(finalContent, msg.timestamp) to snapshot
 	}
@@ -308,10 +317,11 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
+		thinkingEnabled: Boolean,
 	): Pair<ChatMessage.AssistantMessage, UsageSnapshot?> {
 		val content = msg.content ?: ""
 		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled)
 		} else content to null
 		return ChatMessage.AssistantMessage(
 			content = finalContent,
@@ -328,10 +338,11 @@ internal object CompactPhase {
 		messageSummarizePrompt: String,
 		summarizeModel: Model,
 		fallbackModels: List<Model>?,
+		thinkingEnabled: Boolean,
 	): Pair<ChatMessage.ToolMessage, UsageSnapshot?> {
 		val content = msg.result.content
 		val (finalContent, snapshot) = if (content.length > maxMessageChars) {
-			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels)
+			summarizeMessage(content, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled)
 		} else content to null
 		return ChatMessage.ToolMessage(
 			content = finalContent,
@@ -345,6 +356,7 @@ internal object CompactPhase {
 		prompt: String,
 		model: Model,
 		fallbackModels: List<Model>?,
+		thinkingEnabled: Boolean,
 	): Pair<String, UsageSnapshot?> {
 		val results = ResilientChat.execute(
 			model = model,
@@ -352,7 +364,7 @@ internal object CompactPhase {
 			messages = listOf(
 				ChatMessage.UserMessage(prompt.format(content), Clock.System.now()),
 			),
-			thinking = false,
+			thinking = thinkingEnabled,
 		).toList()
 		val success = results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }
 		val finalResult = success.lastOrNull()

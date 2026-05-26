@@ -54,4 +54,10 @@ object CompactSettings {
 		override val default = SettingValue.ValInt(50)
 		override val description = "上下文压缩输出的最小字符数，小于此值的总结会视为无效"
 	}
+	
+	@AutoService(SettingDef::class)
+	class Thinking : SettingDef<SettingValue.ValBoolean> {
+		override val default = SettingValue.ValBoolean(false)
+		override val description = "上下文压缩时是否启用思考"
+	}
 }
