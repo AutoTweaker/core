@@ -171,6 +171,39 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
+	fun `summarized message mounted on first history round when history exists`() {
+		val user = userMsg("current question")
+		val histUser = userMsg("previous question")
+		val histAsst = assistantMsg("previous answer")
+		val histRound = AgentContext.CompletedRound(histUser, null, histAsst)
+		val summary = AgentContext.SummarizedMessage(
+			id = UUID.randomUUID(),
+			timestamp = Clock.System.now(),
+			content = "compacted summary of old rounds"
+		)
+		val ctx = AgentContext(
+			null, null,
+			historyRounds = listOf(histRound),
+			summarizedMessage = summary,
+			currentRound = currentRound(user),
+		)
+		val req = request(context = ctx)
+		
+		val messages = req.toChatMessages()
+		
+		// 第一条 history UserMessage 携带摘要
+		val histUserMsg = messages[0] as ChatMessage.UserMessage
+		assertTrue(histUserMsg.content.contains("<summary>"))
+		assertTrue(histUserMsg.content.contains("compacted summary of old rounds"))
+		assertTrue(histUserMsg.content.contains("previous question"))
+		
+		// 当前轮次 UserMessage 不带摘要
+		val curUserMsg = messages[2] as ChatMessage.UserMessage
+		assertFalse(curUserMsg.content.contains("<summary>"))
+		assertTrue(curUserMsg.content.contains("current question"))
+	}
+	
+	@Test
 	fun `images in user message`() {
 		val img = Base64("AAAA")
 		val user =

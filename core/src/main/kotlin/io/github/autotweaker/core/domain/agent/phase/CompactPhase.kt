@@ -27,6 +27,7 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.chat.mountSummary
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import kotlinx.coroutines.CancellationException
@@ -62,7 +63,8 @@ internal object CompactPhase {
 			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt
 		)
 		
-		val systemAndMessages = processed + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
+		val withPreviousSummary = processed.mountSummary(env.context.value.summarizedMessage?.content)
+		val systemAndMessages = withPreviousSummary + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
 		
 		var attempt = 0
 		var finalResult: CompactRequestResult

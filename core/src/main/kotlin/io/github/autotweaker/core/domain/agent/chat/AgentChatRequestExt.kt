@@ -23,8 +23,7 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import kotlin.time.Clock
 
 fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
-	val current = context.currentRound
-		?: throw IllegalStateException("No current round available")
+	val current = context.currentRound ?: throw IllegalStateException("No current round available")
 	
 	val lastMessage = when {
 		current.assistantMessage != null -> current.assistantMessage
@@ -52,15 +51,19 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		
 		//历史轮次
 		for (round in context.historyRounds.orEmpty()) {
-			add(round.userMessage.toChatMessage())
-			round.turns?.forEach { addTurn(it) }
-			round.finalAssistantMessage?.let { add(it.toChatMessage()) }
+			addAll(round.toChatMessages())
 		}
 		
 		//当前轮次
-		add(current.userMessage.toChatMessage(context.summarizedMessage?.content))
+		add(current.userMessage.toChatMessage())
 		current.turns?.forEach { addTurn(it) }
-	}
+	}.mountSummary(context.summarizedMessage?.content)
+}
+
+internal fun AgentContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
+	add(userMessage.toChatMessage())
+	turns?.forEach { addTurn(it) }
+	finalAssistantMessage?.let { add(it.toChatMessage()) }
 }
 
 private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
@@ -79,14 +82,21 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
 
-private fun AgentContext.Message.User.toChatMessage(summarizedMessage: String? = null) = ChatMessage.UserMessage(
+internal fun List<ChatMessage>.mountSummary(summary: String?): List<ChatMessage> {
+	if (summary.isNullOrEmpty()) return this
+	val firstUserIndex = indexOfFirst { it is ChatMessage.UserMessage }
+	if (firstUserIndex == -1) return this
+	return mapIndexed { index, msg ->
+		if (index == firstUserIndex) {
+			val userMsg = msg as ChatMessage.UserMessage
+			userMsg.copy(content = "<summary>\n$summary\n</summary>\n${userMsg.content}")
+		} else msg
+	}
+}
+
+private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
 	content = buildString {
 		appendLine("<time>$timestamp</time>")
-		if (summarizedMessage != null) {
-			appendLine("<summary>")
-			appendLine(summarizedMessage)
-			appendLine("</summary>")
-		}
 		append(content)
 	}.trimEnd(),
 	createdAt = timestamp,
