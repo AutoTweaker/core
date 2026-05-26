@@ -47,4 +47,10 @@ object TranslateSettings {
 		override val default = SettingValue.ValInt(3)
 		override val description = "同时翻译的最多批次数量"
 	}
+	
+	@AutoService(SettingDef::class)
+	class Thinking : SettingDef<SettingValue.ValBoolean> {
+		override val default = SettingValue.ValBoolean(false)
+		override val description = "翻译请求是否启用思考"
+	}
 }

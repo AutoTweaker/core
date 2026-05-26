@@ -121,7 +121,7 @@ internal object TranslationEngine {
 				ChatMessage.UserMessage(userPrompt, Clock.System.now()),
 			),
 			stream = false,
-			thinking = false,
+			thinking = job.svc.get(TranslateSettings.Thinking()).value,
 			responseFormat = ChatRequest.ResponseFormat(type = ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		)
 		val results = ChatService.chat(request).toList()
