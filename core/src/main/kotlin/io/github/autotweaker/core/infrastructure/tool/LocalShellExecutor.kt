@@ -29,7 +29,6 @@ import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
 class LocalShellExecutor {
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> =
@@ -61,7 +60,7 @@ class LocalShellExecutor {
 			}
 			
 			val finished = withContext(Dispatchers.IO) {
-				process.waitFor(timeout.toJavaDuration())
+				process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
 			}
 			if (!finished) {
 				process.destroyForcibly()
