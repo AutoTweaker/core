@@ -71,88 +71,60 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 		}
 	}
 	
-	private sealed class ContentNode {
-		data class Label(val text: String, val children: List<ContentNode>) : ContentNode()
-		data class Group(val children: List<ContentNode>) : ContentNode()
-		data class Leaf(val text: String) : ContentNode()
-	}
+	private data class ContentNode(
+		val text: String, val children: List<ContentNode> = emptyList()
+	)
 	
-	private fun Syntax.toContent(ancestorOptional: Boolean = false): ContentNode {
-		val isOptional = ancestorOptional || when (this) {
-			is Syntax.Leaf -> !required
-			is Syntax.Xor -> !required
-			is Syntax.All -> !required
-		}
+	private fun Syntax.toContent(ancestorOptional: Boolean = false): List<ContentNode> {
+		val isOptional = ancestorOptional || !required
 		return when (this) {
 			is Syntax.Leaf -> {
 				val opt = if (isOptional) " ${i18n.get(HelpI18n.ParamOptional())}" else ""
-				ContentNode.Leaf("${param.format()}  —  ${param.description}$opt")
+				listOf(ContentNode("${param.format()}  —  ${param.description}$opt"))
 			}
 			
-			is Syntax.All -> ContentNode.Group(children.map { it.toContent(isOptional) })
 			is Syntax.Xor -> {
 				val opt = if (isOptional) " ${i18n.get(HelpI18n.ParamOptional())}" else ""
-				ContentNode.Label(
-					i18n.get(HelpI18n.SyntaxXorLabel()) + opt,
-					children.map { it.toContent(isOptional) },
-				)
+				val labelText = i18n.get(HelpI18n.SyntaxXorLabel()) + opt
+				listOf(ContentNode(labelText, children = children.flatMap { it.toContent(isOptional) }))
+			}
+			
+			is Syntax.All -> {
+				val allChildNodesLists = children.map { it.toContent(isOptional) }.filter { it.isNotEmpty() }
+				if (allChildNodesLists.isEmpty()) return emptyList()
+				
+				val firstList = allChildNodesLists.first()
+				val head = firstList.first()
+				
+				val remainingFromFirst = firstList.drop(1)
+				val subsequentNodes = allChildNodesLists.drop(1).flatten()
+				
+				listOf(head.copy(children = head.children + remainingFromFirst + subsequentNodes))
 			}
 		}
 	}
 	
 	private fun formatSyntax(root: Syntax): List<String> {
-		return renderRoot(root.toContent())
-	}
-	
-	private fun renderRoot(node: ContentNode): List<String> {
-		return when (node) {
-			is ContentNode.Label -> {
-				val result = mutableListOf(node.text)
-				for (i in node.children.indices) {
-					result.addAll(render(node.children[i], "", i == node.children.lastIndex))
-				}
-				result
+		val nodes = root.toContent()
+		val result = mutableListOf<String>()
+		for (node in nodes) {
+			result.add(node.text)
+			for (i in node.children.indices) {
+				result.addAll(renderNode(node.children[i], "", i == node.children.lastIndex))
 			}
-			
-			is ContentNode.Group -> {
-				val result = mutableListOf<String>()
-				for (i in node.children.indices) {
-					result.addAll(render(node.children[i], "", i == node.children.lastIndex))
-				}
-				result
-			}
-			
-			is ContentNode.Leaf -> listOf(node.text)
 		}
+		return result
 	}
 	
-	private fun render(node: ContentNode, bars: String, isLast: Boolean): List<String> {
+	private fun renderNode(node: ContentNode, bars: String, isLast: Boolean): List<String> {
+		val result = mutableListOf<String>()
 		val connector = if (isLast) "└── " else "├── "
-		return when (node) {
-			is ContentNode.Leaf -> listOf("$bars$connector${node.text}")
-			is ContentNode.Label -> {
-				val result = mutableListOf("$bars$connector${node.text}")
-				val childBars = bars + if (isLast) "    " else "│   "
-				for (i in node.children.indices) {
-					result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
-				}
-				result
-			}
-			
-			is ContentNode.Group -> {
-				if (node.children.isEmpty()) return emptyList()
-				val result = mutableListOf<String>()
-				val hasMore = node.children.size > 1
-				
-				val firstIsLast = isLast && (bars.isEmpty() || !hasMore)
-				result.addAll(render(node.children.first(), bars, firstIsLast))
-				
-				val childBars = bars + if (firstIsLast) "    " else "│   "
-				for (i in 1 until node.children.size) {
-					result.addAll(render(node.children[i], childBars, i == node.children.lastIndex))
-				}
-				result
-			}
+		result.add("$bars$connector${node.text}")
+		
+		val childBars = bars + if (isLast) "    " else "│   "
+		for (i in node.children.indices) {
+			result.addAll(renderNode(node.children[i], childBars, i == node.children.lastIndex))
 		}
+		return result
 	}
 }

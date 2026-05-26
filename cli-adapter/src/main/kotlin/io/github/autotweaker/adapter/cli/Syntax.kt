@@ -19,9 +19,11 @@
 package io.github.autotweaker.adapter.cli
 
 sealed class Syntax {
-	data class All(val children: List<Syntax>, val required: Boolean = true) : Syntax()
-	data class Xor(val children: List<Syntax>, val required: Boolean = true) : Syntax()
-	data class Leaf(val param: Param, val required: Boolean = false) : Syntax()
+	abstract val required: Boolean
+	
+	data class All(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
+	data class Xor(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
+	data class Leaf(val param: Param, override val required: Boolean = false) : Syntax()
 	
 	companion object {
 		fun all(vararg children: Syntax, required: Boolean = true) = All(children.toList(), required)
