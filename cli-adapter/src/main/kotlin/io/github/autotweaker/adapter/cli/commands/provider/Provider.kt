@@ -35,25 +35,26 @@ class Provider : Command {
 	
 	override val name = "prov"
 	override val description get() = i18n.get(ProvI18n.Desc())
-	override val syntax = Syntax.xor(
-		Syntax.leaf(Param.Flag("list", i18n.get(ProvI18n.List()))),
-		Syntax.leaf(Param.Value("show", i18n.get(ProvI18n.Show()), emptyList())),
-		Syntax.leaf(Param.Flag("types", i18n.get(ProvI18n.Types()), emptyList())),
-		Syntax.leaf(Param.Value("info", i18n.get(ProvI18n.Info()))),
-		Syntax.all(
-			Syntax.leaf(Param.Flag("add", i18n.get(ProvI18n.Add())), required = true),
-			Syntax.leaf(Param.Value("name", i18n.get(ProvI18n.AddName()), emptyList())),
-			Syntax.leaf(Param.Value("type", i18n.get(ProvI18n.AddType()), emptyList())),
-			Syntax.leaf(Param.Value("key", i18n.get(ProvI18n.AddKey()), emptyList())),
-			Syntax.leaf(Param.Value("url", i18n.get(ProvI18n.AddUrl()), emptyList())),
-		),
-		Syntax.all(
-			Syntax.leaf(Param.Value("remove", i18n.get(ProvI18n.Remove()), listOf("rm")), required = true),
-			Syntax.leaf(Param.Flag("yes", i18n.get(ProvI18n.Yes()))),
-		),
-		Syntax.leaf(Param.Value("rename", i18n.get(ProvI18n.Rename()))),
-		Syntax.leaf(Param.Value("update", i18n.get(ProvI18n.Update()))),
-	)
+	override val syntax
+		get() = Syntax.xor(
+			Syntax.leaf(Param.Flag("list", i18n.get(ProvI18n.List()))),
+			Syntax.leaf(Param.Value("show", i18n.get(ProvI18n.Show()), emptyList())),
+			Syntax.leaf(Param.Flag("types", i18n.get(ProvI18n.Types()), emptyList())),
+			Syntax.leaf(Param.Value("info", i18n.get(ProvI18n.Info()))),
+			Syntax.all(
+				Syntax.leaf(Param.Flag("add", i18n.get(ProvI18n.Add())), required = true),
+				Syntax.leaf(Param.Value("name", i18n.get(ProvI18n.AddName()), emptyList())),
+				Syntax.leaf(Param.Value("type", i18n.get(ProvI18n.AddType()), emptyList())),
+				Syntax.leaf(Param.Value("key", i18n.get(ProvI18n.AddKey()), emptyList())),
+				Syntax.leaf(Param.Value("url", i18n.get(ProvI18n.AddUrl()), emptyList())),
+			),
+			Syntax.all(
+				Syntax.leaf(Param.Value("remove", i18n.get(ProvI18n.Remove()), listOf("rm")), required = true),
+				Syntax.leaf(Param.Flag("yes", i18n.get(ProvI18n.Yes()))),
+			),
+			Syntax.leaf(Param.Value("rename", i18n.get(ProvI18n.Rename()))),
+			Syntax.leaf(Param.Value("update", i18n.get(ProvI18n.Update()))),
+		)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
