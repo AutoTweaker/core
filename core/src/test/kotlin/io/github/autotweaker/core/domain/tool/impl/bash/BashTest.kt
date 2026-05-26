@@ -21,12 +21,11 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.tool.SimpleContainer
-import io.github.autotweaker.core.domain.tool.Tool
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
@@ -34,7 +33,6 @@ import io.mockk.*
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*
-import java.nio.file.Path
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
@@ -62,6 +60,7 @@ class BashTest {
 		every { SecretManager.remove(any()) } answers { secretStore.remove(firstArg()) }
 		
 		bash = Bash()
+		bash.init(defaultSettings, SimpleContainer())
 	}
 	
 	@AfterTest
@@ -76,14 +75,11 @@ class BashTest {
 	
 	private fun ToolInput(
 		arguments: JsonObject,
-		provider: SimpleContainer,
 		settings: SettingService = defaultSettings,
 	): Tool.ToolInput = Tool.ToolInput(
 		functionName = "run",
 		arguments = arguments,
-		provider = provider,
 		service = settings,
-		workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		outputChannel = null,
 	)
 	
@@ -113,60 +109,53 @@ class BashTest {
 	
 	// endregion
 	
-	// region resolveMeta
+	// region meta
 	
 	@Test
-	fun `resolveMeta returns correct name`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		assertEquals("bash", meta.name)
+	fun `meta returns correct name`() {
+		assertEquals("bash", bash.meta.name)
 	}
 	
 	@Test
-	fun `resolveMeta returns one function named run`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		assertEquals(1, meta.functions.size)
-		assertEquals("run", meta.functions.first().name)
+	fun `meta returns one function named run`() {
+		assertEquals(1, bash.meta.functions.size)
+		assertEquals("run", bash.meta.functions.first().name)
 	}
 	
 	@Test
-	fun `resolveMeta run function has required command string parameter`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		val runFunc = meta.functions.first()
+	fun `meta run function has required command string parameter`() {
+		val runFunc = bash.meta.functions.first()
 		val command = runFunc.parameters["command"]!!
 		assertTrue(command.required)
 		assertTrue(command.valueType is Tool.Function.Property.ValueType.StringValue)
 	}
 	
 	@Test
-	fun `resolveMeta run function has optional timeout_seconds integer parameter`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		val runFunc = meta.functions.first()
+	fun `meta run function has optional timeout_seconds integer parameter`() {
+		val runFunc = bash.meta.functions.first()
 		val timeout = runFunc.parameters["timeout_seconds"]!!
 		assertFalse(timeout.required)
 		assertTrue(timeout.valueType is Tool.Function.Property.ValueType.IntegerValue)
 	}
 	
 	@Test
-	fun `resolveMeta run function has optional env_ids array parameter`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		val runFunc = meta.functions.first()
+	fun `meta run function has optional env_ids array parameter`() {
+		val runFunc = bash.meta.functions.first()
 		val envIds = runFunc.parameters["env_ids"]!!
 		assertFalse(envIds.required)
 		assertTrue(envIds.valueType is Tool.Function.Property.ValueType.ArrayValue)
 	}
 	
 	@Test
-	fun `resolveMeta timeout parameter description contains formatted default timeout`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		val runFunc = meta.functions.first()
+	fun `meta timeout parameter description contains formatted default timeout`() {
+		val runFunc = bash.meta.functions.first()
 		val timeout = runFunc.parameters["timeout_seconds"]!!
 		assertTrue(timeout.description.contains("60"))
 	}
 	
 	@Test
-	fun `resolveMeta env_ids description references available envs`() {
-		val meta = bash.resolveMeta(defaultSettings)
-		val runFunc = meta.functions.first()
+	fun `meta env_ids description references available envs`() {
+		val runFunc = bash.meta.functions.first()
 		val envIds = runFunc.parameters["env_ids"]!!
 		assertTrue(envIds.description.contains("<none>"))
 	}
@@ -178,7 +167,8 @@ class BashTest {
 	@Test
 	fun `blank command returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		val input = ToolInput(args("   "), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("   "))
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
@@ -188,7 +178,8 @@ class BashTest {
 	@Test
 	fun `empty command returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		val input = ToolInput(args(""), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args(""))
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
@@ -202,7 +193,8 @@ class BashTest {
 	@Test
 	fun `timeout zero returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		val input = ToolInput(args("echo hello", timeoutSeconds = 0), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("echo hello", timeoutSeconds = 0))
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
@@ -212,7 +204,8 @@ class BashTest {
 	@Test
 	fun `negative timeout returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		val input = ToolInput(args("echo hello", timeoutSeconds = -5), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("echo hello", timeoutSeconds = -5))
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
@@ -229,8 +222,8 @@ class BashTest {
 		coEvery { bashService.run("echo hello", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello", durationSeconds = 0.123
 		)
-		
-		val input = ToolInput(args("echo hello"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("echo hello"))
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
@@ -245,8 +238,8 @@ class BashTest {
 		coEvery { bashService.run("false", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 1, stdout = "", stderr = "error msg", durationSeconds = 0.05
 		)
-		
-		val input = ToolInput(args("false"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("false"))
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
@@ -259,8 +252,8 @@ class BashTest {
 		coEvery { bashService.run("sleep 100", 1.seconds, emptyMap()) } returns mockResult(
 			exitCode = -1, stdout = "", timeout = true, durationSeconds = 1.0
 		)
-		
-		val input = ToolInput(args("sleep 100", timeoutSeconds = 1), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("sleep 100", timeoutSeconds = 1))
 		val result = bash.execute(input)
 		
 		assertFalse(result.success)
@@ -272,8 +265,8 @@ class BashTest {
 		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hi"
 		)
-		
-		val input = ToolInput(args("echo hi", timeoutSeconds = 60), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("echo hi", timeoutSeconds = 60))
 		bash.execute(input)
 		
 		coVerify { bashService.run("echo hi", 60.seconds, emptyMap()) }
@@ -285,8 +278,8 @@ class BashTest {
 		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hi"
 		)
-		
-		val input = ToolInput(args("echo hi"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("echo hi"))
 		bash.execute(input)
 		
 		coVerify { bashService.run("echo hi", 60.seconds, emptyMap()) }
@@ -302,8 +295,8 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "", stderr = "some error", durationSeconds = 0.1
 		)
-		
-		val input = ToolInput(args("cmd"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("cmd"))
 		val result = bash.execute(input)
 		
 		assertTrue(result.result.contains("<empty>"))
@@ -316,8 +309,8 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", stderr = "", durationSeconds = 0.1
 		)
-		
-		val input = ToolInput(args("cmd"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("cmd"))
 		val result = bash.execute(input)
 		
 		assertTrue(result.result.contains("<empty>"))
@@ -330,8 +323,8 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", durationSeconds = 2.5
 		)
-		
-		val input = ToolInput(args("cmd"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("cmd"))
 		val result = bash.execute(input)
 		
 		assertTrue(result.result.contains("2.500"))
@@ -343,8 +336,8 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", stderr = "err", durationSeconds = 0.001
 		)
-		
-		val input = ToolInput(args("cmd"), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("cmd"))
 		val result = bash.execute(input)
 		
 		assertTrue(result.result.contains("标准输出："))
@@ -364,10 +357,8 @@ class BashTest {
 		coEvery { bashService.run($$"echo $MY_VAR", 60.seconds, mapOf("MY_VAR" to "my_value")) } returns mockResult(
 			exitCode = 0, stdout = "my_value"
 		)
-		
-		val input = ToolInput(
-			args($$"echo $MY_VAR", envIds = listOf("MY_VAR")), container(bashService)
-		)
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args($$"echo $MY_VAR", envIds = listOf("MY_VAR")))
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
@@ -381,10 +372,8 @@ class BashTest {
 		
 		val bashService = mockk<BashService>()
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(exitCode = 0, stdout = "")
-		
-		val input = ToolInput(
-			args("cmd", envIds = listOf("A", "B")), container(bashService)
-		)
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("cmd", envIds = listOf("A", "B")))
 		bash.execute(input)
 		
 		coVerify { bashService.run("cmd", 60.seconds, mapOf("A" to "1", "B" to "2")) }
@@ -399,10 +388,8 @@ class BashTest {
 			exitCode = 0,
 			stdout = ""
 		)
-		
-		val input = ToolInput(
-			args("cmd", envIds = listOf("EXISTING", "MISSING")), container(bashService)
-		)
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("cmd", envIds = listOf("EXISTING", "MISSING")))
 		bash.execute(input)
 		
 		coVerify { bashService.run("cmd", 60.seconds, mapOf("EXISTING" to "val")) }
@@ -418,8 +405,8 @@ class BashTest {
 		coEvery { bashService.run("echo \"hello world\"", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello world"
 		)
-		
-		val input = ToolInput(args("echo \"hello world\""), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args("echo \"hello world\""))
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
@@ -432,8 +419,8 @@ class BashTest {
 		coEvery { bashService.run(longCmd, 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "x".repeat(1000)
 		)
-		
-		val input = ToolInput(args(longCmd), container(bashService))
+		bash.init(defaultSettings, container(bashService))
+		val input = ToolInput(args(longCmd))
 		val result = bash.execute(input)
 		
 		assertTrue(result.success)
@@ -492,22 +479,22 @@ class BashTest {
 	}
 	
 	@Test
-	fun `resolveMeta env_ids shows available env IDs`() {
+	fun `meta env_ids shows available env IDs`() {
 		bash.setEnv("DB_URL", "jdbc:...")
 		bash.setEnv("API_KEY", "secret")
+		bash.init(defaultSettings, SimpleContainer())
 		
-		val meta = bash.resolveMeta(defaultSettings)
-		val envIdsDesc = meta.functions.first().parameters["env_ids"]!!.description
+		val envIdsDesc = bash.meta.functions.first().parameters["env_ids"]!!.description
 		assertTrue(envIdsDesc.contains("DB_URL"))
 		assertTrue(envIdsDesc.contains("API_KEY"))
 	}
 	
 	@Test
-	fun `resolveMeta env_ids with quotes in name are escaped`() {
+	fun `meta env_ids with quotes in name are escaped`() {
 		bash.setEnv("KEY_WITH\"QUOTE", "val")
+		bash.init(defaultSettings, SimpleContainer())
 		
-		val meta = bash.resolveMeta(defaultSettings)
-		val envIdsDesc = meta.functions.first().parameters["env_ids"]!!.description
+		val envIdsDesc = bash.meta.functions.first().parameters["env_ids"]!!.description
 		assertTrue(envIdsDesc.contains("KEY_WITH\\\"QUOTE"))
 	}
 	

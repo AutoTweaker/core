@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
@@ -27,7 +28,6 @@ import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.tool.Tool
 import io.mockk.mockk
 import java.util.*
 import kotlin.test.*

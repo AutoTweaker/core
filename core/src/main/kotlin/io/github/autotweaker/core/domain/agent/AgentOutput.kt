@@ -45,7 +45,7 @@ sealed class AgentOutput {
 	) : AgentOutput()
 	
 	data class ToolListUpdate(
-		val activeTools: List<io.github.autotweaker.core.domain.tool.Tool>,
+		val activeTools: List<String>,
 	) : AgentOutput()
 	
 	data class Error(

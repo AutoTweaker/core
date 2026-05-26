@@ -19,22 +19,20 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Clock
 
-class SummarizeServiceImpl(
-	private val model: Model,
-	private val fallbackModels: List<Model>? = null,
-	private val onUsage: (suspend (UsageSnapshot) -> Unit)? = null,
+internal class SummarizeServiceImpl(
+	private val env: AgentEnvironment,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
 		val results = ResilientChat.execute(
-			model = model,
-			fallbackModels = fallbackModels,
+			model = env.summarizeModel,
+			fallbackModels = env.currentFallbackModels,
 			messages = listOf(
 				ChatMessage.SystemMessage(prompt, Clock.System.now()),
 				ChatMessage.UserMessage(content, Clock.System.now()),
@@ -42,7 +40,11 @@ class SummarizeServiceImpl(
 		).toList()
 		val success = results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }
 		val finalResult = success.lastOrNull()
-		finalResult?.usage?.let { onUsage?.invoke(UsageSnapshot(it, model.modelInfo)) }
+		finalResult?.usage?.let {
+			env.emitOutput(
+				AgentOutput.UsageConsumed(Clock.System.now(), it, env.summarizeModel.modelInfo)
+			)
+		}
 		return finalResult?.message?.content ?: throw IllegalStateException("No response from LLM")
 	}
 }

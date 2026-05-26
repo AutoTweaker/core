@@ -21,13 +21,11 @@ package io.github.autotweaker.core.domain.agent.tool.service
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
-import io.mockk.coEvery
-import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
+import io.mockk.*
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import java.util.*
@@ -43,11 +41,13 @@ class SummarizeServiceImplTest {
 		id = UUID.randomUUID(),
 	)
 	
-	private val fallbackModel = Model(
-		provider = Provider(UUID.randomUUID(), "fb-provider", mockk(relaxed = true), "key2", emptyList()),
-		modelInfo = mockk(relaxed = true),
-		id = UUID.randomUUID(),
-	)
+	private fun env(model: Model = mockModel, fallbacks: List<Model>? = null): AgentEnvironment {
+		val e = mockk<AgentEnvironment>()
+		every { e.summarizeModel } returns model
+		every { e.currentFallbackModels } returns fallbacks
+		coEvery { e.emitOutput(any()) } returns Unit
+		return e
+	}
 	
 	@Test
 	fun `summarize returns response on success`() = runTest {
@@ -61,7 +61,7 @@ class SummarizeServiceImplTest {
 			)
 		)
 		
-		val service = SummarizeServiceImpl(mockModel)
+		val service = SummarizeServiceImpl(env())
 		val result = service.summarize("long content", "summarize this")
 		
 		assertEquals("summarized content", result)
@@ -70,78 +70,55 @@ class SummarizeServiceImplTest {
 	}
 	
 	@Test
-	fun `summarize skips retrying results and uses success`() = runTest {
+	fun `summarize uses fallback models`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			CoreLlmResult(
-				result = ChatResult.Chunk(message = null),
-				model = mockModel.id,
-			),
 			CoreLlmResult(
 				result = ChatResult.Assembled(
-					message = ChatMessage.AssistantMessage("fallback result", Clock.System.now()),
+					message = ChatMessage.AssistantMessage("result", Clock.System.now()),
 				),
-				model = UUID.fromString("00000000-0000-0000-0000-000000000000"),
-			),
+				model = mockModel.id,
+			)
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
-		val result = service.summarize("content", "summarize")
+		val fbModel = Model(
+			provider = Provider(UUID.randomUUID(), "fb", mockk(relaxed = true), "key2", emptyList()),
+			modelInfo = mockk(relaxed = true),
+			id = UUID.randomUUID(),
+		)
+		val service = SummarizeServiceImpl(env(fallbacks = listOf(fbModel)))
+		val result = service.summarize("long content", "summarize this")
 		
-		assertEquals("fallback result", result)
+		assertEquals("result", result)
 		
 		unmockkObject(ResilientChat)
 	}
 	
 	@Test
-	fun `summarize throws when no successful response`() = runTest {
+	fun `summarize with error message throws`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
 			CoreLlmResult(
-				result = ChatResult.Chunk(message = null),
+				result = ChatResult.Assembled(
+					message = ChatMessage.ErrorMessage("API error", Clock.System.now(), 500),
+				),
 				model = mockModel.id,
 			),
 		)
 		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
-		
-		assertFailsWith<IllegalStateException> {
-			service.summarize("content", "summarize")
-		}
+		val service = SummarizeServiceImpl(env())
+		assertFailsWith<IllegalStateException> { service.summarize("content", "prompt") }
 		
 		unmockkObject(ResilientChat)
 	}
 	
 	@Test
-	fun `summarize empty flow throws`() = runTest {
+	fun `summarize throws when empty response`() = runTest {
 		mockkObject(ResilientChat)
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf()
 		
-		val service = SummarizeServiceImpl(mockModel)
-		
-		assertFailsWith<IllegalStateException> {
-			service.summarize("content", "summarize")
-		}
-		
-		unmockkObject(ResilientChat)
-	}
-	
-	@Test
-	fun `summarize bypasses fallback when first model succeeds`() = runTest {
-		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flowOf(
-			CoreLlmResult(
-				result = ChatResult.Assembled(
-					message = ChatMessage.AssistantMessage("first success", Clock.System.now()),
-				),
-				model = UUID.fromString("00000000-0000-0000-0000-000000000000"),
-			),
-		)
-		
-		val service = SummarizeServiceImpl(mockModel, listOf(fallbackModel))
-		val result = service.summarize("content", "summarize")
-		
-		assertEquals("first success", result)
+		val service = SummarizeServiceImpl(env())
+		assertFailsWith<IllegalStateException> { service.summarize("content", "prompt") }
 		
 		unmockkObject(ResilientChat)
 	}

@@ -19,14 +19,14 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
-import io.github.autotweaker.core.domain.tool.Tool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -50,9 +50,11 @@ class Tools(private val service: SettingService) {
 	
 	val entries: List<Entry> get() = _entries
 	
-	fun add(tool: Tool) {
-		val meta = tool.resolveMeta(service)
-		logger.debug("Tool added  tool={}  functionCount={}", meta.name, meta.functions.size)
+	fun add(tool: Tool, container: SimpleContainer) {
+		if (tool is CoreTool) {
+			tool.init(service, container)
+		}
+		logger.debug("Tool added  tool={}  functionCount={}", tool.meta.name, tool.meta.functions.size)
 		_entries.add(Entry(tool))
 	}
 	
@@ -112,14 +114,13 @@ class Tools(private val service: SettingService) {
 	suspend fun executeTool(
 		result: ToolCallValidator.ValidationResult.Success,
 		call: AgentContext.CurrentRound.PendingToolCall,
-		provider: SimpleContainer,
-		workspace: WorkspaceMeta,
 		agentId: UUID = UUID.randomUUID(),
 		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolDeactivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
 	): AgentContext.Message.Tool {
-		val entry = _entries.first { it.tool.resolveMeta(service).name == result.toolName }
+		val entry = _entries.first { it.tool.meta.name == result.toolName }
+		val tool = entry.tool
 		
 		logger.debug(
 			"Tool execution started  tool={}  function={}  reason={}  active={}",
@@ -144,7 +145,7 @@ class Tools(private val service: SettingService) {
 				for (deact in toDeactivate) {
 					logger.debug(
 						"Tool deactivated  tool={}  consecutiveUnused={}  threshold={}",
-						deact.tool.resolveMeta(service).name,
+						deact.tool.meta.name,
 						deact.consecutiveUnused,
 						threshold
 					)
@@ -159,7 +160,6 @@ class Tools(private val service: SettingService) {
 			logger.debug("Tool activated  tool={}  function={}", result.toolName, result.functionName)
 			entry.active = true
 			onToolActivated?.invoke(_entries.filter { it.active }.map { it.tool })
-			val meta = entry.tool.resolveMeta(service)
 			return AgentContext.Message.Tool(
 				name = call.name,
 				call = AgentContext.Message.Tool.Call(
@@ -172,7 +172,7 @@ class Tools(private val service: SettingService) {
 				callId = call.callId,
 				result = AgentContext.Message.Tool.Result(
 					content = service.get(AgentToolSettings.ActiveMessage()).value.format(
-						meta.name, meta.functions.size
+						tool.meta.name, tool.meta.functions.size
 					),
 					timestamp = Clock.System.now(),
 					status = ToolResultStatus.SUCCESS,
@@ -185,9 +185,7 @@ class Tools(private val service: SettingService) {
 		val toolInput = Tool.ToolInput(
 			functionName = result.functionName,
 			arguments = result.arguments,
-			provider = provider,
 			service = service,
-			workspace = workspace,
 			outputChannel = outputChannel,
 		)
 		
@@ -198,7 +196,7 @@ class Tools(private val service: SettingService) {
 				}
 			}
 			val result = try {
-				entry.tool.execute(toolInput)
+				tool.execute(toolInput)
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
@@ -248,10 +246,9 @@ class Tools(private val service: SettingService) {
 		
 		val enableDesc = service.get(AgentToolSettings.EnableDescription()).value
 		val inactive = _entries.filter { !it.active }.map { it.tool }.takeIf { it.isNotEmpty() }?.map { tool ->
-			val meta = tool.resolveMeta(service)
 			ChatRequest.Tool(
-				name = meta.name,
-				description = meta.description,
+				name = tool.meta.name,
+				description = tool.meta.description,
 				parameters = buildJsonObject {
 					put("type", "object")
 					put("properties", buildJsonObject {

@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
-import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.tool.service.BashServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.FileSystemServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
@@ -31,11 +30,10 @@ import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import kotlin.time.Clock
 
 internal object ToolProvider {
-	private var shellExecutor: ShellExecutor? = null
-	private var rawFileSystem: RawFileSystem? = null
+	private lateinit var shellExecutor: ShellExecutor
+	private lateinit var rawFileSystem: RawFileSystem
 	
 	fun init(shellExecutor: ShellExecutor, rawFileSystem: RawFileSystem) {
 		this.shellExecutor = shellExecutor
@@ -44,35 +42,10 @@ internal object ToolProvider {
 	
 	internal fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
 		val container = SimpleContainer()
-		val workspace = env.workspace
-		val config = env.containerConfig
-		val root = workspace.path.normalize()
-		container.register(
-			FileSystemService::class,
-			FileSystemServiceImpl(
-				fs = rawFileSystem!!,
-				root = root,
-				inContainer = workspace.inContainer,
-				containerMount = config.workDir.normalize(),
-				hostMount = config.workspaceHostPath.normalize(),
-			),
-		)
-		container.register(
-			SummarizeService::class,
-			SummarizeServiceImpl(
-				env.summarizeModel, env.currentFallbackModels,
-				onUsage = { snapshot ->
-					env.emitOutput(
-						AgentOutput.UsageConsumed(Clock.System.now(), snapshot.usage, snapshot.model)
-					)
-				},
-			),
-		)
-		container.register(
-			BashService::class,
-			BashServiceImpl(shellExecutor!!, root, workspace.inContainer),
-		)
-		container.register(ToolCallHistory::class, ToolCallHistoryImpl(env.context.value))
+		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, env))
+		container.register(SummarizeService::class, SummarizeServiceImpl(env))
+		container.register(BashService::class, BashServiceImpl(shellExecutor, env))
+		container.register(ToolCallHistory::class, ToolCallHistoryImpl(env))
 		return container
 	}
 }

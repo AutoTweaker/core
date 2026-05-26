@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.UsageSnapshot
@@ -32,8 +33,9 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
-import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
+import io.github.autotweaker.core.loadPlugins
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
@@ -53,7 +55,7 @@ class Session(
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	private val _tools: List<Tool> = ServiceLoader.load(Tool::class.java).toList()
+	private val _tools: List<Tool> = ServiceLoader.load(CoreTool::class.java).toList() + loadPlugins<Tool>()
 	
 	private val _data = MutableStateFlow(
 		SessionData(

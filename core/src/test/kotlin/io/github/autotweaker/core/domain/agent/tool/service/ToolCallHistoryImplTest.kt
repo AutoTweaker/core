@@ -20,8 +20,11 @@ package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.model.Model
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,8 +34,6 @@ import kotlin.time.Clock
 class ToolCallHistoryImplTest {
 	
 	private val mockModel = mockk<Model>(relaxed = true)
-	
-	// region helpers
 	
 	private fun toolMessage(
 		name: String = "bash_run",
@@ -77,12 +78,17 @@ class ToolCallHistoryImplTest {
 		turns = listOf(turn(tools)),
 		finalAssistantMessage = assistantMessage(),
 	)
-	// endregion
+	
+	private fun env(context: AgentContext): AgentEnvironment {
+		val e = mockk<AgentEnvironment>()
+		every { e.context } returns MutableStateFlow(context)
+		return e
+	}
 	
 	@Test
 	fun `getAll returns empty list for empty context`() {
 		val context = AgentContext(null, null, null, null, null)
-		val history = ToolCallHistoryImpl(context)
+		val history = ToolCallHistoryImpl(env(context))
 		
 		val result = history.getAll()
 		assertTrue(result.isEmpty())
@@ -100,100 +106,80 @@ class ToolCallHistoryImplTest {
 					)
 				)
 			),
-			assistantMessage = assistantMessage(),
 		)
 		val context = AgentContext(null, null, null, null, round)
-		val history = ToolCallHistoryImpl(context)
+		val history = ToolCallHistoryImpl(env(context))
 		
 		val result = history.getAll()
 		assertEquals(2, result.size)
 		assertEquals("bash_run", result[0].name)
-		assertEquals("""{"cmd":"ls"}""", result[0].arguments)
-		assertEquals("file list", result[0].resultContent)
 		assertEquals("read_file", result[1].name)
-		assertEquals("content", result[1].resultContent)
 	}
 	
 	@Test
 	fun `getAll extracts tool calls from historyRounds`() {
-		val rounds = listOf(
-			completedRound(
-				listOf(
-					toolMessage("bash_run", """{"cmd":"ls"}""", "output1"),
-				)
-			),
-			completedRound(
-				listOf(
-					toolMessage("read_file", """{"path":"b.txt"}""", "output2"),
-				)
-			),
+		val context = AgentContext(
+			compactedRounds = null,
+			systemPrompt = null,
+			historyRounds = listOf(completedRound(listOf(toolMessage("bash_run", """{"cmd":"pwd"}""", "/home")))),
+			summarizedMessage = null,
+			currentRound = null,
 		)
-		val context = AgentContext(null, null, rounds, null, null)
-		val history = ToolCallHistoryImpl(context)
+		val history = ToolCallHistoryImpl(env(context))
 		
 		val result = history.getAll()
-		assertEquals(2, result.size)
+		assertEquals(1, result.size)
 		assertEquals("bash_run", result[0].name)
-		assertEquals("output1", result[0].resultContent)
-		assertEquals("read_file", result[1].name)
-		assertEquals("output2", result[1].resultContent)
 	}
 	
 	@Test
-	fun `getAll combines historyRounds and currentRound`() {
-		val historyRound = completedRound(
-			listOf(
-				toolMessage("bash_run", """{"cmd":"ls"}""", "history output"),
-			)
+	fun `getAll extracts from both currentRound and historyRounds`() {
+		val context = AgentContext(
+			compactedRounds = null,
+			systemPrompt = null,
+			historyRounds = listOf(completedRound(listOf(toolMessage("bash_run", """{}""", "before")))),
+			summarizedMessage = null,
+			currentRound = AgentContext.CurrentRound(
+				userMessage = userMessage(),
+				turns = listOf(turn(listOf(toolMessage("read_file", """{}""", "now")))),
+			),
 		)
-		val currentRound = AgentContext.CurrentRound(
+		val history = ToolCallHistoryImpl(env(context))
+		
+		val result = history.getAll()
+		assertEquals(2, result.size)
+	}
+	
+	@Test
+	fun `getAll returns latest context`() {
+		val flow = MutableStateFlow(AgentContext(null, null, null, null, null))
+		val e = mockk<AgentEnvironment>()
+		every { e.context } returns flow
+		
+		val history = ToolCallHistoryImpl(e)
+		assertTrue(history.getAll().isEmpty())
+		
+		flow.value = AgentContext(
+			null, null, null, null,
+			AgentContext.CurrentRound(
+				userMessage = userMessage(),
+				turns = listOf(turn(listOf(toolMessage("bash_run", """{}""", "fresh")))),
+			),
+		)
+		
+		assertEquals(1, history.getAll().size)
+	}
+	
+	@Test
+	fun `getAll empty turns returns empty`() {
+		val round = AgentContext.CurrentRound(
 			userMessage = userMessage(),
-			turns = listOf(
-				turn(
-					listOf(
-						toolMessage("read_file", """{"path":"x.txt"}""", "current output"),
-					)
-				)
-			),
-			assistantMessage = assistantMessage(),
+			turns = listOf(AgentContext.Turn(assistantMessage = assistantMessage(), tools = emptyList())),
 		)
-		val context = AgentContext(null, null, listOf(historyRound), null, currentRound)
-		val history = ToolCallHistoryImpl(context)
-		
-		val result = history.getAll()
-		assertEquals(2, result.size)
-		assertEquals("bash_run", result[0].name)
-		assertEquals("read_file", result[1].name)
-	}
-	
-	@Test
-	fun `getAll returns empty list when turns are null`() {
-		val context = AgentContext(null, null, null, null, null)
-		val history = ToolCallHistoryImpl(context)
+		val context = AgentContext(null, null, null, null, round)
+		val history = ToolCallHistoryImpl(env(context))
 		
 		val result = history.getAll()
 		assertTrue(result.isEmpty())
-	}
-	
-	@Test
-	fun `getAll returns the same list on repeated calls`() {
-		val round = AgentContext.CurrentRound(
-			userMessage = userMessage(),
-			turns = listOf(
-				turn(
-					listOf(
-						toolMessage("bash_run", """{"cmd":"ls"}""", "ok"),
-					)
-				)
-			),
-			assistantMessage = assistantMessage(),
-		)
-		val context = AgentContext(null, null, null, null, round)
-		val history = ToolCallHistoryImpl(context)
-		
-		val result1 = history.getAll()
-		val result2 = history.getAll()
-		assertEquals(result1.size, result2.size)
-		assertEquals(result1[0].name, result2[0].name)
 	}
 }

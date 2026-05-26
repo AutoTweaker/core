@@ -16,15 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool
+package io.github.autotweaker.api.tool
 
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonObject
 
 interface Tool {
-	fun resolveMeta(service: SettingService): Meta
+	val meta: Meta
 	
 	data class Meta(
 		val name: String,
@@ -56,9 +55,7 @@ interface Tool {
 	data class ToolInput(
 		val functionName: String,
 		val arguments: JsonObject,
-		val provider: SimpleContainer,
 		val service: SettingService,
-		val workspace: WorkspaceMeta,
 		val outputChannel: Channel<RuntimeOutput>? = null,
 	)
 	

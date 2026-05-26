@@ -20,12 +20,15 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.domain.port.RawFileSystem
+import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.every
 import io.mockk.mockk
@@ -34,14 +37,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.io.path.createTempDirectory
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertSame
+import kotlin.test.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 class AgentTest {
+	
+	@BeforeTest
+	fun initToolProvider() {
+		ToolProvider.init(mockk<ShellExecutor>(relaxed = true), mockk<RawFileSystem>(relaxed = true))
+	}
 	
 	private val mockModel: Model = mockk(relaxed = true)
 	private val mockSummarizeModel: Model = mockk(relaxed = true)

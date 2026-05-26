@@ -20,8 +20,10 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
-import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.core.domain.tool.CoreTool
+import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
@@ -31,35 +33,41 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.seconds
 
-@AutoService(Tool::class)
-class Bash : Tool {
+@AutoService(CoreTool::class)
+class Bash : CoreTool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val envStorage = EnvStorage(this::class)
+	private lateinit var container: SimpleContainer
+	private lateinit var settings: SettingService
+	private lateinit var _meta: Tool.Meta
+	override val meta: Tool.Meta get() = _meta
 	
-	override fun resolveMeta(service: SettingService): Tool.Meta {
+	override fun init(service: SettingService, container: SimpleContainer) {
+		this.settings = service
+		this.container = container
 		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
-		return Tool.Meta(
+		_meta = Tool.Meta(
 			name = "bash",
-			description = service.get(BashSettings.Description()).value,
+			description = settings.get(BashSettings.Description()).value,
 			functions = listOf(
 				Tool.Function(
 					name = "run",
-					description = service.get(BashSettings.RunFuncDescription()).value,
+					description = settings.get(BashSettings.RunFuncDescription()).value,
 					parameters = mapOf(
 						"command" to Tool.Function.Property(
-							description = service.get(BashSettings.CommandPropDescription()).value,
+							description = settings.get(BashSettings.CommandPropDescription()).value,
 							required = true,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
 						"timeout_seconds" to Tool.Function.Property(
-							description = service.get(BashSettings.TimeoutPropDescription()).value.format(
-								service.get(BashSettings.DefaultTimeoutSeconds()).value
+							description = settings.get(BashSettings.TimeoutPropDescription()).value.format(
+								settings.get(BashSettings.DefaultTimeoutSeconds()).value
 							),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
 						),
 						"env_ids" to Tool.Function.Property(
-							description = service.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
+							description = settings.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.ArrayValue(
 								Tool.Function.Property.ValueType.StringValue()
@@ -72,17 +80,16 @@ class Bash : Tool {
 	}
 	
 	override suspend fun execute(input: Tool.ToolInput): Tool.ToolOutput {
-		val s = input.service
 		val command = input.arguments["command"]!!.jsonPrimitive.content
 		if (command.isBlank()) {
 			logger.debug("Rejected blank bash command  tool=bash")
-			return Tool.ToolOutput(s.get(BashSettings.InvalidCommandMessage()).value, false)
+			return Tool.ToolOutput(settings.get(BashSettings.InvalidCommandMessage()).value, false)
 		}
-		val defaultTimeout = s.get(BashSettings.DefaultTimeoutSeconds()).value
+		val defaultTimeout = settings.get(BashSettings.DefaultTimeoutSeconds()).value
 		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: defaultTimeout
 		if (timeoutSeconds <= 0) {
 			logger.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
-			return Tool.ToolOutput(s.get(BashSettings.InvalidTimeoutMessage()).value, false)
+			return Tool.ToolOutput(settings.get(BashSettings.InvalidTimeoutMessage()).value, false)
 		}
 		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
 		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
@@ -95,7 +102,7 @@ class Bash : Tool {
 		val stderr = StringBuilder()
 		var result: ShellEvent.Exit? = null
 		
-		input.provider.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
+		container.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
 			when (event) {
 				is ShellEvent.Stdout -> {
 					input.outputChannel?.send(Tool.RuntimeOutput(event.text))
@@ -124,7 +131,7 @@ class Bash : Tool {
 		)
 		
 		val output =
-			s.get(BashSettings.ResultTemplate()).value.format(r.result.exitCode, duration, stdoutStr, stderrStr)
+			settings.get(BashSettings.ResultTemplate()).value.format(r.result.exitCode, duration, stdoutStr, stderrStr)
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	

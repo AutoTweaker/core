@@ -18,14 +18,16 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 
-class ToolCallHistoryImpl(
-	context: AgentContext,
+internal class ToolCallHistoryImpl(
+	private val env: AgentEnvironment,
 ) : ToolCallHistory {
-	private val entries: List<ToolCallHistory.Entry> = buildList {
-		for (round in context.historyRounds.orEmpty()) {
+	
+	override fun getAll(): List<ToolCallHistory.Entry> = buildList {
+		val ctx = env.context.value
+		for (round in ctx.historyRounds.orEmpty()) {
 			for (turn in round.turns.orEmpty()) {
 				for (tool in turn.tools) {
 					add(
@@ -38,7 +40,7 @@ class ToolCallHistoryImpl(
 				}
 			}
 		}
-		for (turn in context.currentRound?.turns.orEmpty()) {
+		for (turn in ctx.currentRound?.turns.orEmpty()) {
 			for (tool in turn.tools) {
 				add(
 					ToolCallHistory.Entry(
@@ -50,6 +52,4 @@ class ToolCallHistoryImpl(
 			}
 		}
 	}
-	
-	override fun getAll(): List<ToolCallHistory.Entry> = entries
 }

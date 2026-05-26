@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.core.domain.tool.Tool
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
@@ -33,7 +33,7 @@ object ToolAssembler {
 		logger.debug("Tool assembly started  toolCount={}  source=ToolAssembler", tools.size)
 		
 		val reasonDescription: String = service.get(AgentToolSettings.ReasonDescription()).value
-		val metas = tools.map { it.resolveMeta(service) }
+		val metas = tools.map { it.meta }
 		
 		return metas.flatMap { meta ->
 			meta.functions.map { func ->

@@ -18,13 +18,11 @@
 
 package io.github.autotweaker.core.domain.tool
 
-import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.tool.Tool
 import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import java.nio.file.Path
 import kotlin.test.*
 
 class ToolDataClassTest {
@@ -258,9 +256,7 @@ class ToolDataClassTest {
 		val input = Tool.ToolInput(
 			functionName = "run",
 			arguments = buildJsonObject { put("cmd", JsonPrimitive("echo hello")) },
-			provider = SimpleContainer(),
 			service = mockk(),
-			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		)
 		assertEquals("run", input.functionName)
 		assertNull(input.outputChannel)
@@ -272,9 +268,7 @@ class ToolDataClassTest {
 		val input = Tool.ToolInput(
 			functionName = "run",
 			arguments = buildJsonObject { },
-			provider = SimpleContainer(),
 			service = mockk(),
-			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 			outputChannel = channel,
 		)
 		assertSame(channel, input.outputChannel)
@@ -285,9 +279,7 @@ class ToolDataClassTest {
 		val input = Tool.ToolInput(
 			functionName = "run",
 			arguments = buildJsonObject { },
-			provider = SimpleContainer(),
 			service = mockk(),
-			workspace = WorkspaceMeta("test", false, Path.of("/tmp/test")),
 		)
 		val copied = input.copy(functionName = "execute")
 		assertEquals("execute", copied.functionName)
@@ -301,8 +293,7 @@ class ToolDataClassTest {
 	fun `DependencyProvider inline extension with SimpleContainer`() {
 		val container = SimpleContainer()
 		val svc = object : Tool {
-			override fun resolveMeta(service: SettingService): Tool.Meta =
-				Tool.Meta("test", "desc", emptyList())
+			override val meta: Tool.Meta = Tool.Meta("test", "desc", emptyList())
 			
 			override suspend fun execute(input: Tool.ToolInput): Tool.ToolOutput =
 				Tool.ToolOutput("ok", true)

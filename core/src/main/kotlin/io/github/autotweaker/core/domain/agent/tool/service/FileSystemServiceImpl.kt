@@ -19,17 +19,20 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.types.Unicode
+import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import java.nio.file.Path
 
-class FileSystemServiceImpl(
+internal class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
-	private val root: Path,
-	private val inContainer: Boolean = false,
-	private val containerMount: Path = root,
-	private val hostMount: Path = root,
+	private val env: AgentEnvironment,
 ) : FileSystemService {
+	private val root: Path get() = env.workspace.path.normalize()
+	private val inContainer: Boolean get() = env.workspace.inContainer
+	private val containerMount: Path get() = env.containerConfig.workDir.normalize()
+	private val hostMount: Path get() = env.containerConfig.workspaceHostPath.normalize()
+	
 	override fun normalize(filePath: String): Path {
 		val path = Path.of(filePath)
 		return if (path.isAbsolute) path.normalize() else root.resolve(path).normalize()

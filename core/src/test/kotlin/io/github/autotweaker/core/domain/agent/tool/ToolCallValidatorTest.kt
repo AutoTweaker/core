@@ -20,8 +20,8 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.domain.tool.Tool
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.test.*
@@ -45,7 +45,7 @@ class ToolCallValidatorTest {
 	): Tool {
 		val tool = mockk<Tool>()
 		val meta = Tool.Meta(name, "description", functions)
-		every { tool.resolveMeta(any()) } returns meta
+		every { tool.meta } returns meta
 		return tool
 	}
 	

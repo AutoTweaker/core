@@ -25,7 +25,6 @@ import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
-import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
@@ -52,12 +51,12 @@ internal object ExecuteToolPhase {
 		return try {
 			withTimeout((timeoutSeconds * 1000L).milliseconds) {
 				env.tools.executeTool(
-					result, call, ToolProvider.buildToolProvider(env), env.workspace, env.agentId,
+					result, call, env.agentId,
 					onToolActivated = { activeTools ->
-						env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
+						env.emitOutput(AgentOutput.ToolListUpdate(activeTools.map { it.meta.name }))
 					},
 					onToolDeactivated = { activeTools ->
-						env.emitOutput(AgentOutput.ToolListUpdate(activeTools))
+						env.emitOutput(AgentOutput.ToolListUpdate(activeTools.map { it.meta.name }))
 					},
 					onToolOutput = { output ->
 						env.emitOutput(output)

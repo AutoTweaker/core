@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.core.domain.tool.Tool
+import io.github.autotweaker.api.tool.Tool
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
@@ -67,10 +67,10 @@ class ToolCallValidator(
 		val toolName = parts[0]
 		val functionName = parts[1]
 		
-		val tool = tools.find { it.resolveMeta(service).name == toolName } ?: return ValidationResult.Failure(
+		val tool = tools.find { it.meta.name == toolName } ?: return ValidationResult.Failure(
 			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 		).also { logger.debug("Failed to find tool  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
-		val meta = tool.resolveMeta(service)
+		val meta = tool.meta
 		
 		val function = meta.functions.find { it.name == functionName } ?: return ValidationResult.Failure(
 			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
