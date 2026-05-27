@@ -135,7 +135,7 @@ class CoreAPIImpl(
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {
-		override fun isUnlocked() = SecretManager.isUnlocked
+		override val isUnlocked = SecretManager.isUnlocked
 		override fun isPasswordEmpty() = SecretManager.isPasswordEmpty
 		override fun unlock(password: String) = SecretManager.unlock(password)
 		override fun changePassword(oldPassword: String, newPassword: String) =

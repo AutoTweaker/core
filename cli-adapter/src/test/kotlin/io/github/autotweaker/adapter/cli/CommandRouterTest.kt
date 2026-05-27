@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingValue
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -48,7 +49,7 @@ class CommandRouterTest {
 		every { settingService.get<SettingValue.ValInt>(any()) } returns SettingValue.ValInt(100_000)
 		val secret = mockk<CoreAPI.SecretAPI>()
 		every { core.secret } returns secret
-		every { secret.isUnlocked() } returns true
+		every { secret.isUnlocked } returns MutableStateFlow(true)
 		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
 	}
 	

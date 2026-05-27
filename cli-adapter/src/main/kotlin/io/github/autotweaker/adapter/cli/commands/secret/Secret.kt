@@ -175,7 +175,7 @@ class Secret : Command {
 			return@flow
 		}
 		
-		if (core.secret.isUnlocked()) {
+		if (core.secret.isUnlocked.value) {
 			logger.debug("Unlock skipped  command=secret  reason=already_unlocked")
 			emit(CmdOutput.Data(i18n.get(SecretI18n.UnlockAlready())))
 			emit(CmdOutput.Done())
@@ -200,7 +200,7 @@ class Secret : Command {
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		emit(CmdOutput.Data(""))
 		try {
-			if (!core.secret.isUnlocked()) {
+			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(password)
 			}
 			core.secret.changePassword(password, "")
@@ -234,7 +234,7 @@ class Secret : Command {
 		}
 		
 		try {
-			if (!core.secret.isUnlocked()) {
+			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(oldPassword)
 			}
 			core.secret.changePassword(oldPassword, newPassword)

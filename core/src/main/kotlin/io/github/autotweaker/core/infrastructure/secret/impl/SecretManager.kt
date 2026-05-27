@@ -23,6 +23,8 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.secret.SecretStore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -47,8 +49,9 @@ object SecretManager : SecretStore {
 	
 	@Volatile
 	private var password: String? = null
-	
-	val isUnlocked: Boolean get() = password != null
+
+	private val _isUnlocked = MutableStateFlow(false)
+	val isUnlocked = _isUnlocked.asStateFlow()
 	val isPasswordEmpty: Boolean get() = password == ""
 	
 	fun killGpgAgent() {
@@ -102,12 +105,14 @@ object SecretManager : SecretStore {
 		}
 		if (!hasSecretKey()) {
 			this.password = password
+			_isUnlocked.value = true
 			generateKey()
 			createMarker()
 			logger.info("Secret key generated  keyUid={}", keyUid)
 		} else {
 			verifyPassword(password)
 			this.password = password
+			_isUnlocked.value = true
 		}
 		logger.info("SecretManager unlocked  keyExists={}", hasSecretKey())
 	}

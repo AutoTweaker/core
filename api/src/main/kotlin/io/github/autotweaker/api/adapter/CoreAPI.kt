@@ -116,9 +116,9 @@ interface CoreAPI {
 	}
 	
 	interface SecretAPI {
-		fun isUnlocked(): Boolean
+		val isUnlocked: StateFlow<Boolean>
 		fun isPasswordEmpty(): Boolean
-		
+
 		fun unlock(password: String)
 		fun changePassword(oldPassword: String, newPassword: String)
 	}

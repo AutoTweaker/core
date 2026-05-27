@@ -97,7 +97,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		}
 		
 		val isSecretUnlock = cmd == "secret" && (parsed.has("unlock") || parsed.has("passwd"))
-		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked()) {
+		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked.value) {
 			logger.debug("Rejected command, keystore locked  command={}", cmd)
 			return flowOf(
 				CmdOutput.Data(
