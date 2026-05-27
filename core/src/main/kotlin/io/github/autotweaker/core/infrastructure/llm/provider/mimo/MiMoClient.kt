@@ -35,43 +35,6 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 	responseTypeInfo = typeInfo<MiMoResponse>(),
 	chunkSerializer = serializer<MiMoStreamChunk>(),
 ) {
-	private val mimoProPrice = ModelData.TokenPrice(
-		inputPrice = listOf(
-			ModelData.TokenPrice.PriceTier(
-				fromTokens = 0,
-				toTokens = 256_000,
-				price = Price(
-					amount = BigDecimal("7"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
-				),
-				cachedPrice = Price(
-					amount = BigDecimal("1.4"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
-				),
-			), ModelData.TokenPrice.PriceTier(
-				fromTokens = 256_000,
-				price = Price(
-					amount = BigDecimal("14"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
-				),
-				cachedPrice = Price(
-					amount = BigDecimal("2.8"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
-				),
-			)
-		),
-		outputPrice = listOf(
-			ModelData.TokenPrice.PriceTier(
-				fromTokens = 0,
-				toTokens = 256_000,
-				price = Price(
-					amount = BigDecimal("21"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
-				),
-			), ModelData.TokenPrice.PriceTier(
-				fromTokens = 256_000,
-				price = Price(
-					amount = BigDecimal("42"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
-				),
-			)
-		),
-	)
-	
 	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
 		name = "mimo",
 		baseUrl = Url("https://api.xiaomimimo.com/v1"),
@@ -80,7 +43,52 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				modelId = "mimo-v2-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
-				price = mimoProPrice,
+				price = ModelData.TokenPrice(
+					inputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							toTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("7"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("1.4"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						), ModelData.TokenPrice.PriceTier(
+							fromTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("14"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("2.8"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						)
+					),
+					outputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							toTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("21"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						), ModelData.TokenPrice.PriceTier(
+							fromTokens = 256_000,
+							price = Price(
+								amount = BigDecimal("42"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						)
+					),
+				),
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
@@ -90,7 +98,29 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				modelId = "mimo-v2.5-pro",
 				contextWindow = 100_0000,
 				maxOutputTokens = 128_000,
-				price = mimoProPrice,
+				price = ModelData.TokenPrice(
+					inputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal("3"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+							),
+							cachedPrice = Price(
+								amount = BigDecimal("0.025"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 100_0000
+							),
+						),
+					),
+					outputPrice = listOf(
+						ModelData.TokenPrice.PriceTier(
+							fromTokens = 0,
+							price = Price(
+								amount = BigDecimal("6"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+							),
+						),
+					),
+				),
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
@@ -140,48 +170,23 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					inputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
-							toTokens = 256_000,
 							price = Price(
-								amount = BigDecimal("2.8"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
+								amount = BigDecimal("1"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 							),
 							cachedPrice = Price(
-								amount = BigDecimal("0.56"),
+								amount = BigDecimal("0.02"),
 								currency = Currency.getInstance(Locale.CHINA),
 								unit = 100_0000
 							),
-						), ModelData.TokenPrice.PriceTier(
-							fromTokens = 256_000,
-							price = Price(
-								amount = BigDecimal("5.6"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
-							),
-							cachedPrice = Price(
-								amount = BigDecimal("1.12"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
-							),
-						)
+						),
 					),
 					outputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0,
-							toTokens = 256_000,
 							price = Price(
-								amount = BigDecimal("14"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
+								amount = BigDecimal("2"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
 							),
-						), ModelData.TokenPrice.PriceTier(
-							fromTokens = 256_000,
-							price = Price(
-								amount = BigDecimal("28"),
-								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
-							),
-						)
+						),
 					),
 				),
 				supportsStreaming = true,
