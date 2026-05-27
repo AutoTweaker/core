@@ -70,7 +70,6 @@ class ReadTest {
 	): Tool.ToolInput = Tool.ToolInput(
 		functionName = functionName,
 		arguments = arguments,
-		service = settings,
 		outputChannel = null,
 	)
 	

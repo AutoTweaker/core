@@ -37,38 +37,41 @@ import java.nio.file.Path
 class Read : CoreTool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var _meta: Tool.Meta
+	private lateinit var settings: SettingService
 	override val meta: Tool.Meta get() = _meta
 	
 	override fun init(service: SettingService) {
+		settings = service
+		
 		val commonProperties: Map<String, Tool.Function.Property> = mapOf(
 			"file_path" to Tool.Function.Property(
-				description = service.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+				description = settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
 				required = true,
 				valueType = Tool.Function.Property.ValueType.StringValue(),
 			),
 			"start_line" to Tool.Function.Property(
-				description = service.get(ReadSettings.StartLinePropDescriptionSetting()).value,
+				description = settings.get(ReadSettings.StartLinePropDescriptionSetting()).value,
 				required = true,
 				valueType = Tool.Function.Property.ValueType.IntegerValue(),
 			),
 			"end_line" to Tool.Function.Property(
-				description = service.get(ReadSettings.EndLinePropDescriptionSetting()).value,
+				description = settings.get(ReadSettings.EndLinePropDescriptionSetting()).value,
 				required = true,
 				valueType = Tool.Function.Property.ValueType.IntegerValue(),
 			),
 		)
 		
 		_meta = Tool.Meta(
-			name = "read", description = service.get(ReadSettings.DescriptionSetting()).value, functions = listOf(
+			name = "read", description = settings.get(ReadSettings.DescriptionSetting()).value, functions = listOf(
 				Tool.Function(
 					name = "file",
-					description = service.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
-						service.get(ReadSettings.FileMaxCharsSetting()).value,
-						service.get(ReadSettings.FileMaxLinesSetting()).value
+					description = settings.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
+						settings.get(ReadSettings.FileMaxCharsSetting()).value,
+						settings.get(ReadSettings.FileMaxLinesSetting()).value
 					),
 					parameters = commonProperties + mapOf(
 						"line_number" to Tool.Function.Property(
-							description = service.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
+							description = settings.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
 							required = false,
 							valueType = Tool.Function.Property.ValueType.BooleanValue,
 						),
@@ -76,14 +79,14 @@ class Read : CoreTool {
 				),
 				Tool.Function(
 					name = "summarize",
-					description = service.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
-						service.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
-						service.get(ReadSettings.SummarizeMinCharsSetting()).value,
-						service.get(ReadSettings.SummarizeMaxLinesSetting()).value
+					description = settings.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
+						settings.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
+						settings.get(ReadSettings.SummarizeMinCharsSetting()).value,
+						settings.get(ReadSettings.SummarizeMaxLinesSetting()).value
 					),
 					parameters = commonProperties + mapOf(
 						"prompt" to Tool.Function.Property(
-							description = service.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
+							description = settings.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
 							required = false,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
@@ -91,16 +94,16 @@ class Read : CoreTool {
 				),
 				Tool.Function(
 					name = "unicode",
-					description = service.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
+					description = settings.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
 					parameters = mapOf(
 						"file_path" to Tool.Function.Property(
-							description = service.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+							description = settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
 							required = true,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
 						"max_chars" to Tool.Function.Property(
-							description = service.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting()).value.format(
-								service.get(ReadSettings.UnicodeMaxCharsSetting()).value
+							description = settings.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting()).value.format(
+								settings.get(ReadSettings.UnicodeMaxCharsSetting()).value
 							),
 							required = true,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
@@ -112,7 +115,7 @@ class Read : CoreTool {
 	}
 	
 	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput): Tool.ToolOutput {
-		val s = input.service
+		val s = settings
 		val args = input.arguments
 		val functionName = input.functionName
 		val filePath = args["file_path"]!!.jsonPrimitive.content

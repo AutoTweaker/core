@@ -189,7 +189,6 @@ class Tools(private val service: SettingService) {
 		val toolInput = Tool.ToolInput(
 			functionName = result.functionName,
 			arguments = result.arguments,
-			service = service,
 			outputChannel = outputChannel,
 		)
 		

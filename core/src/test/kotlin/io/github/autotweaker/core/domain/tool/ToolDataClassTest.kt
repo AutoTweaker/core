@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
-import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -256,7 +255,6 @@ class ToolDataClassTest {
 		val input = Tool.ToolInput(
 			functionName = "run",
 			arguments = buildJsonObject { put("cmd", JsonPrimitive("echo hello")) },
-			service = mockk(),
 		)
 		assertEquals("run", input.functionName)
 		assertNull(input.outputChannel)
@@ -268,7 +266,6 @@ class ToolDataClassTest {
 		val input = Tool.ToolInput(
 			functionName = "run",
 			arguments = buildJsonObject { },
-			service = mockk(),
 			outputChannel = channel,
 		)
 		assertSame(channel, input.outputChannel)
@@ -279,7 +276,6 @@ class ToolDataClassTest {
 		val input = Tool.ToolInput(
 			functionName = "run",
 			arguments = buildJsonObject { },
-			service = mockk(),
 		)
 		val copied = input.copy(functionName = "execute")
 		assertEquals("execute", copied.functionName)

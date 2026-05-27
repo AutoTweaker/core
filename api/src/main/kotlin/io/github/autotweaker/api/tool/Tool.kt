@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.api.tool
 
-import io.github.autotweaker.api.config.SettingService
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.JsonObject
 
@@ -55,7 +54,6 @@ interface Tool {
 	data class ToolInput(
 		val functionName: String,
 		val arguments: JsonObject,
-		val service: SettingService,
 		val outputChannel: Channel<RuntimeOutput>? = null,
 	)
 	

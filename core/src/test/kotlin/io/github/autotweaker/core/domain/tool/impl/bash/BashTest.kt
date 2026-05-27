@@ -75,11 +75,9 @@ class BashTest {
 	
 	private fun ToolInput(
 		arguments: JsonObject,
-		settings: SettingService = defaultSettings,
 	): Tool.ToolInput = Tool.ToolInput(
 		functionName = "run",
 		arguments = arguments,
-		service = settings,
 		outputChannel = null,
 	)
 	

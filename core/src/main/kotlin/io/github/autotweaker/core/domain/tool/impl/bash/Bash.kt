@@ -38,32 +38,36 @@ class Bash : CoreTool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val envStorage = EnvStorage(this::class)
 	private lateinit var _meta: Tool.Meta
+	private lateinit var settings: SettingService
 	override val meta: Tool.Meta get() = _meta
 	
 	override fun init(service: SettingService) {
+		settings = service
+		
 		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
+		
 		_meta = Tool.Meta(
 			name = "bash",
-			description = service.get(BashSettings.Description()).value,
+			description = settings.get(BashSettings.Description()).value,
 			functions = listOf(
 				Tool.Function(
 					name = "run",
-					description = service.get(BashSettings.RunFuncDescription()).value,
+					description = settings.get(BashSettings.RunFuncDescription()).value,
 					parameters = mapOf(
 						"command" to Tool.Function.Property(
-							description = service.get(BashSettings.CommandPropDescription()).value,
+							description = settings.get(BashSettings.CommandPropDescription()).value,
 							required = true,
 							valueType = Tool.Function.Property.ValueType.StringValue(),
 						),
 						"timeout_seconds" to Tool.Function.Property(
-							description = service.get(BashSettings.TimeoutPropDescription()).value.format(
-								service.get(BashSettings.DefaultTimeoutSeconds()).value
+							description = settings.get(BashSettings.TimeoutPropDescription()).value.format(
+								settings.get(BashSettings.DefaultTimeoutSeconds()).value
 							),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.IntegerValue(),
 						),
 						"env_ids" to Tool.Function.Property(
-							description = service.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
+							description = settings.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
 							required = false,
 							valueType = Tool.Function.Property.ValueType.ArrayValue(
 								Tool.Function.Property.ValueType.StringValue()
@@ -76,7 +80,7 @@ class Bash : CoreTool {
 	}
 	
 	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput): Tool.ToolOutput {
-		val s = input.service
+		val s = settings
 		val command = input.arguments["command"]!!.jsonPrimitive.content
 		if (command.isBlank()) {
 			logger.debug("Rejected blank bash command  tool=bash")
