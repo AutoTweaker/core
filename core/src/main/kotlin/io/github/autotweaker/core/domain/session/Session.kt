@@ -159,6 +159,7 @@ class Session(
 	}
 	
 	fun updateConfig(config: SessionConfig) {
+		logger.info("Session config updated  sessionId={}", _data.value.id)
 		_data.update { _data.value.copy(config = config) }
 		dispatch(
 			AgentCommand.Directive.UpdateModel(
@@ -204,10 +205,12 @@ class Session(
 	
 	suspend fun stop() {
 		val agent = agent ?: return
+		logger.info("Session stop initiated  sessionId={}", _data.value.id)
 		dispatch(AgentCommand.Directive.Stop)
 		agent.statusFlow.first { it == AgentStatus.FREE }
 		save()
 		scope.cancel()
+		logger.info("Session stopped  sessionId={}", _data.value.id)
 	}
 	
 	private suspend fun syncContext(ctx: AgentContext) {

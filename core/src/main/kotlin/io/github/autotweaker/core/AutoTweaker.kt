@@ -78,6 +78,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 			Files.createFile(lockFile)
 		}
 		lockFile.writeText(ProcessHandle.current().pid().toString())
+		logger.debug("Lock acquired  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
 	override fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }

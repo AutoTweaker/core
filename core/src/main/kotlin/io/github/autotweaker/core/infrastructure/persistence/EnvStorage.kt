@@ -24,10 +24,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.reflect.KClass
 
 class EnvStorage(kClass: KClass<*>) {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	
 	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
@@ -48,13 +50,15 @@ class EnvStorage(kClass: KClass<*>) {
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
+		logger.debug("Env set  id={}", id)
 	}
-	
+
 	fun removeEnv(id: String) {
 		val current = getEnvUuidMap()
 		current[id]?.let { SecretManager.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
+		logger.debug("Env removed  id={}", id)
 	}
 	
 	private fun getEnvUuidMap(): Map<String, UUID> {

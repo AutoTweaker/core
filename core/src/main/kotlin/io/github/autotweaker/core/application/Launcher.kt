@@ -88,14 +88,34 @@ object Launcher {
 		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI)
 	
 	fun shutdown(registry: Map<String, Pair<Adapter, AdapterInfo>>) {
-		registry.values.forEach { (adapter, _) ->
-			runCatching { adapter.stop() }
+		registry.values.forEach { (adapter, info) ->
+			runCatching {
+				adapter.stop()
+				logger.info("Stopped adapter  name={}", info.name)
+			}.onFailure { logger.warn("Failed to stop adapter  name={}", info.name) }
 		}
-		runBlocking { runCatching { SessionManager.shutdown() } }
-		runBlocking { runCatching { ContainerManager.stop() } }
-		runCatching { TranslationManager.shutdown() }
-		runCatching { AbstractOpenAiClient.close() }
-		runCatching { SecretManager.killGpgAgent() }
-		runCatching { H2DatabaseStore.shutdown() }
+		runBlocking {
+			runCatching {
+				SessionManager.shutdown()
+			}.onFailure { logger.warn("Failed to shutdown SessionManager") }
+		}
+		runBlocking {
+			runCatching {
+				ContainerManager.stop()
+			}.onFailure { logger.warn("Failed to stop ContainerManager") }
+		}
+		runCatching {
+			TranslationManager.shutdown()
+		}.onFailure { logger.warn("Failed to shutdown TranslationManager") }
+		runCatching {
+			AbstractOpenAiClient.close()
+		}.onFailure { logger.warn("Failed to close LLM clients") }
+		runCatching {
+			SecretManager.killGpgAgent()
+		}.onFailure { logger.warn("Failed to kill GPG agent") }
+		runCatching {
+			H2DatabaseStore.shutdown()
+		}.onFailure { logger.warn("Failed to shutdown H2DatabaseStore") }
+		logger.info("Launcher shutdown completed")
 	}
 }
