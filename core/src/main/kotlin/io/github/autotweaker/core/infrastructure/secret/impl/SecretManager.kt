@@ -172,7 +172,7 @@ object SecretManager : SecretStore {
 	
 	//加密
 	private fun encryptTo(input: String, output: Path) = gpg(
-		"--batch", "--yes", "--trust-model", "always", "-r", keyUid, "-a", "-e", "-o", output.toString(), input = input
+		"--batch", "--yes", "--trust-model", "direct", "-r", keyUid, "-a", "-e", "-o", output.toString(), input = input
 	)
 	
 	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {
@@ -216,7 +216,9 @@ object SecretManager : SecretStore {
 		val file = secretsDir.resolve("$id.gpg")
 		require(Files.exists(file)) { "Secret not found: $id" }
 		logger.debug("Secret retrieved  id={}", id)
-		return gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", file.toString(), passphrase = password!!)
+		return gpg(
+			"--batch", "--yes", "--pinentry-mode", "loopback", "-d", file.toString(), passphrase = password!!
+		)
 	}
 	
 	override fun list(): List<UUID> {
