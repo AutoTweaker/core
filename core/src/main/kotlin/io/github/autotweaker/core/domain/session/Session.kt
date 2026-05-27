@@ -35,7 +35,7 @@ import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.loadPlugins
+import io.github.autotweaker.core.PluginLoader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
@@ -62,7 +62,7 @@ class Session(
 		val coreNames = cores.map { it.meta.name }
 		val duplicates = coreNames.groupingBy { it }.eachCount().filter { it.value > 1 }
 		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
-		val plugins = loadPlugins<Tool>().distinctBy { it.meta.name }
+		val plugins = PluginLoader.load<Tool>().distinctBy { it.meta.name }
 		cores + plugins.filter { it.meta.name !in coreNames }
 	}
 	

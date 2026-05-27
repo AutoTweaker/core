@@ -21,20 +21,27 @@ package io.github.autotweaker.core.infrastructure.config
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
+import org.slf4j.LoggerFactory
 import java.util.*
 
 object ModelConfigAPI : ModelConfigRepository {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val store = ModelStore
-	
+
 	override fun add(model: CoreConfig.ProviderConfig.Model) {
 		store.add(model.data)
+		logger.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
 	}
-	
+
 	override fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
-	
-	override fun remove(id: UUID) = store.delete(id)
-	
+
+	override fun remove(id: UUID) {
+		store.delete(id)
+		logger.info("Removed model  id={}", id)
+	}
+
 	override fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
 		store.override(model.data.copy(id = id))
+		logger.info("Updated model  id={}  modelId={}", id, model.data.modelInfo.modelId)
 	}
 }

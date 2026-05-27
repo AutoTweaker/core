@@ -38,7 +38,7 @@ import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
-import io.github.autotweaker.core.loadPlugins
+import io.github.autotweaker.core.PluginLoader
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
@@ -60,7 +60,7 @@ object Launcher {
 		TranslationManager.init(ModelRepositoryImpl, Settings, I18nServiceImpl)
 		TranslationManager.startTranslation()
 		
-		val all = (builtInAdapters + loadPlugins<Adapter>()).map { it to it.load(version) }
+		val all = (builtInAdapters + PluginLoader.load<Adapter>()).map { it to it.load(version) }
 		val adapters =
 			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		

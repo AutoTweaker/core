@@ -104,7 +104,7 @@ object SecretManager : SecretStore {
 			this.password = password
 			generateKey()
 			createMarker()
-			logger.info("Secret key generated")
+			logger.info("Secret key generated  keyUid={}", keyUid)
 		} else {
 			verifyPassword(password)
 			this.password = password

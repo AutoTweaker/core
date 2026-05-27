@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persistence.config
 
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.core.loadPlugins
+import io.github.autotweaker.core.PluginLoader
 import java.util.*
 
 object ConfigRegistry {
@@ -29,7 +29,7 @@ object ConfigRegistry {
 			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
 			map[id] = def
 		}
-		for (def in loadPlugins<SettingDef<*>>()) {
+		for (def in PluginLoader.load<SettingDef<*>>()) {
 			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
 			map[id] = def
 		}

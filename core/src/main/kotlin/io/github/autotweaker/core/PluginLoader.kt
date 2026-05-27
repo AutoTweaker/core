@@ -18,28 +18,36 @@
 
 package io.github.autotweaker.core
 
+import org.slf4j.LoggerFactory
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
-@PublishedApi
-internal val pluginClassLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
+object PluginLoader {
+	@PublishedApi
+	internal val logger = LoggerFactory.getLogger(this::class.java)
 
-inline fun <reified T : Any> loadPlugins(): List<T> {
-	val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
-	if (!Files.isDirectory(dir)) return emptyList()
-	
-	val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
-	if (jars.isEmpty()) return emptyList()
-	
-	val urls = jars.map { it.toUri().toURL() }.toTypedArray()
-	val classLoader = URLClassLoader(urls, T::class.java.classLoader)
-	pluginClassLoaders.add(classLoader)
-	return ServiceLoader.load(T::class.java, classLoader).toList()
-}
+	@PublishedApi
+	internal val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
 
-fun closePluginClassLoaders() {
-	pluginClassLoaders.forEach { runCatching { it.close() } }
-	pluginClassLoaders.clear()
+	inline fun <reified T : Any> load(): List<T> {
+		val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
+		if (!Files.isDirectory(dir)) return emptyList()
+
+		val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
+		if (jars.isEmpty()) return emptyList()
+
+		val urls = jars.map { it.toUri().toURL() }.toTypedArray()
+		val classLoader = URLClassLoader(urls, T::class.java.classLoader)
+		classLoaders.add(classLoader)
+		val plugins = ServiceLoader.load(T::class.java, classLoader).toList()
+		logger.info("Loaded plugins  type={}  jarCount={}  pluginCount={}", T::class.simpleName, jars.size, plugins.size)
+		return plugins
+	}
+
+	fun closeClassLoaders() {
+		classLoaders.forEach { runCatching { it.close() } }
+		classLoaders.clear()
+	}
 }

@@ -25,15 +25,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class LocalShellExecutor {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> =
 		channelFlow {
 			val startNs = System.nanoTime()
+			logger.debug("Shell command started  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds)
 			val process = withContext(Dispatchers.IO) {
 				ProcessBuilder("bash", "-lc", command).directory(workDir.toFile()).redirectErrorStream(false)
 					.apply { environment().putAll(env) }.start()
@@ -65,16 +69,19 @@ class LocalShellExecutor {
 			if (!finished) {
 				process.destroyForcibly()
 				withContext(Dispatchers.IO) { process.waitFor(2, TimeUnit.SECONDS) }
+				logger.warn("Shell command timed out  command={}  timeout={}s", command, timeout.inWholeSeconds)
 			}
-			
+
 			stdoutJob.join()
 			stderrJob.join()
-			
+
 			val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
+			val exitCode = if (finished) process.exitValue() else -1
+			logger.debug("Shell command completed  command={}  exitCode={}  duration={}s", command, exitCode, duration.inWholeSeconds)
 			send(
 				ShellEvent.Exit(
 					ShellResult(
-						exitCode = if (finished) process.exitValue() else -1,
+						exitCode = exitCode,
 						timeout = !finished,
 						duration = duration,
 					)

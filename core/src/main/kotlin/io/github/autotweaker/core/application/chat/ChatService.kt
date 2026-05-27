@@ -30,14 +30,16 @@ import io.github.autotweaker.core.domain.session.UsageStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
 
 object ChatService {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var modelRepo: ModelRepository
 	private lateinit var resilientChat: ResilientChat
 	private lateinit var sessionRepository: SessionRepository
-	
+
 	fun init(modelRepo: ModelRepository, resilientChat: ResilientChat, sessionRepository: SessionRepository) {
 		this.modelRepo = modelRepo
 		this.resilientChat = resilientChat
@@ -49,6 +51,7 @@ object ChatService {
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it) ?: error("Unknown fallback model: $it")
 		}
+		logger.debug("Chat request  model={}  fallbackCount={}  stream={}", request.model, fallbacks?.size ?: 0, request.stream)
 		val modelMap = buildMap {
 			put(model.id, model)
 			fallbacks?.forEach { put(it.id, it) }

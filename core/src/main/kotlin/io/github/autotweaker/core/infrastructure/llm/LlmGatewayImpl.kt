@@ -23,12 +23,18 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.flow.Flow
+import org.slf4j.LoggerFactory
 
 object LlmGatewayImpl : LlmGateway {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+
 	override suspend fun send(
 		request: ChatRequest,
 		apiKey: String,
 		baseUrl: Url,
 		providerType: String,
-	): Flow<ChatResult> = LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl)
+	): Flow<ChatResult> {
+		logger.debug("Sending LLM request  providerType={}  model={}  stream={}", providerType, request.model, request.stream)
+		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl)
+	}
 }

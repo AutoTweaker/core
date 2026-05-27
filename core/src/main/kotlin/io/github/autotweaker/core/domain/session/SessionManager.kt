@@ -72,6 +72,7 @@ object SessionManager {
 			restore(session)
 			sessions[session]
 		}
+		logger.debug("Sending message  sessionId={}  charCount={}", session, content.length)
 		session?.send(content, images)
 	}
 	
@@ -94,10 +95,12 @@ object SessionManager {
 	fun get(id: UUID): SessionHandle? = sessions[id]?.let { getHandle(it) }
 	
 	suspend fun shutdown() {
+		logger.info("Shutting down SessionManager  activeSessions={}", sessions.size)
 		sessions.keys.toList().forEach { id ->
 			runCatching { stop(id) }
 		}
 		scope.cancel()
+		logger.info("SessionManager shutdown completed")
 	}
 	
 	suspend fun delete(sessionId: UUID) {
@@ -106,6 +109,7 @@ object SessionManager {
 		sessions.remove(sessionId)
 		store.deleteSessions(listOf(sessionId))
 		dataJobs[sessionId]?.cancel()
+		logger.info("Deleted session  sessionId={}", sessionId)
 	}
 	
 	fun updateTitle(sessionId: UUID, title: String) {
@@ -170,6 +174,7 @@ object SessionManager {
 		)
 		sessions[session.data.value.id] = session
 		startMonitor(session)
+		logger.info("Restored session  sessionId={}  workspaceId={}", session.data.value.id, workspaceId)
 		return getHandle(session)
 	}
 	

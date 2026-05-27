@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.adapter.i18n
 
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.core.loadPlugins
+import io.github.autotweaker.core.PluginLoader
 import java.util.*
 
 object I18nRegistry {
@@ -30,7 +30,7 @@ object I18nRegistry {
 				?: throw IllegalStateException("Anonymous I18nDef not allowed: $def")
 			map[key] = def
 		}
-		for (def in loadPlugins<I18nDef>()) {
+		for (def in PluginLoader.load<I18nDef>()) {
 			val key = def::class.qualifiedName
 				?: throw IllegalStateException("Anonymous I18nDef not allowed: $def")
 			map[key] = def

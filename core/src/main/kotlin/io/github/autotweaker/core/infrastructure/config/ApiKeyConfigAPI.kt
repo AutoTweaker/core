@@ -27,26 +27,30 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 object ApiKeyConfigAPI : ApiKeyRepository {
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val secret = SecretManager
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
-	
+
 	override fun add(key: CoreConfig.ProviderConfig.ApiKey) {
 		if (keyMap[key.name] != null) error("Key ${key.name} already exists")
 		keyMap[key.name] = secret.add(key.key)
 		saveMap()
+		logger.info("Added API key  name={}", key.name)
 	}
-	
+
 	override fun list(): List<String> = keyMap.keys.toList()
 	override fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
 	override fun delete(name: String) {
 		val id = keyMap.remove(name) ?: error("Key $name not found")
 		secret.remove(id)
 		saveMap()
+		logger.info("Deleted API key  name={}", name)
 	}
 	
 	internal fun getId(name: String): UUID = keyMap[name] ?: error("Key $name not found")
