@@ -80,11 +80,6 @@ class ToolProviderTest {
 	}
 	
 	@Test
-	fun `buildToolProvider returns a SimpleContainer instance`() {
-		assert(true)
-	}
-	
-	@Test
 	fun `get throws for unregistered service`() {
 		val container = ToolProvider.buildToolProvider(env)
 		assertFailsWith<NoSuchElementException> {

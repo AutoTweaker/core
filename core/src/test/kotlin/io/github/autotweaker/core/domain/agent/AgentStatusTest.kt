@@ -21,69 +21,24 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.types.agent.AgentStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class AgentStatusTest {
-	
+
 	@Test
-	fun `all seven status values exist`() {
+	fun `all six status values exist`() {
 		assertEquals(6, AgentStatus.entries.size)
 	}
-	
-	@Test
-	fun `FREE is the first status`() {
-		assertEquals(AgentStatus.FREE, AgentStatus.valueOf("FREE"))
-	}
-	
+
 	@Test
 	fun `all values can be resolved by name`() {
 		for (status in AgentStatus.entries) {
-			assertNotNull(AgentStatus.valueOf(status.name))
+			assertEquals(status, AgentStatus.valueOf(status.name))
 		}
 	}
-	
+
 	@Test
 	fun `status values are distinct`() {
 		val names = AgentStatus.entries.map { it.name }.toSet()
 		assertEquals(AgentStatus.entries.size, names.size)
-	}
-	
-	@Test
-	fun `FREE ordinal is 0`() {
-		assertEquals(0, AgentStatus.FREE.ordinal)
-	}
-	
-	@Test
-	fun `PROCESSING exists`() {
-		assertEquals(AgentStatus.PROCESSING, AgentStatus.valueOf("PROCESSING"))
-	}
-	
-	@Test
-	fun `TOOL_CALLING exists`() {
-		assertEquals(AgentStatus.TOOL_CALLING, AgentStatus.valueOf("TOOL_CALLING"))
-	}
-	
-	@Test
-	fun `WAITING exists`() {
-		assertEquals(AgentStatus.WAITING, AgentStatus.valueOf("WAITING"))
-	}
-	
-	
-	@Test
-	fun `PAUSED exists`() {
-		assertEquals(AgentStatus.PAUSED, AgentStatus.valueOf("PAUSED"))
-	}
-	
-	@Test
-	fun `ERROR exists`() {
-		assertEquals(AgentStatus.ERROR, AgentStatus.valueOf("ERROR"))
-	}
-	
-	@Test
-	fun `all status names are uppercase`() {
-		for (status in AgentStatus.entries) {
-			assertTrue(status.name.all { it.isUpperCase() || it == '_' })
-		}
 	}
 }

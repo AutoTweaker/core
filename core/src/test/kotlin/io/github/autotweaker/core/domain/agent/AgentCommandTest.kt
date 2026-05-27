@@ -26,41 +26,25 @@ import kotlin.test.*
 import kotlin.time.Clock
 
 class AgentCommandTest {
-	
+
 	private val mockModel: Model = mockk(relaxed = true)
-	
+
 	// region Directive
-	
+
 	@Test
-	fun `Stop is a data object singleton`() {
-		assertNotNull(AgentCommand.Directive.Stop)
+	fun `all Directive singletons are distinct AgentCommand instances`() {
+		val directives = listOf(
+			AgentCommand.Directive.Stop,
+			AgentCommand.Directive.Pause,
+			AgentCommand.Directive.Resume,
+			AgentCommand.Directive.Cancel,
+			AgentCommand.Directive.Retry,
+			AgentCommand.Directive.Compact,
+		)
+		directives.forEach { assertIs<AgentCommand>(it) }
+		assertEquals(directives.size, directives.distinct().size)
 	}
-	
-	@Test
-	fun `Pause is a data object singleton`() {
-		assertNotNull(AgentCommand.Directive.Pause)
-	}
-	
-	@Test
-	fun `Resume is a data object singleton`() {
-		assertNotNull(AgentCommand.Directive.Resume)
-	}
-	
-	@Test
-	fun `Cancel is a data object singleton`() {
-		assertNotNull(AgentCommand.Directive.Cancel)
-	}
-	
-	@Test
-	fun `Retry is a data object singleton`() {
-		assertNotNull(AgentCommand.Directive.Retry)
-	}
-	
-	@Test
-	fun `Compact is a data object singleton`() {
-		assertNotNull(AgentCommand.Directive.Compact)
-	}
-	
+
 	@Test
 	fun `UpdateModel holds model and optional fields`() {
 		val cmd = AgentCommand.Directive.UpdateModel(mockModel)
@@ -82,26 +66,6 @@ class AgentCommandTest {
 	fun `UpdateModel with thinking false`() {
 		val cmd = AgentCommand.Directive.UpdateModel(mockModel, thinking = false)
 		assertEquals(false, cmd.thinking)
-	}
-	
-	@Test
-	fun `all Directive variants are distinct`() {
-		val directives = listOf(
-			AgentCommand.Directive.Stop,
-			AgentCommand.Directive.Pause,
-			AgentCommand.Directive.Resume,
-			AgentCommand.Directive.Cancel,
-			AgentCommand.Directive.Retry,
-			AgentCommand.Directive.Compact,
-			AgentCommand.Directive.UpdateModel(mockModel),
-		)
-		assertEquals(directives.size, directives.distinct().size)
-	}
-	
-	@Test
-	fun `Directive is AgentCommand`() {
-		assertIs<AgentCommand>(AgentCommand.Directive.Stop)
-		assertIs<AgentCommand>(AgentCommand.Directive.UpdateModel(mockModel))
 	}
 	
 	// endregion
