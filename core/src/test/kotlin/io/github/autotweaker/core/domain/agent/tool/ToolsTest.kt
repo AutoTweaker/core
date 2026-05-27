@@ -459,15 +459,15 @@ class ToolsTest {
 			validationSuccess("a"), pendingToolCall("c3", "a_run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
-		assertEquals(0, tools.entries[0].consecutiveUnused)
-		assertEquals(1, tools.entries[1].consecutiveUnused)
+		assertEquals(0, tools.entries[0].consecutiveUnused.get())
+		assertEquals(1, tools.entries[1].consecutiveUnused.get())
 		
 		tools.executeTool(
 			validationSuccess("b"), pendingToolCall("c4", "b_run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
-		assertEquals(1, tools.entries[0].consecutiveUnused)
-		assertEquals(0, tools.entries[1].consecutiveUnused)
+		assertEquals(1, tools.entries[0].consecutiveUnused.get())
+		assertEquals(0, tools.entries[1].consecutiveUnused.get())
 	}
 	// endregion
 	
