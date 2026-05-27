@@ -23,6 +23,7 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -62,13 +63,7 @@ object Settings : SettingService {
 	
 	override fun <V : SettingValue> set(def: SettingDef<V>, value: V) {
 		val id = def::class.qualifiedName!!
-		transaction(db) {
-			ConfigTable.upsert {
-				it[keyName] = id
-				it[description] = def.description
-				fillColumn(it, value)
-			}
-		}
+		upsertValue(id, value, def.description)
 		cache[id] = value
 		logger.debug("Setting updated by def  id={}  value={}", id, value)
 	}
@@ -80,15 +75,23 @@ object Settings : SettingService {
 				"Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}"
 			)
 		}
+		upsertValue(id, value, def.description)
+		cache[id] = value
+		logger.debug("Setting updated by id  id={}  value={}", id, value)
+	}
+	
+	private fun upsertValue(id: String, value: SettingValue, description: String) {
 		transaction(db) {
+			val exists =
+				cache.containsKey(id) || ConfigTable.selectAll().where { ConfigTable.keyName eq id }.empty().not()
 			ConfigTable.upsert {
 				it[keyName] = id
-				it[description] = def.description
+				if (!exists) {
+					it[ConfigTable.description] = description
+				}
 				fillColumn(it, value)
 			}
 		}
-		cache[id] = value
-		logger.debug("Setting updated by id  id={}  value={}", id, value)
 	}
 	
 	override fun setDescription(id: String, description: String) {
