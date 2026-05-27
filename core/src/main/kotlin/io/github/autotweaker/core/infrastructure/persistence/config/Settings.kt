@@ -23,11 +23,13 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.concurrent.ConcurrentHashMap
+import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 object Settings : SettingService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -40,27 +42,8 @@ object Settings : SettingService {
 		transaction(db) {
 			SchemaUtils.create(ConfigTable)
 		}
-		seedDefaults()
 		cache.putAll(loadAllIntoCache())
 		logger.info("Settings initialized  count={}", cache.size)
-	}
-	
-	private fun seedDefaults() {
-		val existingIds = transaction(db) {
-			ConfigTable.selectAll().map { it[ConfigTable.keyName] }.toSet()
-		}
-		for ((id, def) in ConfigRegistry.getAll()) {
-			if (id !in existingIds) {
-				transaction(db) {
-					ConfigTable.upsert {
-						it[keyName] = id
-						it[description] = def.description
-						fillColumn(it, def.default)
-					}
-				}
-				logger.debug("Setting seeded  id={}", id)
-			}
-		}
 	}
 	
 	private fun loadAllIntoCache(): Map<String, SettingValue> = transaction(db) {
@@ -109,22 +92,30 @@ object Settings : SettingService {
 	}
 	
 	override fun setDescription(id: String, description: String) {
-		require(ConfigRegistry.get(id) != null) { "Unknown setting: $id" }
+		val def = ConfigRegistry.get(id) ?: throw IllegalArgumentException("Unknown setting: $id")
 		transaction(db) {
-			ConfigTable.update({ ConfigTable.keyName eq id }) {
+			ConfigTable.upsert {
+				it[keyName] = id
 				it[ConfigTable.description] = description
+				fillColumn(it, def.default)
 			}
+		}
+		if (!cache.containsKey(id)) {
+			cache[id] = def.default
 		}
 		logger.debug("Setting description updated  id={}", id)
 	}
 	
 	override fun getAll(): List<SettingEntry> = transaction(db) {
-		ConfigTable.selectAll().map { row ->
+		val stored = ConfigTable.selectAll().associate {
+			it[ConfigTable.keyName] to (getValueFromRow(it) to it[ConfigTable.description])
+		}
+		ConfigRegistry.getAll().map { (id, def) ->
+			val (storedValue, storedDesc) = stored[id] ?: (null to null)
 			SettingEntry(
-				id = row[ConfigTable.keyName],
-				value = getValueFromRow(row)
-					?: throw IllegalStateException("Failed to parse value for key '${row[ConfigTable.keyName]}'"),
-				description = row[ConfigTable.description]
+				id = id,
+				value = storedValue ?: def.default,
+				description = storedDesc ?: def.description,
 			)
 		}
 	}
