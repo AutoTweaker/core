@@ -37,8 +37,12 @@ object I18nServiceImpl : I18nService {
 	
 	@Volatile
 	private var cache: List<I18nEntry> = emptyList()
-	@Volatile private var initialized = false
-	@Volatile private var language: Locale = Locale.getDefault()
+	
+	@Volatile
+	private var initialized = false
+	
+	@Volatile
+	private var language: Locale = Locale.getDefault()
 	
 	override fun setLanguage(locale: Locale) {
 		synchronized(this) {
@@ -54,12 +58,8 @@ object I18nServiceImpl : I18nService {
 		synchronized(this) {
 			if (initialized) return
 			load()
-			if (cache.isEmpty()) {
-				cache = seedFromRegistry()
-				save()
-			}
 			initialized = true
-			logger.info("I18nService initialized  entries={}", cache.size)
+			logger.info("I18nService initialized  stored={}", cache.size)
 		}
 	}
 	
@@ -74,9 +74,6 @@ object I18nServiceImpl : I18nService {
 		jsonEntry.set(Json.encodeToJsonElement(Store(cache, language)))
 	}
 	
-	private fun seedFromRegistry(): List<I18nEntry> =
-		I18nRegistry.getAll().map { (key, def) -> I18nEntry(key, def.localizations) }
-	
 	override fun get(def: I18nDef): String {
 		val key = def::class.qualifiedName!!
 		return resolve(key, language)
@@ -87,14 +84,21 @@ object I18nServiceImpl : I18nService {
 	override fun set(id: String, text: String, languageCode: Locale) {
 		ensureInit()
 		synchronized(this) {
-			val index = cache.indexOfFirst { it.key == id }
-			require(index >= 0) { "Unknown i18n key: $id" }
-			val entry = cache[index]
-			cache = cache.toMutableList().apply {
-				this[index] = entry.copy(localizations = entry.localizations.filter {
+			val mutable = cache.toMutableList()
+			val index = mutable.indexOfFirst { it.key == id }
+			if (index >= 0) {
+				val entry = mutable[index]
+				mutable[index] = entry.copy(localizations = entry.localizations.filter {
 					it.languageCode != languageCode
 				} + LocalizedString(languageCode, text))
+			} else {
+				val base = I18nRegistry.get(id)?.localizations ?: emptyList()
+				mutable.add(
+					I18nEntry(
+						id,
+						base.filter { it.languageCode != languageCode } + LocalizedString(languageCode, text)))
 			}
+			cache = mutable
 			save()
 		}
 		logger.debug("I18n text set  key={}  lang={}", id, languageCode.toLanguageTag())
@@ -102,12 +106,16 @@ object I18nServiceImpl : I18nService {
 	
 	override fun getAll(): List<I18nEntry> {
 		ensureInit()
-		return cache
+		val stored = cache.associateBy { it.key }
+		return I18nRegistry.getAll().map { (key, def) ->
+			stored[key] ?: I18nEntry(key, def.localizations)
+		}
 	}
 	
 	private fun resolve(key: String, target: Locale): String {
 		ensureInit()
-		val localizations = cache.find { it.key == key }?.localizations ?: return key
+		val localizations =
+			cache.find { it.key == key }?.localizations ?: I18nRegistry.get(key)?.localizations ?: return key
 		localizations.find { it.languageCode == target }?.let { return it.text }
 		if (target.language.isNotEmpty()) {
 			localizations.find { it.languageCode.language == target.language }?.let { return it.text }
