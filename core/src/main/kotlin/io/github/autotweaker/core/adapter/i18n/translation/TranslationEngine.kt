@@ -78,11 +78,12 @@ internal object TranslationEngine {
 		coroutineScope {
 			jobs.map { job ->
 				async {
-					semaphore.withPermit { translateBatch(job) }
+					semaphore.withPermit {
+						val result = translateBatch(job)
+						persistResults(result, i18nService)
+					}
 				}
-			}.awaitAll().forEach { r ->
-				persistResults(r, i18nService)
-			}
+			}.awaitAll()
 		}
 		
 		logger.info("Translation completed  target={}  keys={}", target.toLanguageTag(), units.size)

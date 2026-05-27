@@ -82,6 +82,7 @@ object ContainerManager {
 	
 	fun listEnv(): List<String> = envStorage.listEnv()
 	
+	@Synchronized
 	fun setEnv(env: Map<String, String>) {
 		logger.debug("Container env set started  count={}", env.size)
 		val existing = envStorage.listEnv().toSet()
@@ -91,6 +92,7 @@ object ContainerManager {
 		logger.debug("Container env set  count={}", env.size)
 	}
 	
+	@Synchronized
 	fun removeEnv(id: String) {
 		envStorage.removeEnv(id)
 		logger.debug("Container env removed  key={}", id)

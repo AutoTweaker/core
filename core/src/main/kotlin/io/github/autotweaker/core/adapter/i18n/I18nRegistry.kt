@@ -39,5 +39,5 @@ object I18nRegistry {
 	}
 	
 	fun get(key: String): I18nDef? = _defs[key]
-	fun getAll(): Map<String, I18nDef> = _defs
+	fun getAll(): Map<String, I18nDef> = _defs.toMap()
 }
