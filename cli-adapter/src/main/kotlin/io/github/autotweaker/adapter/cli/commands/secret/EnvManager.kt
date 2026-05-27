@@ -41,7 +41,7 @@ internal class EnvManager(
 	}
 	
 	fun add(type: EnvType, name: String): Flow<CmdOutput> = flow {
-		val value = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
+		val value = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false).also { emit(CmdOutput.Data("")) }
 		
 		core.config.setEnv(listOf(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig())))
 		emit(CmdOutput.Done())

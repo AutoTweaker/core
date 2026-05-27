@@ -109,7 +109,7 @@ class Secret : Command {
 				return@flow
 			}
 			if (request.has("remove")) {
-				val name = request.get("add") ?: run {
+				val name = request.get("remove") ?: run {
 					emitInvalidArg()
 					return@flow
 				}
@@ -152,7 +152,7 @@ class Secret : Command {
 				return@flow
 			}
 			if (request.has("remove")) {
-				val name = request.get("add") ?: run {
+				val name = request.get("remove") ?: run {
 					emitInvalidArg()
 					return@flow
 				}

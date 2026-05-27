@@ -41,7 +41,7 @@ internal class KeyManager(
 			emit(CmdOutput.Done(1))
 			return@flow
 		}
-		val key = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
+		val key = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false).also { emit(CmdOutput.Data("")) }
 		
 		if (key.isBlank()) {
 			emit(CmdOutput.Data(i18n.get(SecretI18n.EmptyKeyError()), CmdOutput.Channel.STDERR))
