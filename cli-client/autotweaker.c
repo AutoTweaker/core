@@ -499,6 +499,7 @@ static int handle_daemon_cmd(const char *action) {
 
     for (int i = 0; ACTIONS[i]; i++) {
         if (strcmp(action, ACTIONS[i]) == 0) {
+            shell_ignore("systemctl --user daemon-reload 2>/dev/null");
             pid_t pid = fork();
             if (pid == -1) return 1;
             if (pid == 0) {

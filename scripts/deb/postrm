@@ -19,10 +19,6 @@
 
 set -e
 
-if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    systemctl --global daemon-reload 2>/dev/null || true
-fi
-
 if [ "$1" = "purge" ]; then
     rm -rf /etc/autotweaker
 fi

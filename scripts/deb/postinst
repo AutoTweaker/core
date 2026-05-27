@@ -47,5 +47,3 @@ if [ -z "$2" ]; then
 EOF
     [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
 fi
-
-systemctl --global daemon-reload 2>/dev/null || true
