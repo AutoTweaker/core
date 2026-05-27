@@ -181,20 +181,19 @@ class Session(
 		val agent = agent ?: return
 		agent.statusFlow.first { it == AgentStatus.FREE }
 		logger.info("Sent user message  sessionId={}  charCount={}", _data.value.id, content.length)
-		
-		val ctx = _context.value
-		
+
 		val id = UUID.randomUUID()
 		val timestamp = Clock.System.now()
 		val userMsg = SessionMessage.User(id = id, timestamp = timestamp, content = content, images = images)
 		messages[id] = userMsg
-		
+
 		dispatch(AgentCommand.Message.SendMessage(id = id, content = content, images = images, timestamp = timestamp))
-		
+
 		saveMessages(newMessages = listOf(userMsg))
+		val currentCtx = _context.value
 		updateContext(
-			ctx.copy(
-				index = ctx.index.copy(
+			currentCtx.copy(
+				index = currentCtx.index.copy(
 					currentRound = CurrentRound(
 						userMessage = userMsg.id, turns = null, assistantMessage = null, pendingToolCalls = null
 					),

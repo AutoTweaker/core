@@ -25,6 +25,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 
 internal class IdListStore<T : Any>(
@@ -36,39 +37,41 @@ internal class IdListStore<T : Any>(
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	
 	private val listSerializer = ListSerializer(serializer)
-	private var items: List<T>
-	
+	private val itemsRef = AtomicReference<List<T>>(emptyList())
+
 	init {
 		val jsonArray = jsonEntry.get()
-		items = if (jsonArray == null) emptyList()
-		else Json.decodeFromJsonElement(listSerializer, jsonArray)
-		logger.info("Initialized  count={}", items.size)
+		itemsRef.set(
+			if (jsonArray == null) emptyList()
+			else Json.decodeFromJsonElement(listSerializer, jsonArray)
+		)
+		logger.info("Initialized  count={}", itemsRef.get().size)
 	}
-	
+
 	fun add(data: T) {
 		val id = idOf(data)
-		if (items.any { idOf(it) == id }) error("already exists  id=$id")
-		update(items + data)
+		if (itemsRef.get().any { idOf(it) == id }) error("already exists  id=$id")
+		update(itemsRef.get() + data)
 		logger.debug("Added  id={}", id)
 	}
-	
-	fun get(): List<T> = items
-	
-	fun get(id: UUID): T? = items.find { idOf(it) == id }
-	
+
+	fun get(): List<T> = itemsRef.get()
+
+	fun get(id: UUID): T? = itemsRef.get().find { idOf(it) == id }
+
 	fun delete(id: UUID) {
-		update(items.filterNot { idOf(it) == id })
+		update(itemsRef.get().filterNot { idOf(it) == id })
 		logger.debug("Deleted  id={}", id)
 	}
-	
+
 	fun override(data: T) {
 		val id = idOf(data)
-		update(items.map { if (idOf(it) == id) data else it })
+		update(itemsRef.get().map { if (idOf(it) == id) data else it })
 		logger.debug("Overridden  id={}", id)
 	}
-	
+
 	private fun update(new: List<T>) {
-		items = new
+		itemsRef.set(new)
 		jsonEntry.set(Json.encodeToJsonElement(new))
 	}
 }

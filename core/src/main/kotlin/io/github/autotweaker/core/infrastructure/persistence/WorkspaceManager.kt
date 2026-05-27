@@ -28,49 +28,52 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 
 object WorkspaceManager {
 	val DEFAULT_WORKSPACE_ID: UUID = UUID.nameUUIDFromBytes("autotweaker-default-workspace".toByteArray())
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	
-	private var workspaceList: List<WorkspaceData>
-	
+	private val workspaceListRef = AtomicReference<List<WorkspaceData>>(emptyList())
+
 	init {
 		val jsonArray = jsonEntry.get()
-		workspaceList = if (jsonArray == null) emptyList()
-		else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
-		logger.info("WorkspaceManager initialized  count={}", workspaceList.size)
+		workspaceListRef.set(
+			if (jsonArray == null) emptyList()
+			else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
+		)
+		logger.info("WorkspaceManager initialized  count={}", workspaceListRef.get().size)
 	}
 	
 	fun create(meta: WorkspaceMeta): WorkspaceData {
-		if (workspaceList.any { it.meta.name == meta.name }) error("Workspace with name ${meta.name} already exists")
+		if (workspaceListRef.get().any { it.meta.name == meta.name }) error("Workspace with name ${meta.name} already exists")
 		val data = WorkspaceData(meta = meta)
-		update(workspaceList.plus(data))
+		update(workspaceListRef.get().plus(data))
 		logger.debug("Workspace created  id={}  name={}", data.id, meta.name)
 		return data
 	}
-	
-	fun getData(id: UUID): WorkspaceData? = workspaceList.find { it.id == id }
-	
-	fun getAll(): List<WorkspaceData> = workspaceList
-	
+
+	fun getData(id: UUID): WorkspaceData? = workspaceListRef.get().find { it.id == id }
+
+	fun getAll(): List<WorkspaceData> = workspaceListRef.get()
+
 	fun updateMeta(id: UUID, meta: WorkspaceMeta) {
-		update(workspaceList.map { if (it.id == id) it.copy(meta = meta) else it })
+		update(workspaceListRef.get().map { if (it.id == id) it.copy(meta = meta) else it })
 		logger.debug("Workspace meta updated  id={}", id)
 	}
-	
+
 	fun updateData(id: UUID, git: Boolean?, sessionIds: List<UUID>?) {
-		update(workspaceList.map { if (it.id == id) it.copy(git = git, sessionIds = sessionIds) else it })
+		update(workspaceListRef.get().map { if (it.id == id) it.copy(git = git, sessionIds = sessionIds) else it })
 		logger.debug("Workspace data updated  id={}", id)
 	}
-	
+
 	fun delete(id: UUID) {
 		if (id == DEFAULT_WORKSPACE_ID) error("Cannot delete default workspace")
-		update(workspaceList.filterNot { it.id == id })
+		update(workspaceListRef.get().filterNot { it.id == id })
 		logger.debug("Workspace deleted  id={}", id)
 	}
-	
+
 	fun getOrCreateDefault(): WorkspaceData {
 		return getData(DEFAULT_WORKSPACE_ID) ?: run {
 			val defaultPath = Path.of(
@@ -79,14 +82,14 @@ object WorkspaceManager {
 			Files.createDirectories(defaultPath)
 			val meta = WorkspaceMeta(name = "default", inContainer = false, path = defaultPath)
 			val data = WorkspaceData(id = DEFAULT_WORKSPACE_ID, meta = meta)
-			update(workspaceList.plus(data))
+			update(workspaceListRef.get().plus(data))
 			logger.info("Default workspace created  id={}  path={}", data.id, defaultPath)
 			data
 		}
 	}
-	
+
 	private fun update(new: List<WorkspaceData>) {
-		workspaceList = new
-		jsonEntry.set(Json.encodeToJsonElement(workspaceList))
+		workspaceListRef.set(new)
+		jsonEntry.set(Json.encodeToJsonElement(workspaceListRef.get()))
 	}
 }

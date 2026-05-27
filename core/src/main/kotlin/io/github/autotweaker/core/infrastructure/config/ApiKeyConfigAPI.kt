@@ -28,11 +28,12 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 object ApiKeyConfigAPI : ApiKeyRepository {
 	private val secret = SecretManager
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
-	private val keyMap: MutableMap<String, @Serializable(with = UuidSerializer::class) UUID> = mutableMapOf()
+	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
 	
 	override fun add(key: CoreConfig.ProviderConfig.ApiKey) {
 		if (keyMap[key.name] != null) error("Key ${key.name} already exists")

@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -56,15 +57,19 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			encodeDefaults = true
 			coerceInputValues = true
 		}
-		
+
 		private val sharedHttpClient: HttpClient = HttpClient {
 			install(ContentNegotiation) {
 				json(json)
 			}
 		}
-		
+
+		private val closed = AtomicBoolean(false)
+
 		fun close() {
-			sharedHttpClient.close()
+			if (closed.compareAndSet(false, true)) {
+				sharedHttpClient.close()
+			}
 		}
 		
 		private fun buildToolCalls(

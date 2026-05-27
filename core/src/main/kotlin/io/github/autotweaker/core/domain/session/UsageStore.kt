@@ -42,10 +42,10 @@ object UsageStore {
 		store.set(Json.encodeToJsonElement(data))
 	}
 	
-	fun collect(messages: List<SessionMessage>) {
+	fun collect(messages: List<SessionMessage>) = synchronized(this) {
 		val data = load()
 		var count = 0
-		
+
 		messages.forEach { message ->
 			when (message) {
 				is SessionMessage.Assistant -> message.usageSnapshot?.let { snapshot ->
@@ -55,7 +55,7 @@ object UsageStore {
 						count++
 					}
 				}
-				
+
 				is SessionMessage.Compact -> {
 					message.snapshots?.forEachIndexed { index, snapshot ->
 						val key = "${message.id}_$index"
@@ -65,7 +65,7 @@ object UsageStore {
 						}
 					}
 				}
-				
+
 				is SessionMessage.UsageRecord -> {
 					val key = message.id.toString()
 					if (key !in data) {
@@ -73,11 +73,11 @@ object UsageStore {
 						count++
 					}
 				}
-				
+
 				else -> {}
 			}
 		}
-		
+
 		if (count > 0) {
 			save(data)
 			logger.info("Collected usage entries  new={}  total={}", count, data.size)
