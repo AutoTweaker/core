@@ -62,7 +62,7 @@ object Launcher {
 		
 		val all = (builtInAdapters + loadPlugins<Adapter>()).map { it to it.load(version) }
 		val adapters =
-			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version }.first }
+			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
 		if (adapters.isEmpty()) {
 			throw IllegalStateException("No Adapter implementations found. At least one adapter is required.")
@@ -74,8 +74,7 @@ object Launcher {
 			builtInAdapters.size,
 			adapters.size - builtInAdapters.size
 		)
-		adapters.forEach { adapter ->
-			val info = adapter.load(version)
+		adapters.forEach { (adapter, info) ->
 			registry[info.name] = adapter to info
 			logger.info(
 				"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
