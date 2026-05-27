@@ -40,6 +40,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 
 class Session(
@@ -78,7 +79,7 @@ class Session(
 	private val _context = MutableStateFlow(context)
 	val context: StateFlow<SessionContext> = _context.asStateFlow()
 	
-	private val messages = mutableMapOf<UUID, SessionMessage>()
+	private val messages = ConcurrentHashMap<UUID, SessionMessage>()
 	
 	private val agents = mutableMapOf<UUID, Agent>()
 	val agent: Agent? get() = agents.values.firstOrNull()

@@ -26,14 +26,14 @@ import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2Database
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.concurrent.ConcurrentHashMap
 import org.slf4j.LoggerFactory
 
 object Settings : SettingService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
 	
-	@Volatile
-	private var cache: Map<String, SettingValue> = emptyMap()
+	private val cache = ConcurrentHashMap<String, SettingValue>()
 	
 	fun init() {
 		db = H2DatabaseStore.connect("AppConfig")
@@ -41,7 +41,7 @@ object Settings : SettingService {
 			SchemaUtils.create(ConfigTable)
 		}
 		seedDefaults()
-		cache = loadAllIntoCache()
+		cache.putAll(loadAllIntoCache())
 		logger.info("Settings initialized  count={}", cache.size)
 	}
 	
@@ -86,7 +86,7 @@ object Settings : SettingService {
 				fillColumn(it, value)
 			}
 		}
-		cache = cache + (id to value)
+		cache[id] = value
 		logger.debug("Setting updated by def  id={}  value={}", id, value)
 	}
 	
@@ -104,7 +104,7 @@ object Settings : SettingService {
 				fillColumn(it, value)
 			}
 		}
-		cache = cache + (id to value)
+		cache[id] = value
 		logger.debug("Setting updated by id  id={}  value={}", id, value)
 	}
 	

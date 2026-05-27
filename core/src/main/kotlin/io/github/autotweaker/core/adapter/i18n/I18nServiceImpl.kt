@@ -37,12 +37,14 @@ object I18nServiceImpl : I18nService {
 	
 	@Volatile
 	private var cache: List<I18nEntry> = emptyList()
-	private var initialized = false
-	private var language: Locale = Locale.getDefault()
+	@Volatile private var initialized = false
+	@Volatile private var language: Locale = Locale.getDefault()
 	
 	override fun setLanguage(locale: Locale) {
-		this.language = locale
-		save()
+		synchronized(this) {
+			this.language = locale
+			save()
+		}
 	}
 	
 	override fun getLanguage(): Locale = language

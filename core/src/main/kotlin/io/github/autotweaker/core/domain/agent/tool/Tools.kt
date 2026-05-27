@@ -35,6 +35,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Clock
 
 class Tools(private val service: SettingService) {
@@ -42,8 +43,8 @@ class Tools(private val service: SettingService) {
 	
 	data class Entry(
 		val tool: Tool,
-		var active: Boolean = false,
-		var consecutiveUnused: Int = 0,
+		@Volatile var active: Boolean = false,
+		val consecutiveUnused: AtomicInteger = AtomicInteger(0),
 	)
 	
 	private val _entries = mutableListOf<Entry>()
@@ -133,25 +134,25 @@ class Tools(private val service: SettingService) {
 		
 		val threshold = service.get(AgentToolSettings.DeactivationThreshold()).value
 		if (threshold > 0) {
-			entry.consecutiveUnused = 0
+			entry.consecutiveUnused.set(0)
 			for (other in _entries) {
 				if (other.active && other != entry) {
-					other.consecutiveUnused++
+					other.consecutiveUnused.incrementAndGet()
 				}
 			}
 			val toDeactivate = _entries.filter {
-				it.active && it != entry && it.consecutiveUnused > threshold
+				it.active && it != entry && it.consecutiveUnused.get() > threshold
 			}
 			if (toDeactivate.isNotEmpty()) {
 				for (deact in toDeactivate) {
 					logger.debug(
 						"Tool deactivated  tool={}  consecutiveUnused={}  threshold={}",
 						deact.tool.meta.name,
-						deact.consecutiveUnused,
+						deact.consecutiveUnused.get(),
 						threshold
 					)
 					deact.active = false
-					deact.consecutiveUnused = 0
+					deact.consecutiveUnused.set(0)
 				}
 				onToolDeactivated?.invoke(_entries.filter { it.active }.map { it.tool })
 			}

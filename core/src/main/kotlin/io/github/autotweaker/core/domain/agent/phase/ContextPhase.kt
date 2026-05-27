@@ -117,8 +117,11 @@ internal object ContextPhase {
 			)
 		}
 		//发送批准原因
-		val reasons = env.agentState.approvalReasons.toList()
-		env.agentState.approvalReasons.clear()
+		val reasons = synchronized(env.agentState.approvalReasons) {
+			val list = env.agentState.approvalReasons.toList()
+			env.agentState.approvalReasons.clear()
+			list
+		}
 		if (reasons.isNotEmpty()) {
 			logger.debug(
 				"Tool turn written with approval reasons  agentId={}  toolCount={}  reasonCount={}",

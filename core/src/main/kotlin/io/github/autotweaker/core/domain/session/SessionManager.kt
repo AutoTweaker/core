@@ -35,6 +35,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import org.slf4j.LoggerFactory
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 object SessionManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -53,7 +54,7 @@ object SessionManager {
 	
 	private fun resolveModel(id: UUID): Model = modelRepo.resolve(id) ?: error("Unknown model: $id")
 	
-	private val sessions: MutableMap<UUID, Session> = mutableMapOf()
+	private val sessions = ConcurrentHashMap<UUID, Session>()
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	private val dataJobs: MutableMap<UUID, Job> = mutableMapOf()
