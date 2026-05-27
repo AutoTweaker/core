@@ -31,7 +31,9 @@ import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 object Wiring {
 	fun init() {
 		ResilientChat.init(gateway = LlmGatewayImpl, settings = Settings)
-		ChatService.init(modelRepo = ModelRepositoryImpl, resilientChat = ResilientChat)
+		ChatService.init(
+			modelRepo = ModelRepositoryImpl, resilientChat = ResilientChat, sessionRepository = SessionRepositoryImpl
+		)
 		SessionManager.init(store = SessionRepositoryImpl, modelRepo = ModelRepositoryImpl)
 		ToolProvider.init(shellExecutor = ShellRouter(), rawFileSystem = RawFileSystemImpl())
 	}

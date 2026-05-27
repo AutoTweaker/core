@@ -23,14 +23,10 @@ import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
-import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.adapter.i18n.I18nRegistry
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
-import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.session.UsageStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -62,7 +58,7 @@ internal object TranslationEngine {
 	)
 	
 	internal suspend fun run(
-		svc: SettingService, modelId: UUID, target: Locale, sessionRepository: SessionRepository,
+		svc: SettingService, modelId: UUID, target: Locale,
 		modelRepo: ModelRepository, i18nService: I18nService,
 	) {
 		val model = modelRepo.resolve(modelId) ?: throw IllegalStateException("Model not found: $modelId")
@@ -82,7 +78,7 @@ internal object TranslationEngine {
 		coroutineScope {
 			jobs.map { job ->
 				async {
-					semaphore.withPermit { translateBatch(job, sessionRepository) }
+					semaphore.withPermit { translateBatch(job) }
 				}
 			}.awaitAll().forEach { r ->
 				persistResults(r, i18nService)
@@ -108,7 +104,7 @@ internal object TranslationEngine {
 		}
 	}
 	
-	private suspend fun translateBatch(job: BatchJob, sessionRepository: SessionRepository): BatchResult {
+	private suspend fun translateBatch(job: BatchJob): BatchResult {
 		val contentJson = buildContentJson(job.batch)
 		val userPrompt = job.userPromptTemplate.replace("{{target_language}}", job.target.displayName)
 			.replace("{{content_to_translate}}", contentJson)
@@ -132,14 +128,6 @@ internal object TranslationEngine {
 					emptyMap(), job.batch, job.target
 				)
 		if (finalResult.message is ChatMessage.ErrorMessage) return BatchResult(emptyMap(), job.batch, job.target)
-		
-		finalResult.usage?.let { usage ->
-			val record = SessionMessage.UsageRecord(
-				UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, job.model.modelInfo)
-			)
-			UsageStore.collect(listOf(record))
-			sessionRepository.saveMessages(listOf(record))
-		}
 		
 		val text = (finalResult.message as? ChatMessage.AssistantMessage)?.content ?: return BatchResult(
 			emptyMap(), job.batch, job.target

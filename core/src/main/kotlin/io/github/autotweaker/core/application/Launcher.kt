@@ -35,7 +35,7 @@ import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
+
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import io.github.autotweaker.core.loadPlugins
@@ -57,7 +57,7 @@ object Launcher {
 		
 		Wiring.init()
 		
-		TranslationManager.init(SessionRepositoryImpl, ModelRepositoryImpl, Settings, I18nServiceImpl)
+		TranslationManager.init(ModelRepositoryImpl, Settings, I18nServiceImpl)
 		TranslationManager.startTranslation()
 		
 		val all = (builtInAdapters + loadPlugins<Adapter>()).map { it to it.load(version) }

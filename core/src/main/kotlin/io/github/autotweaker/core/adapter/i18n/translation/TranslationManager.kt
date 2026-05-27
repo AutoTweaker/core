@@ -23,7 +23,6 @@ import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
-import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,18 +39,16 @@ object TranslationManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	
-	private lateinit var sessionRepository: SessionRepository
 	private lateinit var modelRepo: ModelRepository
 	private lateinit var settings: SettingService
 	private lateinit var i18nService: I18nService
 	
 	fun init(
-		sessionRepository: SessionRepository,
 		modelRepo: ModelRepository,
 		settings: SettingService,
 		i18nService: I18nService,
 	) {
-		this.sessionRepository = sessionRepository
+		
 		this.modelRepo = modelRepo
 		this.settings = settings
 		this.i18nService = i18nService
@@ -88,7 +85,7 @@ object TranslationManager {
 		_status.value = TranslationStatus.TRANSLATING
 		CoroutineScope(Dispatchers.Default).launch {
 			try {
-				TranslationEngine.run(settings, modelId, target, sessionRepository, modelRepo, i18nService)
+				TranslationEngine.run(settings, modelId, target, modelRepo, i18nService)
 			} catch (e: Exception) {
 				logger.error("Failed to translate  target={}", target.toLanguageTag(), e)
 			} finally {
