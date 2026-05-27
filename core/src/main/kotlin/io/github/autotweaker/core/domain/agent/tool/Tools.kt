@@ -29,8 +29,8 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.slf4j.LoggerFactory
@@ -191,7 +191,7 @@ class Tools(private val service: SettingService) {
 			outputChannel = outputChannel,
 		)
 		
-		val output = coroutineScope {
+		val output = supervisorScope {
 			val drainJob = launch {
 				for (msg in outputChannel) {
 					onToolOutput?.invoke(AgentOutput.Tool(ToolOutput(call.name, call.callId, msg.content)))

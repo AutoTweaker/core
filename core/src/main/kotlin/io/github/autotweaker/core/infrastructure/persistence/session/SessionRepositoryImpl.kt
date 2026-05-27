@@ -34,6 +34,8 @@ import java.util.*
 object SessionRepositoryImpl : SessionRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
+	
+	@Volatile
 	private var initialized = false
 	
 	@Synchronized

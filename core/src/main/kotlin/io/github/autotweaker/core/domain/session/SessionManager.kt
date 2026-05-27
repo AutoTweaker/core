@@ -57,7 +57,7 @@ object SessionManager {
 	private val sessions = ConcurrentHashMap<UUID, Session>()
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-	private val dataJobs: MutableMap<UUID, Job> = mutableMapOf()
+	private val dataJobs = ConcurrentHashMap<UUID, Job>()
 	
 	private fun startMonitor(session: Session) {
 		val id = session.data.value.id

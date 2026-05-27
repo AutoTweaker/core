@@ -24,7 +24,7 @@ import java.nio.file.Path
 import java.util.*
 
 @PublishedApi
-internal val pluginClassLoaders = mutableListOf<URLClassLoader>()
+internal val pluginClassLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
 
 inline fun <reified T : Any> loadPlugins(): List<T> {
 	val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")

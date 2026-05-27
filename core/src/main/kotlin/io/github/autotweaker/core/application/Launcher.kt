@@ -93,6 +93,7 @@ object Launcher {
 		}
 		runBlocking { runCatching { SessionManager.shutdown() } }
 		runBlocking { runCatching { ContainerManager.stop() } }
+		runCatching { TranslationManager.shutdown() }
 		runCatching { AbstractOpenAiClient.close() }
 		runCatching { SecretManager.killGpgAgent() }
 		runCatching { H2DatabaseStore.shutdown() }
