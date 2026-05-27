@@ -72,6 +72,6 @@ internal class IdListStore<T : Any>(
 
 	private fun update(new: List<T>) {
 		itemsRef.set(new)
-		jsonEntry.set(Json.encodeToJsonElement(new))
+		jsonEntry.set(Json.encodeToJsonElement(listSerializer, new))
 	}
 }
