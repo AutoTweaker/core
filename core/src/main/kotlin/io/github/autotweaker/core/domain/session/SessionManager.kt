@@ -72,7 +72,7 @@ object SessionManager {
 			restore(session)
 			sessions[session]
 		}
-		logger.debug("Sending message  sessionId={}  charCount={}", session, content.length)
+		logger.debug("Sent message  sessionId={}  charCount={}", session, content.length)
 		session?.send(content, images)
 	}
 	
@@ -95,7 +95,7 @@ object SessionManager {
 	fun get(id: UUID): SessionHandle? = sessions[id]?.let { getHandle(it) }
 	
 	suspend fun shutdown() {
-		logger.info("Shutting down SessionManager  activeSessions={}", sessions.size)
+		logger.info("SessionManager shutdown initiated  activeSessions={}", sessions.size)
 		sessions.keys.toList().forEach { id ->
 			runCatching { stop(id) }
 		}

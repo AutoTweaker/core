@@ -33,7 +33,7 @@ import kotlin.io.path.readText
 import kotlin.time.Duration.Companion.milliseconds
 
 object HttpFetcher {
-	private val log = LoggerFactory.getLogger(HttpFetcher::class.java)
+	private val logger = LoggerFactory.getLogger(HttpFetcher::class.java)
 	
 	private val baseUrl: String
 		get() = System.getenv("AUTOTWEAKER_WEBSITE_URL") ?: error("AUTOTWEAKER_WEBSITE_URL not set")
@@ -66,7 +66,7 @@ object HttpFetcher {
 				lastException = e
 				if (attempt < retries - 1) {
 					val backoff = (1L shl (attempt + 1)) * 1000L
-					log.warn(
+					logger.warn(
 						"HttpFetcher retry  attempt={}/{}  path={}  reason={}", attempt + 1, retries, path, e.message
 					)
 					delay(backoff.milliseconds)

@@ -140,7 +140,7 @@ class CliServer(service: SettingService) {
 			}
 			
 			if (!sawDone) {
-				logger.error("Command did not emit Done  command={}", cmdName)
+				logger.warn("Command did not emit Done  command={}", cmdName)
 				runCatching {
 					write(client, json.encodeToString<CliResponse>(CliResponse.Done(1)))
 				}

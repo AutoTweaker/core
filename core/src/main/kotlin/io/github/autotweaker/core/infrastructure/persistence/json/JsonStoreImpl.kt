@@ -62,7 +62,7 @@ object JsonStoreImpl {
 					try {
 						json.parseToJsonElement(row[JsonStoreTable.content])
 					} catch (e: Exception) {
-						logger.warn("Failed to parse JSON  namespace={}  message={}", namespace, e.message)
+						logger.warn("Failed to parse JSON  namespace={}  reason={}", namespace, e.message)
 						null
 					}
 				}

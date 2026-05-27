@@ -144,7 +144,7 @@ internal object TranslationEngine {
 				try {
 					i18nService.set(key, value, r.target)
 				} catch (e: Exception) {
-					logger.warn("Failed to persist translation  key={}  error={}", key, e.message)
+					logger.warn("Failed to persist translation  key={}  reason={}", key, e.message)
 				}
 			} else {
 				logger.warn(

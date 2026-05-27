@@ -34,7 +34,7 @@ object LlmGatewayImpl : LlmGateway {
 		baseUrl: Url,
 		providerType: String,
 	): Flow<ChatResult> {
-		logger.debug("Sending LLM request  providerType={}  model={}  stream={}", providerType, request.model, request.stream)
+		logger.debug("Sent LLM request  providerType={}  model={}  stream={}", providerType, request.model, request.stream)
 		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl)
 	}
 }

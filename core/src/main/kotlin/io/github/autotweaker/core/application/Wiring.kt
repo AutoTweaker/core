@@ -27,8 +27,11 @@ import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
+import org.slf4j.LoggerFactory
 
 object Wiring {
+	private val logger = LoggerFactory.getLogger(Wiring::class.java)
+
 	fun init() {
 		ResilientChat.init(gateway = LlmGatewayImpl, settings = Settings)
 		ChatService.init(
@@ -36,5 +39,6 @@ object Wiring {
 		)
 		SessionManager.init(store = SessionRepositoryImpl, modelRepo = ModelRepositoryImpl)
 		ToolProvider.init(shellExecutor = ShellRouter(), rawFileSystem = RawFileSystemImpl())
+		logger.info("Wiring initialized")
 	}
 }

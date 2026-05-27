@@ -33,7 +33,7 @@ class ShellRouter : ShellExecutor {
 
 	override fun exec(arg: ShellExec): Flow<ShellEvent> {
 		val target = if (arg.container) "container" else "local"
-		logger.debug("Routing shell command  target={}  command={}", target, arg.command)
+		logger.debug("Routed shell command  target={}  command={}", target, arg.command)
 		return if (arg.container)
 			container.exec(arg.command, arg.directory, arg.environment, arg.timeout)
 		else

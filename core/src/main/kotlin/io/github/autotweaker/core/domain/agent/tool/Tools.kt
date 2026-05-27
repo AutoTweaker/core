@@ -125,7 +125,8 @@ class Tools(private val service: SettingService) {
 		val tool = entry.tool
 		
 		logger.debug(
-			"Tool execution started  tool={}  function={}  reason={}  active={}",
+			"Tool execution started  agentId={}  tool={}  function={}  reason={}  active={}",
+			agentId,
 			result.toolName,
 			result.functionName,
 			result.reason,
@@ -146,7 +147,8 @@ class Tools(private val service: SettingService) {
 			if (toDeactivate.isNotEmpty()) {
 				for (deact in toDeactivate) {
 					logger.debug(
-						"Tool deactivated  tool={}  consecutiveUnused={}  threshold={}",
+						"Tool deactivated  agentId={}  tool={}  consecutiveUnused={}  threshold={}",
+						agentId,
 						deact.tool.meta.name,
 						deact.consecutiveUnused.get(),
 						threshold
@@ -220,7 +222,8 @@ class Tools(private val service: SettingService) {
 		}
 		
 		logger.debug(
-			"Tool execution completed  tool={}  function={}  success={}",
+			"Tool execution completed  agentId={}  tool={}  function={}  success={}",
+			agentId,
 			result.toolName,
 			result.functionName,
 			output.success
