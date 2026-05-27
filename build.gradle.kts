@@ -29,7 +29,7 @@ allprojects {
 
 subprojects {
 	group = "io.github.autotweaker"
-	version = "0.1.0-alpha.5"
+	version = "0.1.0-alpha.6"
 }
 
 val coreVersion = project(":core").version
