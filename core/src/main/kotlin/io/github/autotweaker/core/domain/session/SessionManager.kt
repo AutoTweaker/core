@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-object SessionManager {
+internal object SessionManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value

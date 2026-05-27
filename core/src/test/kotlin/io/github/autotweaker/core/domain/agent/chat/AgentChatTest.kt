@@ -32,9 +32,11 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import java.math.BigDecimal
 import java.util.*
 import kotlin.time.Clock
@@ -65,7 +67,7 @@ class AgentChatTest {
 		id = UUID.randomUUID()
 	)
 	
-	@AfterEach
+	@AfterTest
 	fun cleanup() {
 		unmockkObject(ResilientChat)
 	}

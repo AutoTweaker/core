@@ -43,7 +43,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 
-class Session(
+internal class Session(
 	config: SessionConfig,
 	context: SessionContext,
 	private val store: SessionRepository,

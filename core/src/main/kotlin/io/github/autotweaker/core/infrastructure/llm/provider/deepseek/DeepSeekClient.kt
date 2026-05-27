@@ -157,8 +157,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				is ChatMessage.ErrorMessage -> null
 			}
 		}
-		
-		
+
 		return DeepSeekRequest(
 			model = request.model,
 			messages = mappedMessages,

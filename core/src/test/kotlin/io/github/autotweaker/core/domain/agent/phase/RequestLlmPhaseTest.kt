@@ -31,9 +31,9 @@ import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -49,7 +49,7 @@ class RequestLlmPhaseTest {
 	private val _contextFlow = MutableStateFlow(AgentContext(null, null, null, null, null))
 	private val statusLog = mutableListOf<AgentStatus>()
 	
-	@BeforeEach
+	@BeforeTest
 	fun setUp() {
 		mockkObject(AgentStreamProcessor)
 		agentState = MutableAgentState()
@@ -78,7 +78,7 @@ class RequestLlmPhaseTest {
 		every { env.updateStatus(any()) } answers { statusLog.add(firstArg()) }
 	}
 	
-	@AfterEach
+	@AfterTest
 	fun tearDown() {
 		unmockkObject(AgentStreamProcessor)
 	}

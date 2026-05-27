@@ -50,7 +50,6 @@ object TranslationManager {
 		settings: SettingService,
 		i18nService: I18nService,
 	) {
-
 		this.modelRepo = modelRepo
 		this.settings = settings
 		this.i18nService = i18nService

@@ -27,8 +27,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -38,7 +38,7 @@ class CommandRouterTest {
 	private val commands = mutableListOf<Command>()
 	private lateinit var router: CommandRouter
 	
-	@BeforeEach
+	@BeforeTest
 	fun setUp() {
 		commands.clear()
 		val config = mockk<CoreAPI.ConfigAPI>(relaxed = true)

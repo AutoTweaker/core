@@ -33,10 +33,10 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import java.util.*
 import kotlin.test.assertIs
 import kotlin.time.Clock
@@ -54,7 +54,7 @@ class AgentStreamProcessorTest {
 		return AgentChatRequest(mockModel, null, null, null, ctx)
 	}
 	
-	@AfterEach
+	@AfterTest
 	fun cleanup() {
 		unmockkObject(AgentChat)
 	}

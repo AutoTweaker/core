@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.adapter.i18n.translation
 
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

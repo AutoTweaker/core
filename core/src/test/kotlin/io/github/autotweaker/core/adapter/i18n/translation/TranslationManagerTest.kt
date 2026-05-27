@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

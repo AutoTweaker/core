@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.util.*
 
-object WorkspaceAPI {
+internal object WorkspaceAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val wsm = WorkspaceManager
 

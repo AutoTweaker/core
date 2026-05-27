@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.agent.AgentContext
 import java.util.*
 
-object SessionContextConverter {
+internal object SessionContextConverter {
 	fun toAgentContext(
 		context: SessionContext,
 		messages: List<SessionMessage>,

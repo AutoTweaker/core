@@ -68,7 +68,7 @@ class CliServer(service: SettingService) {
 		scope.launch {
 			while (channel.isOpen) {
 				val client = runCatching { channel.accept() }.getOrNull() ?: break
-				logger.debug("Client connected")
+				logger.debug("Client connected  socketPath={}", socketPath())
 				connectionLimit.acquire()
 				activeClients.add(client)
 				scope.launch {
