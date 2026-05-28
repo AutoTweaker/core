@@ -39,7 +39,7 @@ object TranslateSettings {
 	@AutoService(SettingDef::class)
 	class UserPrompt : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString(ResourcesLoader.loadPrompt("translate_user"))
-		override val description = "用于翻译的用户请求目标，需要 {{target_language}} 和 {{content_to_translate}} 变量"
+		override val description = "用于翻译的用户请求模板，需要 {{target_language}} 和 {{content_to_translate}} 变量"
 	}
 	
 	@AutoService(SettingDef::class)
