@@ -120,7 +120,7 @@ internal object SessionManager {
 	
 	suspend fun create(config: SessionConfig): SessionHandle {
 		val ws = wsm.getOrCreateDefault()
-		return create(ws.id, config)
+		return create(ws.meta.id, config)
 	}
 	
 	suspend fun create(workspaceId: UUID, config: SessionConfig): SessionHandle {
@@ -131,7 +131,6 @@ internal object SessionManager {
 			context = SessionContext.emptyContext(systemPrompt),
 			store = store,
 			resolveModel = ::resolveModel,
-			workspaceId = data.id,
 			workspace = data.meta,
 			containerConfig = ContainerConfig(),
 			service = Settings,
@@ -139,10 +138,10 @@ internal object SessionManager {
 		sessions[session.data.value.id] = session
 		startMonitor(session)
 		wsm.updateData(
-			id = data.id, git = data.git, sessionIds = data.sessionIds.orEmpty() + session.data.value.id
+			id = data.meta.id, sessionIds = data.sessionIds.orEmpty() + session.data.value.id
 		)
 		store.saveSessions(listOf(session.data.value))
-		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, data.id)
+		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, data.meta.id)
 		return getHandle(session)
 	}
 	
@@ -167,7 +166,6 @@ internal object SessionManager {
 			context = context,
 			store = store,
 			resolveModel = ::resolveModel,
-			workspaceId = workspaceId,
 			workspace = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId"),
 			service = Settings,
 			containerConfig = ContainerConfig(),

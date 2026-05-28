@@ -19,12 +19,16 @@
 package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.serializer.PathSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
+import java.util.*
 
 @Serializable
 data class WorkspaceMeta(
-	val name: String,
+	val displayName: String,
+	@Serializable(with = UuidSerializer::class)
+	val id: UUID = UUID.randomUUID(),
 	val inContainer: Boolean,
 	@Serializable(with = PathSerializer::class)
 	val path: Path

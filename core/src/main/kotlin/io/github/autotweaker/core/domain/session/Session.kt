@@ -25,6 +25,7 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
+import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -35,7 +36,6 @@ import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.PluginLoader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
@@ -48,7 +48,6 @@ internal class Session(
 	context: SessionContext,
 	private val store: SessionRepository,
 	private val resolveModel: (UUID) -> Model,
-	private val workspaceId: UUID,
 	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
@@ -71,7 +70,7 @@ internal class Session(
 		SessionData(
 			id = UUID.randomUUID(),
 			title = null,
-			workspaceId = workspaceId,
+			workspaceId = workspace.id,
 			config = config,
 		)
 	)
@@ -102,7 +101,7 @@ internal class Session(
 			messages?.let { UsageStore.collect(it) }
 		}
 		createAgent()
-		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.name)
+		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
 		scope.launch {
 			agent?.context?.collectLatest { syncContext(it) }
 		}
@@ -176,21 +175,21 @@ internal class Session(
 	}
 	
 	fun updateWorkspaceName(name: String) {
-		workspace = workspace.copy(name = name)
+		workspace = workspace.copy(displayName = name)
 	}
 	
 	suspend fun send(content: String, images: List<Base64>? = null) {
 		val agent = agent ?: return
 		agent.statusFlow.first { it == AgentStatus.FREE }
 		logger.info("Sent user message  sessionId={}  charCount={}", _data.value.id, content.length)
-
+		
 		val id = UUID.randomUUID()
 		val timestamp = Clock.System.now()
 		val userMsg = SessionMessage.User(id = id, timestamp = timestamp, content = content, images = images)
 		messages[id] = userMsg
-
+		
 		dispatch(AgentCommand.Message.SendMessage(id = id, content = content, images = images, timestamp = timestamp))
-
+		
 		saveMessages(newMessages = listOf(userMsg))
 		val currentCtx = _context.value
 		updateContext(

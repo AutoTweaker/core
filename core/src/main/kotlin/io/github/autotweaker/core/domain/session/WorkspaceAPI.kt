@@ -28,30 +28,27 @@ import java.util.*
 internal object WorkspaceAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val wsm = WorkspaceManager
-
+	
 	fun create(meta: WorkspaceMeta): WorkspaceData {
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
 		val data = wsm.create(meta)
-		if (Files.isDirectory(meta.path.resolve(".git"))) {
-			wsm.updateData(data.id, git = true, null)
-		}
-		logger.info("Created workspace  id={}  name={}  path={}", data.id, meta.name, meta.path)
+		logger.info("Created workspace  id={}  name={}  path={}", data.meta.id, meta.displayName, meta.path)
 		return data
 	}
-
+	
 	suspend fun rename(id: UUID, newName: String) {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
-		wsm.updateMeta(id, meta = data.meta.copy(name = newName))
+		wsm.updateMeta(data.meta.copy(displayName = newName))
 		SessionManager.updateWorkspaceName(id, newName)
 		logger.info("Renamed workspace  id={}  newName={}", id, newName)
 	}
-
+	
 	suspend fun delete(id: UUID) {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		data.sessionIds?.forEach { SessionManager.delete(it) }
 		wsm.delete(id)
 		logger.info("Deleted workspace  id={}  sessionCount={}", id, data.sessionIds?.size ?: 0)
 	}
-
+	
 	fun list() = wsm.getAll()
 }
