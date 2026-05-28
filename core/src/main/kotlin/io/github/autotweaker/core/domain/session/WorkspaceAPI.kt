@@ -30,6 +30,7 @@ internal object WorkspaceAPI {
 	private val wsm = WorkspaceManager
 	
 	fun create(meta: WorkspaceMeta): WorkspaceData {
+		require(!wsm.getAll().any { it.meta.displayName == meta.displayName })
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
 		val data = wsm.create(meta)
 		logger.info("Created workspace  id={}  name={}  path={}", data.meta.id, meta.displayName, meta.path)
@@ -38,6 +39,7 @@ internal object WorkspaceAPI {
 	
 	suspend fun rename(id: UUID, newName: String) {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
+		require(!wsm.getAll().any { it.meta.displayName == newName })
 		wsm.updateMeta(data.meta.copy(displayName = newName))
 		SessionManager.updateWorkspaceName(id, newName)
 		logger.info("Renamed workspace  id={}  newName={}", id, newName)
