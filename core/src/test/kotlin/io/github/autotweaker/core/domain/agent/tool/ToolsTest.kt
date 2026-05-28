@@ -317,24 +317,6 @@ class ToolsTest {
 	}
 	
 	@Test
-	fun `executeTool calls onToolActivated when tool activated`() = runTest {
-		val tools = Tools(defaultSettings, mockk(relaxed = true))
-		val tool = mockTool()
-		coEvery { tool.execute(any()) } returns Tool.ToolOutput("ok", true)
-		tools.add(tool)
-		
-		val activatedTools = mutableListOf<List<Tool>>()
-		tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-			onToolActivated = { activatedTools.add(it) },
-		)
-		
-		assertEquals(1, activatedTools.size)
-		assertTrue(activatedTools[0].contains(tool))
-	}
-	
-	@Test
 	fun `executeTool deactivates unused tool after threshold`() = runTest {
 		val svc = settingsWithThreshold(2)
 		val tools = Tools(svc, mockk(relaxed = true))

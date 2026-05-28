@@ -71,6 +71,19 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 		agentId: UUID = UUID.randomUUID(),
 	): List<ToolCallResolveResult> {
 		val results = calls.map { call ->
+			val inactiveEntry = _entries.find { !it.active && it.tool.meta.name == call.name }
+			if (inactiveEntry != null) {
+				val message = activateTool(inactiveEntry.tool.meta.name)
+				return@map ToolCallResolveResult.Activation(call.callId, inactiveEntry.tool.meta.name, message).also {
+					logger.debug(
+						"Inactive tool activation detected  agentId={}  callId={}  tool={}",
+						agentId,
+						call.callId,
+						call.name
+					)
+				}
+			}
+			
 			when (val validated = _validator.validate(call.name, call.arguments, call.callId)) {
 				is ToolCallValidator.ValidationResult.Failure -> ToolCallResolveResult.ParseFailure(
 					call.callId, validated.errorMessage
@@ -92,11 +105,22 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 			}
 		}
 		logger.debug(
-			"Tool calls resolved  agentId={}  success={}  failed={}",
+			"Tool calls resolved  agentId={}  success={}  failed={}  activation={}",
 			agentId,
 			results.count { it is ToolCallResolveResult.NeedsApproval },
-			results.count { it is ToolCallResolveResult.ParseFailure })
+			results.count { it is ToolCallResolveResult.ParseFailure },
+			results.count { it is ToolCallResolveResult.Activation })
 		return results
+	}
+	
+	private fun activateTool(toolName: String): String {
+		val entry = _entries.first { it.tool.meta.name == toolName }
+		entry.active = true
+		entry.consecutiveUnused.set(0)
+		logger.debug("Tool activated  tool={}  functionCount={}", toolName, entry.tool.meta.functions.size)
+		return service.get(AgentToolSettings.ActiveMessage()).value.format(
+			entry.tool.meta.name, entry.tool.meta.functions.size
+		)
 	}
 	
 	sealed class ToolCallResolveResult {
@@ -111,6 +135,12 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 			override val callId: String,
 			val result: ToolCallValidator.ValidationResult.Success,
 		) : ToolCallResolveResult()
+		
+		data class Activation(
+			override val callId: String,
+			val toolName: String,
+			val message: String,
+		) : ToolCallResolveResult()
 	}
 	
 	suspend fun executeTool(
@@ -118,7 +148,6 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 		call: AgentContext.CurrentRound.PendingToolCall,
 		provider: SimpleContainer,
 		agentId: UUID,
-		onToolActivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolDeactivated: (suspend (List<Tool>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
 	): AgentContext.Message.Tool {
@@ -159,30 +188,6 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 				}
 				onToolDeactivated?.invoke(_entries.filter { it.active }.map { it.tool })
 			}
-		}
-		
-		if (!entry.active) {
-			logger.debug("Tool activated  tool={}  function={}", result.toolName, result.functionName)
-			entry.active = true
-			onToolActivated?.invoke(_entries.filter { it.active }.map { it.tool })
-			return AgentContext.Message.Tool(
-				name = call.name,
-				call = AgentContext.Message.Tool.Call(
-					assistantMessageId = call.assistantMessageId,
-					arguments = call.arguments,
-					reason = call.reason,
-					timestamp = call.timestamp,
-					modelId = call.modelId,
-				),
-				callId = call.callId,
-				result = AgentContext.Message.Tool.Result(
-					content = service.get(AgentToolSettings.ActiveMessage()).value.format(
-						tool.meta.name, tool.meta.functions.size
-					),
-					timestamp = Clock.System.now(),
-					status = ToolResultStatus.SUCCESS,
-				),
-			)
 		}
 		
 		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)

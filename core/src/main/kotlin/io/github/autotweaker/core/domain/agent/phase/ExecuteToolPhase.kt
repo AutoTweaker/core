@@ -53,9 +53,6 @@ internal object ExecuteToolPhase {
 			withTimeout((timeoutSeconds * 1000L).milliseconds) {
 				env.tools.executeTool(
 					result, call, ToolProvider.buildToolProvider(env), env.agentId,
-					onToolActivated = { activeTools ->
-						env.emitOutput(AgentOutput.ToolListUpdate(activeTools.map { it.meta.name }))
-					},
 					onToolDeactivated = { activeTools ->
 						env.emitOutput(AgentOutput.ToolListUpdate(activeTools.map { it.meta.name }))
 					},

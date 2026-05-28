@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
@@ -43,24 +44,30 @@ internal object ValidateToolCallsPhase {
 		val results = env.tools.resolveToolCalls(pendingCalls, env.agentId)
 		val callById = pendingCalls.associateBy { it.callId }
 		
-		//分别提取解析失败和成功的
+		//分别提取解析失败、成功和激活的
 		val failures = results.filterIsInstance<Tools.ToolCallResolveResult.ParseFailure>()
 		val needsApproval = results.filterIsInstance<Tools.ToolCallResolveResult.NeedsApproval>()
+		val activations = results.filterIsInstance<Tools.ToolCallResolveResult.Activation>()
 		logger.debug(
-			"Tool calls resolved  agentId={}  total={}  failures={}  needsApproval={}",
+			"Tool calls resolved  agentId={}  total={}  failures={}  needsApproval={}  activations={}",
 			env.agentId,
 			pendingCalls.size,
 			failures.size,
-			needsApproval.size
+			needsApproval.size,
+			activations.size
 		)
 		//构建解析失败的工具消息
 		val errorTools = failures.map { f ->
 			ContextPhase.buildErrorTool(callById.getValue(f.callId), f.errorMessage)
 		}
-		env.agentState.processedTools = errorTools
+		//构建激活成功的工具消息
+		val activationTools = activations.map { a ->
+			ContextPhase.buildToolResult(callById.getValue(a.callId), a.message, ToolResultStatus.SUCCESS)
+		}
+		env.agentState.processedTools = errorTools + activationTools
 		
 		//清理pendingToolCalls
-		if (errorTools.isNotEmpty()) {
+		if (errorTools.isNotEmpty() || activationTools.isNotEmpty()) {
 			ContextPhase.keepPendingCalls(needsApproval.map { it.callId }.toSet(), env::updateContext)
 		}
 		
