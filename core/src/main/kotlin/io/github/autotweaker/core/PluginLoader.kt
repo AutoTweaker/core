@@ -27,27 +27,43 @@ import java.util.*
 object PluginLoader {
 	@PublishedApi
 	internal val logger = LoggerFactory.getLogger(this::class.java)
-
+	
 	@PublishedApi
 	internal val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
-
+	
+	@Volatile
+	internal var sharedClassLoader: URLClassLoader? = null
+	
+	@PublishedApi
+	internal fun getOrCreateClassLoader(apiClassLoader: ClassLoader): URLClassLoader {
+		sharedClassLoader?.let { return it }
+		synchronized(this) {
+			sharedClassLoader?.let { return it }
+			val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
+			if (!Files.isDirectory(dir)) return URLClassLoader(emptyArray(), apiClassLoader)
+			
+			val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
+			if (jars.isEmpty()) return URLClassLoader(emptyArray(), apiClassLoader)
+			
+			val urls = jars.map { it.toUri().toURL() }.toTypedArray()
+			val classLoader = URLClassLoader(urls, apiClassLoader)
+			classLoaders.add(classLoader)
+			logger.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
+			sharedClassLoader = classLoader
+			return classLoader
+		}
+	}
+	
 	inline fun <reified T : Any> load(): List<T> {
-		val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
-		if (!Files.isDirectory(dir)) return emptyList()
-
-		val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
-		if (jars.isEmpty()) return emptyList()
-
-		val urls = jars.map { it.toUri().toURL() }.toTypedArray()
-		val classLoader = URLClassLoader(urls, T::class.java.classLoader)
-		classLoaders.add(classLoader)
+		val classLoader = getOrCreateClassLoader(T::class.java.classLoader)
 		val plugins = ServiceLoader.load(T::class.java, classLoader).toList()
-		logger.info("Loaded plugins  type={}  jarCount={}  pluginCount={}", T::class.simpleName, jars.size, plugins.size)
+		logger.info("Loaded plugins  type={}  pluginCount={}", T::class.simpleName, plugins.size)
 		return plugins
 	}
-
+	
 	fun closeClassLoaders() {
 		classLoaders.forEach { runCatching { it.close() } }
 		classLoaders.clear()
+		sharedClassLoader = null
 	}
 }
