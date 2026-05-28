@@ -57,8 +57,9 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
 
-          # Get project clone URL and construct deb URL
-          CLONE_URL=$(git remote get-url origin)
+          # Construct clone URLs and deb URL
+          HTTPS_URL="https://github.com/${{ github.repository }}.git"
+          SSH_URL="git@github.com:${{ github.repository }}.git"
           DEB_VERSION="${VERSION//-/.}"
           DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/autotweaker_${DEB_VERSION}_amd64.deb"
 
@@ -70,8 +71,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Overwrite index.json
-          jq -n --arg url "$CLONE_URL" --arg v "$VERSION" --arg deb "$DEB_URL" \
-            '{core: {clone_url: $url, version: $v, deb_url: $deb}}' \
+          jq -n --arg https "$HTTPS_URL" --arg ssh "$SSH_URL" --arg v "$VERSION" --arg deb "$DEB_URL" \
+            '{core: {clone_url: {https: $https, ssh: $ssh}, version: $v, deb_url: $deb}}' \
             > index.json
 
           # Commit and push
