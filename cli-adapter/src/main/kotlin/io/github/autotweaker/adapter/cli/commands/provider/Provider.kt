@@ -112,7 +112,7 @@ class Provider : Command {
 			emitAll(
 				commands.rename(
 					name = request.get("rename") ?: error("Missing provider name"),
-					new = request.get("new") ?: error("Missing new provider name"),
+					new = request.positional.first(),
 				)
 			)
 			return@flow
