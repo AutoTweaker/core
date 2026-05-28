@@ -94,7 +94,11 @@ class ToolsTest {
 				}
 			}
 		}
-	
+
+	private fun Tools.activate(toolName: String) {
+		resolveToolCalls(listOf(pendingToolCall(name = toolName)))
+	}
+
 	// endregion
 	
 	// region basic
@@ -140,17 +144,12 @@ class ToolsTest {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		tools.add(tool)
-		
-		// Activate the tool first so validator sees it
-		val activateResult = tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		assertEquals(ToolResultStatus.SUCCESS, activateResult.result.status)
-		
+
+		tools.activate("bash")
+
 		val calls = listOf(pendingToolCall("c2", "bash_run"))
 		val results = tools.resolveToolCalls(calls)
-		
+
 		assertEquals(1, results.size)
 		assertIs<Tools.ToolCallResolveResult.NeedsApproval>(results[0])
 	}
@@ -171,7 +170,7 @@ class ToolsTest {
 	// region executeTool
 	
 	@Test
-	fun `executeTool activates inactive tool`() = runTest {
+	fun `resolveToolCalls activates inactive tool`() = runTest {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool(
 			"bash", "bash tool", listOf(
@@ -183,16 +182,13 @@ class ToolsTest {
 			)
 		)
 		tools.add(tool)
-		
-		val result = tools.executeTool(
-			validationSuccess("bash", "run"),
-			pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		val results = tools.resolveToolCalls(listOf(pendingToolCall("c1", "bash")))
+
+		assertEquals(1, results.size)
+		val activation = results[0] as Tools.ToolCallResolveResult.Activation
 		assertTrue(tools.entries[0].active)
-		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
-		assertTrue(result.result.content.contains("bash"))
+		assertTrue(activation.message.contains("bash"))
 	}
 	
 	@Test
@@ -201,14 +197,10 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } returns Tool.ToolOutput("output ok", true)
 		tools.add(tool)
-		
-		// First call: activate
-		tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
-		// Second call: execute
+
+		tools.activate("bash")
+
+		// Execute
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
 			SimpleContainer(), UUID.randomUUID(),
@@ -225,13 +217,9 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } returns Tool.ToolOutput("error happened", false)
 		tools.add(tool)
-		
-		// Activate
-		tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("bash")
+
 		// Execute
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
@@ -248,13 +236,9 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } throws RuntimeException("crash!")
 		tools.add(tool)
-		
-		// Activate
-		tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("bash")
+
 		// Execute - should catch exception and return failure
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
@@ -271,12 +255,8 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } throws CancellationException("cancelled")
 		tools.add(tool)
-		
-		// Activate
-		tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
+
+		tools.activate("bash")
 		
 		assertFailsWith<CancellationException> {
 			tools.executeTool(
@@ -297,13 +277,9 @@ class ToolsTest {
 			Tool.ToolOutput("done", true)
 		}
 		tools.add(tool)
-		
-		// Activate
-		tools.executeTool(
-			validationSuccess(), pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("bash")
+
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
 			validationSuccess(), pendingToolCall("c2", "bash_run"),
@@ -326,19 +302,13 @@ class ToolsTest {
 		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
-		
-		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c1", "a_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		tools.executeTool(
-			validationSuccess("b"), pendingToolCall("c2", "b_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("a")
+		tools.activate("b")
+
 		assertTrue(tools.entries[0].active)
 		assertTrue(tools.entries[1].active)
-		
+
 		repeat(3) {
 			tools.executeTool(
 				validationSuccess("a"), pendingToolCall("c${it + 3}", "a_run"),
@@ -360,16 +330,10 @@ class ToolsTest {
 		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
-		
-		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c1", "a_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		tools.executeTool(
-			validationSuccess("b"), pendingToolCall("c2", "b_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("a")
+		tools.activate("b")
+
 		repeat(100) {
 			tools.executeTool(
 				validationSuccess("a"), pendingToolCall("c${it + 3}", "a_run"),
@@ -391,16 +355,10 @@ class ToolsTest {
 		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
-		
-		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c1", "a_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		tools.executeTool(
-			validationSuccess("b"), pendingToolCall("c2", "b_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("a")
+		tools.activate("b")
+
 		tools.executeTool(
 			validationSuccess("a"), pendingToolCall("c3", "a_run"),
 			SimpleContainer(), UUID.randomUUID(),
@@ -427,16 +385,10 @@ class ToolsTest {
 		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
-		
-		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c1", "a_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		tools.executeTool(
-			validationSuccess("b"), pendingToolCall("c2", "b_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("a")
+		tools.activate("b")
+
 		tools.executeTool(
 			validationSuccess("a"), pendingToolCall("c3", "a_run"),
 			SimpleContainer(), UUID.randomUUID(),
@@ -493,16 +445,11 @@ class ToolsTest {
 			)
 		)
 		tools.add(tool)
-		
-		// Activate
-		tools.executeTool(
-			validationSuccess("bash", "run"),
-			pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
-		
+
+		tools.activate("bash")
+
 		val result = tools.assembleTools()
-		
+
 		assertNotNull(result)
 		assertEquals(1, result.size)
 		assertEquals("bash_run", result[0].name)
@@ -523,13 +470,8 @@ class ToolsTest {
 		val inactiveTool = mockTool("read", "read tool")
 		tools.add(activeTool)
 		tools.add(inactiveTool)
-		
-		// Activate bash only
-		tools.executeTool(
-			validationSuccess("bash", "run"),
-			pendingToolCall("c1", "bash_run"),
-			SimpleContainer(), UUID.randomUUID(),
-		)
+
+		tools.activate("bash")
 		
 		val result = tools.assembleTools()
 		
