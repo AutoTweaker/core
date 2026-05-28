@@ -63,7 +63,8 @@ internal class Session(
 		val duplicates = coreNames.groupingBy { it }.eachCount().filter { it.value > 1 }
 		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
 		val plugins = PluginLoader.load<Tool>().distinctBy { it.meta.name }
-		cores + plugins.filter { it.meta.name !in coreNames }
+		val pluginNames = plugins.map { it.meta.name }.toSet()
+		plugins + cores.filter { it.meta.name !in pluginNames }
 	}
 	
 	private val _data = MutableStateFlow(
