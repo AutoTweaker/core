@@ -95,7 +95,7 @@ class Config : Command {
 				request.has("key") -> SearchMode.KEY
 				request.has("value") -> SearchMode.VALUE
 				request.has("desc") -> SearchMode.DESC
-				else -> SearchMode.VALUE
+				else -> null
 			}
 			emitAll(search(core, limit, full, query, mode))
 			emit(CmdOutput.Done())
@@ -119,13 +119,18 @@ class Config : Command {
 	}
 	
 	private fun search(
-		core: CoreAPI, limit: Int, full: Boolean = false, query: String, mode: SearchMode
+		core: CoreAPI, limit: Int, full: Boolean = false, query: String, mode: SearchMode?
 	): Flow<CmdOutput> {
 		val settings = core.config.settingService.getAll()
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.value.value.toString(), query) }
 			SearchMode.DESC -> settings.filter { match(it.description, query) }
+			null -> settings.filter {
+				match(it.id, query) || match(
+					it.value.value.toString(), query
+				) || match(it.description, query)
+			}
 		}
 		return printConfig(result.take(limit), full).map { CmdOutput.Data(it) }
 	}

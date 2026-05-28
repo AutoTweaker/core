@@ -56,7 +56,6 @@ class Provider : Command {
 				Syntax.leaf(Param.Value("rename", i18n.get(ProvI18n.Rename())), required = true),
 				Syntax.leaf(Param.Positional("new", i18n.get(ProvI18n.NewName())), required = true),
 			),
-			Syntax.leaf(Param.Value("update", i18n.get(ProvI18n.Update()))),
 		)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
