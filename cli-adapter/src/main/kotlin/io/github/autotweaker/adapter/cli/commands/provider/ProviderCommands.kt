@@ -84,7 +84,7 @@ internal class ProviderCommands(
 		val ids = core.config.listProviders().filter { it.displayName == name }.map { it.id }
 		if (ids.isEmpty()) {
 			emitI18n(ProvCommandsI18n.OutRemoveNotFound(), name, error = true)
-			emitDone()
+			emitDone(1)
 			return@flow
 		}
 		if (!yes) {
@@ -97,6 +97,7 @@ internal class ProviderCommands(
 			}
 		}
 		ids.forEach { core.config.removeProvider(it) }
+		emitDone()
 	}
 	
 	private suspend fun FlowCollector<CmdOutput>.promptOrNull(

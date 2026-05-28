@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory
 
 object Wiring {
 	private val logger = LoggerFactory.getLogger(Wiring::class.java)
-
+	
 	fun init() {
 		ResilientChat.init(gateway = LlmGatewayImpl, settings = Settings)
 		ChatService.init(

@@ -52,7 +52,7 @@ class EnvStorage(kClass: KClass<*>) {
 		jsonEntry.set(updated)
 		logger.debug("Env set  id={}", id)
 	}
-
+	
 	fun removeEnv(id: String) {
 		val current = getEnvUuidMap()
 		current[id]?.let { SecretManager.remove(it) }

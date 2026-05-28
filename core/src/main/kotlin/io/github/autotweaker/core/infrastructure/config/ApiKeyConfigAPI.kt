@@ -36,14 +36,14 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 	private val secret = SecretManager
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
-
+	
 	override fun add(key: CoreConfig.ProviderConfig.ApiKey) {
 		if (keyMap[key.name] != null) error("Key ${key.name} already exists")
 		keyMap[key.name] = secret.add(key.key)
 		saveMap()
 		logger.info("Added API key  name={}", key.name)
 	}
-
+	
 	override fun list(): List<String> = keyMap.keys.toList()
 	override fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
 	override fun delete(name: String) {
