@@ -89,8 +89,7 @@ class Provider : Command {
 		
 		if (request.has("info")) {
 			val name = request.get("info") ?: error("Missing provider type")
-			emitAll(queries.info(name).map { CmdOutput.Data(it) })
-			emit(CmdOutput.Done())
+			emitAll(queries.info(name))
 			return@flow
 		}
 		

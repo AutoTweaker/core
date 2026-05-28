@@ -80,7 +80,7 @@ internal class ProviderCommands(
 	fun remove(name: String, yes: Boolean): Flow<CmdOutput> = flow {
 		val ids = core.config.listProviders().filter { it.displayName == name }.map { it.id }
 		if (ids.isEmpty()) {
-			emitI18n(ProvCommandsI18n.ProviderNotFound(), name, error = true)
+			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -99,13 +99,13 @@ internal class ProviderCommands(
 	
 	fun rename(name: String, new: String): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == name } ?: run {
-			emitI18n(ProvCommandsI18n.ProviderNotFound(), name)
+			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		
 		if (core.config.listProviders().any { it.displayName == new }) {
-			emitI18n(ProvCommandsI18n.ProviderExistsError(), new)
+			emitI18n(ProvCommandsI18n.ProviderExistsError(), new, error = true)
 			emitDone(1)
 			return@flow
 		}

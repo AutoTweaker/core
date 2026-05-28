@@ -73,14 +73,6 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class ProviderNotFound : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Provider not found: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到提供商: %s"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
 	class PromptName : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Provider name:"),

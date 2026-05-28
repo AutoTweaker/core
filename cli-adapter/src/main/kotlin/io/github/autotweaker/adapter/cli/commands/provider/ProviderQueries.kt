@@ -18,15 +18,13 @@
 
 package io.github.autotweaker.adapter.cli.commands.provider
 
+import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.*
 
 internal class ProviderQueries(private val core: CoreAPI) {
 	private val i18n: I18nService get() = core.i18n.i18nService
@@ -57,16 +55,27 @@ internal class ProviderQueries(private val core: CoreAPI) {
 	
 	fun types(): Flow<String> = core.config.listAvailableProviderTypes().asFlow()
 	
-	fun info(name: String): Flow<String> = flow {
-		val meta = core.config.getProviderMeta(name)
-		emit(i18n.get(ProvQueriesI18n.Name()).format(meta.name))
-		emit(i18n.get(ProvQueriesI18n.Url()).format(meta.baseUrl.value))
-		emit(i18n.get(ProvQueriesI18n.Rule()))
-		emitAll(printRules(meta.errorHandlingRules))
-		meta.models.forEach {
-			emit(LINE)
-			emitAll(printModelInfo(it))
+	fun info(name: String): Flow<CmdOutput> = flow {
+		if (!core.config.listAvailableProviderTypes().any { it == name }) {
+			emit(
+				CmdOutput.Data(
+					i18n.get(ProvI18n.ProviderNotFound()).format(name), channel = CmdOutput.Channel.STDERR
+				)
+			)
+			emit(CmdOutput.Done(1))
+			return@flow
 		}
+		
+		val meta = core.config.getProviderMeta(name)
+		emit(CmdOutput.Data(i18n.get(ProvQueriesI18n.Name()).format(meta.name)))
+		emit(CmdOutput.Data(i18n.get(ProvQueriesI18n.Url()).format(meta.baseUrl.value)))
+		emit(CmdOutput.Data(i18n.get(ProvQueriesI18n.Rule())))
+		emitAll(printRules(meta.errorHandlingRules).map { CmdOutput.Data(it) })
+		meta.models.forEach {
+			emit(CmdOutput.Data(LINE))
+			emitAll(printModelInfo(it).map { info -> CmdOutput.Data(info) })
+		}
+		emit(CmdOutput.Done())
 	}
 	
 	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {

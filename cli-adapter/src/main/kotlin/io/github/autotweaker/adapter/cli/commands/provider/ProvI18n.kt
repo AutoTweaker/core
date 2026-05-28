@@ -142,4 +142,12 @@ internal object ProvI18n {
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "编辑指定提供商"),
 		)
 	}
+	
+	@AutoService(I18nDef::class)
+	class ProviderNotFound : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.ENGLISH, "Provider not found: %s"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到提供商: %s"),
+		)
+	}
 }
