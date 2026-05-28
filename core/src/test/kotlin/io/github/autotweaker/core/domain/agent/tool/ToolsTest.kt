@@ -101,7 +101,7 @@ class ToolsTest {
 	
 	@Test
 	fun `add tool increases entries`() {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		assertEquals(0, tools.entries.size)
 		
 		tools.add(mockTool())
@@ -111,7 +111,7 @@ class ToolsTest {
 	
 	@Test
 	fun `add multiple tools`() {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		tools.add(mockTool("bash"))
 		tools.add(mockTool("read"))
 		
@@ -123,7 +123,7 @@ class ToolsTest {
 	
 	@Test
 	fun `resolveToolCalls all parse failures`() {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		
 		// No active tools -> validator has empty tool list -> all will fail
 		tools.add(mockTool())
@@ -137,7 +137,7 @@ class ToolsTest {
 	
 	@Test
 	fun `resolveToolCalls all needs approval`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		tools.add(tool)
 		
@@ -157,7 +157,7 @@ class ToolsTest {
 	
 	@Test
 	fun `resolveToolCalls inactive tool name fails validation`() {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		tools.add(mockTool("inactive"))
 		
 		val calls = listOf(pendingToolCall("c1", "inactive_run"))
@@ -172,7 +172,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool activates inactive tool`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool(
 			"bash", "bash tool", listOf(
 				Tool.Function(
@@ -197,7 +197,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool runs active tool successfully`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } returns Tool.ToolOutput("output ok", true)
 		tools.add(tool)
@@ -221,7 +221,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool runs active tool with failure`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } returns Tool.ToolOutput("error happened", false)
 		tools.add(tool)
@@ -244,7 +244,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool handles exception from tool`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } throws RuntimeException("crash!")
 		tools.add(tool)
@@ -267,7 +267,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool rethrows CancellationException`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } throws CancellationException("cancelled")
 		tools.add(tool)
@@ -288,7 +288,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool streams runtime output`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } coAnswers {
 			val input = firstArg<Tool.ToolInput>()
@@ -318,7 +318,7 @@ class ToolsTest {
 	
 	@Test
 	fun `executeTool calls onToolActivated when tool activated`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(tool)
@@ -337,7 +337,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool deactivates unused tool after threshold`() = runTest {
 		val svc = settingsWithThreshold(2)
-		val tools = Tools(svc)
+		val tools = Tools(svc, mockk(relaxed = true))
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
 		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
@@ -371,7 +371,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool does not deactivate when threshold is zero`() = runTest {
 		val svc = settingsWithThreshold(0)
-		val tools = Tools(svc)
+		val tools = Tools(svc, mockk(relaxed = true))
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
 		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
@@ -402,7 +402,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool calls onToolDeactivated when tool deactivated`() = runTest {
 		val svc = settingsWithThreshold(1)
-		val tools = Tools(svc)
+		val tools = Tools(svc, mockk(relaxed = true))
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
 		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
@@ -438,7 +438,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool resets called tool counter and increments others`() = runTest {
 		val svc = settingsWithThreshold(5)
-		val tools = Tools(svc)
+		val tools = Tools(svc, mockk(relaxed = true))
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
 		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
@@ -475,14 +475,14 @@ class ToolsTest {
 	
 	@Test
 	fun `assembleTools returns null when no tools`() {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val result = tools.assembleTools()
 		assertNull(result)
 	}
 	
 	@Test
 	fun `assembleTools with only inactive tools`() {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		tools.add(mockTool("bash", "a bash tool"))
 		tools.add(mockTool("read", "a read tool"))
 		
@@ -500,7 +500,7 @@ class ToolsTest {
 	
 	@Test
 	fun `assembleTools with only active tools`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val tool = mockTool(
 			"bash", "bash tool", listOf(
 				Tool.Function(
@@ -528,7 +528,7 @@ class ToolsTest {
 	
 	@Test
 	fun `assembleTools with both active and inactive tools`() = runTest {
-		val tools = Tools(defaultSettings)
+		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		val activeTool = mockTool(
 			"bash", "bash tool", listOf(
 				Tool.Function(

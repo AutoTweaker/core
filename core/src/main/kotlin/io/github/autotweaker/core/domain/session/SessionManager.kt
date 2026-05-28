@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
@@ -46,10 +47,12 @@ internal object SessionManager {
 	
 	private lateinit var store: SessionRepository
 	private lateinit var modelRepo: ModelRepository
+	private lateinit var secretStore: SecretStore
 	
-	fun init(store: SessionRepository, modelRepo: ModelRepository) {
+	fun init(store: SessionRepository, modelRepo: ModelRepository, secretStore: SecretStore) {
 		this.store = store
 		this.modelRepo = modelRepo
+		this.secretStore = secretStore
 	}
 	
 	private fun resolveModel(id: UUID): Model = modelRepo.resolve(id) ?: error("Unknown model: $id")
@@ -134,6 +137,7 @@ internal object SessionManager {
 			workspace = data.meta,
 			containerConfig = ContainerConfig(),
 			service = Settings,
+			secretStore = secretStore,
 		)
 		sessions[session.data.value.id] = session
 		startMonitor(session)
@@ -169,6 +173,7 @@ internal object SessionManager {
 			workspace = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId"),
 			service = Settings,
 			containerConfig = ContainerConfig(),
+			secretStore = secretStore,
 		)
 		sessions[session.data.value.id] = session
 		startMonitor(session)

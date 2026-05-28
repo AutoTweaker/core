@@ -31,6 +31,7 @@ import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
@@ -51,13 +52,14 @@ internal class Session(
 	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
+	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	private val _tools: List<Tool> = run {
 		val cores = ServiceLoader.load(CoreTool::class.java).toList()
-		cores.forEach { it.init(service) }
+		cores.forEach { it.init(service, secretStore) }
 		val coreNames = cores.map { it.meta.name }
 		val duplicates = coreNames.groupingBy { it }.eachCount().filter { it.value > 1 }
 		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
@@ -148,6 +150,7 @@ internal class Session(
 			summarizeModel = resolveModel(_data.value.config.summarizeModel),
 			containerConfig = containerConfig,
 			service = service,
+			secretStore = secretStore,
 			tools = _tools,
 		)
 		agents[newAgent.agentId] = newAgent

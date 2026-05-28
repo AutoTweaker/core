@@ -47,10 +47,10 @@ import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
+import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
@@ -151,5 +151,5 @@ class CoreAPIImpl(
 	}
 	
 	override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
-	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter().exec(arg)
+	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter.exec(arg)
 }

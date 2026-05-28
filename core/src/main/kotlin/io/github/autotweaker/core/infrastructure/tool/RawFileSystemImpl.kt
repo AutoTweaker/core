@@ -26,7 +26,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
 
-class RawFileSystemImpl : RawFileSystem {
+object RawFileSystemImpl : RawFileSystem {
 	override suspend fun exists(path: Path): Boolean = withContext(Dispatchers.IO) { Files.exists(path) }
 	
 	override suspend fun isRegularFile(path: Path): Boolean = withContext(Dispatchers.IO) { Files.isRegularFile(path) }

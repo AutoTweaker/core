@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
@@ -36,12 +37,13 @@ import kotlin.time.Duration.Companion.seconds
 @AutoService(CoreTool::class)
 class Bash : CoreTool {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val envStorage = EnvStorage(this::class)
+	private lateinit var envStorage: EnvStorage
 	private lateinit var _meta: Tool.Meta
 	private lateinit var settings: SettingService
 	override val meta: Tool.Meta get() = _meta
 	
-	override fun init(service: SettingService) {
+	override fun init(service: SettingService, secretStore: SecretStore) {
+		envStorage = EnvStorage(this::class, secretStore)
 		settings = service
 		
 		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }

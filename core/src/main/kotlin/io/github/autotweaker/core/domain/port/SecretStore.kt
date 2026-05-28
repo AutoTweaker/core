@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.secret
+package io.github.autotweaker.core.domain.port
 
 import java.util.*
 

@@ -47,7 +47,7 @@ class ReadTest {
 	
 	private fun readMeta(settings: SettingService = defaultSettings): Read {
 		val r = Read()
-		r.init(settings)
+		r.init(settings, mockk(relaxed = true))
 		return r
 	}
 	
@@ -66,7 +66,6 @@ class ReadTest {
 	private fun ToolInput(
 		functionName: String,
 		arguments: JsonObject,
-		settings: SettingService = defaultSettings,
 	): Tool.ToolInput = Tool.ToolInput(
 		functionName = functionName,
 		arguments = arguments,

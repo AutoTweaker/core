@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.secret.impl
+package io.github.autotweaker.core.infrastructure.data
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.infrastructure.secret.SecretStore
+import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.slf4j.LoggerFactory
@@ -49,7 +49,7 @@ object SecretManager : SecretStore {
 	
 	@Volatile
 	private var password: String? = null
-
+	
 	private val _isUnlocked = MutableStateFlow(false)
 	val isUnlocked = _isUnlocked.asStateFlow()
 	val isPasswordEmpty: Boolean get() = password == ""

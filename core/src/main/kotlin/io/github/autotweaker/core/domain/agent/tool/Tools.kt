@@ -25,6 +25,7 @@ import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import kotlinx.coroutines.CancellationException
@@ -38,7 +39,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Clock
 
-class Tools(private val service: SettingService) {
+class Tools(private val service: SettingService, private val secretStore: SecretStore) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	data class Entry(
@@ -53,7 +54,7 @@ class Tools(private val service: SettingService) {
 	
 	fun add(tool: Tool) {
 		if (tool is CoreTool) {
-			tool.init(service)
+			tool.init(service, secretStore)
 		}
 		logger.debug("Tool added  tool={}  functionCount={}", tool.meta.name, tool.meta.functions.size)
 		_entries.add(Entry(tool))

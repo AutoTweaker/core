@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.container
 
 import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
@@ -32,7 +33,12 @@ import kotlin.time.Duration
 object ContainerManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val mutex = Mutex()
-	private val envStorage = EnvStorage(this::class)
+	private lateinit var envStorage: EnvStorage
+	
+	@Synchronized
+	fun init(secretStore: SecretStore) {
+		envStorage = EnvStorage(this::class, secretStore)
+	}
 	
 	private val service: ContainerService = DockerJavaService()
 	

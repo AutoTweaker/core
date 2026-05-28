@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Unicode
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
@@ -40,7 +41,7 @@ class Read : CoreTool {
 	private lateinit var settings: SettingService
 	override val meta: Tool.Meta get() = _meta
 	
-	override fun init(service: SettingService) {
+	override fun init(service: SettingService, secretStore: SecretStore) {
 		settings = service
 		
 		val commonProperties: Map<String, Tool.Function.Property> = mapOf(

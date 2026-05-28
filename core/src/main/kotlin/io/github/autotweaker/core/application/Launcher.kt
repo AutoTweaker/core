@@ -22,6 +22,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
@@ -31,14 +32,12 @@ import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
 import io.github.autotweaker.core.infrastructure.config.ModelConfigAPI
 import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
+import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
-import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
-import io.github.autotweaker.core.PluginLoader
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 

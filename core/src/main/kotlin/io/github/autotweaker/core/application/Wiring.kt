@@ -22,6 +22,9 @@ import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
+import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
+import io.github.autotweaker.core.infrastructure.container.ContainerManager
+import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
@@ -33,12 +36,15 @@ object Wiring {
 	private val logger = LoggerFactory.getLogger(Wiring::class.java)
 	
 	fun init() {
-		ResilientChat.init(gateway = LlmGatewayImpl, settings = Settings)
+		ModelRepositoryImpl.init(SecretManager)
+		ApiKeyConfigAPI.init(SecretManager)
+		ContainerManager.init(SecretManager)
+		ResilientChat.init(LlmGatewayImpl, Settings)
 		ChatService.init(
-			modelRepo = ModelRepositoryImpl, resilientChat = ResilientChat, sessionRepository = SessionRepositoryImpl
+			ModelRepositoryImpl, SessionRepositoryImpl
 		)
-		SessionManager.init(store = SessionRepositoryImpl, modelRepo = ModelRepositoryImpl)
-		ToolProvider.init(shellExecutor = ShellRouter(), rawFileSystem = RawFileSystemImpl())
+		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl, SecretManager)
+		ToolProvider.init(ShellRouter, RawFileSystemImpl)
 		logger.info("Wiring initialized")
 	}
 }

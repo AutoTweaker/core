@@ -21,8 +21,8 @@ package io.github.autotweaker.core.infrastructure.config
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -33,9 +33,14 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ApiKeyConfigAPI : ApiKeyRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val secret = SecretManager
+	private lateinit var secret: SecretStore
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
 	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
+	
+	fun init(secretStore: SecretStore) {
+		secret = secretStore
+	}
+	
 	
 	override fun add(key: CoreConfig.ProviderConfig.ApiKey) {
 		if (keyMap[key.name] != null) error("Key ${key.name} already exists")

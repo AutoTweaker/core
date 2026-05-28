@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.reflect.KClass
 
-class EnvStorage(kClass: KClass<*>) {
+class EnvStorage(kClass: KClass<*>, private val secretStore: SecretStore) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	
@@ -37,7 +37,7 @@ class EnvStorage(kClass: KClass<*>) {
 	fun getEnv(id: String): String? {
 		val uuid = getEnvUuidMap()[id] ?: return null
 		return try {
-			SecretManager.get(uuid)
+			secretStore.get(uuid)
 		} catch (_: Exception) {
 			null
 		}
@@ -45,8 +45,8 @@ class EnvStorage(kClass: KClass<*>) {
 	
 	fun setEnv(id: String, value: String) {
 		val current = getEnvUuidMap()
-		current[id]?.let { SecretManager.remove(it) }
-		val uuid = SecretManager.add(value)
+		current[id]?.let { secretStore.remove(it) }
+		val uuid = secretStore.add(value)
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
@@ -55,7 +55,7 @@ class EnvStorage(kClass: KClass<*>) {
 	
 	fun removeEnv(id: String) {
 		val current = getEnvUuidMap()
-		current[id]?.let { SecretManager.remove(it) }
+		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
 		logger.debug("Env removed  id={}", id)

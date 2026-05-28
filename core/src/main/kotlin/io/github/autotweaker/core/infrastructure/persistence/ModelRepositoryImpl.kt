@@ -21,10 +21,16 @@ package io.github.autotweaker.core.infrastructure.persistence
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.github.autotweaker.core.domain.port.ModelRepository
-import io.github.autotweaker.core.infrastructure.secret.impl.SecretManager
+import io.github.autotweaker.core.domain.port.SecretStore
 import java.util.*
 
 object ModelRepositoryImpl : ModelRepository {
+	private lateinit var secretStore: SecretStore
+	
+	fun init(secretStore: SecretStore) {
+		this.secretStore = secretStore
+	}
+	
 	override fun resolve(id: UUID): Model? {
 		val model = ModelStore.get(id) ?: return null
 		val provider = ProviderStore.get(model.providerId) ?: return null
@@ -34,7 +40,7 @@ object ModelRepositoryImpl : ModelRepository {
 				id = provider.id,
 				name = provider.providerType,
 				baseUrl = provider.baseUrl,
-				apiKey = SecretManager.get(provider.apiKey),
+				apiKey = secretStore.get(provider.apiKey),
 				errorHandlingRules = provider.errorHandlingRules,
 			),
 			modelInfo = model.modelInfo,

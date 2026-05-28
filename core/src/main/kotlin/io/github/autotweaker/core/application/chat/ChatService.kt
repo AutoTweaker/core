@@ -37,12 +37,10 @@ import kotlin.time.Clock
 object ChatService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var modelRepo: ModelRepository
-	private lateinit var resilientChat: ResilientChat
 	private lateinit var sessionRepository: SessionRepository
-
-	fun init(modelRepo: ModelRepository, resilientChat: ResilientChat, sessionRepository: SessionRepository) {
+	
+	fun init(modelRepo: ModelRepository, sessionRepository: SessionRepository) {
 		this.modelRepo = modelRepo
-		this.resilientChat = resilientChat
 		this.sessionRepository = sessionRepository
 	}
 	
@@ -51,14 +49,16 @@ object ChatService {
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it) ?: error("Unknown fallback model: $it")
 		}
-		logger.debug("Chat request  model={}  fallbackCount={}  stream={}", request.model, fallbacks?.size ?: 0, request.stream)
+		logger.debug(
+			"Chat request  model={}  fallbackCount={}  stream={}", request.model, fallbacks?.size ?: 0, request.stream
+		)
 		val modelMap = buildMap {
 			put(model.id, model)
 			fallbacks?.forEach { put(it.id, it) }
 		}
 		var lastUsage: Usage? = null
 		var lastModelId: UUID? = null
-		return resilientChat.execute(
+		return ResilientChat.execute(
 			model = model,
 			fallbackModels = fallbacks,
 			messages = request.messages,
