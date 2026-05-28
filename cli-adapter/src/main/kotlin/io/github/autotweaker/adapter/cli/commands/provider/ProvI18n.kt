@@ -124,7 +124,14 @@ internal object ProvI18n {
 	class Rename : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Rename a provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "重命名提供商"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "重命名指定提供商"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class NewName : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新的提供商名称"),
 		)
 	}
 	
@@ -132,7 +139,7 @@ internal object ProvI18n {
 	class Update : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Edit a provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "编辑提供商"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "编辑指定提供商"),
 		)
 	}
 }

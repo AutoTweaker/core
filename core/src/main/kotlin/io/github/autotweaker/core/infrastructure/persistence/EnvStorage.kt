@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.reflect.KClass
 
-class EnvStorage(kClass: KClass<*>, private val secretStore: SecretStore) {
+class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	
@@ -50,7 +50,7 @@ class EnvStorage(kClass: KClass<*>, private val secretStore: SecretStore) {
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
-		logger.debug("Env set  id={}", id)
+		logger.debug("Env set  id={} class={}", id, kClass.java.name)
 	}
 	
 	fun removeEnv(id: String) {
@@ -58,7 +58,7 @@ class EnvStorage(kClass: KClass<*>, private val secretStore: SecretStore) {
 		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
-		logger.debug("Env removed  id={}", id)
+		logger.debug("Env removed  id={} class={}", id, kClass.java.name)
 	}
 	
 	private fun getEnvUuidMap(): Map<String, UUID> {

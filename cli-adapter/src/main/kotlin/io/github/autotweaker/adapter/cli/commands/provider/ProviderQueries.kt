@@ -34,34 +34,34 @@ internal class ProviderQueries(private val core: CoreAPI) {
 		val providers = core.config.listProviders()
 		providers.forEachIndexed { index, provider ->
 			val modelCount = core.config.listModels().count { it.data.providerId == provider.id }
-			emit(i18n.get(ProvQueriesI18n.OutName()).format(provider.displayName))
-			emit(i18n.get(ProvQueriesI18n.OutType()).format(provider.type))
-			emit(i18n.get(ProvQueriesI18n.OutModel()).format(modelCount))
+			emit(i18n.get(ProvQueriesI18n.Name()).format(provider.displayName))
+			emit(i18n.get(ProvQueriesI18n.Type()).format(provider.type))
+			emit(i18n.get(ProvQueriesI18n.Model()).format(modelCount))
 			if (index != providers.lastIndex) emit(LINE)
 		}
 	}
 	
 	fun show(name: String): Flow<String> = flow {
 		val provider = core.config.listProviders().firstOrNull { it.displayName == name } ?: return@flow
-		emit(i18n.get(ProvQueriesI18n.OutName()).format(provider.displayName))
-		emit(i18n.get(ProvQueriesI18n.OutType()).format(provider.type))
-		emit(i18n.get(ProvQueriesI18n.OutKey()).format(provider.keyId))
+		emit(i18n.get(ProvQueriesI18n.Name()).format(provider.displayName))
+		emit(i18n.get(ProvQueriesI18n.Type()).format(provider.type))
+		emit(i18n.get(ProvQueriesI18n.Key()).format(provider.keyId))
 		emit(
-			i18n.get(ProvQueriesI18n.OutUrl()).format(provider.baseUrl?.value ?: i18n.get(ProvQueriesI18n.OutDefault()))
+			i18n.get(ProvQueriesI18n.Url()).format(provider.baseUrl?.value ?: i18n.get(ProvQueriesI18n.Default()))
 		)
 		provider.errorHandlingRules?.let {
-			emit(i18n.get(ProvQueriesI18n.OutRule()))
+			emit(i18n.get(ProvQueriesI18n.Rule()))
 			emitAll(printRules(it))
-		} ?: emit(i18n.get(ProvQueriesI18n.OutRule()) + " " + i18n.get(ProvQueriesI18n.OutDefault()))
+		} ?: emit(i18n.get(ProvQueriesI18n.Rule()) + " " + i18n.get(ProvQueriesI18n.Default()))
 	}
 	
 	fun types(): Flow<String> = core.config.listAvailableProviderTypes().asFlow()
 	
 	fun info(name: String): Flow<String> = flow {
 		val meta = core.config.getProviderMeta(name)
-		emit(i18n.get(ProvQueriesI18n.OutName()).format(meta.name))
-		emit(i18n.get(ProvQueriesI18n.OutUrl()).format(meta.baseUrl.value))
-		emit(i18n.get(ProvQueriesI18n.OutRule()))
+		emit(i18n.get(ProvQueriesI18n.Name()).format(meta.name))
+		emit(i18n.get(ProvQueriesI18n.Url()).format(meta.baseUrl.value))
+		emit(i18n.get(ProvQueriesI18n.Rule()))
 		emitAll(printRules(meta.errorHandlingRules))
 		meta.models.forEach {
 			emit(LINE)
@@ -72,8 +72,8 @@ internal class ProviderQueries(private val core: CoreAPI) {
 	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {
 		rules.forEach {
 			emit(
-				SPACE + i18n.get(ProvQueriesI18n.OutRuleStatus()).format(it.statusCode) + " | " + i18n.get(
-					ProvQueriesI18n.OutRuleStrategy()
+				SPACE + i18n.get(ProvQueriesI18n.StatusCode()).format(it.statusCode) + " | " + i18n.get(
+					ProvQueriesI18n.Strategy()
 				).format(it.strategy)
 			)
 		}
@@ -81,16 +81,16 @@ internal class ProviderQueries(private val core: CoreAPI) {
 	
 	private fun printModelInfo(info: ModelData.ModelInfo): Flow<String> = flow {
 		val feature = buildList {
-			if (info.supportsStreaming) add(i18n.get(ProvQueriesI18n.OutModelFeatureStreaming()))
-			if (info.supportsToolCalls) add(i18n.get(ProvQueriesI18n.OutModelFeatureToolCall()))
-			if (info.supportsReasoning) add(i18n.get(ProvQueriesI18n.OutModelFeatureReasoning()))
-			if (info.supportsImage) add(i18n.get(ProvQueriesI18n.OutModelFeatureImage()))
-			if (info.supportsJsonOutput) add(i18n.get(ProvQueriesI18n.OutModelFeatureJsonOutput()))
+			if (info.supportsStreaming) add(i18n.get(ProvQueriesI18n.StreamingFeature()))
+			if (info.supportsToolCalls) add(i18n.get(ProvQueriesI18n.ToolCallFeature()))
+			if (info.supportsReasoning) add(i18n.get(ProvQueriesI18n.ReasoningFeature()))
+			if (info.supportsImage) add(i18n.get(ProvQueriesI18n.ImageFeature()))
+			if (info.supportsJsonOutput) add(i18n.get(ProvQueriesI18n.JsonOutputFeature()))
 		}.joinToString(separator = " ") { "[${it}]" }
-		emit(i18n.get(ProvQueriesI18n.OutModelId()).format(info.modelId))
-		emit(i18n.get(ProvQueriesI18n.OutModelContextWindow()).format(processUnit(info.contextWindow)))
-		emit(i18n.get(ProvQueriesI18n.OutModelMaxOutput()).format(processUnit(info.maxOutputTokens)))
-		emit(i18n.get(ProvQueriesI18n.OutModelFeature()).format(feature))
+		emit(i18n.get(ProvQueriesI18n.ModelId()).format(info.modelId))
+		emit(i18n.get(ProvQueriesI18n.ContextWindow()).format(processUnit(info.contextWindow)))
+		emit(i18n.get(ProvQueriesI18n.MaxOutput()).format(processUnit(info.maxOutputTokens)))
+		emit(i18n.get(ProvQueriesI18n.ModelFeature()).format(feature))
 		emitAll(printTokenPrice(info.price))
 	}
 	
@@ -118,9 +118,9 @@ internal class ProviderQueries(private val core: CoreAPI) {
 				)
 			}
 		}
-		emit(i18n.get(ProvQueriesI18n.OutModelPriceInput()))
+		emit(i18n.get(ProvQueriesI18n.InputPrice()))
 		emitAll(processPrice(price.inputPrice))
-		emit(i18n.get(ProvQueriesI18n.OutModelPriceOutput()))
+		emit(i18n.get(ProvQueriesI18n.OutputPrice()))
 		emitAll(processPrice(price.outputPrice))
 	}
 	
@@ -130,9 +130,9 @@ internal class ProviderQueries(private val core: CoreAPI) {
 			"${price.amount.toPlainString()} ${price.currency} / ${processUnit(price.unit)} tokens"
 		
 		if (cached == null) return processPrice(price)
-		return "${processPrice(price)} ${i18n.get(ProvQueriesI18n.OutOr())} ${processPrice(cached)} ${
+		return "${processPrice(price)} ${i18n.get(ProvQueriesI18n.Or())} ${processPrice(cached)} ${
 			i18n.get(
-				ProvQueriesI18n.OutModelPriceCached()
+				ProvQueriesI18n.CachedPrice()
 			)
 		}"
 	}

@@ -29,7 +29,7 @@ object ModelConfigAPI : ModelConfigRepository {
 	private val store = ModelStore
 	
 	override fun add(model: CoreConfig.ProviderConfig.Model) {
-		require(model.data.displayName !in store.get().map { it.displayName })
+		require(!store.get().any { it.displayName == model.data.displayName })
 		store.add(model.data)
 		logger.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
 	}
@@ -42,7 +42,7 @@ object ModelConfigAPI : ModelConfigRepository {
 	}
 	
 	override fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
-		require(model.data.displayName !in store.get().filter { it.id != id }.map { it.displayName })
+		require(!store.get().filter { it.id != id }.any { it.displayName == model.data.displayName })
 		store.override(model.data.copy(id = id))
 		logger.info("Updated model  id={}  modelId={}", id, model.data.modelInfo.modelId)
 	}

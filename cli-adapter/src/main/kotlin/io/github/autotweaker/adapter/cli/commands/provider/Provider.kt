@@ -52,7 +52,10 @@ class Provider : Command {
 				Syntax.leaf(Param.Value("remove", i18n.get(ProvI18n.Remove()), listOf("rm")), required = true),
 				Syntax.leaf(Param.Flag("yes", i18n.get(ProvI18n.Yes()))),
 			),
-			Syntax.leaf(Param.Value("rename", i18n.get(ProvI18n.Rename()))),
+			Syntax.all(
+				Syntax.leaf(Param.Value("rename", i18n.get(ProvI18n.Rename())), required = true),
+				Syntax.leaf(Param.Positional("new", i18n.get(ProvI18n.NewName())), required = true),
+			),
 			Syntax.leaf(Param.Value("update", i18n.get(ProvI18n.Update()))),
 		)
 	
@@ -102,6 +105,16 @@ class Provider : Command {
 		
 		if (request.has("remove")) {
 			emitAll(commands.remove(request.get("remove") ?: error("Missing provider name"), request.has("yes")))
+			return@flow
+		}
+		
+		if (request.has("rename")) {
+			emitAll(
+				commands.rename(
+					name = request.get("rename") ?: error("Missing provider name"),
+					new = request.get("new") ?: error("Missing new provider name"),
+				)
+			)
 			return@flow
 		}
 		

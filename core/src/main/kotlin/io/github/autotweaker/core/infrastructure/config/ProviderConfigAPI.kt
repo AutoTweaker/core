@@ -51,7 +51,7 @@ object ProviderConfigAPI : ProviderRepository {
 	}
 	
 	override fun create(provider: CoreConfig.ProviderConfig.Provider) {
-		require(provider.displayName !in store.get().map { it.displayName })
+		require(!store.get().any { it.displayName == provider.displayName })
 		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.add(
 			ProviderData(
@@ -87,7 +87,7 @@ object ProviderConfigAPI : ProviderRepository {
 	}
 	
 	override fun updateDisplayName(id: UUID, displayName: String) {
-		require(displayName !in store.get().map { it.displayName })
+		require(!store.get().any { it.displayName == displayName })
 		store.override(get(id).copy(displayName = displayName))
 		logger.info("Updated provider display name  id={}  name={}", id, displayName)
 	}

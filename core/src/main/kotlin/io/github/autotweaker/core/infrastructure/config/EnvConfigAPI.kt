@@ -48,7 +48,7 @@ object EnvConfigAPI : EnvRepository {
 		val bashEnv = env.filter { it.type == Type.BASH_ENV }
 		val conEnv = env.filter { it.type == Type.CONTAINER_ENV }
 		bashEnv.forEach { bash.setEnv(it.id, it.value) }
-		con.setEnv(conEnv.associateBy({ it.id }, { it.value }))
+		conEnv.forEach { con.setEnv(it.id, it.value) }
 		logger.info("Set environment variables  bashCount={}  containerCount={}", bashEnv.size, conEnv.size)
 	}
 	

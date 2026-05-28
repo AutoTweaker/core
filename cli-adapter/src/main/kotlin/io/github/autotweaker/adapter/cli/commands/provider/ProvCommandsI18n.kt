@@ -25,7 +25,7 @@ import java.util.*
 
 internal object ProvCommandsI18n {
 	@AutoService(I18nDef::class)
-	class OutAddMissingName : I18nDef {
+	class MissingName : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Please provide the provider name"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请提供提供商名称"),
@@ -33,7 +33,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutAddMissingType : I18nDef {
+	class MissingType : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Please provide the provider type"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请提供提供商类型"),
@@ -41,7 +41,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutAddMissingKey : I18nDef {
+	class MissingKey : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Please provide the key"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请提供密钥"),
@@ -49,7 +49,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutAddInvalidType : I18nDef {
+	class InvalidType : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Invalid provider type"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "无效的提供商类型"),
@@ -57,7 +57,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutAddInvalidKey : I18nDef {
+	class InvalidKey : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "The provided key does not exist"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "提供的密钥不存在"),
@@ -65,7 +65,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutAddInvalidUrl : I18nDef {
+	class InvalidUrl : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "URL parse failed: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "URL解析失败: %s"),
@@ -73,7 +73,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutRemoveNotFound : I18nDef {
+	class ProviderNotFound : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Provider not found: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到提供商: %s"),
@@ -81,7 +81,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class PromptAddName : I18nDef {
+	class PromptName : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Provider name:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "提供商名称:"),
@@ -89,7 +89,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class PromptAddType : I18nDef {
+	class PromptType : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Provider type:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "提供商类型:"),
@@ -97,7 +97,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class PromptAddKey : I18nDef {
+	class PromptKey : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Key name:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "密钥名称:"),
@@ -105,7 +105,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class PromptAddUrl : I18nDef {
+	class PromptUrl : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "API URL (leave blank for default):"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "API端点 (留空默认):"),
@@ -113,7 +113,7 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class PromptRemoveList : I18nDef {
+	class RemoveListCount : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "About to delete %s providers:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "即将删除 %s 个提供商:"),
@@ -121,10 +121,17 @@ internal object ProvCommandsI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class PromptRemoveSure : I18nDef {
+	class RemoveConfirm : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Enter (y/yes) to confirm:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "输入 (y/yes) 确认删除:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ProviderExistsError : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "名为 %s 的提供商已存在"),
 		)
 	}
 }

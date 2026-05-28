@@ -25,7 +25,7 @@ import java.util.*
 
 internal object ProvQueriesI18n {
 	@AutoService(I18nDef::class)
-	class OutName : I18nDef {
+	class Name : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Name: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "名称: %s"),
@@ -33,7 +33,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutType : I18nDef {
+	class Type : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Type: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "类型: %s"),
@@ -41,7 +41,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModel : I18nDef {
+	class Model : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Models: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型: %s"),
@@ -49,7 +49,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutKey : I18nDef {
+	class Key : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Key: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "密钥: %s"),
@@ -57,7 +57,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutUrl : I18nDef {
+	class Url : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "API endpoint: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "API端点: %s"),
@@ -65,7 +65,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutRule : I18nDef {
+	class Rule : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Error handling rules:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "错误处理规则:"),
@@ -73,7 +73,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutDefault : I18nDef {
+	class Default : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "[default]"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "[默认]"),
@@ -81,7 +81,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutRuleStatus : I18nDef {
+	class StatusCode : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Status code: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "状态码: %s"),
@@ -89,7 +89,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutRuleStrategy : I18nDef {
+	class Strategy : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Strategy: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "策略: %s"),
@@ -97,7 +97,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelId : I18nDef {
+	class ModelId : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Model ID: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型ID: %s"),
@@ -105,7 +105,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelContextWindow : I18nDef {
+	class ContextWindow : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Context window: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "上下文窗口: %s"),
@@ -113,7 +113,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelMaxOutput : I18nDef {
+	class MaxOutput : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Max output: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "最大输出长度: %s"),
@@ -121,7 +121,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelFeature : I18nDef {
+	class ModelFeature : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Features: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "能力: %s"),
@@ -129,7 +129,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelFeatureStreaming : I18nDef {
+	class StreamingFeature : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Streaming"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "流式输出"),
@@ -137,7 +137,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelFeatureToolCall : I18nDef {
+	class ToolCallFeature : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Tool calling"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "工具调用"),
@@ -145,7 +145,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelFeatureReasoning : I18nDef {
+	class ReasoningFeature : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Reasoning"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "深度思考"),
@@ -153,7 +153,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelFeatureImage : I18nDef {
+	class ImageFeature : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Image understanding"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "图像理解"),
@@ -161,7 +161,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelFeatureJsonOutput : I18nDef {
+	class JsonOutputFeature : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "JSON output"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "格式化输出"),
@@ -169,7 +169,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelPriceInput : I18nDef {
+	class InputPrice : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Input price:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "输入价格:"),
@@ -177,7 +177,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelPriceCached : I18nDef {
+	class CachedPrice : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "(cached)"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "(命中缓存)"),
@@ -185,7 +185,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutModelPriceOutput : I18nDef {
+	class OutputPrice : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Output price:"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "输出价格:"),
@@ -193,7 +193,7 @@ internal object ProvQueriesI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutOr : I18nDef {
+	class Or : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "or"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "或"),
