@@ -38,7 +38,11 @@ object ProviderConfigAPI : ProviderRepository {
 		CoreConfig.ProviderConfig.Provider(
 			id = it.id,
 			type = it.providerType,
-			keyId = apiKeyConfig.getName(it.apiKey),
+			keyId = try {
+				apiKeyConfig.getName(it.apiKey)
+			} catch (_: IllegalStateException) {
+				"unknown"
+			},
 			baseUrl = it.baseUrl,
 			displayName = it.displayName,
 			errorHandlingRules = it.errorHandlingRules,

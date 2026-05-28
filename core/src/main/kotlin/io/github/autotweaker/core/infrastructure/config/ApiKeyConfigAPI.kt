@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.config
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
+import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.Serializable
@@ -35,6 +36,7 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var secret: SecretStore
 	private val jsonEntry = JsonStoreImpl.namespace(this::class)
+	private val provCfg: ProviderRepository = ProviderConfigAPI
 	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
 	
 	fun init(secretStore: SecretStore) {
@@ -53,6 +55,7 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 	override fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
 	override fun delete(name: String) {
 		val id = keyMap.remove(name) ?: error("Key $name not found")
+		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
 		secret.remove(id)
 		saveMap()
 		logger.info("Deleted API key  name={}", name)
