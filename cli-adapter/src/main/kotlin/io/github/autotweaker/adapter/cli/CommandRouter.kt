@@ -267,11 +267,11 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 					syntax.required && count != 1 -> false
 					count > 1 -> false
 					count == 0 -> true
-					else -> validateSyntax(
-						syntax.children.first { isActive(it, activeValues, effectiveHasPos) },
-						activeValues,
-						positionalCount,
-					)
+					else -> {
+						val activeChild = syntax.children.first { isActive(it, activeValues, effectiveHasPos) }
+						if (!effectiveHasPos && positionalCount > 0 && !hasPositionalParam(activeChild)) false
+						else validateSyntax(activeChild, activeValues, positionalCount)
+					}
 				}
 			}
 			
@@ -298,4 +298,10 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 				else syntax.param.name in activeValues
 			}
 		}
+	
+	private fun hasPositionalParam(syntax: Syntax): Boolean = when (syntax) {
+		is Syntax.All -> syntax.children.any { hasPositionalParam(it) }
+		is Syntax.Xor -> syntax.children.any { hasPositionalParam(it) }
+		is Syntax.Leaf -> syntax.param is Param.Positional
+	}
 }
