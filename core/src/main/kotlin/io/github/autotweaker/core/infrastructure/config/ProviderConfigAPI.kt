@@ -49,8 +49,9 @@ object ProviderConfigAPI : ProviderRepository {
 		store.delete(id)
 		logger.info("Deleted provider  id={}", id)
 	}
-
+	
 	override fun create(provider: CoreConfig.ProviderConfig.Provider) {
+		require(provider.displayName !in store.get().map { it.displayName })
 		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.add(
 			ProviderData(
@@ -64,28 +65,29 @@ object ProviderConfigAPI : ProviderRepository {
 		)
 		logger.info("Created provider  id={}  type={}  name={}", provider.id, provider.type, provider.displayName)
 	}
-
+	
 	override fun updateType(id: UUID, new: String) {
 		store.override(get(id).copy(providerType = new))
 		logger.info("Updated provider type  id={}  type={}", id, new)
 	}
-
+	
 	override fun updateKey(id: UUID, keyName: String) {
 		store.override(get(id).copy(apiKey = apiKeyConfig.getId(keyName)))
 		logger.info("Updated provider key  id={}  keyName={}", id, keyName)
 	}
-
+	
 	override fun updateUrl(id: UUID, url: Url) {
 		store.override(get(id).copy(baseUrl = url))
 		logger.info("Updated provider url  id={}  url={}", id, url)
 	}
-
+	
 	override fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) {
 		store.override(get(id).copy(errorHandlingRules = rules))
 		logger.info("Updated provider error rules  id={}  ruleCount={}", id, rules.size)
 	}
-
+	
 	override fun updateDisplayName(id: UUID, displayName: String) {
+		require(displayName !in store.get().map { it.displayName })
 		store.override(get(id).copy(displayName = displayName))
 		logger.info("Updated provider display name  id={}  name={}", id, displayName)
 	}

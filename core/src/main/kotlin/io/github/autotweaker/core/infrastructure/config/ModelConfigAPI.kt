@@ -27,20 +27,22 @@ import java.util.*
 object ModelConfigAPI : ModelConfigRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val store = ModelStore
-
+	
 	override fun add(model: CoreConfig.ProviderConfig.Model) {
+		require(model.data.displayName !in store.get().map { it.displayName })
 		store.add(model.data)
 		logger.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
 	}
-
+	
 	override fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
-
+	
 	override fun remove(id: UUID) {
 		store.delete(id)
 		logger.info("Removed model  id={}", id)
 	}
-
+	
 	override fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
+		require(model.data.displayName !in store.get().filter { it.id != id }.map { it.displayName })
 		store.override(model.data.copy(id = id))
 		logger.info("Updated model  id={}  modelId={}", id, model.data.modelInfo.modelId)
 	}
