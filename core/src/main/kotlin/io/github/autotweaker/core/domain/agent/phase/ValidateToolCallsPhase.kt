@@ -80,7 +80,7 @@ internal object ValidateToolCallsPhase {
 			)
 			env.emitOutput(AgentOutput.ToolRequest(needsApprovalCalls.map {
 				ToolCallRequest(
-					name = it.name, arguments = it.arguments, reason = it.reason
+					name = it.name, arguments = it.arguments, reason = it.reason, callId = it.callId
 				)
 			}))
 			env.updateStatus(AgentStatus.WAITING)

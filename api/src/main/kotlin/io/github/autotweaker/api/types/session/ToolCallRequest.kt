@@ -20,6 +20,7 @@ package io.github.autotweaker.api.types.session
 
 data class ToolCallRequest(
 	val name: String,
+	val callId: String,
 	val arguments: String,
 	val reason: String? = null,
 )

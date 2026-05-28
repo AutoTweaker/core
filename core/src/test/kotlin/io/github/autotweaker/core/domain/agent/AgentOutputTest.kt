@@ -145,6 +145,7 @@ class AgentOutputTest {
 				name = "bash_run",
 				arguments = """{"cmd":"ls"}""",
 				reason = "test",
+				callId = "call1"
 			)
 		)
 		val output = AgentOutput.ToolRequest(requests)

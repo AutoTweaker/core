@@ -20,7 +20,6 @@ package io.github.autotweaker.core.domain.agent.phase
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.agent.ToolResultStatus
