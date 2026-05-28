@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.config
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ProviderData
+import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
@@ -30,6 +31,7 @@ import java.util.*
 object ProviderConfigAPI : ProviderRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val apiKeyConfig = ApiKeyConfigAPI
+	private val modelConfig: ModelConfigRepository = ModelConfigAPI
 	private val store = ProviderStore
 	
 	override fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
@@ -50,8 +52,10 @@ object ProviderConfigAPI : ProviderRepository {
 	}
 	
 	override fun delete(id: UUID) {
+		val modelIds = modelConfig.list().filter { it.data.providerId == id }.map { it.data.id }
+		modelIds.forEach { modelConfig.remove(it) }
 		store.delete(id)
-		logger.info("Deleted provider  id={}", id)
+		logger.info("Deleted provider  id={} modelCount={}", id, modelIds.count())
 	}
 	
 	override fun create(provider: CoreConfig.ProviderConfig.Provider) {

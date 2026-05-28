@@ -93,6 +93,7 @@ internal class ProviderCommands(
 				return@flow
 			}
 		}
+		
 		ids.forEach { core.config.removeProvider(it) }
 		emitDone()
 	}
