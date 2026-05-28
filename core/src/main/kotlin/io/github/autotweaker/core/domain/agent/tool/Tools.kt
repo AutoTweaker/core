@@ -119,7 +119,7 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 		entry.consecutiveUnused.set(0)
 		logger.debug("Tool activated  tool={}  functionCount={}", toolName, entry.tool.meta.functions.size)
 		return service.get(AgentToolSettings.ActiveMessage()).value.format(
-			entry.tool.meta.name, entry.tool.meta.functions.size
+			entry.tool.meta.functions.joinToString(", ", "[", "]") { it.name }
 		)
 	}
 	

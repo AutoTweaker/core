@@ -93,7 +93,7 @@ object AgentToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ActiveMessage : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("工具%s已激活，包含%s个function，检查你的工具列表来了解如何使用")
+		override val default = SettingValue.ValString("工具已激活，包含 %s，检查你的工具列表来了解这些function的参数")
 		override val description = "激活工具后的ToolResult"
 	}
 	
