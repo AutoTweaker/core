@@ -52,7 +52,7 @@ class ToolProviderTest {
 		val agentContext = AgentContext(null, null, null, null, null)
 		
 		env = mockk(relaxUnitFun = true)
-		every { env.workspace } returns WorkspaceMeta("test", false, tmpDir)
+		every { env.workspace } returns WorkspaceMeta("test", inContainer = false, path = tmpDir)
 		every { env.containerConfig } returns ContainerConfig(
 			workDir = tmpDir,
 			workspaceHostPath = tmpDir,

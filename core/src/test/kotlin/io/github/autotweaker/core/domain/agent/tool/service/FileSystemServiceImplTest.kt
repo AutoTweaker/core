@@ -49,7 +49,7 @@ class FileSystemServiceImplTest {
 		hostRoot: Path = tmpDir
 	): FileSystemServiceImpl {
 		val env = mockk<AgentEnvironment>()
-		every { env.workspace } returns WorkspaceMeta("test", inContainer, containerRoot)
+		every { env.workspace } returns WorkspaceMeta("test", inContainer = inContainer, path = containerRoot)
 		every { env.containerConfig } returns ContainerConfig(workDir = containerRoot, workspaceHostPath = hostRoot)
 		return FileSystemServiceImpl(RawFileSystemImpl(), env)
 	}

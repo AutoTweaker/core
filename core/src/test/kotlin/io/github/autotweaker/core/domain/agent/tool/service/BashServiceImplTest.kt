@@ -44,7 +44,7 @@ class BashServiceImplTest {
 		)
 		
 		val env = mockk<AgentEnvironment>()
-		every { env.workspace } returns WorkspaceMeta("test", false, Path.of("/ws"))
+		every { env.workspace } returns WorkspaceMeta("test", inContainer = false, path = Path.of("/ws"))
 		
 		val service = BashServiceImpl(executor, env)
 		val result = mutableListOf<ShellEvent>()

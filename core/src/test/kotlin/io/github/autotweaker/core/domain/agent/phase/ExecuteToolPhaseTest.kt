@@ -88,7 +88,7 @@ class ExecuteToolPhaseTest {
 		every { env.agentState } returns agentState
 		every { env.tools } returns tools
 		every { env.service } returns settings
-		every { env.workspace } returns WorkspaceMeta("test", false, tmpDir)
+		every { env.workspace } returns WorkspaceMeta("test", inContainer = false, path = tmpDir)
 		every { env.containerConfig } returns ContainerConfig(workDir = tmpDir, workspaceHostPath = tmpDir)
 		every { env.summarizeModel } returns model
 		every { env.currentFallbackModels } returns null

@@ -57,7 +57,7 @@ class AgentTest {
 	
 	private fun createWorkspace(): WorkspaceMeta {
 		val tmpDir = createTempDirectory("agent-test")
-		return WorkspaceMeta("test", false, tmpDir)
+		return WorkspaceMeta("test", inContainer = false, path = tmpDir)
 	}
 	
 	private fun createAgent(
@@ -110,7 +110,7 @@ class AgentTest {
 	@Test
 	fun `workspace is set correctly`() {
 		val tmpDir = createTempDirectory("agent-test-ws")
-		val ws = WorkspaceMeta("my-workspace", true, tmpDir)
+		val ws = WorkspaceMeta("my-workspace", inContainer = true, path = tmpDir)
 		val agent = Agent(
 			context = AgentContext(null, null, null, null, null),
 			workspace = ws,
