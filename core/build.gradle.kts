@@ -58,9 +58,9 @@ dependencies {
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 	kapt("com.google.auto.service:auto-service:1.1.1")
 	
-	implementation("org.jetbrains.exposed:exposed-core:1.2.0")
-	implementation("org.jetbrains.exposed:exposed-dao:1.2.0")
-	implementation("org.jetbrains.exposed:exposed-jdbc:1.2.0")
+	implementation("org.jetbrains.exposed:exposed-core:1.3.0")
+	implementation("org.jetbrains.exposed:exposed-dao:1.3.0")
+	implementation("org.jetbrains.exposed:exposed-jdbc:1.3.0")
 	
 	implementation("com.h2database:h2:2.4.240")
 	
