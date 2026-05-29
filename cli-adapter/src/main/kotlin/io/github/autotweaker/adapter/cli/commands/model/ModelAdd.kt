@@ -23,18 +23,36 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.llm.ModelData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.util.*
 
 internal class ModelAdd(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
-	fun addAll(providerType: String): Flow<CmdOutput> = flow {
-		val provider = core.config.listAvailableProviderTypes().find { it == providerType } ?: run {
-			emitI18n(i18n, ModelI18n.ProviderTypeNotFound())
+	fun addAll(providerName: String): Flow<CmdOutput> = flow {
+		val provider = core.config.listProviders().find { it.displayName == providerName } ?: run {
+			emitI18n(i18n, ModelI18n.ProviderNotFound())
 			emitDone(1)
+			return@flow
 		}
+		val providerMeta = core.config.getProviderMeta(provider.type)
+		val modelList =
+			core.config.listModels().filter { it.data.providerId == provider.id }.map { it.data.displayName }
+		
+		providerMeta.models.map { it }.forEach {
+			if (it.modelId !in modelList) core.config.addModel(
+				CoreConfig.ProviderConfig.Model(
+					data = ModelData(
+						id = UUID.randomUUID(), displayName = it.modelId, modelInfo = it, providerId = provider.id
+					)
+				)
+			)
+		}
+		emitDone()
 	}
 }

@@ -24,6 +24,7 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
 @AutoService(Command::class)
@@ -35,8 +36,7 @@ class Model : Command {
 	override val description get() = i18n.get(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("list", "none")),
-			Syntax.all(
+			Syntax.leaf(Param.Flag("list", "none")), Syntax.all(
 				Syntax.leaf(Param.Flag("add", "none")),
 				Syntax.leaf(Param.Value("name", "none")),
 				Syntax.leaf(Param.Value("provider", "none")),
@@ -51,6 +51,10 @@ class Model : Command {
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
-		TODO()
+		val add = ModelAdd(core, prompt)
+		if (request.has("add-all")) {
+			emitAll(add.addAll(request.get("add-all") ?: error("Missing provider name")))
+			return@flow
+		}
 	}
 }

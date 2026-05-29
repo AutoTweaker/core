@@ -69,14 +69,14 @@ internal object ModelI18n {
 	@AutoService(I18nDef::class)
 	class ParamAddAll : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加指定提供商类型下的所有模型"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加指定提供商下的所有模型"),
 		)
 	}
 	
 	@AutoService(I18nDef::class)
-	class ProviderTypeNotFound : I18nDef {
+	class ProviderNotFound : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到类型为 %s 的提供商"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的提供商"),
 		)
 	}
 }
