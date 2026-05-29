@@ -19,12 +19,15 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.help.Help
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -67,12 +70,10 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		val handler = handlers[cmd]
 		if (handler == null) {
 			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
-			return flowOf(
-				CmdOutput.Data(
-					i18n.get(CmdI18n.UnknownHint()).format(cmd, request.prog), CmdOutput.Channel.STDERR
-				),
-				CmdOutput.Done(1),
-			)
+			return flow {
+				emitI18n(i18n, CmdI18n.UnknownHint(), cmd, request.prog, error = true)
+				emitDone(1)
+			}
 		}
 		
 		val conflicts = checkParamConflicts(handler.syntax)
@@ -88,23 +89,19 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		val parsed = parse(request, handler.syntax)
 		if (parsed == null) {
 			logger.debug("Invalid arguments for command  command={}", cmd)
-			return flowOf(
-				CmdOutput.Data(
-					i18n.get(CmdI18n.InvalidArgs()).format(cmd, request.prog), CmdOutput.Channel.STDERR
-				),
-				CmdOutput.Done(1),
-			)
+			return flow {
+				emitI18n(i18n, CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
+				emitDone(1)
+			}
 		}
 		
 		val isSecretUnlock = cmd == "secret" && (parsed.has("unlock") || parsed.has("passwd"))
 		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked.value) {
 			logger.debug("Rejected command, keystore locked  command={}", cmd)
-			return flowOf(
-				CmdOutput.Data(
-					i18n.get(CmdI18n.KeystoreLocked()).format(request.prog), CmdOutput.Channel.STDERR
-				),
-				CmdOutput.Done(1),
-			)
+			return flow {
+				emitI18n(i18n, CmdI18n.KeystoreLocked(), request.prog, error = true)
+				emitDone(1)
+			}
 		}
 		
 		return handler.handle(parsed, prompt)

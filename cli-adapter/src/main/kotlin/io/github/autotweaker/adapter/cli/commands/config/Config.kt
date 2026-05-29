@@ -20,13 +20,18 @@ package io.github.autotweaker.adapter.cli.commands.config
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 @AutoService(Command::class)
 class Config : Command {
@@ -85,7 +90,7 @@ class Config : Command {
 		
 		if (request.has("list")) {
 			emitAll(list(core, limit, full))
-			emit(CmdOutput.Done())
+			emitDone()
 			return@flow
 		}
 		
@@ -98,7 +103,7 @@ class Config : Command {
 				else -> null
 			}
 			emitAll(search(core, limit, full, query, mode))
-			emit(CmdOutput.Done())
+			emitDone()
 			return@flow
 		}
 		
@@ -109,7 +114,7 @@ class Config : Command {
 			return@flow
 		}
 		
-		emit(CmdOutput.Done(1))
+		emitDone(1)
 		return@flow
 	}
 	
@@ -135,21 +140,21 @@ class Config : Command {
 		return printConfig(result.take(limit), full).map { CmdOutput.Data(it) }
 	}
 	
-	private fun set(core: CoreAPI, key: String, value: String): Flow<CmdOutput> {
-		val config = core.config.settingService.getAll().find { it.id == key } ?: return flowOf(
-			CmdOutput.Data(i18n.get(CfgI18n.SetNotFound()).format(key), CmdOutput.Channel.STDERR), CmdOutput.Done(1)
-		)
+	private fun set(core: CoreAPI, key: String, value: String): Flow<CmdOutput> = flow {
+		val config = core.config.settingService.getAll().find { it.id == key } ?: run {
+			emitI18n(i18n, CfgI18n.SetNotFound(), key, error = true)
+			emitDone(1)
+			return@flow
+		}
 		val newValue = try {
 			config.value.parse(value)
 		} catch (_: Exception) {
-			return flowOf(
-				CmdOutput.Data(i18n.get(CfgI18n.SetTypeError()), CmdOutput.Channel.STDERR), CmdOutput.Done(1)
-			)
+			emitI18n(i18n, CfgI18n.SetTypeError(), error = true)
+			emitDone(1)
+			return@flow
 		}
 		core.config.settingService.set(key, newValue)
-		return flowOf(
-			CmdOutput.Done()
-		)
+		emitDone()
 	}
 	
 	private fun printConfig(settings: List<SettingEntry>, full: Boolean): Flow<String> = flow {
@@ -157,7 +162,7 @@ class Config : Command {
 			settings.forEachIndexed { index, setting ->
 				emit(i18n.get(CfgI18n.OutKey()).format(sanitize(setting.id)))
 				emit(i18n.get(CfgI18n.OutDesc()).format(sanitize(setting.description)))
-				emit(i18n.get(CfgI18n.OutVal()).format(sanitize(setting.value.value.toString())))
+				emit(i18n.get(CfgI18n.OutValue()).format(sanitize(setting.value.value.toString())))
 				if (index != settings.lastIndex) emit("-".repeat(10))
 			}
 		} else {

@@ -125,7 +125,7 @@ internal class ProviderCommands(
 		val result = prompt(i18n.get(def) + " ", true)
 		if (result.isBlank()) {
 			defOnEmpty?.let {
-				emit(CmdOutput.Data(i18n.get(it), CmdOutput.Channel.STDERR))
+				emitI18n(i18n, it, error = true)
 				emitDone(1)
 			}
 			return null

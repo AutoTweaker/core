@@ -20,6 +20,8 @@ package io.github.autotweaker.adapter.cli.commands.secret
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
@@ -90,8 +92,8 @@ class Secret : Command {
 		}
 		
 		suspend fun emitInvalidArg() {
-			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidArg()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.InvalidArg(), error = true)
+			emitDone(1)
 		}
 		
 		if (request.has("key")) {
@@ -170,15 +172,15 @@ class Secret : Command {
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
 		if (core.secret.isPasswordEmpty()) {
 			logger.debug("Unlock skipped  command=secret  reason=no_password_set")
-			emit(CmdOutput.Data(i18n.get(SecretI18n.UnlockNoPassword())))
-			emit(CmdOutput.Done())
+			emitI18n(i18n, SecretI18n.UnlockNoPassword())
+			emitDone(0)
 			return@flow
 		}
 		
 		if (core.secret.isUnlocked.value) {
 			logger.debug("Unlock skipped  command=secret  reason=already_unlocked")
-			emit(CmdOutput.Data(i18n.get(SecretI18n.UnlockAlready())))
-			emit(CmdOutput.Done())
+			emitI18n(i18n, SecretI18n.UnlockAlready())
+			emitDone(0)
 			return@flow
 		}
 		
@@ -189,11 +191,11 @@ class Secret : Command {
 			logger.info("Keystore unlocked  command=secret")
 		} catch (_: Exception) {
 			logger.warn("Failed to unlock keystore  command=secret")
-			emit(CmdOutput.Data(i18n.get(SecretI18n.UnlockFailed()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.UnlockFailed(), error = true)
+			emitDone(1)
 			return@flow
 		}
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
@@ -207,11 +209,11 @@ class Secret : Command {
 			logger.info("Password removed  command=secret")
 		} catch (_: Exception) {
 			logger.warn("Failed to remove password  command=secret")
-			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidPasswd()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
+			emitDone(1)
 			return@flow
 		}
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	private fun handleChange(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
@@ -228,8 +230,8 @@ class Secret : Command {
 		
 		if (newPassword != confirm) {
 			logger.debug("Password change aborted  command=secret  reason=confirmation_mismatch")
-			emit(CmdOutput.Data(i18n.get(PasswdI18n.Mismatch()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, PasswdI18n.Mismatch(), error = true)
+			emitDone(1)
 			return@flow
 		}
 		
@@ -241,10 +243,10 @@ class Secret : Command {
 			logger.info("Password changed  command=secret")
 		} catch (_: Exception) {
 			logger.warn("Failed to change password  command=secret")
-			emit(CmdOutput.Data(i18n.get(SecretI18n.InvalidPasswd()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
+			emitDone(1)
 			return@flow
 		}
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 }

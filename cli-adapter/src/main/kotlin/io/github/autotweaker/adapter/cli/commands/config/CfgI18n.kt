@@ -129,7 +129,7 @@ internal object CfgI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class OutVal : I18nDef {
+	class OutValue : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Value: %s"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "内容: %s"),

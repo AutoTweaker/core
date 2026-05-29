@@ -19,6 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import io.github.autotweaker.adapter.cli.CmdOutput
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.llm.ModelData
@@ -57,25 +59,21 @@ internal class ProviderQueries(private val core: CoreAPI) {
 	
 	fun info(name: String): Flow<CmdOutput> = flow {
 		if (!core.config.listAvailableProviderTypes().any { it == name }) {
-			emit(
-				CmdOutput.Data(
-					i18n.get(ProvI18n.ProviderNotFound()).format(name), channel = CmdOutput.Channel.STDERR
-				)
-			)
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, ProvI18n.ProviderNotFound(), name, error = true)
+			emitDone(1)
 			return@flow
 		}
 		
 		val meta = core.config.getProviderMeta(name)
-		emit(CmdOutput.Data(i18n.get(ProvQueriesI18n.Name()).format(meta.name)))
-		emit(CmdOutput.Data(i18n.get(ProvQueriesI18n.Url()).format(meta.baseUrl.value)))
-		emit(CmdOutput.Data(i18n.get(ProvQueriesI18n.Rule())))
+		emitI18n(i18n, ProvQueriesI18n.Name(), meta.name)
+		emitI18n(i18n, ProvQueriesI18n.Url(), meta.baseUrl.value)
+		emitI18n(i18n, ProvQueriesI18n.Rule())
 		emitAll(printRules(meta.errorHandlingRules).map { CmdOutput.Data(it) })
 		meta.models.forEach {
 			emit(CmdOutput.Data(LINE))
 			emitAll(printModelInfo(it).map { info -> CmdOutput.Data(info) })
 		}
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {

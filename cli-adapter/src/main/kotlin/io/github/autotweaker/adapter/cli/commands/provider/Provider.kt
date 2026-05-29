@@ -20,6 +20,7 @@ package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
@@ -69,20 +70,20 @@ class Provider : Command {
 		val commands = ProviderCommands(core, prompt)
 		if (request.has("list")) {
 			emitAll(queries.list().map { CmdOutput.Data(it) })
-			emit(CmdOutput.Done())
+			emitDone()
 			return@flow
 		}
 		
 		if (request.has("show")) {
 			val name = request.get("show") ?: error("Missing provider name")
 			emitAll(queries.show(name).map { CmdOutput.Data(it) })
-			emit(CmdOutput.Done())
+			emitDone()
 			return@flow
 		}
 		
 		if (request.has(("types"))) {
 			emitAll(queries.types().map { CmdOutput.Data(it) })
-			emit(CmdOutput.Done())
+			emitDone()
 			return@flow
 		}
 		
@@ -116,7 +117,7 @@ class Provider : Command {
 			return@flow
 		}
 		
-		emit(CmdOutput.Done(1))
+		emitDone(1)
 		return@flow
 	}
 }

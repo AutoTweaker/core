@@ -19,6 +19,7 @@
 package io.github.autotweaker.adapter.cli.commands.secret
 
 import io.github.autotweaker.adapter.cli.CmdOutput
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.config.CoreConfig
@@ -36,7 +37,7 @@ internal class EnvManager(
 		).forEach {
 			emit(CmdOutput.Data(it))
 		}.also {
-			emit(CmdOutput.Done())
+			emitDone()
 		}
 	}
 	
@@ -44,17 +45,17 @@ internal class EnvManager(
 		val value = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false).also { emit(CmdOutput.Data("")) }
 		
 		core.config.setEnv(listOf(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig())))
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	fun get(type: EnvType, name: String): Flow<CmdOutput> = flow {
 		core.config.getEnv(type.toCoreConfig(), name)?.let { emit(CmdOutput.Data(it)) }
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	fun remove(type: EnvType, name: String): Flow<CmdOutput> = flow {
 		core.config.removeEnv(type.toCoreConfig(), name)
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	private fun EnvType.toCoreConfig(): CoreConfig.JsonConfig.Env.Type = when (this) {

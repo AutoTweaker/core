@@ -19,6 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.help
 
 import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.i18n.I18nService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -42,21 +44,21 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emit(CmdOutput.Data(i18n.get(HelpI18n.Unknown()).format(target), CmdOutput.Channel.STDERR))
-				emit(CmdOutput.Done(1))
+				emitI18n(i18n, HelpI18n.Unknown(), target, error = true)
+				emitDone(1)
 				return@flow
 			}
 			emitAll(formatDetail(cmd))
-			emit(CmdOutput.Done())
+			emitDone()
 			return@flow
 		}
-		emit(CmdOutput.Data(i18n.get(HelpI18n.Available())))
+		emitI18n(i18n, HelpI18n.Available())
 		for (cmd in all.sortedBy { it.name }) {
 			emit(CmdOutput.Data("  ${cmd.name}  —  ${cmd.description}"))
 		}
 		emit(CmdOutput.Data(""))
-		emit(CmdOutput.Data(i18n.get(HelpI18n.HelpHint()).format(request.prog)))
-		emit(CmdOutput.Done())
+		emitI18n(i18n, HelpI18n.HelpHint(), request.prog)
+		emitDone()
 	}
 	
 	private fun formatDetail(cmd: Command): Flow<CmdOutput> = flow {
@@ -64,7 +66,7 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
 			emit(CmdOutput.Data(""))
-			emit(CmdOutput.Data(i18n.get(HelpI18n.Params())))
+			emitI18n(i18n, HelpI18n.Params())
 			for (line in lines) {
 				emit(CmdOutput.Data(line))
 			}

@@ -19,6 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.secret
 
 import io.github.autotweaker.adapter.cli.CmdOutput
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.config.CoreConfig
@@ -32,25 +34,25 @@ internal class KeyManager(
 	
 	fun list(): Flow<CmdOutput> = flow {
 		core.config.listApiKeyNames().forEach { emit(CmdOutput.Data(it)) }
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	fun add(name: String): Flow<CmdOutput> = flow {
 		if (name.isBlank()) {
-			emit(CmdOutput.Data(i18n.get(SecretI18n.EmptyNameError()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.EmptyNameError(), error = true)
+			emitDone(1)
 			return@flow
 		}
 		val key = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false).also { emit(CmdOutput.Data("")) }
 		
 		if (key.isBlank()) {
-			emit(CmdOutput.Data(i18n.get(SecretI18n.EmptyKeyError()), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.EmptyKeyError(), error = true)
+			emitDone(1)
 			return@flow
 		}
 		if (core.config.listApiKeyNames().any { it == name }) {
-			emit(CmdOutput.Data(i18n.get(SecretI18n.KeyExistsError()).format(name), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.KeyExistsError(), name, error = true)
+			emitDone(1)
 			return@flow
 		}
 		
@@ -59,16 +61,16 @@ internal class KeyManager(
 				name, key
 			)
 		)
-		emit(CmdOutput.Done())
+		emitDone()
 	}
 	
 	fun remove(name: String): Flow<CmdOutput> = flow {
 		if (core.config.listApiKeyNames().any { it == name }) {
 			core.config.removeApiKey(name)
-			emit(CmdOutput.Done())
+			emitDone()
 		} else {
-			emit(CmdOutput.Data(i18n.get(SecretI18n.KeyNotFoundError()).format(name), CmdOutput.Channel.STDERR))
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, SecretI18n.KeyNotFoundError(), name, error = true)
+			emitDone(1)
 		}
 	}
 }
