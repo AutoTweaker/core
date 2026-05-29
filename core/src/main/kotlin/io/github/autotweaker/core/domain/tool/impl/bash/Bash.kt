@@ -46,7 +46,7 @@ class Bash : CoreTool {
 		envStorage = EnvStorage(this::class, secretStore)
 		settings = service
 		
-		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "<none>" }
+		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "[none]" }
 		
 		_meta = Tool.Meta(
 			name = "bash",
@@ -122,8 +122,8 @@ class Bash : CoreTool {
 		}
 		
 		val r = result ?: return Tool.ToolOutput("No result", false)
-		val stdoutStr = stdout.toString().trimEnd().ifBlank { "<empty>" }
-		val stderrStr = stderr.toString().trimEnd().ifBlank { "<empty>" }
+		val stdoutStr = stdout.toString().trimEnd().ifBlank { "[empty]" }
+		val stderrStr = stderr.toString().trimEnd().ifBlank { "[empty]" }
 		val duration = String.format("%.3f", r.result.duration.inWholeMicroseconds / 1_000_000.0)
 		
 		logger.debug(

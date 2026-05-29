@@ -159,7 +159,7 @@ class BashTest {
 	fun `meta env_ids description references available envs`() {
 		val runFunc = bash.meta.functions.first()
 		val envIds = runFunc.parameters["env_ids"]!!
-		assertTrue(envIds.description.contains("<none>"))
+		assertTrue(envIds.description.contains("[none]"))
 	}
 	
 	// endregion
@@ -300,8 +300,8 @@ class BashTest {
 		bash.init(defaultSettings, secretStore)
 		val input = ToolInput(args("cmd"))
 		val result = bash.coreExec(container(bashService), input)
-		
-		assertTrue(result.result.contains("<empty>"))
+
+		assertTrue(result.result.contains("[empty]"))
 		assertTrue(result.result.contains("some error"))
 	}
 	
@@ -314,8 +314,8 @@ class BashTest {
 		bash.init(defaultSettings, secretStore)
 		val input = ToolInput(args("cmd"))
 		val result = bash.coreExec(container(bashService), input)
-		
-		assertTrue(result.result.contains("<empty>"))
+
+		assertTrue(result.result.contains("[empty]"))
 		assertTrue(result.result.contains("out"))
 	}
 	

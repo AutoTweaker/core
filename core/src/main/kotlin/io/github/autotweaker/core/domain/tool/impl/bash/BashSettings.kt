@@ -73,10 +73,12 @@ object BashSettings {
 		override val default = SettingValue.ValString(
 			"""
 			命令已执行，退出码：%s，执行时间：%s秒
+			
 			标准输出：
 			<stdout>
 			%s
 			</stdout>
+			
 			标准错误：
 			<stderr>
 			%s

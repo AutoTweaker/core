@@ -41,7 +41,7 @@ class Model : Command {
 				Syntax.leaf(Param.Flag("add", "none")),
 				Syntax.leaf(Param.Flag("name", "none")),
 				Syntax.leaf(Param.Value("provider", "none")),
-				Syntax.leaf(Param.Value("type", "none"))
+				Syntax.leaf(Param.Value("id", "none"))
 			)
 		)
 	
@@ -52,6 +52,6 @@ class Model : Command {
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
-	
+		return@flow
 	}
 }

@@ -182,13 +182,13 @@ class ToolsTest {
 			)
 		)
 		tools.add(tool)
-		
+
 		val results = tools.resolveToolCalls(listOf(pendingToolCall("c1", "bash")))
-		
+
 		assertEquals(1, results.size)
 		val activation = results[0] as Tools.ToolCallResolveResult.Activation
 		assertTrue(tools.entries[0].active)
-		assertTrue(activation.message.contains("[run]"))
+		assertTrue(activation.message.contains("bash_run"))
 	}
 	
 	@Test

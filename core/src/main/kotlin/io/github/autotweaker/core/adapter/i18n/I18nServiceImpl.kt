@@ -51,7 +51,10 @@ object I18nServiceImpl : I18nService {
 		}
 	}
 	
-	override fun getLanguage(): Locale = language
+	override fun getLanguage(): Locale {
+		ensureInit()
+		return language
+	}
 	
 	private fun ensureInit() {
 		if (initialized) return
@@ -71,6 +74,7 @@ object I18nServiceImpl : I18nService {
 	}
 	
 	private fun save() {
+		ensureInit()
 		jsonEntry.set(Json.encodeToJsonElement(Store(cache, language)))
 	}
 	
