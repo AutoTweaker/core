@@ -24,12 +24,12 @@ import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
 import org.slf4j.LoggerFactory
+import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.util.*
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
 object AutoTweaker : CoreAPI.AdapterAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -48,6 +48,8 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	private val lockFile: Path = Path.of(
 		System.getProperty("user.home"), ".config", "autotweaker", "autotweaker.lock"
 	)
+	private var lockChannel: FileChannel? = null
+	private var fileLock: FileLock? = null
 	
 	fun start() {
 		Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
@@ -60,24 +62,24 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 			logger.info("AutoTweaker shutdown initiated")
 			Launcher.shutdown(registry)
 			PluginLoader.closeClassLoaders()
-			lockFile.deleteIfExists()
+			releaseLock()
 			logger.info("AutoTweaker shutdown completed")
 		})
 	}
 	
 	private fun acquireLock() {
 		Files.createDirectories(lockFile.parent)
-		try {
-			Files.createFile(lockFile)
-		} catch (_: java.nio.file.FileAlreadyExistsException) {
-			val pid = lockFile.readText().trim().toLongOrNull()
-			if (pid != null && ProcessHandle.of(pid).isPresent) {
-				throw IllegalStateException("Another instance is already running (pid=$pid)")
-			}
-			lockFile.deleteIfExists()
-			Files.createFile(lockFile)
+		val channel = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
+		lockChannel = channel
+		val lock = channel.tryLock()
+		if (lock == null) {
+			channel.close()
+			throw IllegalStateException("Another instance is already running")
 		}
-		lockFile.writeText(ProcessHandle.current().pid().toString())
+		fileLock = lock
+		channel.truncate(0)
+		channel.write(java.nio.ByteBuffer.wrap(ProcessHandle.current().pid().toString().toByteArray()))
+		channel.force(true)
 		logger.debug("Lock acquired  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
@@ -97,4 +99,14 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	
 	private fun requireAdapter(name: String): Pair<Adapter, AdapterInfo> =
 		registry[name] ?: error("Unknown adapter: $name")
+	
+	private fun releaseLock() {
+		try {
+			fileLock?.release()
+			lockChannel?.close()
+			Files.deleteIfExists(lockFile)
+		} catch (e: Exception) {
+			logger.warn("Failed to release lock  lockFile={}", lockFile, e)
+		}
+	}
 }

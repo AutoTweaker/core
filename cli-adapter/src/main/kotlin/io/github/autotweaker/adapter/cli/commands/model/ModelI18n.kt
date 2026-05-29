@@ -25,6 +25,13 @@ import java.util.*
 
 internal object ModelI18n {
 	@AutoService(I18nDef::class)
+	class Description : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "管理模型配置"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
 	class ParamList : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出所有模型"),

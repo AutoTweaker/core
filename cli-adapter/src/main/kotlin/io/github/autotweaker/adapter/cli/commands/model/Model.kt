@@ -20,7 +20,6 @@ package io.github.autotweaker.adapter.cli.commands.model
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.commands.version.VersionI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
@@ -33,7 +32,7 @@ class Model : Command {
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name = "model"
-	override val description get() = i18n.get(VersionI18n.Desc())
+	override val description get() = i18n.get(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.leaf(Param.Flag("list", "none")),
