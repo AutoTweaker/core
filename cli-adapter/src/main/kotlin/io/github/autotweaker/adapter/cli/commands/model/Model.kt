@@ -41,7 +41,7 @@ class Model : Command {
 				Syntax.leaf(Param.Value("name", "none")),
 				Syntax.leaf(Param.Value("provider", "none")),
 				Syntax.leaf(Param.Value("id", "none"))
-			), Syntax.leaf(Param.Value("add-all", "none"))
+			), Syntax.leaf(Param.Value("add-all", "none", aliases = emptyList()))
 		)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
