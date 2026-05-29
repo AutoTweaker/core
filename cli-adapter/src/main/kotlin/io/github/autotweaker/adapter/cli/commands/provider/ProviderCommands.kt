@@ -19,6 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import io.github.autotweaker.adapter.cli.CmdOutput
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
@@ -39,16 +41,16 @@ internal class ProviderCommands(
 		val type = type ?: promptOrNull(ProvCommandsI18n.PromptType(), ProvCommandsI18n.MissingType()) ?: return@flow
 		
 		if (core.config.listAvailableProviderTypes().find { it == type } == null) {
-			emitI18n(ProvCommandsI18n.InvalidType(), error = true)
-			emit(CmdOutput.Done(1))
+			emitI18n(i18n, ProvCommandsI18n.InvalidType(), error = true)
+			emitDone(1)
 			return@flow
 		}
 		
 		val key = key ?: promptOrNull(ProvCommandsI18n.PromptKey(), ProvCommandsI18n.MissingKey()) ?: return@flow
 		
 		if (core.config.listApiKeyNames().find { it == key } == null) {
-			emitI18n(ProvCommandsI18n.InvalidKey(), error = true)
-			emitDone()
+			emitI18n(i18n, ProvCommandsI18n.InvalidKey(), error = true)
+			emitDone(1)
 			return@flow
 		}
 		
@@ -58,8 +60,8 @@ internal class ProviderCommands(
 			try {
 				Url(it)
 			} catch (e: IllegalArgumentException) {
-				emitI18n(ProvCommandsI18n.InvalidUrl(), e.message ?: "Unknown Error", error = true)
-				emitDone()
+				emitI18n(i18n, ProvCommandsI18n.InvalidUrl(), e.message ?: "Unknown Error", error = true)
+				emitDone(1)
 				return@flow
 			}
 		} ?: core.config.getProviderMeta(type).baseUrl
@@ -74,18 +76,19 @@ internal class ProviderCommands(
 				errorHandlingRules = core.config.getProviderMeta(type).errorHandlingRules,
 			)
 		)
-		emitDone(0)
+		emitDone()
 	}
 	
 	fun remove(name: String, yes: Boolean): Flow<CmdOutput> = flow {
 		val ids = core.config.listProviders().filter { it.displayName == name }.map { it.id }
 		if (ids.isEmpty()) {
-			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
+			emitI18n(i18n, ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		if (!yes) {
-			emitI18n(ProvCommandsI18n.RemoveListCount(), core.config.listProviders().count { it.displayName == name })
+			emitI18n(
+				i18n, ProvCommandsI18n.RemoveListCount(), core.config.listProviders().count { it.displayName == name })
 			ids.forEach { emit(CmdOutput.Data(it.toString())) }
 			val sure = promptOrNull(ProvCommandsI18n.RemoveConfirm())
 			if (sure != "yes" && sure != "y") {
@@ -100,13 +103,13 @@ internal class ProviderCommands(
 	
 	fun rename(name: String, new: String): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == name } ?: run {
-			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
+			emitI18n(i18n, ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		
 		if (core.config.listProviders().any { it.displayName == new }) {
-			emitI18n(ProvCommandsI18n.ProviderExistsError(), new, error = true)
+			emitI18n(i18n, ProvCommandsI18n.ProviderExistsError(), new, error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -123,19 +126,10 @@ internal class ProviderCommands(
 		if (result.isBlank()) {
 			defOnEmpty?.let {
 				emit(CmdOutput.Data(i18n.get(it), CmdOutput.Channel.STDERR))
-				emitDone()
+				emitDone(1)
 			}
 			return null
 		}
 		return result
 	}
-	
-	private suspend fun FlowCollector<CmdOutput>.emitI18n(def: I18nDef, vararg args: Any, error: Boolean = false) =
-		emit(
-			CmdOutput.Data(
-				i18n.get(def).format(*args), if (error) CmdOutput.Channel.STDERR else CmdOutput.Channel.STDOUT
-			)
-		)
-	
-	private suspend fun FlowCollector<CmdOutput>.emitDone(exitCode: Int = 1) = emit(CmdOutput.Done(exitCode))
 }

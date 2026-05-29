@@ -18,39 +18,23 @@
 
 package io.github.autotweaker.adapter.cli.commands.model
 
-import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
-import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-@AutoService(Command::class)
-class Model : Command {
-	lateinit var core: CoreAPI
+internal class ModelAdd(
+	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
+) {
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
-	override val name = "model"
-	override val description get() = i18n.get(ModelI18n.Description())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("list", "none")),
-			Syntax.all(
-				Syntax.leaf(Param.Flag("add", "none")),
-				Syntax.leaf(Param.Value("name", "none")),
-				Syntax.leaf(Param.Value("provider", "none")),
-				Syntax.leaf(Param.Value("id", "none"))
-			), Syntax.leaf(Param.Value("add-all", "none"))
-		)
-	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
-		this.core = core
-	}
-	
-	override fun handle(
-		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<CmdOutput> = flow {
-		TODO()
+	fun addAll(providerType: String): Flow<CmdOutput> = flow {
+		val provider = core.config.listAvailableProviderTypes().find { it == providerType } ?: run {
+			emitI18n(i18n, ModelI18n.ProviderTypeNotFound())
+			emitDone(1)
+		}
 	}
 }

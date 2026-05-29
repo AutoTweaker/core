@@ -41,7 +41,42 @@ internal object ModelI18n {
 	@AutoService(I18nDef::class)
 	class ParamAdd : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加模型，指定名称"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加模型"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ParamAddName : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的显示名称"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ParamAddProvider : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的提供商名称"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ParamAddId : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的ID，如deepseek-v4-pro"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ParamAddAll : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加指定提供商类型下的所有模型"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ProviderTypeNotFound : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到类型为 %s 的提供商"),
 		)
 	}
 }

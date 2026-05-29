@@ -18,9 +18,25 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.i18n.I18nService
+import kotlinx.coroutines.flow.FlowCollector
+
 sealed class CmdOutput {
 	data class Data(val text: String, val channel: Channel = Channel.STDOUT, val newline: Boolean = true) : CmdOutput()
 	data class Done(val exitCode: Int = 0) : CmdOutput()
 	
 	enum class Channel { STDOUT, STDERR }
+	
+	companion object {
+		suspend fun FlowCollector<CmdOutput>.emitI18n(
+			i18n: I18nService, def: I18nDef, vararg args: Any, error: Boolean = false
+		) = emit(
+			Data(
+				i18n.get(def).format(*args), if (error) Channel.STDERR else Channel.STDOUT
+			)
+		)
+		
+		suspend fun FlowCollector<CmdOutput>.emitDone(exitCode: Int = 0) = emit(Done(exitCode))
+	}
 }
