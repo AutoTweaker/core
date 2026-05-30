@@ -78,26 +78,26 @@ class CoreAPIImpl(
 		override suspend fun send(sessionId: UUID, content: String, images: List<Base64>?) =
 			SessionManager.send(sessionId, content, images)
 		
-		override suspend fun stop(sessionId: UUID) = SessionManager.stop(sessionId) ?: Unit
-		override fun pause(sessionId: UUID) = SessionManager.pauseAgent(sessionId) ?: Unit
-		override fun resume(sessionId: UUID) = SessionManager.resumeAgent(sessionId) ?: Unit
-		override fun cancel(sessionId: UUID) = SessionManager.cancelAgent(sessionId) ?: Unit
-		override fun retry(sessionId: UUID) = SessionManager.retryAgent(sessionId) ?: Unit
-		override fun compact(sessionId: UUID) = SessionManager.compactAgent(sessionId) ?: Unit
-		override fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>) =
+		override suspend fun stop(sessionId: UUID) = SessionManager.stop(sessionId)
+		override suspend fun pause(sessionId: UUID) = SessionManager.pauseAgent(sessionId)
+		override suspend fun resume(sessionId: UUID) = SessionManager.resumeAgent(sessionId)
+		override suspend fun cancel(sessionId: UUID) = SessionManager.cancelAgent(sessionId)
+		override suspend fun retry(sessionId: UUID) = SessionManager.retryAgent(sessionId)
+		override suspend fun compact(sessionId: UUID) = SessionManager.compactAgent(sessionId)
+		override suspend fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>) =
 			SessionManager.approveToolCall(sessionId, approvals)
 		
-		override fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
-		override fun updateTitle(sessionId: UUID, title: String) = SessionManager.updateTitle(sessionId, title)
-		override fun updateConfig(sessionId: UUID, config: SessionConfig) =
-			SessionManager.updateConfig(sessionId, config) ?: Unit
+		override suspend fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
+		override suspend fun updateTitle(sessionId: UUID, title: String) = SessionManager.updateTitle(sessionId, title)
+		override suspend fun updateConfig(sessionId: UUID, config: SessionConfig) =
+			SessionManager.updateConfig(sessionId, config)
 		
 		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
 		override suspend fun loadContext(sessionId: UUID) = SessionManager.loadContext(sessionId)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
 		override fun getUsageSnapshots() = UsageStore.getSnapshots()
 		override fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
-		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
+		override fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
 		override fun listWorkspaces() = WorkspaceAPI.list()
 	}

@@ -54,22 +54,22 @@ interface CoreAPI {
 	}
 	
 	interface SessionAPI {
-		suspend fun create(config: SessionConfig): SessionHandle
-		suspend fun create(workspaceId: UUID, config: SessionConfig): SessionHandle
+		suspend fun create(config: SessionConfig): UUID
+		suspend fun create(workspaceId: UUID, config: SessionConfig): UUID
 		suspend fun delete(sessionId: UUID)
-		fun getHandle(sessionId: UUID): SessionHandle?
-		fun updateTitle(sessionId: UUID, title: String)
-		fun updateConfig(sessionId: UUID, config: SessionConfig)
+		suspend fun getHandle(sessionId: UUID): SessionHandle
+		suspend fun updateTitle(sessionId: UUID, title: String)
+		suspend fun updateConfig(sessionId: UUID, config: SessionConfig)
 		
 		suspend fun stop(sessionId: UUID)
-		fun pause(sessionId: UUID)
-		fun resume(sessionId: UUID)
-		fun cancel(sessionId: UUID)
-		fun retry(sessionId: UUID)
-		fun compact(sessionId: UUID)
+		suspend fun pause(sessionId: UUID)
+		suspend fun resume(sessionId: UUID)
+		suspend fun cancel(sessionId: UUID)
+		suspend fun retry(sessionId: UUID)
+		suspend fun compact(sessionId: UUID)
 		
 		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
-		fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
+		suspend fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
 		
 		suspend fun loadData(ids: List<UUID>): List<SessionData>?
 		suspend fun loadContext(sessionId: UUID): SessionContext?
@@ -78,7 +78,7 @@ interface CoreAPI {
 		fun getUsageSnapshots(): List<UsageSnapshot>
 		
 		fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
-		suspend fun renameWorkspace(id: UUID, newName: String)
+		fun renameWorkspace(id: UUID, newName: String)
 		suspend fun deleteWorkspace(id: UUID)
 		fun listWorkspaces(): List<WorkspaceData>
 	}
@@ -118,7 +118,7 @@ interface CoreAPI {
 	interface SecretAPI {
 		val isUnlocked: StateFlow<Boolean>
 		fun isPasswordEmpty(): Boolean
-
+		
 		fun unlock(password: String)
 		fun changePassword(oldPassword: String, newPassword: String)
 	}

@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
+import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.model.Model
@@ -39,6 +40,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 internal object SessionManager {
+	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value
@@ -61,80 +63,64 @@ internal object SessionManager {
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	private val dataJobs = ConcurrentHashMap<UUID, Job>()
-	
-	private fun startMonitor(session: Session) {
-		val id = session.data.value.id
-		dataJobs[id] = scope.launch {
-			session.data.collectLatest { store.saveSessions(listOf(it)) }
-		}
-	}
+	//endregion
 	
 	suspend fun send(session: UUID, content: String, images: List<Base64>? = null) {
-		val session = if (sessions[session] != null) sessions[session]
-		else {
-			restore(session)
-			sessions[session]
-		}
+		sessionOrRestore(session).send(content, images)
 		logger.debug("Sent message  sessionId={}  charCount={}", session, content.length)
-		session?.send(content, images)
 	}
 	
-	suspend fun stop(session: UUID) = sessions[session]?.stop()
+	suspend fun stop(session: UUID) = sessionOrRestore(session).stop()
 	
-	fun pauseAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Pause)
+	suspend fun pauseAgent(session: UUID) = sessionOrRestore(session).dispatch(AgentCommand.Directive.Pause)
 	
-	fun resumeAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Resume)
+	suspend fun resumeAgent(session: UUID) = sessionOrRestore(session).dispatch(AgentCommand.Directive.Resume)
 	
-	fun cancelAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Cancel)
+	suspend fun cancelAgent(session: UUID) = sessionOrRestore(session).dispatch(AgentCommand.Directive.Cancel)
 	
-	fun retryAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Retry)
+	suspend fun retryAgent(session: UUID) = sessionOrRestore(session).dispatch(AgentCommand.Directive.Retry)
 	
-	fun compactAgent(session: UUID) = sessions[session]?.dispatch(AgentCommand.Directive.Compact)
+	suspend fun compactAgent(session: UUID) = sessionOrRestore(session).dispatch(AgentCommand.Directive.Compact)
 	
-	fun approveToolCall(session: UUID, approvals: List<ToolApprove>) {
-		sessions[session]?.dispatch(AgentCommand.Message.ApproveToolCall(approvals))
+	suspend fun approveToolCall(session: UUID, approvals: List<ToolApprove>) {
+		sessionOrRestore(session).dispatch(AgentCommand.Message.ApproveToolCall(approvals))
 	}
 	
-	fun get(id: UUID): SessionHandle? = sessions[id]?.let { getHandle(it) }
+	suspend fun get(id: UUID): SessionHandle = getHandle(sessionOrRestore(id))
 	
-	suspend fun shutdown() {
-		logger.info("SessionManager shutdown initiated  activeSessions={}", sessions.size)
-		sessions.keys.toList().forEach { id ->
-			runCatching { stop(id) }
-		}
-		scope.cancel()
-		logger.info("SessionManager shutdown completed")
+	suspend fun delete(id: UUID) {
+		sessions[id]?.stop()
+		dataJobs[id]?.cancel()
+		sessions.remove(id)
+		store.deleteSessions(listOf(id))
+		logger.info("Deleted session  id={}", id)
 	}
 	
-	suspend fun delete(sessionId: UUID) {
-		val session = sessions[sessionId] ?: error("Session not found: $sessionId")
-		session.stop()
-		sessions.remove(sessionId)
-		store.deleteSessions(listOf(sessionId))
-		dataJobs[sessionId]?.cancel()
-		logger.info("Deleted session  sessionId={}", sessionId)
+	suspend fun updateTitle(session: UUID, title: String) {
+		sessionOrRestore(session).updateTitle(title)
+		logger.debug("Updated session title  session={} title={}", session, title)
 	}
 	
-	fun updateTitle(sessionId: UUID, title: String) {
-		sessions[sessionId]?.updateTitle(title)
+	suspend fun updateConfig(session: UUID, config: SessionConfig) {
+		sessionOrRestore(session).updateConfig(config)
+		logger.debug("Updated session config  session={}", session)
 	}
 	
-	fun updateConfig(session: UUID, config: SessionConfig) = sessions[session]?.updateConfig(config)
-	
-	suspend fun create(config: SessionConfig): SessionHandle {
+	suspend fun create(config: SessionConfig): UUID {
 		val ws = wsm.getOrCreateDefault()
 		return create(ws.meta.id, config)
 	}
 	
-	suspend fun create(workspaceId: UUID, config: SessionConfig): SessionHandle {
-		val data = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
-		if (data.meta.inContainer && !ContainerManager.isRunning) ContainerManager.start()
+	suspend fun create(workspaceId: UUID, config: SessionConfig): UUID {
+		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
+		if (workspaceData.meta.inContainer && !ContainerManager.isRunning) ContainerManager.start()
+		val data = SessionData(id = UUID.randomUUID(), title = null, workspaceId = workspaceId, config = config)
 		val session = Session(
-			config = config,
+			data = data,
 			context = SessionContext.emptyContext(systemPrompt),
 			store = store,
 			resolveModel = ::resolveModel,
-			workspace = data.meta,
+			workspace = workspaceData.meta,
 			containerConfig = ContainerConfig(),
 			service = Settings,
 			secretStore = secretStore,
@@ -142,31 +128,25 @@ internal object SessionManager {
 		sessions[session.data.value.id] = session
 		startMonitor(session)
 		wsm.updateData(
-			id = data.meta.id, sessionIds = data.sessionIds.orEmpty() + session.data.value.id
+			id = workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + session.data.value.id
 		)
 		store.saveSessions(listOf(session.data.value))
-		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, data.meta.id)
-		return getHandle(session)
-	}
-	
-	internal suspend fun updateWorkspaceName(id: UUID, new: String) = store.loadAllSessions()?.forEach {
-		if (it.workspaceId == id) {
-			sessions[it.id]?.updateWorkspaceName(new)
-		}
+		logger.info("Session created  sessionId={} workspaceId={}", session.data.value.id, workspaceData.meta.id)
+		return data.id
 	}
 	
 	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids)
-	
 	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
+	suspend fun loadContext(id: UUID) = store.loadContext(id)
 	
-	suspend fun loadContext(sessionId: UUID) = store.loadContext(sessionId)
+	private suspend fun sessionOrRestore(id: UUID): Session = sessions[id] ?: restore(id)
 	
-	private suspend fun restore(id: UUID): SessionHandle {
+	private suspend fun restore(id: UUID): Session {
 		val data = store.loadSessions(listOf(id))?.first() ?: error("$id not found")
 		val context = store.loadContext(data.id) ?: SessionContext.emptyContext(systemPrompt)
 		val workspaceId = data.workspaceId
 		val session = Session(
-			config = data.config,
+			data = data,
 			context = context,
 			store = store,
 			resolveModel = ::resolveModel,
@@ -178,7 +158,7 @@ internal object SessionManager {
 		sessions[session.data.value.id] = session
 		startMonitor(session)
 		logger.info("Restored session  sessionId={}  workspaceId={}", session.data.value.id, workspaceId)
-		return getHandle(session)
+		return session
 	}
 	
 	private fun getHandle(session: Session): SessionHandle = SessionHandle(
@@ -188,4 +168,20 @@ internal object SessionManager {
 		status = session.agentStatus,
 		data = session.data,
 	)
+	
+	private fun startMonitor(session: Session) {
+		val id = session.data.value.id
+		dataJobs[id] = scope.launch {
+			session.data.collectLatest {
+				store.saveSessions(listOf(it))
+			}
+		}
+	}
+	
+	suspend fun shutdown() {
+		logger.info("SessionManager shutdown initiated  activeSessions={}", sessions.size)
+		sessions.keys.toList().forEach { id -> runCatching { stop(id) } }
+		scope.cancel()
+		logger.info("SessionManager shutdown completed")
+	}
 }

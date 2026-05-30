@@ -37,11 +37,10 @@ internal object WorkspaceAPI {
 		return data
 	}
 	
-	suspend fun rename(id: UUID, newName: String) {
+	fun rename(id: UUID, newName: String) {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		require(!wsm.getAll().any { it.meta.displayName == newName })
 		wsm.updateMeta(data.meta.copy(displayName = newName))
-		SessionManager.updateWorkspaceName(id, newName)
 		logger.info("Renamed workspace  id={}  newName={}", id, newName)
 	}
 	

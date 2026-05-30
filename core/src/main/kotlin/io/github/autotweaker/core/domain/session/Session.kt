@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 
 internal class Session(
-	config: SessionConfig,
+	data: SessionData,
 	context: SessionContext,
 	private val store: SessionRepository,
 	private val resolveModel: (UUID) -> Model,
@@ -55,6 +55,7 @@ internal class Session(
 	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
 ) {
+	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	private val _tools: List<Tool> = run {
@@ -68,14 +69,7 @@ internal class Session(
 		plugins + cores.filter { it.meta.name !in pluginNames }
 	}
 	
-	private val _data = MutableStateFlow(
-		SessionData(
-			id = UUID.randomUUID(),
-			title = null,
-			workspaceId = workspace.id,
-			config = config,
-		)
-	)
+	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
 	
 	private val _context = MutableStateFlow(context)
@@ -84,7 +78,7 @@ internal class Session(
 	private val messages = ConcurrentHashMap<UUID, SessionMessage>()
 	
 	private val agents = mutableMapOf<UUID, Agent>()
-	val agent: Agent? get() = agents.values.firstOrNull()
+	private val agent: Agent? get() = agents.values.firstOrNull()
 	
 	private val _sessionOutput = MutableSharedFlow<SessionOutput>(
 		extraBufferCapacity = 64
@@ -115,46 +109,7 @@ internal class Session(
 		}
 	}
 	
-	private fun toAgentContext(): AgentContext {
-		return SessionContextConverter.toAgentContext(
-			context = _context.value, messages = messages.values.toList(), maxCompactedRounds = maxCompactedRounds
-		)
-	}
-	
-	private suspend fun save() {
-		store.saveContext(_data.value.id, _context.value)
-		if (messages.isNotEmpty()) {
-			store.saveMessages(messages.values.toList())
-		}
-	}
-	
-	private suspend fun updateContext(context: SessionContext) {
-		_context.update { context }
-		save()
-	}
-	
-	private suspend fun saveMessages(newMessages: List<SessionMessage>) {
-		newMessages.forEach { messages[it.id] = it }
-		UsageStore.collect(newMessages)
-		save()
-	}
-	
-	private fun createAgent() {
-		val fallbackModels = _data.value.config.fallbackModel?.map { resolveModel(it) }
-		val newAgent = Agent(
-			context = toAgentContext(),
-			workspace = workspace,
-			model = resolveModel(_data.value.config.model),
-			fallbackModels = fallbackModels?.ifEmpty { null },
-			thinking = _data.value.config.thinking,
-			summarizeModel = resolveModel(_data.value.config.summarizeModel),
-			containerConfig = containerConfig,
-			service = service,
-			secretStore = secretStore,
-			tools = _tools,
-		)
-		agents[newAgent.agentId] = newAgent
-	}
+	//endregion
 	
 	fun dispatch(command: AgentCommand) {
 		val target = agent ?: error("No agent created")
@@ -175,10 +130,6 @@ internal class Session(
 	
 	fun updateTitle(title: String) {
 		_data.update { _data.value.copy(title = title) }
-	}
-	
-	fun updateWorkspaceName(name: String) {
-		workspace = workspace.copy(displayName = name)
 	}
 	
 	suspend fun send(content: String, images: List<Base64>? = null) {
@@ -215,6 +166,7 @@ internal class Session(
 		scope.cancel()
 		logger.info("Session stopped  sessionId={}", _data.value.id)
 	}
+	
 	
 	private suspend fun syncContext(ctx: AgentContext) {
 		val oldCtx = _context.value
@@ -267,5 +219,46 @@ internal class Session(
 		}
 		
 		else -> null
+	}
+	
+	private fun toAgentContext(): AgentContext {
+		return SessionContextConverter.toAgentContext(
+			context = _context.value, messages = messages.values.toList(), maxCompactedRounds = maxCompactedRounds
+		)
+	}
+	
+	private suspend fun save() {
+		store.saveContext(_data.value.id, _context.value)
+		if (messages.isNotEmpty()) {
+			store.saveMessages(messages.values.toList())
+		}
+	}
+	
+	private suspend fun updateContext(context: SessionContext) {
+		_context.update { context }
+		save()
+	}
+	
+	private suspend fun saveMessages(newMessages: List<SessionMessage>) {
+		newMessages.forEach { messages[it.id] = it }
+		UsageStore.collect(newMessages)
+		save()
+	}
+	
+	private fun createAgent() {
+		val fallbackModels = _data.value.config.fallbackModel?.map { resolveModel(it) }
+		val newAgent = Agent(
+			context = toAgentContext(),
+			workspace = workspace,
+			model = resolveModel(_data.value.config.model),
+			fallbackModels = fallbackModels?.ifEmpty { null },
+			thinking = _data.value.config.thinking,
+			summarizeModel = resolveModel(_data.value.config.summarizeModel),
+			containerConfig = containerConfig,
+			service = service,
+			secretStore = secretStore,
+			tools = _tools,
+		)
+		agents[newAgent.agentId] = newAgent
 	}
 }
