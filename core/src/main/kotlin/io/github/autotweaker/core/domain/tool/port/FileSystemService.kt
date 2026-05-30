@@ -28,4 +28,6 @@ interface FileSystemService {
 	suspend fun readUnicode(path: Path): List<Unicode>
 	suspend fun readAllLines(path: Path): List<String>
 	suspend fun sha256(path: Path): String
+	
+	class PathOutsideWorkspaceException(path: Path) : IllegalStateException("Path is outside workspace: $path")
 }

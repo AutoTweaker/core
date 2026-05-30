@@ -126,11 +126,15 @@ class Read : CoreTool {
 		} catch (_: Exception) {
 			return Tool.ToolOutput(s.get(ToolSettings.PathErrorMessage()).value, false)
 		}
-		if (!fs.exists(normalizedPath)) {
-			return Tool.ToolOutput(s.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
-		}
-		if (!fs.isRegularFile(normalizedPath)) {
-			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
+		try {
+			if (!fs.exists(normalizedPath)) {
+				return Tool.ToolOutput(s.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
+			}
+			if (!fs.isRegularFile(normalizedPath)) {
+				return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
+			}
+		} catch (_: FileSystemService.PathOutsideWorkspaceException) {
+			return Tool.ToolOutput(s.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
 		}
 		
 		logger.debug(

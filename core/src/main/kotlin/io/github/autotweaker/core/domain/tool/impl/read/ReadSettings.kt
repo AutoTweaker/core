@@ -107,8 +107,15 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MessageFileCannotReadSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏")
+		override val default =
+			SettingValue.ValString("请求路径是一个目录、文件是一个二进制文件、文件所使用的编码不支持或文件已损坏")
 		override val description = "read工具读取的文件无法解析时的描述"
+	}
+	
+	@AutoService(SettingDef::class)
+	class MessagePathOutsideWorkspaceSetting : SettingDef<SettingValue.ValString> {
+		override val default = SettingValue.ValString("请求的文件路径在工作目录外部")
+		override val description = "read工具在容器内读取工作目录外的文件时的描述"
 	}
 	
 	@AutoService(SettingDef::class)

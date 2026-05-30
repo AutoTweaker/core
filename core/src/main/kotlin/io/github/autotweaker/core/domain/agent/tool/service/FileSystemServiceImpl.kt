@@ -28,19 +28,20 @@ internal class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
 	private val env: AgentEnvironment,
 ) : FileSystemService {
-	private val root: Path get() = env.workspace.path.normalize()
 	private val inContainer: Boolean get() = env.containerConfig.isContainerPath(env.workspace.path)
 	private val containerMount: Path get() = env.containerConfig.workDir.normalize()
 	private val hostMount: Path get() = env.containerConfig.workspaceHostPath.normalize()
+	private val workspaceInContainer: Path get() = containerMount.resolve(hostMount.relativize(env.workspace.path))
 	
 	override fun normalize(filePath: String): Path {
 		val path = Path.of(filePath)
-		return if (path.isAbsolute) path.normalize() else root.resolve(path).normalize()
+		return if (path.isAbsolute) path.normalize() else workspaceInContainer.resolve(path).normalize()
 	}
 	
 	private fun resolve(path: Path): Path {
 		if (!inContainer) return path
-		return hostMount.resolve(containerMount.relativize(path)).normalize()
+		if (!path.startsWith(containerMount)) throw FileSystemService.PathOutsideWorkspaceException(path)
+		return hostMount.resolve(containerMount.relativize(path))
 	}
 	
 	override suspend fun exists(path: Path): Boolean = fs.exists(resolve(path))
