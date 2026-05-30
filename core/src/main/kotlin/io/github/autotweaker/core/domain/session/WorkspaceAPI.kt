@@ -23,6 +23,7 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 internal object WorkspaceAPI {
@@ -31,6 +32,9 @@ internal object WorkspaceAPI {
 	
 	fun create(meta: WorkspaceMeta): WorkspaceData {
 		require(!wsm.getAll().any { it.meta.displayName == meta.displayName })
+		val home = Path.of(System.getProperty("user.home"))
+		val resolved = if (meta.path.isAbsolute) meta.path else home.resolve(meta.path)
+		val meta = meta.copy(path = resolved)
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
 		val data = wsm.create(meta)
 		logger.info("Created workspace  id={}  name={}  path={}", data.meta.id, meta.displayName, meta.path)
