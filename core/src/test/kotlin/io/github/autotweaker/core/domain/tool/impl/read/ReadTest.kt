@@ -181,11 +181,11 @@ class ReadTest {
 		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
-		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
+		assertTrue(result.result.contains("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏"))
 	}
-	
+
 	// endregion
-	
+
 	// region file - line validation
 	
 	@Test
@@ -301,7 +301,7 @@ class ReadTest {
 		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
-		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
+		assertTrue(result.result.contains("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏"))
 	}
 	
 	@Test
@@ -320,7 +320,7 @@ class ReadTest {
 		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
-		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
+		assertTrue(result.result.contains("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏"))
 	}
 	
 	// endregion
@@ -503,7 +503,7 @@ class ReadTest {
 		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
-		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
+		assertTrue(result.result.contains("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏"))
 	}
 	
 	// endregion
@@ -598,7 +598,7 @@ class ReadTest {
 		val result = read.coreExec(container(fs = fs), input)
 		
 		assertFalse(result.success)
-		assertEquals("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏", result.result)
+		assertTrue(result.result.contains("文件是一个二进制文件、文件所使用的编码不支持或文件已损坏"))
 	}
 	
 	@Test

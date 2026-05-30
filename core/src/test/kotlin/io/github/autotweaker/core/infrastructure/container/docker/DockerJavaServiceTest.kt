@@ -32,6 +32,7 @@ import io.github.autotweaker.core.infrastructure.container.ContainerOperationExc
 import io.mockk.*
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -53,15 +54,9 @@ class DockerJavaServiceTest {
 		val client = mockk<DockerClientImpl>(relaxed = true)
 		mockkStatic(DockerClientImpl::class)
 		every { DockerClientImpl.getInstance() } returns client
-		
-		val pullImageCmd = mockk<PullImageCmd>()
-		every { pullImageCmd.exec(any<PullImageResultCallback>()) } answers {
-			val cb = firstArg<PullImageResultCallback>()
-			cb.onComplete()
-			cb
-		}
-		every { client.pullImageCmd(any()) } returns pullImageCmd
-		
+		mockkStatic(Files::class)
+		every { Files.createDirectories(any()) } returns mockk()
+
 		return client
 	}
 	
@@ -89,6 +84,7 @@ class DockerJavaServiceTest {
 		assertEquals("container-123", id)
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -103,35 +99,38 @@ class DockerJavaServiceTest {
 		assertTrue(ex.message!!.contains("already exists"))
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
 	fun `start throws ContainerOperationException on NotFoundException`() = runTest {
 		val client = setupClient()
-		every { client.pullImageCmd(any()) } throws NotFoundException("image not found")
-		
+		every { client.createContainerCmd(any()) } throws NotFoundException("image not found")
+
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
 			service.start("nonexistent:latest", ContainerConfig())
 		}
 		assertTrue(ex.message!!.contains("not found"))
-		
+
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
-	
+
 	@Test
 	fun `start throws ContainerOperationException on generic exception`() = runTest {
 		val client = setupClient()
-		every { client.pullImageCmd(any()) } throws RuntimeException("network error")
-		
+		every { client.createContainerCmd(any()) } throws RuntimeException("network error")
+
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
 			service.start("ubuntu:latest", ContainerConfig())
 		}
 		assertTrue(ex.message!!.contains("Failed to start container"))
 		assertTrue(ex.message!!.contains("network error"))
-		
+
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -160,6 +159,7 @@ class DockerJavaServiceTest {
 		assertEquals("container-456", id)
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	// endregion
@@ -174,6 +174,7 @@ class DockerJavaServiceTest {
 		service.stop("container-123")
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -185,6 +186,7 @@ class DockerJavaServiceTest {
 		service.stop("container-gone")
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -200,6 +202,7 @@ class DockerJavaServiceTest {
 		assertTrue(ex.message!!.contains("stop failed"))
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	// endregion
@@ -248,6 +251,7 @@ class DockerJavaServiceTest {
 		assertEquals(0, exit.result.exitCode)
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -289,6 +293,7 @@ class DockerJavaServiceTest {
 		assertEquals(0, exit.result.exitCode)
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -327,6 +332,7 @@ class DockerJavaServiceTest {
 		assertEquals(-1, exit.result.exitCode)
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -341,6 +347,7 @@ class DockerJavaServiceTest {
 		assertTrue(ex.message!!.contains("Container not found"))
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	@Test
@@ -356,6 +363,7 @@ class DockerJavaServiceTest {
 		assertTrue(ex.message!!.contains("exec error"))
 		
 		unmockkStatic(DockerClientImpl::class)
+		unmockkStatic(Files::class)
 	}
 	
 	// endregion

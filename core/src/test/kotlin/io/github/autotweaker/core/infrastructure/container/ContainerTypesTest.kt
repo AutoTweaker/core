@@ -123,6 +123,7 @@ class ContainerServiceTest {
 	fun `execStream is called with correct parameters`() = runTest {
 		var capturedCommand: List<String>? = null
 		val impl = object : ContainerService {
+			override suspend fun pullImage(image: String) {}
 			override suspend fun start(image: String, config: ContainerConfig) = "test"
 			override suspend fun stop(containerId: String) {}
 			override fun execStream(
