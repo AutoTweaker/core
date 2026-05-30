@@ -49,6 +49,7 @@ import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
+import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.flow.Flow
@@ -70,6 +71,7 @@ class CoreAPIImpl(
 	}
 	
 	override val session = object : CoreAPI.SessionAPI {
+		override val defaultWorkspaceId = WorkspaceManager.DEFAULT_WORKSPACE_ID
 		override suspend fun create(config: SessionConfig) = SessionManager.create(config)
 		override suspend fun create(workspaceId: UUID, config: SessionConfig) =
 			SessionManager.create(workspaceId, config)

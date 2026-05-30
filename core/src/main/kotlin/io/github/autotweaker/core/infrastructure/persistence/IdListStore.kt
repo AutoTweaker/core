@@ -22,7 +22,6 @@ import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -38,7 +37,7 @@ internal class IdListStore<T : Any>(
 	
 	private val listSerializer = ListSerializer(serializer)
 	private val itemsRef = AtomicReference<List<T>>(emptyList())
-
+	
 	init {
 		val jsonArray = jsonEntry.get()
 		itemsRef.set(
@@ -47,29 +46,29 @@ internal class IdListStore<T : Any>(
 		)
 		logger.info("Initialized  count={}", itemsRef.get().size)
 	}
-
+	
 	fun add(data: T) {
 		val id = idOf(data)
-		if (itemsRef.get().any { idOf(it) == id }) error("already exists  id=$id")
+		if (itemsRef.get().any { idOf(it) == id }) error("Already exists  id=$id")
 		update(itemsRef.get() + data)
 		logger.debug("Added  id={}", id)
 	}
-
+	
 	fun get(): List<T> = itemsRef.get()
-
+	
 	fun get(id: UUID): T? = itemsRef.get().find { idOf(it) == id }
-
+	
 	fun delete(id: UUID) {
 		update(itemsRef.get().filterNot { idOf(it) == id })
 		logger.debug("Deleted  id={}", id)
 	}
-
+	
 	fun override(data: T) {
 		val id = idOf(data)
 		update(itemsRef.get().map { if (idOf(it) == id) data else it })
 		logger.debug("Overridden  id={}", id)
 	}
-
+	
 	private fun update(new: List<T>) {
 		itemsRef.set(new)
 		jsonEntry.set(Json.encodeToJsonElement(listSerializer, new))

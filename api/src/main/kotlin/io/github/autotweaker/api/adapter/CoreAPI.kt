@@ -54,6 +54,8 @@ interface CoreAPI {
 	}
 	
 	interface SessionAPI {
+		val defaultWorkspaceId: UUID
+		
 		suspend fun create(config: SessionConfig): UUID
 		suspend fun create(workspaceId: UUID, config: SessionConfig): UUID
 		suspend fun delete(sessionId: UUID)
