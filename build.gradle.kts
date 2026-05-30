@@ -52,7 +52,7 @@ tasks.register<Exec>("buildDeb") {
 
 tasks.register<Exec>("releaseTag") {
 	description = "基于当前版本号打 tag 并推送"
-	dependsOn("build")
+	dependsOn(subprojects.map { "${it.path}:build" })
 	workingDir = projectDir
 	commandLine(
 		"bash", "-c", """
