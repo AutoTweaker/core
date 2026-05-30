@@ -23,6 +23,7 @@ import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.port.ShellExecutor
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -44,7 +45,8 @@ class BashServiceImplTest {
 		)
 		
 		val env = mockk<AgentEnvironment>()
-		every { env.workspace } returns WorkspaceMeta("test", inContainer = false, path = Path.of("/ws"))
+		every { env.workspace } returns WorkspaceMeta("test", path = Path.of("/ws"))
+		every { env.containerConfig } returns ContainerConfig()
 		
 		val service = BashServiceImpl(executor, env)
 		val result = mutableListOf<ShellEvent>()

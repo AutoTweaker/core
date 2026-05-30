@@ -113,7 +113,6 @@ internal object SessionManager {
 	
 	suspend fun create(workspaceId: UUID, config: SessionConfig): UUID {
 		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
-		if (workspaceData.meta.inContainer && !ContainerManager.isRunning) ContainerManager.start()
 		val data = SessionData(id = UUID.randomUUID(), title = null, workspaceId = workspaceId, config = config)
 		val session = Session(
 			data = data,
@@ -160,6 +159,8 @@ internal object SessionManager {
 		logger.info("Restored session  sessionId={}  workspaceId={}", session.data.value.id, workspaceId)
 		return session
 	}
+	
+	fun isContainerRunning() = ContainerManager.isRunning
 	
 	private fun getHandle(session: Session): SessionHandle = SessionHandle(
 		id = session.data.value.id,

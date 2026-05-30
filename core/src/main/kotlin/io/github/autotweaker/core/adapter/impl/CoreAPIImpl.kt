@@ -100,6 +100,7 @@ class CoreAPIImpl(
 		override fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
 		override fun listWorkspaces() = WorkspaceAPI.list()
+		override fun isContainerRunning(): Boolean = SessionManager.isContainerRunning()
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {

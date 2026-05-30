@@ -29,7 +29,6 @@ data class WorkspaceMeta(
 	val displayName: String,
 	@Serializable(with = UuidSerializer::class)
 	val id: UUID = UUID.randomUUID(),
-	val inContainer: Boolean,
 	@Serializable(with = PathSerializer::class)
 	val path: Path
 )

@@ -81,6 +81,8 @@ interface CoreAPI {
 		fun renameWorkspace(id: UUID, newName: String)
 		suspend fun deleteWorkspace(id: UUID)
 		fun listWorkspaces(): List<WorkspaceData>
+		
+		fun isContainerRunning(): Boolean
 	}
 	
 	interface ConfigAPI {

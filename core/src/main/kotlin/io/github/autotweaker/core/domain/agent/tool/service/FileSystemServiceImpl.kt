@@ -29,7 +29,7 @@ internal class FileSystemServiceImpl(
 	private val env: AgentEnvironment,
 ) : FileSystemService {
 	private val root: Path get() = env.workspace.path.normalize()
-	private val inContainer: Boolean get() = env.workspace.inContainer
+	private val inContainer: Boolean get() = env.containerConfig.isContainerPath(env.workspace.path)
 	private val containerMount: Path get() = env.containerConfig.workDir.normalize()
 	private val hostMount: Path get() = env.containerConfig.workspaceHostPath.normalize()
 	

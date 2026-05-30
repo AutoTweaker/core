@@ -33,6 +33,7 @@ internal class BashServiceImpl(
 ) : BashService {
 	override fun run(command: String, timeout: Duration, env: Map<String, String>): Flow<ShellEvent> {
 		val workDir: Path = this.env.workspace.path.normalize()
-		return executor.exec(ShellExec(command, workDir, this.env.workspace.inContainer, env, timeout))
+		val inContainer = this.env.containerConfig.isContainerPath(workDir)
+		return executor.exec(ShellExec(command, workDir, inContainer, env, timeout))
 	}
 }

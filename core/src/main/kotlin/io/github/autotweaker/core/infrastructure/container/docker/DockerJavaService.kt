@@ -51,11 +51,13 @@ class DockerJavaService : ContainerService {
 		runCatching { client.close() }
 	}
 	
+	override suspend fun pullImage(image: String) = withContext(Dispatchers.IO) {
+		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
+		logger.info("Pulled image  image={}", image)
+	}
+	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
 		try {
-			client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
-			logger.info("Pulled image  image={}", image)
-			
 			val workspaceHostPath = config.workspaceHostPath
 			Files.createDirectories(workspaceHostPath)
 			

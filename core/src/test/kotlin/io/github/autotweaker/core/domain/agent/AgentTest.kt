@@ -58,7 +58,7 @@ class AgentTest {
 	
 	private fun createWorkspace(): WorkspaceMeta {
 		val tmpDir = createTempDirectory("agent-test")
-		return WorkspaceMeta("test", inContainer = false, path = tmpDir)
+		return WorkspaceMeta("test", path = tmpDir)
 	}
 	
 	private val mockSecretStore: SecretStore = mockk(relaxed = true)
@@ -114,7 +114,7 @@ class AgentTest {
 	@Test
 	fun `workspace is set correctly`() {
 		val tmpDir = createTempDirectory("agent-test-ws")
-		val ws = WorkspaceMeta("my-workspace", inContainer = true, path = tmpDir)
+		val ws = WorkspaceMeta("my-workspace", path = tmpDir)
 		val agent = Agent(
 			context = AgentContext(null, null, null, null, null),
 			workspace = ws,

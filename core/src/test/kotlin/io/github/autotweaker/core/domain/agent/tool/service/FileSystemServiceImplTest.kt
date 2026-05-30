@@ -44,12 +44,11 @@ class FileSystemServiceImplTest {
 	}
 	
 	private fun service(
-		inContainer: Boolean = false,
 		containerRoot: Path = tmpDir,
 		hostRoot: Path = tmpDir
 	): FileSystemServiceImpl {
 		val env = mockk<AgentEnvironment>()
-		every { env.workspace } returns WorkspaceMeta("test", inContainer = inContainer, path = containerRoot)
+		every { env.workspace } returns WorkspaceMeta("test", path = containerRoot)
 		every { env.containerConfig } returns ContainerConfig(workDir = containerRoot, workspaceHostPath = hostRoot)
 		return FileSystemServiceImpl(RawFileSystemImpl, env)
 	}
@@ -126,11 +125,11 @@ class FileSystemServiceImplTest {
 	@Test
 	fun `normalize with container mapping`() {
 		val hostRoot = tmpDir.resolve("host")
-		val containerRoot = tmpDir.resolve("container")
+		val containerRoot = hostRoot.resolve("workspace")
 		Files.createDirectories(hostRoot)
 		Files.createDirectories(containerRoot)
-		
-		val svc = service(inContainer = true, containerRoot = containerRoot, hostRoot = hostRoot)
+
+		val svc = service(containerRoot = containerRoot, hostRoot = hostRoot)
 		val result = svc.normalize("file.txt")
 		assertNotNull(result)
 	}

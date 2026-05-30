@@ -25,10 +25,12 @@ data class ContainerConfig(
 	val env: Map<String, String> = emptyMap(),
 	val workDir: Path = Path.of("/workspace"),
 	val workspaceHostPath: Path = Path.of(
-		System.getProperty("user.home"),
-		".config",
-		"autotweaker",
-		"container",
-		"workspace"
+		System.getProperty("user.home"), ".config", "autotweaker", "container", "workspace"
 	),
-)
+) {
+	fun isContainerPath(path: Path): Boolean {
+		val real = path.toRealPath()
+		val hostRoot = workspaceHostPath.toRealPath()
+		return real.startsWith(hostRoot)
+	}
+}

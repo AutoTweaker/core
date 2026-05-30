@@ -83,7 +83,7 @@ object WorkspaceManager {
 			)
 			Files.createDirectories(defaultPath)
 			val meta = WorkspaceMeta(
-				id = DEFAULT_WORKSPACE_ID, displayName = "default", inContainer = false, path = defaultPath
+				id = DEFAULT_WORKSPACE_ID, displayName = "default", path = defaultPath
 			)
 			val data = WorkspaceData(meta = meta)
 			update(workspaceListRef.get().plus(data))

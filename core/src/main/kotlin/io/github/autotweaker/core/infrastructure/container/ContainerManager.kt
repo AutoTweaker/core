@@ -23,7 +23,10 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
@@ -33,12 +36,9 @@ import kotlin.time.Duration
 object ContainerManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val mutex = Mutex()
+	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
-	
-	@Synchronized
-	fun init(secretStore: SecretStore) {
-		envStorage = EnvStorage(this::class, secretStore)
-	}
+	private var imagePullJob: Deferred<Unit>? = null
 	
 	private val service: ContainerService = DockerJavaService()
 	
@@ -50,18 +50,25 @@ object ContainerManager {
 	@Suppress("unused")
 	val containerId: String? get() = _containerId
 	
-	suspend fun start(): String = mutex.withLock {
-		if (_containerId != null) {
-			logger.warn("Container already started  containerId={}", _containerId)
-			throw ContainerAlreadyRunningException(_containerId!!)
+	@Synchronized
+	fun init(secretStore: SecretStore) {
+		envStorage = EnvStorage(this::class, secretStore)
+		imagePullJob = scope.async {
+			val image = Settings.get(ContainerSettings.DockerImage()).value
+			service.pullImage(image)
 		}
-		val config = ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
+	}
+	
+	private suspend fun ensureRunning() = mutex.withLock {
+		if (_containerId != null) return@withLock
+		imagePullJob?.await()
+		val containerConfig =
+			ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
 		val image = Settings.get(ContainerSettings.DockerImage()).value
 		logger.debug("Container start initiated  image={}", image)
-		val id = service.start(image, config)
+		val id = service.start(image, containerConfig)
 		_containerId = id
 		logger.info("Container started  containerId={}", id)
-		id
 	}
 	
 	suspend fun stop() {
@@ -81,9 +88,10 @@ object ContainerManager {
 	
 	fun execShellStream(
 		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
-	): Flow<ShellEvent> {
+	): Flow<ShellEvent> = flow {
+		ensureRunning()
 		val id = _containerId ?: throw NoContainerRunningException()
-		return service.execStream(id, listOf("bash", "-lc", command), workDir = workDir, timeout = timeout, env = env)
+		emitAll(service.execStream(id, listOf("bash", "-lc", command), workDir = workDir, timeout = timeout, env = env))
 	}
 	
 	fun listEnv(): List<String> = envStorage.listEnv()

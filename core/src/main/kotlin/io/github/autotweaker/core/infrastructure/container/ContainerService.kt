@@ -24,6 +24,7 @@ import java.nio.file.Path
 import kotlin.time.Duration
 
 interface ContainerService {
+	suspend fun pullImage(image: String)
 	suspend fun start(image: String, config: ContainerConfig): String
 	suspend fun stop(containerId: String)
 	fun shutdown() {}
