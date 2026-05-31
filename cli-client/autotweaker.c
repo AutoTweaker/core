@@ -409,6 +409,12 @@ static char *handle_prompt(const char *prompt_text, int echo) {
             while (len > 0 &&
                    (answer[len - 1] == '\n' || answer[len - 1] == '\r'))
                 answer[--len] = '\0';
+            /* echo stdin input to stderr when echo is enabled */
+            if (echo && answer[0]) {
+                fputs(answer, stderr);
+                fputc('\n', stderr);
+                fflush(stderr);
+            }
         }
     }
 

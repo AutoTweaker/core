@@ -132,7 +132,7 @@ internal object ModelI18n {
 	@AutoService(I18nDef::class)
 	class PromptSetCachedPrice : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否设置命中缓存的价格:"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否设置命中缓存的价格 $YON:"),
 		)
 	}
 	
@@ -162,7 +162,7 @@ internal object ModelI18n {
 		override val localizations = listOf(
 			LocalizedString(
 				Locale.SIMPLIFIED_CHINESE,
-				"输入价格区间，格式为 <起始 $TOKENS + '-' + 结束 $TOKENS>，仅输入一个数将视为最后一个区间\n区间:"
+				"输入价格区间，格式为 [起始 $TOKENS + '-' + 结束 $TOKENS]，仅输入一个数将视为最后一个区间的开始值\n区间:"
 			),
 		)
 	}
@@ -172,7 +172,7 @@ internal object ModelI18n {
 		override val localizations = listOf(
 			LocalizedString(
 				Locale.SIMPLIFIED_CHINESE,
-				"价格基于什么单位 $TOKENS:"
+				"价格单位 (每多少 tokens)，例：每百万 tokens 10 美元，单位为 '1,000,000'\n单位:"
 			),
 		)
 	}

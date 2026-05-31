@@ -65,7 +65,7 @@ internal class ModelAdd(
 	
 	fun add(name: String, provider: String, infoId: String?): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == provider } ?: run {
-			emitI18n(i18n, ModelI18n.ProviderNotFound())
+			emitI18n(i18n, ModelI18n.ProviderNotFound(), provider)
 			emitDone(1)
 			return@flow
 		}
@@ -74,7 +74,7 @@ internal class ModelAdd(
 		core.config.getProviderMeta(provider.type).models.find { it.modelId == infoId }?.let { modelInfo = it }
 		
 		if (core.config.listModels().any { it.data.displayName == name && it.data.providerId == provider.id }) {
-			emitI18n(i18n, ModelI18n.ModelDuplicateError())
+			emitI18n(i18n, ModelI18n.ModelDuplicateError(), name)
 			emitDone(1)
 			return@flow
 		}
@@ -95,7 +95,7 @@ internal class ModelAdd(
 				promptI18n(ModelI18n.PromptContextWindow()).toIntOrNull()
 					?: run { invalidValue(); return@flow }
 			val maxOutputTokens =
-				promptI18n(ModelI18n.PromptContextWindow()).toIntOrNull()
+				promptI18n(ModelI18n.PromptMaxOutputTokens()).toIntOrNull()
 					?: run { invalidValue(); return@flow }
 			val price =
 				promptTokenPrice()
