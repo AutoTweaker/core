@@ -36,11 +36,11 @@ class PriceTest {
 		val price = Price(
 			amount = BigDecimal("0.001"),
 			currency = Currency.getInstance("USD"),
-			unit = 1000
+			tokenUnit = 1000
 		)
 		assertEquals(BigDecimal("0.001"), price.amount)
 		assertEquals("USD", price.currency.currencyCode)
-		assertEquals(1000, price.unit)
+		assertEquals(1000, price.tokenUnit)
 	}
 	
 	@Test
@@ -52,7 +52,7 @@ class PriceTest {
 	@Test
 	fun `construct with negative unit`() {
 		val price = Price(BigDecimal("1.5"), Currency.getInstance("EUR"), -1)
-		assertEquals(-1, price.unit)
+		assertEquals(-1, price.tokenUnit)
 	}
 	
 	// endregion
@@ -75,16 +75,16 @@ class PriceTest {
 	fun `serialize to JSON produces expected fields`() {
 		val price = Price(BigDecimal("0.001"), Currency.getInstance("USD"), 1000)
 		val serialized = json.encodeToString(Price.serializer(), price)
-		assertEquals("{\"amount\":\"0.001\",\"currency\":\"USD\",\"unit\":1000}", serialized)
+		assertEquals("{\"amount\":\"0.001\",\"currency\":\"USD\",\"tokenUnit\":1000}", serialized)
 	}
 	
 	@Test
 	fun `deserialize from JSON`() {
-		val jsonStr = "{\"amount\":\"0.005\",\"currency\":\"CNY\",\"unit\":1000}"
+		val jsonStr = "{\"amount\":\"0.005\",\"currency\":\"CNY\",\"tokenUnit\":1000}"
 		val price = json.decodeFromString(Price.serializer(), jsonStr)
 		assertEquals(BigDecimal("0.005"), price.amount)
 		assertEquals("CNY", price.currency.currencyCode)
-		assertEquals(1000, price.unit)
+		assertEquals(1000, price.tokenUnit)
 	}
 	
 	@Test

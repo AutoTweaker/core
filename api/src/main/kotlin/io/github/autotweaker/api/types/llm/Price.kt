@@ -30,5 +30,5 @@ data class Price(
 	val amount: BigDecimal,
 	@Serializable(CurrencySerializer::class)
 	val currency: Currency,
-	val unit: Int
+	val tokenUnit: Int
 )

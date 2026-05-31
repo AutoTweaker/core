@@ -21,12 +21,17 @@ package io.github.autotweaker.adapter.cli.commands.model
 import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.ModelFeature
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
+import io.github.autotweaker.api.types.llm.Price
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import java.math.BigDecimal
 import java.util.*
 
 internal class ModelAdd(
@@ -54,5 +59,167 @@ internal class ModelAdd(
 			)
 		}
 		emitDone()
+	}
+	
+	//region 一大坨add的和它的辅助方法
+	
+	fun add(name: String, provider: String, infoId: String?): Flow<CmdOutput> = flow {
+		val provider = core.config.listProviders().find { it.displayName == provider } ?: run {
+			emitI18n(i18n, ModelI18n.ProviderNotFound())
+			emitDone(1)
+			return@flow
+		}
+		
+		var modelInfo: ModelData.ModelInfo? = null
+		core.config.getProviderMeta(provider.type).models.find { it.modelId == infoId }?.let { modelInfo = it }
+		
+		if (core.config.listModels().any { it.data.displayName == name && it.data.providerId == provider.id }) {
+			emitI18n(i18n, ModelI18n.ModelDuplicateError())
+			emitDone(1)
+			return@flow
+		}
+		
+		suspend fun invalidValue() {
+			emitI18n(
+				i18n, ModelI18n.InvalidValue()
+			)
+			emitDone(1)
+		}
+		
+		if (modelInfo == null) {
+			val id = promptI18n(ModelI18n.PromptId())
+			if (id.isBlank()) {
+				invalidValue(); return@flow
+			}
+			val contextWindow: Int =
+				promptI18n(ModelI18n.PromptContextWindow()).toIntOrNull()
+					?: run { invalidValue(); return@flow }
+			val maxOutputTokens =
+				promptI18n(ModelI18n.PromptContextWindow()).toIntOrNull()
+					?: run { invalidValue(); return@flow }
+			val price =
+				promptTokenPrice()
+					?: run { invalidValue(); return@flow }
+			
+			suspend fun promptFeature(featureI18n: I18nDef) =
+				promptYesOrNo(ModelI18n.PromptSetFeature(), i18n.get(featureI18n))
+			
+			val supportsStreaming =
+				promptFeature(ModelFeature.StreamingFeature())
+					?: run { invalidValue(); return@flow }
+			val supportsToolCalls =
+				promptFeature(ModelFeature.ToolCallFeature())
+					?: run { invalidValue(); return@flow }
+			val supportsReasoning =
+				promptFeature(ModelFeature.ReasoningFeature())
+					?: run { invalidValue(); return@flow }
+			val supportsImage =
+				promptFeature(ModelFeature.ImageFeature())
+					?: run { invalidValue(); return@flow }
+			val supportsJsonOutput =
+				promptFeature(ModelFeature.JsonOutputFeature())
+					?: run { invalidValue(); return@flow }
+			
+			modelInfo = ModelData.ModelInfo(
+				modelId = id,
+				contextWindow = contextWindow,
+				maxOutputTokens = maxOutputTokens,
+				price = price,
+				supportsStreaming = supportsStreaming,
+				supportsToolCalls = supportsToolCalls,
+				supportsReasoning = supportsReasoning,
+				supportsImage = supportsImage,
+				supportsJsonOutput = supportsJsonOutput
+			)
+		}
+		
+		core.config.addModel(
+			CoreConfig.ProviderConfig.Model(
+				ModelData(
+					id = UUID.randomUUID(),
+					displayName = name,
+					modelInfo = modelInfo,
+					providerId = provider.id
+				)
+			)
+		)
+		
+		emitDone()
+	}
+	
+	private suspend fun promptTokenPrice(): ModelData.TokenPrice? {
+		val inputPrice = if (promptYesOrNo(ModelI18n.PromptSetInputPrice()) ?: return null) {
+			promptPriceTierList() ?: return null
+		} else emptyList()
+		
+		val outputPrice = if (promptYesOrNo(ModelI18n.PromptSetOutputPrice()) ?: return null) {
+			promptPriceTierList() ?: return null
+		} else emptyList()
+		
+		return ModelData.TokenPrice(inputPrice, outputPrice)
+	}
+	
+	private suspend fun promptPriceTierList(): List<PriceTier>? {
+		val priceList = mutableListOf<PriceTier>()
+		priceList.add(promptPriceTier() ?: return null)
+		while (true) {
+			if (!(promptYesOrNo(ModelI18n.PromptSetPrice()) ?: return null)) break
+			priceList.add(promptPriceTier() ?: return null)
+		}
+		return priceList.toList()
+	}
+	
+	private suspend fun promptPriceTier(): PriceTier? {
+		val tieredPrice: Boolean = promptYesOrNo(ModelI18n.PromptTieredPrice()) ?: return null
+		val fromTokens: Int
+		val toTokens: Int?
+		if (tieredPrice) {
+			val result = promptI18n(ModelI18n.PromptPriceRange()).split("-", limit = 2).map { it.trim() }
+			fromTokens = result[0].toIntOrNull() ?: return null
+			val rawTo = result.getOrNull(1)
+			toTokens = if (rawTo == null) rawTo else rawTo.toIntOrNull() ?: return null
+		} else {
+			fromTokens = 0
+			toTokens = null
+		}
+		val price = promptPrice() ?: return null
+		val cachedPrice: Price? = if (promptYesOrNo(ModelI18n.PromptSetCachedPrice()) ?: return null) {
+			promptPrice()
+		} else null
+		return PriceTier(fromTokens, toTokens, price, cachedPrice)
+	}
+	
+	private suspend fun promptPrice(): Price? {
+		val tokenUnit = promptI18n(ModelI18n.PromptTokenUnit()).toIntOrNull() ?: return null
+		val currency =
+			runCatching { Currency.getInstance(promptI18n(ModelI18n.PromptPriceCurrency()).uppercase()) }.getOrNull()
+				?: return null
+		val price = runCatching {
+			BigDecimal(
+				promptI18n(ModelI18n.PromptPrice(), currency.getDisplayName(core.i18n.i18nService.getLanguage()))
+			)
+		}.getOrNull() ?: return null
+		return Price(price, currency, tokenUnit)
+	}
+	
+	private suspend fun promptI18n(key: I18nDef, vararg args: Any): String =
+		prompt(i18n.get(key).format(*args) + SPACE, true)
+	
+	
+	private suspend fun promptYesOrNo(key: I18nDef, vararg args: Any): Boolean? {
+		val result = prompt(
+			i18n.get(key).format(*args) + SPACE, true
+		)
+		return when (result) {
+			"y", "yes" -> true
+			"n", "no", "" -> false
+			else -> null
+		}
+	}
+	
+	//endregion
+	
+	companion object {
+		const val SPACE = " "
 	}
 }

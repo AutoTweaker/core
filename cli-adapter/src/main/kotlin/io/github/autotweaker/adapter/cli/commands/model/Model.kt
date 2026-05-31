@@ -20,6 +20,7 @@ package io.github.autotweaker.adapter.cli.commands.model
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
@@ -36,12 +37,14 @@ class Model : Command {
 	override val description get() = i18n.get(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("list", "none")), Syntax.all(
-				Syntax.leaf(Param.Flag("add", "none")),
-				Syntax.leaf(Param.Value("name", "none")),
-				Syntax.leaf(Param.Value("provider", "none")),
-				Syntax.leaf(Param.Value("id", "none"))
-			), Syntax.leaf(Param.Value("add-all", "none", aliases = emptyList()))
+			Syntax.leaf(Param.Flag("list", i18n.get(ModelI18n.ParamList())), required = true), Syntax.all(
+				Syntax.leaf(Param.Flag("add", i18n.get(ModelI18n.ParamAdd())), required = true),
+				Syntax.leaf(Param.Value("name", i18n.get(ModelI18n.ParamAddName())), required = true),
+				Syntax.leaf(Param.Value("provider", i18n.get(ModelI18n.ParamAddProvider())), required = true),
+				Syntax.leaf(Param.Value("info", i18n.get(ModelI18n.ParamAddInfo())))
+			), Syntax.leaf(
+				Param.Value("add-all", i18n.get(ModelI18n.ParamAddAll()), aliases = emptyList()), required = true
+			)
 		)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
@@ -56,5 +59,15 @@ class Model : Command {
 			emitAll(add.addAll(request.get("add-all") ?: error("Missing provider name")))
 			return@flow
 		}
+		
+		if (request.has("add")) {
+			val name: String = request.get("name") ?: error("Missing model name")
+			val provider: String = request.get("provider") ?: error("Missing provider name")
+			val info: String? = request.get("info")
+			emitAll(add.add(name, provider, info))
+			return@flow
+		}
+		
+		emitDone(1)
 	}
 }

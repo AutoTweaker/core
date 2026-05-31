@@ -21,6 +21,7 @@ package io.github.autotweaker.adapter.cli.commands.provider
 import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.ModelFeature
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.llm.ModelData
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.*
 
 internal class ProviderQueries(private val core: CoreAPI) {
 	private val i18n: I18nService get() = core.i18n.i18nService
+	
 	fun list(): Flow<String> = flow {
 		val providers = core.config.listProviders()
 		providers.forEachIndexed { index, provider ->
@@ -88,11 +90,11 @@ internal class ProviderQueries(private val core: CoreAPI) {
 	
 	private fun printModelInfo(info: ModelData.ModelInfo): Flow<String> = flow {
 		val feature = buildList {
-			if (info.supportsStreaming) add(i18n.get(ProvQueriesI18n.StreamingFeature()))
-			if (info.supportsToolCalls) add(i18n.get(ProvQueriesI18n.ToolCallFeature()))
-			if (info.supportsReasoning) add(i18n.get(ProvQueriesI18n.ReasoningFeature()))
-			if (info.supportsImage) add(i18n.get(ProvQueriesI18n.ImageFeature()))
-			if (info.supportsJsonOutput) add(i18n.get(ProvQueriesI18n.JsonOutputFeature()))
+			if (info.supportsStreaming) add(i18n.get(ModelFeature.StreamingFeature()))
+			if (info.supportsToolCalls) add(i18n.get(ModelFeature.ToolCallFeature()))
+			if (info.supportsReasoning) add(i18n.get(ModelFeature.ReasoningFeature()))
+			if (info.supportsImage) add(i18n.get(ModelFeature.ImageFeature()))
+			if (info.supportsJsonOutput) add(i18n.get(ModelFeature.JsonOutputFeature()))
 		}.joinToString(separator = " ") { "[${it}]" }
 		emit(i18n.get(ProvQueriesI18n.ModelId()).format(info.modelId))
 		emit(i18n.get(ProvQueriesI18n.ContextWindow()).format(processUnit(info.contextWindow)))
@@ -134,7 +136,7 @@ internal class ProviderQueries(private val core: CoreAPI) {
 	
 	private fun buildPrice(price: Price, cached: Price?): String {
 		fun processPrice(price: Price) =
-			"${price.amount.toPlainString()} ${price.currency} / ${processUnit(price.unit)} tokens"
+			"${price.amount.toPlainString()} ${price.currency} / ${processUnit(price.tokenUnit)} tokens"
 		
 		if (cached == null) return processPrice(price)
 		return "${processPrice(price)} ${i18n.get(ProvQueriesI18n.Or())} ${processPrice(cached)} ${

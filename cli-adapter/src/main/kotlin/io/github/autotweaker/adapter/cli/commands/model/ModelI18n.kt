@@ -60,9 +60,9 @@ internal object ModelI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class ParamAddId : I18nDef {
+	class ParamAddInfo : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的ID，如deepseek-v4-pro"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "使用指定模型ID的默认元数据"),
 		)
 	}
 	
@@ -79,4 +79,124 @@ internal object ModelI18n {
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的提供商"),
 		)
 	}
+	
+	@AutoService(I18nDef::class)
+	class ModelDuplicateError : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "相同提供商下已经存在名称为 %s 的模型了"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptId : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入模型ID (如deepseek-v4-pro):"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptContextWindow : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入模型的上下文窗口 $TOKENS:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptMaxOutputTokens : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入模型的最大输出长度 $TOKENS:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptSetInputPrice : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否开始设置模型输入价格 $YON:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptSetOutputPrice : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否开始设置模型输出价格 $YON:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptTieredPrice : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否为阶梯计费 $YON:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptSetCachedPrice : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否设置命中缓存的价格:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptSetPrice : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否要继续添加一个价格区间 $YON:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptSetFeature : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型是否支持[%s] $YON:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class InvalidValue : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "无效的值"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptPriceRange : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(
+				Locale.SIMPLIFIED_CHINESE,
+				"输入价格区间，格式为 <起始 $TOKENS + '-' + 结束 $TOKENS>，仅输入一个数将视为最后一个区间\n区间:"
+			),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptTokenUnit : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(
+				Locale.SIMPLIFIED_CHINESE,
+				"价格基于什么单位 $TOKENS:"
+			),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptPriceCurrency : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(
+				Locale.SIMPLIFIED_CHINESE,
+				"货币代码，必须为三位英文字母:"
+			),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class PromptPrice : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(
+				Locale.SIMPLIFIED_CHINESE,
+				"输入价格 (%s):"
+			),
+		)
+	}
+	
+	const val TOKENS = "(tokens)"
+	const val YON = "(y/n)"
 }
