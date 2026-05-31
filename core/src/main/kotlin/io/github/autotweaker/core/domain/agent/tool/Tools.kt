@@ -115,8 +115,10 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 	
 	private fun activateTool(toolName: String): String {
 		val entry = _entries.first { it.tool.meta.name == toolName }
-		entry.active = true
-		entry.consecutiveUnused.set(0)
+		synchronized(entry) {
+			entry.active = true
+			entry.consecutiveUnused.set(0)
+		}
 		logger.debug("Tool activated  tool={}  functionCount={}", toolName, entry.tool.meta.functions.size)
 		return service.get(AgentToolSettings.ActiveMessage()).value.format(
 			entry.tool.meta.functions.joinToString(", ") { "${entry.tool.meta.name}_${it.name}" }, entry.tool.meta.name
@@ -176,15 +178,17 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 			}
 			if (toDeactivate.isNotEmpty()) {
 				for (deact in toDeactivate) {
-					logger.debug(
-						"Tool deactivated  agentId={}  tool={}  consecutiveUnused={}  threshold={}",
-						agentId,
-						deact.tool.meta.name,
-						deact.consecutiveUnused.get(),
-						threshold
-					)
-					deact.active = false
-					deact.consecutiveUnused.set(0)
+					synchronized(deact) {
+						logger.debug(
+							"Tool deactivated  agentId={}  tool={}  consecutiveUnused={}  threshold={}",
+							agentId,
+							deact.tool.meta.name,
+							deact.consecutiveUnused.get(),
+							threshold
+						)
+						deact.active = false
+						deact.consecutiveUnused.set(0)
+					}
 				}
 				onToolDeactivated?.invoke(_entries.filter { it.active }.map { it.tool })
 			}

@@ -32,7 +32,10 @@ import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 
 internal object ToolProvider {
+	@Volatile
 	private lateinit var shellExecutor: ShellExecutor
+	
+	@Volatile
 	private lateinit var rawFileSystem: RawFileSystem
 	
 	fun init(shellExecutor: ShellExecutor, rawFileSystem: RawFileSystem) {
