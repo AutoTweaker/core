@@ -165,7 +165,6 @@ class Agent(
 				compactJob.set(null)
 				ContextPhase.archiveCurrentRound(this, this::updateContext)
 				updateStatus(AgentStatus.FREE)
-				scope.cancel()
 				logger.info("Agent stopped  agentId={}", agentId)
 			}
 			
@@ -191,7 +190,7 @@ class Agent(
 			is AgentCommand.Directive.Resume -> {
 				if (_status.value != AgentStatus.PAUSED) return
 				logger.info("Resume requested  agentId={}", agentId)
-				updateStatus(AgentStatus.FREE)
+				updateStatus(AgentStatus.PROCESSING)
 				workTrigger.trySend(Unit)
 			}
 			

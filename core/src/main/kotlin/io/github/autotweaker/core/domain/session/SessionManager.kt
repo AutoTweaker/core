@@ -20,10 +20,7 @@ package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.api.types.session.SessionConfig
-import io.github.autotweaker.api.types.session.SessionContext
-import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.SessionHandle
+import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
@@ -36,6 +33,7 @@ import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -113,10 +111,14 @@ internal object SessionManager {
 	
 	suspend fun create(workspaceId: UUID, config: SessionConfig): UUID {
 		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
+		if (!Files.isDirectory(workspaceData.meta.path)) {
+			error("Workspace directory does not exist: ${workspaceData.meta.path}")
+		}
 		val data = SessionData(id = UUID.randomUUID(), title = null, workspaceId = workspaceId, config = config)
 		val session = Session(
 			data = data,
 			context = SessionContext.emptyContext(systemPrompt),
+			messages = emptyList(),
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceData.meta,
@@ -144,12 +146,19 @@ internal object SessionManager {
 		val data = store.loadSessions(listOf(id))?.first() ?: error("$id not found")
 		val context = store.loadContext(data.id) ?: SessionContext.emptyContext(systemPrompt)
 		val workspaceId = data.workspaceId
+		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
+		if (!Files.isDirectory(workspaceMeta.path)) {
+			error("Workspace directory does not exist: ${workspaceMeta.path}")
+		}
+		val messageIds = collectMessageIds(context).toList()
+		val loadedMessages = if (messageIds.isNotEmpty()) store.loadMessages(messageIds) ?: emptyList() else emptyList()
 		val session = Session(
 			data = data,
 			context = context,
+			messages = loadedMessages,
 			store = store,
 			resolveModel = ::resolveModel,
-			workspace = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId"),
+			workspace = workspaceMeta,
 			service = Settings,
 			containerConfig = ContainerConfig(),
 			secretStore = secretStore,
@@ -169,6 +178,21 @@ internal object SessionManager {
 		status = session.agentStatus,
 		data = session.data,
 	)
+	
+	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int = 0): Set<UUID> {
+		val ids = mutableSetOf<UUID>()
+		val index = ctx.index
+		index.compactedRounds?.takeLast(maxCompactedRounds)?.forEach { compacted ->
+			ids.add(compacted.summarizedMessage)
+			compacted.rounds.forEach { round ->
+				SessionContextIndex.collectCompletedRoundIds(round, ids)
+			}
+		}
+		index.historyRounds?.forEach { SessionContextIndex.collectCompletedRoundIds(it, ids) }
+		index.currentRound?.let { SessionContextIndex.collectCurrentRoundIds(it, ids) }
+		index.summarizedMessage?.let { ids.add(it) }
+		return ids
+	}
 	
 	private fun startMonitor(session: Session) {
 		val id = session.data.value.id

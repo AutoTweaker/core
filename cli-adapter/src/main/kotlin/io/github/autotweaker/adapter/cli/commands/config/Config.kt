@@ -82,11 +82,7 @@ class Config : Command {
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		val full: Boolean = request.get("full").toBoolean()
-		val limit: Int = try {
-			request.get("limit")?.toInt() ?: core.config.settingService.get(DefaultLimit()).value
-		} catch (_: Exception) {
-			core.config.settingService.get(DefaultLimit()).value
-		}
+		val limit: Int = request.get("limit")?.toIntOrNull() ?: core.config.settingService.get(DefaultLimit()).value
 		
 		if (request.has("list")) {
 			emitAll(list(core, limit, full))

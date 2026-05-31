@@ -37,8 +37,11 @@ import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -47,6 +50,7 @@ import kotlin.time.Clock
 internal class Session(
 	data: SessionData,
 	context: SessionContext,
+	messages: List<SessionMessage>,
 	private val store: SessionRepository,
 	private val resolveModel: (UUID) -> Model,
 	private var workspace: WorkspaceMeta,
@@ -90,11 +94,9 @@ internal class Session(
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
 	init {
-		val ids = collectMessageIds(_context.value, maxCompactedRounds).toList()
-		if (ids.isNotEmpty()) {
-			val messages = runBlocking { store.loadMessages(ids) }
-			messages?.forEach { this.messages[it.id] = it }
-			messages?.let { UsageStore.collect(it) }
+		if (messages.isNotEmpty()) {
+			messages.forEach { this.messages[it.id] = it }
+			UsageStore.collect(messages)
 		}
 		createAgent()
 		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
@@ -163,7 +165,6 @@ internal class Session(
 		dispatch(AgentCommand.Directive.Stop)
 		agent.statusFlow.first { it == AgentStatus.FREE }
 		save()
-		scope.cancel()
 		logger.info("Session stopped  sessionId={}", _data.value.id)
 	}
 	
@@ -178,23 +179,6 @@ internal class Session(
 				systemPrompt = oldCtx.systemPrompt, index = result.index, droppedMessages = result.droppedMessageIds
 			)
 		)
-	}
-	
-	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int): Set<UUID> {
-		val ids = mutableSetOf<UUID>()
-		val index = ctx.index
-		
-		index.compactedRounds?.takeLast(maxCompactedRounds)?.forEach { compacted ->
-			ids.add(compacted.summarizedMessage)
-			compacted.rounds.forEach { round ->
-				SessionContextIndex.collectCompletedRoundIds(round, ids)
-			}
-		}
-		index.historyRounds?.forEach { SessionContextIndex.collectCompletedRoundIds(it, ids) }
-		index.currentRound?.let { SessionContextIndex.collectCurrentRoundIds(it, ids) }
-		index.summarizedMessage?.let { ids.add(it) }
-		
-		return ids
 	}
 	
 	private suspend fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {

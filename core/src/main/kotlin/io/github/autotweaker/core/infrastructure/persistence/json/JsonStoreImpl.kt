@@ -34,6 +34,8 @@ object JsonStoreImpl {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 	private lateinit var db: Database
+	
+	@Volatile
 	private var initialized = false
 	
 	@Synchronized
@@ -75,8 +77,7 @@ object JsonStoreImpl {
 				exec(
 					"MERGE INTO JSON_STORE (NAMESPACE, CONTENT) KEY (NAMESPACE) VALUES (" + "'${
 						namespace.replace(
-							"'",
-							"''"
+							"'", "''"
 						)
 					}', " + "'${content.replace("'", "''")}')"
 				)
