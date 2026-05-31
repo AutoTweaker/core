@@ -5,5 +5,5 @@
 ## 一键安装
 
 ```bash
-curl -fsSL "$(curl -fsSL https://autotweaker.github.io/index/ | jq -r '.core.deb_url')" -o /tmp/autotweaker.deb && sudo dpkg -i /tmp/autotweaker.deb
+curl -fsSL "$(curl -fsSL https://autotweaker.github.io/index/ | jq -r '.core.deb_url')" -o /tmp/autotweaker.deb && sudo apt install /tmp/autotweaker.deb
 ```
