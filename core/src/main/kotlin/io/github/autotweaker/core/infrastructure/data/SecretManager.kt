@@ -55,7 +55,7 @@ object SecretManager : SecretStore {
 	
 	@Volatile
 	private var password: CharArray? = null
-
+	
 	private val _isUnlocked = MutableStateFlow(false)
 	val isUnlocked = _isUnlocked.asStateFlow()
 	val isPasswordEmpty: Boolean get() = password?.isEmpty() == true
@@ -86,17 +86,11 @@ object SecretManager : SecretStore {
 		Files.createDirectories(secretsDir)
 		Files.createDirectories(gpgHome)
 		//确保权限正确
-		try {
-			Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------"))
-		} catch (_: UnsupportedOperationException) {
-		}
+		runCatching { Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------")) }
 		//创建私钥目录
 		val privateKeysDir = gpgHome.resolve("private-keys-v1.d")
 		Files.createDirectories(privateKeysDir)
-		try {
-			Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------"))
-		} catch (_: UnsupportedOperationException) {
-		}
+		runCatching { Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------")) }
 		//创建gpg agent配置
 		val agentConf = gpgHome.resolve("gpg-agent.conf")
 		if (!Files.exists(agentConf)) {
@@ -233,7 +227,12 @@ object SecretManager : SecretStore {
 		require(Files.exists(file)) { "Secret not found: $id" }
 		logger.debug("Secret retrieved  id={}", id)
 		return gpg(
-			"--batch", "--yes", "--pinentry-mode", "loopback", "-d", file.toString(),
+			"--batch",
+			"--yes",
+			"--pinentry-mode",
+			"loopback",
+			"-d",
+			file.toString(),
 			passphrase = String(requireNotNull(password) { "SecretManager is locked" })
 		)
 	}
