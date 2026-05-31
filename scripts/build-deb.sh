@@ -43,6 +43,7 @@ install -m 644 "$CLI_ADAPTER_JAR" "$PKG_ROOT/usr/share/autotweaker/cli-adapter.j
 
 # CLI 脚本和服务（由 dpkg 管理）
 install -m 755 -D "$PROJECT_DIR/cli-client/build/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
+ln -sf autotweaker "$PKG_ROOT/usr/bin/at"
 install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
 install -m 644 -D "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/lib/systemd/user/autotweaker.service"
 
