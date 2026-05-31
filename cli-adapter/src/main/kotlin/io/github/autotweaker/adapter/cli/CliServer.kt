@@ -149,25 +149,44 @@ class CliServer(service: SettingService) {
 	}
 	
 	private fun readLine(channel: SocketChannel): String? {
-		val buf = ByteBuffer.allocate(256)
+		val buf = ByteBuffer.allocate(4096)
+		var remainder = ByteArray(0)
 		val sb = StringBuilder()
 		while (true) {
 			buf.clear()
+			if (remainder.isNotEmpty()) buf.put(remainder)
 			val n = channel.read(buf)
 			if (n == -1) return sb.toString().ifEmpty { null }
 			buf.flip()
-			val chunk = StandardCharsets.UTF_8.decode(buf).toString()
+			val bytes = ByteArray(buf.remaining())
+			buf.get(bytes)
+			val validEnd = findValidUtf8End(bytes)
+			remainder = bytes.copyOfRange(validEnd, bytes.size)
+			val chunk = String(bytes, 0, validEnd, StandardCharsets.UTF_8)
 			val nl = chunk.indexOf('\n')
 			if (nl >= 0) {
 				sb.append(chunk, 0, nl)
 				return sb.toString()
 			}
-			if (sb.length > maxLineLength) {
+			if (sb.length + chunk.length > maxLineLength) {
 				logger.warn("Line exceeded max length  length={}", sb.length)
 				return null
 			}
 			sb.append(chunk)
 		}
+	}
+	
+	private fun findValidUtf8End(bytes: ByteArray): Int {
+		var i = bytes.size
+		while (i > 0) {
+			val b = bytes[i - 1].toInt() and 0xFF
+			if (b < 0x80) break
+			if (b and 0xC0 == 0xC0) {
+				i--; break
+			}
+			i--
+		}
+		return i
 	}
 	
 	private fun write(channel: SocketChannel, text: String) {
