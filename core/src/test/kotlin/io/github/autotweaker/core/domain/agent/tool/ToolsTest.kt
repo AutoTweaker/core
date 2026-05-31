@@ -32,6 +32,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -104,21 +105,21 @@ class ToolsTest {
 	// region basic
 	
 	@Test
-	fun `add tool increases entries`() {
+	fun `add tool increases entries`() = runBlocking {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		assertEquals(0, tools.entries.size)
-		
+
 		tools.add(mockTool())
 		assertEquals(1, tools.entries.size)
 		assertFalse(tools.entries[0].active)
 	}
 	
 	@Test
-	fun `add multiple tools`() {
+	fun `add multiple tools`() = runBlocking {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		tools.add(mockTool("bash"))
 		tools.add(mockTool("read"))
-		
+
 		assertEquals(2, tools.entries.size)
 	}
 	// endregion
@@ -126,15 +127,15 @@ class ToolsTest {
 	// region resolveToolCalls
 	
 	@Test
-	fun `resolveToolCalls all parse failures`() {
+	fun `resolveToolCalls all parse failures`() = runBlocking {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
-		
+
 		// No active tools -> validator has empty tool list -> all will fail
 		tools.add(mockTool())
 		val calls = listOf(pendingToolCall("c1"), pendingToolCall("c2"))
-		
+
 		val results = tools.resolveToolCalls(calls)
-		
+
 		assertEquals(2, results.size)
 		results.forEach { assertIs<Tools.ToolCallResolveResult.ParseFailure>(it) }
 	}
@@ -155,13 +156,13 @@ class ToolsTest {
 	}
 	
 	@Test
-	fun `resolveToolCalls inactive tool name fails validation`() {
+	fun `resolveToolCalls inactive tool name fails validation`() = runBlocking {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		tools.add(mockTool("inactive"))
-		
+
 		val calls = listOf(pendingToolCall("c1", "inactive_run"))
 		val results = tools.resolveToolCalls(calls)
-		
+
 		assertEquals(1, results.size)
 		assertIs<Tools.ToolCallResolveResult.ParseFailure>(results[0])
 	}
@@ -415,13 +416,13 @@ class ToolsTest {
 	}
 	
 	@Test
-	fun `assembleTools with only inactive tools`() {
+	fun `assembleTools with only inactive tools`() = runBlocking {
 		val tools = Tools(defaultSettings, mockk(relaxed = true))
 		tools.add(mockTool("bash", "a bash tool"))
 		tools.add(mockTool("read", "a read tool"))
-		
+
 		val result = tools.assembleTools()
-		
+
 		assertNotNull(result)
 		assertEquals(2, result.size)
 		result.forEach { tool ->

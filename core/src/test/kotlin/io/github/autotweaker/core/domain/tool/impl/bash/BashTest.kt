@@ -31,6 +31,7 @@ import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.mockk.*
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.*
 import java.util.*
@@ -56,16 +57,16 @@ class BashTest {
 		
 		val secretMap = mutableMapOf<UUID, String>()
 		secretStore = object : SecretStore {
-			override fun add(secret: String): UUID = UUID.randomUUID().also { secretMap[it] = secret }
-			override fun get(id: UUID): String = secretMap[id]!!
+			override suspend fun add(secret: String): UUID = UUID.randomUUID().also { secretMap[it] = secret }
+			override suspend fun get(id: UUID): String = secretMap[id]!!
 			override fun list(): List<UUID> = secretMap.keys.toList()
 			override fun remove(id: UUID) {
 				secretMap.remove(id)
 			}
 		}
-		
+
 		bash = Bash()
-		bash.init(defaultSettings, secretStore)
+		runBlocking { bash.init(defaultSettings, secretStore) }
 	}
 	
 	@AfterTest
@@ -433,45 +434,45 @@ class BashTest {
 	// region env store management
 	
 	@Test
-	fun `getEnv returns null for non-existent id`() {
+	fun `getEnv returns null for non-existent id`() = runBlocking {
 		assertNull(bash.getEnv("NONEXISTENT"))
 	}
 	
 	@Test
-	fun `setEnv and getEnv roundtrip`() {
+	fun `setEnv and getEnv roundtrip`() = runBlocking {
 		bash.setEnv("MY_KEY", "my_value")
 		assertEquals("my_value", bash.getEnv("MY_KEY"))
 	}
 	
 	@Test
-	fun `setEnv overwrites existing value`() {
+	fun `setEnv overwrites existing value`() = runBlocking {
 		bash.setEnv("KEY", "old")
 		bash.setEnv("KEY", "new")
 		assertEquals("new", bash.getEnv("KEY"))
 	}
 	
 	@Test
-	fun `removeEnv deletes existing entry`() {
+	fun `removeEnv deletes existing entry`() = runBlocking {
 		bash.setEnv("KEY", "value")
 		bash.removeEnv("KEY")
 		assertNull(bash.getEnv("KEY"))
 	}
 	
 	@Test
-	fun `removeEnv is no-op for non-existent entry`() {
+	fun `removeEnv is no-op for non-existent entry`() = runBlocking {
 		assertNull(bash.getEnv("NONEXISTENT"))
 		bash.removeEnv("NONEXISTENT")
 		assertNull(bash.getEnv("NONEXISTENT"))
 	}
 	
 	@Test
-	fun `setEnv with special characters`() {
+	fun `setEnv with special characters`() = runBlocking {
 		bash.setEnv("KEY", "value with spaces and \"quotes\"")
 		assertEquals("value with spaces and \"quotes\"", bash.getEnv("KEY"))
 	}
 	
 	@Test
-	fun `multiple env entries coexist`() {
+	fun `multiple env entries coexist`() = runBlocking {
 		bash.setEnv("A", "1")
 		bash.setEnv("B", "2")
 		bash.setEnv("C", "3")
@@ -481,21 +482,21 @@ class BashTest {
 	}
 	
 	@Test
-	fun `meta env_ids shows available env IDs`() {
+	fun `meta env_ids shows available env IDs`() = runBlocking {
 		bash.setEnv("DB_URL", "jdbc:...")
 		bash.setEnv("API_KEY", "secret")
 		bash.init(defaultSettings, secretStore)
-		
+
 		val envIdsDesc = bash.meta.functions.first().parameters["env_ids"]!!.description
 		assertTrue(envIdsDesc.contains("DB_URL"))
 		assertTrue(envIdsDesc.contains("API_KEY"))
 	}
 	
 	@Test
-	fun `meta env_ids with quotes in name are escaped`() {
+	fun `meta env_ids with quotes in name are escaped`() = runBlocking {
 		bash.setEnv("KEY_WITH\"QUOTE", "val")
 		bash.init(defaultSettings, secretStore)
-		
+
 		val envIdsDesc = bash.meta.functions.first().parameters["env_ids"]!!.description
 		assertTrue(envIdsDesc.contains("KEY_WITH\\\"QUOTE"))
 	}

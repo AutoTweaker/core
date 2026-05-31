@@ -27,7 +27,6 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass
 
@@ -75,10 +74,14 @@ object JsonStoreImpl {
 		override fun set(value: JsonElement) {
 			val content = json.encodeToString(JsonElement.serializer(), value)
 			transaction(db) {
-				JsonStoreTable.upsert {
-					it[JsonStoreTable.namespace] = namespace
-					it[JsonStoreTable.content] = content
-				}
+				//upsert会org.h2.jdbc.JdbcSQLSyntaxErrorException
+				exec(
+					"MERGE INTO JSON_STORE (NAMESPACE, CONTENT) KEY (NAMESPACE) VALUES (" + "'${
+						namespace.replace(
+							"'", "''"
+						)
+					}', " + "'${content.replace("'", "''")}')"
+				)
 			}
 		}
 	}

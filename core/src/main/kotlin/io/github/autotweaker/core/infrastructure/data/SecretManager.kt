@@ -81,7 +81,7 @@ object SecretManager : SecretStore {
 		}
 	}
 	
-	suspend fun unlock(password: String) {
+	suspend fun unlock(passphrase: String) = withContext(Dispatchers.IO) {
 		//确保目录存在
 		Files.createDirectories(secretsDir)
 		Files.createDirectories(gpgHome)
@@ -110,14 +110,14 @@ object SecretManager : SecretStore {
 			killPb.start().waitFor()
 		}
 		if (!hasSecretKey()) {
-			this.password = password
+			password = passphrase
 			_isUnlocked.value = true
 			generateKey()
 			createMarker()
 			logger.info("Secret key generated  keyUid={}", keyUid)
 		} else {
-			verifyPassword(password)
-			this.password = password
+			verifyPassword(passphrase)
+			password = passphrase
 			_isUnlocked.value = true
 		}
 		logger.info("SecretManager unlocked  keyExists={}", hasSecretKey())

@@ -31,6 +31,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -45,7 +46,7 @@ class ReadTest {
 		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
 	}
 	
-	private fun readMeta(settings: SettingService = defaultSettings): Read {
+	private suspend fun readMeta(settings: SettingService = defaultSettings): Read {
 		val r = Read()
 		r.init(settings, mockk(relaxed = true))
 		return r
@@ -87,19 +88,19 @@ class ReadTest {
 	// region meta
 	
 	@Test
-	fun `meta returns correct name`() {
+	fun `meta returns correct name`() = runBlocking {
 		assertEquals("read", readMeta().meta.name)
 	}
 	
 	@Test
-	fun `meta returns three functions`() {
+	fun `meta returns three functions`() = runBlocking {
 		val meta = readMeta().meta
 		assertEquals(3, meta.functions.size)
 		assertEquals(setOf("file", "summarize", "unicode"), meta.functions.map { it.name }.toSet())
 	}
 	
 	@Test
-	fun `meta file function has line_number optional boolean parameter`() {
+	fun `meta file function has line_number optional boolean parameter`() = runBlocking {
 		val meta = readMeta().meta
 		val fileFunc = meta.functions.find { it.name == "file" }!!
 		val lineNumber = fileFunc.parameters["line_number"]!!
@@ -108,7 +109,7 @@ class ReadTest {
 	}
 	
 	@Test
-	fun `meta summarize function has prompt optional string parameter`() {
+	fun `meta summarize function has prompt optional string parameter`() = runBlocking {
 		val meta = readMeta().meta
 		val summarizeFunc = meta.functions.find { it.name == "summarize" }!!
 		val prompt = summarizeFunc.parameters["prompt"]!!
@@ -117,7 +118,7 @@ class ReadTest {
 	}
 	
 	@Test
-	fun `meta unicode function has max_chars required integer parameter`() {
+	fun `meta unicode function has max_chars required integer parameter`() = runBlocking {
 		val meta = readMeta().meta
 		val unicodeFunc = meta.functions.find { it.name == "unicode" }!!
 		val maxChars = unicodeFunc.parameters["max_chars"]!!
@@ -126,7 +127,7 @@ class ReadTest {
 	}
 	
 	@Test
-	fun `meta common properties are required`() {
+	fun `meta common properties are required`() = runBlocking {
 		val meta = readMeta().meta
 		for (func in meta.functions) {
 			if (func.name == "unicode") continue
