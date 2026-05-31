@@ -21,9 +21,7 @@ set -e
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ] || [ "$1" = "upgrade" ]; then
     systemctl --global disable --now autotweaker 2>/dev/null || true
-    pkill -f "io.github.autotweaker.core.MainKt" 2>/dev/null || true
-    for _ in $(seq 1 50); do
-        pgrep -f "io.github.autotweaker.core.MainKt" >/dev/null || break
-        sleep 0.1
+    loginctl list-users --no-legend 2>/dev/null | while read -r uid user; do
+        systemctl --user -M "${user}@" disable --now autotweaker 2>/dev/null || true
     done
 fi

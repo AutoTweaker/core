@@ -19,6 +19,12 @@
 
 set -e
 
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    loginctl list-users --no-legend 2>/dev/null | while read -r uid user; do
+        systemctl --user -M "${user}@" daemon-reload 2>/dev/null || true
+    done
+fi
+
 if [ "$1" = "purge" ]; then
     rm -rf /etc/autotweaker
 fi
