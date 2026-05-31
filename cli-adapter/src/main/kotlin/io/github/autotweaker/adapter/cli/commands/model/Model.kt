@@ -54,6 +54,11 @@ class Model : Command {
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
+		if (request.has("list")) {
+			emitAll(list())
+			return@flow
+		}
+		
 		val add = ModelAdd(core, prompt)
 		if (request.has("add-all")) {
 			emitAll(add.addAll(request.get("add-all") ?: error("Missing provider name")))
@@ -69,5 +74,15 @@ class Model : Command {
 		}
 		
 		emitDone(1)
+	}
+	
+	fun list(): Flow<CmdOutput> = flow {
+		val provider = core.config.listProviders()
+		core.config.listModels().forEach { model ->
+			val providerName =
+				provider.find { it.id == model.data.providerId }?.displayName ?: i18n.get(ModelI18n.Unknown())
+			emit(CmdOutput.Data("[$providerName] ${model.data.displayName}"))
+		}
+		emitDone()
 	}
 }

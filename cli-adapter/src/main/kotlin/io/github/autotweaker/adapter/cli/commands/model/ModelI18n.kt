@@ -197,6 +197,16 @@ internal object ModelI18n {
 		)
 	}
 	
+	@AutoService(I18nDef::class)
+	class Unknown : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(
+				Locale.SIMPLIFIED_CHINESE,
+				"未知"
+			),
+		)
+	}
+	
 	const val TOKENS = "(tokens)"
 	const val YON = "(y/n)"
 }
