@@ -240,8 +240,6 @@ static char *daemon_substate(void) {
 
 /* ---- ensure_daemon ---- */
 static void ensure_daemon(void) {
-    shell_ignore("systemctl --user daemon-reload 2>/dev/null");
-
     int active = daemon_is_active();
     if (!active) {
         fputs("Starting daemon...\n", stderr);
