@@ -20,8 +20,8 @@
 set -e
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    loginctl list-users --no-legend 2>/dev/null | while read -r uid user; do
-        systemctl --user -M "${user}@" daemon-reload 2>/dev/null || true
+    for user in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}'); do
+        su -s /bin/sh -c "XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user daemon-reload" "$user" || true
     done
 fi
 
