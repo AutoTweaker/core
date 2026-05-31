@@ -23,6 +23,8 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
@@ -52,7 +54,9 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	private var fileLock: FileLock? = null
 	
 	suspend fun start() {
-		Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
+		withContext(Dispatchers.IO) {
+			Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
+		}
 		acquireLock()
 		
 		logger.info("AutoTweaker started  version={}", version)
