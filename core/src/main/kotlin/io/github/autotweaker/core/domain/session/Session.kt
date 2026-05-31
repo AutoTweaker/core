@@ -90,7 +90,7 @@ internal class Session(
 	val agentStatus: StateFlow<AgentStatus> get() = agent?.statusFlow ?: error("No agent created")
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
+	
 	suspend fun init() {
 		val ids = collectMessageIds(_context.value, maxCompactedRounds).toList()
 		if (ids.isNotEmpty()) {
@@ -111,11 +111,11 @@ internal class Session(
 		}
 		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
 	}
-
+	
 	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int): Set<UUID> {
 		val ids = mutableSetOf<UUID>()
 		val index = ctx.index
-
+		
 		index.compactedRounds?.takeLast(maxCompactedRounds)?.forEach { compacted ->
 			ids.add(compacted.summarizedMessage)
 			compacted.rounds.forEach { round ->
@@ -125,10 +125,10 @@ internal class Session(
 		index.historyRounds?.forEach { SessionContextIndex.collectCompletedRoundIds(it, ids) }
 		index.currentRound?.let { SessionContextIndex.collectCurrentRoundIds(it, ids) }
 		index.summarizedMessage?.let { ids.add(it) }
-
+		
 		return ids
 	}
-
+	
 	//endregion
 	
 	fun dispatch(command: AgentCommand) {
@@ -138,7 +138,7 @@ internal class Session(
 	
 	suspend fun updateConfig(config: SessionConfig) {
 		logger.info("Session config updated  sessionId={}", _data.value.id)
-		_data.update { _data.value.copy(config = config) }
+		_data.update { it.copy(config = config) }
 		dispatch(
 			AgentCommand.Directive.UpdateModel(
 				model = resolveModel(config.model),
@@ -149,7 +149,7 @@ internal class Session(
 	}
 	
 	fun updateTitle(title: String) {
-		_data.update { _data.value.copy(title = title) }
+		_data.update { it.copy(title = title) }
 	}
 	
 	suspend fun send(content: String, images: List<Base64>? = null) {
