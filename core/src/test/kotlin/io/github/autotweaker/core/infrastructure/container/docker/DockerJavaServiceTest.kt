@@ -34,13 +34,15 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
+import kotlin.test.*
 import kotlin.time.Duration
 
 class DockerJavaServiceTest {
+	
+	@AfterTest
+	fun tearDown() {
+		unmockkAll()
+	}
 	
 	private fun createFrame(streamType: StreamType, text: String): Frame {
 		val frame = mockk<Frame>()
@@ -56,7 +58,7 @@ class DockerJavaServiceTest {
 		every { DockerClientImpl.getInstance() } returns client
 		mockkStatic(Files::class)
 		every { Files.createDirectories(any()) } returns mockk()
-
+		
 		return client
 	}
 	
@@ -106,29 +108,29 @@ class DockerJavaServiceTest {
 	fun `start throws ContainerOperationException on NotFoundException`() = runTest {
 		val client = setupClient()
 		every { client.createContainerCmd(any()) } throws NotFoundException("image not found")
-
+		
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
 			service.start("nonexistent:latest", ContainerConfig())
 		}
 		assertTrue(ex.message!!.contains("not found"))
-
+		
 		unmockkStatic(DockerClientImpl::class)
 		unmockkStatic(Files::class)
 	}
-
+	
 	@Test
 	fun `start throws ContainerOperationException on generic exception`() = runTest {
 		val client = setupClient()
 		every { client.createContainerCmd(any()) } throws RuntimeException("network error")
-
+		
 		val service = DockerJavaService()
 		val ex = assertFailsWith<ContainerOperationException> {
 			service.start("ubuntu:latest", ContainerConfig())
 		}
 		assertTrue(ex.message!!.contains("Failed to start container"))
 		assertTrue(ex.message!!.contains("network error"))
-
+		
 		unmockkStatic(DockerClientImpl::class)
 		unmockkStatic(Files::class)
 	}

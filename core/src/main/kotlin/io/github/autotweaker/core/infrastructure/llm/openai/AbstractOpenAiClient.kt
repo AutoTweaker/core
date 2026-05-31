@@ -57,15 +57,15 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			encodeDefaults = true
 			coerceInputValues = true
 		}
-
+		
 		private val sharedHttpClient: HttpClient = HttpClient {
 			install(ContentNegotiation) {
 				json(json)
 			}
 		}
-
+		
 		private val closed = AtomicBoolean(false)
-
+		
 		fun close() {
 			if (closed.compareAndSet(false, true)) {
 				sharedHttpClient.close()

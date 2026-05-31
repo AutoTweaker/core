@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
-data class SessionHandle(
+class SessionHandle(
 	val id: UUID,
 	val context: StateFlow<SessionContext>,
 	val output: SharedFlow<SessionOutput>,

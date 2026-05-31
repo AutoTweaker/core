@@ -86,7 +86,6 @@ class DeepSeekToolChoiceSerializerTest {
 	@Test
 	fun `function factory creates Specific with correct name`() {
 		val tc = ToolChoice.function("testFn")
-		assert(true)
 		assertEquals("testFn", tc.function.name)
 	}
 	

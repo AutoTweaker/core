@@ -79,7 +79,7 @@ object I18nServiceImpl : I18nService {
 	}
 	
 	override fun get(def: I18nDef): String {
-		val key = def::class.qualifiedName!!
+		val key = def::class.qualifiedName ?: error("Anonymous I18nDef not supported: ${def::class}")
 		return resolve(key, language)
 	}
 	

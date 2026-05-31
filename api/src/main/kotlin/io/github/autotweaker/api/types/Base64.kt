@@ -40,7 +40,9 @@ value class Base64(val value: String) {
 		
 		fun isValid(input: String): Boolean {
 			if (input.length % 4 != 0) return false
-			return input.all { it.isLetterOrDigit() || it == '+' || it == '/' || it == '=' }
+			val padding = input.takeLastWhile { it == '=' }.length
+			if (padding > 2) return false
+			return input.dropLast(padding).all { it.isLetterOrDigit() || it == '+' || it == '/' }
 		}
 	}
 }

@@ -54,11 +54,11 @@ object SecretManager : SecretStore {
 	private val mutex = Mutex()
 	
 	@Volatile
-	private var password: String? = null
-	
+	private var password: CharArray? = null
+
 	private val _isUnlocked = MutableStateFlow(false)
 	val isUnlocked = _isUnlocked.asStateFlow()
-	val isPasswordEmpty: Boolean get() = password == ""
+	val isPasswordEmpty: Boolean get() = password?.isEmpty() == true
 	
 	fun killGpgAgent() {
 		runCatching {
@@ -110,14 +110,14 @@ object SecretManager : SecretStore {
 			killPb.start().waitFor()
 		}
 		if (!hasSecretKey()) {
-			password = passphrase
+			password = passphrase.toCharArray()
 			_isUnlocked.value = true
 			generateKey()
 			createMarker()
 			logger.info("Secret key generated  keyUid={}", keyUid)
 		} else {
 			verifyPassword(passphrase)
-			password = passphrase
+			password = passphrase.toCharArray()
 			_isUnlocked.value = true
 		}
 		logger.info("SecretManager unlocked  keyExists={}", hasSecretKey())
@@ -136,17 +136,20 @@ object SecretManager : SecretStore {
 	}
 	
 	//生成gpg密钥
-	private suspend fun generateKey() = gpg(
-		"--batch",
-		"--pinentry-mode",
-		"loopback",
-		"--quick-generate-key",
-		keyUid,
-		"rsa4096",
-		"encrypt",
-		"never",
-		passphrase = password!!
-	)
+	private suspend fun generateKey() {
+		val pw = requireNotNull(password) { "SecretManager is locked" }
+		gpg(
+			"--batch",
+			"--pinentry-mode",
+			"loopback",
+			"--quick-generate-key",
+			keyUid,
+			"rsa4096",
+			"encrypt",
+			"never",
+			passphrase = String(pw)
+		)
+	}
 	
 	//加密一个ok，写入markerFile
 	private suspend fun createMarker() = encryptTo("ok", markerFile)
@@ -161,13 +164,14 @@ object SecretManager : SecretStore {
 	//更改密码
 	suspend fun changePassword(oldPassword: String, newPassword: String) = mutex.withLock {
 		requireUnlocked()
-		if (oldPassword != password) error("Invalid password")
-		if (newPassword == password) return@withLock
+		val current = String(requireNotNull(password) { "SecretManager is locked" })
+		if (oldPassword != current) error("Invalid password")
+		if (newPassword == current) return@withLock
 		val cache = list().associateWith { get(it) }
 		logger.info("Password change started  secretCount={}", cache.size)
 		deleteKey()
 		Files.deleteIfExists(markerFile)
-		this.password = newPassword
+		this.password = newPassword.toCharArray()
 		generateKey()
 		cache.forEach { (id, secret) -> encryptTo(secret, secretsDir.resolve("$id.gpg")) }
 		createMarker()
@@ -229,7 +233,8 @@ object SecretManager : SecretStore {
 		require(Files.exists(file)) { "Secret not found: $id" }
 		logger.debug("Secret retrieved  id={}", id)
 		return gpg(
-			"--batch", "--yes", "--pinentry-mode", "loopback", "-d", file.toString(), passphrase = password!!
+			"--batch", "--yes", "--pinentry-mode", "loopback", "-d", file.toString(),
+			passphrase = String(requireNotNull(password) { "SecretManager is locked" })
 		)
 	}
 	

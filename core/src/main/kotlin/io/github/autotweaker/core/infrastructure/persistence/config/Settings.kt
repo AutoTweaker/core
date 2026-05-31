@@ -56,13 +56,13 @@ object Settings : SettingService {
 	}
 	
 	override fun <V : SettingValue> get(def: SettingDef<V>): V {
-		val id = def::class.qualifiedName!!
+		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		val stored = cache[id]
 		@Suppress("UNCHECKED_CAST") return if (stored != null && stored::class == def.default::class) stored as V else def.default
 	}
-	
+
 	override fun <V : SettingValue> set(def: SettingDef<V>, value: V) {
-		val id = def::class.qualifiedName!!
+		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		upsertValue(id, value, def.description)
 		cache[id] = value
 		logger.debug("Setting updated by def  id={}  value={}", id, value)

@@ -91,7 +91,7 @@ object Launcher {
 			runCatching {
 				adapter.stop()
 				logger.info("Stopped adapter  name={}", info.name)
-			}.onFailure { logger.warn("Failed to stop adapter  name={}", info.name) }
+			}.onFailure { e -> logger.warn("Failed to stop adapter  name={}  reason={}", info.name, e.message) }
 		}
 		runBlocking {
 			runCatching {

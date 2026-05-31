@@ -39,24 +39,28 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		name = "deepseek", baseUrl = Url("https://api.deepseek.com/v1"), models = listOf(
 			ModelData.ModelInfo(
 				modelId = "deepseek-v4-flash",
-				contextWindow = 100_0000,
+				contextWindow = 1_000_000,
 				maxOutputTokens = 384_000,
 				price = ModelData.TokenPrice(
 					inputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0, price = Price(
-								amount = BigDecimal("1"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+								amount = BigDecimal("1"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 1_000_000
 							), cachedPrice = Price(
 								amount = BigDecimal("0.02"),
 								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
+								unit = 1_000_000
 							)
 						)
 					),
 					outputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0, price = Price(
-								amount = BigDecimal("2"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+								amount = BigDecimal("2"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 1_000_000
 							)
 						)
 					),
@@ -68,24 +72,28 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsJsonOutput = true
 			), ModelData.ModelInfo(
 				modelId = "deepseek-v4-pro",
-				contextWindow = 100_0000,
+				contextWindow = 1_000_000,
 				maxOutputTokens = 384_000,
 				price = ModelData.TokenPrice(
 					inputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0, price = Price(
-								amount = BigDecimal("3"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+								amount = BigDecimal("3"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 1_000_000
 							), cachedPrice = Price(
 								amount = BigDecimal("0.025"),
 								currency = Currency.getInstance(Locale.CHINA),
-								unit = 100_0000
+								unit = 1_000_000
 							)
 						)
 					),
 					outputPrice = listOf(
 						ModelData.TokenPrice.PriceTier(
 							fromTokens = 0, price = Price(
-								amount = BigDecimal("6"), currency = Currency.getInstance(Locale.CHINA), unit = 100_0000
+								amount = BigDecimal("6"),
+								currency = Currency.getInstance(Locale.CHINA),
+								unit = 1_000_000
 							)
 						)
 					),
@@ -157,7 +165,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				is ChatMessage.ErrorMessage -> null
 			}
 		}
-
+		
 		return DeepSeekRequest(
 			model = request.model,
 			messages = mappedMessages,
