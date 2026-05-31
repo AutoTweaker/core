@@ -42,7 +42,7 @@ class Bash : CoreTool {
 	private lateinit var settings: SettingService
 	override val meta: Tool.Meta get() = _meta
 	
-	override fun init(service: SettingService, secretStore: SecretStore) {
+	override suspend fun init(service: SettingService, secretStore: SecretStore) {
 		envStorage = EnvStorage(this::class, secretStore)
 		settings = service
 		
@@ -138,8 +138,8 @@ class Bash : CoreTool {
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	
-	fun listEnv(): List<String> = envStorage.listEnv()
-	fun getEnv(id: String): String? = envStorage.getEnv(id)
-	fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
-	fun removeEnv(id: String) = envStorage.removeEnv(id)
+	suspend fun listEnv(): List<String> = envStorage.listEnv()
+	suspend fun getEnv(id: String): String? = envStorage.getEnv(id)
+	suspend fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
+	suspend fun removeEnv(id: String) = envStorage.removeEnv(id)
 }

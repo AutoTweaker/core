@@ -108,10 +108,10 @@ class CoreAPIImpl(
 	override val config = object : CoreAPI.ConfigAPI {
 		override val settingService: SettingService = Settings
 		override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
-		override fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
-		override fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
-		override fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
-		override fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
+		override suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
+		override suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
+		override suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
+		override suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
 		override fun listProviders() = providerRepo.list()
 		override fun listAvailableProviderTypes() = providerRepo.listAvailable()
 		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = providerRepo.getMeta(type)
@@ -132,7 +132,7 @@ class CoreAPIImpl(
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.add(model)
 		override fun removeModel(id: UUID) = modelRepo.remove(id)
 		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) = modelRepo.update(id, model)
-		override fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
+		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
 		override fun listApiKeyNames() = apiKeyRepo.list()
 		override fun removeApiKey(name: String) = apiKeyRepo.delete(name)
 	}
@@ -140,8 +140,8 @@ class CoreAPIImpl(
 	override val secret = object : CoreAPI.SecretAPI {
 		override val isUnlocked = SecretManager.isUnlocked
 		override fun isPasswordEmpty() = SecretManager.isPasswordEmpty
-		override fun unlock(password: String) = SecretManager.unlock(password)
-		override fun changePassword(oldPassword: String, newPassword: String) =
+		override suspend fun unlock(password: String) = SecretManager.unlock(password)
+		override suspend fun changePassword(oldPassword: String, newPassword: String) =
 			SecretManager.changePassword(oldPassword, newPassword)
 	}
 	

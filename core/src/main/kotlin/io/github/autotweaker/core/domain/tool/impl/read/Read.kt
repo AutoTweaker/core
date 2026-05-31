@@ -41,7 +41,7 @@ class Read : CoreTool {
 	private lateinit var settings: SettingService
 	override val meta: Tool.Meta get() = _meta
 	
-	override fun init(service: SettingService, secretStore: SecretStore) {
+	override suspend fun init(service: SettingService, secretStore: SecretStore) {
 		settings = service
 		
 		val commonProperties: Map<String, Tool.Function.Property> = mapOf(

@@ -31,7 +31,7 @@ object ModelRepositoryImpl : ModelRepository {
 		this.secretStore = secretStore
 	}
 	
-	override fun resolve(id: UUID): Model? {
+	override suspend fun resolve(id: UUID): Model? {
 		val model = ModelStore.get(id) ?: return null
 		val provider = ProviderStore.get(model.providerId) ?: return null
 		return Model(
@@ -48,5 +48,5 @@ object ModelRepositoryImpl : ModelRepository {
 		)
 	}
 	
-	override fun resolveAll(ids: List<UUID>): List<Model?> = ids.map { resolve(it) }
+	override suspend fun resolveAll(ids: List<UUID>): List<Model?> = ids.map { resolve(it) }
 }

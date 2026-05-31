@@ -55,7 +55,7 @@ internal object SessionManager {
 		this.secretStore = secretStore
 	}
 	
-	private fun resolveModel(id: UUID): Model = modelRepo.resolve(id) ?: error("Unknown model: $id")
+	private suspend fun resolveModel(id: UUID): Model = modelRepo.resolve(id) ?: error("Unknown model: $id")
 	
 	private val sessions = ConcurrentHashMap<UUID, Session>()
 	
@@ -118,7 +118,6 @@ internal object SessionManager {
 		val session = Session(
 			data = data,
 			context = SessionContext.emptyContext(systemPrompt),
-			messages = emptyList(),
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceData.meta,
@@ -126,6 +125,7 @@ internal object SessionManager {
 			service = Settings,
 			secretStore = secretStore,
 		)
+		session.init()
 		sessions[session.data.value.id] = session
 		startMonitor(session)
 		wsm.updateData(
@@ -150,12 +150,9 @@ internal object SessionManager {
 		if (!Files.isDirectory(workspaceMeta.path)) {
 			error("Workspace directory does not exist: ${workspaceMeta.path}")
 		}
-		val messageIds = collectMessageIds(context).toList()
-		val loadedMessages = if (messageIds.isNotEmpty()) store.loadMessages(messageIds) ?: emptyList() else emptyList()
 		val session = Session(
 			data = data,
 			context = context,
-			messages = loadedMessages,
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceMeta,
@@ -163,6 +160,7 @@ internal object SessionManager {
 			containerConfig = ContainerConfig(),
 			secretStore = secretStore,
 		)
+		session.init()
 		sessions[session.data.value.id] = session
 		startMonitor(session)
 		logger.info("Restored session  sessionId={}  workspaceId={}", session.data.value.id, workspaceId)
@@ -178,21 +176,6 @@ internal object SessionManager {
 		status = session.agentStatus,
 		data = session.data,
 	)
-	
-	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int = 0): Set<UUID> {
-		val ids = mutableSetOf<UUID>()
-		val index = ctx.index
-		index.compactedRounds?.takeLast(maxCompactedRounds)?.forEach { compacted ->
-			ids.add(compacted.summarizedMessage)
-			compacted.rounds.forEach { round ->
-				SessionContextIndex.collectCompletedRoundIds(round, ids)
-			}
-		}
-		index.historyRounds?.forEach { SessionContextIndex.collectCompletedRoundIds(it, ids) }
-		index.currentRound?.let { SessionContextIndex.collectCurrentRoundIds(it, ids) }
-		index.summarizedMessage?.let { ids.add(it) }
-		return ids
-	}
 	
 	private fun startMonitor(session: Session) {
 		val id = session.data.value.id

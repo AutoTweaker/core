@@ -44,7 +44,7 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 	}
 	
 	
-	override fun add(key: CoreConfig.ProviderConfig.ApiKey) {
+	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) {
 		if (keyMap[key.name] != null) error("Key ${key.name} already exists")
 		keyMap[key.name] = secret.add(key.key)
 		saveMap()
@@ -52,10 +52,10 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 	}
 	
 	override fun list(): List<String> = keyMap.keys.toList()
-	override fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
+	override suspend fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
 	override fun delete(name: String) {
-		val id = keyMap.remove(name) ?: error("Key $name not found")
 		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
+		val id = keyMap.remove(name) ?: error("Key $name not found")
 		secret.remove(id)
 		saveMap()
 		logger.info("Deleted API key  name={}", name)

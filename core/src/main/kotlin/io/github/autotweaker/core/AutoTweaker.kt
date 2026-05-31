@@ -51,7 +51,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	private var lockChannel: FileChannel? = null
 	private var fileLock: FileLock? = null
 	
-	fun start() {
+	suspend fun start() {
 		Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
 		acquireLock()
 		

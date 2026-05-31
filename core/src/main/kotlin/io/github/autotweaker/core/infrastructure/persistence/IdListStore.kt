@@ -47,6 +47,7 @@ internal class IdListStore<T : Any>(
 		logger.info("Initialized  count={}", itemsRef.get().size)
 	}
 	
+	@Synchronized
 	fun add(data: T) {
 		val id = idOf(data)
 		if (itemsRef.get().any { idOf(it) == id }) error("Already exists  id=$id")
@@ -58,11 +59,13 @@ internal class IdListStore<T : Any>(
 	
 	fun get(id: UUID): T? = itemsRef.get().find { idOf(it) == id }
 	
+	@Synchronized
 	fun delete(id: UUID) {
 		update(itemsRef.get().filterNot { idOf(it) == id })
 		logger.debug("Deleted  id={}", id)
 	}
 	
+	@Synchronized
 	fun override(data: T) {
 		val id = idOf(data)
 		update(itemsRef.get().map { if (idOf(it) == id) data else it })

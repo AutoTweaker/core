@@ -19,7 +19,9 @@
 package io.github.autotweaker.core
 
 fun main() {
-	AutoTweaker.start()
+	kotlinx.coroutines.runBlocking {
+		AutoTweaker.start()
+	}
 	val latch = java.util.concurrent.CountDownLatch(1)
 	Runtime.getRuntime().addShutdownHook(Thread { latch.countDown() })
 	latch.await()

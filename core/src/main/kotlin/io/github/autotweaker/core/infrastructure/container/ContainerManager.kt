@@ -94,21 +94,19 @@ object ContainerManager {
 		emitAll(service.execStream(id, listOf("bash", "-lc", command), workDir = workDir, timeout = timeout, env = env))
 	}
 	
-	fun listEnv(): List<String> = envStorage.listEnv()
-	
-	@Synchronized
-	fun setEnv(id: String, value: String) {
+	suspend fun listEnv(): List<String> = envStorage.listEnv()
+
+	suspend fun setEnv(id: String, value: String) {
 		envStorage.setEnv(id, value)
 		logger.debug("Container env set  key={}", id)
 	}
-	
-	@Synchronized
-	fun removeEnv(id: String) {
+
+	suspend fun removeEnv(id: String) {
 		envStorage.removeEnv(id)
 		logger.debug("Container env removed  key={}", id)
 	}
-	
-	fun getEnv(id: String? = null): Map<String, String> {
+
+	suspend fun getEnv(id: String? = null): Map<String, String> {
 		val ids = if (id != null) {
 			if (id in envStorage.listEnv()) listOf(id) else emptyList()
 		} else {

@@ -20,6 +20,8 @@ package io.github.autotweaker.core.infrastructure.persistence
 
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -31,19 +33,20 @@ import kotlin.reflect.KClass
 class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
-	
-	fun listEnv(): List<String> = getEnvUuidMap().keys.toList()
-	
-	fun getEnv(id: String): String? {
-		val uuid = getEnvUuidMap()[id] ?: return null
-		return try {
+	private val mutex = Mutex()
+
+	suspend fun listEnv(): List<String> = mutex.withLock { getEnvUuidMap().keys.toList() }
+
+	suspend fun getEnv(id: String): String? = mutex.withLock {
+		val uuid = getEnvUuidMap()[id] ?: return@withLock null
+		try {
 			secretStore.get(uuid)
 		} catch (_: Exception) {
 			null
 		}
 	}
-	
-	fun setEnv(id: String, value: String) {
+
+	suspend fun setEnv(id: String, value: String) = mutex.withLock {
 		val current = getEnvUuidMap()
 		current[id]?.let { secretStore.remove(it) }
 		val uuid = secretStore.add(value)
@@ -52,15 +55,15 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		jsonEntry.set(updated)
 		logger.debug("Env set  id={} class={}", id, kClass.java.name)
 	}
-	
-	fun removeEnv(id: String) {
+
+	suspend fun removeEnv(id: String) = mutex.withLock {
 		val current = getEnvUuidMap()
 		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
 		logger.debug("Env removed  id={} class={}", id, kClass.java.name)
 	}
-	
+
 	private fun getEnvUuidMap(): Map<String, UUID> {
 		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
 		return obj.mapNotNull { (k, v) ->

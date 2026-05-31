@@ -46,6 +46,7 @@ object WorkspaceManager {
 		logger.info("WorkspaceManager initialized  count={}", workspaceListRef.get().size)
 	}
 	
+	@Synchronized
 	fun create(meta: WorkspaceMeta): WorkspaceData {
 		if (workspaceListRef.get().any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
 		val data = WorkspaceData(meta = meta)
@@ -58,17 +59,20 @@ object WorkspaceManager {
 	
 	fun getAll(): List<WorkspaceData> = workspaceListRef.get()
 	
+	@Synchronized
 	fun updateMeta(meta: WorkspaceMeta) {
 		require(meta.id in workspaceListRef.get().map { it.meta.id })
 		update(workspaceListRef.get().map { if (it.meta.id == meta.id) it.copy(meta = meta) else it })
 		logger.debug("Workspace meta updated  id={}", meta.id)
 	}
 	
+	@Synchronized
 	fun updateData(id: UUID, sessionIds: List<UUID>?) {
 		update(workspaceListRef.get().map { if (it.meta.id == id) it.copy(sessionIds = sessionIds) else it })
 		logger.debug("Workspace data updated  id={}", id)
 	}
 	
+	@Synchronized
 	fun delete(id: UUID) {
 		require(id in workspaceListRef.get().map { it.meta.id })
 		if (id == DEFAULT_WORKSPACE_ID) error("Cannot delete default workspace")
@@ -76,6 +80,7 @@ object WorkspaceManager {
 		logger.debug("Workspace deleted  id={}", id)
 	}
 	
+	@Synchronized
 	fun getOrCreateDefault(): WorkspaceData {
 		return getData(DEFAULT_WORKSPACE_ID) ?: run {
 			val defaultPath = Path.of(

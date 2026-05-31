@@ -22,6 +22,6 @@ import io.github.autotweaker.core.domain.model.Model
 import java.util.*
 
 interface ModelRepository {
-	fun resolve(id: UUID): Model?
-	fun resolveAll(ids: List<UUID>): List<Model?>
+	suspend fun resolve(id: UUID): Model?
+	suspend fun resolveAll(ids: List<UUID>): List<Model?>
 }

@@ -21,8 +21,8 @@ package io.github.autotweaker.core.domain.port
 import io.github.autotweaker.api.types.config.CoreConfig
 
 interface ApiKeyRepository {
-	fun add(key: CoreConfig.ProviderConfig.ApiKey)
+	suspend fun add(key: CoreConfig.ProviderConfig.ApiKey)
 	fun list(): List<String>
-	fun get(name: String): String
+	suspend fun get(name: String): String
 	fun delete(name: String)
 }

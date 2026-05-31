@@ -68,7 +68,12 @@ class Agent(
 	}
 	
 	//工具列表
-	override val tools = Tools(service, secretStore).also { t -> tools.forEach { t.add(it) } }
+	private val initialTools = tools
+	override val tools = Tools(service, secretStore)
+
+	suspend fun init() {
+		initialTools.forEach { tools.add(it) }
+	}
 	
 	//模型数据
 	@Volatile

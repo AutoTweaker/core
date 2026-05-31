@@ -23,8 +23,12 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.domain.port.SecretStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -47,6 +51,8 @@ object SecretManager : SecretStore {
 	private lateinit var service: SettingService
 	private val keyUid: String get() = service.get(KeyUid()).value
 	
+	private val mutex = Mutex()
+	
 	@Volatile
 	private var password: String? = null
 	
@@ -62,7 +68,7 @@ object SecretManager : SecretStore {
 		}
 	}
 	
-	fun init(service: SettingService) {
+	suspend fun init(service: SettingService) {
 		this.service = service
 		try {
 			unlock("")
@@ -75,7 +81,7 @@ object SecretManager : SecretStore {
 		}
 	}
 	
-	fun unlock(password: String) {
+	suspend fun unlock(password: String) {
 		//确保目录存在
 		Files.createDirectories(secretsDir)
 		Files.createDirectories(gpgHome)
@@ -121,7 +127,7 @@ object SecretManager : SecretStore {
 	private fun requireUnlocked() = check(password != null) { "SecretManager is locked. Call unlock() first." }
 	
 	//检查gpg密钥存在
-	private fun hasSecretKey(): Boolean = try {
+	private suspend fun hasSecretKey(): Boolean = try {
 		gpg("--list-secret-keys", "--with-colons", keyUid).lines().any {
 			it.startsWith("sec:")
 		}
@@ -130,7 +136,7 @@ object SecretManager : SecretStore {
 	}
 	
 	//生成gpg密钥
-	private fun generateKey() = gpg(
+	private suspend fun generateKey() = gpg(
 		"--batch",
 		"--pinentry-mode",
 		"loopback",
@@ -143,20 +149,20 @@ object SecretManager : SecretStore {
 	)
 	
 	//加密一个ok，写入markerFile
-	private fun createMarker() = encryptTo("ok", markerFile)
+	private suspend fun createMarker() = encryptTo("ok", markerFile)
 	
 	//解密markerFile，如果成功就是密钥正确
-	private fun verifyPassword(password: String) {
+	private suspend fun verifyPassword(password: String) {
 		val result =
 			gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
 		check(result == "ok") { "Invalid password" }
 	}
 	
 	//更改密码
-	fun changePassword(oldPassword: String, newPassword: String) {
+	suspend fun changePassword(oldPassword: String, newPassword: String) = mutex.withLock {
 		requireUnlocked()
 		if (oldPassword != password) error("Invalid password")
-		if (newPassword == password) return
+		if (newPassword == password) return@withLock
 		val cache = list().associateWith { get(it) }
 		logger.info("Password change started  secretCount={}", cache.size)
 		deleteKey()
@@ -168,46 +174,47 @@ object SecretManager : SecretStore {
 		logger.info("Password changed  secretCount={}", cache.size)
 	}
 	
-	private fun fingerprint(): String =
+	private suspend fun fingerprint(): String =
 		gpg("--list-keys", "--with-colons", "--fingerprint", keyUid).lines().first { it.startsWith("fpr:") }.split(":")
 			.getOrNull(9) ?: error("Cannot find fingerprint for $keyUid")
 	
 	//删除密钥
-	private fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", fingerprint())
+	private suspend fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", fingerprint())
 	
 	//加密
-	private fun encryptTo(input: String, output: Path) = gpg(
+	private suspend fun encryptTo(input: String, output: Path) = gpg(
 		"--batch", "--yes", "--trust-model", "direct", "-r", keyUid, "-a", "-e", "-o", output.toString(), input = input
 	)
 	
-	private fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String {
-		val allArgs = mutableListOf("gpg")
-		if (passphrase != null) {
-			allArgs += listOf("--passphrase-fd", "0")
-		}
-		allArgs.addAll(args)
-		val cmd = allArgs.toList()
-		val pb = ProcessBuilder(cmd)
-		pb.environment()["GNUPGHOME"] = gpgHome.toString()
-		pb.environment().remove("GPG_AGENT_INFO")
-		val proc = pb.start()
-		proc.outputStream.bufferedWriter().use { writer ->
+	private suspend fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String =
+		withContext(Dispatchers.IO) {
+			val allArgs = mutableListOf("gpg")
 			if (passphrase != null) {
-				writer.write(passphrase)
-				writer.newLine()
+				allArgs += listOf("--passphrase-fd", "0")
 			}
-			if (input != null) {
-				writer.write(input)
+			allArgs.addAll(args)
+			val cmd = allArgs.toList()
+			val pb = ProcessBuilder(cmd)
+			pb.environment()["GNUPGHOME"] = gpgHome.toString()
+			pb.environment().remove("GPG_AGENT_INFO")
+			val proc = pb.start()
+			proc.outputStream.bufferedWriter().use { writer ->
+				if (passphrase != null) {
+					writer.write(passphrase)
+					writer.newLine()
+				}
+				if (input != null) {
+					writer.write(input)
+				}
 			}
+			val stdout = proc.inputStream.bufferedReader().readText()
+			val stderr = proc.errorStream.bufferedReader().readText()
+			check(proc.waitFor() == 0) { "GPG command failed (${cmd.joinToString(" ")}): $stderr" }
+			stdout
 		}
-		val stdout = proc.inputStream.bufferedReader().readText()
-		val stderr = proc.errorStream.bufferedReader().readText()
-		check(proc.waitFor() == 0) { "GPG command failed (${cmd.joinToString(" ")}): $stderr" }
-		return stdout
-	}
 	
 	// region 实现接口
-	override fun add(secret: String): UUID {
+	override suspend fun add(secret: String): UUID {
 		requireUnlocked()
 		val id = UUID.randomUUID()
 		val file = secretsDir.resolve("$id.gpg")
@@ -216,7 +223,7 @@ object SecretManager : SecretStore {
 		return id
 	}
 	
-	override fun get(id: UUID): String {
+	override suspend fun get(id: UUID): String {
 		requireUnlocked()
 		val file = secretsDir.resolve("$id.gpg")
 		require(Files.exists(file)) { "Secret not found: $id" }

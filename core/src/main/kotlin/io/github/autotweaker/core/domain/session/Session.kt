@@ -50,9 +50,8 @@ import kotlin.time.Clock
 internal class Session(
 	data: SessionData,
 	context: SessionContext,
-	messages: List<SessionMessage>,
 	private val store: SessionRepository,
-	private val resolveModel: (UUID) -> Model,
+	private val resolveModel: suspend (UUID) -> Model,
 	private var workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
@@ -62,15 +61,14 @@ internal class Session(
 	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	private val _tools: List<Tool> = run {
-		val cores = ServiceLoader.load(CoreTool::class.java).toList()
-		cores.forEach { it.init(service, secretStore) }
-		val coreNames = cores.map { it.meta.name }
-		val duplicates = coreNames.groupingBy { it }.eachCount().filter { it.value > 1 }
+	private val _coreTools = ServiceLoader.load(CoreTool::class.java).toList().also {
+		val duplicates = it.map { t -> t.meta.name }.groupingBy { n -> n }.eachCount().filter { e -> e.value > 1 }
 		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
-		val plugins = PluginLoader.load<Tool>().distinctBy { it.meta.name }
-		val pluginNames = plugins.map { it.meta.name }.toSet()
-		plugins + cores.filter { it.meta.name !in pluginNames }
+	}
+	private val _pluginTools = PluginLoader.load<Tool>().distinctBy { it.meta.name }
+	private val _tools: List<Tool> = run {
+		val coreNames = _coreTools.map { it.meta.name }.toSet()
+		_pluginTools + _coreTools.filter { it.meta.name !in coreNames }
 	}
 	
 	private val _data = MutableStateFlow(data)
@@ -92,14 +90,16 @@ internal class Session(
 	val agentStatus: StateFlow<AgentStatus> get() = agent?.statusFlow ?: error("No agent created")
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-	
-	init {
-		if (messages.isNotEmpty()) {
-			messages.forEach { this.messages[it.id] = it }
-			UsageStore.collect(messages)
+
+	suspend fun init() {
+		val ids = collectMessageIds(_context.value, maxCompactedRounds).toList()
+		if (ids.isNotEmpty()) {
+			val loaded = store.loadMessages(ids)
+			loaded?.forEach { messages[it.id] = it }
+			loaded?.let { UsageStore.collect(it) }
 		}
 		createAgent()
-		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
+		agent?.init()
 		scope.launch {
 			agent?.context?.collectLatest { syncContext(it) }
 		}
@@ -109,8 +109,26 @@ internal class Session(
 				_sessionOutput.tryEmit(output)
 			}
 		}
+		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
 	}
-	
+
+	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int): Set<UUID> {
+		val ids = mutableSetOf<UUID>()
+		val index = ctx.index
+
+		index.compactedRounds?.takeLast(maxCompactedRounds)?.forEach { compacted ->
+			ids.add(compacted.summarizedMessage)
+			compacted.rounds.forEach { round ->
+				SessionContextIndex.collectCompletedRoundIds(round, ids)
+			}
+		}
+		index.historyRounds?.forEach { SessionContextIndex.collectCompletedRoundIds(it, ids) }
+		index.currentRound?.let { SessionContextIndex.collectCurrentRoundIds(it, ids) }
+		index.summarizedMessage?.let { ids.add(it) }
+
+		return ids
+	}
+
 	//endregion
 	
 	fun dispatch(command: AgentCommand) {
@@ -118,7 +136,7 @@ internal class Session(
 		target.dispatch(command)
 	}
 	
-	fun updateConfig(config: SessionConfig) {
+	suspend fun updateConfig(config: SessionConfig) {
 		logger.info("Session config updated  sessionId={}", _data.value.id)
 		_data.update { _data.value.copy(config = config) }
 		dispatch(
@@ -229,7 +247,7 @@ internal class Session(
 		save()
 	}
 	
-	private fun createAgent() {
+	private suspend fun createAgent() {
 		val fallbackModels = _data.value.config.fallbackModel?.map { resolveModel(it) }
 		val newAgent = Agent(
 			context = toAgentContext(),

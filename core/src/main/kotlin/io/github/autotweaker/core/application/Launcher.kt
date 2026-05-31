@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory
 object Launcher {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	fun start(
+	suspend fun start(
 		version: SemVer,
 		builtInAdapters: List<Adapter>,
 		registry: MutableMap<String, Pair<Adapter, AdapterInfo>>,

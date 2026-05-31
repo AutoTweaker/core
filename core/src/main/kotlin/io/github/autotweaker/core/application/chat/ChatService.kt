@@ -28,6 +28,8 @@ import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.UsageStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import org.slf4j.LoggerFactory
@@ -44,7 +46,7 @@ object ChatService {
 		this.sessionRepository = sessionRepository
 	}
 	
-	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> {
+	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = flow {
 		val model = modelRepo.resolve(request.model) ?: error("Unknown model: ${request.model}")
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it) ?: error("Unknown fallback model: $it")
@@ -58,7 +60,7 @@ object ChatService {
 		}
 		var lastUsage: Usage? = null
 		var lastModelId: UUID? = null
-		return ResilientChat.execute(
+		emitAll(ResilientChat.execute(
 			model = model,
 			fallbackModels = fallbacks,
 			messages = request.messages,
@@ -80,6 +82,6 @@ object ChatService {
 					UsageStore.collect(listOf(record))
 				}
 			}
-		}
+		})
 	}
 }

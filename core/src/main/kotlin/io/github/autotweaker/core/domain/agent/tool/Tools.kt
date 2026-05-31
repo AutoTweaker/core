@@ -48,11 +48,11 @@ class Tools(private val service: SettingService, private val secretStore: Secret
 		val consecutiveUnused: AtomicInteger = AtomicInteger(0),
 	)
 	
-	private val _entries = mutableListOf<Entry>()
+	private val _entries = Collections.synchronizedList(mutableListOf<Entry>())
 	
 	val entries: List<Entry> get() = _entries
 	
-	fun add(tool: Tool) {
+	suspend fun add(tool: Tool) {
 		if (tool is CoreTool) {
 			tool.init(service, secretStore)
 		}

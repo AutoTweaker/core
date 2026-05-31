@@ -91,10 +91,10 @@ interface CoreAPI {
 		val settingService: SettingService
 		fun jsonStore(kClass: KClass<*>): JsonStore
 		
-		fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
-		fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
-		fun setEnv(env: List<CoreConfig.JsonConfig.Env>)
-		fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String)
+		suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
+		suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
+		suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>)
+		suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String)
 		
 		fun listProviders(): List<CoreConfig.ProviderConfig.Provider>
 		fun listAvailableProviderTypes(): List<String>
@@ -114,7 +114,7 @@ interface CoreAPI {
 		fun removeModel(id: UUID)
 		fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model)
 		
-		fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
+		suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
 		fun removeApiKey(name: String)
 		fun listApiKeyNames(): List<String>
 	}
@@ -123,8 +123,8 @@ interface CoreAPI {
 		val isUnlocked: StateFlow<Boolean>
 		fun isPasswordEmpty(): Boolean
 		
-		fun unlock(password: String)
-		fun changePassword(oldPassword: String, newPassword: String)
+		suspend fun unlock(password: String)
+		suspend fun changePassword(oldPassword: String, newPassword: String)
 	}
 	
 	interface I18nAPI {
