@@ -51,7 +51,7 @@ interface Tool {
 		}
 	}
 	
-	data class ToolInput(
+	class ToolInput(
 		val functionName: String,
 		val arguments: JsonObject,
 		val outputChannel: Channel<RuntimeOutput>? = null,

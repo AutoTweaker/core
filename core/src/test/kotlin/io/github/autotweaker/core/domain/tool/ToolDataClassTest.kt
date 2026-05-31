@@ -271,16 +271,6 @@ class ToolDataClassTest {
 		assertSame(channel, input.outputChannel)
 	}
 	
-	@Test
-	fun `ToolInput copy`() {
-		val input = Tool.ToolInput(
-			functionName = "run",
-			arguments = buildJsonObject { },
-		)
-		val copied = input.copy(functionName = "execute")
-		assertEquals("execute", copied.functionName)
-	}
-	
 	// endregion
 	
 	// region DependencyProvider inline extension
