@@ -73,9 +73,9 @@ interface CoreAPI {
 		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
 		suspend fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
 		
-		suspend fun loadData(ids: List<UUID>): List<SessionData>?
+		suspend fun loadData(ids: List<UUID>): List<SessionData>
 		suspend fun loadContext(sessionId: UUID): SessionContext?
-		suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>?
+		suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>
 		
 		fun getUsageSnapshots(): List<UsageSnapshot>
 		

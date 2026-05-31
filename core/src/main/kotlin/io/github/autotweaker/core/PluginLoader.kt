@@ -42,7 +42,7 @@ object PluginLoader {
 			val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
 			if (!Files.isDirectory(dir)) return URLClassLoader(emptyArray(), apiClassLoader)
 			
-			val jars = Files.list(dir).filter { it.toString().endsWith(".jar") }.toList()
+			val jars = Files.list(dir).use { it.filter { p -> p.toString().endsWith(".jar") }.toList() }
 			if (jars.isEmpty()) return URLClassLoader(emptyArray(), apiClassLoader)
 			
 			val urls = jars.map { it.toUri().toURL() }.toTypedArray()

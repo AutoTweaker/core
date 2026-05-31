@@ -154,7 +154,7 @@ class ToolCallValidator(
 		return when (expectedType) {
 			is Tool.Function.Property.ValueType.StringValue -> value is JsonPrimitive && value.isString
 			is Tool.Function.Property.ValueType.NumberValue -> value is JsonPrimitive && !value.isString
-			is Tool.Function.Property.ValueType.IntegerValue -> value is JsonPrimitive && !value.isString && value.content.toIntOrNull() != null
+			is Tool.Function.Property.ValueType.IntegerValue -> value is JsonPrimitive && !value.isString && value.content.toLongOrNull() != null
 			is Tool.Function.Property.ValueType.BooleanValue -> value is JsonPrimitive && (value.content == "true" || value.content == "false")
 			is Tool.Function.Property.ValueType.ArrayValue -> {
 				if (value !is JsonArray) return false

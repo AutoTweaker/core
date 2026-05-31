@@ -45,7 +45,7 @@ internal object UsageStore {
 	fun collect(messages: List<SessionMessage>) = synchronized(this) {
 		val data = load()
 		var count = 0
-
+		
 		messages.forEach { message ->
 			when (message) {
 				is SessionMessage.Assistant -> message.usageSnapshot?.let { snapshot ->
@@ -55,7 +55,7 @@ internal object UsageStore {
 						count++
 					}
 				}
-
+				
 				is SessionMessage.Compact -> {
 					message.snapshots?.forEachIndexed { index, snapshot ->
 						val key = "${message.id}_$index"
@@ -65,7 +65,7 @@ internal object UsageStore {
 						}
 					}
 				}
-
+				
 				is SessionMessage.UsageRecord -> {
 					val key = message.id.toString()
 					if (key !in data) {
@@ -73,16 +73,16 @@ internal object UsageStore {
 						count++
 					}
 				}
-
+				
 				else -> {}
 			}
 		}
-
+		
 		if (count > 0) {
 			save(data)
 			logger.info("Collected usage entries  new={}  total={}", count, data.size)
 		}
 	}
 	
-	fun getSnapshots(): List<UsageSnapshot> = load().values.toList()
+	fun getSnapshots(): List<UsageSnapshot> = synchronized(this) { load().values.toList() }
 }

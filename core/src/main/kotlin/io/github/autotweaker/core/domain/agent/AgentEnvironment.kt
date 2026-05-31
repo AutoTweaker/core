@@ -26,7 +26,6 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
-import java.util.Collections
 
 internal interface AgentEnvironment {
 	val agentId: UUID
@@ -55,6 +54,6 @@ internal interface AgentEnvironment {
 
 data class MutableAgentState(
 	var pendingApproval: List<Tools.ToolCallResolveResult.NeedsApproval>? = null,
-	@Volatile var processedTools: List<AgentContext.Message.Tool>? = null,
-	val approvalReasons: MutableList<String> = Collections.synchronizedList(mutableListOf()),
+	var processedTools: List<AgentContext.Message.Tool>? = null,
+	val approvalReasons: MutableList<String> = mutableListOf(),
 )

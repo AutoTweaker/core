@@ -20,7 +20,10 @@ package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.api.types.session.*
+import io.github.autotweaker.api.types.session.SessionConfig
+import io.github.autotweaker.api.types.session.SessionContext
+import io.github.autotweaker.api.types.session.SessionData
+import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
@@ -136,8 +139,8 @@ internal object SessionManager {
 		return data.id
 	}
 	
-	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids)
-	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
+	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids) ?: emptyList()
+	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids) ?: emptyList()
 	suspend fun loadContext(id: UUID) = store.loadContext(id)
 	
 	private suspend fun sessionOrRestore(id: UUID): Session = sessions[id] ?: restore(id)

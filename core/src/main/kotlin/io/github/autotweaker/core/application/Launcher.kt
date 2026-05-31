@@ -71,7 +71,7 @@ object Launcher {
 			"Found adapters to start  count={}  builtIn={}  external={}",
 			adapters.size,
 			builtInAdapters.size,
-			adapters.size - builtInAdapters.size
+			adapters.count { (adapter, _) -> adapter !in builtInAdapters }
 		)
 		adapters.forEach { (adapter, info) ->
 			registry[info.name] = adapter to info
