@@ -55,7 +55,6 @@ object Launcher {
 	
 	suspend fun start(
 		version: SemVer,
-		builtInAdapters: List<Adapter>,
 		registry: MutableMap<String, Pair<Adapter, AdapterInfo>>,
 		adapterAPI: CoreAPI.AdapterAPI,
 	) {
@@ -67,7 +66,6 @@ object Launcher {
 		SessionDataDbApi.init(databaseStore)
 		SessionContextDbApi.init(databaseStore)
 		SessionMessageDbApi.init(databaseStore)
-		DbDebugAPIImpl.init(databaseStore)
 		SecretManager.init(Settings)
 		DbDebugAPIImpl.init(databaseStore)
 		
@@ -81,17 +79,12 @@ object Launcher {
 		TranslationManager.init(ModelRepositoryImpl, Settings, I18nServiceImpl)
 		TranslationManager.startTranslation()
 		
-		val all = (builtInAdapters + PluginLoader.load<Adapter>()).map { it to it.load(version) }
+		val all = PluginLoader.load<Adapter>().map { it to it.load(version) }
 		val adapters =
 			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
-		
+
 		if (!adapters.isEmpty()) {
-			logger.info(
-				"Found adapters to start  count={}  builtIn={}  external={}",
-				adapters.size,
-				builtInAdapters.size,
-				adapters.count { (adapter, _) -> adapter !in builtInAdapters }
-			)
+			logger.info("Found adapters to start  count={}", adapters.size)
 			adapters.forEach { (adapter, info) ->
 				registry[info.name] = adapter to info
 				logger.info(

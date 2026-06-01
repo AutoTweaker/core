@@ -42,10 +42,6 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		SemVer.parse(props.getProperty("version"))
 	}
 	
-	private val builtInAdapters: List<Adapter> by lazy {
-		ServiceLoader.load(Adapter::class.java).toList()
-	}
-	
 	private val registry: MutableMap<String, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	
 	private val lockFile: Path = Path.of(
@@ -59,15 +55,15 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 			Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
 		}
 		acquireLock()
-
+		
 		PluginLoader.load<StartupHook>().forEach { hook ->
 			logger.info("Running startup hook  class={}", hook::class.java.name)
 			hook.execute(version)
 		}
-
+		
 		logger.info("AutoTweaker started  version={}", version)
-
-		Launcher.start(version, builtInAdapters, registry, this)
+		
+		Launcher.start(version, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
 			logger.info("AutoTweaker shutdown initiated")
 			Launcher.shutdown(registry)
