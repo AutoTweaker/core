@@ -21,7 +21,7 @@ package io.github.autotweaker.api.dev
 import io.github.autotweaker.api.types.dev.DbEntry
 
 interface DbAPI<Entry : DbEntry> {
-	suspend fun list(limit: Int): List<Entry>
+	suspend fun list(range: UIntRange): List<Entry>
 	suspend fun get(key: String): Entry?
 	suspend fun put(content: Entry)
 	suspend fun delete(key: String)
