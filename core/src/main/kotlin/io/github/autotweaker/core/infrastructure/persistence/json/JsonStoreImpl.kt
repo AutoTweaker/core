@@ -27,6 +27,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass
 
@@ -57,14 +58,14 @@ object JsonStoreImpl {
 	}
 	
 	private class JsonEntry(kClass: KClass<*>) : JsonStore {
-		private val namespace = kClass.java.name
+		val namespace: String = kClass.java.name
 		override fun get(): JsonElement? {
 			return transaction(db) {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
 					try {
 						json.parseToJsonElement(row[JsonStoreTable.content])
 					} catch (e: Exception) {
-						logger.warn("Failed to parse JSON  namespace={}  reason={}", namespace, e.message)
+						logger.warn("Failed to parse JSON  namespace={} reason={}", namespace, e.message)
 						null
 					}
 				}
@@ -72,16 +73,13 @@ object JsonStoreImpl {
 		}
 		
 		override fun set(value: JsonElement) {
+			val namespace = namespace
 			val content = json.encodeToString(JsonElement.serializer(), value)
 			transaction(db) {
-				//upsert会org.h2.jdbc.JdbcSQLSyntaxErrorException
-				exec(
-					"MERGE INTO JSON_STORE (NAMESPACE, CONTENT) KEY (NAMESPACE) VALUES (" + "'${
-						namespace.replace(
-							"'", "''"
-						)
-					}', " + "'${content.replace("'", "''")}')"
-				)
+				JsonStoreTable.upsert {
+					it[JsonStoreTable.namespace] = namespace
+					it[JsonStoreTable.content] = content
+				}
 			}
 		}
 	}
