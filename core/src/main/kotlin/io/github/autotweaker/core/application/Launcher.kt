@@ -66,6 +66,7 @@ object Launcher {
 		SessionDataDbApi.init(databaseStore)
 		SessionContextDbApi.init(databaseStore)
 		SessionMessageDbApi.init(databaseStore)
+		DbDebugAPIImpl.init(databaseStore)
 		SecretManager.init(Settings)
 		
 		Wiring.init()
