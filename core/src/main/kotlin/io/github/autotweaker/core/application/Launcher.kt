@@ -20,7 +20,6 @@ package io.github.autotweaker.core.application
 
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.dev.StartupHook
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
@@ -64,23 +63,21 @@ object Launcher {
 		val adapters =
 			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
-		if (adapters.isEmpty()) {
-			throw IllegalStateException("No Adapter implementations found. At least one adapter is required.")
-		}
-		
-		logger.info(
-			"Found adapters to start  count={}  builtIn={}  external={}",
-			adapters.size,
-			builtInAdapters.size,
-			adapters.count { (adapter, _) -> adapter !in builtInAdapters }
-		)
-		adapters.forEach { (adapter, info) ->
-			registry[info.name] = adapter to info
+		if (!adapters.isEmpty()) {
 			logger.info(
-				"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
+				"Found adapters to start  count={}  builtIn={}  external={}",
+				adapters.size,
+				builtInAdapters.size,
+				adapters.count { (adapter, _) -> adapter !in builtInAdapters }
 			)
-			adapter.start(createCoreAPI(adapterAPI))
-			logger.info("Started adapter  name={}", info.name)
+			adapters.forEach { (adapter, info) ->
+				registry[info.name] = adapter to info
+				logger.info(
+					"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
+				)
+				adapter.start(createCoreAPI(adapterAPI))
+				logger.info("Started adapter  name={}", info.name)
+			}
 		}
 	}
 	
