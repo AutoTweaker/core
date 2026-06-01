@@ -18,9 +18,7 @@
 
 package io.github.autotweaker.api.types.dev
 
-import kotlinx.serialization.json.JsonElement
-
 data class JsonStoreEntry(
 	override val key: String,
-	val content: JsonElement
+	val content: String
 ) : DbEntry()

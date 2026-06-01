@@ -18,11 +18,9 @@
 
 package io.github.autotweaker.api.types.dev
 
-import kotlinx.serialization.json.JsonElement
-
 data class SessionContextEntry(
 	override val key: String,
 	val systemPrompt: String,
-	val index: JsonElement,
-	val droppedMessages: JsonElement
+	val index: String,
+	val droppedMessages: String
 ) : DbEntry()
