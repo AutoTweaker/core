@@ -57,7 +57,7 @@ class BashTest {
 		
 		val secretMap = mutableMapOf<UUID, String>()
 		secretStore = object : SecretStore {
-			override suspend fun add(secret: String): UUID = UUID.randomUUID().also { secretMap[it] = secret }
+			override suspend fun add(secret: String, id: UUID): UUID = id.also { secretMap[it] = secret }
 			override suspend fun get(id: UUID): String = secretMap[id]!!
 			override fun list(): List<UUID> = secretMap.keys.toList()
 			override fun remove(id: UUID) {

@@ -212,9 +212,8 @@ object SecretManager : SecretStore {
 		}
 	
 	// region 实现接口
-	override suspend fun add(secret: String): UUID {
+	override suspend fun add(secret: String, id: UUID): UUID {
 		requireUnlocked()
-		val id = UUID.randomUUID()
 		val file = secretsDir.resolve("$id.gpg")
 		encryptTo(secret, file)
 		logger.debug("Secret added  id={}", id)
