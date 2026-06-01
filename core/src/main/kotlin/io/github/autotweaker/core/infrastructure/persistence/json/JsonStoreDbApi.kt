@@ -18,40 +18,20 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.json
 
-import io.github.autotweaker.api.dev.DbAPI
 import io.github.autotweaker.api.types.dev.JsonStoreEntry
+import io.github.autotweaker.core.infrastructure.persistence.store.AbstractDbApi
 import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.statements.UpsertStatement
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.upsert
 
-class JsonStoreDbApi(private val db: Database) : DbAPI<JsonStoreEntry> {
-	override suspend fun list(range: UIntRange): List<JsonStoreEntry> = transaction(db) {
-		val count = (range.last - range.first + 1u).toInt()
-		JsonStoreTable.selectAll().limit(count).offset(range.first.toLong()).map { it.toJsonStoreEntry() }
-	}
-	
-	override suspend fun get(key: String): JsonStoreEntry? = transaction(db) {
-		JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq key }
-			.firstOrNull()?.toJsonStoreEntry()
-	}
-	
-	override suspend fun put(content: JsonStoreEntry): Unit = transaction(db) {
-		JsonStoreTable.upsert {
-			it[namespace] = content.key
-			it[JsonStoreTable.content] = content.content
-		}
-	}
-	
-	override suspend fun delete(key: String): Unit = transaction(db) {
-		JsonStoreTable.deleteWhere { namespace eq key }
-	}
-	
-	private fun ResultRow.toJsonStoreEntry() = JsonStoreEntry(
+class JsonStoreDbApi(db: Database) : AbstractDbApi<JsonStoreEntry>(db, JsonStoreTable, JsonStoreTable.namespace) {
+	override fun ResultRow.toEntry() = JsonStoreEntry(
 		key = this[JsonStoreTable.namespace],
 		content = this[JsonStoreTable.content],
 	)
+	
+	override fun UpsertStatement<Long>.fill(content: JsonStoreEntry) {
+		this[JsonStoreTable.namespace] = content.key
+		this[JsonStoreTable.content] = content.content
+	}
 }

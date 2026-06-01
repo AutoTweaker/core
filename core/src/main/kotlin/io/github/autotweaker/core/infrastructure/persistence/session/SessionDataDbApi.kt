@@ -16,24 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persistence.config
+package io.github.autotweaker.core.infrastructure.persistence.session
 
-import io.github.autotweaker.api.types.dev.SettingEntry
+import io.github.autotweaker.api.types.dev.SessionDataEntry
 import io.github.autotweaker.core.infrastructure.persistence.store.AbstractDbApi
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
 import org.jetbrains.exposed.v1.jdbc.Database
 
-class SettingDbApi(db: Database) : AbstractDbApi<SettingEntry>(db, ConfigTable, ConfigTable.keyName) {
-	override fun ResultRow.toEntry() = SettingEntry(
-		key = this[ConfigTable.keyName],
-		value = this[ConfigTable.valJson],
-		description = this[ConfigTable.description],
+class SessionDataDbApi(db: Database) :
+	AbstractDbApi<SessionDataEntry>(db, SessionDataTable, SessionDataTable.id) {
+	override fun ResultRow.toEntry() = SessionDataEntry(
+		key = this[SessionDataTable.id],
+		title = this[SessionDataTable.title],
+		workspaceId = this[SessionDataTable.workspaceId],
+		config = this[SessionDataTable.configJson],
 	)
 	
-	override fun UpsertStatement<Long>.fill(content: SettingEntry) {
-		this[ConfigTable.keyName] = content.key
-		this[ConfigTable.valJson] = content.value
-		this[ConfigTable.description] = content.description
+	override fun UpsertStatement<Long>.fill(content: SessionDataEntry) {
+		this[SessionDataTable.id] = content.key
+		this[SessionDataTable.title] = content.title
+		this[SessionDataTable.workspaceId] = content.workspaceId
+		this[SessionDataTable.configJson] = content.config
 	}
 }
