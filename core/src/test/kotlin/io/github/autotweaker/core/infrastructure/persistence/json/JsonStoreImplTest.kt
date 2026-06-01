@@ -18,17 +18,19 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.json
 
-import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.mockk.every
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
+import io.mockk.mockk
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.test.*
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class JsonStoreImplTest {
 	
@@ -38,31 +40,25 @@ class JsonStoreImplTest {
 		private val counter = AtomicInteger(0)
 	}
 	
+	private lateinit var databaseStore: DatabaseStore
+	
 	@BeforeTest
 	fun setUp() {
-		mockkObject(H2DatabaseStore)
-		every { H2DatabaseStore.connect(any()) } answers {
+		databaseStore = mockk()
+		every { databaseStore.connect(any()) } answers {
 			Database.connect(dbUrl, "org.h2.Driver")
 		}
-		val field = JsonStoreImpl::class.java.getDeclaredField("initialized")
-		field.isAccessible = true
-		field.setBoolean(JsonStoreImpl, false)
-	}
-	
-	@AfterTest
-	fun tearDown() {
-		unmockkObject(H2DatabaseStore)
 	}
 	
 	@Test
 	fun `init then get returns null`() {
-		JsonStoreImpl.init()
+		JsonStoreImpl.init(databaseStore)
 		assertNull(JsonStoreImpl.namespace(String::class).get())
 	}
 	
 	@Test
 	fun `namespace and set then get`() {
-		JsonStoreImpl.init()
+		JsonStoreImpl.init(databaseStore)
 		val entry = JsonStoreImpl.namespace(Int::class)
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
 		entry.set(data)
@@ -71,7 +67,7 @@ class JsonStoreImplTest {
 	
 	@Test
 	fun `get handles corrupted JSON`() {
-		JsonStoreImpl.init()
+		JsonStoreImpl.init(databaseStore)
 		transaction {
 			JsonStoreTable.insert {
 				it[JsonStoreTable.namespace] = Boolean::class.java.name

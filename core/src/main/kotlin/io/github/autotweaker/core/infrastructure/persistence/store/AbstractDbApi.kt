@@ -31,11 +31,16 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 
-abstract class AbstractDbApi<Entry : DbEntry>(
-	private val db: Database,
-	private val table: Table,
-	private val pkColumn: Column<String>,
-) : DbAPI<Entry> {
+abstract class AbstractDbApi<Entry : DbEntry> : DbAPI<Entry> {
+	private lateinit var db: Database
+	private lateinit var table: Table
+	private lateinit var pkColumn: Column<String>
+	
+	fun init(db: Database, table: Table, pkColumn: Column<String>) {
+		this.db = db
+		this.table = table
+		this.pkColumn = pkColumn
+	}
 	
 	abstract fun ResultRow.toEntry(): Entry
 	abstract fun UpsertStatement<Long>.fill(content: Entry)

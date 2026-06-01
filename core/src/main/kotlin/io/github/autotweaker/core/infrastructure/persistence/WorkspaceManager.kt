@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference
 object WorkspaceManager {
 	val DEFAULT_WORKSPACE_ID: UUID = UUID.nameUUIDFromBytes("autotweaker-default-workspace".toByteArray())
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val jsonEntry = JsonStoreImpl.namespace(this::class)
+	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	private val workspaceListRef = AtomicReference<List<WorkspaceData>>(emptyList())
 	

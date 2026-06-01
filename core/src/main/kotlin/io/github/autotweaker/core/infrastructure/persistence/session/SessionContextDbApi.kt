@@ -20,12 +20,15 @@ package io.github.autotweaker.core.infrastructure.persistence.session
 
 import io.github.autotweaker.api.types.dev.SessionContextEntry
 import io.github.autotweaker.core.infrastructure.persistence.store.AbstractDbApi
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
-import org.jetbrains.exposed.v1.jdbc.Database
 
-class SessionContextDbApi(db: Database) :
-	AbstractDbApi<SessionContextEntry>(db, SessionContextTable, SessionContextTable.sessionId) {
+object SessionContextDbApi : AbstractDbApi<SessionContextEntry>() {
+	fun init(databaseStore: DatabaseStore) {
+		super.init(databaseStore.connect("Sessions"), SessionContextTable, SessionContextTable.sessionId)
+	}
+	
 	override fun ResultRow.toEntry() = SessionContextEntry(
 		key = this[SessionContextTable.sessionId],
 		systemPrompt = this[SessionContextTable.systemPrompt],

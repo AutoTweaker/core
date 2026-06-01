@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory
 
 internal object UsageStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private val store = JsonStoreImpl.namespace(this::class)
+	private val store by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	private val mapSerializer = MapSerializer(String.serializer(), UsageSnapshot.serializer())
 	

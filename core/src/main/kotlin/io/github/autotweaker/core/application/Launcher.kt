@@ -35,23 +35,35 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persistence.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.session.SessionContextDbApi
+import io.github.autotweaker.core.infrastructure.persistence.session.SessionDataDbApi
+import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 object Launcher {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+	private val databaseStore: DatabaseStore = H2DatabaseStore
+
 	suspend fun start(
 		version: SemVer,
 		builtInAdapters: List<Adapter>,
 		registry: MutableMap<String, Pair<Adapter, AdapterInfo>>,
 		adapterAPI: CoreAPI.AdapterAPI,
 	) {
-		JsonStoreImpl.init()
-		Settings.init()
+		JsonStoreImpl.init(databaseStore)
+		Settings.init(databaseStore)
+		SessionRepositoryImpl.init(databaseStore)
+		SettingDbApi.init(databaseStore)
+		JsonStoreDbApi.init(databaseStore)
+		SessionDataDbApi.init(databaseStore)
+		SessionContextDbApi.init(databaseStore)
 		SecretManager.init(Settings)
 		
 		Wiring.init()
@@ -111,8 +123,8 @@ object Launcher {
 			SecretManager.killGpgAgent()
 		}.onFailure { logger.warn("Failed to kill GPG agent") }
 		runCatching {
-			H2DatabaseStore.shutdown()
-		}.onFailure { logger.warn("Failed to shutdown H2DatabaseStore") }
+			databaseStore.shutdown()
+		}.onFailure { logger.warn("Failed to shutdown DatabaseStore") }
 		logger.info("Launcher shutdown completed")
 	}
 }

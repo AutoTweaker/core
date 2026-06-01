@@ -22,7 +22,7 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -38,8 +38,8 @@ object Settings : SettingService {
 	
 	private val cache = ConcurrentHashMap<String, SettingValue>()
 	
-	fun init() {
-		db = H2DatabaseStore.connect("AppConfig")
+	fun init(databaseStore: DatabaseStore) {
+		db = databaseStore.connect("AppConfig")
 		transaction(db) {
 			SchemaUtils.create(ConfigTable)
 		}

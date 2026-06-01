@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persistence.json
 
 import io.github.autotweaker.api.config.JsonStore
-import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.eq
@@ -36,24 +36,13 @@ object JsonStoreImpl {
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 	private lateinit var db: Database
 	
-	@Volatile
-	private var initialized = false
-	
-	@Synchronized
-	fun init() {
-		if (initialized) return
-		db = H2DatabaseStore.connect("AppConfig")
+	fun init(databaseStore: DatabaseStore) {
+		db = databaseStore.connect("AppConfig")
 		transaction(db) { SchemaUtils.create(JsonStoreTable) }
-		initialized = true
 		logger.info("JsonStoreImpl initialized  table=json_store")
 	}
 	
-	private fun ensureInit() {
-		if (!initialized) init()
-	}
-	
 	fun namespace(kClass: KClass<*>): JsonStore {
-		ensureInit()
 		return JsonEntry(kClass)
 	}
 	

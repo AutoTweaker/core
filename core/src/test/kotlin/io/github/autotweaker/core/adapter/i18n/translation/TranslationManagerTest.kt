@@ -19,10 +19,31 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.types.i18n.TranslationStatus
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
+import io.mockk.every
+import io.mockk.mockk
+import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 
 class TranslationManagerTest {
+	
+	private val dbUrl = "jdbc:h2:mem:tm_${counter.getAndIncrement()};DB_CLOSE_DELAY=-1"
+	
+	companion object {
+		private val counter = AtomicInteger(0)
+	}
+	
+	@BeforeTest
+	fun setUp() {
+		val databaseStore = mockk<DatabaseStore>()
+		every { databaseStore.connect(any()) } answers {
+			Database.connect(dbUrl, "org.h2.Driver")
+		}
+		JsonStoreImpl.init(databaseStore)
+	}
 	
 	@AfterTest
 	fun tearDown() {

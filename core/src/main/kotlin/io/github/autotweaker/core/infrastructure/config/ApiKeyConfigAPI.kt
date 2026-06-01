@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap
 object ApiKeyConfigAPI : ApiKeyRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var secret: SecretStore
-	private val jsonEntry = JsonStoreImpl.namespace(this::class)
+	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	private val provCfg: ProviderRepository = ProviderConfigAPI
 	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
 	

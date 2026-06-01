@@ -22,7 +22,7 @@ import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
@@ -35,28 +35,17 @@ object SessionRepositoryImpl : SessionRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
 	
-	@Volatile
-	private var initialized = false
-	
-	@Synchronized
-	private fun init() {
-		if (initialized) return
-		db = H2DatabaseStore.connect("Sessions")
+	fun init(databaseStore: DatabaseStore) {
+		db = databaseStore.connect("Sessions")
 		transaction(db) {
 			SchemaUtils.create(SessionDataTable, SessionContextTable, SessionMessageTable)
 		}
-		initialized = true
 		logger.info("SessionRepository initialized")
-	}
-	
-	private fun ensureInit() {
-		if (!initialized) init()
 	}
 	
 	// region Sessions
 	
 	override suspend fun saveSessions(sessionData: List<SessionData>) {
-		ensureInit()
 		transaction(db) {
 			sessionData.forEach { data ->
 				SessionDataTable.upsert {
@@ -70,7 +59,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun loadSessions(ids: List<UUID>): List<SessionData>? {
-		ensureInit()
 		return transaction(db) {
 			val idStrings = ids.map { it.toString() }
 			val rows = SessionDataTable.selectAll().where { SessionDataTable.id inList idStrings }
@@ -80,7 +68,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun loadAllSessions(): List<SessionData>? {
-		ensureInit()
 		return transaction(db) {
 			val rows = SessionDataTable.selectAll()
 			if (rows.empty()) null
@@ -89,7 +76,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun deleteSessions(id: List<UUID>) {
-		ensureInit()
 		val idStrings = id.map { it.toString() }
 		transaction(db) {
 			SessionDataTable.deleteWhere { SessionDataTable.id inList idStrings }
@@ -111,7 +97,6 @@ object SessionRepositoryImpl : SessionRepository {
 	// region Context
 	
 	override suspend fun saveContext(sessionId: UUID, context: SessionContext) {
-		ensureInit()
 		transaction(db) {
 			SessionContextTable.upsert {
 				it[SessionContextTable.sessionId] = sessionId.toString()
@@ -123,7 +108,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun loadContext(sessionId: UUID): SessionContext? {
-		ensureInit()
 		return transaction(db) {
 			SessionContextTable.selectAll().where { SessionContextTable.sessionId eq sessionId.toString() }
 				.singleOrNull()?.let { row ->
@@ -137,7 +121,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun deleteContext(sessionId: UUID) {
-		ensureInit()
 		transaction(db) {
 			SessionContextTable.deleteWhere { SessionContextTable.sessionId eq sessionId.toString() }
 		}
@@ -148,7 +131,6 @@ object SessionRepositoryImpl : SessionRepository {
 	// region Messages
 	
 	override suspend fun saveMessages(messages: List<SessionMessage>) {
-		ensureInit()
 		transaction(db) {
 			messages.forEach { msg ->
 				SessionMessageTable.upsert {
@@ -162,7 +144,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>? {
-		ensureInit()
 		return transaction(db) {
 			val idStrings = ids.map { it.toString() }
 			val rows = SessionMessageTable.selectAll().where { SessionMessageTable.id inList idStrings }
@@ -172,7 +153,6 @@ object SessionRepositoryImpl : SessionRepository {
 	}
 	
 	override suspend fun deleteMessages(ids: List<UUID>) {
-		ensureInit()
 		val idStrings = ids.map { it.toString() }
 		transaction(db) {
 			SessionMessageTable.deleteWhere { SessionMessageTable.id inList idStrings }
