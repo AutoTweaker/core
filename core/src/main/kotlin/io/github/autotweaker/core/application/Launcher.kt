@@ -20,6 +20,7 @@ package io.github.autotweaker.core.application
 
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.dev.Debugger
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory
 object Launcher {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val databaseStore: DatabaseStore = H2DatabaseStore
-
+	
 	suspend fun start(
 		version: SemVer,
 		builtInAdapters: List<Adapter>,
@@ -68,6 +69,12 @@ object Launcher {
 		SessionMessageDbApi.init(databaseStore)
 		DbDebugAPIImpl.init(databaseStore)
 		SecretManager.init(Settings)
+		DbDebugAPIImpl.init(databaseStore)
+		
+		PluginLoader.load<Debugger>().forEach { debugger ->
+			logger.info("Initializing debugger  class={}", debugger::class.java.name)
+			debugger.init(DbDebugAPIImpl)
+		}
 		
 		Wiring.init()
 		
