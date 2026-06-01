@@ -20,6 +20,7 @@ package io.github.autotweaker.core.application
 
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.dev.StartupHook
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader

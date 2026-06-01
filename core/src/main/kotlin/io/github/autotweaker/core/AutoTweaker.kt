@@ -20,6 +20,7 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.dev.StartupHook
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
@@ -58,9 +59,14 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 			Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
 		}
 		acquireLock()
-		
+
+		PluginLoader.load<StartupHook>().forEach { hook ->
+			logger.info("Running startup hook  class={}", hook::class.java.name)
+			hook.execute(version)
+		}
+
 		logger.info("AutoTweaker started  version={}", version)
-		
+
 		Launcher.start(version, builtInAdapters, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
 			logger.info("AutoTweaker shutdown initiated")

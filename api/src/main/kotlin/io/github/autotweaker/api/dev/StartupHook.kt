@@ -21,5 +21,5 @@ package io.github.autotweaker.api.dev
 import io.github.autotweaker.api.types.SemVer
 
 interface StartupHook {
-	fun execute(coreVersion: SemVer)
+	suspend fun execute(coreVersion: SemVer)
 }
