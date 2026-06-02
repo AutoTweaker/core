@@ -37,14 +37,17 @@ class Model : Command {
 	override val description get() = i18n.get(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("list", i18n.get(ModelI18n.ParamList())), required = true), Syntax.all(
+			Syntax.leaf(Param.Flag("list", i18n.get(ModelI18n.ParamList())), required = true),
+			Syntax.all(
 				Syntax.leaf(Param.Flag("add", i18n.get(ModelI18n.ParamAdd())), required = true),
 				Syntax.leaf(Param.Value("name", i18n.get(ModelI18n.ParamAddName())), required = true),
 				Syntax.leaf(Param.Value("provider", i18n.get(ModelI18n.ParamAddProvider())), required = true),
 				Syntax.leaf(Param.Value("info", i18n.get(ModelI18n.ParamAddInfo())))
-			), Syntax.leaf(
-				Param.Value("add-all", i18n.get(ModelI18n.ParamAddAll()), aliases = emptyList()), required = true
-			)
+			),
+			Syntax.leaf(
+				Param.Value("add-all", i18n.get(ModelI18n.ParamAddAll()), aliases = emptyList()),
+				required = true
+			),
 		)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {

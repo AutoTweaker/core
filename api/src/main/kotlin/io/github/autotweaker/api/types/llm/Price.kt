@@ -31,4 +31,9 @@ data class Price(
 	@Serializable(CurrencySerializer::class)
 	val currency: Currency,
 	val tokenUnit: Int
-)
+) {
+	init {
+		require(amount >= BigDecimal.ZERO) { "Price amount must be >= 0, got $amount" }
+		require(tokenUnit > 0) { "tokenUnit must be > 0, got $tokenUnit" }
+	}
+}

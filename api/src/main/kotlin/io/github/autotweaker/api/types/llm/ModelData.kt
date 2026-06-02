@@ -30,6 +30,10 @@ data class ModelData(
 	@Serializable(with = UuidSerializer::class) val providerId: UUID,
 	val config: Config? = null,
 ) {
+	init {
+		require(displayName.isNotBlank()) { "displayName must not be blank" }
+	}
+	
 	@Serializable
 	data class ModelInfo(
 		val modelId: String,
@@ -43,17 +47,48 @@ data class ModelData(
 		val supportsReasoning: Boolean,
 		val supportsImage: Boolean,
 		val supportsJsonOutput: Boolean,
-	)
+	) {
+		init {
+			require(modelId.isNotBlank()) { "modelId must not be blank" }
+			require(contextWindow > 0) { "contextWindow must be > 0, got $contextWindow" }
+			require(maxOutputTokens > 0) { "maxOutputTokens must be > 0, got $maxOutputTokens" }
+		}
+	}
 	
 	@Serializable
 	data class TokenPrice(
 		val inputPrice: List<PriceTier>,
 		val outputPrice: List<PriceTier>,
 	) {
+		init {
+			require(inputPrice.isNotEmpty()) { "inputPrice must not be empty" }
+			require(outputPrice.isNotEmpty()) { "outputPrice must not be empty" }
+			requireValidTiers(inputPrice, "inputPrice")
+			requireValidTiers(outputPrice, "outputPrice")
+		}
+		
+		companion object {
+			private fun requireValidTiers(tiers: List<PriceTier>, name: String) {
+				val sorted = tiers.sortedBy { it.fromTokens }
+				require(sorted.first().fromTokens == 0) { "$name must start from 0, got fromTokens=${sorted.first().fromTokens}" }
+				require(sorted.last().toTokens == null) { "$name last tier must have no upper bound (toTokens=null)" }
+				sorted.zipWithNext().forEach { (prev, next) ->
+					require(prev.toTokens == next.fromTokens) {
+						"$name gap or overlap: tier ending at ${prev.toTokens} not connected to next tier starting at ${next.fromTokens}"
+					}
+				}
+			}
+		}
+		
 		@Serializable
 		data class PriceTier(
 			val fromTokens: Int, val toTokens: Int? = null, val price: Price, val cachedPrice: Price? = null
-		)
+		) {
+			init {
+				require(fromTokens >= 0) { "fromTokens must be >= 0, got $fromTokens" }
+				require(toTokens == null || toTokens > fromTokens) { "toTokens must be > fromTokens ($fromTokens), got $toTokens" }
+			}
+		}
 	}
 	
 	@Serializable
@@ -62,5 +97,12 @@ data class ModelData(
 		val maxTokens: Int?,
 		val compactContextUsage: Double?,
 		val compactTotalTokens: Double?,
-	)
+	) {
+		init {
+			require(temperature == null || temperature in 0.0..2.0) { "temperature must be in [0.0, 2.0], got $temperature" }
+			require(maxTokens == null || maxTokens > 0) { "maxTokens must be > 0, got $maxTokens" }
+			require(compactContextUsage == null || compactContextUsage > 0.0 && compactContextUsage <= 1.0) { "compactContextUsage must be in (0.0, 1.0], got $compactContextUsage" }
+			require(compactTotalTokens == null || compactTotalTokens > 0) { "compactTotalTokens must be > 0, got $compactTotalTokens" }
+		}
+	}
 }

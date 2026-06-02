@@ -32,10 +32,19 @@ data class ProviderData(
 	val baseUrl: Url,
 	val errorHandlingRules: List<ErrorHandlingRule>
 ) {
+	init {
+		val duplicateCodes = errorHandlingRules.groupBy { it.statusCode }.filter { it.value.size > 1 }.keys
+		require(duplicateCodes.isEmpty()) { "Duplicate errorHandlingRules status codes: $duplicateCodes" }
+	}
+
 	@Serializable
 	data class ErrorHandlingRule(
 		val statusCode: Int, val strategy: RecoveryStrategy
 	) {
+		init {
+			require(statusCode in 100..599) { "statusCode must be a valid HTTP status code (100-599), got $statusCode" }
+		}
+
 		@Serializable
 		enum class RecoveryStrategy {
 			RETRY, FALLBACK, CONTEXT_FALLBACK, PROVIDER_FALLBACK,

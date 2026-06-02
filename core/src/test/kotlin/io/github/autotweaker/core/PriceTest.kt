@@ -24,6 +24,7 @@ import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class PriceTest {
 	
@@ -51,8 +52,30 @@ class PriceTest {
 	
 	@Test
 	fun `construct with negative unit`() {
-		val price = Price(BigDecimal("1.5"), Currency.getInstance("EUR"), -1)
-		assertEquals(-1, price.tokenUnit)
+		assertFailsWith<IllegalArgumentException> {
+			Price(BigDecimal("1.5"), Currency.getInstance("EUR"), -1)
+		}
+	}
+	
+	@Test
+	fun `construct with zero tokenUnit throws`() {
+		assertFailsWith<IllegalArgumentException> {
+			Price(BigDecimal("1.0"), Currency.getInstance("USD"), 0)
+		}
+	}
+	
+	@Test
+	fun `construct with negative amount throws`() {
+		assertFailsWith<IllegalArgumentException> {
+			Price(BigDecimal("-0.01"), Currency.getInstance("USD"), 1000)
+		}
+	}
+	
+	@Test
+	fun `construct with zero tokenUnit boundary`() {
+		assertFailsWith<IllegalArgumentException> {
+			Price(BigDecimal.ZERO, Currency.getInstance("USD"), 0)
+		}
 	}
 	
 	// endregion
