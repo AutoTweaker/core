@@ -349,9 +349,11 @@ class Agent(
 			?: service.get(CompactSettings.DefaultCompactTotalTokens()).value
 				.takeIf { it > 0 }
 		
-		val shouldCompact =
-			(contextUsageThreshold != null && usage.totalTokens.toDouble() / contextWindow >= contextUsageThreshold) ||
-					(totalTokensThreshold != null && usage.totalTokens >= totalTokensThreshold)
+		val exceedContextUsage = contextUsageThreshold != null &&
+				usage.totalTokens.toDouble() / contextWindow >= contextUsageThreshold
+		val exceedTotalTokens = totalTokensThreshold != null &&
+				usage.totalTokens >= totalTokensThreshold
+		val shouldCompact = exceedContextUsage || exceedTotalTokens
 		if (shouldCompact) {
 			logger.debug(
 				"Auto-compact triggered  agentId={}  usage={}  contextWindow={}",

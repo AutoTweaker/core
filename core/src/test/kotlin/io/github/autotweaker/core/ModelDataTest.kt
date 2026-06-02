@@ -334,12 +334,12 @@ class ModelDataTest {
 			temperature = 0.7,
 			maxTokens = 4096,
 			compactContextUsage = 0.8,
-			compactTotalTokens = 0.5
+			compactTotalTokens = 500000
 		)
 		assertEquals(0.7, config.temperature)
 		assertEquals(4096, config.maxTokens)
 		assertEquals(0.8, config.compactContextUsage)
-		assertEquals(0.5, config.compactTotalTokens)
+		assertEquals(500000, config.compactTotalTokens)
 	}
 	
 	@Test
@@ -434,7 +434,7 @@ class ModelDataTest {
 	@Test
 	fun `Config with zero compactTotalTokens throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = null, maxTokens = null, compactContextUsage = null, compactTotalTokens = 0.0)
+			ModelData.Config(temperature = null, maxTokens = null, compactContextUsage = null, compactTotalTokens = 0)
 		}
 	}
 	
@@ -445,7 +445,7 @@ class ModelDataTest {
 				temperature = null,
 				maxTokens = null,
 				compactContextUsage = null,
-				compactTotalTokens = -100.0
+				compactTotalTokens = -100
 			)
 		}
 	}
