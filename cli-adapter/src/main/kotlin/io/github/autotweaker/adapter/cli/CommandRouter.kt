@@ -54,7 +54,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	
 	companion object {
 		fun fromServiceLoader(core: CoreAPI, coreVersion: SemVer): CommandRouter = CommandRouter(
-			core, coreVersion, ServiceLoader.load(Command::class.java, Command::class.java.classLoader).toList()
+			core, coreVersion, ServiceLoader.load(Command::class.java, CliAdapter::class.java.classLoader).toList()
 		)
 	}
 	
