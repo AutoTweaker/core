@@ -16,19 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
-}
-
 plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+	kotlin("jvm")
+	kotlin("kapt")
 }
 
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
+dependencies {
+	implementation(project(":api"))
+	implementation(project(":cli-adapter"))
+	
+	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
+	kapt("com.google.auto.service:auto-service:1.1.1")
+}

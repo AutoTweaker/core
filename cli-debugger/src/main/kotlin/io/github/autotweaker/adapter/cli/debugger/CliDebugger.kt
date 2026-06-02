@@ -16,19 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
+package io.github.autotweaker.adapter.cli.debugger
+
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.dev.DbDebugAPI
+import io.github.autotweaker.api.dev.Debugger
+
+@AutoService(Debugger::class)
+class CliDebugger : Debugger {
+	override fun init(api: DbDebugAPI) {
+		instance = api
+	}
+	
+	companion object {
+		lateinit var instance: DbDebugAPI private set
 	}
 }
-
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
