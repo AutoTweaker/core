@@ -99,7 +99,7 @@ object SessionManager {
 	
 	suspend fun updateTitle(session: UUID, title: String) {
 		sessionOrRestore(session).updateTitle(title)
-		logger.debug("Updated session title  session={} title={}", session, title)
+		logger.debug("Updated session title  session={}  title={}", session, title)
 	}
 	
 	suspend fun updateConfig(session: UUID, config: SessionConfig) {
@@ -135,7 +135,7 @@ object SessionManager {
 			id = workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + session.data.value.id
 		)
 		store.saveSessions(listOf(session.data.value))
-		logger.info("Session created  sessionId={} workspaceId={}", session.data.value.id, workspaceData.meta.id)
+		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, workspaceData.meta.id)
 		return data.id
 	}
 	

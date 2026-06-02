@@ -37,7 +37,7 @@ object WorkspaceAPI {
 		val meta = meta.copy(path = resolved)
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
 		val data = wsm.create(meta)
-		logger.info("Created workspace  id={} name={} path={}", data.meta.id, meta.displayName, meta.path)
+		logger.info("Created workspace  id={}  name={}  path={}", data.meta.id, meta.displayName, meta.path)
 		return data
 	}
 	
@@ -45,14 +45,14 @@ object WorkspaceAPI {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		require(!wsm.getAll().any { it.meta.displayName == newName })
 		wsm.updateMeta(data.meta.copy(displayName = newName))
-		logger.info("Renamed workspace  id={} newName={}", id, newName)
+		logger.info("Renamed workspace  id={}  newName={}", id, newName)
 	}
 	
 	suspend fun delete(id: UUID) {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		data.sessionIds?.forEach { SessionManager.delete(it) }
 		wsm.delete(id)
-		logger.info("Deleted workspace  id={} sessionCount={}", id, data.sessionIds?.size ?: 0)
+		logger.info("Deleted workspace  id={}  sessionCount={}", id, data.sessionIds?.size ?: 0)
 	}
 	
 	fun list() = wsm.getAll()

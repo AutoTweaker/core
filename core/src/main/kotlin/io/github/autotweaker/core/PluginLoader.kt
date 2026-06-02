@@ -45,7 +45,7 @@ object PluginLoader {
 			val urls = jars.map { it.toUri().toURL() }.toTypedArray()
 			val classLoader = URLClassLoader(urls, apiClassLoader)
 			classLoaders.add(classLoader)
-			logger.info("Created shared plugin classLoader  jarCount={} classLoader={}", jars.size, classLoader)
+			logger.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
 			sharedClassLoader = classLoader
 			return classLoader
 		}

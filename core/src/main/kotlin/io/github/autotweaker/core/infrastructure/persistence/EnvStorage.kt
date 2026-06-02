@@ -53,7 +53,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
-		logger.debug("Env set  id={} class={}", id, kClass.java.name)
+		logger.debug("Env set  id={}  class={}", id, kClass.java.name)
 	}
 
 	suspend fun removeEnv(id: String) = mutex.withLock {
@@ -61,7 +61,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
-		logger.debug("Env removed  id={} class={}", id, kClass.java.name)
+		logger.debug("Env removed  id={}  class={}", id, kClass.java.name)
 	}
 
 	private fun getEnvUuidMap(): Map<String, UUID> {

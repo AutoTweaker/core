@@ -55,7 +55,7 @@ object ProviderConfigAPI : ProviderRepository {
 		val modelIds = modelConfig.list().filter { it.data.providerId == id }.map { it.data.id }
 		modelIds.forEach { modelConfig.remove(it) }
 		store.delete(id)
-		logger.info("Deleted provider  id={} modelCount={}", id, modelIds.count())
+		logger.info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
 	}
 	
 	override fun create(provider: CoreConfig.ProviderConfig.Provider) {
