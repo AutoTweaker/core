@@ -96,7 +96,7 @@ data class ModelData(
 		val temperature: Double?,
 		val maxTokens: Int?,
 		val compactContextUsage: Double?,
-		val compactTotalTokens: Double?,
+		val compactTotalTokens: Int?,
 	) {
 		init {
 			require(temperature == null || temperature in 0.0..2.0) { "temperature must be in [0.0, 2.0], got $temperature" }

@@ -60,4 +60,16 @@ object CompactSettings {
 		override val default = SettingValue.ValBoolean(false)
 		override val description = "上下文压缩时是否启用思考"
 	}
+	
+	@AutoService(SettingDef::class)
+	class DefaultCompactContextUsage : SettingDef<SettingValue.ValDouble> {
+		override val default = SettingValue.ValDouble(0.85)
+		override val description = "自动上下文压缩的默认百分比阈值"
+	}
+	
+	@AutoService(SettingDef::class)
+	class DefaultCompactTotalTokens : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(1_000_000)
+		override val description = "自动上下文压缩的默认 tokens 阈值"
+	}
 }

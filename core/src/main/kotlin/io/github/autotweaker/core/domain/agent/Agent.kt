@@ -338,11 +338,20 @@ class Agent(
 		if (compactJob.get()?.isActive == true) return
 		val rounds = _context.value.historyRounds
 		if (rounds.isNullOrEmpty()) return
-		val config = currentModel.config ?: return
 		val usage = rounds.lastOrNull()?.finalAssistantMessage?.usageSnapshot?.usage ?: return
 		val contextWindow = currentModel.modelInfo.contextWindow
+		val config = currentModel.config
+		
+		val contextUsageThreshold = config?.compactContextUsage
+			?: service.get(CompactSettings.DefaultCompactContextUsage()).value
+				.takeIf { it > 0.0 && it <= 1.0 }
+		val totalTokensThreshold = config?.compactTotalTokens
+			?: service.get(CompactSettings.DefaultCompactTotalTokens()).value
+				.takeIf { it > 0 }
+		
 		val shouldCompact =
-			(config.compactContextUsage != null && usage.totalTokens.toDouble() / contextWindow >= config.compactContextUsage!!) || (config.compactTotalTokens != null && usage.totalTokens >= config.compactTotalTokens!!)
+			(contextUsageThreshold != null && usage.totalTokens.toDouble() / contextWindow >= contextUsageThreshold) ||
+					(totalTokensThreshold != null && usage.totalTokens >= totalTokensThreshold)
 		if (shouldCompact) {
 			logger.debug(
 				"Auto-compact triggered  agentId={}  usage={}  contextWindow={}",
