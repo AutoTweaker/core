@@ -26,7 +26,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
-internal object WorkspaceAPI {
+object WorkspaceAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val wsm = WorkspaceManager
 	

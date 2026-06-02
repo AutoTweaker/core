@@ -31,7 +31,7 @@ import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 
-internal object ToolProvider {
+object ToolProvider {
 	@Volatile
 	private lateinit var shellExecutor: ShellExecutor
 	
@@ -43,7 +43,7 @@ internal object ToolProvider {
 		this.rawFileSystem = rawFileSystem
 	}
 	
-	internal fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
+	fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
 		val container = SimpleContainer()
 		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, env))
 		container.register(SummarizeService::class, SummarizeServiceImpl(env))

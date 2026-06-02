@@ -26,10 +26,10 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import org.slf4j.LoggerFactory
 
-internal object ValidateToolCallsPhase {
+object ValidateToolCallsPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	internal suspend fun execute(env: AgentEnvironment): PhaseResult {
+	suspend fun execute(env: AgentEnvironment): PhaseResult {
 		logger.debug(
 			"Tool calls validation started  agentId={}  pendingCallCount={}",
 			env.agentId,

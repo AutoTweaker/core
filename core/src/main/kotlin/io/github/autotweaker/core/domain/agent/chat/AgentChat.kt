@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Instant
 
-internal object AgentChat {
+object AgentChat {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	private fun toPendingToolCalls(
@@ -53,7 +53,7 @@ internal object AgentChat {
 		}
 	}
 	
-	internal fun execute(
+	fun execute(
 		request: AgentChatRequest, agentId: UUID
 	): Flow<AgentChatStreamResult> = flow {
 		val messages = request.toChatMessages()

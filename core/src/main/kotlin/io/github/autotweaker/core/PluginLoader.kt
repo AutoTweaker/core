@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core
 
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.URLClassLoader
 import java.nio.file.Files
@@ -25,17 +26,13 @@ import java.nio.file.Path
 import java.util.*
 
 object PluginLoader {
-	@PublishedApi
-	internal val logger = LoggerFactory.getLogger(this::class.java)
-	
-	@PublishedApi
-	internal val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
+	val logger: Logger = LoggerFactory.getLogger(this::class.java)
+	private val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
 	
 	@Volatile
-	internal var sharedClassLoader: URLClassLoader? = null
+	var sharedClassLoader: URLClassLoader? = null
 	
-	@PublishedApi
-	internal fun getOrCreateClassLoader(apiClassLoader: ClassLoader): URLClassLoader {
+	fun getOrCreateClassLoader(apiClassLoader: ClassLoader): URLClassLoader {
 		sharedClassLoader?.let { return it }
 		synchronized(this) {
 			sharedClassLoader?.let { return it }
@@ -48,7 +45,7 @@ object PluginLoader {
 			val urls = jars.map { it.toUri().toURL() }.toTypedArray()
 			val classLoader = URLClassLoader(urls, apiClassLoader)
 			classLoaders.add(classLoader)
-			logger.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
+			logger.info("Created shared plugin classLoader  jarCount={} classLoader={}", jars.size, classLoader)
 			sharedClassLoader = classLoader
 			return classLoader
 		}

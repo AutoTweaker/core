@@ -38,10 +38,10 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
 
-internal object CompactPhase {
+object CompactPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	internal suspend fun execute(
+	suspend fun execute(
 		env: AgentEnvironment,
 		rounds: List<AgentContext.CompletedRound>,
 		summarizeModel: Model,

@@ -29,7 +29,7 @@ import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
 import kotlinx.coroutines.flow.*
 
-internal class ProviderQueries(private val core: CoreAPI) {
+class ProviderQueries(private val core: CoreAPI) {
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	fun list(): Flow<String> = flow {

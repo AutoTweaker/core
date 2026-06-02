@@ -38,11 +38,11 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
 
-internal object TranslationEngine {
+object TranslationEngine {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
-	internal data class BatchJob(
+	data class BatchJob(
 		val model: Model,
 		val svc: SettingService,
 		val systemPrompt: String,
@@ -57,7 +57,7 @@ internal object TranslationEngine {
 		val target: Locale,
 	)
 	
-	internal suspend fun run(
+	suspend fun run(
 		svc: SettingService, modelId: UUID, target: Locale,
 		modelRepo: ModelRepository, i18nService: I18nService,
 	) {
@@ -98,7 +98,7 @@ internal object TranslationEngine {
 		}
 	}
 	
-	internal fun isLanguageCovered(target: Locale, i18nService: I18nService): Boolean {
+	fun isLanguageCovered(target: Locale, i18nService: I18nService): Boolean {
 		val persisted = i18nService.getAll().associateBy { it.key }
 		return I18nRegistry.getAll().keys.all { key ->
 			persisted[key]?.localizations?.any { it.languageCode == target } == true

@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
-internal object ToolAssembler {
+object ToolAssembler {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	fun assemble(tools: List<Tool>, service: SettingService): List<ChatRequest.Tool>? {

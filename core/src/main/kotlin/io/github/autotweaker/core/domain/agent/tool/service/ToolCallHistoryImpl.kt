@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.agent.tool.service
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 
-internal class ToolCallHistoryImpl(
+class ToolCallHistoryImpl(
 	private val env: AgentEnvironment,
 ) : ToolCallHistory {
 	

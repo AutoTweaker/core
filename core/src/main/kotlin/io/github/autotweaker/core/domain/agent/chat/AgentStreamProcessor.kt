@@ -25,7 +25,7 @@ import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.util.*
 
-internal object AgentStreamProcessor {
+object AgentStreamProcessor {
 	sealed class StreamProcessResult {
 		data object Completed : StreamProcessResult()
 		data class ToolCallsRequired(
@@ -38,7 +38,7 @@ internal object AgentStreamProcessor {
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	internal suspend fun processRequest(
+	suspend fun processRequest(
 		request: AgentChatRequest,
 		agentId: UUID,
 		onContextUpdate: suspend (suspend (AgentContext) -> AgentContext) -> Unit,

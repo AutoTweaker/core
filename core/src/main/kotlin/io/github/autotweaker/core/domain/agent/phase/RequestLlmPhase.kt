@@ -25,10 +25,10 @@ import io.github.autotweaker.core.domain.agent.chat.AgentStreamProcessor
 import io.github.autotweaker.core.domain.agent.chat.AgentStreamProcessor.StreamProcessResult
 import org.slf4j.LoggerFactory
 
-internal object RequestLlmPhase {
+object RequestLlmPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	internal suspend fun execute(
+	suspend fun execute(
 		env: AgentEnvironment,
 	): PhaseResult {
 		logger.debug(

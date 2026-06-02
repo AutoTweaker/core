@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.agent.AgentContext
 import java.util.*
 
-internal object AgentContextConverter {
+object AgentContextConverter {
 	fun sync(ctx: AgentContext, oldCtx: SessionContext): Result {
 		val newMessages = extractMessages(ctx)
 		val newMessageIds = newMessages.map { it.id }.toSet()

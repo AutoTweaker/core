@@ -26,7 +26,7 @@ import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Clock
 
-internal class SummarizeServiceImpl(
+class SummarizeServiceImpl(
 	private val env: AgentEnvironment,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {

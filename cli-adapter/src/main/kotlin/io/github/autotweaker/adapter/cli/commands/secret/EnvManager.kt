@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.config.CoreConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-internal class EnvManager(
+class EnvManager(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
 	private val i18n: I18nService get() = core.i18n.i18nService
@@ -63,5 +63,5 @@ internal class EnvManager(
 		EnvType.CONTAINER -> CoreConfig.JsonConfig.Env.Type.CONTAINER_ENV
 	}
 	
-	internal enum class EnvType { BASH, CONTAINER }
+	enum class EnvType { BASH, CONTAINER }
 }

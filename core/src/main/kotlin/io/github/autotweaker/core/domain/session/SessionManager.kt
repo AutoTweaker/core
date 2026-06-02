@@ -40,7 +40,7 @@ import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-internal object SessionManager {
+object SessionManager {
 	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	

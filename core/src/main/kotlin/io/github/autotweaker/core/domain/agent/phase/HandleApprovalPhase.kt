@@ -26,10 +26,10 @@ import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import org.slf4j.LoggerFactory
 
-internal object HandleApprovalPhase {
+object HandleApprovalPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	internal suspend fun execute(
+	suspend fun execute(
 		env: AgentEnvironment,
 		approvals: List<ToolApprove>,
 		executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,

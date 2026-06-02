@@ -24,11 +24,11 @@ import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
-internal object ContextPhase {
+object ContextPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	//归档当前round
-	internal suspend fun archiveCurrentRound(
+	suspend fun archiveCurrentRound(
 		env: AgentEnvironment,
 		updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
 	) {
@@ -96,7 +96,7 @@ internal object ContextPhase {
 	}
 	
 	//将处理完的工具连同assistantMessage转为一个Turn并继续
-	internal suspend fun writeToolTurn(
+	suspend fun writeToolTurn(
 		env: AgentEnvironment,
 		assistantMsg: AgentContext.Message.Assistant,
 		updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
@@ -143,7 +143,7 @@ internal object ContextPhase {
 	}
 	
 	//清理已处理的pendingToolCalls
-	internal suspend fun keepPendingCalls(
+	suspend fun keepPendingCalls(
 		callIds: Set<String>,
 		updateContext: suspend (suspend (AgentContext) -> AgentContext) -> Unit,
 	) {
@@ -159,7 +159,7 @@ internal object ContextPhase {
 	}
 	
 	//构建工具消息
-	internal fun buildToolResult(
+	fun buildToolResult(
 		call: AgentContext.CurrentRound.PendingToolCall,
 		content: String,
 		status: ToolResultStatus,
@@ -181,13 +181,13 @@ internal object ContextPhase {
 	)
 	
 	//构建错误、拒绝、取消的工具消息
-	internal fun buildErrorTool(
+	fun buildErrorTool(
 		call: AgentContext.CurrentRound.PendingToolCall,
 		errorMsg: String,
 	): AgentContext.Message.Tool =
 		buildToolResult(call, errorMsg, ToolResultStatus.FAILURE)
 	
-	internal fun buildRejectedTool(
+	fun buildRejectedTool(
 		call: AgentContext.CurrentRound.PendingToolCall,
 		feedbackReason: String?,
 		env: AgentEnvironment,

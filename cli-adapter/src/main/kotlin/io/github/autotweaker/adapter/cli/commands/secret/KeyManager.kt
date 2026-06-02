@@ -27,7 +27,7 @@ import io.github.autotweaker.api.types.config.CoreConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-internal class KeyManager(
+class KeyManager(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
 	private val i18n: I18nService get() = core.i18n.i18nService

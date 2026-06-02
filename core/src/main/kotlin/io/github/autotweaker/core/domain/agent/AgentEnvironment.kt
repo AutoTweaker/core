@@ -27,7 +27,7 @@ import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
-internal interface AgentEnvironment {
+interface AgentEnvironment {
 	val agentId: UUID
 	val context: StateFlow<AgentContext>
 	suspend fun updateContext(transform: suspend (AgentContext) -> AgentContext)

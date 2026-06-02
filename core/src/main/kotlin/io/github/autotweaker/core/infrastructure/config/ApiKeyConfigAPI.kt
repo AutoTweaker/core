@@ -61,8 +61,8 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 		logger.info("Deleted API key  name={}", name)
 	}
 	
-	internal fun getId(name: String): UUID = keyMap[name] ?: error("Key $name not found")
-	internal fun getName(id: UUID): String =
+	fun getId(name: String): UUID = keyMap[name] ?: error("Key $name not found")
+	fun getName(id: UUID): String =
 		keyMap.filter { it.value == id }.keys.firstOrNull() ?: error("Key $id not found")
 	
 	init {

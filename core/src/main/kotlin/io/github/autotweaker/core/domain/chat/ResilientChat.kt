@@ -47,7 +47,7 @@ object ResilientChat {
 	
 	private class StatusCodeNullException : Exception()
 	
-	internal fun execute(
+	fun execute(
 		model: Model,
 		fallbackModels: List<Model>?,
 		messages: List<ChatMessage>,

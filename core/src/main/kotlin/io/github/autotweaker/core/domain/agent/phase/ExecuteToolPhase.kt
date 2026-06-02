@@ -32,10 +32,10 @@ import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.milliseconds
 
-internal object ExecuteToolPhase {
+object ExecuteToolPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	internal suspend fun execute(
+	suspend fun execute(
 		env: AgentEnvironment,
 		result: ToolCallValidator.ValidationResult.Success,
 		call: AgentContext.CurrentRound.PendingToolCall,

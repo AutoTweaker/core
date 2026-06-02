@@ -27,7 +27,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
 
-internal object UsageStore {
+object UsageStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val store by lazy { JsonStoreImpl.namespace(this::class) }
 	

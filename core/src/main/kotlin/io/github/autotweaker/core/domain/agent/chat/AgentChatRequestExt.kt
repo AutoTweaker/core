@@ -60,7 +60,7 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 	}.mountSummary(context.summarizedMessage?.content)
 }
 
-internal fun AgentContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
+fun AgentContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
 	add(userMessage.toChatMessage())
 	turns?.forEach { addTurn(it) }
 	finalAssistantMessage?.let { add(it.toChatMessage()) }
@@ -82,7 +82,7 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
 
-internal fun List<ChatMessage>.mountSummary(summary: String?): List<ChatMessage> {
+fun List<ChatMessage>.mountSummary(summary: String?): List<ChatMessage> {
 	if (summary.isNullOrEmpty()) return this
 	val firstUserIndex = indexOfFirst { it is ChatMessage.UserMessage }
 	if (firstUserIndex == -1) return this

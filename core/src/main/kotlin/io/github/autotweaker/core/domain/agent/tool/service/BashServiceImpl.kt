@@ -26,7 +26,7 @@ import io.github.autotweaker.core.domain.tool.port.BashService
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Duration
 
-internal class BashServiceImpl(
+class BashServiceImpl(
 	private val executor: ShellExecutor,
 	private val env: AgentEnvironment,
 ) : BashService {

@@ -100,5 +100,5 @@ object ProviderConfigAPI : ProviderRepository {
 		logger.info("Updated provider display name  id={}  name={}", id, displayName)
 	}
 	
-	internal fun get(id: UUID) = store.get(id) ?: error("ProviderData $id not found")
+	fun get(id: UUID) = store.get(id) ?: error("ProviderData $id not found")
 }

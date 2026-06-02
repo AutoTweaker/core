@@ -27,7 +27,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 
-internal class IdListStore<T : Any>(
+class IdListStore<T : Any>(
 	kClass: KClass<*>,
 	serializer: KSerializer<T>,
 	private val idOf: (T) -> UUID,

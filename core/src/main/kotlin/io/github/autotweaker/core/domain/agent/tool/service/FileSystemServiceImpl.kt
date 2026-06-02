@@ -24,7 +24,7 @@ import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import java.nio.file.Path
 
-internal class FileSystemServiceImpl(
+class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
 	private val env: AgentEnvironment,
 ) : FileSystemService {

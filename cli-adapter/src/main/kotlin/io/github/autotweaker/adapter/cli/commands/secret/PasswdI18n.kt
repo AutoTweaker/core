@@ -23,7 +23,7 @@ import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
-internal object PasswdI18n {
+object PasswdI18n {
 	@AutoService(I18nDef::class)
 	class ParamRemove : I18nDef {
 		override val localizations = listOf(
