@@ -27,7 +27,6 @@ import io.github.autotweaker.core.domain.agent.phase.*
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -47,7 +46,6 @@ class Agent(
 	override val summarizeModel: Model,
 	override val containerConfig: ContainerConfig,
 	override val service: SettingService,
-	secretStore: SecretStore,
 	tools: List<Tool>,
 ) : AgentEnvironment {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -68,12 +66,7 @@ class Agent(
 	}
 	
 	//工具列表
-	private val initialTools = tools
-	override val tools = Tools(service, secretStore)
-
-	suspend fun init() {
-		initialTools.forEach { tools.add(it) }
-	}
+	override val tools = Tools(service).also { t -> tools.forEach { t.add(it) } }
 	
 	//模型数据
 	@Volatile

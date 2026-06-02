@@ -28,7 +28,6 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.RawFileSystem
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.mockk.every
@@ -61,8 +60,6 @@ class AgentTest {
 		return WorkspaceMeta("test", path = tmpDir)
 	}
 	
-	private val mockSecretStore: SecretStore = mockk(relaxed = true)
-
 	private fun createAgent(
 		context: AgentContext = AgentContext(null, null, null, null, null),
 		model: Model = mockModel,
@@ -79,7 +76,6 @@ class AgentTest {
 			summarizeModel = mockSummarizeModel,
 			containerConfig = ContainerConfig(),
 			service = agentSettings,
-			secretStore = mockSecretStore,
 			tools = tools,
 		)
 	}
@@ -124,7 +120,6 @@ class AgentTest {
 			summarizeModel = mockSummarizeModel,
 			containerConfig = ContainerConfig(),
 			service = agentSettings,
-			secretStore = mockSecretStore,
 			tools = emptyList(),
 		)
 		assertEquals(ws, agent.workspace)

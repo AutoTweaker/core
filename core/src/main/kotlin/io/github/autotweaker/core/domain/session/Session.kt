@@ -61,15 +61,9 @@ class Session(
 	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	private val _coreTools = ServiceLoader.load(CoreTool::class.java).toList().also {
-		val duplicates = it.map { t -> t.meta.name }.groupingBy { n -> n }.eachCount().filter { e -> e.value > 1 }
-		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
-	}
-	private val _pluginTools = PluginLoader.load<Tool>().distinctBy { it.meta.name }
-	private val _tools: List<Tool> = run {
-		val coreNames = _coreTools.map { it.meta.name }.toSet()
-		_pluginTools + _coreTools.filter { it.meta.name !in coreNames }
-	}
+	private lateinit var _coreTools: List<CoreTool>
+	private lateinit var _pluginTools: List<Tool>
+	private lateinit var _tools: List<Tool>
 	
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
@@ -98,8 +92,8 @@ class Session(
 			loaded?.forEach { messages[it.id] = it }
 			loaded?.let { UsageStore.collect(it) }
 		}
+		initTools()
 		createAgent()
-		agent?.init()
 		scope.launch {
 			agent?.context?.collectLatest { syncContext(it) }
 		}
@@ -127,6 +121,20 @@ class Session(
 		index.summarizedMessage?.let { ids.add(it) }
 		
 		return ids
+	}
+	
+	private suspend fun initTools() {
+		val coreTools = ServiceLoader.load(CoreTool::class.java).toList()
+		coreTools.forEach { it.init(service, secretStore) }
+		val duplicates = coreTools.map { it.meta.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
+		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
+		_coreTools = coreTools
+		
+		val pluginTools = PluginLoader.load<Tool>().distinctBy { it.meta.name }
+		_pluginTools = pluginTools
+		
+		val coreNames = coreTools.map { it.meta.name }.toSet()
+		_tools = pluginTools + coreTools.filter { it.meta.name !in coreNames }
 	}
 	
 	//endregion
@@ -258,7 +266,6 @@ class Session(
 			summarizeModel = resolveModel(_data.value.config.summarizeModel),
 			containerConfig = containerConfig,
 			service = service,
-			secretStore = secretStore,
 			tools = _tools,
 		)
 		agents[newAgent.agentId] = newAgent
