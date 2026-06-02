@@ -20,6 +20,7 @@ package io.github.autotweaker.adapter.cli.debugger.command
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
+import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.debugger.CliDebugger
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
@@ -27,6 +28,7 @@ import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import java.util.*
 
@@ -45,12 +47,12 @@ class Debug : Command {
 					Syntax.leaf(Param.Value("delete", i18n.get(ParamDelete()))),
 				),
 				Syntax.xor(
-					Syntax.leaf(Param.Value("setting", i18n.get(Table()))),
-					Syntax.leaf(Param.Value("jsonStore", i18n.get(Table()))),
-					Syntax.leaf(Param.Value("sessionData", i18n.get(Table()))),
-					Syntax.leaf(Param.Value("sessionContext", i18n.get(Table()))),
-					Syntax.leaf(Param.Value("sessionMessage", i18n.get(Table()))),
-					Syntax.leaf(Param.Value("secrets", i18n.get(Table()))),
+					Syntax.leaf(Param.Flag("setting", i18n.get(Table()), emptyList())),
+					Syntax.leaf(Param.Flag("jsonStore", i18n.get(Table()), emptyList())),
+					Syntax.leaf(Param.Flag("sessionData", i18n.get(Table()), emptyList())),
+					Syntax.leaf(Param.Flag("sessionContext", i18n.get(Table()), emptyList())),
+					Syntax.leaf(Param.Flag("sessionMessage", i18n.get(Table()), emptyList())),
+					Syntax.leaf(Param.Flag("secrets", i18n.get(Table()), emptyList())),
 				)
 			)
 		)
@@ -66,14 +68,18 @@ class Debug : Command {
 		request: Request,
 		prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
-		if (request.has("list")) {
+		if (request.has("list-db")) {
 			debug.tables().forEach { (db, table) ->
 				emit(CmdOutput.Data(db))
 				table.forEach { (name, count) ->
 					emit(CmdOutput.Data("$SPACE$name: $count"))
 				}
 			}
+			emitDone()
+			return@flow
 		}
+		
+		emitAll(DebugHandler(debug, prompt).handle(request))
 	}
 	
 	@AutoService(I18nDef::class)
