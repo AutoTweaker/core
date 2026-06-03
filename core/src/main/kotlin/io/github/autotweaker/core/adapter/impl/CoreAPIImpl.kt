@@ -52,10 +52,13 @@ import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.reflect.KClass
+import kotlin.time.Instant
 
 class CoreAPIImpl(
 	private val adapterAPI: CoreAPI.AdapterAPI,
@@ -153,6 +156,20 @@ class CoreAPIImpl(
 		override fun getTranslationStatus(): StateFlow<TranslationStatus> = TranslationManager.status
 	}
 	
+	override val trace = object : CoreAPI.TraceAPI {
+		override suspend fun origins() = TraceStore.selectOrigins()
+		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin)
+		override suspend fun entries(origin: String, namespace: String, range: UIntRange) =
+			TraceStore.selectEntries(origin, namespace, range)
+		
+		override suspend fun get(origin: String, namespace: String, timestamp: Instant) =
+			TraceStore.select(origin, namespace, timestamp)
+		
+		override suspend fun delete(origin: String, namespace: String, timestamp: Instant) =
+			TraceStore.delete(origin, namespace, timestamp)
+	}
+	
+	override fun trace(kClass: KClass<*>) = TraceRecorderImpl.recorder(kClass)
 	override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
 	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter.exec(arg)
 }

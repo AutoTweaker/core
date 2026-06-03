@@ -59,7 +59,7 @@ object TraceStore {
 		}.firstOrNull()?.get(TraceTable.content)
 	}
 	
-	fun selectSources(): List<String> = transaction(db) {
+	fun selectOrigins(): List<String> = transaction(db) {
 		TraceTable.select(TraceTable.origin).withDistinct().map { it[TraceTable.origin] }
 	}
 	
