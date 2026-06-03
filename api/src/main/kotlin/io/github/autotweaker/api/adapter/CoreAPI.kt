@@ -20,9 +20,9 @@ package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.dev.TraceStore
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.reflect.KClass
+import kotlin.time.Instant
 
 interface CoreAPI {
 	val adapter: AdapterAPI
@@ -44,10 +45,11 @@ interface CoreAPI {
 	val config: ConfigAPI
 	val secret: SecretAPI
 	val i18n: I18nAPI
+	val trace: TraceAPI
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	fun bash(arg: ShellExec): Flow<ShellEvent>
-	fun trace(kClass: KClass<*>): TraceStore
+	fun trace(kClass: KClass<*>): TraceRecorder
 	
 	interface AdapterAPI {
 		fun listAdapter(): List<AdapterInfo>
@@ -137,5 +139,13 @@ interface CoreAPI {
 		
 		fun startTranslation()
 		fun getTranslationStatus(): StateFlow<TranslationStatus>
+	}
+	
+	interface TraceAPI {
+		suspend fun origins(): List<String>
+		suspend fun namespaces(origin: String): List<String>
+		suspend fun entries(origin: String, namespace: String, range: UIntRange): List<Instant>
+		suspend fun get(origin: String, namespace: String, timestamp: Instant): String?
+		suspend fun delete(origin: String, namespace: String, timestamp: Instant)
 	}
 }

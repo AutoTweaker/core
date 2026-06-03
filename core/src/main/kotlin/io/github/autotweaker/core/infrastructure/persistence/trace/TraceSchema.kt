@@ -16,13 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.dev
+package io.github.autotweaker.core.infrastructure.persistence.trace
 
-import kotlin.time.Instant
+import org.jetbrains.exposed.v1.core.Table
 
-interface TraceStore {
-	suspend fun add(name: String, content: String)
-	suspend fun get(name: String, timestamp: Instant): String?
-	suspend fun list(name: String, range: UIntRange): List<Instant>
-	suspend fun delete(name: String, timestamp: Instant)
+object TraceTable : Table("traces") {
+	val origin = varchar("origin", 255)
+	val namespace = varchar("namespace", 255)
+	val timestamp = long("timestamp")
+	val content = text("content")
+	
+	override val primaryKey = PrimaryKey(origin, namespace, timestamp)
 }
