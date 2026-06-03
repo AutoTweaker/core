@@ -22,19 +22,40 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.domain.port.LlmGateway
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 import org.slf4j.LoggerFactory
+import java.util.*
 
 object LlmGatewayImpl : LlmGateway {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-
+	private val trace = TraceRecorderImpl.recorder(this::class)
+	
 	override suspend fun send(
 		request: ChatRequest,
 		apiKey: String,
 		baseUrl: Url,
 		providerType: String,
 	): Flow<ChatResult> {
-		logger.debug("Sent LLM request  providerType={}  model={}  stream={}", providerType, request.model, request.stream)
-		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl)
+		val chatId = UUID.randomUUID()
+		logger.debug(
+			"Sent LLM request  providerType={}  model={}  stream={}  chatId={}",
+			providerType,
+			request.model,
+			request.stream, chatId
+		)
+		trace.add(
+			"request",
+			"request=$request, apiKey=${maskKey(apiKey)}, baseUrl=$baseUrl, providerType=$providerType, chatId=$chatId"
+		)
+		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl).onEach { result ->
+			trace.add("response", "result=$result, chatId=$chatId")
+		}
+	}
+	
+	private fun maskKey(key: String): String {
+		if (key.length <= 8) return "***"
+		return "${key.take(4)}***${key.takeLast(4)}"
 	}
 }

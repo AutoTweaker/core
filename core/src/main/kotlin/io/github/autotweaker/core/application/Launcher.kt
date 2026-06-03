@@ -46,6 +46,7 @@ import io.github.autotweaker.core.infrastructure.persistence.session.SessionMess
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
@@ -68,6 +69,7 @@ object Launcher {
 		SessionMessageDbApi.init(databaseStore)
 		SecretManager.init(Settings)
 		DbDebugAPIImpl.init(databaseStore)
+		TraceStore.init(databaseStore)
 		
 		PluginLoader.load<Debugger>().forEach { debugger ->
 			logger.info("Initializing debugger  class={}", debugger::class.java.name)
@@ -82,7 +84,7 @@ object Launcher {
 		val all = PluginLoader.load<Adapter>().map { it to it.load(version) }
 		val adapters =
 			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
-
+		
 		if (!adapters.isEmpty()) {
 			logger.info("Found adapters to start  count={}", adapters.size)
 			adapters.forEach { (adapter, info) ->
