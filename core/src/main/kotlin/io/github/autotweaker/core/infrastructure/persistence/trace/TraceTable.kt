@@ -19,11 +19,12 @@
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.datetime.timestamp
 
 object TraceTable : Table("traces") {
 	val origin = varchar("origin", 255)
 	val namespace = varchar("namespace", 255)
-	val timestamp = long("timestamp")
+	val timestamp = timestamp("timestamp")
 	val content = text("content")
 	
 	override val primaryKey = PrimaryKey(origin, namespace, timestamp)
