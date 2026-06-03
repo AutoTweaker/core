@@ -33,7 +33,7 @@ object H2DatabaseStore : DatabaseStore {
 	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->
 		val dbDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database")
 		Files.createDirectories(dbDir)
-		val url = "jdbc:h2:${dbDir.resolve(name)};DB_CLOSE_DELAY=-1"
+		val url = "jdbc:h2:${dbDir.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0"
 		logger.debug("Database connected  db={}  url={}", name, url)
 		Database.connect(url, "org.h2.Driver")
 	}
