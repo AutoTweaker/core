@@ -20,6 +20,7 @@ package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.dev.TraceStore
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
@@ -46,6 +47,7 @@ interface CoreAPI {
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	fun bash(arg: ShellExec): Flow<ShellEvent>
+	fun trace(kClass: KClass<*>): TraceStore
 	
 	interface AdapterAPI {
 		fun listAdapter(): List<AdapterInfo>

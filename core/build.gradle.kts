@@ -169,4 +169,3 @@ tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEac
 }
 
 // endregion
-
