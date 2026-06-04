@@ -60,8 +60,9 @@ jobs:
           # Construct clone URLs and deb URL
           HTTPS_URL="https://github.com/${{ github.repository }}.git"
           SSH_URL="git@github.com:${{ github.repository }}.git"
-          DEB_VERSION="${VERSION//-/.}"
-          DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/autotweaker_${DEB_VERSION}_amd64.deb"
+          FULL_VERSION=$(grep '^version=' build/generated/version/version.properties | cut -d= -f2)
+          DEB_FILE=$(basename .temp/deb/*.deb)
+          DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/${DEB_FILE}"
 
           # Clone index repo
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key"
@@ -71,7 +72,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Overwrite index.json
-          jq -n --arg https "$HTTPS_URL" --arg ssh "$SSH_URL" --arg v "$VERSION" --arg deb "$DEB_URL" \
+          jq -n --arg https "$HTTPS_URL" --arg ssh "$SSH_URL" --arg v "$FULL_VERSION" --arg deb "$DEB_URL" \
             '{core: {clone_url: {https: $https, ssh: $ssh}, version: $v, deb_url: $deb}}' \
             > index.json
 
