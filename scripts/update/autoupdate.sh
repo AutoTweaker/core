@@ -20,7 +20,7 @@
 set -euo pipefail
 
 REMOTE_VERSION=$(curl -fsSL https://autotweaker.github.io/index/ | jq -r '.core.version')
-LOCAL_VERSION=$(autotweaker version 2>/dev/null | awk '{print $NF}')
+LOCAL_VERSION=$(dpkg-query -W -f='${Version}' autotweaker 2>/dev/null || echo "unknown")
 
 if [ -z "$REMOTE_VERSION" ]; then
     echo "Failed to fetch remote version" >&2
@@ -29,6 +29,7 @@ fi
 
 remote_base="${REMOTE_VERSION%%+*}"
 local_base="${LOCAL_VERSION%%+*}"
+local_base="${local_base//\~/-}"
 
 if printf '%s\n%s\n' "$remote_base" "$local_base" | sort -V | tail -1 | grep -q "$local_base"; then
     echo "Already up to date: $LOCAL_VERSION"
