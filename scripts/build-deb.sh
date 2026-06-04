@@ -42,7 +42,10 @@ install -m 644 "$CLI_ADAPTER_JAR" "$PKG_ROOT/usr/share/autotweaker/cli-adapter.j
 install -m 755 -D "$PROJECT_DIR/cli-client/build/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
 ln -sf autotweaker "$PKG_ROOT/usr/bin/at"
 install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
+install -m 755 -D "$SCRIPT_DIR/update/autoupdate.sh" "$PKG_ROOT/usr/libexec/autotweaker/autoupdate.sh"
 install -m 644 -D "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/lib/systemd/user/autotweaker.service"
+install -m 644 -D "$SCRIPT_DIR/update/autotweaker-autoupdate.service" "$PKG_ROOT/usr/lib/systemd/system/autotweaker-autoupdate.service"
+install -m 644 -D "$SCRIPT_DIR/update/autotweaker-autoupdate.timer" "$PKG_ROOT/usr/lib/systemd/system/autotweaker-autoupdate.timer"
 
 # 元数据
 cp "$SCRIPT_DIR/deb/copyright" "$PKG_ROOT/usr/share/doc/autotweaker/copyright"

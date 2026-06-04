@@ -1,0 +1,7 @@
+[Unit]
+Description=AutoTweaker Auto Update
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/autotweaker/autoupdate.sh

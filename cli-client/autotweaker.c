@@ -521,17 +521,6 @@ static int handle_daemon_cmd(const char *action) {
     return -1;
 }
 
-/* ---- handle_update_cmd: intercept "update", return exit code ---- */
-static int handle_update_cmd(void) {
-    int rc = system(
-        "curl -fsSL "
-        "\"$(curl -fsSL https://autotweaker.github.io/index/ "
-        "| jq -r '.core.deb_url')\" "
-        "-o /tmp/autotweaker.deb "
-        "&& sudo apt install /tmp/autotweaker.deb");
-    return WIFEXITED(rc) ? WEXITSTATUS(rc) : 1;
-}
-
 /* ---- sync_plugins ---- */
 static void sync_plugins(void) {
     char plugins_dir[512];
@@ -561,10 +550,6 @@ int main(int argc, char **argv) {
         if (rc >= 0) return rc;
         /* unknown action falls through to socket passthrough */
     }
-
-    /* intercept autotweaker update — download and install latest .deb */
-    if (argc == 2 && strcmp(argv[1], "update") == 0)
-        return handle_update_cmd();
 
     config_init();
     sync_plugins();
