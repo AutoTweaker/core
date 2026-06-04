@@ -34,5 +34,5 @@ if printf '%s\n%s\n' "$remote_base" "$local_base" | sort -V | tail -1 | grep -q 
     echo "Already up to date: $LOCAL_VERSION"
 else
     echo "New version available: $REMOTE_VERSION (current: $LOCAL_VERSION). Updating..."
-    curl -fsSL "$(curl -fsSL https://autotweaker.github.io/index/ | jq -r '.core.deb_url')" -o /tmp/autotweaker.deb && sudo apt install /tmp/autotweaker.deb
+    curl -fsSL "$(curl -fsSL https://autotweaker.github.io/index/ | jq -r '.core.deb_url')" -o /tmp/autotweaker.deb && apt install /tmp/autotweaker.deb
 fi
