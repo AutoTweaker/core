@@ -41,7 +41,7 @@ class ModelAdd(
 	
 	fun addAll(providerName: String): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == providerName } ?: run {
-			emitI18n(i18n, ModelI18n.ProviderNotFound())
+			emitI18n(i18n, ModelI18n.ProviderNotFound(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -65,7 +65,7 @@ class ModelAdd(
 	
 	fun add(name: String, provider: String, infoId: String?): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == provider } ?: run {
-			emitI18n(i18n, ModelI18n.ProviderNotFound(), provider)
+			emitI18n(i18n, ModelI18n.ProviderNotFound(), provider, error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -74,14 +74,14 @@ class ModelAdd(
 		core.config.getProviderMeta(provider.type).models.find { it.modelId == infoId }?.let { modelInfo = it }
 		
 		if (core.config.listModels().any { it.data.displayName == name && it.data.providerId == provider.id }) {
-			emitI18n(i18n, ModelI18n.ModelDuplicateError(), name)
+			emitI18n(i18n, ModelI18n.ModelDuplicateError(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		
 		suspend fun invalidValue() {
 			emitI18n(
-				i18n, ModelI18n.InvalidValue()
+				i18n, ModelI18n.InvalidValue(), error = true
 			)
 			emitDone(1)
 		}

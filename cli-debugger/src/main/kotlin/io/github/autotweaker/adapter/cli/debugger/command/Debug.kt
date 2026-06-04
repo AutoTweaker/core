@@ -41,7 +41,7 @@ class Debug : Command {
 			Syntax.leaf(i18n, Param.Type.FLAG, "list-db", ParamListDb(), aliases = emptyList()),
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.VALUE, "list", ParamList(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.VALUE, "list", ParamList()),
 					Syntax.leaf(i18n, Param.Type.VALUE, "get", ParamGet()),
 					Syntax.leaf(i18n, Param.Type.VALUE, "put", ParamPut()),
 					Syntax.leaf(i18n, Param.Type.VALUE, "delete", ParamDelete()),

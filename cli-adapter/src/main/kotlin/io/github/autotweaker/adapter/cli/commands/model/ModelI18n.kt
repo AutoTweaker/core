@@ -46,14 +46,14 @@ object ModelI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class ParamAddName : I18nDef {
+	class ParamName : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的显示名称"),
 		)
 	}
 	
 	@AutoService(I18nDef::class)
-	class ParamAddProvider : I18nDef {
+	class ParamProvider : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的提供商名称"),
 		)
@@ -74,9 +74,23 @@ object ModelI18n {
 	}
 	
 	@AutoService(I18nDef::class)
+	class ParamRemove : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "删除指定模型"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
 	class ProviderNotFound : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的提供商"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ModelNotFound : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的模型"),
 		)
 	}
 	
