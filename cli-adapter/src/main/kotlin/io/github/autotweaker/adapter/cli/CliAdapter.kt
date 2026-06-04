@@ -34,7 +34,7 @@ class CliAdapter : Adapter {
 	private var coreVersion: SemVer? = null
 	private lateinit var adapterName: String
 	
-	override fun load(coreVersion: SemVer): AdapterInfo {
+	override suspend fun load(coreVersion: SemVer): AdapterInfo {
 		this.coreVersion = coreVersion
 		val info = AdapterInfo(
 			name = "cli-adapter",
@@ -49,14 +49,14 @@ class CliAdapter : Adapter {
 		return info
 	}
 	
-	override fun start(core: CoreAPI) {
+	override suspend fun start(core: CoreAPI) {
 		server = CliServer(core.config.settingService)
 		val router = CommandRouter.fromServiceLoader(core, coreVersion ?: error("CliAdapter not initialized"))
 		server.start(router)
 		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)
 	}
 	
-	override fun stop() {
+	override suspend fun stop() {
 		server.stop()
 		logger.info("CliAdapter stopped  adapter={}", adapterName)
 	}

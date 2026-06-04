@@ -103,10 +103,12 @@ object Launcher {
 	
 	fun shutdown(registry: Map<String, Pair<Adapter, AdapterInfo>>) {
 		registry.values.forEach { (adapter, info) ->
-			runCatching {
-				adapter.stop()
-				logger.info("Stopped adapter  name={}", info.name)
-			}.onFailure { e -> logger.warn("Failed to stop adapter  name={}  reason={}", info.name, e.message) }
+			runBlocking {
+				runCatching {
+					adapter.stop()
+					logger.info("Stopped adapter  name={}", info.name)
+				}.onFailure { e -> logger.warn("Failed to stop adapter  name={}  reason={}", info.name, e.message) }
+			}
 		}
 		runBlocking {
 			runCatching {

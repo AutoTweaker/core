@@ -19,5 +19,5 @@
 package io.github.autotweaker.api.dev
 
 interface Debugger {
-	fun init(api: DbDebugAPI)
+	suspend fun init(api: DbDebugAPI)
 }

@@ -22,7 +22,7 @@ import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 
 interface Adapter {
-	fun load(coreVersion: SemVer): AdapterInfo
-	fun start(core: CoreAPI)
-	fun stop()
+	suspend fun load(coreVersion: SemVer): AdapterInfo
+	suspend fun start(core: CoreAPI)
+	suspend fun stop()
 }

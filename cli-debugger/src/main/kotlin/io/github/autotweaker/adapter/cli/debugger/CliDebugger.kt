@@ -24,7 +24,7 @@ import io.github.autotweaker.api.dev.Debugger
 
 @AutoService(Debugger::class)
 class CliDebugger : Debugger {
-	override fun init(api: DbDebugAPI) {
+	override suspend fun init(api: DbDebugAPI) {
 		instance = api
 	}
 	
