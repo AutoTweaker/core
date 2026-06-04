@@ -48,7 +48,8 @@ class Model : Command {
 				Param.Value("add-all", i18n.get(ModelI18n.ParamAddAll()), aliases = emptyList()),
 				required = true
 			),
-		)
+			
+			)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core

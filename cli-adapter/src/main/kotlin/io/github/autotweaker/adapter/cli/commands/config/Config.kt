@@ -29,9 +29,9 @@ import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 
 @AutoService(Command::class)
 class Config : Command {
@@ -51,9 +51,7 @@ class Config : Command {
 		get() = Syntax.xor(
 			Syntax.all(
 				Syntax.xor(
-					Syntax.all(
-						Syntax.leaf(Param.Flag("list", i18n.get(CfgI18n.List())), required = true),
-					),
+					Syntax.leaf(Param.Flag("list", i18n.get(CfgI18n.List())), required = true),
 					Syntax.all(
 						Syntax.leaf(
 							Param.Value("search", i18n.get(CfgI18n.Search()), aliases = emptyList()), required = true
@@ -68,9 +66,14 @@ class Config : Command {
 				),
 				Syntax.leaf(Param.Value("limit", i18n.get(CfgI18n.Limit()), aliases = emptyList())),
 				Syntax.leaf(Param.Flag("full", i18n.get(CfgI18n.Full()))),
-			), Syntax.all(
+			),
+			Syntax.all(
 				Syntax.leaf(Param.Value("set", i18n.get(CfgI18n.Set())), required = true),
 				Syntax.leaf(Param.Positional("value", i18n.get(CfgI18n.SetValue())), required = true),
+			),
+			Syntax.all(
+				Syntax.leaf(Param.Value("reset", i18n.get(CfgI18n.Yes()))),
+				Syntax.leaf(Param.Flag("yes", i18n.get(CfgI18n.Yes()))),
 			)
 		)
 	
@@ -85,7 +88,7 @@ class Config : Command {
 		val limit: Int = request.get("limit")?.toIntOrNull() ?: core.config.settingService.get(DefaultLimit()).value
 		
 		if (request.has("list")) {
-			emitAll(list(core, limit, full))
+			emitAll(list(limit, full))
 			emitDone()
 			return@flow
 		}
@@ -98,7 +101,7 @@ class Config : Command {
 				request.has("desc") -> SearchMode.DESC
 				else -> null
 			}
-			emitAll(search(core, limit, full, query, mode))
+			emitAll(search(limit, full, query, mode))
 			emitDone()
 			return@flow
 		}
@@ -106,7 +109,14 @@ class Config : Command {
 		if (request.has("set")) {
 			val key = request.get("set") ?: error("Missing key")
 			val value = request.positional.firstOrNull() ?: error("Missing value")
-			emitAll(set(core, key, value))
+			emitAll(set(key, value))
+			return@flow
+		}
+		
+		if (request.has("reset")) {
+			val key = request.get("reset") ?: error("Missing key")
+			val yes = request.has("yes")
+			emitAll(reset(key, yes, prompt))
 			return@flow
 		}
 		
@@ -114,14 +124,14 @@ class Config : Command {
 		return@flow
 	}
 	
-	private fun list(core: CoreAPI, limit: Int, full: Boolean = false): Flow<CmdOutput> {
+	private fun list(limit: Int, full: Boolean = false): Flow<CmdOutput> = flow {
 		val settings = core.config.settingService.getAll().take(limit)
-		return printConfig(settings, full).map { CmdOutput.Data(it) }
+		printConfig(settings, full)
 	}
 	
 	private fun search(
-		core: CoreAPI, limit: Int, full: Boolean = false, query: String, mode: SearchMode?
-	): Flow<CmdOutput> {
+		limit: Int, full: Boolean = false, query: String, mode: SearchMode?
+	): Flow<CmdOutput> = flow {
 		val settings = core.config.settingService.getAll()
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
@@ -133,15 +143,11 @@ class Config : Command {
 				) || match(it.description, query)
 			}
 		}
-		return printConfig(result.take(limit), full).map { CmdOutput.Data(it) }
+		printConfig(result.take(limit), full)
 	}
 	
-	private fun set(core: CoreAPI, key: String, value: String): Flow<CmdOutput> = flow {
-		val config = core.config.settingService.getAll().find { it.id == key } ?: run {
-			emitI18n(i18n, CfgI18n.SetNotFound(), key, error = true)
-			emitDone(1)
-			return@flow
-		}
+	private fun set(key: String, value: String): Flow<CmdOutput> = flow {
+		val config = settingOrEmit(key) ?: return@flow
 		val newValue = try {
 			config.value.parse(value)
 		} catch (_: Exception) {
@@ -153,20 +159,51 @@ class Config : Command {
 		emitDone()
 	}
 	
-	private fun printConfig(settings: List<SettingEntry>, full: Boolean): Flow<String> = flow {
-		if (full) {
-			settings.forEachIndexed { index, setting ->
-				emit(i18n.get(CfgI18n.OutKey()).format(sanitize(setting.id)))
-				emit(i18n.get(CfgI18n.OutDesc()).format(sanitize(setting.description)))
-				emit(i18n.get(CfgI18n.OutValue()).format(sanitize(setting.value.value.toString())))
-				if (index != settings.lastIndex) emit("-".repeat(10))
-			}
+	private fun reset(
+		key: String,
+		yes: Boolean,
+		prompt: suspend (text: String, echo: Boolean) -> String
+	): Flow<CmdOutput> = flow {
+		val config = settingOrEmit(key) ?: return@flow
+		
+		val sure: Boolean = if (!yes) {
+			emitI18n(i18n, CfgI18n.ShowSetting())
+			printConfig(listOf(config), full = true)
+			val result = prompt(i18n.get(CfgI18n.SureReset()) + " ", true).trim()
+			result == "y" || result == "yes"
 		} else {
-			settings.forEach { emit(sanitize(it.id)) }
+			true
+		}
+		
+		if (sure) {
+			val default = core.config.settingService.getDefault(config.id) ?: run { emitDone(1); return@flow }
+			core.config.settingService.set(id = config.id, value = default.default)
+			core.config.settingService.setDescription(id = config.id, description = default.description)
+			emitDone()
+		} else {
+			emitDone(1)
 		}
 	}
 	
-	private fun sanitize(text: String): String = text.replace(ANSI_PATTERN, "")
+	private suspend fun FlowCollector<CmdOutput>.settingOrEmit(key: String): SettingEntry? =
+		core.config.settingService.getAll().find { it.id == key } ?: run {
+			emitI18n(i18n, CfgI18n.ShowSetting(), key, error = true)
+			emitDone(1)
+			null
+		}
+	
+	private suspend fun FlowCollector<CmdOutput>.printConfig(settings: List<SettingEntry>, full: Boolean) {
+		if (full) {
+			settings.forEachIndexed { index, setting ->
+				emitI18n(i18n, CfgI18n.OutKey(), setting.id)
+				emitI18n(i18n, CfgI18n.OutDesc(), setting.description)
+				emitI18n(i18n, CfgI18n.OutValue(), setting.value.value.toString())
+				if (index != settings.lastIndex) emit(CmdOutput.Data("-".repeat(10)))
+			}
+		} else {
+			settings.forEach { emit(CmdOutput.Data(it.id)) }
+		}
+	}
 	
 	private fun match(text: String, query: String): Boolean {
 		val keywords = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
@@ -180,9 +217,5 @@ class Config : Command {
 	
 	enum class SearchMode {
 		KEY, DESC, VALUE
-	}
-	
-	companion object {
-		private val ANSI_PATTERN = Regex("\u001B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])")
 	}
 }

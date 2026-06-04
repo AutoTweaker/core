@@ -105,6 +105,20 @@ object CfgI18n {
 	}
 	
 	@AutoService(I18nDef::class)
+	class Reset : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "重置指定的设置项"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class Yes : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "跳过重置确认"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
 	class OutKey : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Key: %s"),
@@ -137,10 +151,24 @@ object CfgI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class SetNotFound : I18nDef {
+	class SettingNotFound : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Setting %s not found, please verify the key"),
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到设置项 %s，请确认键正确"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class ShowSetting : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "以下内容将被重置为默认:"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
+	class SureReset : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "输入 (y/yes) 确认:"),
 		)
 	}
 	

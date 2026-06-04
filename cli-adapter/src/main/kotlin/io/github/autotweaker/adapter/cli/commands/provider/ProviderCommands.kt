@@ -90,7 +90,7 @@ class ProviderCommands(
 			emitI18n(
 				i18n, ProvCommandsI18n.RemoveListCount(), core.config.listProviders().count { it.displayName == name })
 			ids.forEach { emit(CmdOutput.Data(it.toString())) }
-			val sure = promptOrNull(ProvCommandsI18n.RemoveConfirm())
+			val sure = promptOrNull(ProvCommandsI18n.RemoveConfirm())?.trim()
 			if (sure != "yes" && sure != "y") {
 				emitDone(1)
 				return@flow
