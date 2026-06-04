@@ -48,6 +48,7 @@ import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
+import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
@@ -135,6 +136,8 @@ class CoreAPIImpl(
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.add(model)
 		override fun removeModel(id: UUID) = modelRepo.remove(id)
 		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) = modelRepo.update(id, model)
+		override fun getDefaultModel(): UUID? = ModelRepositoryImpl.getDefaultModel()
+		override fun setDefaultModel(id: UUID) = ModelRepositoryImpl.setDefaultModel(id)
 		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
 		override fun listApiKeyNames() = apiKeyRepo.list()
 		override fun removeApiKey(name: String) = apiKeyRepo.delete(name)

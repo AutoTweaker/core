@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
+import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -53,6 +54,8 @@ object ProviderConfigAPI : ProviderRepository {
 	
 	override fun delete(id: UUID) {
 		val modelIds = modelConfig.list().filter { it.data.providerId == id }.map { it.data.id }
+		val defaultModel = ModelRepositoryImpl.getDefaultModel()
+		if (defaultModel != null && defaultModel in modelIds) error("Cannot delete provider: contains default model $defaultModel")
 		modelIds.forEach { modelConfig.remove(it) }
 		store.delete(id)
 		logger.info("Deleted provider  id={}  modelCount={}", id, modelIds.count())

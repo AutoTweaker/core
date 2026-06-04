@@ -23,5 +23,4 @@ import java.util.*
 
 interface ModelRepository {
 	suspend fun resolve(id: UUID): Model?
-	suspend fun resolveAll(ids: List<UUID>): List<Model?>
 }

@@ -118,6 +118,9 @@ interface CoreAPI {
 		fun removeModel(id: UUID)
 		fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model)
 		
+		fun getDefaultModel(): UUID?
+		fun setDefaultModel(id: UUID)
+		
 		suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
 		fun removeApiKey(name: String)
 		fun listApiKeyNames(): List<String>

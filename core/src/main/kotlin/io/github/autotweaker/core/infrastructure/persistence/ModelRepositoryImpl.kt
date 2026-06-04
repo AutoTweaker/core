@@ -18,21 +18,41 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SecretStore
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import kotlinx.serialization.builtins.nullable
+import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.util.*
 
 object ModelRepositoryImpl : ModelRepository {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
+	
 	private lateinit var secretStore: SecretStore
 	
 	fun init(secretStore: SecretStore) {
 		this.secretStore = secretStore
 	}
 	
+	fun getDefaultModel(): UUID? {
+		val element = jsonEntry.get() ?: return null
+		return Json.decodeFromJsonElement(UuidSerializer.nullable, element)
+	}
+	
+	fun setDefaultModel(id: UUID) {
+		if (ModelStore.get(id) == null) error("Model not found: $id")
+		jsonEntry.set(Json.encodeToJsonElement(UuidSerializer.nullable, id))
+		logger.info("Set default model  modelId={}", id)
+	}
+	
 	override suspend fun resolve(id: UUID): Model? {
-		val model = ModelStore.get(id) ?: return null
+		val actualId = resolveModelId(id)
+		val model = ModelStore.get(actualId) ?: return null
 		val provider = ProviderStore.get(model.providerId) ?: return null
 		return Model(
 			id = model.id,
@@ -48,5 +68,18 @@ object ModelRepositoryImpl : ModelRepository {
 		)
 	}
 	
-	override suspend fun resolveAll(ids: List<UUID>): List<Model?> = ids.map { resolve(it) }
+	private fun resolveModelId(id: UUID): UUID {
+		if (ModelStore.get(id) != null) return id
+		val defaultId = getDefaultModel()
+		if (defaultId != null && ModelStore.get(defaultId) != null) {
+			logger.warn("Resolved model via default  requestedId={}  defaultId={}", id, defaultId)
+			return defaultId
+		}
+		val first = ModelStore.get().firstOrNull()
+		if (first != null) {
+			logger.warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, first.id)
+			return first.id
+		}
+		return id
+	}
 }

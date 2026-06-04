@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
+import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -37,6 +38,7 @@ object ModelConfigAPI : ModelConfigRepository {
 	override fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
 	
 	override fun remove(id: UUID) {
+		if (ModelRepositoryImpl.getDefaultModel() == id) error("Cannot remove default model: $id")
 		store.delete(id)
 		logger.info("Removed model  id={}", id)
 	}
