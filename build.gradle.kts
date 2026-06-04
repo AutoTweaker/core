@@ -25,14 +25,63 @@ allprojects {
 	repositories {
 		mavenCentral()
 	}
-}
-
-subprojects {
 	group = "io.github.autotweaker"
 	version = "0.1.0-alpha.21"
 }
 
-val coreVersion = project(":core").version
+// region 生成版本资源文件
+
+abstract class GitHashProvider : ValueSource<String, ValueSourceParameters.None> {
+	override fun obtain(): String {
+		return runCatching {
+			val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+				.redirectError(ProcessBuilder.Redirect.DISCARD)
+				.start()
+			val output = process.inputStream.bufferedReader().readText().trim()
+			if (process.waitFor() != 0) throw RuntimeException("git exited non-zero")
+			output
+		}.getOrDefault("unknown")
+	}
+}
+
+val gitHash = providers.of(GitHashProvider::class) {}.get()
+
+val timestamp = System.currentTimeMillis() / 1000
+
+val githubRef = providers.environmentVariable("GITHUB_REF").getOrElse("")
+
+fun resolveVersion(baseVersion: String): String {
+	return if (githubRef.startsWith("refs/tags/v")) {
+		"${githubRef.removePrefix("refs/tags/v")}+$gitHash"
+	} else {
+		val stripped = baseVersion.replace(Regex("-[a-zA-Z].*"), "")
+		"$stripped-dev+$timestamp.$gitHash"
+	}
+}
+
+val generatedVersionFile = layout.buildDirectory.file("generated/version/version.properties")
+
+// 配置阶段生成版本号
+val generatedVersion = resolveVersion(project.version.toString())
+generatedVersionFile.get().asFile.apply {
+	parentFile.mkdirs()
+	writeText("version=$generatedVersion")
+}
+
+ext["generatedVersion"] = generatedVersion
+
+val generateVersionProperties by tasks.registering {
+	description = "生成 version.properties（含 git hash 和构建时间戳）"
+	outputs.file(generatedVersionFile)
+}
+
+subprojects {
+	tasks.withType<ProcessResources>().configureEach {
+		dependsOn(":generateVersionProperties")
+	}
+}
+
+// endregion
 
 tasks.register<Exec>("compileAutotweakerCli") {
 	description = "编译 C 编写的 autotweaker CLI 客户端"
@@ -44,10 +93,14 @@ tasks.register<Exec>("compileAutotweakerCli") {
 
 tasks.register<Exec>("buildDeb") {
 	description = "构建 .deb 包"
-	dependsOn(":core:installDist", ":cli-adapter:jar", "compileAutotweakerCli")
+	dependsOn(":core:installDist", ":cli-adapter:jar", "compileAutotweakerCli", ":generateVersionProperties")
 	workingDir = projectDir
 	val cliAdapterJar = project(":cli-adapter").tasks.named("jar").get().outputs.files.singleFile.absolutePath
-	commandLine("bash", "scripts/build-deb.sh", coreVersion.toString(), cliAdapterJar)
+	val versionFile = generatedVersionFile
+	doFirst {
+		val version = versionFile.get().asFile.readText().removePrefix("version=").trim()
+		commandLine("bash", "scripts/build-deb.sh", version, cliAdapterJar)
+	}
 }
 
 tasks.register<Exec>("releaseTag") {
@@ -66,8 +119,8 @@ tasks.register<Exec>("releaseTag") {
             echo "错误: 本地 main 分支与 origin/main 不同步，请先同步后再执行 releaseTag" >&2
             exit 1
         fi
-        git tag -a "v${coreVersion}" -m "AutoTweaker v${coreVersion}"
-        git push origin "v${coreVersion}"
+        git tag -a "v${project.version}" -m "AutoTweaker v${project.version}"
+        git push origin "v${project.version}"
     """.trimIndent()
 	)
 }

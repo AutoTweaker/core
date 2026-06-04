@@ -45,7 +45,7 @@ publishing {
 			from(components["java"])
 			groupId = "io.github.autotweaker"
 			artifactId = "api"
-			version = project.version.toString()
+			version = rootProject.ext["generatedVersion"] as String
 		}
 	}
 }

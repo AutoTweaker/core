@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.time.Instant
-
 plugins {
 	kotlin("jvm")
 	kotlin("kapt")
@@ -101,72 +99,27 @@ if (inDocker) {
 	}
 }
 
-// region 生成版本资源文件
+// region 版本资源
 
-val generateVersionProperties by tasks.registering {
-	description = "生成 version.properties（含 git hash 和构建时间戳）"
-	notCompatibleWithConfigurationCache("访问 git 命令和环境变量")
-	
-	val outputDir = layout.buildDirectory.dir("generated/version")
-	val outputFile = outputDir.map { it.file("version.properties") }
-	
-	outputs.file(outputFile)
-	
-	doLast {
-		val gitHash = runCatching {
-			val process =
-				ProcessBuilder("git", "rev-parse", "--short", "HEAD").redirectError(ProcessBuilder.Redirect.DISCARD)
-					.start()
-			val output = process.inputStream.bufferedReader().readText().trim()
-			if (process.waitFor() != 0) throw RuntimeException("git exited non-zero")
-			output
-		}.getOrDefault("unknown")
-		
-		val timestamp = Instant.now().toString().replace(":", "")
-		
-		val githubRef = System.getenv("GITHUB_REF") ?: ""
-		val fullVersion = if (githubRef.startsWith("refs/tags/v")) {
-			"${githubRef.removePrefix("refs/tags/v")}+$gitHash"
-		} else {
-			val baseVersion = project.version.toString()
-			val stripped = baseVersion.replace(Regex("-[a-zA-Z].*"), "")
-			"$stripped-dev+$timestamp.$gitHash"
-		}
-		
-		outputFile.get().asFile.apply {
-			parentFile.mkdirs()
-			writeText("version=$fullVersion")
-		}
-	}
-}
+val generatedVersion = rootProject.ext["generatedVersion"] as String
+
+val rootVersionFile = rootProject.layout.buildDirectory.file("generated/version/version.properties")
 
 tasks.named<ProcessResources>("processResources") {
-	dependsOn(generateVersionProperties)
-	from(generateVersionProperties.map { it.outputs.files.singleFile.parentFile })
-}
-
-val generatedVersionFile = layout.buildDirectory.file("generated/version/version.properties")
-
-val generatedVersion = provider {
-	val f = generatedVersionFile.get().asFile
-	if (f.exists()) {
-		f.readText().removePrefix("version=").trim()
-	} else {
-		project.version.toString()
-	}
+	from(rootVersionFile.map { it.asFile.parentFile })
 }
 
 tasks.jar {
 	archiveBaseName = "autotweaker-core"
-	archiveVersion = if ((System.getenv("GITHUB_REF") ?: "").startsWith("refs/tags/v")) {
-		project.version.toString()
+	if ((System.getenv("GITHUB_REF") ?: "").startsWith("refs/tags/v")) {
+		archiveVersion.set(provider { generatedVersion })
 	} else {
-		""
+		archiveVersion.set("")
 	}
 }
 
 tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEach {
-	archiveVersion.set(generatedVersion)
+	archiveVersion.set(provider { generatedVersion })
 }
 
 // endregion
