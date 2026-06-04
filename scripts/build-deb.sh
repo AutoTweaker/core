@@ -44,8 +44,8 @@ ln -sf autotweaker "$PKG_ROOT/usr/bin/at"
 install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
 install -m 755 -D "$SCRIPT_DIR/update/autoupdate.sh" "$PKG_ROOT/usr/libexec/autotweaker/autoupdate.sh"
 install -m 644 -D "$SCRIPT_DIR/autotweaker.service" "$PKG_ROOT/usr/lib/systemd/user/autotweaker.service"
-install -m 644 -D "$SCRIPT_DIR/update/autotweaker-autoupdate.service" "$PKG_ROOT/usr/lib/systemd/system/autotweaker-autoupdate.service"
-install -m 644 -D "$SCRIPT_DIR/update/autotweaker-autoupdate.timer" "$PKG_ROOT/usr/lib/systemd/system/autotweaker-autoupdate.timer"
+install -m 644 -D "$SCRIPT_DIR/update/autotweaker-update.service" "$PKG_ROOT/usr/lib/systemd/system/autotweaker-update.service"
+install -m 644 -D "$SCRIPT_DIR/update/autotweaker-update.timer" "$PKG_ROOT/usr/lib/systemd/system/autotweaker-update.timer"
 
 # 元数据
 cp "$SCRIPT_DIR/deb/copyright" "$PKG_ROOT/usr/share/doc/autotweaker/copyright"
