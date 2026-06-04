@@ -26,8 +26,10 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import java.util.*
 
 @AutoService(Command::class)
 class Model : Command {
@@ -47,7 +49,10 @@ class Model : Command {
 			),
 			Syntax.leaf(i18n, Param.Type.VALUE, "add-all", ModelI18n.ParamAddAll(), aliases = emptyList()),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.FLAG, "remove", ModelI18n.ParamRemove(), aliases = listOf("rm")),
+				Syntax.xor(
+					Syntax.leaf(i18n, Param.Type.FLAG, "remove", ModelI18n.ParamRemove(), aliases = listOf("rm")),
+					Syntax.leaf(i18n, Param.Type.FLAG, "set-default", ModelI18n.ParamDefault(), aliases = emptyList()),
+				),
 				Syntax.leaf(i18n, Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
 				Syntax.leaf(i18n, Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
 			)
@@ -80,16 +85,21 @@ class Model : Command {
 		}
 		
 		if (request.has("remove")) {
-			val provider = request.positional[0]
-			val model = request.positional[1]
-			emitAll(remove(provider, model))
+			core.config.removeModel(findModel(request) ?: return@flow)
+			emitDone()
+			return@flow
+		}
+		
+		if (request.has("set-default")) {
+			core.config.setDefaultModel(findModel(request) ?: return@flow)
+			emitDone()
 			return@flow
 		}
 		
 		emitDone(1)
 	}
 	
-	fun list(): Flow<CmdOutput> = flow {
+	private fun list(): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders()
 		core.config.listModels().forEach { model ->
 			val providerName =
@@ -99,21 +109,21 @@ class Model : Command {
 		emitDone()
 	}
 	
-	fun remove(provider: String, model: String): Flow<CmdOutput> = flow {
+	private suspend fun FlowCollector<CmdOutput>.findModel(request: Request): UUID? {
+		val provider = request.positional[0]
+		val model = request.positional[1]
 		val providerId = core.config.listProviders().find { it.displayName == provider }?.id ?: run {
 			emitI18n(i18n, ModelI18n.ProviderNotFound(), provider, error = true)
 			emitDone(1)
-			return@flow
+			return null
 		}
 		val modelId =
 			core.config.listModels().find { it.data.displayName == model && it.data.providerId == providerId }?.data?.id
 				?: run {
 					emitI18n(i18n, ModelI18n.ModelNotFound(), model, error = true)
 					emitDone(1)
-					return@flow
+					return null
 				}
-		
-		core.config.removeModel(modelId)
-		emitDone()
+		return modelId
 	}
 }

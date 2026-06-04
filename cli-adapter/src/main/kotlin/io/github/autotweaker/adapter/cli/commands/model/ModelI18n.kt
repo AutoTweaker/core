@@ -81,6 +81,13 @@ object ModelI18n {
 	}
 	
 	@AutoService(I18nDef::class)
+	class ParamDefault : I18nDef {
+		override val localizations = listOf(
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "设置指定模型为一些模型无法解析时的回退模型"),
+		)
+	}
+	
+	@AutoService(I18nDef::class)
 	class ProviderNotFound : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的提供商"),
