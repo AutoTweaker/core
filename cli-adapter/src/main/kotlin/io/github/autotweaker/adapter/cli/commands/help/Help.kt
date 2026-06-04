@@ -89,16 +89,10 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 			}
 			
 			is Syntax.All -> {
-				val allChildNodesLists = children.map { it.toContent(isOptional) }.filter { it.isNotEmpty() }
-				if (allChildNodesLists.isEmpty()) return emptyList()
-				
-				val firstList = allChildNodesLists.first()
-				val head = firstList.first()
-				
-				val remainingFromFirst = firstList.drop(1)
-				val subsequentNodes = allChildNodesLists.drop(1).flatten()
-				
-				listOf(head.copy(children = head.children + remainingFromFirst + subsequentNodes))
+				val childNodes = children.flatMap { it.toContent(isOptional) }
+				if (childNodes.isEmpty()) return emptyList()
+
+				listOf(ContentNode("◉", children = childNodes))
 			}
 		}
 	}

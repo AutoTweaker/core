@@ -269,14 +269,14 @@ class CommandRouterTest {
 	}
 	
 	@Test
-	fun `all required fails without active children`() {
+	fun `all required with only optional children passes without active`() {
 		simpleCommand(
 			"test", Syntax.all(
 				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false),
 				required = true,
 			)
 		)
-		assertEquals(1, dispatch("test").done().exitCode)
+		assertEquals(0, dispatch("test").done().exitCode)
 	}
 	
 	@Test
@@ -795,5 +795,205 @@ class CommandRouterTest {
 			)
 		)
 		assertEquals(1, dispatch("test", "--search", "--key", "--value").done().exitCode)
+	}
+	
+	// ── xor inside all with positionals ──────────────────────────
+	@Test
+	fun `xor with positionals in all group picks flag branch`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.xor(
+				Syntax.Leaf(Param.Flag("list", ""), required = false),
+				Syntax.all(
+					Syntax.xor(
+						Syntax.Leaf(Param.Flag("remove", "", listOf("rm")), required = false),
+						Syntax.Leaf(Param.Flag("set-default", ""), required = false),
+					),
+					Syntax.Leaf(Param.Positional("provider", ""), required = true),
+					Syntax.Leaf(Param.Positional("model", ""), required = true),
+				),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		dispatch("test", "--set-default", "prov", "mdl")
+		assertTrue(captured!!.has("set-default"))
+		assertEquals(listOf("prov", "mdl"), captured.positional)
+	}
+	
+	@Test
+	fun `xor with positionals in all group picks remove branch`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.xor(
+				Syntax.Leaf(Param.Flag("list", ""), required = false),
+				Syntax.all(
+					Syntax.xor(
+						Syntax.Leaf(Param.Flag("remove", "", listOf("rm")), required = false),
+						Syntax.Leaf(Param.Flag("set-default", ""), required = false),
+					),
+					Syntax.Leaf(Param.Positional("provider", ""), required = true),
+					Syntax.Leaf(Param.Positional("model", ""), required = true),
+				),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		dispatch("test", "--rm", "prov", "mdl")
+		assertTrue(captured!!.has("remove"))
+		assertEquals(listOf("prov", "mdl"), captured.positional)
+	}
+	
+	@Test
+	fun `xor with positionals missing args fails`() {
+		simpleCommand(
+			"test", Syntax.xor(
+				Syntax.Leaf(Param.Flag("list", ""), required = false),
+				Syntax.all(
+					Syntax.xor(
+						Syntax.Leaf(Param.Flag("remove", ""), required = false),
+						Syntax.Leaf(Param.Flag("set-default", ""), required = false),
+					),
+					Syntax.Leaf(Param.Positional("provider", ""), required = true),
+					Syntax.Leaf(Param.Positional("model", ""), required = true),
+				),
+			)
+		)
+		// only one positional, need two
+		assertEquals(1, dispatch("test", "--set-default", "prov").done().exitCode)
+	}
+	
+	@Test
+	fun `xor with positionals too many args fails`() {
+		simpleCommand(
+			"test", Syntax.xor(
+				Syntax.Leaf(Param.Flag("list", ""), required = false),
+				Syntax.all(
+					Syntax.xor(
+						Syntax.Leaf(Param.Flag("remove", ""), required = false),
+						Syntax.Leaf(Param.Flag("set-default", ""), required = false),
+					),
+					Syntax.Leaf(Param.Positional("provider", ""), required = true),
+					Syntax.Leaf(Param.Positional("model", ""), required = true),
+				),
+			)
+		)
+		assertEquals(1, dispatch("test", "--rm", "a", "b", "c").done().exitCode)
+	}
+	
+	@Test
+	fun `xor with positionals no flag also works`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.xor(
+				Syntax.Leaf(Param.Flag("list", ""), required = false),
+				Syntax.all(
+					Syntax.xor(
+						Syntax.Leaf(Param.Flag("remove", ""), required = false),
+						Syntax.Leaf(Param.Flag("set-default", ""), required = false),
+					),
+					Syntax.Leaf(Param.Positional("provider", ""), required = true),
+					Syntax.Leaf(Param.Positional("model", ""), required = true),
+				),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		// remove with short alias
+		dispatch("test", "-r", "prov", "mdl")
+		assertTrue(captured!!.has("remove"))
+		assertEquals(listOf("prov", "mdl"), captured.positional)
+	}
+	
+	@Test
+	fun `positional in xor branch selected by position count`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.xor(
+				Syntax.all(
+					Syntax.Leaf(Param.Flag("add", ""), required = false),
+					Syntax.Leaf(Param.Positional("name", ""), required = true),
+				),
+				Syntax.all(
+					Syntax.Leaf(Param.Flag("remove", ""), required = false),
+					Syntax.Leaf(Param.Positional("provider", ""), required = true),
+					Syntax.Leaf(Param.Positional("model", ""), required = true),
+				),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		// two positionals selects the remove branch
+		dispatch("test", "--remove", "prov", "mdl")
+		assertTrue(captured!!.has("remove"))
+		assertEquals(listOf("prov", "mdl"), captured.positional)
+	}
+	
+	@Test
+	fun `optional positional accepted`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.all(
+				Syntax.Leaf(Param.Flag("verbose", ""), required = false),
+				Syntax.Leaf(Param.Positional("file", ""), required = false),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		dispatch("test")
+		assertTrue(captured != null)
+		assertTrue(captured.positional.isEmpty())
+	}
+	
+	@Test
+	fun `value param and positional coexist`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.all(
+				Syntax.Leaf(Param.Value("count", ""), required = false),
+				Syntax.Leaf(Param.Positional("file", ""), required = true),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		dispatch("test", "--count", "5", "data.txt")
+		assertEquals("5", captured!!.get("count"))
+		assertEquals(listOf("data.txt"), captured.positional)
+	}
+	
+	@Test
+	fun `value param after positional treated as positional`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.all(
+				Syntax.Leaf(Param.Value("output", ""), required = false),
+				Syntax.Leaf(Param.Positional("file", ""), required = true),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		// "data.txt" is positional, "--output" is still parsed as named
+		dispatch("test", "data.txt", "--output", "out.txt")
+		assertEquals(listOf("data.txt"), captured!!.positional)
+		assertEquals("out.txt", captured.get("output"))
+	}
+	
+	@Test
+	fun `all with xor and single positional`() {
+		var captured: Request? = null
+		registerCommand(
+			"test", Syntax.all(
+				Syntax.xor(
+					Syntax.Leaf(Param.Flag("get", ""), required = false),
+					Syntax.Leaf(Param.Flag("set", ""), required = false),
+				),
+				Syntax.Leaf(Param.Positional("key", ""), required = true),
+			)
+		) {
+			captured = it; listOf(CmdOutput.Done(0))
+		}
+		dispatch("test", "--set", "mykey")
+		assertTrue(captured!!.has("set"))
+		assertEquals(listOf("mykey"), captured.positional)
 	}
 }

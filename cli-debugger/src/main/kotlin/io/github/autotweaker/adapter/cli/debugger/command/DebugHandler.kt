@@ -54,7 +54,7 @@ class DebugHandler(
 			?: run { emitDone(1); return }
 		
 		entryApi(table).list(from..to).forEach {
-			emit(CmdOutput.Data(format(it)))
+			emit(CmdOutput.Data(it.toString()))
 		}
 		emitDone()
 	}
@@ -63,7 +63,7 @@ class DebugHandler(
 		val table = TABLES.first { request.has(it) }
 		val key = request.get("get") ?: run { emitDone(1); return }
 		val entry = entryApi(table).get(key)
-		emit(CmdOutput.Data(entry?.let(::format) ?: run { emitDone(1); return }))
+		emit(CmdOutput.Data(entry?.toString() ?: run { emitDone(1); return }))
 		emitDone()
 	}
 	
@@ -92,15 +92,6 @@ class DebugHandler(
 	
 	@Suppress("UNCHECKED_CAST")
 	private fun entryApi(table: String) = api(table) as DbAPI<DbEntry>
-	
-	private fun format(entry: DbEntry): String = when (entry) {
-		is SettingEntry -> "key=${entry.key}\nvalue=${entry.value}\ndescription=${entry.description}"
-		is JsonStoreEntry -> "key=${entry.key}\ncontent=${entry.content}"
-		is SessionDataEntry -> "key=${entry.key}\nworkspaceId=${entry.workspaceId}\ntitle=${entry.title}"
-		is SessionContextEntry -> "key=${entry.key}\nindex=${entry.index}"
-		is SessionMessageEntry -> "key=${entry.key}\ntype=${entry.type}\ntimestamp=${entry.timestamp}"
-		is SecretEntry -> "key=${entry.key}\ncontent=${entry.content}"
-	}
 	
 	private suspend fun promptEntry(table: String, key: String): DbEntry {
 		return when (table) {

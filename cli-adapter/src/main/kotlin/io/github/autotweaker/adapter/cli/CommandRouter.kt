@@ -249,8 +249,14 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 			is Syntax.All -> {
 				val hasPos = positionalCount > 0
 				val anyActive = syntax.children.any { isActive(it, activeValues, hasPos) }
-				if (syntax.required && !anyActive) false
-				else syntax.children.all { validateSyntax(it, activeValues, positionalCount) }
+				val hasRequired = syntax.children.any { it.required }
+				val requiredPos = syntax.children.sumOf { if (it.required && it is Syntax.Leaf && it.param is Param.Positional) 1 else 0 }
+				if (syntax.required && hasRequired && !anyActive) false
+				else if (positionalCount < requiredPos) false
+				else syntax.children.all {
+					val childPos = if (hasPositionalParam(it)) positionalCount else 0
+					validateSyntax(it, activeValues, childPos)
+				}
 			}
 			
 			is Syntax.Xor -> {
