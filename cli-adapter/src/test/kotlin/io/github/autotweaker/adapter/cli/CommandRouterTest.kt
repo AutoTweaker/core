@@ -116,7 +116,7 @@ class CommandRouterTest {
 	@Test
 	fun `short flag parsed`() {
 		var captured: Request? = null
-		registerCommand("test", Syntax.all(Syntax.leaf(Param.Flag("verbose", "verbose")))) {
+		registerCommand("test", Syntax.all(Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false))) {
 			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "-v")
@@ -126,7 +126,7 @@ class CommandRouterTest {
 	@Test
 	fun `long flag parsed`() {
 		var captured: Request? = null
-		registerCommand("test", Syntax.all(Syntax.leaf(Param.Flag("verbose", "verbose")))) {
+		registerCommand("test", Syntax.all(Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false))) {
 			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--verbose")
@@ -138,7 +138,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "verbose")),
+				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -154,7 +154,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Value("count", "count")),
+				Syntax.Leaf(Param.Value("count", "count"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -168,7 +168,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Value("count", "count")),
+				Syntax.Leaf(Param.Value("count", "count"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -182,7 +182,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Value("count", "count")),
+				Syntax.Leaf(Param.Value("count", "count"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -196,8 +196,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("alpha", "alpha")),
-				Syntax.leaf(Param.Flag("beta", "beta")),
+				Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
+				Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -212,7 +212,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("file", "file")),
+				Syntax.Leaf(Param.Positional("file", "file"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -223,13 +223,13 @@ class CommandRouterTest {
 	
 	@Test
 	fun `flag with equals rejected`() {
-		simpleCommand("test", Syntax.all(Syntax.leaf(Param.Flag("verbose", "verbose"))))
+		simpleCommand("test", Syntax.all(Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false)))
 		assertEquals(1, dispatch("test", "--verbose=value").done().exitCode)
 	}
 	
 	@Test
 	fun `unknown option rejected`() {
-		simpleCommand("test", Syntax.all(Syntax.leaf(Param.Flag("verbose", "verbose"))))
+		simpleCommand("test", Syntax.all(Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false)))
 		assertEquals(1, dispatch("test", "--unknown").done().exitCode)
 	}
 	
@@ -238,7 +238,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("file", "file")),
+				Syntax.Leaf(Param.Positional("file", "file"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -251,7 +251,7 @@ class CommandRouterTest {
 	fun `positional too many rejected`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("single", "single")),
+				Syntax.Leaf(Param.Positional("single", "single"), required = false),
 			)
 		)
 		assertEquals(1, dispatch("test", "a", "b").done().exitCode)
@@ -261,7 +261,7 @@ class CommandRouterTest {
 	fun `all required passes without active children`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "verbose")),
+				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false),
 				required = false,
 			)
 		)
@@ -272,7 +272,7 @@ class CommandRouterTest {
 	fun `all required fails without active children`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "verbose")),
+				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false),
 				required = true,
 			)
 		)
@@ -283,7 +283,7 @@ class CommandRouterTest {
 	fun `required leaf passes when present`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "verbose"), required = true),
+				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = true),
 			)
 		)
 		assertEquals(0, dispatch("test", "--verbose").done().exitCode)
@@ -293,7 +293,7 @@ class CommandRouterTest {
 	fun `required leaf fails when absent`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "verbose"), required = true),
+				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = true),
 			)
 		)
 		assertEquals(1, dispatch("test").done().exitCode)
@@ -304,8 +304,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.xor(
-				Syntax.leaf(Param.Flag("alpha", "alpha")),
-				Syntax.leaf(Param.Flag("beta", "beta")),
+				Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
+				Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -318,8 +318,8 @@ class CommandRouterTest {
 	fun `xor zero fails`() {
 		simpleCommand(
 			"test", Syntax.xor(
-				Syntax.leaf(Param.Flag("alpha", "alpha")),
-				Syntax.leaf(Param.Flag("beta", "beta")),
+				Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
+				Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 			)
 		)
 		assertEquals(1, dispatch("test").done().exitCode)
@@ -329,8 +329,8 @@ class CommandRouterTest {
 	fun `xor more than one fails`() {
 		simpleCommand(
 			"test", Syntax.xor(
-				Syntax.leaf(Param.Flag("alpha", "alpha")),
-				Syntax.leaf(Param.Flag("beta", "beta")),
+				Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
+				Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 			)
 		)
 		assertEquals(1, dispatch("test", "-a", "-b").done().exitCode)
@@ -340,8 +340,8 @@ class CommandRouterTest {
 	fun `xor required false allows zero`() {
 		simpleCommand(
 			"test", Syntax.xor(
-				Syntax.leaf(Param.Flag("alpha", "alpha")),
-				Syntax.leaf(Param.Flag("beta", "beta")),
+				Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
+				Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 				required = false,
 			)
 		)
@@ -352,8 +352,8 @@ class CommandRouterTest {
 	fun `xor required false still rejects more than one`() {
 		simpleCommand(
 			"test", Syntax.xor(
-				Syntax.leaf(Param.Flag("alpha", "alpha")),
-				Syntax.leaf(Param.Flag("beta", "beta")),
+				Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
+				Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 				required = false,
 			)
 		)
@@ -366,10 +366,10 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(Param.Flag("alpha", "alpha")),
+					Syntax.Leaf(Param.Flag("alpha", "alpha"), required = false),
 					Syntax.all(
-						Syntax.leaf(Param.Flag("beta", "beta")),
-						Syntax.leaf(Param.Flag("gamma", "gamma"), required = true),
+						Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
+						Syntax.Leaf(Param.Flag("gamma", "gamma"), required = true),
 					),
 				),
 			)
@@ -388,14 +388,14 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("mode", "mode")),
+					Syntax.Leaf(Param.Flag("mode", "mode"), required = false),
 					Syntax.xor(
-						Syntax.leaf(Param.Flag("fast", "fast"), required = true),
-						Syntax.leaf(Param.Flag("slow", "slow"), required = true),
+						Syntax.Leaf(Param.Flag("fast", "fast"), required = true),
+						Syntax.Leaf(Param.Flag("slow", "slow"), required = true),
 					),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("quiet", "quiet"), required = true),
+					Syntax.Leaf(Param.Flag("quiet", "quiet"), required = true),
 				),
 			)
 		) {
@@ -412,13 +412,13 @@ class CommandRouterTest {
 		simpleCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("mode", "mode")),
+					Syntax.Leaf(Param.Flag("mode", "mode"), required = false),
 					Syntax.xor(
-						Syntax.leaf(Param.Flag("fast", "fast"), required = true),
-						Syntax.leaf(Param.Flag("slow", "slow"), required = true),
+						Syntax.Leaf(Param.Flag("fast", "fast"), required = true),
+						Syntax.Leaf(Param.Flag("slow", "slow"), required = true),
 					),
 				),
-				Syntax.leaf(Param.Flag("quiet", "quiet")),
+				Syntax.Leaf(Param.Flag("quiet", "quiet"), required = false),
 			)
 		)
 		// mode without fast or slow fails inner xor
@@ -430,10 +430,10 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "verbose")),
+				Syntax.Leaf(Param.Flag("verbose", "verbose"), required = false),
 				Syntax.xor(
-					Syntax.leaf(Param.Flag("alpha", "alpha"), required = true),
-					Syntax.leaf(Param.Flag("beta", "beta")),
+					Syntax.Leaf(Param.Flag("alpha", "alpha"), required = true),
+					Syntax.Leaf(Param.Flag("beta", "beta"), required = false),
 					required = false,
 				),
 			)
@@ -452,12 +452,12 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("mode", "mode")),
-					Syntax.leaf(Param.Flag("detail", "detail")),
+					Syntax.Leaf(Param.Flag("mode", "mode"), required = false),
+					Syntax.Leaf(Param.Flag("detail", "detail"), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("quiet", "quiet")),
-					Syntax.leaf(Param.Flag("info", "info")),
+					Syntax.Leaf(Param.Flag("quiet", "quiet"), required = false),
+					Syntax.Leaf(Param.Flag("info", "info"), required = false),
 				),
 			)
 		) {
@@ -474,8 +474,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.xor(
-				Syntax.leaf(Param.Flag("flag", "version a")),
-				Syntax.leaf(Param.Flag("tag", "version b")),
+				Syntax.Leaf(Param.Flag("flag", "version a"), required = false),
+				Syntax.Leaf(Param.Flag("tag", "version b"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -490,8 +490,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("src", "src")),
-				Syntax.leaf(Param.Positional("dst", "dst")),
+				Syntax.Leaf(Param.Positional("src", "src"), required = false),
+				Syntax.Leaf(Param.Positional("dst", "dst"), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -507,13 +507,13 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("alpha", "")),
-					Syntax.leaf(Param.Flag("beta", "")),
-					Syntax.leaf(Param.Value("gamma", "")),
+					Syntax.Leaf(Param.Flag("alpha", ""), required = false),
+					Syntax.Leaf(Param.Flag("beta", ""), required = false),
+					Syntax.Leaf(Param.Value("gamma", ""), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("mode", ""), required = true),
-					Syntax.leaf(Param.Flag("delta", "")),
+					Syntax.Leaf(Param.Flag("mode", ""), required = true),
+					Syntax.Leaf(Param.Flag("delta", ""), required = false),
 				),
 			)
 		) {
@@ -530,13 +530,13 @@ class CommandRouterTest {
 		registerCommand(
 			"test", Syntax.xor(
 				Syntax.all(
-					Syntax.leaf(Param.Flag("alpha", "")),
-					Syntax.leaf(Param.Flag("beta", "")),
-					Syntax.leaf(Param.Value("gamma", "")),
+					Syntax.Leaf(Param.Flag("alpha", ""), required = false),
+					Syntax.Leaf(Param.Flag("beta", ""), required = false),
+					Syntax.Leaf(Param.Value("gamma", ""), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("mode", ""), required = true),
-					Syntax.leaf(Param.Flag("delta", "")),
+					Syntax.Leaf(Param.Flag("mode", ""), required = true),
+					Syntax.Leaf(Param.Flag("delta", ""), required = false),
 				),
 			)
 		) {
@@ -551,8 +551,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("verbose", "")),
-				Syntax.leaf(Param.Positional("file", "")),
+				Syntax.Leaf(Param.Flag("verbose", ""), required = false),
+				Syntax.Leaf(Param.Positional("file", ""), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -566,7 +566,7 @@ class CommandRouterTest {
 	fun `positional count exceeds declared`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("single", "")),
+				Syntax.Leaf(Param.Positional("single", ""), required = false),
 			)
 		)
 		// 2 positionals, only 1 declared
@@ -577,7 +577,7 @@ class CommandRouterTest {
 	fun `required positional with count check`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("file", ""), required = true),
+				Syntax.Leaf(Param.Positional("file", ""), required = true),
 			)
 		)
 		// 0 positionals, 1 required
@@ -589,7 +589,7 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("file", ""), required = true),
+				Syntax.Leaf(Param.Positional("file", ""), required = true),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -604,8 +604,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("src", "")),
-				Syntax.leaf(Param.Positional("dst", "")),
+				Syntax.Leaf(Param.Positional("src", ""), required = false),
+				Syntax.Leaf(Param.Positional("dst", ""), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -619,8 +619,8 @@ class CommandRouterTest {
 		var captured: Request? = null
 		registerCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Positional("file", "")),
-				Syntax.leaf(Param.Flag("verbose", "")),
+				Syntax.Leaf(Param.Positional("file", ""), required = false),
+				Syntax.Leaf(Param.Flag("verbose", ""), required = false),
 			)
 		) {
 			captured = it; listOf(CmdOutput.Done(0))
@@ -635,7 +635,7 @@ class CommandRouterTest {
 	fun `all required false with required leaf inside fails when leaf absent`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("must", ""), required = true),
+				Syntax.Leaf(Param.Flag("must", ""), required = true),
 				required = false,
 			)
 		)
@@ -647,7 +647,7 @@ class CommandRouterTest {
 	fun `all required false with required leaf inside and leaf present passes`() {
 		simpleCommand(
 			"test", Syntax.all(
-				Syntax.leaf(Param.Flag("must", ""), required = true),
+				Syntax.Leaf(Param.Flag("must", ""), required = true),
 				required = false,
 			)
 		)
@@ -662,24 +662,24 @@ class CommandRouterTest {
 				Syntax.all(
 					Syntax.xor(
 						Syntax.all(
-							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("count", "")),
+							Syntax.Leaf(Param.Flag("list", ""), required = true),
+							Syntax.Leaf(Param.Value("count", ""), required = false),
 						),
 						Syntax.all(
-							Syntax.leaf(Param.Flag("search", ""), required = true),
+							Syntax.Leaf(Param.Flag("search", ""), required = true),
 							Syntax.xor(
-								Syntax.leaf(Param.Flag("key", "")),
-								Syntax.leaf(Param.Flag("value", "")),
-								Syntax.leaf(Param.Flag("desc", "")),
+								Syntax.Leaf(Param.Flag("key", ""), required = false),
+								Syntax.Leaf(Param.Flag("value", ""), required = false),
+								Syntax.Leaf(Param.Flag("desc", ""), required = false),
 								required = false,
 							),
 						),
 					),
-					Syntax.leaf(Param.Flag("full", "")),
+					Syntax.Leaf(Param.Flag("full", ""), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("put", ""), required = true),
-					Syntax.leaf(Param.Positional("value", "")),
+					Syntax.Leaf(Param.Flag("put", ""), required = true),
+					Syntax.Leaf(Param.Positional("value", ""), required = false),
 				),
 			)
 		) {
@@ -699,24 +699,24 @@ class CommandRouterTest {
 				Syntax.all(
 					Syntax.xor(
 						Syntax.all(
-							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("count", "")),
+							Syntax.Leaf(Param.Flag("list", ""), required = true),
+							Syntax.Leaf(Param.Value("count", ""), required = false),
 						),
 						Syntax.all(
-							Syntax.leaf(Param.Flag("search", ""), required = true),
+							Syntax.Leaf(Param.Flag("search", ""), required = true),
 							Syntax.xor(
-								Syntax.leaf(Param.Flag("key", "")),
-								Syntax.leaf(Param.Flag("value", "")),
-								Syntax.leaf(Param.Flag("desc", "")),
+								Syntax.Leaf(Param.Flag("key", ""), required = false),
+								Syntax.Leaf(Param.Flag("value", ""), required = false),
+								Syntax.Leaf(Param.Flag("desc", ""), required = false),
 								required = false,
 							),
 						),
 					),
-					Syntax.leaf(Param.Flag("full", "")),
+					Syntax.Leaf(Param.Flag("full", ""), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("put", ""), required = true),
-					Syntax.leaf(Param.Positional("value", "")),
+					Syntax.Leaf(Param.Flag("put", ""), required = true),
+					Syntax.Leaf(Param.Positional("value", ""), required = false),
 				),
 			)
 		) {
@@ -736,24 +736,24 @@ class CommandRouterTest {
 				Syntax.all(
 					Syntax.xor(
 						Syntax.all(
-							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("count", "")),
+							Syntax.Leaf(Param.Flag("list", ""), required = true),
+							Syntax.Leaf(Param.Value("count", ""), required = false),
 						),
 						Syntax.all(
-							Syntax.leaf(Param.Flag("search", ""), required = true),
+							Syntax.Leaf(Param.Flag("search", ""), required = true),
 							Syntax.xor(
-								Syntax.leaf(Param.Flag("key", "")),
-								Syntax.leaf(Param.Flag("value", "")),
-								Syntax.leaf(Param.Flag("desc", "")),
+								Syntax.Leaf(Param.Flag("key", ""), required = false),
+								Syntax.Leaf(Param.Flag("value", ""), required = false),
+								Syntax.Leaf(Param.Flag("desc", ""), required = false),
 								required = false,
 							),
 						),
 					),
-					Syntax.leaf(Param.Flag("full", "")),
+					Syntax.Leaf(Param.Flag("full", ""), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("put", ""), required = true),
-					Syntax.leaf(Param.Positional("value", "")),
+					Syntax.Leaf(Param.Flag("put", ""), required = true),
+					Syntax.Leaf(Param.Positional("value", ""), required = false),
 				),
 			)
 		) {
@@ -773,24 +773,24 @@ class CommandRouterTest {
 				Syntax.all(
 					Syntax.xor(
 						Syntax.all(
-							Syntax.leaf(Param.Flag("list", ""), required = true),
-							Syntax.leaf(Param.Value("count", "")),
+							Syntax.Leaf(Param.Flag("list", ""), required = true),
+							Syntax.Leaf(Param.Value("count", ""), required = false),
 						),
 						Syntax.all(
-							Syntax.leaf(Param.Flag("search", ""), required = true),
+							Syntax.Leaf(Param.Flag("search", ""), required = true),
 							Syntax.xor(
-								Syntax.leaf(Param.Flag("key", "")),
-								Syntax.leaf(Param.Flag("value", "")),
-								Syntax.leaf(Param.Flag("desc", "")),
+								Syntax.Leaf(Param.Flag("key", ""), required = false),
+								Syntax.Leaf(Param.Flag("value", ""), required = false),
+								Syntax.Leaf(Param.Flag("desc", ""), required = false),
 								required = false,
 							),
 						),
 					),
-					Syntax.leaf(Param.Flag("full", "")),
+					Syntax.Leaf(Param.Flag("full", ""), required = false),
 				),
 				Syntax.all(
-					Syntax.leaf(Param.Flag("put", ""), required = true),
-					Syntax.leaf(Param.Positional("value", "")),
+					Syntax.Leaf(Param.Flag("put", ""), required = true),
+					Syntax.Leaf(Param.Positional("value", ""), required = false),
 				),
 			)
 		)
