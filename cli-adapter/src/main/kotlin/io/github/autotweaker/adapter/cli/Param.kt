@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.i18n.I18nService
+
 sealed class Param {
 	abstract val name: String
 	abstract val description: String
@@ -33,6 +36,7 @@ sealed class Param {
 			name, description,
 			if (name.length > 1) listOf(name[0].toString()) else emptyList(),
 		)
+		
 		
 		override fun format(): String {
 			val all = listOf(name) + aliases
@@ -64,5 +68,19 @@ sealed class Param {
 	) : Param() {
 		override val aliases: List<String> = emptyList()
 		override fun format(): String = "<$name>"
+	}
+	
+	enum class Type { FLAG, VALUE, POSITIONAL }
+	
+	companion object {
+		fun fromI18n(i18n: I18nService, type: Type, name: String, desc: I18nDef, aliases: List<String>? = null): Param =
+			when (type) {
+				Type.FLAG -> if (aliases == null) Flag(name, i18n.get(desc)) else Flag(name, i18n.get(desc), aliases)
+				Type.VALUE -> if (aliases == null) Value(name, i18n.get(desc)) else Value(name, i18n.get(desc), aliases)
+				Type.POSITIONAL -> if (aliases == null) Positional(name, i18n.get(desc)) else Positional(
+					name,
+					i18n.get(desc)
+				)
+			}
 	}
 }

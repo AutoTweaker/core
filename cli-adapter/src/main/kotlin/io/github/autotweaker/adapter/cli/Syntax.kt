@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.adapter.cli.Param.Type
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.i18n.I18nService
+
 sealed class Syntax {
 	abstract val required: Boolean
 	
@@ -28,7 +32,17 @@ sealed class Syntax {
 	companion object {
 		fun all(vararg children: Syntax, required: Boolean = true) = All(children.toList(), required)
 		fun xor(vararg children: Syntax, required: Boolean = true) = Xor(children.toList(), required)
-		fun leaf(param: Param, required: Boolean = false) = Leaf(param, required)
 		fun none() = All(emptyList(), required = false)
+		
+		fun leaf(
+			i18n: I18nService,
+			type: Type,
+			name: String,
+			desc: I18nDef,
+			aliases: List<String>? = null,
+			required: Boolean = false
+		) = Leaf(
+			Param.fromI18n(i18n, type, name, desc, aliases), required
+		)
 	}
 }
