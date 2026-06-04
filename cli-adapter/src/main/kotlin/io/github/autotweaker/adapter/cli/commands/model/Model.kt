@@ -37,19 +37,15 @@ class Model : Command {
 	override val description get() = i18n.get(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("list", i18n.get(ModelI18n.ParamList())), required = true),
+			Syntax.leaf(i18n, Param.Type.FLAG, "list", ModelI18n.ParamList()),
 			Syntax.all(
-				Syntax.leaf(Param.Flag("add", i18n.get(ModelI18n.ParamAdd())), required = true),
-				Syntax.leaf(Param.Value("name", i18n.get(ModelI18n.ParamAddName())), required = true),
-				Syntax.leaf(Param.Value("provider", i18n.get(ModelI18n.ParamAddProvider())), required = true),
-				Syntax.leaf(Param.Value("info", i18n.get(ModelI18n.ParamAddInfo())))
+				Syntax.leaf(i18n, Param.Type.FLAG, "add", ModelI18n.ParamAdd()),
+				Syntax.leaf(i18n, Param.Type.VALUE, "name", ModelI18n.ParamAddName()),
+				Syntax.leaf(i18n, Param.Type.VALUE, "provider", ModelI18n.ParamAddProvider()),
+				Syntax.leaf(i18n, Param.Type.VALUE, "info", ModelI18n.ParamAddInfo(), required = false),
 			),
-			Syntax.leaf(
-				Param.Value("add-all", i18n.get(ModelI18n.ParamAddAll()), aliases = emptyList()),
-				required = true
-			),
-			
-			)
+			Syntax.leaf(i18n, Param.Type.VALUE, "add-all", ModelI18n.ParamAddAll(), aliases = emptyList()),
+		)
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core

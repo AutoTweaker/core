@@ -51,29 +51,27 @@ class Config : Command {
 		get() = Syntax.xor(
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(Param.Flag("list", i18n.get(CfgI18n.List())), required = true),
+					Syntax.leaf(i18n, Param.Type.FLAG, "list", CfgI18n.List()),
 					Syntax.all(
-						Syntax.leaf(
-							Param.Value("search", i18n.get(CfgI18n.Search()), aliases = emptyList()), required = true
-						),
+						Syntax.leaf(i18n, Param.Type.VALUE, "search", CfgI18n.Search(), aliases = emptyList()),
 						Syntax.xor(
-							Syntax.leaf(Param.Flag("key", i18n.get(CfgI18n.SearchKey()), aliases = emptyList())),
-							Syntax.leaf(Param.Flag("value", i18n.get(CfgI18n.SearchValue()), aliases = emptyList())),
-							Syntax.leaf(Param.Flag("desc", i18n.get(CfgI18n.SearchDesc()), aliases = emptyList())),
+							Syntax.leaf(i18n, Param.Type.FLAG, "key", CfgI18n.SearchKey(), aliases = emptyList()),
+							Syntax.leaf(i18n, Param.Type.FLAG, "value", CfgI18n.SearchValue(), aliases = emptyList()),
+							Syntax.leaf(i18n, Param.Type.FLAG, "desc", CfgI18n.SearchDesc(), aliases = emptyList()),
 							required = false,
 						),
 					),
 				),
-				Syntax.leaf(Param.Value("limit", i18n.get(CfgI18n.Limit()), aliases = emptyList())),
-				Syntax.leaf(Param.Flag("full", i18n.get(CfgI18n.Full()))),
+				Syntax.leaf(i18n, Param.Type.VALUE, "limit", CfgI18n.Limit(), required = false, aliases = emptyList()),
+				Syntax.leaf(i18n, Param.Type.FLAG, "full", CfgI18n.Full(), required = false),
 			),
 			Syntax.all(
-				Syntax.leaf(Param.Value("set", i18n.get(CfgI18n.Set())), required = true),
-				Syntax.leaf(Param.Positional("value", i18n.get(CfgI18n.SetValue())), required = true),
+				Syntax.leaf(i18n, Param.Type.VALUE, "set", CfgI18n.Set()),
+				Syntax.leaf(i18n, Param.Type.POSITIONAL, "value", CfgI18n.SetValue()),
 			),
 			Syntax.all(
-				Syntax.leaf(Param.Value("reset", i18n.get(CfgI18n.Yes()))),
-				Syntax.leaf(Param.Flag("yes", i18n.get(CfgI18n.Yes()))),
+				Syntax.leaf(i18n, Param.Type.VALUE, "reset", CfgI18n.Yes()),
+				Syntax.leaf(i18n, Param.Type.FLAG, "yes", CfgI18n.Yes(), required = false),
 			)
 		)
 	

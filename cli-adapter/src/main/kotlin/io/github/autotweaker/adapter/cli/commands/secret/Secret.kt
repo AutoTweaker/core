@@ -38,30 +38,29 @@ class Secret : Command {
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.all(
-				Syntax.leaf(Param.Flag("passwd", i18n.get(SecretI18n.ParamUnlock()), emptyList()), required = true),
-				Syntax.leaf(Param.Flag("reset", i18n.get(PasswdI18n.ParamRemove()), emptyList())),
+				Syntax.leaf(i18n, Param.Type.FLAG, "passwd", SecretI18n.ParamUnlock(), aliases = emptyList()),
+				Syntax.leaf(
+					i18n,
+					Param.Type.FLAG,
+					"reset",
+					PasswdI18n.ParamRemove(),
+					required = false,
+					aliases = emptyList()
+				),
 			),
-			Syntax.leaf(Param.Flag("unlock", i18n.get(SecretI18n.ParamUnlock())), required = true),
+			Syntax.leaf(i18n, Param.Type.FLAG, "unlock", SecretI18n.ParamUnlock()),
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(Param.Flag("list", i18n.get(SecretI18n.ParamList())), required = true),
-					
-					Syntax.leaf(Param.Value("add", i18n.get(SecretI18n.ParamAdd())), required = true), Syntax.leaf(
-						Param.Value("remove", i18n.get(SecretI18n.ParamRemove()), aliases = listOf("rm")),
-						required = true
-					), Syntax.leaf(Param.Value("get", i18n.get(SecretI18n.ParamGet())), required = true)
+					Syntax.leaf(i18n, Param.Type.FLAG, "list", SecretI18n.ParamList()),
+					Syntax.leaf(i18n, Param.Type.VALUE, "add", SecretI18n.ParamAdd()),
+					Syntax.leaf(i18n, Param.Type.VALUE, "remove", SecretI18n.ParamRemove(), aliases = listOf("rm")),
+					Syntax.leaf(i18n, Param.Type.VALUE, "get", SecretI18n.ParamGet()),
 				),
 				Syntax.xor(
-					Syntax.leaf(
-						Param.Flag("key", i18n.get(SecretI18n.ParamKey())), required = true
-					),
+					Syntax.leaf(i18n, Param.Type.FLAG, "key", SecretI18n.ParamKey()),
 					Syntax.all(
-						Syntax.leaf(
-							Param.Flag("env", i18n.get(SecretI18n.ParamEnv())), required = true
-						),
-						Syntax.leaf(
-							Param.Value("type", i18n.get(SecretI18n.ParamEnvType())), required = true
-						),
+						Syntax.leaf(i18n, Param.Type.FLAG, "env", SecretI18n.ParamEnv()),
+						Syntax.leaf(i18n, Param.Type.VALUE, "type", SecretI18n.ParamEnvType()),
 					),
 				),
 			),

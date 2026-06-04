@@ -30,10 +30,7 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 	override val name = "help"
 	override val description get() = i18n.get(HelpI18n.HelpDesc())
 	override val syntax
-		get() = Syntax.all(
-			Syntax.leaf(Param.Positional("command", i18n.get(HelpI18n.HelpParamCommand()))),
-			required = false,
-		)
+		get() = Syntax.leaf(i18n, Param.Type.POSITIONAL, "command", HelpI18n.HelpParamCommand(), required = false)
 	
 	private val all: List<Command> get() = loaded + this
 	

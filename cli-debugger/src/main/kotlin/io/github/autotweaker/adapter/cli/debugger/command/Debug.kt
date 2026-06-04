@@ -38,23 +38,23 @@ class Debug : Command {
 	override val description get() = i18n.get(Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(Param.Flag("list-db", i18n.get(ParamListDb()), emptyList()), required = true),
+			Syntax.leaf(i18n, Param.Type.FLAG, "list-db", ParamListDb(), aliases = emptyList()),
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(Param.Value("list", i18n.get(ParamList()))),
-					Syntax.leaf(Param.Value("get", i18n.get(ParamGet()))),
-					Syntax.leaf(Param.Value("put", i18n.get(ParamPut()))),
-					Syntax.leaf(Param.Value("delete", i18n.get(ParamDelete()))),
+					Syntax.leaf(i18n, Param.Type.VALUE, "list", ParamList(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.VALUE, "get", ParamGet()),
+					Syntax.leaf(i18n, Param.Type.VALUE, "put", ParamPut()),
+					Syntax.leaf(i18n, Param.Type.VALUE, "delete", ParamDelete()),
 				),
 				Syntax.xor(
-					Syntax.leaf(Param.Flag("setting", i18n.get(Table()), emptyList())),
-					Syntax.leaf(Param.Flag("jsonStore", i18n.get(Table()), emptyList())),
-					Syntax.leaf(Param.Flag("sessionData", i18n.get(Table()), emptyList())),
-					Syntax.leaf(Param.Flag("sessionContext", i18n.get(Table()), emptyList())),
-					Syntax.leaf(Param.Flag("sessionMessage", i18n.get(Table()), emptyList())),
-					Syntax.leaf(Param.Flag("secrets", i18n.get(Table()), emptyList())),
-				)
-			)
+					Syntax.leaf(i18n, Param.Type.FLAG, "setting", Table(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.FLAG, "jsonStore", Table(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.FLAG, "sessionData", Table(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.FLAG, "sessionContext", Table(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.FLAG, "sessionMessage", Table(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.FLAG, "secrets", Table(), aliases = emptyList()),
+				),
+			),
 		)
 	private lateinit var core: CoreAPI
 	private val i18n: I18nService get() = core.i18n.i18nService
@@ -65,8 +65,7 @@ class Debug : Command {
 	}
 	
 	override fun handle(
-		request: Request,
-		prompt: suspend (text: String, echo: Boolean) -> String
+		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		if (request.has("list-db")) {
 			debug.tables().forEach { (db, table) ->
