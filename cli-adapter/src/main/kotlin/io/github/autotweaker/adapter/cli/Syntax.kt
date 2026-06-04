@@ -27,7 +27,7 @@ sealed class Syntax {
 	
 	data class All(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
 	data class Xor(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
-	data class Leaf(val param: Param, override val required: Boolean = false) : Syntax()
+	data class Leaf(val param: Param, override val required: Boolean = true) : Syntax()
 	
 	companion object {
 		fun all(vararg children: Syntax, required: Boolean = true) = All(children.toList(), required)
@@ -39,10 +39,20 @@ sealed class Syntax {
 			type: Type,
 			name: String,
 			desc: I18nDef,
-			aliases: List<String>? = null,
-			required: Boolean = false
+			required: Boolean = true,
+			aliases: List<String>,
 		) = Leaf(
 			Param.fromI18n(i18n, type, name, desc, aliases), required
+		)
+		
+		fun leaf(
+			i18n: I18nService,
+			type: Type,
+			name: String,
+			desc: I18nDef,
+			required: Boolean = true,
+		) = Leaf(
+			Param.fromI18n(i18n, type, name, desc), required
 		)
 	}
 }

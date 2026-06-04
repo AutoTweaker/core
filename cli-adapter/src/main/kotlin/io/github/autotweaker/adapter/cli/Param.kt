@@ -73,14 +73,18 @@ sealed class Param {
 	enum class Type { FLAG, VALUE, POSITIONAL }
 	
 	companion object {
-		fun fromI18n(i18n: I18nService, type: Type, name: String, desc: I18nDef, aliases: List<String>? = null): Param =
+		fun fromI18n(i18n: I18nService, type: Type, name: String, desc: I18nDef, aliases: List<String>): Param =
 			when (type) {
-				Type.FLAG -> if (aliases == null) Flag(name, i18n.get(desc)) else Flag(name, i18n.get(desc), aliases)
-				Type.VALUE -> if (aliases == null) Value(name, i18n.get(desc)) else Value(name, i18n.get(desc), aliases)
-				Type.POSITIONAL -> if (aliases == null) Positional(name, i18n.get(desc)) else Positional(
-					name,
-					i18n.get(desc)
-				)
+				Type.FLAG -> Flag(name, i18n.get(desc), aliases)
+				Type.VALUE -> Value(name, i18n.get(desc), aliases)
+				Type.POSITIONAL -> Positional(name, i18n.get(desc))
+			}
+		
+		fun fromI18n(i18n: I18nService, type: Type, name: String, desc: I18nDef): Param =
+			when (type) {
+				Type.FLAG -> Flag(name, i18n.get(desc))
+				Type.VALUE -> Value(name, i18n.get(desc))
+				Type.POSITIONAL -> Positional(name, i18n.get(desc))
 			}
 	}
 }
