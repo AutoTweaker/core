@@ -20,7 +20,6 @@
 set -e
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ] || [ "$1" = "upgrade" ]; then
-    systemctl --global disable --now autotweaker 2>/dev/null || true
     for user in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}'); do
         su -s /bin/sh -c "XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user disable --now autotweaker" "$user" || true
     done
