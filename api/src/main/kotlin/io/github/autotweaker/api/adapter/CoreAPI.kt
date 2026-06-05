@@ -52,9 +52,10 @@ interface CoreAPI {
 	fun trace(kClass: KClass<*>): TraceRecorder
 	
 	interface AdapterAPI {
-		suspend fun listAdapter(): List<AdapterInfo>
-		suspend fun startAdapter(name: String)
-		suspend fun stopAdapter(name: String)
+		suspend fun list(): List<AdapterInfo>
+		suspend fun start(name: String)
+		suspend fun alive(name: String): Boolean
+		suspend fun stop(name: String)
 	}
 	
 	interface SessionAPI {

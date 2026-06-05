@@ -22,6 +22,8 @@ import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 
 interface Adapter {
+	val isRunning: Boolean
+	
 	suspend fun load(coreVersion: SemVer): AdapterInfo
 	suspend fun start(core: CoreAPI)
 	suspend fun stop()
