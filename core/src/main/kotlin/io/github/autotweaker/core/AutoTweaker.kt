@@ -25,6 +25,8 @@ import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.channels.FileChannel
@@ -43,6 +45,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	}
 	
 	private val registry: MutableMap<String, Pair<Adapter, AdapterInfo>> = mutableMapOf()
+	private val adapterMutex = Mutex()
 	
 	private val lockFile: Path = Path.of(
 		System.getProperty("user.home"), ".config", "autotweaker", "autotweaker.lock"
@@ -91,7 +94,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	
 	override suspend fun list(): List<AdapterInfo> = registry.values.map { it.second }
 	
-	override suspend fun start(name: String) {
+	override suspend fun start(name: String) = adapterMutex.withLock {
 		val (adapter, info) = requireAdapter(name)
 		if (adapter.isRunning) error("Adapter already running: ${info.name}")
 		adapter.start(Launcher.createCoreAPI(this))
@@ -103,7 +106,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		return adapter.isRunning
 	}
 	
-	override suspend fun stop(name: String) {
+	override suspend fun stop(name: String) = adapterMutex.withLock {
 		val (adapter, info) = requireAdapter(name)
 		adapter.stop()
 		logger.info("Stopped adapter  name={}", info.name)
