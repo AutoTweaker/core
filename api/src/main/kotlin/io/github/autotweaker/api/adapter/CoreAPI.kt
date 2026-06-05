@@ -148,6 +148,7 @@ interface CoreAPI {
 		suspend fun origins(): List<String>
 		suspend fun namespaces(origin: String): List<String>
 		suspend fun entries(origin: String, namespace: String, range: UIntRange): List<Instant>
+		suspend fun count(origin: String, namespace: String): Int
 		suspend fun get(origin: String, namespace: String, timestamp: Instant): String?
 		suspend fun delete(origin: String, namespace: String, timestamp: Instant)
 	}

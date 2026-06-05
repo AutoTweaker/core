@@ -70,6 +70,12 @@ object TraceStore {
 			.map { it[TraceTable.namespace] }
 	}
 	
+	fun count(origin: String, namespace: String): Int = transaction(db) {
+		TraceTable.selectAll()
+			.where { (TraceTable.origin eq origin) and (TraceTable.namespace eq namespace) }
+			.count().toInt()
+	}
+
 	fun selectEntries(origin: String, namespace: String, range: UIntRange): List<Instant> = transaction(db) {
 		val count = (range.last - range.first + 1u).toInt()
 		TraceTable.select(TraceTable.timestamp)

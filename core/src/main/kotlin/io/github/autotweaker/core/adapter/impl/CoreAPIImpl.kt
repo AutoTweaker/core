@@ -162,6 +162,7 @@ class CoreAPIImpl(
 	override val trace = object : CoreAPI.TraceAPI {
 		override suspend fun origins() = TraceStore.selectOrigins()
 		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin)
+		override suspend fun count(origin: String, namespace: String) = TraceStore.count(origin, namespace)
 		override suspend fun entries(origin: String, namespace: String, range: UIntRange) =
 			TraceStore.selectEntries(origin, namespace, range)
 		
