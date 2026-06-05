@@ -26,7 +26,7 @@ dependencies {
 	implementation(project(":cli-adapter"))
 	
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	kapt("com.google.auto.service:auto-service:1.1.1")
 }

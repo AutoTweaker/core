@@ -24,7 +24,7 @@ plugins {
 
 dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 }
 
 // region Maven 发布到 GitHub Packages

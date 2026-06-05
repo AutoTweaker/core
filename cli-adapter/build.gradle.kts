@@ -26,7 +26,7 @@ dependencies {
 	implementation(project(":api"))
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 	
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 	kapt("com.google.auto.service:auto-service:1.1.1")
