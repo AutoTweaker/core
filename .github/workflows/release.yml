@@ -62,7 +62,9 @@ jobs:
           SSH_URL="git@github.com:${{ github.repository }}.git"
           FULL_VERSION=$(grep '^version=' build/generated/version/version.properties | cut -d= -f2)
           DEB_FILE=$(basename .temp/deb/*.deb)
-          DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/${DEB_FILE}"
+          # GitHub replaces ~ with . in release download URLs
+          DEB_FILE_FOR_URL=$(echo "$DEB_FILE" | tr '~' '.')
+          DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/${DEB_FILE_FOR_URL}"
 
           # Clone index repo
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key"
