@@ -85,13 +85,13 @@ class Model : Command {
 		}
 		
 		if (request.has("remove")) {
-			core.config.removeModel(findModel(request) ?: return@flow)
+			core.config.removeModel(findModel(request, core, i18n) ?: return@flow)
 			emitDone()
 			return@flow
 		}
 		
 		if (request.has("set-default")) {
-			core.config.setDefaultModel(findModel(request) ?: return@flow)
+			core.config.setDefaultModel(findModel(request, core, i18n) ?: return@flow)
 			emitDone()
 			return@flow
 		}
@@ -109,21 +109,24 @@ class Model : Command {
 		emitDone()
 	}
 	
-	private suspend fun FlowCollector<CmdOutput>.findModel(request: Request): UUID? {
-		val provider = request.positional[0]
-		val model = request.positional[1]
-		val providerId = core.config.listProviders().find { it.displayName == provider }?.id ?: run {
-			emitI18n(i18n, ModelI18n.ProviderNotFound(), provider, error = true)
-			emitDone(1)
-			return null
+	companion object {
+		suspend fun FlowCollector<CmdOutput>.findModel(request: Request, core: CoreAPI, i18n: I18nService): UUID? {
+			val provider = request.positional[0]
+			val model = request.positional[1]
+			val providerId = core.config.listProviders().find { it.displayName == provider }?.id ?: run {
+				emitI18n(i18n, ModelI18n.ProviderNotFound(), provider, error = true)
+				emitDone(1)
+				return null
+			}
+			val modelId =
+				core.config.listModels()
+					.find { it.data.displayName == model && it.data.providerId == providerId }?.data?.id
+					?: run {
+						emitI18n(i18n, ModelI18n.ModelNotFound(), model, error = true)
+						emitDone(1)
+						return null
+					}
+			return modelId
 		}
-		val modelId =
-			core.config.listModels().find { it.data.displayName == model && it.data.providerId == providerId }?.data?.id
-				?: run {
-					emitI18n(i18n, ModelI18n.ModelNotFound(), model, error = true)
-					emitDone(1)
-					return null
-				}
-		return modelId
 	}
 }
