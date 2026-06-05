@@ -70,8 +70,8 @@ dependencies {
 	implementation("com.github.docker-java:docker-java-transport-httpclient5:3.7.1")
 	implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.84")
-	implementation("com.fasterxml.jackson.core:jackson-core:2.21.3")
-	implementation("com.fasterxml.jackson.core:jackson-databind:2.21.3")
+	implementation("com.fasterxml.jackson.core:jackson-core:2.22.0")
+	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.0")
 }
 
 val inDocker = System.getenv("DOCKER_TEST") == "true"
