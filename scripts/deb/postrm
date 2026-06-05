@@ -23,6 +23,7 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     for user in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}'); do
         su -s /bin/sh -c "XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user daemon-reload" "$user" || true
     done
+    systemctl daemon-reload 2>/dev/null || true
 fi
 
 if [ "$1" = "purge" ]; then
