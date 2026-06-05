@@ -26,9 +26,6 @@ jobs:
         env:
           DOCKER_TEST: "true"
 
-      - name: Package distributions
-        run: ./gradlew :core:distZip :core:distTar
-
       - name: Upload distZip (dev snapshot)
         uses: actions/upload-artifact@v7
         with:
