@@ -89,15 +89,21 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		logger.debug("Lock acquired  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
-	override suspend fun listAdapter(): List<AdapterInfo> = registry.values.map { it.second }
+	override suspend fun list(): List<AdapterInfo> = registry.values.map { it.second }
 	
-	override suspend fun startAdapter(name: String) {
+	override suspend fun start(name: String) {
 		val (adapter, info) = requireAdapter(name)
+		if (adapter.isRunning) error("Adapter already running: ${info.name}")
 		adapter.start(Launcher.createCoreAPI(this))
 		logger.info("Started adapter  name={}", info.name)
 	}
 	
-	override suspend fun stopAdapter(name: String) {
+	override suspend fun alive(name: String): Boolean {
+		val (adapter, _) = requireAdapter(name)
+		return adapter.isRunning
+	}
+	
+	override suspend fun stop(name: String) {
 		val (adapter, info) = requireAdapter(name)
 		adapter.stop()
 		logger.info("Stopped adapter  name={}", info.name)

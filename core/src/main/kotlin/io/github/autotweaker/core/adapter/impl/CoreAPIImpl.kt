@@ -69,9 +69,10 @@ class CoreAPIImpl(
 	private val apiKeyRepo: ApiKeyRepository,
 ) : CoreAPI {
 	override val adapter = object : CoreAPI.AdapterAPI {
-		override suspend fun listAdapter(): List<AdapterInfo> = adapterAPI.listAdapter()
-		override suspend fun startAdapter(name: String) = adapterAPI.startAdapter(name)
-		override suspend fun stopAdapter(name: String) = adapterAPI.stopAdapter(name)
+		override suspend fun list(): List<AdapterInfo> = adapterAPI.list()
+		override suspend fun start(name: String) = adapterAPI.start(name)
+		override suspend fun alive(name: String): Boolean = adapterAPI.alive(name)
+		override suspend fun stop(name: String) = adapterAPI.stop(name)
 	}
 	
 	override val session = object : CoreAPI.SessionAPI {

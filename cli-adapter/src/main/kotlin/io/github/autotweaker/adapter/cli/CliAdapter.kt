@@ -30,9 +30,11 @@ import org.slf4j.LoggerFactory
 class CliAdapter : Adapter {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val adapterVersion = SemVer.parse("0.1.0")
-	private lateinit var server: CliServer
+	private var server: CliServer? = null
 	private var coreVersion: SemVer? = null
 	private lateinit var adapterName: String
+	
+	override val isRunning: Boolean get() = server != null
 	
 	override suspend fun load(coreVersion: SemVer): AdapterInfo {
 		this.coreVersion = coreVersion
@@ -50,14 +52,16 @@ class CliAdapter : Adapter {
 	}
 	
 	override suspend fun start(core: CoreAPI) {
-		server = CliServer(core.config.settingService)
+		val s = CliServer(core.config.settingService)
 		val router = CommandRouter.fromServiceLoader(core, coreVersion ?: error("CliAdapter not initialized"))
-		server.start(router)
+		s.start(router)
+		server = s
 		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)
 	}
 	
 	override suspend fun stop() {
-		server.stop()
+		server?.stop()
+		server = null
 		logger.info("CliAdapter stopped  adapter={}", adapterName)
 	}
 }
