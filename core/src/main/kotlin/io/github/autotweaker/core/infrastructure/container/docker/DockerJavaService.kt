@@ -70,28 +70,36 @@ class DockerJavaService : ContainerService {
 	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
 		try {
+			val existing = findContainerByName(config.name)
+			if (existing != null) {
+				if (existing.state != "running") {
+					client.startContainerCmd(existing.id).exec()
+					logger.info("Container restarted  containerId={}", existing.id)
+				} else {
+					logger.debug("Container already running  containerId={}", existing.id)
+				}
+				return@withContext existing.id
+			}
+
 			val workspaceHostPath = config.workspaceHostPath
 			Files.createDirectories(workspaceHostPath)
-			
+
 			val hostConfig = HostConfig().withBinds(
 				Bind(
 					workspaceHostPath.toString(), Volume(config.workDir.toString())
 				)
 			).withExtraHosts("host.docker.internal:host-gateway")
-			
+
 			val createResponse =
 				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
 					.withEnv(config.env.map { "${it.key}=${it.value}" }).withHostConfig(hostConfig)
 					.withEntrypoint("tail", "-f", "/dev/null").exec()
 			logger.info("Container created  containerId={}", createResponse.id)
-			
+
 			client.startContainerCmd(createResponse.id).exec()
-			
+
 			logger.info("Container started  containerId={}", createResponse.id)
 			createResponse.id
-		} catch (e: ConflictException) {
-			logger.warn("Container name already used  name={}", config.name)
-			throw ContainerOperationException("Container '${config.name}' already exists", e)
 		} catch (e: NotFoundException) {
 			logger.warn("Failed to pull image  image={}", image)
 			throw ContainerOperationException("Image '$image' not found", e)
@@ -104,11 +112,9 @@ class DockerJavaService : ContainerService {
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
 		try {
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
-			logger.debug("Container stopped  containerId={}", containerId)
-			client.removeContainerCmd(containerId).exec()
-			logger.info("Container removed  containerId={}", containerId)
+			logger.info("Container stopped  containerId={}", containerId)
 		} catch (_: NotFoundException) {
-			logger.warn("Container already removed  containerId={}", containerId)
+			logger.warn("Container not found  containerId={}", containerId)
 		} catch (e: Exception) {
 			logger.error("Failed to stop container  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
@@ -162,4 +168,18 @@ class DockerJavaService : ContainerService {
 		}
 		close()
 	}
+
+	private fun findContainerByName(name: String): ExistingContainer? {
+		return client.listContainersCmd()
+			.withShowAll(true)
+			.withNameFilter(listOf("/$name"))
+			.exec()
+			.firstOrNull()
+			?.let { container ->
+				val details = client.inspectContainerCmd(container.id).exec()
+				ExistingContainer(container.id, details.state?.status ?: "unknown")
+			}
+	}
+
+	private data class ExistingContainer(val id: String, val state: String)
 }
