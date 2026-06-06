@@ -133,8 +133,8 @@ class Session(
 		val pluginTools = PluginLoader.load<Tool>().distinctBy { it.meta.name }
 		_pluginTools = pluginTools
 		
-		val coreNames = coreTools.map { it.meta.name }.toSet()
-		_tools = pluginTools + coreTools.filter { it.meta.name !in coreNames }
+		val pluginNames = pluginTools.map { it.meta.name }.toSet()
+		_tools = pluginTools + coreTools.filter { it.meta.name !in pluginNames }
 	}
 	
 	//endregion

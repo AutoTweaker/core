@@ -23,6 +23,7 @@ import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
+import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
@@ -35,9 +36,10 @@ import org.slf4j.LoggerFactory
 object Wiring {
 	private val logger = LoggerFactory.getLogger(Wiring::class.java)
 	
-	fun init() {
+	suspend fun init() {
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
+		EnvConfigAPI.init(SecretManager)
 		ContainerManager.init(SecretManager)
 		ResilientChat.init(LlmGatewayImpl, Settings)
 		ChatService.init(

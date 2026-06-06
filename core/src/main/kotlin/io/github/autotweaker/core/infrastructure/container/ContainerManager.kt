@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
@@ -53,6 +54,7 @@ object ContainerManager {
 	@Synchronized
 	fun init(secretStore: SecretStore) {
 		envStorage = EnvStorage(this::class, secretStore)
+		Files.createDirectories(ContainerConfig().workspaceHostPath)
 		imagePullJob = scope.async {
 			val image = Settings.get(ContainerSettings.DockerImage()).value
 			service.pullImage(image)
@@ -95,17 +97,17 @@ object ContainerManager {
 	}
 	
 	suspend fun listEnv(): List<String> = envStorage.listEnv()
-
+	
 	suspend fun setEnv(id: String, value: String) {
 		envStorage.setEnv(id, value)
 		logger.debug("Container env set  key={}", id)
 	}
-
+	
 	suspend fun removeEnv(id: String) {
 		envStorage.removeEnv(id)
 		logger.debug("Container env removed  key={}", id)
 	}
-
+	
 	suspend fun getEnv(id: String? = null): Map<String, String> {
 		val ids = if (id != null) {
 			if (id in envStorage.listEnv()) listOf(id) else emptyList()

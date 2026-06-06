@@ -24,7 +24,9 @@ import com.github.dockerjava.api.command.PullImageResultCallback
 import com.github.dockerjava.api.exception.ConflictException
 import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.model.*
+import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
@@ -37,6 +39,7 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration as JavaDuration
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
@@ -44,8 +47,17 @@ class DockerJavaService : ContainerService {
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	@Suppress("DEPRECATION")
-	private val client: DockerClient = DockerClientImpl.getInstance()
+	private val client: DockerClient = run {
+		val config = DefaultDockerClientConfig.createDefaultConfigBuilder().build()
+		val httpClient = ApacheDockerHttpClient.Builder()
+			.dockerHost(config.getDockerHost())
+			.sslConfig(config.getSSLConfig())
+			.maxConnections(100)
+			.connectionTimeout(JavaDuration.ofSeconds(30))
+			.responseTimeout(JavaDuration.ofSeconds(45))
+			.build()
+		DockerClientImpl.getInstance(config, httpClient)
+	}
 	
 	override fun shutdown() {
 		runCatching { client.close() }
