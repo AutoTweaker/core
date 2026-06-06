@@ -77,7 +77,7 @@ class DockerJavaService : ContainerService {
 				Bind(
 					workspaceHostPath.toString(), Volume(config.workDir.toString())
 				)
-			)
+			).withExtraHosts("host.docker.internal:host-gateway")
 			
 			val createResponse =
 				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
