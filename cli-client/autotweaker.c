@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
@@ -532,11 +533,11 @@ static int handle_daemon_cmd(const char *action) {
 
 /* ---- sync_plugins ---- */
 static void sync_plugins(void) {
-    char plugins_dir[512];
+    char plugins_dir[PATH_MAX];
     snprintf(plugins_dir, sizeof(plugins_dir), "%s/plugins", conf_dir);
     mkdir(plugins_dir, 0755);
 
-    char target[512];
+    char target[PATH_MAX + 32];
     snprintf(target, sizeof(target), "%s/cli-adapter.jar", plugins_dir);
     const char *src = "/usr/share/autotweaker/cli-adapter.jar";
 
@@ -546,7 +547,9 @@ static void sync_plugins(void) {
         return;
     }
     unlink(target);
-    symlink(src, target);
+    if (symlink(src, target) == -1) {
+        perror("symlink");
+    }
 }
 
 /* ---- main ---- */
