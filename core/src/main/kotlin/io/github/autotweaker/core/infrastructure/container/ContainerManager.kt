@@ -61,12 +61,18 @@ object ContainerManager {
 		}
 	}
 	
+	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ensureRunning() = mutex.withLock {
 		if (_containerId != null) return@withLock
+		val image = Settings.get(ContainerSettings.DockerImage()).value
+		val job = imagePullJob
+		if (job?.getCompletionExceptionOrNull() != null) {
+			logger.warn("Image pull failed, restarted  image={}", image)
+			imagePullJob = scope.async { service.pullImage(image) }
+		}
 		imagePullJob?.await()
 		val containerConfig =
 			ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
-		val image = Settings.get(ContainerSettings.DockerImage()).value
 		logger.debug("Container start initiated  image={}", image)
 		val id = service.start(image, containerConfig)
 		_containerId = id
