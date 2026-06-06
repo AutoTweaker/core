@@ -40,63 +40,6 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		baseUrl = Url("https://api.xiaomimimo.com/v1"),
 		models = listOf(
 			ModelData.ModelInfo(
-				modelId = "mimo-v2-pro",
-				contextWindow = 1_000_000,
-				maxOutputTokens = 128_000,
-				price = ModelData.TokenPrice(
-					inputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							toTokens = 256_000,
-							price = Price(
-								amount = BigDecimal("7"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-							cachedPrice = Price(
-								amount = BigDecimal("1.4"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-						), ModelData.TokenPrice.PriceTier(
-							fromTokens = 256_000,
-							price = Price(
-								amount = BigDecimal("14"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-							cachedPrice = Price(
-								amount = BigDecimal("2.8"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-						)
-					),
-					outputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							toTokens = 256_000,
-							price = Price(
-								amount = BigDecimal("21"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-						), ModelData.TokenPrice.PriceTier(
-							fromTokens = 256_000,
-							price = Price(
-								amount = BigDecimal("42"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-						)
-					),
-				),
-				supportsStreaming = true,
-				supportsToolCalls = true,
-				supportsReasoning = true,
-				supportsImage = false,
-				supportsJsonOutput = true
-			), ModelData.ModelInfo(
 				modelId = "mimo-v2.5-pro",
 				contextWindow = 1_000_000,
 				maxOutputTokens = 128_000,
@@ -131,42 +74,6 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsToolCalls = true,
 				supportsReasoning = true,
 				supportsImage = false,
-				supportsJsonOutput = true
-			), ModelData.ModelInfo(
-				modelId = "mimo-v2-omni",
-				contextWindow = 256_000,
-				maxOutputTokens = 128_000,
-				price = ModelData.TokenPrice(
-					inputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							price = Price(
-								amount = BigDecimal("2.8"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-							cachedPrice = Price(
-								amount = BigDecimal("0.56"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-						),
-					),
-					outputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0,
-							price = Price(
-								amount = BigDecimal("14"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							),
-						),
-					),
-				),
-				supportsStreaming = true,
-				supportsToolCalls = true,
-				supportsReasoning = true,
-				supportsImage = true,
 				supportsJsonOutput = true
 			), ModelData.ModelInfo(
 				modelId = "mimo-v2.5",
