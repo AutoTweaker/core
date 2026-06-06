@@ -126,16 +126,16 @@ class CliServer(service: SettingService) {
 				}
 			} catch (e: CancellationException) {
 				throw e
+			} catch (_: IOException) {
+				logger.warn("Client disconnected during command  command={}", cmdName)
 			} catch (e: Exception) {
 				logger.error("Command failed  command={}", cmdName, e)
-				if (e !is IOException) {
-					runCatching {
-						write(
-							client, json.encodeToString<CliResponse>(
-								CliResponse.Data(e.message ?: "Internal error", "stderr", true)
-							)
+				runCatching {
+					write(
+						client, json.encodeToString<CliResponse>(
+							CliResponse.Data(e.message ?: "Internal error", "stderr", true)
 						)
-					}
+					)
 				}
 			}
 			
@@ -194,7 +194,9 @@ class CliServer(service: SettingService) {
 		val bytes = (text + "\n").toByteArray(StandardCharsets.UTF_8)
 		var pos = 0
 		while (pos < bytes.size) {
-			pos += channel.write(ByteBuffer.wrap(bytes, pos, bytes.size - pos))
+			val written = channel.write(ByteBuffer.wrap(bytes, pos, bytes.size - pos))
+			if (written <= 0) throw IOException("Channel not writable")
+			pos += written
 		}
 	}
 	

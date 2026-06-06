@@ -34,7 +34,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define MAX_LINE_LEN 65536
+#define MAX_LINE_LEN 1048576
 #define POLL_INTERVAL_MS 100
 #define WARN_ITERATIONS 600
 
@@ -427,10 +427,14 @@ static char *handle_prompt(const char *prompt_text, int echo) {
 /* ---- run_protocol ---- */
 static int run_protocol(int fd) {
     int                exit_code  = 1;
-    struct line_reader lr         = {.fd = fd};
+    struct line_reader *lr        = malloc(sizeof(struct line_reader));
+    if (!lr) return 1;
+    lr->fd  = fd;
+    lr->pos = 0;
+    lr->len = 0;
 
     while (1) {
-        char *line = lr_readline(&lr);
+        char *line = lr_readline(lr);
         if (!line) break;
 
         cJSON *root = cJSON_Parse(line);
@@ -489,6 +493,7 @@ static int run_protocol(int fd) {
         }
         cJSON_Delete(root);
     }
+    free(lr);
     return exit_code;
 }
 
