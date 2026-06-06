@@ -94,9 +94,15 @@ class CliServer(service: SettingService) {
 	
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
 		client.use {
-			val line = readLine(client) ?: return
-			logger.debug("CliMessage received  request={}", line)
-			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: return
+			val line = readLine(client) ?: run {
+				logger.debug("Client sent no data")
+				return
+			}
+			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: run {
+				logger.warn("Failed to parse CLI message")
+				return
+			}
+			logger.debug("CliMessage received  command={}  argCount={}", command.command(), command.args.size)
 			
 			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
 				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text, echo)))

@@ -439,7 +439,10 @@ static int run_protocol(int fd) {
 
         cJSON *root = cJSON_Parse(line);
         free(line);
-        if (!root) break;
+        if (!root) {
+            fputs("Error: failed to parse server response\n", stderr);
+            break;
+        }
 
         cJSON *type = cJSON_GetObjectItemCaseSensitive(root, "type");
         if (!type || !cJSON_IsString(type)) {
@@ -488,6 +491,7 @@ static int run_protocol(int fd) {
             }
             free(reply);
         } else {
+            fprintf(stderr, "Error: unknown message type '%s'\n", t);
             cJSON_Delete(root);
             break;
         }
