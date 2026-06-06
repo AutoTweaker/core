@@ -21,12 +21,12 @@ package io.github.autotweaker.core.infrastructure.container.docker
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.PullImageResultCallback
-import com.github.dockerjava.api.exception.ConflictException
 import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.model.*
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
+import com.sun.security.auth.module.UnixSystem
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
@@ -39,19 +39,26 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Duration as JavaDuration
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
+import java.time.Duration as JavaDuration
 
 class DockerJavaService : ContainerService {
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
+
+	private val uidGid: String = run {
+		val unix = UnixSystem()
+		"${unix.uid}:${unix.gid}"
+	}
+
+	private var workspaceHostPath: Path? = null
 	
 	private val client: DockerClient = run {
 		val config = DefaultDockerClientConfig.createDefaultConfigBuilder().build()
 		val httpClient = ApacheDockerHttpClient.Builder()
-			.dockerHost(config.getDockerHost())
-			.sslConfig(config.getSSLConfig())
+			.dockerHost(config.dockerHost)
+			.sslConfig(config.sslConfig)
 			.maxConnections(100)
 			.connectionTimeout(JavaDuration.ofSeconds(30))
 			.responseTimeout(JavaDuration.ofSeconds(45))
@@ -80,24 +87,25 @@ class DockerJavaService : ContainerService {
 				}
 				return@withContext existing.id
 			}
-
-			val workspaceHostPath = config.workspaceHostPath
-			Files.createDirectories(workspaceHostPath)
-
+			
+			val hostPath = config.workspaceHostPath
+			this@DockerJavaService.workspaceHostPath = hostPath
+			Files.createDirectories(hostPath)
+			
 			val hostConfig = HostConfig().withBinds(
 				Bind(
-					workspaceHostPath.toString(), Volume(config.workDir.toString())
+					hostPath.toString(), Volume(config.workDir.toString())
 				)
 			).withExtraHosts("host.docker.internal:host-gateway")
-
+			
 			val createResponse =
 				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
 					.withEnv(config.env.map { "${it.key}=${it.value}" }).withHostConfig(hostConfig)
 					.withEntrypoint("tail", "-f", "/dev/null").exec()
 			logger.info("Container created  containerId={}", createResponse.id)
-
+			
 			client.startContainerCmd(createResponse.id).exec()
-
+			
 			logger.info("Container started  containerId={}", createResponse.id)
 			createResponse.id
 		} catch (e: NotFoundException) {
@@ -113,11 +121,25 @@ class DockerJavaService : ContainerService {
 		try {
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			logger.info("Container stopped  containerId={}", containerId)
+			fixWorkspacePermissions()
 		} catch (_: NotFoundException) {
 			logger.warn("Container not found  containerId={}", containerId)
 		} catch (e: Exception) {
 			logger.error("Failed to stop container  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
+		}
+	}
+	
+	private fun fixWorkspacePermissions() {
+		val path = workspaceHostPath ?: return
+		runCatching {
+			ProcessBuilder("chown", "-R", uidGid, path.toString())
+				.redirectErrorStream(true)
+				.start()
+				.waitFor()
+			logger.debug("Fixed workspace permissions  path={}", path)
+		}.onFailure { e ->
+			logger.warn("Failed to fix workspace permissions  path={}", path, e)
 		}
 	}
 	
@@ -168,7 +190,7 @@ class DockerJavaService : ContainerService {
 		}
 		close()
 	}
-
+	
 	private fun findContainerByName(name: String): ExistingContainer? {
 		return client.listContainersCmd()
 			.withShowAll(true)
@@ -180,6 +202,6 @@ class DockerJavaService : ContainerService {
 				ExistingContainer(container.id, details.state?.status ?: "unknown")
 			}
 	}
-
+	
 	private data class ExistingContainer(val id: String, val state: String)
 }
