@@ -44,9 +44,13 @@ abstract class GitHashProvider : ValueSource<String, ValueSourceParameters.None>
 	}
 }
 
+abstract class TimestampProvider : ValueSource<Long, ValueSourceParameters.None> {
+	override fun obtain(): Long = System.currentTimeMillis() / 1000
+}
+
 val gitHash = providers.of(GitHashProvider::class) {}.get()
 
-val timestamp = System.currentTimeMillis() / 1000
+val timestamp = providers.of(TimestampProvider::class) {}.get()
 
 val githubRef = providers.environmentVariable("GITHUB_REF").getOrElse("")
 
