@@ -26,7 +26,7 @@ allprojects {
 		mavenCentral()
 	}
 	group = "io.github.autotweaker"
-	version = "0.1.0-alpha.29"
+	version = "0.1.0-alpha.30"
 }
 
 // region 生成版本资源文件
