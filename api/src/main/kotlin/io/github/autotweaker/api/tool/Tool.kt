@@ -35,7 +35,14 @@ interface Tool<Args : Any> {
 	
 	data class RuntimeOutput(
 		val content: String,
-	)
+		val type: OutputType
+	) {
+		enum class OutputType {
+			INFO,
+			ERROR,
+			STATUS
+		}
+	}
 	
 	data class ToolOutput(
 		val result: String,

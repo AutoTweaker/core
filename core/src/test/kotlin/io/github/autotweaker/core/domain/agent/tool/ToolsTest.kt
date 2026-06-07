@@ -270,8 +270,8 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { tool.execute(any(), any()) } coAnswers {
 			val channel = secondArg<Channel<Tool.RuntimeOutput>?>()
-			channel!!.send(Tool.RuntimeOutput("progress 1"))
-			channel.send(Tool.RuntimeOutput("progress 2"))
+			channel!!.send(Tool.RuntimeOutput("progress 1", Tool.RuntimeOutput.OutputType.INFO))
+			channel.send(Tool.RuntimeOutput("progress 2", Tool.RuntimeOutput.OutputType.INFO))
 			Tool.ToolOutput("done", true)
 		}
 		tools.add(tool)

@@ -93,12 +93,12 @@ class Bash : CoreTool<Bash.Args> {
 		container.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
 			when (event) {
 				is ShellEvent.Stdout -> {
-					outputChannel?.send(Tool.RuntimeOutput(event.text))
+					outputChannel?.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.INFO))
 					stdout.appendLine(event.text)
 				}
 
 				is ShellEvent.Stderr -> {
-					outputChannel?.send(Tool.RuntimeOutput(event.text))
+					outputChannel?.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.ERROR))
 					stderr.appendLine(event.text)
 				}
 				
