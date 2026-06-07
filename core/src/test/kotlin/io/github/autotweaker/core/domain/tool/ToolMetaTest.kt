@@ -139,14 +139,16 @@ class ToolMetaTest {
 	}
 	
 	@Test
-	fun `build simple tool has all parameters`() = runBlocking {
-		val meta = ToolMeta.build(mockSimpleTool())
-		val params = meta.functions[0].parameters
-		assertEquals(4, params.size)
-		assertNotNull(params["command"])
-		assertNotNull(params["timeout_seconds"])
-		assertNotNull(params["verbose"])
-		assertNotNull(params["tags"])
+	fun `build simple tool has all parameters`() {
+		runBlocking {
+			val meta = ToolMeta.build(mockSimpleTool())
+			val params = meta.functions[0].parameters
+			assertEquals(4, params.size)
+			assertNotNull(params["command"])
+			assertNotNull(params["timeout_seconds"])
+			assertNotNull(params["verbose"])
+			assertNotNull(params["tags"])
+		}
 	}
 	
 	@Test
@@ -184,7 +186,7 @@ class ToolMetaTest {
 		assertEquals("List of tags", tags.description)
 		val valueType = tags.valueType
 		assertTrue(valueType is ToolMeta.ValueType.ArrayValue)
-		assertTrue((valueType as ToolMeta.ValueType.ArrayValue).items is ToolMeta.ValueType.StringValue)
+		assertTrue(valueType.items is ToolMeta.ValueType.StringValue)
 	}
 	
 	// endregion
@@ -213,14 +215,16 @@ class ToolMetaTest {
 	}
 	
 	@Test
-	fun `build sealed tool file function has correct parameters`() = runBlocking {
-		val meta = ToolMeta.build(mockMultiTool())
-		val fileFunc = meta.functions.first { it.name == "file" }
-		assertEquals(4, fileFunc.parameters.size)
-		assertNotNull(fileFunc.parameters["file_path"])
-		assertNotNull(fileFunc.parameters["start_line"])
-		assertNotNull(fileFunc.parameters["end_line"])
-		assertNotNull(fileFunc.parameters["line_number"])
+	fun `build sealed tool file function has correct parameters`() {
+		runBlocking {
+			val meta = ToolMeta.build(mockMultiTool())
+			val fileFunc = meta.functions.first { it.name == "file" }
+			assertEquals(4, fileFunc.parameters.size)
+			assertNotNull(fileFunc.parameters["file_path"])
+			assertNotNull(fileFunc.parameters["start_line"])
+			assertNotNull(fileFunc.parameters["end_line"])
+			assertNotNull(fileFunc.parameters["line_number"])
+		}
 	}
 	
 	@Test
@@ -234,23 +238,27 @@ class ToolMetaTest {
 	}
 	
 	@Test
-	fun `build sealed tool summarize function has correct parameters`() = runBlocking {
-		val meta = ToolMeta.build(mockMultiTool())
-		val summarizeFunc = meta.functions.first { it.name == "summarize" }
-		assertEquals(4, summarizeFunc.parameters.size)
-		assertNotNull(summarizeFunc.parameters["file_path"])
-		assertNotNull(summarizeFunc.parameters["start_line"])
-		assertNotNull(summarizeFunc.parameters["end_line"])
-		assertNotNull(summarizeFunc.parameters["prompt"])
+	fun `build sealed tool summarize function has correct parameters`() {
+		runBlocking {
+			val meta = ToolMeta.build(mockMultiTool())
+			val summarizeFunc = meta.functions.first { it.name == "summarize" }
+			assertEquals(4, summarizeFunc.parameters.size)
+			assertNotNull(summarizeFunc.parameters["file_path"])
+			assertNotNull(summarizeFunc.parameters["start_line"])
+			assertNotNull(summarizeFunc.parameters["end_line"])
+			assertNotNull(summarizeFunc.parameters["prompt"])
+		}
 	}
 	
 	@Test
-	fun `build sealed tool unicode function has correct parameters`() = runBlocking {
-		val meta = ToolMeta.build(mockMultiTool())
-		val unicodeFunc = meta.functions.first { it.name == "unicode" }
-		assertEquals(2, unicodeFunc.parameters.size)
-		assertNotNull(unicodeFunc.parameters["file_path"])
-		assertNotNull(unicodeFunc.parameters["max_chars"])
+	fun `build sealed tool unicode function has correct parameters`() {
+		runBlocking {
+			val meta = ToolMeta.build(mockMultiTool())
+			val unicodeFunc = meta.functions.first { it.name == "unicode" }
+			assertEquals(2, unicodeFunc.parameters.size)
+			assertNotNull(unicodeFunc.parameters["file_path"])
+			assertNotNull(unicodeFunc.parameters["max_chars"])
+		}
 	}
 	
 	@Test
@@ -378,7 +386,7 @@ class ToolMetaTest {
 		val meta = ToolMeta.build(tool)
 		val vt = meta.functions[0].parameters["items"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.ArrayValue)
-		assertTrue((vt as ToolMeta.ValueType.ArrayValue).items is ToolMeta.ValueType.StringValue)
+		assertTrue(vt.items is ToolMeta.ValueType.StringValue)
 	}
 	
 	@Test
@@ -396,7 +404,7 @@ class ToolMetaTest {
 		val meta = ToolMeta.build(tool)
 		val vt = meta.functions[0].parameters["numbers"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.ArrayValue)
-		assertTrue((vt as ToolMeta.ValueType.ArrayValue).items is ToolMeta.ValueType.IntegerValue)
+		assertTrue(vt.items is ToolMeta.ValueType.IntegerValue)
 	}
 	
 	// endregion
@@ -427,19 +435,21 @@ class ToolMetaTest {
 	}
 	
 	@Test
-	fun `already snake_case names stay unchanged`() = runBlocking {
-		@Serializable
-		data class SnakeArgs(val already_snake: String)
-		
-		val tool = mockk<Tool<SnakeArgs>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns SnakeArgs.serializer()
-		coEvery { tool.describe() } returns mapOf(SnakeArgs::already_snake to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
-		
-		val meta = ToolMeta.build(tool)
-		assertNotNull(meta.functions[0].parameters["already_snake"])
+	fun `already snake_case names stay unchanged`() {
+		runBlocking {
+			@Serializable
+			data class SnakeArgs(val already_snake: String)
+			
+			val tool = mockk<Tool<SnakeArgs>>()
+			every { tool.name } returns "t"
+			every { tool.description } returns "d"
+			every { tool.argsSerializer } returns SnakeArgs.serializer()
+			coEvery { tool.describe() } returns mapOf(SnakeArgs::already_snake to "desc")
+			coEvery { tool.describeFunctions() } returns emptyMap()
+			
+			val meta = ToolMeta.build(tool)
+			assertNotNull(meta.functions[0].parameters["already_snake"])
+		}
 	}
 	
 	// endregion
@@ -447,19 +457,21 @@ class ToolMetaTest {
 	// region describe() mapping
 	
 	@Test
-	fun `missing description for field throws error`() = runBlocking {
-		@Serializable
-		data class IncompleteArgs(val a: String, val b: String)
-		
-		val tool = mockk<Tool<IncompleteArgs>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns IncompleteArgs.serializer()
-		coEvery { tool.describe() } returns mapOf(IncompleteArgs::a to "only a")
-		coEvery { tool.describeFunctions() } returns emptyMap()
-		
-		assertFailsWith<IllegalStateException> {
-			ToolMeta.build(tool)
+	fun `missing description for field throws error`() {
+		runBlocking {
+			@Serializable
+			data class IncompleteArgs(val a: String, val b: String)
+			
+			val tool = mockk<Tool<IncompleteArgs>>()
+			every { tool.name } returns "t"
+			every { tool.description } returns "d"
+			every { tool.argsSerializer } returns IncompleteArgs.serializer()
+			coEvery { tool.describe() } returns mapOf(IncompleteArgs::a to "only a")
+			coEvery { tool.describeFunctions() } returns emptyMap()
+			
+			assertFailsWith<IllegalStateException> {
+				ToolMeta.build(tool)
+			}
 		}
 	}
 	
@@ -534,19 +546,21 @@ class ToolMetaTest {
 	// region name validation
 	
 	@Test
-	fun `tool name with dash throws error`() = runBlocking {
-		@Serializable
-		data class Args(val x: String)
-		
-		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "my-tool"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::x to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
-		
-		assertFailsWith<IllegalArgumentException> {
-			ToolMeta.build(tool)
+	fun `tool name with dash throws error`() {
+		runBlocking {
+			@Serializable
+			data class Args(val x: String)
+			
+			val tool = mockk<Tool<Args>>()
+			every { tool.name } returns "my-tool"
+			every { tool.description } returns "d"
+			every { tool.argsSerializer } returns Args.serializer()
+			coEvery { tool.describe() } returns mapOf(Args::x to "desc")
+			coEvery { tool.describeFunctions() } returns emptyMap()
+			
+			assertFailsWith<IllegalArgumentException> {
+				ToolMeta.build(tool)
+			}
 		}
 	}
 	

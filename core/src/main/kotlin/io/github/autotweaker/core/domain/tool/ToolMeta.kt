@@ -104,7 +104,7 @@ class ToolMeta private constructor(
 				require('-' !in funcName) { "Function name must not contain '-': $funcName" }
 				val funcEntries = grouped[ownerClass]!!
 				val descByName = funcEntries.associate { (prop, d) -> prop.name to d }
-				val funcDesc = funcDescMap[ownerClass?.kotlin]
+				val funcDesc = funcDescMap[ownerClass.kotlin]
 					?: error("Missing function description for '$funcName' in describeFunctions()")
 				
 				val params = (0 until subDesc.elementsCount).associate { j ->

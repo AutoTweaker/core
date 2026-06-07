@@ -161,11 +161,13 @@ class ToolAssemblerTest {
 	}
 	
 	@Test
-	fun `parameters has properties`() = runBlocking {
-		val result = ToolAssembler.assemble(listOf(mockSimpleTool()), defaultSettings)
-		val params = result!![0].parameters.jsonObject
-		val props = params["properties"]?.jsonObject
-		assertNotNull(props)
+	fun `parameters has properties`() {
+		runBlocking {
+			val result = ToolAssembler.assemble(listOf(mockSimpleTool()), defaultSettings)
+			val params = result!![0].parameters.jsonObject
+			val props = params["properties"]?.jsonObject
+			assertNotNull(props)
+		}
 	}
 	
 	@Test
