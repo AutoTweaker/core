@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import kotlinx.coroutines.channels.Channel
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -192,7 +193,7 @@ class ToolsTest {
 	fun `executeTool runs active tool successfully`() = runTest {
 		val tools = Tools(defaultSettings)
 		val tool = mockTool()
-		coEvery { tool.execute(any()) } returns Tool.ToolOutput("output ok", true)
+		coEvery { tool.execute(any(), any()) } returns Tool.ToolOutput("output ok", true)
 		tools.add(tool)
 		
 		tools.activate("bash")
@@ -205,14 +206,14 @@ class ToolsTest {
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.result.status)
 		assertEquals("output ok", result.result.content)
-		coVerify { tool.execute(any()) }
+		coVerify { tool.execute(any(), any()) }
 	}
 	
 	@Test
 	fun `executeTool runs active tool with failure`() = runTest {
 		val tools = Tools(defaultSettings)
 		val tool = mockTool()
-		coEvery { tool.execute(any()) } returns Tool.ToolOutput("error happened", false)
+		coEvery { tool.execute(any(), any()) } returns Tool.ToolOutput("error happened", false)
 		tools.add(tool)
 		
 		tools.activate("bash")
@@ -231,7 +232,7 @@ class ToolsTest {
 	fun `executeTool handles exception from tool`() = runTest {
 		val tools = Tools(defaultSettings)
 		val tool = mockTool()
-		coEvery { tool.execute(any()) } throws RuntimeException("crash!")
+		coEvery { tool.execute(any(), any()) } throws RuntimeException("crash!")
 		tools.add(tool)
 		
 		tools.activate("bash")
@@ -250,7 +251,7 @@ class ToolsTest {
 	fun `executeTool rethrows CancellationException`() = runTest {
 		val tools = Tools(defaultSettings)
 		val tool = mockTool()
-		coEvery { tool.execute(any()) } throws CancellationException("cancelled")
+		coEvery { tool.execute(any(), any()) } throws CancellationException("cancelled")
 		tools.add(tool)
 		
 		tools.activate("bash")
@@ -267,11 +268,10 @@ class ToolsTest {
 	fun `executeTool streams runtime output`() = runTest {
 		val tools = Tools(defaultSettings)
 		val tool = mockTool()
-		coEvery { tool.execute(any()) } coAnswers {
-			@Suppress("UNCHECKED_CAST")
-			val input = firstArg<Any>() as Tool.ToolInput<BashArgs>
-			input.outputChannel!!.send(Tool.RuntimeOutput("progress 1"))
-			input.outputChannel!!.send(Tool.RuntimeOutput("progress 2"))
+		coEvery { tool.execute(any(), any()) } coAnswers {
+			val channel = secondArg<Channel<Tool.RuntimeOutput>?>()
+			channel!!.send(Tool.RuntimeOutput("progress 1"))
+			channel.send(Tool.RuntimeOutput("progress 2"))
 			Tool.ToolOutput("done", true)
 		}
 		tools.add(tool)
@@ -296,8 +296,8 @@ class ToolsTest {
 		val tools = Tools(svc)
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
-		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
-		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolA.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
 		
@@ -324,8 +324,8 @@ class ToolsTest {
 		val tools = Tools(svc)
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
-		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
-		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolA.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
 		
@@ -349,8 +349,8 @@ class ToolsTest {
 		val tools = Tools(svc)
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
-		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
-		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolA.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
 		
@@ -379,8 +379,8 @@ class ToolsTest {
 		val tools = Tools(svc)
 		val toolA = mockTool("a")
 		val toolB = mockTool("b")
-		coEvery { toolA.execute(any()) } returns Tool.ToolOutput("ok", true)
-		coEvery { toolB.execute(any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolA.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
+		coEvery { toolB.execute(any(), any()) } returns Tool.ToolOutput("ok", true)
 		tools.add(toolA)
 		tools.add(toolB)
 		

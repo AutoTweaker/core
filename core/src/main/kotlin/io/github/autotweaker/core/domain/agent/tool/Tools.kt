@@ -201,11 +201,10 @@ class Tools(private val service: SettingService) {
 				}
 			}
 			val toolOutput = try {
-				val toolInput = Tool.ToolInput(result.args, outputChannel)
 				@Suppress("UNCHECKED_CAST")
 				when (tool) {
-					is CoreTool<*> -> (tool as CoreTool<Any>).coreExec(provider, toolInput)
-					else -> (tool as Tool<Any>).execute(toolInput)
+					is CoreTool<*> -> (tool as CoreTool<Any>).coreExec(provider, result.args, outputChannel)
+					else -> (tool as Tool<Any>).execute(result.args, outputChannel)
 				}
 			} catch (e: CancellationException) {
 				throw e

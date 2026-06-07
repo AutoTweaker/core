@@ -31,12 +31,7 @@ interface Tool<Args : Any> {
 	suspend fun describe(): Map<KProperty1<*, *>, String> = emptyMap()
 	suspend fun describeFunctions(): Map<KClass<*>, String> = emptyMap()
 	
-	suspend fun execute(input: ToolInput<Args>): ToolOutput
-	
-	class ToolInput<Args : Any>(
-		val args: Args,
-		val outputChannel: Channel<RuntimeOutput>? = null,
-	)
+	suspend fun execute(args: Args, outputChannel: Channel<RuntimeOutput>? = null): ToolOutput
 	
 	data class RuntimeOutput(
 		val content: String,

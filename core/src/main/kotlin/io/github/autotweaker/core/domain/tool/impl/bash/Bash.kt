@@ -28,6 +28,7 @@ import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
+import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -67,9 +68,8 @@ class Bash : CoreTool<Bash.Args> {
 		settings = service
 	}
 	
-	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput<Args>): Tool.ToolOutput {
+	override suspend fun coreExec(container: SimpleContainer, args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput {
 		val s = settings
-		val args = input.args
 		val command = args.command
 		if (command.isBlank()) {
 			logger.debug("Rejected blank bash command  tool=bash")
@@ -93,12 +93,12 @@ class Bash : CoreTool<Bash.Args> {
 		container.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
 			when (event) {
 				is ShellEvent.Stdout -> {
-					input.outputChannel?.send(Tool.RuntimeOutput(event.text))
+					outputChannel?.send(Tool.RuntimeOutput(event.text))
 					stdout.appendLine(event.text)
 				}
-				
+
 				is ShellEvent.Stderr -> {
-					input.outputChannel?.send(Tool.RuntimeOutput(event.text))
+					outputChannel?.send(Tool.RuntimeOutput(event.text))
 					stderr.appendLine(event.text)
 				}
 				

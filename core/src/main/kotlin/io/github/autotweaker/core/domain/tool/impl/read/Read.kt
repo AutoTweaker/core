@@ -27,6 +27,7 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.impl.ToolSettings
+import kotlinx.coroutines.channels.Channel
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
@@ -101,9 +102,8 @@ class Read : CoreTool<Read.Args> {
 		settings = service
 	}
 	
-	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput<Args>): Tool.ToolOutput {
+	override suspend fun coreExec(container: SimpleContainer, args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput {
 		val s = settings
-		val args = input.args
 		val filePath = when (args) {
 			is Args.File -> args.filePath
 			is Args.Summarize -> args.filePath
