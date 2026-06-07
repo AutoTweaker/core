@@ -22,7 +22,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 IMAGE_NAME="autotweaker-test:latest"
-# 查找 docker 命令（Flatpak 里用 flatpak-spawn --host）
+
 if command -v flatpak-spawn &>/dev/null && [ -n "${FLATPAK_ID:-}" ]; then
     DOCKER="flatpak-spawn --host docker"
 elif command -v docker &>/dev/null; then
@@ -32,7 +32,6 @@ else
     exit 1
 fi
 
-# 检查是否需要重新构建
 echo "==> Building test image: $IMAGE_NAME"
 DOCKERFILE_HASH=$(md5sum "$PROJECT_DIR/Dockerfile.test" | awk '{print $1}')
 CACHE_TAG="autotweaker-test:${DOCKERFILE_HASH}"
@@ -55,7 +54,7 @@ else
 fi
 
 echo "==> Running tests in container..."
-# 首次：从宿主缓存拷贝 wrapper、native、依赖（排除 journal 锁文件）
+
 if [ ! -f "$HOME/.gradle-docker/.bootstrapped" ]; then
     mkdir -p "$HOME/.gradle-docker/wrapper" "$HOME/.gradle-docker/native" "$HOME/.gradle-docker/caches"
     cp -rn "$HOME/.gradle/wrapper/dists" "$HOME/.gradle-docker/wrapper/" 2>/dev/null || true

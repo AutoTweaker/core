@@ -49,6 +49,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Install PyYAML
+        run: pip3 install pyyaml
+
       - name: Update index repository
         run: |
           # Setup SSH
@@ -57,14 +60,8 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
 
-          # Construct clone URLs and deb URL
-          HTTPS_URL="https://github.com/${{ github.repository }}.git"
-          SSH_URL="git@github.com:${{ github.repository }}.git"
+          # Get version
           FULL_VERSION=$(grep '^version=' build/generated/version/version.properties | cut -d= -f2)
-          DEB_FILE=$(basename .temp/deb/*.deb)
-          # GitHub replaces ~ with . in release download URLs
-          DEB_FILE_FOR_URL=$(echo "$DEB_FILE" | tr '~' '.')
-          DEB_URL="https://github.com/AutoTweaker/core/releases/download/v${VERSION}/${DEB_FILE_FOR_URL}"
 
           # Clone index repo
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key"
@@ -73,10 +70,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Overwrite index.json
-          jq -n --arg https "$HTTPS_URL" --arg ssh "$SSH_URL" --arg v "$FULL_VERSION" --arg deb "$DEB_URL" \
-            '{core: {clone_url: {https: $https, ssh: $ssh}, version: $v, deb_url: $deb}}' \
-            > index.json
+          # Merge index.yml with release assets
+          gh release view "v${VERSION}" --json assets \
+            | python3 ../scripts/merge-index.py ../index.yml index.json "$FULL_VERSION"
 
           # Commit and push
           git add index.json
@@ -86,3 +82,5 @@ jobs:
             git commit -m "Update core to v${VERSION}"
             git push origin main
           fi
+        env:
+          GH_TOKEN: ${{ github.token }}
