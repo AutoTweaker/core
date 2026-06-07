@@ -19,6 +19,8 @@
 
 set -e
 
+systemctl daemon-reload 2>/dev/null || true
+
 mkdir -p /etc/autotweaker
 
 if [ -z "$2" ]; then

@@ -152,7 +152,7 @@ class BashTest {
 		val meta = ToolMeta.build(bash)
 		val runFunc = meta.functions.first()
 		val timeout = runFunc.parameters["timeout_seconds"]!!
-		assertTrue(timeout.description.contains("60"))
+		assertTrue(timeout.description.contains("120"))
 	}
 	
 	@Test
