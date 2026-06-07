@@ -127,14 +127,14 @@ class ContainerServiceTest {
 			override suspend fun start(image: String, config: ContainerConfig) = "test"
 			override suspend fun stop(containerId: String) {}
 			override fun execStream(
-				containerId: String, command: List<String>, workDir: Path?, timeout: Duration, env: Map<String, String>,
+				containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 			): Flow<ShellEvent> {
 				capturedCommand = command
 				return flowOf(ShellEvent.Exit(ShellResult(0, false, Duration.ZERO)))
 			}
 		}
 		
-		impl.execStream("id", listOf("echo", "hello"), timeout = Duration.parse("30s")).collect {}
+		impl.execStream("id", listOf("echo", "hello")).collect {}
 		assertEquals(listOf("echo", "hello"), capturedCommand)
 	}
 }

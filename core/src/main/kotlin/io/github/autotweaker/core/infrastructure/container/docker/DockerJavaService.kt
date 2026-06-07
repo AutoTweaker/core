@@ -39,7 +39,6 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import java.time.Duration as JavaDuration
 
@@ -144,7 +143,7 @@ class DockerJavaService : ContainerService {
 	}
 	
 	override fun execStream(
-		containerId: String, command: List<String>, workDir: Path?, timeout: Duration, env: Map<String, String>,
+		containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 	): Flow<ShellEvent> = callbackFlow {
 		logger.debug(
 			"Streaming exec started  containerId={}  cmd={}", containerId, command.joinToString(" ")
@@ -158,8 +157,8 @@ class DockerJavaService : ContainerService {
 					execCmd.withWorkingDir(workDir.toString())
 				}
 				val execId = execCmd.exec().id
-				
-				val completed = client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
+
+				client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
 					override fun onNext(frame: Frame) {
 						val text = String(frame.payload, Charsets.UTF_8)
 						when (frame.streamType) {
@@ -168,14 +167,14 @@ class DockerJavaService : ContainerService {
 							else -> {}
 						}
 					}
-				}).awaitCompletion(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-				
-				val exitCode = if (completed) client.inspectExecCmd(execId).exec().exitCodeLong else null
+				}).awaitCompletion()
+
+				val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
 				trySend(
 					ShellEvent.Exit(
 						ShellResult(
-							exitCode = exitCode?.toInt() ?: -1,
-							timeout = !completed,
+							exitCode = exitCode,
+							timeout = exitCode == 124,
 							duration = Duration.ZERO,
 						)
 					)

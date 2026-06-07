@@ -75,7 +75,7 @@ object AgentToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class TimeoutSeconds : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(600)
+		override val default = SettingValue.ValInt(1800)
 		override val description = "工具调用超时时间，单位秒"
 	}
 	

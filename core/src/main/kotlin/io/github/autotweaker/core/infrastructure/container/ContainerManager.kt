@@ -99,7 +99,8 @@ object ContainerManager {
 	): Flow<ShellEvent> = flow {
 		ensureRunning()
 		val id = _containerId ?: throw NoContainerRunningException()
-		emitAll(service.execStream(id, listOf("bash", "-lc", command), workDir = workDir, timeout = timeout, env = env))
+		val wrappedCommand = listOf("timeout", "--signal=KILL", "${timeout.inWholeSeconds}", "bash", "-lc", command)
+		emitAll(service.execStream(id, wrappedCommand, workDir = workDir, env = env))
 	}
 	
 	suspend fun listEnv(): List<String> = envStorage.listEnv()
