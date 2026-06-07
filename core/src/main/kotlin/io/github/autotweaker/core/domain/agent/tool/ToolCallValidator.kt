@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.core.domain.tool.ToolMeta.Companion.toSnakeCase
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.json.Json
@@ -96,7 +97,21 @@ class ToolCallValidator(
 		
 		val otherArguments = JsonObject(arguments.filterKeys { it != "reason" })
 		val deserializationJson = if (tool.argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
-			JsonObject(otherArguments + ("type" to JsonPrimitive(functionName)))
+			val sealedDesc = tool.argsSerializer.descriptor.getElementDescriptor(1)
+			val typeName = (0 until sealedDesc.elementsCount)
+				.map { sealedDesc.getElementName(it) }
+				.find { it.substringAfterLast('.').toSnakeCase() == functionName }
+				?: return ValidationResult.Failure(
+					service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+				).also {
+					logger.debug(
+						"Failed to find sealed subclass  callId={}  name={}  function={}",
+						callId,
+						toolCallName,
+						functionName
+					)
+				}
+			JsonObject(otherArguments + ("type" to JsonPrimitive(typeName)))
 		} else {
 			otherArguments
 		}

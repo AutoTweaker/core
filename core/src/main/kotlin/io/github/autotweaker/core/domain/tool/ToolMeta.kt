@@ -52,7 +52,7 @@ class ToolMeta private constructor(
 	}
 	
 	companion object {
-		private fun String.toSnakeCase() = convertCamelCase(this, '_')
+		fun String.toSnakeCase() = convertCamelCase(this, '_')
 		
 		@OptIn(ExperimentalSerializationApi::class)
 		suspend fun build(tool: Tool<*>): ToolMeta {
@@ -93,14 +93,15 @@ class ToolMeta private constructor(
 				prop.javaField?.declaringClass
 			}
 			
-			val functions = (0 until desc.elementsCount).map { i ->
-				val subDesc = desc.getElementDescriptor(i)
-				val funcName = desc.getElementName(i)
-				require('-' !in funcName) { "Function name must not contain '-': $funcName" }
-				
+			val sealedDesc = desc.getElementDescriptor(1)
+			val functions = (0 until sealedDesc.elementsCount).map { i ->
+				val subDesc = sealedDesc.getElementDescriptor(i)
+				val descName = sealedDesc.getElementName(i)
 				val ownerClass = grouped.keys.first { clazz ->
-					clazz?.simpleName == funcName
-				}
+					clazz?.kotlin?.qualifiedName == descName
+				} ?: error("No matching class for sealed subclass '$descName'")
+				val funcName = ownerClass.simpleName
+				require('-' !in funcName) { "Function name must not contain '-': $funcName" }
 				val funcEntries = grouped[ownerClass]!!
 				val descByName = funcEntries.associate { (prop, d) -> prop.name to d }
 				val funcDesc = funcDescMap[ownerClass?.kotlin]
