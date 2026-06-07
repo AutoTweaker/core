@@ -23,19 +23,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class AgentStatusTest {
-
+	
 	@Test
 	fun `all six status values exist`() {
 		assertEquals(6, AgentStatus.entries.size)
 	}
-
+	
 	@Test
 	fun `all values can be resolved by name`() {
 		for (status in AgentStatus.entries) {
 			assertEquals(status, AgentStatus.valueOf(status.name))
 		}
 	}
-
+	
 	@Test
 	fun `status values are distinct`() {
 		val names = AgentStatus.entries.map { it.name }.toSet()

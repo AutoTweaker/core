@@ -50,7 +50,7 @@ class HandleApprovalPhaseTest {
 	private val executedTools = mutableListOf<AgentContext.Message.Tool>()
 	private val emittedOutputs = mutableListOf<AgentOutput>()
 	
-	private val executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool =
+	private val executeTool: suspend (ToolCallValidator.ValidationResult.Success<*>, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool =
 		{ _, call ->
 			executedTools.add(
 				ContextPhase.buildToolResult(
@@ -370,7 +370,7 @@ class HandleApprovalPhaseTest {
 	
 	private fun validationSuccess() = ToolCallValidator.ValidationResult.Success(
 		toolName = "bash", functionName = "run", reason = "needed",
-		arguments = buildJsonObject {},
+		args = buildJsonObject {},
 	)
 	
 	private fun mockModel(): Model {

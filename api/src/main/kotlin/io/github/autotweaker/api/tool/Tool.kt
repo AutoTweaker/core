@@ -19,41 +19,22 @@
 package io.github.autotweaker.api.tool
 
 import kotlinx.coroutines.channels.Channel
-import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.KSerializer
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
-interface Tool {
-	val meta: Meta
+interface Tool<Args : Any> {
+	val argsSerializer: KSerializer<Args>
+	val name: String
+	val description: String
 	
-	data class Meta(
-		val name: String,
-		val description: String,
-		val functions: List<Function>,
-	)
+	suspend fun describe(): Map<KProperty1<*, *>, String> = emptyMap()
+	suspend fun describeFunctions(): Map<KClass<*>, String> = emptyMap()
 	
-	data class Function(
-		val name: String,
-		val description: String,
-		val parameters: Map<String, Property>,
-	) {
-		data class Property(
-			val description: String,
-			val required: Boolean,
-			val valueType: ValueType
-		) {
-			sealed class ValueType {
-				data class StringValue(val enum: List<String>? = null) : ValueType()
-				data class NumberValue(val enum: List<Double>? = null) : ValueType()
-				data class IntegerValue(val enum: List<Int>? = null) : ValueType()
-				data object BooleanValue : ValueType()
-				data class ArrayValue(val items: ValueType) : ValueType()
-				data class ObjectValue(val properties: Map<String, ValueType>) : ValueType()
-			}
-		}
-	}
+	suspend fun execute(input: ToolInput<Args>): ToolOutput
 	
-	class ToolInput(
-		val functionName: String,
-		val arguments: JsonObject,
+	class ToolInput<Args : Any>(
+		val args: Args,
 		val outputChannel: Channel<RuntimeOutput>? = null,
 	)
 	
@@ -63,8 +44,6 @@ interface Tool {
 	
 	data class ToolOutput(
 		val result: String,
-		val success: Boolean
+		val success: Boolean,
 	)
-	
-	suspend fun execute(input: ToolInput): ToolOutput
 }

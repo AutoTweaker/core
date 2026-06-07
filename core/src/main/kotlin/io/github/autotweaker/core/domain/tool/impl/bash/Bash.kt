@@ -28,74 +28,59 @@ import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.seconds
 
 @AutoService(CoreTool::class)
-class Bash : CoreTool {
+class Bash : CoreTool<Bash.Args> {
+	@Serializable
+	data class Args(
+		val command: String,
+		val timeoutSeconds: Int = 60,
+		val envIds: List<String> = emptyList(),
+	)
+	
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var envStorage: EnvStorage
-	private lateinit var _meta: Tool.Meta
 	private lateinit var settings: SettingService
-	override val meta: Tool.Meta get() = _meta
+	
+	override val argsSerializer = Args.serializer()
+	override val name = "bash"
+	override val description get() = settings.get(BashSettings.Description()).value
+	
+	override suspend fun describe(): Map<KProperty1<*, *>, String> {
+		val envIds = Json.encodeToString(listEnv().sorted()).ifBlank { "[none]" }
+		return mapOf(
+			Args::command to settings.get(BashSettings.CommandPropDescription()).value,
+			Args::timeoutSeconds to settings.get(BashSettings.TimeoutPropDescription()).value.format(
+				settings.get(BashSettings.DefaultTimeoutSeconds()).value
+			),
+			Args::envIds to settings.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
+		)
+	}
 	
 	override suspend fun init(service: SettingService, secretStore: SecretStore) {
 		envStorage = EnvStorage(this::class, secretStore)
 		settings = service
-		
-		val envIds = listEnv().sorted().joinToString(", ") { "\"${it.replace("\"", "\\\"")}\"" }.ifBlank { "[none]" }
-		
-		_meta = Tool.Meta(
-			name = "bash",
-			description = settings.get(BashSettings.Description()).value,
-			functions = listOf(
-				Tool.Function(
-					name = "run",
-					description = settings.get(BashSettings.RunFuncDescription()).value,
-					parameters = mapOf(
-						"command" to Tool.Function.Property(
-							description = settings.get(BashSettings.CommandPropDescription()).value,
-							required = true,
-							valueType = Tool.Function.Property.ValueType.StringValue(),
-						),
-						"timeout_seconds" to Tool.Function.Property(
-							description = settings.get(BashSettings.TimeoutPropDescription()).value.format(
-								settings.get(BashSettings.DefaultTimeoutSeconds()).value
-							),
-							required = false,
-							valueType = Tool.Function.Property.ValueType.IntegerValue(),
-						),
-						"env_ids" to Tool.Function.Property(
-							description = settings.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
-							required = false,
-							valueType = Tool.Function.Property.ValueType.ArrayValue(
-								Tool.Function.Property.ValueType.StringValue()
-							),
-						),
-					),
-				),
-			),
-		)
 	}
 	
-	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput): Tool.ToolOutput {
+	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput<Args>): Tool.ToolOutput {
 		val s = settings
-		val command = input.arguments["command"]!!.jsonPrimitive.content
+		val args = input.args
+		val command = args.command
 		if (command.isBlank()) {
 			logger.debug("Rejected blank bash command  tool=bash")
 			return Tool.ToolOutput(s.get(BashSettings.InvalidCommandMessage()).value, false)
 		}
-		val defaultTimeout = s.get(BashSettings.DefaultTimeoutSeconds()).value
-		val timeoutSeconds = input.arguments["timeout_seconds"]?.jsonPrimitive?.int ?: defaultTimeout
+		val timeoutSeconds = args.timeoutSeconds
 		if (timeoutSeconds <= 0) {
 			logger.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
 			return Tool.ToolOutput(s.get(BashSettings.InvalidTimeoutMessage()).value, false)
 		}
-		val envIds = input.arguments["env_ids"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
-		val selectedEnv = envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
+		val selectedEnv = args.envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
 		logger.debug(
 			"Bash execution started  tool=bash  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds

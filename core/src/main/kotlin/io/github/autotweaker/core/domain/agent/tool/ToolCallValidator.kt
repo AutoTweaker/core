@@ -20,44 +20,55 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
-import kotlinx.serialization.json.*
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.descriptors.PolymorphicKind
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.LoggerFactory
 
 class ToolCallValidator(
-	private val tools: List<Tool>,
+	private val tools: List<Tool<*>>,
 	private val service: SettingService,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	sealed class ValidationResult {
-		data class Success(
+	@OptIn(ExperimentalSerializationApi::class)
+	private val json = Json {
+		namingStrategy = JsonNamingStrategy.SnakeCase
+	}
+	
+	sealed class ValidationResult<out Args : Any> {
+		data class Success<Args : Any>(
 			val toolName: String,
 			val functionName: String,
 			val reason: String,
-			val arguments: JsonObject,
-		) : ValidationResult()
+			val args: Args,
+		) : ValidationResult<Args>()
 		
 		data class Failure(
 			val errorMessage: String,
-		) : ValidationResult()
+		) : ValidationResult<Nothing>()
 	}
 	
-	fun validate(toolCallName: String, argumentsJson: String, callId: String = ""): ValidationResult {
-		val arguments = try {
-			Json.parseToJsonElement(argumentsJson) as? JsonObject ?: return ValidationResult.Failure(
-				service.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
-			).also {
-				logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
-			}
-		} catch (e: Exception) {
+	@OptIn(ExperimentalSerializationApi::class)
+	fun validate(toolCallName: String, argumentsJson: String, callId: String = ""): ValidationResult<*> {
+		val arguments = runCatching {
+			Json.parseToJsonElement(argumentsJson) as? JsonObject
+		}.getOrElse { e ->
 			return ValidationResult.Failure(
 				service.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
 			).also {
 				logger.debug("Failed to parse tool call JSON  callId={}  name={}", callId, toolCallName)
 			}
+		} ?: return ValidationResult.Failure(
+			service.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
+		).also {
+			logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
 		}
 		
-		val parts = toolCallName.split("_", limit = 2)
+		val parts = toolCallName.split("-", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
 				service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
@@ -67,22 +78,9 @@ class ToolCallValidator(
 		val toolName = parts[0]
 		val functionName = parts[1]
 		
-		val tool = tools.find { it.meta.name == toolName } ?: return ValidationResult.Failure(
+		val tool = tools.find { it.name == toolName } ?: return ValidationResult.Failure(
 			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 		).also { logger.debug("Failed to find tool  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
-		val meta = tool.meta
-		
-		val function = meta.functions.find { it.name == functionName } ?: return ValidationResult.Failure(
-			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-		).also {
-			logger.debug(
-				"Failed to find function  callId={}  name={}  tool={}  function={}",
-				callId,
-				toolCallName,
-				toolName,
-				functionName
-			)
-		}
 		
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
@@ -97,92 +95,33 @@ class ToolCallValidator(
 		val reason = reasonElement.content
 		
 		val otherArguments = JsonObject(arguments.filterKeys { it != "reason" })
-		
-		val requiredParams = function.parameters.filter { it.value.required }
-		for ((paramName, _) in requiredParams) {
-			if (!otherArguments.containsKey(paramName)) {
-				return ValidationResult.Failure(
-					service.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, paramName)
-				).also {
-					logger.debug(
-						"Failed to find required param  callId={}  name={}  tool={}  param={}",
-						callId,
-						toolCallName,
-						toolName,
-						paramName
-					)
-				}
-			}
+		val deserializationJson = if (tool.argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
+			JsonObject(otherArguments + ("type" to JsonPrimitive(functionName)))
+		} else {
+			otherArguments
 		}
-		
-		for ((paramName, paramDef) in function.parameters) {
-			val paramValue = otherArguments[paramName] ?: continue
-			if (!validateParameterType(paramValue, paramDef.valueType)) {
-				val expectedType = getExpectedTypeName(paramDef.valueType)
-				return ValidationResult.Failure(
-					service.get(AgentToolSettings.PropertyError()).value.format(toolCallName, paramName, expectedType)
-				).also {
-					logger.debug(
-						"Param type did not match  name={}  tool={}  param={}  expected={}",
-						toolCallName,
-						toolName,
-						paramName,
-						expectedType
-					)
-				}
+		val args = runCatching {
+			json.decodeFromJsonElement(tool.argsSerializer, deserializationJson)
+		}.getOrElse { e ->
+			return ValidationResult.Failure(
+				service.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
+			).also {
+				logger.debug(
+					"Failed to deserialize tool call args  callId={}  name={}  tool={}  error={}",
+					callId, toolCallName, toolName, e.message
+				)
 			}
 		}
 		
 		logger.debug(
 			"Tool call validated  callId={}  name={}  tool={}  function={}",
-			callId,
-			toolCallName,
-			toolName,
-			functionName
+			callId, toolCallName, toolName, functionName
 		)
 		return ValidationResult.Success(
 			toolName = toolName,
 			functionName = functionName,
 			reason = reason,
-			arguments = otherArguments,
+			args = args,
 		)
-	}
-	
-	private fun validateParameterType(
-		value: JsonElement, expectedType: Tool.Function.Property.ValueType
-	): Boolean {
-		return when (expectedType) {
-			is Tool.Function.Property.ValueType.StringValue -> value is JsonPrimitive && value.isString
-			is Tool.Function.Property.ValueType.NumberValue -> value is JsonPrimitive && !value.isString
-			is Tool.Function.Property.ValueType.IntegerValue -> value is JsonPrimitive && !value.isString && value.content.toLongOrNull() != null
-			is Tool.Function.Property.ValueType.BooleanValue -> value is JsonPrimitive && (value.content == "true" || value.content == "false")
-			is Tool.Function.Property.ValueType.ArrayValue -> {
-				if (value !is JsonArray) return false
-				value.all { validateElementType(it, expectedType.items) }
-			}
-			
-			is Tool.Function.Property.ValueType.ObjectValue -> {
-				if (value !is JsonObject) return false
-				expectedType.properties.all { (name, type) ->
-					val fieldValue = value[name] ?: return false
-					validateParameterType(fieldValue, type)
-				}
-			}
-		}
-	}
-	
-	private fun validateElementType(value: JsonElement, expectedType: Tool.Function.Property.ValueType): Boolean {
-		return validateParameterType(value, expectedType)
-	}
-	
-	private fun getExpectedTypeName(type: Tool.Function.Property.ValueType): String {
-		return when (type) {
-			is Tool.Function.Property.ValueType.StringValue -> "string"
-			is Tool.Function.Property.ValueType.NumberValue -> "number"
-			is Tool.Function.Property.ValueType.IntegerValue -> "integer"
-			is Tool.Function.Property.ValueType.BooleanValue -> "boolean"
-			is Tool.Function.Property.ValueType.ArrayValue -> "array"
-			is Tool.Function.Property.ValueType.ObjectValue -> "object"
-		}
 	}
 }

@@ -52,7 +52,9 @@ object ApiKeyConfigAPI : ApiKeyRepository {
 	}
 	
 	override fun list(): List<String> = keyMap.keys.toList()
-	override suspend fun get(name: String): String = keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
+	override suspend fun get(name: String): String =
+		keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
+	
 	override fun delete(name: String) {
 		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
 		val id = keyMap.remove(name) ?: error("Key $name not found")

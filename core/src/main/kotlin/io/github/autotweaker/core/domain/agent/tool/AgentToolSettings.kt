@@ -50,9 +50,9 @@ object AgentToolSettings {
 	}
 	
 	@AutoService(SettingDef::class)
-	class PropertyError : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("%s工具的属性%s必须为%s类型")
-		override val description = "工具调用属性格式错误时的ToolResult"
+	class DeserializationError : SettingDef<SettingValue.ValString> {
+		override val default = SettingValue.ValString("%s工具的参数无效：%s")
+		override val description = "工具调用参数反序列化失败时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)

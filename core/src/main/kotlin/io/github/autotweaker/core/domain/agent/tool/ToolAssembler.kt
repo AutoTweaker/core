@@ -21,24 +21,25 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
 object ToolAssembler {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	fun assemble(tools: List<Tool>, service: SettingService): List<ChatRequest.Tool>? {
+	suspend fun assemble(tools: List<Tool<*>>, service: SettingService): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
 		logger.debug("Tool assembly started  toolCount={}  source=ToolAssembler", tools.size)
 		
 		val reasonDescription: String = service.get(AgentToolSettings.ReasonDescription()).value
-		val metas = tools.map { it.meta }
+		val metas = tools.map { ToolMeta.build(it) }
 		
 		return metas.flatMap { meta ->
 			meta.functions.map { func ->
 				ChatRequest.Tool(
-					name = "${meta.name}_${func.name}",
+					name = "${meta.name}-${func.name}",
 					description = func.description,
 					parameters = func.parameters.toChatRequestParameters(reasonDescription),
 				)
@@ -46,7 +47,7 @@ object ToolAssembler {
 		}
 	}
 	
-	private fun Map<String, Tool.Function.Property>.toChatRequestParameters(
+	private fun Map<String, ToolMeta.Property>.toChatRequestParameters(
 		reasonDescription: String
 	): JsonElement = buildJsonObject {
 		put("type", "object")
@@ -65,38 +66,38 @@ object ToolAssembler {
 		}
 	}
 	
-	private fun Tool.Function.Property.toPropertyJson(): JsonElement = buildJsonObject {
+	private fun ToolMeta.Property.toPropertyJson(): JsonElement = buildJsonObject {
 		put("description", description)
 		valueType.fillJsonObject(this)
 	}
 	
-	private fun Tool.Function.Property.ValueType.fillJsonObject(builder: JsonObjectBuilder) {
+	private fun ToolMeta.ValueType.fillJsonObject(builder: JsonObjectBuilder) {
 		when (this) {
-			is Tool.Function.Property.ValueType.StringValue -> {
+			is ToolMeta.ValueType.StringValue -> {
 				builder.put("type", "string")
 				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
 			}
 			
-			is Tool.Function.Property.ValueType.NumberValue -> {
+			is ToolMeta.ValueType.NumberValue -> {
 				builder.put("type", "number")
 				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
 			}
 			
-			is Tool.Function.Property.ValueType.IntegerValue -> {
+			is ToolMeta.ValueType.IntegerValue -> {
 				builder.put("type", "integer")
 				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
 			}
 			
-			is Tool.Function.Property.ValueType.BooleanValue -> {
+			is ToolMeta.ValueType.BooleanValue -> {
 				builder.put("type", "boolean")
 			}
 			
-			is Tool.Function.Property.ValueType.ArrayValue -> {
+			is ToolMeta.ValueType.ArrayValue -> {
 				builder.put("type", "array")
 				builder.put("items", buildJsonObject { items.fillJsonObject(this) })
 			}
 			
-			is Tool.Function.Property.ValueType.ObjectValue -> {
+			is ToolMeta.ValueType.ObjectValue -> {
 				builder.put("type", "object")
 				builder.putJsonObject("properties") {
 					properties.forEach { (name, vt) ->

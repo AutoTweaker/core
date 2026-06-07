@@ -27,11 +27,7 @@ import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.UsageStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
@@ -60,28 +56,29 @@ object ChatService {
 		}
 		var lastUsage: Usage? = null
 		var lastModelId: UUID? = null
-		emitAll(ResilientChat.execute(
-			model = model,
-			fallbackModels = fallbacks,
-			messages = request.messages,
-			tools = request.tools,
-			responseFormat = request.responseFormat,
-			stream = request.stream,
-			thinking = request.thinking,
-		).onEach { result ->
-			result.result.usage?.let { lastUsage = it }
-			lastModelId = result.model
-		}.onCompletion { cause ->
-			if (cause == null) {
-				lastUsage?.let { usage ->
-					val resolvedModel = lastModelId?.let { modelMap[it] } ?: return@let
-					val record = SessionMessage.UsageRecord(
-						UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, resolvedModel.modelInfo)
-					)
-					sessionRepository.saveMessages(listOf(record))
-					UsageStore.collect(listOf(record))
+		emitAll(
+			ResilientChat.execute(
+				model = model,
+				fallbackModels = fallbacks,
+				messages = request.messages,
+				tools = request.tools,
+				responseFormat = request.responseFormat,
+				stream = request.stream,
+				thinking = request.thinking,
+			).onEach { result ->
+				result.result.usage?.let { lastUsage = it }
+				lastModelId = result.model
+			}.onCompletion { cause ->
+				if (cause == null) {
+					lastUsage?.let { usage ->
+						val resolvedModel = lastModelId?.let { modelMap[it] } ?: return@let
+						val record = SessionMessage.UsageRecord(
+							UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, resolvedModel.modelInfo)
+						)
+						sessionRepository.saveMessages(listOf(record))
+						UsageStore.collect(listOf(record))
+					}
 				}
-			}
-		})
+			})
 	}
 }

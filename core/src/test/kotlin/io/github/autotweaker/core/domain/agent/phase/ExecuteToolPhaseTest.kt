@@ -56,7 +56,7 @@ class ExecuteToolPhaseTest {
 	private lateinit var agentState: MutableAgentState
 	private lateinit var tools: Tools
 	private lateinit var model: Model
-	private lateinit var validationResult: ToolCallValidator.ValidationResult.Success
+	private lateinit var validationResult: ToolCallValidator.ValidationResult.Success<*>
 	private lateinit var pendingCall: AgentContext.CurrentRound.PendingToolCall
 	private val statusLog = mutableListOf<AgentStatus>()
 	private val capturedOutputs = mutableListOf<AgentOutput>()
@@ -75,7 +75,7 @@ class ExecuteToolPhaseTest {
 		
 		validationResult = ToolCallValidator.ValidationResult.Success(
 			toolName = "bash", functionName = "run", reason = "needed",
-			arguments = buildJsonObject {},
+			args = buildJsonObject {},
 		)
 		pendingCall = AgentContext.CurrentRound.PendingToolCall(
 			callId = "c1", assistantMessageId = UUID.randomUUID(), name = "bash_run", modelId = model.id,

@@ -30,18 +30,28 @@ import kotlin.time.Duration.Companion.seconds
 
 class ContainerShellExecutor {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-
+	
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> = flow {
 		val startNs = System.nanoTime()
-		logger.debug("Container shell command started  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds)
+		logger.debug(
+			"Container shell command started  command={}  workDir={}  timeout={}s",
+			command,
+			workDir,
+			timeout.inWholeSeconds
+		)
 		ContainerManager.execShellStream(command, workDir, timeout, env).collect { event ->
 			when (event) {
 				is ShellEvent.Exit -> {
 					val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
-					logger.debug("Container shell command completed  command={}  exitCode={}  duration={}s", command, event.result.exitCode, duration.inWholeSeconds)
+					logger.debug(
+						"Container shell command completed  command={}  exitCode={}  duration={}s",
+						command,
+						event.result.exitCode,
+						duration.inWholeSeconds
+					)
 					emit(ShellEvent.Exit(ShellResult(event.result.exitCode, event.result.timeout, duration)))
 				}
-
+				
 				else -> emit(event)
 			}
 		}

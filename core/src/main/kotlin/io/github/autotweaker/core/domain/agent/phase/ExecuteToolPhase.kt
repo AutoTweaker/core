@@ -37,7 +37,7 @@ object ExecuteToolPhase {
 	
 	suspend fun execute(
 		env: AgentEnvironment,
-		result: ToolCallValidator.ValidationResult.Success,
+		result: ToolCallValidator.ValidationResult.Success<*>,
 		call: AgentContext.CurrentRound.PendingToolCall,
 	): AgentContext.Message.Tool {
 		logger.debug(
@@ -54,7 +54,7 @@ object ExecuteToolPhase {
 				env.tools.executeTool(
 					result, call, ToolProvider.buildToolProvider(env), env.agentId,
 					onToolDeactivated = { activeTools ->
-						env.emitOutput(AgentOutput.ToolListUpdate(activeTools.map { it.meta.name }))
+						env.emitOutput(AgentOutput.ToolListUpdate(activeTools.map { it.name }))
 					},
 					onToolOutput = { output ->
 						env.emitOutput(output)

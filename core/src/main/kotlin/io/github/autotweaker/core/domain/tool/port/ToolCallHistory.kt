@@ -18,12 +18,13 @@
 
 package io.github.autotweaker.core.domain.tool.port
 
+import kotlinx.serialization.KSerializer
+
 interface ToolCallHistory {
-	data class Entry(
-		val name: String,
-		val arguments: String,
+	data class Entry<out Args : Any>(
+		val args: Args,
 		val resultContent: String,
 	)
 	
-	fun getAll(): List<Entry>
+	fun <Args : Any> getAll(toolName: String, argsSerializer: KSerializer<Args>): List<Entry<Args>>
 }

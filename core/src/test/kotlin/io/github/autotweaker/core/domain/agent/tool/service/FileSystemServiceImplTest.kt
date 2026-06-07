@@ -128,7 +128,7 @@ class FileSystemServiceImplTest {
 		val containerRoot = hostRoot.resolve("workspace")
 		Files.createDirectories(hostRoot)
 		Files.createDirectories(containerRoot)
-
+		
 		val svc = service(containerRoot = containerRoot, hostRoot = hostRoot)
 		val result = svc.normalize("file.txt")
 		assertNotNull(result)

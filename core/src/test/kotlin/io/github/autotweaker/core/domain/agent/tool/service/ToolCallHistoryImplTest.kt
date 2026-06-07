@@ -25,6 +25,7 @@ import io.github.autotweaker.core.domain.model.Model
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.Serializable
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,6 +33,9 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class ToolCallHistoryImplTest {
+	
+	@Serializable
+	private data class TestArgs(val cmd: String = "")
 	
 	private val mockModel = mockk<Model>(relaxed = true)
 	
@@ -90,7 +94,7 @@ class ToolCallHistoryImplTest {
 		val context = AgentContext(null, null, null, null, null)
 		val history = ToolCallHistoryImpl(env(context))
 		
-		val result = history.getAll()
+		val result = history.getAll("bash", TestArgs.serializer())
 		assertTrue(result.isEmpty())
 	}
 	
@@ -102,7 +106,7 @@ class ToolCallHistoryImplTest {
 				turn(
 					listOf(
 						toolMessage("bash_run", """{"cmd":"ls"}""", "file list"),
-						toolMessage("read_file", """{"path":"a.txt"}""", "content"),
+						toolMessage("bash_run", """{"cmd":"pwd"}""", "content"),
 					)
 				)
 			),
@@ -110,10 +114,10 @@ class ToolCallHistoryImplTest {
 		val context = AgentContext(null, null, null, null, round)
 		val history = ToolCallHistoryImpl(env(context))
 		
-		val result = history.getAll()
+		val result = history.getAll("bash", TestArgs.serializer())
 		assertEquals(2, result.size)
-		assertEquals("bash_run", result[0].name)
-		assertEquals("read_file", result[1].name)
+		assertEquals("file list", result[0].resultContent)
+		assertEquals("content", result[1].resultContent)
 	}
 	
 	@Test
@@ -127,9 +131,10 @@ class ToolCallHistoryImplTest {
 		)
 		val history = ToolCallHistoryImpl(env(context))
 		
-		val result = history.getAll()
+		val result = history.getAll("bash", TestArgs.serializer())
 		assertEquals(1, result.size)
-		assertEquals("bash_run", result[0].name)
+		assertEquals("pwd", result[0].args.cmd)
+		assertEquals("/home", result[0].resultContent)
 	}
 	
 	@Test
@@ -137,16 +142,16 @@ class ToolCallHistoryImplTest {
 		val context = AgentContext(
 			compactedRounds = null,
 			systemPrompt = null,
-			historyRounds = listOf(completedRound(listOf(toolMessage("bash_run", """{}""", "before")))),
+			historyRounds = listOf(completedRound(listOf(toolMessage("bash_run", """{"cmd":"before"}""", "before")))),
 			summarizedMessage = null,
 			currentRound = AgentContext.CurrentRound(
 				userMessage = userMessage(),
-				turns = listOf(turn(listOf(toolMessage("read_file", """{}""", "now")))),
+				turns = listOf(turn(listOf(toolMessage("bash_run", """{"cmd":"now"}""", "now")))),
 			),
 		)
 		val history = ToolCallHistoryImpl(env(context))
 		
-		val result = history.getAll()
+		val result = history.getAll("bash", TestArgs.serializer())
 		assertEquals(2, result.size)
 	}
 	
@@ -157,17 +162,17 @@ class ToolCallHistoryImplTest {
 		every { e.context } returns flow
 		
 		val history = ToolCallHistoryImpl(e)
-		assertTrue(history.getAll().isEmpty())
+		assertTrue(history.getAll("bash", TestArgs.serializer()).isEmpty())
 		
 		flow.value = AgentContext(
 			null, null, null, null,
 			AgentContext.CurrentRound(
 				userMessage = userMessage(),
-				turns = listOf(turn(listOf(toolMessage("bash_run", """{}""", "fresh")))),
+				turns = listOf(turn(listOf(toolMessage("bash_run", """{"cmd":"fresh"}""", "fresh")))),
 			),
 		)
 		
-		assertEquals(1, history.getAll().size)
+		assertEquals(1, history.getAll("bash", TestArgs.serializer()).size)
 	}
 	
 	@Test
@@ -179,7 +184,7 @@ class ToolCallHistoryImplTest {
 		val context = AgentContext(null, null, null, null, round)
 		val history = ToolCallHistoryImpl(env(context))
 		
-		val result = history.getAll()
+		val result = history.getAll("bash", TestArgs.serializer())
 		assertTrue(result.isEmpty())
 	}
 }

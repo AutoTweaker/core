@@ -60,7 +60,7 @@ object Settings : SettingService {
 		val stored = cache[id]
 		@Suppress("UNCHECKED_CAST") return if (stored != null && stored::class == def.default::class) stored as V else def.default
 	}
-
+	
 	override fun <V : SettingValue> set(def: SettingDef<V>, value: V) {
 		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		upsertValue(id, value, def.description)

@@ -30,96 +30,85 @@ import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import kotlinx.serialization.json.*
+import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
 
 @AutoService(CoreTool::class)
-class Read : CoreTool {
+class Read : CoreTool<Read.Args> {
+	@Serializable
+	sealed class Args {
+		@Serializable
+		data class File(
+			val filePath: String,
+			val startLine: Int,
+			val endLine: Int,
+			val lineNumber: Boolean = true,
+		) : Args()
+		
+		@Serializable
+		data class Summarize(
+			val filePath: String,
+			val startLine: Int,
+			val endLine: Int,
+			val prompt: String? = null,
+		) : Args()
+		
+		@Serializable
+		data class Unicode(
+			val filePath: String,
+			val maxChars: Int,
+		) : Args()
+	}
+	
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	private lateinit var _meta: Tool.Meta
 	private lateinit var settings: SettingService
-	override val meta: Tool.Meta get() = _meta
+	
+	override val argsSerializer = Args.serializer()
+	override val name = "read"
+	override val description get() = settings.get(ReadSettings.DescriptionSetting()).value
+	
+	override suspend fun describe(): Map<KProperty1<*, *>, String> = mapOf(
+		Args.File::filePath to settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		Args.File::startLine to settings.get(ReadSettings.StartLinePropDescriptionSetting()).value,
+		Args.File::endLine to settings.get(ReadSettings.EndLinePropDescriptionSetting()).value,
+		Args.File::lineNumber to settings.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
+		Args.Summarize::filePath to settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		Args.Summarize::startLine to settings.get(ReadSettings.StartLinePropDescriptionSetting()).value,
+		Args.Summarize::endLine to settings.get(ReadSettings.EndLinePropDescriptionSetting()).value,
+		Args.Summarize::prompt to settings.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
+		Args.Unicode::filePath to settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		Args.Unicode::maxChars to settings.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting())
+			.value.format(settings.get(ReadSettings.UnicodeMaxCharsSetting()).value),
+	)
+	
+	override suspend fun describeFunctions(): Map<KClass<*>, String> = mapOf(
+		Args.File::class to settings.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
+			settings.get(ReadSettings.FileMaxCharsSetting()).value,
+			settings.get(ReadSettings.FileMaxLinesSetting()).value
+		),
+		Args.Summarize::class to settings.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
+			settings.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
+			settings.get(ReadSettings.SummarizeMinCharsSetting()).value,
+			settings.get(ReadSettings.SummarizeMaxLinesSetting()).value
+		),
+		Args.Unicode::class to settings.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
+	)
 	
 	override suspend fun init(service: SettingService, secretStore: SecretStore) {
 		settings = service
-		
-		val commonProperties: Map<String, Tool.Function.Property> = mapOf(
-			"file_path" to Tool.Function.Property(
-				description = settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
-				required = true,
-				valueType = Tool.Function.Property.ValueType.StringValue(),
-			),
-			"start_line" to Tool.Function.Property(
-				description = settings.get(ReadSettings.StartLinePropDescriptionSetting()).value,
-				required = true,
-				valueType = Tool.Function.Property.ValueType.IntegerValue(),
-			),
-			"end_line" to Tool.Function.Property(
-				description = settings.get(ReadSettings.EndLinePropDescriptionSetting()).value,
-				required = true,
-				valueType = Tool.Function.Property.ValueType.IntegerValue(),
-			),
-		)
-		
-		_meta = Tool.Meta(
-			name = "read", description = settings.get(ReadSettings.DescriptionSetting()).value, functions = listOf(
-				Tool.Function(
-					name = "file",
-					description = settings.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
-						settings.get(ReadSettings.FileMaxCharsSetting()).value,
-						settings.get(ReadSettings.FileMaxLinesSetting()).value
-					),
-					parameters = commonProperties + mapOf(
-						"line_number" to Tool.Function.Property(
-							description = settings.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
-							required = false,
-							valueType = Tool.Function.Property.ValueType.BooleanValue,
-						),
-					),
-				),
-				Tool.Function(
-					name = "summarize",
-					description = settings.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
-						settings.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
-						settings.get(ReadSettings.SummarizeMinCharsSetting()).value,
-						settings.get(ReadSettings.SummarizeMaxLinesSetting()).value
-					),
-					parameters = commonProperties + mapOf(
-						"prompt" to Tool.Function.Property(
-							description = settings.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
-							required = false,
-							valueType = Tool.Function.Property.ValueType.StringValue(),
-						),
-					),
-				),
-				Tool.Function(
-					name = "unicode",
-					description = settings.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
-					parameters = mapOf(
-						"file_path" to Tool.Function.Property(
-							description = settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
-							required = true,
-							valueType = Tool.Function.Property.ValueType.StringValue(),
-						),
-						"max_chars" to Tool.Function.Property(
-							description = settings.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting()).value.format(
-								settings.get(ReadSettings.UnicodeMaxCharsSetting()).value
-							),
-							required = true,
-							valueType = Tool.Function.Property.ValueType.IntegerValue(),
-						),
-					),
-				),
-			)
-		)
 	}
 	
-	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput): Tool.ToolOutput {
+	override suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput<Args>): Tool.ToolOutput {
 		val s = settings
-		val args = input.arguments
-		val functionName = input.functionName
-		val filePath = args["file_path"]!!.jsonPrimitive.content
+		val args = input.args
+		val filePath = when (args) {
+			is Args.File -> args.filePath
+			is Args.Summarize -> args.filePath
+			is Args.Unicode -> args.filePath
+		}
 		val fs = container.get<FileSystemService>()
 		val normalizedPath = try {
 			fs.normalize(filePath)
@@ -137,36 +126,38 @@ class Read : CoreTool {
 			return Tool.ToolOutput(s.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
 		}
 		
-		logger.debug(
-			"Read tool started  tool=read  function={}  filePath={}", functionName, filePath
-		)
+		logger.debug("Read tool started  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
 		
-		return when (functionName) {
-			"file", "summarize" -> {
-				val startLine = args["start_line"]!!.jsonPrimitive.int
-				val endLine = args["end_line"]!!.jsonPrimitive.int
-				if (startLine < 1) return Tool.ToolOutput(
+		return when (args) {
+			is Args.File -> {
+				if (args.startLine < 1) return Tool.ToolOutput(
 					s.get(ReadSettings.MessageStartLineErrorSetting()).value, false
 				)
-				if (endLine < startLine) return Tool.ToolOutput(
+				if (args.endLine < args.startLine) return Tool.ToolOutput(
 					s.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false
 				)
-				if (functionName == "file") executeFile(s, container, fs, input, normalizedPath, startLine, endLine)
-				else executeSummarize(s, container, fs, input, normalizedPath, startLine, endLine)
+				executeFile(s, container, fs, normalizedPath, args)
 			}
 			
-			"unicode" -> {
-				val maxChars = args["max_chars"]!!.jsonPrimitive.int
+			is Args.Summarize -> {
+				if (args.startLine < 1) return Tool.ToolOutput(
+					s.get(ReadSettings.MessageStartLineErrorSetting()).value, false
+				)
+				if (args.endLine < args.startLine) return Tool.ToolOutput(
+					s.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false
+				)
+				executeSummarize(s, container, fs, normalizedPath, args)
+			}
+			
+			is Args.Unicode -> {
 				val unicodeMaxChars = s.get(ReadSettings.UnicodeMaxCharsSetting()).value
-				if (maxChars > unicodeMaxChars) {
+				if (args.maxChars > unicodeMaxChars) {
 					return Tool.ToolOutput(
 						s.get(ReadSettings.UnicodeMessageTooManyCharsSetting()).value.format(unicodeMaxChars), false
 					)
 				}
-				executeUnicode(s, fs, normalizedPath, maxChars)
+				executeUnicode(s, fs, normalizedPath, args.maxChars)
 			}
-			
-			else -> throw IllegalArgumentException("Unknown function: $functionName")
 		}
 	}
 	
@@ -174,26 +165,22 @@ class Read : CoreTool {
 		s: SettingService,
 		container: SimpleContainer,
 		fs: FileSystemService,
-		input: Tool.ToolInput,
 		normalizedPath: Path,
-		startLine: Int,
-		endLine: Int,
+		args: Args.File,
 	): Tool.ToolOutput {
 		val fileMaxLines = s.get(ReadSettings.FileMaxLinesSetting()).value
-		if (endLine - startLine + 1 > fileMaxLines) {
+		if (args.endLine - args.startLine + 1 > fileMaxLines) {
 			return Tool.ToolOutput(s.get(ReadSettings.MessageTooManyLinesSetting()).value.format(fileMaxLines), false)
 		}
-		val args = input.arguments
-		val lineNumber = args["line_number"]?.jsonPrimitive?.booleanOrNull ?: true
 		val content = try {
 			readFileContent(
 				fs,
 				normalizedPath,
-				startLine,
-				endLine,
+				args.startLine,
+				args.endLine,
 				maxChars = s.get(ReadSettings.FileMaxCharsSetting()).value,
 				truncateMessage = s.get(ReadSettings.FileMessageTruncateSetting()).value,
-				lineNumber = lineNumber
+				lineNumber = args.lineNumber
 			)
 		} catch (_: IllegalStateException) {
 			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
@@ -205,29 +192,13 @@ class Read : CoreTool {
 		}
 		
 		val history = container.get<ToolCallHistory>()
-		val previousReads = buildList {
-			data class PrevRead(val path: String, val sha256: String, val startLine: Int, val endLine: Int)
-			for (entry in history.getAll()) {
-				if (entry.name != "read_file") continue
-				val toolArgs = try {
-					Json.parseToJsonElement(entry.arguments).jsonObject
-				} catch (_: Exception) {
-					continue
-				}
-				val toolStartLine = toolArgs["start_line"]?.jsonPrimitive?.int ?: continue
-				val toolEndLine = toolArgs["end_line"]?.jsonPrimitive?.int ?: continue
-				val toolLineNumber = toolArgs["line_number"]?.jsonPrimitive?.booleanOrNull ?: true
-				if (toolLineNumber != lineNumber) continue
-				val toolPath = toolArgs["file_path"]?.jsonPrimitive?.content ?: continue
-				val toolSha256 = entry.resultContent.substringBefore('\n')
-				if (toolSha256.length != 64) continue
-				add(PrevRead(toolPath, toolSha256, toolStartLine, toolEndLine))
-			}
-		}
-		if (previousReads.any { prev ->
+		val previousReads = history.getAll(name, Args.serializer())
+			.mapNotNull { entry -> (entry.args as? Args.File)?.let { entry to it } }
+			.filter { (_, fileArgs) -> fileArgs.lineNumber == args.lineNumber }
+		if (previousReads.any { (entry, fileArgs) ->
 				try {
-					val prevNormalized = fs.normalize(prev.path)
-					prevNormalized == normalizedPath && prev.sha256 == sha256 && prev.startLine <= startLine && prev.endLine >= endLine
+					val prevNormalized = fs.normalize(fileArgs.filePath)
+					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256 && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
 				} catch (_: Exception) {
 					false
 				}
@@ -241,24 +212,21 @@ class Read : CoreTool {
 		s: SettingService,
 		container: SimpleContainer,
 		fs: FileSystemService,
-		input: Tool.ToolInput,
 		normalizedPath: Path,
-		startLine: Int,
-		endLine: Int,
+		args: Args.Summarize,
 	): Tool.ToolOutput {
 		val summarizeMaxLines = s.get(ReadSettings.SummarizeMaxLinesSetting()).value
-		if (endLine - startLine + 1 > summarizeMaxLines) {
+		if (args.endLine - args.startLine + 1 > summarizeMaxLines) {
 			return Tool.ToolOutput(
 				s.get(ReadSettings.MessageTooManyLinesSetting()).value.format(summarizeMaxLines), false
 			)
 		}
-		val args = input.arguments
 		val content = try {
 			readFileContent(
 				fs,
 				normalizedPath,
-				startLine,
-				endLine,
+				args.startLine,
+				args.endLine,
 				maxChars = s.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
 				truncateMessage = s.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false
@@ -275,7 +243,7 @@ class Read : CoreTool {
 			)
 		}
 		val summarizePrompt = s.get(ReadSettings.SummarizePromptSetting()).value
-		val prompt = args["prompt"]?.jsonPrimitive?.content?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
+		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		val summarizeService = container.get<SummarizeService>()
 		val output = try {
 			summarizeService.summarize(content, prompt)

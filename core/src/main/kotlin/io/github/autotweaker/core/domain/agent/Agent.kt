@@ -46,7 +46,7 @@ class Agent(
 	override val summarizeModel: Model,
 	override val containerConfig: ContainerConfig,
 	override val service: SettingService,
-	tools: List<Tool>,
+	tools: List<Tool<*>>,
 ) : AgentEnvironment {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	

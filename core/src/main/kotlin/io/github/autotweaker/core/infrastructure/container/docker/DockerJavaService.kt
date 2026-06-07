@@ -46,12 +46,12 @@ import java.time.Duration as JavaDuration
 class DockerJavaService : ContainerService {
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
-
+	
 	private val uidGid: String = run {
 		val unix = UnixSystem()
 		"${unix.uid}:${unix.gid}"
 	}
-
+	
 	private var workspaceHostPath: Path? = null
 	
 	private val client: DockerClient = run {

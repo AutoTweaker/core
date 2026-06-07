@@ -20,13 +20,12 @@ package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.Tool.ToolInput
-import io.github.autotweaker.api.tool.Tool.ToolOutput
 import io.github.autotweaker.core.domain.port.SecretStore
 
-interface CoreTool : Tool {
+interface CoreTool<Args : Any> : Tool<Args> {
 	suspend fun init(service: SettingService, secretStore: SecretStore)
-	suspend fun coreExec(container: SimpleContainer, input: ToolInput): ToolOutput
+	suspend fun coreExec(container: SimpleContainer, input: Tool.ToolInput<Args>): Tool.ToolOutput
 	
-	override suspend fun execute(input: ToolInput): ToolOutput = throw UnsupportedOperationException("Use coreExec")
+	override suspend fun execute(input: Tool.ToolInput<Args>): Tool.ToolOutput =
+		throw UnsupportedOperationException("Use coreExec")
 }

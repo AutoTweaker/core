@@ -34,9 +34,9 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val mutex = Mutex()
-
+	
 	suspend fun listEnv(): List<String> = mutex.withLock { getEnvUuidMap().keys.toList() }
-
+	
 	suspend fun getEnv(id: String): String? = mutex.withLock {
 		val uuid = getEnvUuidMap()[id] ?: return@withLock null
 		try {
@@ -45,7 +45,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 			null
 		}
 	}
-
+	
 	suspend fun setEnv(id: String, value: String) = mutex.withLock {
 		val current = getEnvUuidMap()
 		current[id]?.let { secretStore.remove(it) }
@@ -55,7 +55,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		jsonEntry.set(updated)
 		logger.debug("Env set  id={}  class={}", id, kClass.java.name)
 	}
-
+	
 	suspend fun removeEnv(id: String) = mutex.withLock {
 		val current = getEnvUuidMap()
 		current[id]?.let { secretStore.remove(it) }
@@ -63,7 +63,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		jsonEntry.set(updated)
 		logger.debug("Env removed  id={}  class={}", id, kClass.java.name)
 	}
-
+	
 	private fun getEnvUuidMap(): Map<String, UUID> {
 		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
 		return obj.mapNotNull { (k, v) ->

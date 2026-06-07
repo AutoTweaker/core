@@ -65,7 +65,7 @@ class AgentTest {
 		model: Model = mockModel,
 		fallbackModels: List<Model>? = null,
 		thinking: Boolean = false,
-		tools: List<Tool> = emptyList(),
+		tools: List<Tool<*>> = emptyList(),
 	): Agent {
 		return Agent(
 			context = context,

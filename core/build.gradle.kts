@@ -81,6 +81,7 @@ if (inDocker) {
 		useJUnitPlatform()
 		jvmArgs(
 			"-Dnet.bytebuddy.experimental=true",
+			"-Djava.security.egd=file:/dev/./urandom",
 			"--add-opens", "java.base/java.util=ALL-UNNAMED",
 			"--add-opens", "java.base/java.lang=ALL-UNNAMED",
 			"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",

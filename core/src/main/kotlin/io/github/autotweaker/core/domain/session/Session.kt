@@ -61,9 +61,9 @@ class Session(
 	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	private lateinit var _coreTools: List<CoreTool>
-	private lateinit var _pluginTools: List<Tool>
-	private lateinit var _tools: List<Tool>
+	private lateinit var _coreTools: List<CoreTool<*>>
+	private lateinit var _pluginTools: List<Tool<*>>
+	private lateinit var _tools: List<Tool<*>>
 	
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
@@ -126,15 +126,15 @@ class Session(
 	private suspend fun initTools() {
 		val coreTools = ServiceLoader.load(CoreTool::class.java).toList()
 		coreTools.forEach { it.init(service, secretStore) }
-		val duplicates = coreTools.map { it.meta.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
+		val duplicates = coreTools.map { it.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
 		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
 		_coreTools = coreTools
 		
-		val pluginTools = PluginLoader.load<Tool>().distinctBy { it.meta.name }
+		val pluginTools = PluginLoader.load<Tool<*>>().distinctBy { it.name }
 		_pluginTools = pluginTools
 		
-		val pluginNames = pluginTools.map { it.meta.name }.toSet()
-		_tools = pluginTools + coreTools.filter { it.meta.name !in pluginNames }
+		val pluginNames = pluginTools.map { it.name }.toSet()
+		_tools = pluginTools + coreTools.filter { it.name !in pluginNames }
 	}
 	
 	//endregion

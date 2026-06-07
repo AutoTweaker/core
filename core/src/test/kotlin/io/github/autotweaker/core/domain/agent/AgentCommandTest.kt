@@ -26,11 +26,11 @@ import kotlin.test.*
 import kotlin.time.Clock
 
 class AgentCommandTest {
-
+	
 	private val mockModel: Model = mockk(relaxed = true)
-
+	
 	// region Directive
-
+	
 	@Test
 	fun `all Directive singletons are distinct AgentCommand instances`() {
 		val directives = listOf(
@@ -44,7 +44,7 @@ class AgentCommandTest {
 		directives.forEach { assertIs<AgentCommand>(it) }
 		assertEquals(directives.size, directives.distinct().size)
 	}
-
+	
 	@Test
 	fun `UpdateModel holds model and optional fields`() {
 		val cmd = AgentCommand.Directive.UpdateModel(mockModel)

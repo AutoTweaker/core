@@ -27,6 +27,7 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -42,7 +43,7 @@ class Tools(private val service: SettingService) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	data class Entry(
-		val tool: Tool,
+		val tool: Tool<*>,
 		@Volatile var active: Boolean = false,
 		val consecutiveUnused: AtomicInteger = AtomicInteger(0),
 	)
@@ -51,8 +52,8 @@ class Tools(private val service: SettingService) {
 	
 	val entries: List<Entry> get() = _entries
 	
-	fun add(tool: Tool) {
-		logger.debug("Tool added  tool={}  functionCount={}", tool.meta.name, tool.meta.functions.size)
+	fun add(tool: Tool<*>) {
+		logger.debug("Tool added  tool={}", tool.name)
 		_entries.add(Entry(tool))
 	}
 	
@@ -62,15 +63,15 @@ class Tools(private val service: SettingService) {
 			service,
 		)
 	
-	fun resolveToolCalls(
+	suspend fun resolveToolCalls(
 		calls: List<AgentContext.CurrentRound.PendingToolCall>,
 		agentId: UUID = UUID.randomUUID(),
 	): List<ToolCallResolveResult> {
 		val results = calls.map { call ->
-			val inactiveEntry = _entries.find { !it.active && it.tool.meta.name == call.name }
+			val inactiveEntry = _entries.find { !it.active && it.tool.name == call.name }
 			if (inactiveEntry != null) {
-				val message = activateTool(inactiveEntry.tool.meta.name)
-				return@map ToolCallResolveResult.Activation(call.callId, inactiveEntry.tool.meta.name, message).also {
+				val message = activateTool(inactiveEntry.tool.name)
+				return@map ToolCallResolveResult.Activation(call.callId, inactiveEntry.tool.name, message).also {
 					logger.debug(
 						"Inactive tool activation detected  agentId={}  callId={}  tool={}",
 						agentId,
@@ -109,15 +110,16 @@ class Tools(private val service: SettingService) {
 		return results
 	}
 	
-	private fun activateTool(toolName: String): String {
-		val entry = _entries.first { it.tool.meta.name == toolName }
+	private suspend fun activateTool(toolName: String): String {
+		val entry = _entries.first { it.tool.name == toolName }
 		synchronized(entry) {
 			entry.active = true
 			entry.consecutiveUnused.set(0)
 		}
-		logger.debug("Tool activated  tool={}  functionCount={}", toolName, entry.tool.meta.functions.size)
+		val meta = ToolMeta.build(entry.tool)
+		logger.debug("Tool activated  tool={}  functionCount={}", toolName, meta.functions.size)
 		return service.get(AgentToolSettings.ActiveMessage()).value.format(
-			entry.tool.meta.functions.joinToString(", ") { "${entry.tool.meta.name}_${it.name}" }, entry.tool.meta.name
+			meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name
 		)
 	}
 	
@@ -131,7 +133,7 @@ class Tools(private val service: SettingService) {
 		
 		data class NeedsApproval(
 			override val callId: String,
-			val result: ToolCallValidator.ValidationResult.Success,
+			val result: ToolCallValidator.ValidationResult.Success<*>,
 		) : ToolCallResolveResult()
 		
 		data class Activation(
@@ -142,14 +144,14 @@ class Tools(private val service: SettingService) {
 	}
 	
 	suspend fun executeTool(
-		result: ToolCallValidator.ValidationResult.Success,
+		result: ToolCallValidator.ValidationResult.Success<*>,
 		call: AgentContext.CurrentRound.PendingToolCall,
 		provider: SimpleContainer,
 		agentId: UUID,
-		onToolDeactivated: (suspend (List<Tool>) -> Unit)? = null,
+		onToolDeactivated: (suspend (List<Tool<*>>) -> Unit)? = null,
 		onToolOutput: (suspend (AgentOutput.Tool) -> Unit)? = null,
 	): AgentContext.Message.Tool {
-		val entry = _entries.first { it.tool.meta.name == result.toolName }
+		val entry = _entries.first { it.tool.name == result.toolName }
 		val tool = entry.tool
 		
 		logger.debug(
@@ -173,17 +175,17 @@ class Tools(private val service: SettingService) {
 				it.active && it != entry && it.consecutiveUnused.get() > threshold
 			}
 			if (toDeactivate.isNotEmpty()) {
-				for (deact in toDeactivate) {
-					synchronized(deact) {
+				for (deactivated in toDeactivate) {
+					synchronized(deactivated) {
 						logger.debug(
 							"Tool deactivated  agentId={}  tool={}  consecutiveUnused={}  threshold={}",
 							agentId,
-							deact.tool.meta.name,
-							deact.consecutiveUnused.get(),
+							deactivated.tool.name,
+							deactivated.consecutiveUnused.get(),
 							threshold
 						)
-						deact.active = false
-						deact.consecutiveUnused.set(0)
+						deactivated.active = false
+						deactivated.consecutiveUnused.set(0)
 					}
 				}
 				onToolDeactivated?.invoke(_entries.filter { it.active }.map { it.tool })
@@ -192,22 +194,18 @@ class Tools(private val service: SettingService) {
 		
 		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)
 		
-		val toolInput = Tool.ToolInput(
-			functionName = result.functionName,
-			arguments = result.arguments,
-			outputChannel = outputChannel,
-		)
-		
 		val output = supervisorScope {
 			val drainJob = launch {
 				for (msg in outputChannel) {
 					onToolOutput?.invoke(AgentOutput.Tool(ToolOutput(call.name, call.callId, msg.content)))
 				}
 			}
-			val result = try {
+			val toolOutput = try {
+				val toolInput = Tool.ToolInput(result.args, outputChannel)
+				@Suppress("UNCHECKED_CAST")
 				when (tool) {
-					is CoreTool -> tool.coreExec(provider, toolInput)
-					else -> tool.execute(toolInput)
+					is CoreTool<*> -> (tool as CoreTool<Any>).coreExec(provider, toolInput)
+					else -> (tool as Tool<Any>).execute(toolInput)
 				}
 			} catch (e: CancellationException) {
 				throw e
@@ -223,7 +221,7 @@ class Tools(private val service: SettingService) {
 			}
 			outputChannel.close()
 			drainJob.join()
-			result
+			toolOutput
 		}
 		
 		logger.debug(
@@ -253,15 +251,15 @@ class Tools(private val service: SettingService) {
 		)
 	}
 	
-	fun assembleTools(): List<ChatRequest.Tool>? {
+	suspend fun assembleTools(): List<ChatRequest.Tool>? {
 		val activeTools = _entries.filter { it.active }.map { it.tool }
 		val active = ToolAssembler.assemble(activeTools, service)
 		
 		val enableDesc = service.get(AgentToolSettings.EnableDescription()).value
 		val inactive = _entries.filter { !it.active }.map { it.tool }.takeIf { it.isNotEmpty() }?.map { tool ->
 			ChatRequest.Tool(
-				name = tool.meta.name,
-				description = tool.meta.description,
+				name = tool.name,
+				description = tool.description,
 				parameters = buildJsonObject {
 					put("type", "object")
 					put("properties", buildJsonObject {

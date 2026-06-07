@@ -32,7 +32,7 @@ object HandleApprovalPhase {
 	suspend fun execute(
 		env: AgentEnvironment,
 		approvals: List<ToolApprove>,
-		executeTool: suspend (ToolCallValidator.ValidationResult.Success, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,
+		executeTool: suspend (ToolCallValidator.ValidationResult.Success<*>, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,
 	): PhaseResult {
 		logger.debug(
 			"Tool approval phase started  agentId={}  approvals={}",

@@ -34,9 +34,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.put
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
@@ -50,20 +49,24 @@ class ToolsTest {
 	
 	// region helpers
 	
+	@Serializable
+	private data class BashArgs(
+		val cmd: String = "",
+		val type: String = "run",
+	)
+	
 	private fun mockTool(
 		name: String = "bash",
 		description: String = "a tool",
-		functions: List<Tool.Function> = listOf(
-			Tool.Function(
-				"run", "run something", mapOf(
-					"cmd" to Tool.Function.Property("command", true, Tool.Function.Property.ValueType.StringValue()),
-				)
-			)
-		),
-	): Tool {
-		val tool = mockk<Tool>()
-		val meta = Tool.Meta(name, description, functions)
-		every { tool.meta } returns meta
+	): Tool<BashArgs> {
+		val tool = mockk<Tool<BashArgs>>()
+		every { tool.name } returns name
+		every { tool.description } returns description
+		every { tool.argsSerializer } returns BashArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(
+			BashArgs::cmd to "command",
+			BashArgs::type to "Function type",
+		)
 		return tool
 	}
 	
@@ -81,7 +84,7 @@ class ToolsTest {
 		functionName: String = "run",
 	) = ValidationResult.Success(
 		toolName = toolName, functionName = functionName,
-		reason = "test", arguments = buildJsonObject { put("cmd", "echo") },
+		reason = "test", args = BashArgs(cmd = "echo"),
 	)
 	
 	private fun settingsWithThreshold(threshold: Int): SettingService =
@@ -96,7 +99,7 @@ class ToolsTest {
 			}
 		}
 	
-	private fun Tools.activate(toolName: String) {
+	private suspend fun Tools.activate(toolName: String) {
 		resolveToolCalls(listOf(pendingToolCall(name = toolName)))
 	}
 	
@@ -173,15 +176,7 @@ class ToolsTest {
 	@Test
 	fun `resolveToolCalls activates inactive tool`() = runTest {
 		val tools = Tools(defaultSettings)
-		val tool = mockTool(
-			"bash", "bash tool", listOf(
-				Tool.Function(
-					"run", "run cmd", mapOf(
-						"cmd" to Tool.Function.Property("cmd", true, Tool.Function.Property.ValueType.StringValue()),
-					)
-				)
-			)
-		)
+		val tool = mockTool("bash", "bash tool")
 		tools.add(tool)
 		
 		val results = tools.resolveToolCalls(listOf(pendingToolCall("c1", "bash")))
@@ -272,7 +267,8 @@ class ToolsTest {
 		val tools = Tools(defaultSettings)
 		val tool = mockTool()
 		coEvery { tool.execute(any()) } coAnswers {
-			val input = firstArg<Tool.ToolInput>()
+			@Suppress("UNCHECKED_CAST")
+			val input = firstArg<Any>() as Tool.ToolInput<BashArgs>
 			input.outputChannel!!.send(Tool.RuntimeOutput("progress 1"))
 			input.outputChannel!!.send(Tool.RuntimeOutput("progress 2"))
 			Tool.ToolOutput("done", true)
@@ -364,7 +360,7 @@ class ToolsTest {
 			validationSuccess("a"), pendingToolCall("c3", "a_run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
-		val deactivatedCalls = mutableListOf<List<Tool>>()
+		val deactivatedCalls = mutableListOf<List<Tool<*>>>()
 		tools.executeTool(
 			validationSuccess("a"), pendingToolCall("c4", "a_run"),
 			SimpleContainer(), UUID.randomUUID(),
@@ -409,7 +405,7 @@ class ToolsTest {
 	// region assembleTools
 	
 	@Test
-	fun `assembleTools returns null when no tools`() {
+	fun `assembleTools returns null when no tools`() = runBlocking {
 		val tools = Tools(defaultSettings)
 		val result = tools.assembleTools()
 		assertNull(result)
@@ -436,15 +432,7 @@ class ToolsTest {
 	@Test
 	fun `assembleTools with only active tools`() = runTest {
 		val tools = Tools(defaultSettings)
-		val tool = mockTool(
-			"bash", "bash tool", listOf(
-				Tool.Function(
-					"run", "run cmd", mapOf(
-						"cmd" to Tool.Function.Property("cmd", true, Tool.Function.Property.ValueType.StringValue()),
-					)
-				)
-			)
-		)
+		val tool = mockTool("bash", "bash tool")
 		tools.add(tool)
 		
 		tools.activate("bash")
@@ -459,15 +447,7 @@ class ToolsTest {
 	@Test
 	fun `assembleTools with both active and inactive tools`() = runTest {
 		val tools = Tools(defaultSettings)
-		val activeTool = mockTool(
-			"bash", "bash tool", listOf(
-				Tool.Function(
-					"run", "run cmd", mapOf(
-						"cmd" to Tool.Function.Property("cmd", true, Tool.Function.Property.ValueType.StringValue()),
-					)
-				)
-			)
-		)
+		val activeTool = mockTool("bash", "bash tool")
 		val inactiveTool = mockTool("read", "read tool")
 		tools.add(activeTool)
 		tools.add(inactiveTool)
