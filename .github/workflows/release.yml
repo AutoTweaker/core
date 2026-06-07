@@ -11,6 +11,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      full-version: ${{ steps.version.outputs.full-version }}
 
     steps:
       - uses: actions/checkout@v6
@@ -26,6 +28,10 @@ jobs:
 
       - name: Build and package
         run: ./gradlew :core:distZip :core:distTar
+
+      - name: Export full version
+        id: version
+        run: echo "full-version=$(grep '^version=' build/generated/version/version.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Install build dependencies
         run: sudo apt-get update -y && sudo apt-get install -y libcjson-dev
@@ -63,29 +69,35 @@ jobs:
       - name: Install PyYAML
         run: pip3 install pyyaml
 
-      - name: Update index repository
+      - name: Setup SSH
         run: |
-          # Setup SSH
           mkdir -p ~/.ssh
           echo "${{ secrets.WEBSITE_DEPLOY_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
 
-          # Get version
-          FULL_VERSION=$(grep '^version=' build/generated/version/version.properties | cut -d= -f2)
+      - name: Clone index repository
+        run: git clone git@github.com:AutoTweaker/index.git .temp/index
+        env:
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/deploy_key
 
-          # Clone index repo
-          export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key"
-          git clone git@github.com:AutoTweaker/index.git .temp/index
-          cd .temp/index
+      - name: Configure git
+        working-directory: .temp/index
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Merge index.yml with release assets
-          gh release view "v${VERSION}" --json assets \
-            | python3 ../../scripts/merge-index.py ../../index.yml index.json "$FULL_VERSION"
+      - name: Merge release assets into index
+        working-directory: .temp/index
+        run: |
+          gh release view "v${VERSION}" --repo AutoTweaker/core --json assets \
+            | python3 ../../scripts/merge-index.py ../../index.yml index.json "${{ needs.release.outputs.full-version }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
-          # Commit and push
+      - name: Push index update
+        working-directory: .temp/index
+        run: |
           git add index.json
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -94,4 +106,4 @@ jobs:
             git push origin main
           fi
         env:
-          GH_TOKEN: ${{ github.token }}
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/deploy_key
