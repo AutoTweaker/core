@@ -23,8 +23,11 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ] || [ "$1" = "upgrade" ]; then
     for user in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}'); do
         su -s /bin/sh -c "XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user stop autotweaker" "$user" 2>/dev/null || true
     done
-    systemctl stop autotweaker-update.timer 2>/dev/null || true
-    systemctl stop autotweaker-update.service 2>/dev/null || true
+
+    if [ -z "${AUTOTWEAKER_AUTO_UPDATE:-}" ]; then
+        systemctl stop autotweaker-update.timer 2>/dev/null || true
+        systemctl stop autotweaker-update.service 2>/dev/null || true
+    fi
 fi
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then

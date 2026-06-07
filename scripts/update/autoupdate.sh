@@ -19,4 +19,6 @@
 
 set -euo pipefail
 
+export AUTOTWEAKER_AUTO_UPDATE=1
+
 curl -fsSL https://autotweaker.github.io/install.sh | bash

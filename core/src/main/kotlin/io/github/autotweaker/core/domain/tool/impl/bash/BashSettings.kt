@@ -90,7 +90,7 @@ object BashSettings {
 	
 	@AutoService(SettingDef::class)
 	class DefaultTimeoutSeconds : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(60)
+		override val default = SettingValue.ValInt(120)
 		override val description = "bash_run工具默认超时时间（秒）"
 	}
 }
