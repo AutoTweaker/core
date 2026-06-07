@@ -52,7 +52,7 @@ class CliAdapter : Adapter {
 	}
 	
 	override suspend fun start(core: CoreAPI) {
-		val s = CliServer(core.config.settingService)
+		val s = CliServer(core.config.settingService, core)
 		val router = CommandRouter.fromServiceLoader(core, coreVersion ?: error("CliAdapter not initialized"))
 		s.start(router)
 		server = s

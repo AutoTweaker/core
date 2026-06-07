@@ -19,6 +19,7 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingValue
@@ -39,7 +40,9 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
 
-class CliServer(service: SettingService) {
+class CliServer(service: SettingService, core: CoreAPI) {
+	private val trace = core.trace(this::class)
+	
 	@AutoService(SettingDef::class)
 	class MaxLineLength : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(10_485_760)
@@ -117,11 +120,32 @@ class CliServer(service: SettingService) {
 			try {
 				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
-						is CmdOutput.Data -> write(
-							client, json.encodeToString<CliResponse>(
-								CliResponse.Data(chunk.text, chunk.channel.name.lowercase(), chunk.newline)
-							)
-						)
+						is CmdOutput.Data -> {
+							val channel = chunk.channel.name.lowercase()
+							val text = chunk.text
+							if (text.length <= MAX_RESPONSE_CHUNK) {
+								write(
+									client,
+									json.encodeToString<CliResponse>(CliResponse.Data(text, channel, chunk.newline))
+								)
+							} else {
+								var offset = 0
+								while (offset < text.length) {
+									val end = minOf(offset + MAX_RESPONSE_CHUNK, text.length)
+									write(
+										client,
+										json.encodeToString<CliResponse>(
+											CliResponse.Data(
+												text.substring(offset, end),
+												channel,
+												chunk.newline
+											)
+										)
+									)
+									offset = end
+								}
+							}
+						}
 						
 						is CmdOutput.Done -> {
 							sawDone = true
@@ -132,10 +156,12 @@ class CliServer(service: SettingService) {
 				}
 			} catch (e: CancellationException) {
 				throw e
-			} catch (_: IOException) {
+			} catch (e: IOException) {
 				logger.warn("Client disconnected during command  command={}", cmdName)
+				trace.add("e", e.stackTraceToString())
 			} catch (e: Exception) {
 				logger.error("Command failed  command={}", cmdName, e)
+				trace.add("e", e.stackTraceToString())
 				runCatching {
 					write(
 						client, json.encodeToString<CliResponse>(
@@ -201,12 +227,14 @@ class CliServer(service: SettingService) {
 		var pos = 0
 		while (pos < bytes.size) {
 			val written = channel.write(ByteBuffer.wrap(bytes, pos, bytes.size - pos))
-			if (written <= 0) throw IOException("Channel not writable")
+			if (written < 0) throw IOException("Channel not writable")
 			pos += written
 		}
 	}
 	
 	companion object {
+		private const val MAX_RESPONSE_CHUNK = 256 * 1024
+		
 		private fun socketPath(): Path = Path.of(
 			System.getProperty("user.home"),
 			".config", "autotweaker", "cli.sock",

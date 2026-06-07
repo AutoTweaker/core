@@ -58,12 +58,13 @@ struct line_reader {
 };
 
 static int lr_fill(struct line_reader *lr) {
-    if (lr->pos > 0 && lr->pos < lr->len) {
-        memmove(lr->buf, lr->buf + lr->pos, lr->len - lr->pos);
-        lr->len -= lr->pos;
-        lr->pos = 0;
-    } else {
-        lr->len = 0;
+    if (lr->pos > 0) {
+        if (lr->pos < lr->len) {
+            memmove(lr->buf, lr->buf + lr->pos, lr->len - lr->pos);
+            lr->len -= lr->pos;
+        } else {
+            lr->len = 0;
+        }
         lr->pos = 0;
     }
     int     eintr_retries = 0;
@@ -72,7 +73,7 @@ static int lr_fill(struct line_reader *lr) {
         n = recv(lr->fd, lr->buf + lr->len,
                  sizeof(lr->buf) - 1 - lr->len, 0);
         if (n < 0) {
-            if (errno == EINTR) {
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
                 eintr_retries++;
                 struct timespec ts = {0, POLL_INTERVAL_MS * 1000000L};
                 nanosleep(&ts, NULL);
@@ -447,6 +448,7 @@ static int run_protocol(int fd) {
 
         cJSON *type = cJSON_GetObjectItemCaseSensitive(root, "type");
         if (!type || !cJSON_IsString(type)) {
+            fprintf(stderr, "Error: missing message type\n");
             cJSON_Delete(root);
             break;
         }
