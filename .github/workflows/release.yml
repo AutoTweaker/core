@@ -65,14 +65,14 @@ jobs:
 
           # Clone index repo
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key"
-          git clone git@github.com:AutoTweaker/index.git /tmp/index-repo
-          cd /tmp/index-repo
+          git clone git@github.com:AutoTweaker/index.git .temp/index
+          cd .temp/index
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Merge index.yml with release assets
           gh release view "v${VERSION}" --json assets \
-            | python3 ../scripts/merge-index.py ../index.yml index.json "$FULL_VERSION"
+            | python3 ../../scripts/merge-index.py ../../index.yml index.json "$FULL_VERSION"
 
           # Commit and push
           git add index.json
