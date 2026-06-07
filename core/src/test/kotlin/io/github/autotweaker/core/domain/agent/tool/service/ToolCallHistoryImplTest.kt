@@ -40,7 +40,7 @@ class ToolCallHistoryImplTest {
 	private val mockModel = mockk<Model>(relaxed = true)
 	
 	private fun toolMessage(
-		name: String = "bash_run",
+		name: String = "bash-run",
 		arguments: String = "{}",
 		resultContent: String = "ok",
 	) = AgentContext.Message.Tool(
@@ -105,8 +105,8 @@ class ToolCallHistoryImplTest {
 			turns = listOf(
 				turn(
 					listOf(
-						toolMessage("bash_run", """{"cmd":"ls"}""", "file list"),
-						toolMessage("bash_run", """{"cmd":"pwd"}""", "content"),
+						toolMessage("bash-run", """{"cmd":"ls"}""", "file list"),
+						toolMessage("bash-run", """{"cmd":"pwd"}""", "content"),
 					)
 				)
 			),
@@ -125,7 +125,7 @@ class ToolCallHistoryImplTest {
 		val context = AgentContext(
 			compactedRounds = null,
 			systemPrompt = null,
-			historyRounds = listOf(completedRound(listOf(toolMessage("bash_run", """{"cmd":"pwd"}""", "/home")))),
+			historyRounds = listOf(completedRound(listOf(toolMessage("bash-run", """{"cmd":"pwd"}""", "/home")))),
 			summarizedMessage = null,
 			currentRound = null,
 		)
@@ -142,11 +142,11 @@ class ToolCallHistoryImplTest {
 		val context = AgentContext(
 			compactedRounds = null,
 			systemPrompt = null,
-			historyRounds = listOf(completedRound(listOf(toolMessage("bash_run", """{"cmd":"before"}""", "before")))),
+			historyRounds = listOf(completedRound(listOf(toolMessage("bash-run", """{"cmd":"before"}""", "before")))),
 			summarizedMessage = null,
 			currentRound = AgentContext.CurrentRound(
 				userMessage = userMessage(),
-				turns = listOf(turn(listOf(toolMessage("bash_run", """{"cmd":"now"}""", "now")))),
+				turns = listOf(turn(listOf(toolMessage("bash-run", """{"cmd":"now"}""", "now")))),
 			),
 		)
 		val history = ToolCallHistoryImpl(env(context))
@@ -168,7 +168,7 @@ class ToolCallHistoryImplTest {
 			null, null, null, null,
 			AgentContext.CurrentRound(
 				userMessage = userMessage(),
-				turns = listOf(turn(listOf(toolMessage("bash_run", """{"cmd":"fresh"}""", "fresh")))),
+				turns = listOf(turn(listOf(toolMessage("bash-run", """{"cmd":"fresh"}""", "fresh")))),
 			),
 		)
 		

@@ -67,12 +67,13 @@ class ToolsTest {
 			BashArgs::cmd to "command",
 			BashArgs::type to "Function type",
 		)
+		coEvery { tool.describeFunctions() } returns emptyMap()
 		return tool
 	}
 	
 	private fun pendingToolCall(
 		callId: String = "c1",
-		name: String = "bash_run",
+		name: String = "bash-run",
 	) = AgentContext.CurrentRound.PendingToolCall(
 		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, modelId = mockModel.id,
 		arguments = """{"cmd":"echo","reason":"test"}""",
@@ -151,7 +152,7 @@ class ToolsTest {
 		
 		tools.activate("bash")
 		
-		val calls = listOf(pendingToolCall("c2", "bash_run"))
+		val calls = listOf(pendingToolCall("c2", "bash-run"))
 		val results = tools.resolveToolCalls(calls)
 		
 		assertEquals(1, results.size)
@@ -163,7 +164,7 @@ class ToolsTest {
 		val tools = Tools(defaultSettings)
 		tools.add(mockTool("inactive"))
 		
-		val calls = listOf(pendingToolCall("c1", "inactive_run"))
+		val calls = listOf(pendingToolCall("c1", "inactive-run"))
 		val results = tools.resolveToolCalls(calls)
 		
 		assertEquals(1, results.size)
@@ -184,7 +185,7 @@ class ToolsTest {
 		assertEquals(1, results.size)
 		val activation = results[0] as Tools.ToolCallResolveResult.Activation
 		assertTrue(tools.entries[0].active)
-		assertTrue(activation.message.contains("bash_run"))
+		assertTrue(activation.message.contains("bash-run"))
 	}
 	
 	@Test
@@ -198,7 +199,7 @@ class ToolsTest {
 		
 		// Execute
 		val result = tools.executeTool(
-			validationSuccess(), pendingToolCall("c2", "bash_run"),
+			validationSuccess(), pendingToolCall("c2", "bash-run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
 		
@@ -218,7 +219,7 @@ class ToolsTest {
 		
 		// Execute
 		val result = tools.executeTool(
-			validationSuccess(), pendingToolCall("c2", "bash_run"),
+			validationSuccess(), pendingToolCall("c2", "bash-run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
 		
@@ -237,7 +238,7 @@ class ToolsTest {
 		
 		// Execute - should catch exception and return failure
 		val result = tools.executeTool(
-			validationSuccess(), pendingToolCall("c2", "bash_run"),
+			validationSuccess(), pendingToolCall("c2", "bash-run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
 		
@@ -256,7 +257,7 @@ class ToolsTest {
 		
 		assertFailsWith<CancellationException> {
 			tools.executeTool(
-				validationSuccess(), pendingToolCall("c2", "bash_run"),
+				validationSuccess(), pendingToolCall("c2", "bash-run"),
 				SimpleContainer(), UUID.randomUUID(),
 			)
 		}
@@ -279,7 +280,7 @@ class ToolsTest {
 		
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
-			validationSuccess(), pendingToolCall("c2", "bash_run"),
+			validationSuccess(), pendingToolCall("c2", "bash-run"),
 			SimpleContainer(), UUID.randomUUID(),
 			onToolOutput = { outputs.add(it.output.content) },
 		)
@@ -308,7 +309,7 @@ class ToolsTest {
 		
 		repeat(3) {
 			tools.executeTool(
-				validationSuccess("a"), pendingToolCall("c${it + 3}", "a_run"),
+				validationSuccess("a"), pendingToolCall("c${it + 3}", "a-run"),
 				SimpleContainer(), UUID.randomUUID(),
 			)
 		}
@@ -333,7 +334,7 @@ class ToolsTest {
 		
 		repeat(100) {
 			tools.executeTool(
-				validationSuccess("a"), pendingToolCall("c${it + 3}", "a_run"),
+				validationSuccess("a"), pendingToolCall("c${it + 3}", "a-run"),
 				SimpleContainer(), UUID.randomUUID(),
 			)
 		}
@@ -357,12 +358,12 @@ class ToolsTest {
 		tools.activate("b")
 		
 		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c3", "a_run"),
+			validationSuccess("a"), pendingToolCall("c3", "a-run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
 		val deactivatedCalls = mutableListOf<List<Tool<*>>>()
 		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c4", "a_run"),
+			validationSuccess("a"), pendingToolCall("c4", "a-run"),
 			SimpleContainer(), UUID.randomUUID(),
 			onToolDeactivated = { deactivatedCalls.add(it) },
 		)
@@ -387,14 +388,14 @@ class ToolsTest {
 		tools.activate("b")
 		
 		tools.executeTool(
-			validationSuccess("a"), pendingToolCall("c3", "a_run"),
+			validationSuccess("a"), pendingToolCall("c3", "a-run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
 		assertEquals(0, tools.entries[0].consecutiveUnused.get())
 		assertEquals(1, tools.entries[1].consecutiveUnused.get())
 		
 		tools.executeTool(
-			validationSuccess("b"), pendingToolCall("c4", "b_run"),
+			validationSuccess("b"), pendingToolCall("c4", "b-run"),
 			SimpleContainer(), UUID.randomUUID(),
 		)
 		assertEquals(1, tools.entries[0].consecutiveUnused.get())
@@ -441,7 +442,7 @@ class ToolsTest {
 		
 		assertNotNull(result)
 		assertEquals(1, result.size)
-		assertEquals("bash_run", result[0].name)
+		assertEquals("bash-run", result[0].name)
 	}
 	
 	@Test
@@ -458,7 +459,7 @@ class ToolsTest {
 		
 		assertNotNull(result)
 		assertEquals(2, result.size)
-		assertTrue(result.any { it.name == "bash_run" })
+		assertTrue(result.any { it.name == "bash-run" })
 		assertTrue(result.any { it.name == "read" })
 	}
 	// endregion

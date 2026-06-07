@@ -52,7 +52,7 @@ class Bash : CoreTool<Bash.Args> {
 	override val description get() = settings.get(BashSettings.Description()).value
 	
 	override suspend fun describe(): Map<KProperty1<*, *>, String> {
-		val envIds = Json.encodeToString(listEnv().sorted()).ifBlank { "[none]" }
+		val envIds = listEnv().sorted().let { if (it.isEmpty()) "[none]" else Json.encodeToString(it) }
 		return mapOf(
 			Args::command to settings.get(BashSettings.CommandPropDescription()).value,
 			Args::timeoutSeconds to settings.get(BashSettings.TimeoutPropDescription()).value.format(
