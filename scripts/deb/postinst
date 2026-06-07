@@ -24,7 +24,6 @@ systemctl daemon-reload 2>/dev/null || true
 mkdir -p /etc/autotweaker
 
 if [ -z "$2" ]; then
-    # 首次安装：基于物理内存生成 JVM 配置
     MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     MEM_MB=$((MEM_KB / 1024))
 
@@ -48,4 +47,13 @@ if [ -z "$2" ]; then
 -XX:HeapDumpPath=/var/log/autotweaker
 EOF
     [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
+fi
+
+if [ -n "$2" ]; then
+    for user in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}'); do
+        ENABLED=$(sudo -u "$user" "XDG_RUNTIME_DIR=/run/user/$(id -u "$user")" systemctl --user is-enabled autotweaker 2>/dev/null || echo "unknown")
+        if echo "$ENABLED" | grep -q "^enabled$"; then
+            sudo -u "$user" "XDG_RUNTIME_DIR=/run/user/$(id -u "$user")" systemctl --user restart autotweaker 2>/dev/null || true
+        fi
+    done
 fi
