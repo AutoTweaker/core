@@ -92,19 +92,17 @@ class ToolMeta private constructor(
 			val grouped = describeMap.entries.groupBy { (prop, _) ->
 				prop.javaField?.declaringClass
 			}
-			
+
 			val sealedDesc = desc.getElementDescriptor(1)
 			val functions = (0 until sealedDesc.elementsCount).map { i ->
 				val subDesc = sealedDesc.getElementDescriptor(i)
 				val descName = sealedDesc.getElementName(i)
-				val ownerClass = grouped.keys.first { clazz ->
-					clazz?.kotlin?.qualifiedName == descName
-				} ?: error("No matching class for sealed subclass '$descName'")
-				val funcName = ownerClass.simpleName
+				val funcClass = funcDescMap.keys.first { it.qualifiedName == descName }
+				val funcName = funcClass.simpleName ?: error("Anonymous sealed subclass '$descName'")
 				require('-' !in funcName) { "Function name must not contain '-': $funcName" }
-				val funcEntries = grouped[ownerClass]!!
+				val funcEntries = grouped[funcClass.java] ?: emptyList()
 				val descByName = funcEntries.associate { (prop, d) -> prop.name to d }
-				val funcDesc = funcDescMap[ownerClass.kotlin]
+				val funcDesc = funcDescMap[funcClass]
 					?: error("Missing function description for '$funcName' in describeFunctions()")
 				
 				val params = (0 until subDesc.elementsCount).associate { j ->

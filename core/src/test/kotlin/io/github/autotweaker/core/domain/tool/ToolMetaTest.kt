@@ -487,22 +487,34 @@ class ToolMetaTest {
 	}
 	
 	// endregion
-	
+
 	// region sealed class edge cases
-	
+
 	@Serializable
 	private sealed class TwoOptions {
 		@Serializable
 		data class OptA(val value: String) : TwoOptions()
-		
+
 		@Serializable
 		data class OptB(val count: Int) : TwoOptions()
 	}
-	
+
 	@Serializable
 	private sealed class Single {
 		@Serializable
 		data class Only(val x: Int) : Single()
+	}
+
+	@Serializable
+	private sealed class MixedArgs {
+		@Serializable
+		data class ReadFile(val filePath: String, val encoding: String = "utf-8") : MixedArgs()
+
+		@Serializable
+		data object ListFiles : MixedArgs()
+
+		@Serializable
+		data object GetStatus : MixedArgs()
 	}
 	
 	@Test
@@ -540,9 +552,66 @@ class ToolMetaTest {
 		assertEquals(1, meta.functions.size)
 		assertEquals("only", meta.functions[0].name)
 	}
-	
+
+	private fun mockMixedTool(): Tool<MixedArgs> {
+		val tool = mockk<Tool<MixedArgs>>()
+		every { tool.name } returns "fs"
+		every { tool.description } returns "File system operations"
+		every { tool.argsSerializer } returns MixedArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(
+			MixedArgs.ReadFile::filePath to "Path to file",
+			MixedArgs.ReadFile::encoding to "File encoding",
+		)
+		coEvery { tool.describeFunctions() } returns mapOf(
+			MixedArgs.ReadFile::class to "Read file content",
+			MixedArgs.ListFiles::class to "List all files in directory",
+			MixedArgs.GetStatus::class to "Get system status",
+		)
+		return tool
+	}
+
+	@Test
+	fun `sealed class with object subclass builds all functions`() = runBlocking {
+		val meta = ToolMeta.build(mockMixedTool())
+		assertEquals(3, meta.functions.size)
+		val names = meta.functions.map { it.name }.toSet()
+		assertTrue(names.contains("read_file"))
+		assertTrue(names.contains("list_files"))
+		assertTrue(names.contains("get_status"))
+	}
+
+	@Test
+	fun `object function has no parameters`() = runBlocking {
+		val meta = ToolMeta.build(mockMixedTool())
+		val listFiles = meta.functions.first { it.name == "list_files" }
+		assertTrue(listFiles.parameters.isEmpty())
+		val getStatus = meta.functions.first { it.name == "get_status" }
+		assertTrue(getStatus.parameters.isEmpty())
+	}
+
+	@Test
+	fun `object function uses describeFunctions description`() = runBlocking {
+		val meta = ToolMeta.build(mockMixedTool())
+		val listFiles = meta.functions.first { it.name == "list_files" }
+		assertEquals("List all files in directory", listFiles.description)
+		val getStatus = meta.functions.first { it.name == "get_status" }
+		assertEquals("Get system status", getStatus.description)
+	}
+
+	@Test
+	fun `data class function mixed with object functions works`() = runBlocking {
+		val meta = ToolMeta.build(mockMixedTool())
+		val readFile = meta.functions.first { it.name == "read_file" }
+		assertEquals("Read file content", readFile.description)
+		assertEquals(2, readFile.parameters.size)
+		assertNotNull(readFile.parameters["file_path"])
+		assertNotNull(readFile.parameters["encoding"])
+		assertTrue(readFile.parameters["file_path"]!!.required)
+		assertFalse(readFile.parameters["encoding"]!!.required)
+	}
+
 	// endregion
-	
+
 	// region name validation
 	
 	@Test
