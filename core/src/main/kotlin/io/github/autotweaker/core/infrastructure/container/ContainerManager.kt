@@ -75,7 +75,7 @@ object ContainerManager {
 		if (_containerId != null) return@withLock
 		val image = Settings.get(ContainerSettings.DockerImage()).value
 		val job = imagePullJob
-		if (job?.getCompletionExceptionOrNull() != null) {
+		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null) {
 			logger.warn("Image pull failed, restarted  image={}", image)
 			imagePullJob = scope.async { service.pullImage(image) }
 		}
