@@ -73,7 +73,12 @@ class DockerJavaService : ContainerService {
 		scope.cancel()
 		runCatching { client.close() }
 	}
-	
+
+	override fun checkAccess(): Boolean = runCatching {
+		client.pingCmd().exec()
+		true
+	}.getOrDefault(false)
+
 	override suspend fun pullImage(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
 		logger.info("Pulled image  image={}", image)

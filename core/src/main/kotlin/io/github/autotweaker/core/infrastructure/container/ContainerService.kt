@@ -27,6 +27,7 @@ interface ContainerService {
 	suspend fun start(image: String, config: ContainerConfig): String
 	suspend fun stop(containerId: String)
 	fun shutdown() {}
+	fun checkAccess(): Boolean = true
 	fun execStream(
 		containerId: String,
 		command: List<String>,

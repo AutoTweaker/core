@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.container
 
 import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
@@ -45,22 +46,30 @@ object ContainerManager {
 	
 	@Volatile
 	private var _containerId: String? = null
-	
+
+	@Volatile
+	private var containerAccess = true
+
 	val isRunning: Boolean get() = _containerId != null
-	
+
 	@Suppress("unused")
 	val containerId: String? get() = _containerId
-	
+
 	@Synchronized
 	fun init(secretStore: SecretStore) {
 		envStorage = EnvStorage(this::class, secretStore)
 		Files.createDirectories(ContainerConfig().workspaceHostPath)
+		if (!service.checkAccess()) {
+			containerAccess = false
+			logger.warn("Container access denied  features disabled")
+			return
+		}
 		imagePullJob = scope.async {
 			val image = Settings.get(ContainerSettings.DockerImage()).value
 			service.pullImage(image)
 		}
 	}
-	
+
 	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ensureRunning() = mutex.withLock {
 		if (_containerId != null) return@withLock
@@ -96,6 +105,12 @@ object ContainerManager {
 	fun execShellStream(
 		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
 	): Flow<ShellEvent> = flow {
+		if (!containerAccess) {
+			val msg = Settings.get(ContainerSettings.AccessDeniedMessage()).value
+			emit(ShellEvent.Stderr("$msg\n"))
+			emit(ShellEvent.Exit(ShellResult(exitCode = 1, timeout = false, duration = Duration.ZERO)))
+			return@flow
+		}
 		ensureRunning()
 		val id = _containerId ?: throw NoContainerRunningException()
 		val wrappedCommand = listOf("timeout", "--signal=KILL", "${timeout.inWholeSeconds}", "bash", "-lc", command)
