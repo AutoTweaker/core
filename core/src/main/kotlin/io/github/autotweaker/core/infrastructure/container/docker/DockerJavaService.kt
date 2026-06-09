@@ -52,6 +52,7 @@ class DockerJavaService : ContainerService {
 	}
 	
 	private var workspaceHostPath: Path? = null
+	private var containerWorkDir: Path? = null
 	
 	private val client: DockerClient = run {
 		val config = DefaultDockerClientConfig.createDefaultConfigBuilder().build()
@@ -76,6 +77,11 @@ class DockerJavaService : ContainerService {
 	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
 		try {
+			val hostPath = config.workspaceHostPath
+			this@DockerJavaService.workspaceHostPath = hostPath
+			this@DockerJavaService.containerWorkDir = config.workDir
+			Files.createDirectories(hostPath)
+			
 			val existing = findContainerByName(config.name)
 			if (existing != null) {
 				if (existing.state != "running") {
@@ -86,10 +92,6 @@ class DockerJavaService : ContainerService {
 				}
 				return@withContext existing.id
 			}
-			
-			val hostPath = config.workspaceHostPath
-			this@DockerJavaService.workspaceHostPath = hostPath
-			Files.createDirectories(hostPath)
 			
 			val hostConfig = HostConfig().withBinds(
 				Bind(
@@ -118,9 +120,9 @@ class DockerJavaService : ContainerService {
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
 		try {
+			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			logger.info("Container stopped  containerId={}", containerId)
-			fixWorkspacePermissions()
 		} catch (_: NotFoundException) {
 			logger.warn("Container not found  containerId={}", containerId)
 		} catch (e: Exception) {
@@ -129,16 +131,23 @@ class DockerJavaService : ContainerService {
 		}
 	}
 	
-	private fun fixWorkspacePermissions() {
-		val path = workspaceHostPath ?: return
+	private fun fixWorkspacePermissions(containerId: String) {
+		val workDir = containerWorkDir ?: return
 		runCatching {
-			ProcessBuilder("chown", "-R", uidGid, path.toString())
-				.redirectErrorStream(true)
-				.start()
-				.waitFor()
-			logger.debug("Fixed workspace permissions  path={}", path)
+			val execId = client.execCreateCmd(containerId)
+				.withCmd("chown", "-R", uidGid, workDir.toString())
+				.withAttachStdout(true)
+				.withAttachStderr(true)
+				.exec().id
+			client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {}).awaitCompletion()
+			val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
+			if (exitCode == 0) {
+				logger.debug("Fixed workspace permissions  containerId={}", containerId)
+			} else {
+				logger.warn("Failed to fix workspace permissions  containerId={}  exitCode={}", containerId, exitCode)
+			}
 		}.onFailure { e ->
-			logger.warn("Failed to fix workspace permissions  path={}", path, e)
+			logger.warn("Failed to fix workspace permissions  containerId={}", containerId, e)
 		}
 	}
 	
@@ -157,7 +166,7 @@ class DockerJavaService : ContainerService {
 					execCmd.withWorkingDir(workDir.toString())
 				}
 				val execId = execCmd.exec().id
-
+				
 				client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
 					override fun onNext(frame: Frame) {
 						val text = String(frame.payload, Charsets.UTF_8)
@@ -168,7 +177,7 @@ class DockerJavaService : ContainerService {
 						}
 					}
 				}).awaitCompletion()
-
+				
 				val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
 				trySend(
 					ShellEvent.Exit(

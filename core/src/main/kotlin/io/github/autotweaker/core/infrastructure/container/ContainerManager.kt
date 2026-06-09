@@ -82,10 +82,9 @@ object ContainerManager {
 	suspend fun stop() {
 		mutex.withLock {
 			val id = _containerId ?: return@withLock
-			val svc = service
 			try {
 				logger.debug("Container stop initiated  containerId={}", id)
-				svc.stop(id)
+				service.stop(id)
 			} finally {
 				_containerId = null
 				service.shutdown()
