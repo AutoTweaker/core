@@ -32,14 +32,15 @@ import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
 import io.github.autotweaker.core.infrastructure.container.ContainerService
-import kotlinx.coroutines.Dispatchers
+import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import java.time.Duration as JavaDuration
 
 class DockerJavaService : ContainerService {
@@ -53,6 +54,8 @@ class DockerJavaService : ContainerService {
 	
 	private var workspaceHostPath: Path? = null
 	private var containerWorkDir: Path? = null
+	private var permissionFixJob: Job? = null
+	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	
 	private val client: DockerClient = run {
 		val config = DefaultDockerClientConfig.createDefaultConfigBuilder().build()
@@ -67,6 +70,7 @@ class DockerJavaService : ContainerService {
 	}
 	
 	override fun shutdown() {
+		scope.cancel()
 		runCatching { client.close() }
 	}
 	
@@ -120,6 +124,7 @@ class DockerJavaService : ContainerService {
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
 		try {
+			permissionFixJob?.cancel()
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			logger.info("Container stopped  containerId={}", containerId)
@@ -148,6 +153,16 @@ class DockerJavaService : ContainerService {
 			}
 		}.onFailure { e ->
 			logger.warn("Failed to fix workspace permissions  containerId={}", containerId, e)
+		}
+	}
+	
+	private fun schedulePermissionFix(containerId: String) {
+		val delaySeconds = Settings.get(DockerSettings.PermissionFixDelaySeconds()).value
+		if (delaySeconds <= 0) return
+		permissionFixJob?.cancel()
+		permissionFixJob = scope.launch {
+			delay((delaySeconds * 1000L).milliseconds)
+			fixWorkspacePermissions(containerId)
 		}
 	}
 	
@@ -196,6 +211,7 @@ class DockerJavaService : ContainerService {
 				throw ContainerOperationException("Failed to exec command: ${e.message}", e)
 			}
 		}
+		schedulePermissionFix(containerId)
 		close()
 	}
 	
