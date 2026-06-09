@@ -156,6 +156,7 @@ class Agent(
 	private suspend fun handleDirective(directive: AgentCommand.Directive) {
 		when (directive) {
 			is AgentCommand.Directive.Stop -> {
+				//任何状态
 				logger.info("Stop requested  agentId={}", agentId)
 				currentJob.get()?.cancel()
 				currentJob.set(null)
@@ -167,6 +168,7 @@ class Agent(
 			}
 			
 			is AgentCommand.Directive.UpdateModel -> {
+				//任何状态
 				currentModel = directive.model
 				directive.fallbackModels?.let { currentFallbackModels = it }
 				directive.thinking?.let { currentThinking = it }
@@ -180,12 +182,14 @@ class Agent(
 			}
 			
 			is AgentCommand.Directive.Pause -> {
+				//非空闲非等待非错误
 				if (_status.value == AgentStatus.FREE || _status.value == AgentStatus.ERROR || _status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
 				logger.info("Pause requested  agentId={}  status={}", agentId, _status.value)
 				updateStatus(AgentStatus.PAUSED)
 			}
 			
 			is AgentCommand.Directive.Resume -> {
+				//暂停状态
 				if (_status.value != AgentStatus.PAUSED) return
 				logger.info("Resume requested  agentId={}", agentId)
 				updateStatus(AgentStatus.PROCESSING)
@@ -193,6 +197,7 @@ class Agent(
 			}
 			
 			is AgentCommand.Directive.Cancel -> {
+				//任何状态
 				logger.info("Cancel requested  agentId={}  status={}", agentId, _status.value)
 				if (_status.value == AgentStatus.TOOL_CALLING) {
 					currentJob.get()?.cancel()
@@ -202,6 +207,7 @@ class Agent(
 			}
 			
 			is AgentCommand.Directive.Retry -> {
+				//错误状态
 				if (_status.value != AgentStatus.ERROR) return
 				logger.info("Retried from error  agentId={}", agentId)
 				updateStatus(AgentStatus.FREE)
@@ -209,6 +215,7 @@ class Agent(
 			}
 			
 			is AgentCommand.Directive.Compact -> {
+				//任何状态
 				logger.debug("Compact requested  agentId={}", agentId)
 				launchCompact()
 			}

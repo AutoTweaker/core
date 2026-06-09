@@ -20,13 +20,11 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.ToolMeta.Companion.toSnakeCase
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNamingStrategy
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
 class ToolCallValidator(
@@ -115,8 +113,21 @@ class ToolCallValidator(
 		} else {
 			otherArguments
 		}
+		
+		val typeMapping = ToolMeta.buildTypeMapping(tool)
+		val finalJson = if (typeMapping.isNotEmpty()) {
+			val precisePaths = typeMapping.flatMap { sealedPath ->
+				expandPaths(deserializationJson, sealedPath.segments, sealedPath.typeMap)
+			}
+			precisePaths.fold(deserializationJson) { current, precisePath ->
+				applyPath(current, precisePath)
+			}
+		} else {
+			deserializationJson
+		}
+		
 		val args = runCatching {
-			json.decodeFromJsonElement(tool.argsSerializer, deserializationJson)
+			json.decodeFromJsonElement(tool.argsSerializer, finalJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
 				service.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
@@ -138,5 +149,104 @@ class ToolCallValidator(
 			reason = reason,
 			args = args,
 		)
+	}
+	
+	private data class PrecisePath(
+		val segments: List<Any>,
+		val typeMap: Map<String, String>,
+	)
+	
+	private fun expandPaths(
+		json: JsonObject,
+		segments: List<String>,
+		typeMap: Map<String, String>,
+	): List<PrecisePath> = expandOne(json, segments, typeMap)
+	
+	private fun expandOne(
+		element: JsonElement,
+		remaining: List<String>,
+		typeMap: Map<String, String>,
+	): List<PrecisePath> {
+		if (remaining.isEmpty()) return listOf(PrecisePath(emptyList(), typeMap))
+		val segment = remaining[0]
+		val rest = remaining.drop(1)
+		val jsonObject = element as? JsonObject ?: return emptyList()
+		val child = jsonObject[segment]
+		if (child == null) {
+			if (rest.isEmpty()) {
+				return jsonObject.keys.map { key -> PrecisePath(listOf(segment, key), typeMap) }
+			}
+			return jsonObject.values.flatMapIndexed { index, value ->
+				expandOne(value, rest, typeMap).map { it.prependSegment(segment, index) }
+			}
+		}
+		return when (child) {
+			is JsonArray -> {
+				if (rest.isEmpty()) {
+					child.mapIndexed { index, _ -> PrecisePath(listOf(segment, index), typeMap) }
+				} else {
+					child.flatMapIndexed { index, item ->
+						expandOne(item, rest, typeMap).map { it.prependSegment(segment, index) }
+					}
+				}
+			}
+			
+			is JsonObject -> {
+				if (rest.isEmpty()) {
+					if ("type" in child) {
+						listOf(PrecisePath(listOf(segment), typeMap))
+					} else {
+						child.keys.map { key -> PrecisePath(listOf(segment, key), typeMap) }
+					}
+				} else {
+					expandOne(child, rest, typeMap).map { it.prependSegment(segment) }
+				}
+			}
+			
+			else -> emptyList()
+		}
+	}
+	
+	private fun PrecisePath.prependSegment(vararg segments: Any): PrecisePath =
+		copy(segments = segments.toList() + this.segments)
+	
+	private fun applyPath(json: JsonObject, precisePath: PrecisePath): JsonObject {
+		if (precisePath.segments.isEmpty()) return json
+		val rootKey = precisePath.segments[0] as? String ?: return json
+		val remaining = precisePath.segments.drop(1)
+		val child = json[rootKey] ?: return json
+		val replaced = replaceAtPath(child, remaining, precisePath.typeMap)
+		return JsonObject(json + (rootKey to replaced))
+	}
+	
+	private fun replaceAtPath(
+		element: JsonElement,
+		path: List<Any>,
+		typeMap: Map<String, String>,
+	): JsonElement {
+		if (path.isEmpty()) {
+			val obj = element as? JsonObject ?: return element
+			val shortName = (obj["type"] as? JsonPrimitive)?.content ?: return element
+			val fqcn = typeMap[shortName] ?: return element
+			return JsonObject(obj + ("type" to JsonPrimitive(fqcn)))
+		}
+		val segment = path[0]
+		val remaining = path.drop(1)
+		return when (element) {
+			is JsonArray -> {
+				val index = segment as? Int ?: return element
+				JsonArray(element.mapIndexed { i, item ->
+					if (i == index) replaceAtPath(item, remaining, typeMap) else item
+				})
+			}
+			
+			is JsonObject -> {
+				val key = segment as? String ?: return element
+				val child = element[key] ?: return element
+				JsonObject(element + (key to replaceAtPath(child, remaining, typeMap)))
+			}
+			
+			else -> element
+		}
 	}
 }

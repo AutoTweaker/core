@@ -246,6 +246,138 @@ class ToolAssemblerTest {
 		assertEquals("string", reason["type"]?.jsonPrimitive?.content)
 	}
 	
+	@Test
+	fun `boolean property has type boolean`() = runBlocking {
+		@Serializable
+		data class Args(val flag: Boolean)
+		
+		val tool = mockk<Tool<Args>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns Args.serializer()
+		coEvery { tool.describe() } returns mapOf(Args::flag to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val result = ToolAssembler.assemble(listOf(tool), defaultSettings)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		assertEquals("boolean", props["flag"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+	}
+	
+	@Test
+	fun `array property has type array with items`() = runBlocking {
+		@Serializable
+		data class Args(val items: List<String>)
+		
+		val tool = mockk<Tool<Args>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns Args.serializer()
+		coEvery { tool.describe() } returns mapOf(Args::items to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val result = ToolAssembler.assemble(listOf(tool), defaultSettings)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		val items = props["items"]?.jsonObject!!
+		assertEquals("array", items["type"]?.jsonPrimitive?.content)
+		assertEquals("string", items["items"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+	}
+	
+	@Test
+	fun `map property has type object with additionalProperties`() = runBlocking {
+		@Serializable
+		data class Args(val config: Map<String, Int>)
+		
+		val tool = mockk<Tool<Args>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns Args.serializer()
+		coEvery { tool.describe() } returns mapOf(Args::config to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val result = ToolAssembler.assemble(listOf(tool), defaultSettings)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		val config = props["config"]?.jsonObject!!
+		assertEquals("object", config["type"]?.jsonPrimitive?.content)
+		assertEquals("integer", config["additionalProperties"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+	}
+	
+	@Serializable
+	private sealed class Inner {
+		@Serializable
+		data class A(val x: Int) : Inner()
+		
+		@Serializable
+		data class B(val y: String) : Inner()
+	}
+	
+	@Test
+	fun `nested sealed property produces oneOf schema`() = runBlocking {
+		@Serializable
+		data class Args(val inner: Inner)
+		
+		val tool = mockk<Tool<Args>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns Args.serializer()
+		coEvery { tool.describe() } returns mapOf(Args::inner to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val result = ToolAssembler.assemble(listOf(tool), defaultSettings)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		val inner = props["inner"]?.jsonObject!!
+		assertEquals("object", inner["type"]?.jsonPrimitive?.content)
+		val oneOf = inner["oneOf"]?.jsonArray!!
+		assertEquals(2, oneOf.size)
+		val variantAEntry = oneOf[0].jsonObject
+		assertEquals("object", variantAEntry["type"]?.jsonPrimitive?.content)
+		val requiredFields = variantAEntry["required"]?.jsonArray?.map { it.jsonPrimitive.content }!!
+		assertTrue(requiredFields.contains("type"))
+		val variantAProps = variantAEntry["properties"]?.jsonObject!!
+		assertEquals("a", variantAProps["type"]?.jsonObject?.get("const")?.jsonPrimitive?.content)
+		assertEquals("integer", variantAProps["x"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+	}
+	
+	@Test
+	fun `number property has type number`() = runBlocking {
+		@Serializable
+		data class Args(val ratio: Double)
+		
+		val tool = mockk<Tool<Args>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns Args.serializer()
+		coEvery { tool.describe() } returns mapOf(Args::ratio to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val result = ToolAssembler.assemble(listOf(tool), defaultSettings)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		assertEquals("number", props["ratio"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+	}
+	
+	@Test
+	fun `object property has type object with properties`() = runBlocking {
+		@Serializable
+		data class Nested(val a: String, val b: Int)
+		
+		@Serializable
+		data class Args(val nested: Nested)
+		
+		val tool = mockk<Tool<Args>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns Args.serializer()
+		coEvery { tool.describe() } returns mapOf(Args::nested to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val result = ToolAssembler.assemble(listOf(tool), defaultSettings)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		val nested = props["nested"]?.jsonObject!!
+		assertEquals("object", nested["type"]?.jsonPrimitive?.content)
+		val innerProps = nested["properties"]?.jsonObject!!
+		assertEquals("string", innerProps["a"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+		assertEquals("integer", innerProps["b"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+	}
+	
 	// endregion
 	
 	// region multiple tools

@@ -20,7 +20,9 @@ package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.javaField
@@ -51,7 +53,13 @@ class ToolMeta private constructor(
 		data class ObjectValue(val properties: Map<String, ValueType>) : ValueType()
 		data class MapValue(val key: ValueType, val value: ValueType) : ValueType()
 		data object AnyValue : ValueType()
+		data class OneOfValue(val variants: Map<String, ValueType>) : ValueType()
 	}
+	
+	data class SealedPath(
+		val segments: List<String>,
+		val typeMap: Map<String, String>,
+	)
 	
 	companion object {
 		fun String.toSnakeCase() = convertCamelCase(this, '_')
@@ -85,23 +93,42 @@ class ToolMeta private constructor(
 			return ToolMeta(tool.name, tool.description, listOf(Function("run", tool.description, params)))
 		}
 		
+		@OptIn(ExperimentalSerializationApi::class)
 		private fun buildSealed(
 			tool: Tool<*>,
 			desc: SerialDescriptor,
 			describeMap: Map<KProperty1<*, *>, String>,
 			funcDescMap: Map<KClass<*>, String>,
 		): ToolMeta {
+			val sealedBaseClass = funcDescMap.keys.firstOrNull()?.java?.enclosingClass?.kotlin
+			sealedBaseClass?.annotations?.filterIsInstance<JsonClassDiscriminator>()?.firstOrNull()?.let { annotation ->
+				require(annotation.discriminator == "type") {
+					"Sealed base class must not use custom discriminator: ${sealedBaseClass.qualifiedName}"
+				}
+			}
+			
+			for ((prop, _) in describeMap) {
+				require(prop.annotations.filterIsInstance<SerialName>().isEmpty()) {
+					"Parameter must not use @SerialName: ${prop.name}"
+				}
+			}
+			
 			val grouped = describeMap.entries.groupBy { (prop, _) ->
 				prop.javaField?.declaringClass
+					?: error("Property '${prop.name}' has no backing field (delegated/synthetic)")
 			}
 			
 			val sealedDesc = desc.getElementDescriptor(1)
 			val functions = (0 until sealedDesc.elementsCount).map { i ->
 				val subDesc = sealedDesc.getElementDescriptor(i)
 				val descName = sealedDesc.getElementName(i)
-				val funcClass = funcDescMap.keys.first { it.qualifiedName == descName }
+				val funcClass = funcDescMap.keys.firstOrNull { it.qualifiedName == descName }
+					?: error("Sealed subclass '$descName' not found in describeFunctions()")
 				val funcName = funcClass.simpleName ?: error("Anonymous sealed subclass '$descName'")
 				require('-' !in funcName) { "Function name must not contain '-': $funcName" }
+				require(funcClass.annotations.filterIsInstance<SerialName>().isEmpty()) {
+					"Sealed subclass must not use @SerialName: ${funcClass.qualifiedName}"
+				}
 				val funcEntries = grouped[funcClass.java] ?: emptyList()
 				val descByName = funcEntries.associate { (prop, d) -> prop.name to d }
 				val funcDesc = funcDescMap[funcClass]
@@ -133,11 +160,31 @@ class ToolMeta private constructor(
 				PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> ValueType.NumberValue()
 				PrimitiveKind.BOOLEAN -> ValueType.BooleanValue
 				is StructureKind.LIST -> ValueType.ArrayValue(getElementDescriptor(0).toValueType())
-				is StructureKind.CLASS, is StructureKind.OBJECT, is PolymorphicKind.SEALED -> ValueType.ObjectValue(
+				is StructureKind.CLASS, is StructureKind.OBJECT -> ValueType.ObjectValue(
 					(0 until elementsCount).associate { i ->
 						getElementName(i).toSnakeCase() to getElementDescriptor(i).toValueType()
 					}
 				)
+				
+				is PolymorphicKind.SEALED -> {
+					val dispatchDesc = getElementDescriptor(1)
+					for (i in 0 until dispatchDesc.elementsCount) {
+						val subName = dispatchDesc.getElementName(i)
+						require(tryLoadClass(subName) != null) {
+							"Sealed subclass not found (may use @SerialName): $subName"
+						}
+					}
+					val variants = (0 until dispatchDesc.elementsCount).associate { i ->
+						val variantName = dispatchDesc.getElementName(i).substringAfterLast('.').toSnakeCase()
+						val variantDesc = dispatchDesc.getElementDescriptor(i)
+						val properties = (0 until variantDesc.elementsCount).associate { j ->
+							variantDesc.getElementName(j).toSnakeCase() to variantDesc.getElementDescriptor(j)
+								.toValueType()
+						}
+						variantName to ValueType.ObjectValue(properties)
+					}
+					ValueType.OneOfValue(variants)
+				}
 				
 				is StructureKind.MAP -> ValueType.MapValue(
 					getElementDescriptor(0).toValueType(),
@@ -150,6 +197,82 @@ class ToolMeta private constructor(
 				
 				else -> error("Unsupported kind: $kind")
 			}
+		}
+		
+		@OptIn(ExperimentalSerializationApi::class)
+		fun buildTypeMapping(tool: Tool<*>): List<SealedPath> {
+			val desc = tool.argsSerializer.descriptor
+			val result = mutableListOf<SealedPath>()
+			if (desc.kind == PolymorphicKind.SEALED) {
+				val sealedDesc = desc.getElementDescriptor(1)
+				for (i in 0 until sealedDesc.elementsCount) {
+					val subDesc = sealedDesc.getElementDescriptor(i)
+					for (j in 0 until subDesc.elementsCount) {
+						collectSealedPaths(
+							subDesc.getElementDescriptor(j),
+							subDesc.getElementName(j).toSnakeCase(),
+							result
+						)
+					}
+				}
+			} else {
+				for (i in 0 until desc.elementsCount) {
+					collectSealedPaths(desc.getElementDescriptor(i), desc.getElementName(i).toSnakeCase(), result)
+				}
+			}
+			return result
+		}
+		
+		@OptIn(ExperimentalSerializationApi::class)
+		private fun collectSealedPaths(
+			desc: SerialDescriptor,
+			currentPath: String,
+			result: MutableList<SealedPath>,
+		) {
+			when (desc.kind) {
+				is PolymorphicKind.SEALED -> {
+					val dispatchDesc = desc.getElementDescriptor(1)
+					val typeMap = (0 until dispatchDesc.elementsCount).associate { i ->
+						val name = dispatchDesc.getElementName(i)
+						name.substringAfterLast('.').toSnakeCase() to name
+					}
+					result += SealedPath(currentPath.split('.'), typeMap)
+					for (i in 0 until dispatchDesc.elementsCount) {
+						val variantDesc = dispatchDesc.getElementDescriptor(i)
+						for (j in 0 until variantDesc.elementsCount) {
+							collectSealedPaths(
+								variantDesc.getElementDescriptor(j),
+								"$currentPath.${variantDesc.getElementName(j).toSnakeCase()}",
+								result,
+							)
+						}
+					}
+				}
+				
+				is StructureKind.CLASS, is StructureKind.OBJECT -> {
+					for (i in 0 until desc.elementsCount) {
+						collectSealedPaths(
+							desc.getElementDescriptor(i),
+							"$currentPath.${desc.getElementName(i).toSnakeCase()}",
+							result,
+						)
+					}
+				}
+				
+				is StructureKind.LIST -> collectSealedPaths(desc.getElementDescriptor(0), currentPath, result)
+				is StructureKind.MAP -> collectSealedPaths(desc.getElementDescriptor(1), currentPath, result)
+				else -> {}
+			}
+		}
+		
+		private fun tryLoadClass(fqcn: String): Class<*>? {
+			var name = fqcn
+			while ('.' in name) {
+				runCatching { return Class.forName(name) }
+				val lastDot = name.lastIndexOf('.')
+				name = name.substring(0, lastDot) + '$' + name.substring(lastDot + 1)
+			}
+			return runCatching { Class.forName(name) }.getOrNull()
 		}
 		
 		//从kotlinx.serialization.json抄的

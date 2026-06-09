@@ -112,6 +112,26 @@ object ToolAssembler {
 			}
 			
 			is ToolMeta.ValueType.AnyValue -> {}
+			
+			is ToolMeta.ValueType.OneOfValue -> {
+				builder.put("type", "object")
+				builder.putJsonArray("oneOf") {
+					variants.forEach { (variantName, variantType) ->
+						add(buildJsonObject {
+							put("type", "object")
+							putJsonObject("properties") {
+								put("type", buildJsonObject { put("const", variantName) })
+								if (variantType is ToolMeta.ValueType.ObjectValue) {
+									variantType.properties.forEach { (propName, propType) ->
+										put(propName, buildJsonObject { propType.fillJsonObject(this) })
+									}
+								}
+							}
+							putJsonArray("required") { add("type") }
+						})
+					}
+				}
+			}
 		}
 	}
 }
