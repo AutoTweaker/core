@@ -181,7 +181,8 @@ class CoreAPIImpl(
 	
 	override val log = object : CoreAPI.LogAPI {
 		override val flow: SharedFlow<LogEvent<ExceptionInfo.Live>> = LogBus.flow
-		override fun readLogs(): Flow<LogEvent<ExceptionInfo.Stored>> = LogStore.readLogs()
+		override fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> =
+			LogStore.readLogs(start, end)
 	}
 	
 	override fun trace(kClass: KClass<*>) = TraceRecorderImpl.recorder(kClass)

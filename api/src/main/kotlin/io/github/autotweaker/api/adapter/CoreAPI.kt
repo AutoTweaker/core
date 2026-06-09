@@ -160,6 +160,6 @@ interface CoreAPI {
 	
 	interface LogAPI {
 		val flow: SharedFlow<LogEvent<ExceptionInfo.Live>>
-		fun readLogs(): Flow<LogEvent<ExceptionInfo.Stored>>
+		fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>>
 	}
 }

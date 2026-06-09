@@ -13,8 +13,7 @@ target/
 dist/
 
 # Logs
-logs/
-*.log
+/logs/
 
 # System files
 .DS_Store

@@ -154,7 +154,7 @@ class Tools(private val service: SettingService) {
 		val entry = _entries.first { it.tool.name == result.toolName }
 		val tool = entry.tool
 		
-		logger.debug(
+		logger.info(
 			"Tool execution started  agentId={}  tool={}  function={}  reason={}  active={}",
 			agentId,
 			result.toolName,

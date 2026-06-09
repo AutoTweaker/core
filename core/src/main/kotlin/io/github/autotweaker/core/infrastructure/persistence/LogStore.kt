@@ -21,10 +21,8 @@ package io.github.autotweaker.core.infrastructure.persistence
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -37,22 +35,25 @@ object LogStore {
 	private val json = Json { ignoreUnknownKeys = true }
 	private val logDir = File(System.getProperty("user.home"), ".config/autotweaker/logs")
 	
-	fun readLogs(): Flow<LogEvent<ExceptionInfo.Stored>> = flow {
+	fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> {
 		val files = logDir.listFiles { f -> f.extension == "jsonl" }
-			?.sortedBy { it.lastModified() }
-			?: return@flow
+			?.sortedByDescending { it.name }
+			?: return emptyList()
+		
+		val startDate = start.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+		val result = mutableListOf<LogEvent<ExceptionInfo.Stored>>()
 		
 		for (file in files) {
-			file.bufferedReader().use { reader ->
-				var line = reader.readLine()
-				while (line != null) {
-					val event = parseLine(line)
-					if (event != null) emit(event)
-					line = reader.readLine()
-				}
+			if (file.nameWithoutExtension < "autotweaker.$startDate") break
+			file.readLines().asReversed().forEach { line ->
+				val event = parseLine(line) ?: return@forEach
+				if (event.timestamp > end) return@forEach
+				if (event.timestamp < start) return@forEach
+				result.add(event)
 			}
 		}
-	}.flowOn(Dispatchers.IO)
+		return result
+	}
 	
 	private fun parseLine(line: String): LogEvent<ExceptionInfo.Stored>? {
 		return try {
