@@ -4,6 +4,7 @@ After=network-online.target
 
 [Service]
 Type=simple
+Environment=LOG_TARGET=JOURNAL
 EnvironmentFile=-%h/.config/autotweaker/env
 ExecStart=/usr/libexec/autotweaker/autotweakerd
 SuccessExitStatus=143

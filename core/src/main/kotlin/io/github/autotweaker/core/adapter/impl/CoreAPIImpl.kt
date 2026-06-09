@@ -32,12 +32,15 @@ import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
+import io.github.autotweaker.api.types.log.ExceptionInfo
+import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
+import io.github.autotweaker.core.application.LogBus
 import io.github.autotweaker.core.application.ShellRouter
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
@@ -48,6 +51,7 @@ import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
+import io.github.autotweaker.core.infrastructure.persistence.LogStore
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
@@ -56,6 +60,7 @@ import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.reflect.KClass
@@ -172,6 +177,11 @@ class CoreAPIImpl(
 		
 		override suspend fun delete(origin: String, namespace: String, timestamp: Instant) =
 			TraceStore.delete(origin, namespace, timestamp)
+	}
+	
+	override val log = object : CoreAPI.LogAPI {
+		override val flow: SharedFlow<LogEvent<ExceptionInfo.Live>> = LogBus.flow
+		override fun readLogs(): Flow<LogEvent<ExceptionInfo.Stored>> = LogStore.readLogs()
 	}
 	
 	override fun trace(kClass: KClass<*>) = TraceRecorderImpl.recorder(kClass)

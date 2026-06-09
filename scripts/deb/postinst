@@ -45,6 +45,7 @@ if [ -z "$2" ]; then
 -Xmx${XMX}
 -XX:+HeapDumpOnOutOfMemoryError
 -XX:HeapDumpPath=/var/log/autotweaker
+--enable-native-access=ALL-UNNAMED
 EOF
     [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
 fi

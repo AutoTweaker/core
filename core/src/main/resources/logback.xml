@@ -18,39 +18,63 @@
 
 <configuration>
     <property name="LOG_DIR" value="${user.home}/.config/autotweaker/logs"/>
+    <property name="LOG_TARGET" value="${LOG_TARGET:-STDOUT}"/>
 
     <conversionRule conversionWord="levelColor" class="io.github.autotweaker.core.logging.LevelColorConverter"/>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>${log.level:-DEBUG}</level>
-        </filter>
-        <encoder>
-            <pattern>%white(%d{HH:mm:ss.SSS}) %magenta([%thread]) %levelColor(%-5level) %blue(%logger{36}) - %levelColor(%msg%n)</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="JSONL" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>${log.rolling.level:-DEBUG}</level>
         </filter>
-        <file>${LOG_DIR}/autotweaker.log</file>
+        <file>${LOG_DIR}/autotweaker.jsonl</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_DIR}/autotweaker.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${LOG_DIR}/autotweaker.%d{yyyy-MM-dd}.%i.jsonl</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>500MB</totalSizeCap>
         </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <appender name="JOURNAL" class="com.dgkncgty.logback.SystemdJournalAppender">
+        <syslogIdentifier>autotweaker</syslogIdentifier>
+        <logThreadName>true</logThreadName>
+        <logLoggerName>true</logLoggerName>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%msg%n</pattern>
         </encoder>
     </appender>
 
-    <logger name="Exposed" level="WARN"/>
+    <appender name="SHARED_FLOW" class="io.github.autotweaker.core.logging.SharedFlowAppender"/>
 
-    <root level="${log.root.level:-DEBUG}">
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="ROLLING"/>
-    </root>
+    <logger name="Exposed" level="INFO"/>
+
+    <condition class="ch.qos.logback.core.boolex.ExpressionPropertyCondition">
+        <expression>propertyEquals("LOG_TARGET", "JOURNAL")</expression>
+    </condition>
+    <if>
+        <then>
+            <root level="${log.root.level:-DEBUG}">
+                <appender-ref ref="JOURNAL"/>
+                <appender-ref ref="JSONL"/>
+                <appender-ref ref="SHARED_FLOW"/>
+            </root>
+        </then>
+        <else>
+            <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>${log.level:-DEBUG}</level>
+                </filter>
+                <encoder>
+                    <pattern>%white(%d{HH:mm:ss.SSS}) %magenta([%thread]) %levelColor(%-5level) %blue(%logger{36}) - %levelColor(%msg%n)</pattern>
+                </encoder>
+            </appender>
+            <root level="${log.root.level:-DEBUG}">
+                <appender-ref ref="STDOUT"/>
+                <appender-ref ref="JSONL"/>
+                <appender-ref ref="SHARED_FLOW"/>
+            </root>
+        </else>
+    </if>
 
 </configuration>

@@ -30,10 +30,13 @@ import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.log.ExceptionInfo
+import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.reflect.KClass
@@ -46,6 +49,7 @@ interface CoreAPI {
 	val secret: SecretAPI
 	val i18n: I18nAPI
 	val trace: TraceAPI
+	val log: LogAPI
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	fun bash(arg: ShellExec): Flow<ShellEvent>
@@ -152,5 +156,10 @@ interface CoreAPI {
 		suspend fun count(origin: String, namespace: String): Int
 		suspend fun get(origin: String, namespace: String, timestamp: Instant): String?
 		suspend fun delete(origin: String, namespace: String, timestamp: Instant)
+	}
+	
+	interface LogAPI {
+		val flow: SharedFlow<LogEvent<ExceptionInfo.Live>>
+		fun readLogs(): Flow<LogEvent<ExceptionInfo.Stored>>
 	}
 }

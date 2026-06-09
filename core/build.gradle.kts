@@ -65,6 +65,9 @@ dependencies {
 	
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	implementation("ch.qos.logback:logback-classic:1.5.32")
+	implementation("com.dgkncgty:logback-journal:0.5.1")
+	implementation("org.codehaus.janino:janino:3.1.12")
+	implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 	
 	implementation("com.github.docker-java:docker-java-core:3.7.1")
 	implementation("com.github.docker-java:docker-java-transport-httpclient5:3.7.1")
