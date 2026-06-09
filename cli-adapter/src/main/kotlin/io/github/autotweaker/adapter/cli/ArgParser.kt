@@ -30,11 +30,11 @@ class ArgParser(
 		val positional = mutableListOf<String>()
 		val values = mutableMapOf<String, String>()
 		var posCounter = 0
-		val allParams = syntaxValidator.collectParams(syntax).map { p ->
-			if (p is Param.Positional) p.copy(name = $$"$pos_$${posCounter++}") else p
+		val allParams = syntaxValidator.collectParams(syntax).map {
+			if (it is Param.Positional) it.copy(name = $$"$pos_$${posCounter++}") else it
 		}.let {
-			it.filterNot { p -> p is Param.Positional }
-				.distinctBy { p -> p.name } + it.filterIsInstance<Param.Positional>()
+			it.filterNot { param -> param is Param.Positional }
+				.distinctBy { param -> param.name } + it.filterIsInstance<Param.Positional>()
 		}
 		val aliasMap = buildAliasMap(allParams)
 		if (args.size > maxArgsCount) return null
@@ -91,7 +91,9 @@ class ArgParser(
 						val valKey = aliasMap[tail] ?: tail
 						val valParam = allParams.find { it.name == valKey && it is Param.Value }
 						if (valParam != null) {
-							values[valKey] = args.getOrNull(i + 1) ?: return null
+							val next = args.getOrNull(i + 1) ?: return null
+							if (next == "--") return null
+							values[valKey] = next
 							i += 2
 						} else {
 							for (c in tail) {

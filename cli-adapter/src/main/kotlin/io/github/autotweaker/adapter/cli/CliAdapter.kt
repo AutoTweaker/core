@@ -31,7 +31,7 @@ class CliAdapter : Adapter {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val adapterVersion = SemVer.parse("0.1.0")
 	private var server: CliServer? = null
-	private var coreVersion: SemVer? = null
+	private lateinit var coreVersion: SemVer
 	private lateinit var adapterName: String
 	
 	override val isRunning: Boolean get() = server != null
@@ -53,7 +53,7 @@ class CliAdapter : Adapter {
 	
 	override suspend fun start(core: CoreAPI) {
 		val s = CliServer(core.config.settingService, core)
-		val router = CommandRouter.fromServiceLoader(core, coreVersion ?: error("CliAdapter not initialized"))
+		val router = CommandRouter.fromServiceLoader(core, coreVersion)
 		s.start(router)
 		server = s
 		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)

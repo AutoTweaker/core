@@ -44,7 +44,6 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	
 	private val maxArgsCount = core.config.settingService.get(MaxArgsCount()).value
 	private val i18n = core.i18n.i18nService
-	private val syntaxValidator = SyntaxValidator
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {
@@ -63,14 +62,16 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	fun dispatch(
 		request: CliMessage.Command, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> {
+		//取子命令
 		val cmd = request.command()
+		//无参at
 		if (cmd.isEmpty()) {
 			return flowOf(
 				CmdOutput.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"), CmdOutput.Done()
 			)
 		}
-		val handler = handlers[cmd]
-		if (handler == null) {
+		//找子命令
+		val handler = handlers[cmd] ?: run {
 			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
 			return flow {
 				emitI18n(i18n, CmdI18n.UnknownHint(), cmd, request.prog, error = true)
@@ -78,24 +79,24 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 			}
 		}
 		
-		val conflicts = syntaxValidator.checkConflicts(handler.syntax)
+		val conflicts = SyntaxValidator.checkConflicts(handler.syntax)
 		if (conflicts.isNotEmpty()) {
 			logger.warn("Param name conflict in command  command={}  conflicts={}", cmd, conflicts)
 			return flowOf(
-				CmdOutput.Data(conflicts.first(), CmdOutput.Channel.STDERR),
+				*conflicts.map { CmdOutput.Data(it, CmdOutput.Channel.STDERR) }.toTypedArray(),
 				CmdOutput.Done(1),
 			)
 		}
 		
 		logger.debug("Command dispatched  command={}  args={}", cmd, request.args.drop(1))
 		val parsed = argParser.parse(request.args.drop(1), handler.syntax, request.prog)
-		if (parsed == null) {
-			logger.debug("Invalid arguments for command  command={}", cmd)
-			return flow {
-				emitI18n(i18n, CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
-				emitDone(1)
+			?: run {
+				logger.debug("Invalid arguments for command  command={}", cmd)
+				return flow {
+					emitI18n(i18n, CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
+					emitDone(1)
+				}
 			}
-		}
 		
 		val isSecretUnlock = cmd == "secret" && (parsed.has("unlock") || parsed.has("passwd"))
 		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked.value) {
