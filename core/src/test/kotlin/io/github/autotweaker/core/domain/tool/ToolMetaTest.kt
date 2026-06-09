@@ -25,6 +25,10 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.*
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -407,6 +411,110 @@ class ToolMetaTest {
 		assertTrue(vt.items is ToolMeta.ValueType.IntegerValue)
 	}
 	
+	@Test
+	fun `map of string to int maps to MapValue`() = runBlocking {
+		@Serializable
+		data class MapArgs(val config: Map<String, Int>)
+		
+		val tool = mockk<Tool<MapArgs>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns MapArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(MapArgs::config to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val meta = ToolMeta.build(tool)
+		val vt = meta.functions[0].parameters["config"]!!.valueType
+		assertTrue(vt is ToolMeta.ValueType.MapValue)
+		assertTrue(vt.key is ToolMeta.ValueType.StringValue)
+		assertTrue(vt.value is ToolMeta.ValueType.IntegerValue)
+	}
+	
+	@Test
+	fun `map of string to string maps to MapValue`() = runBlocking {
+		@Serializable
+		data class MapStrArgs(val env: Map<String, String>)
+		
+		val tool = mockk<Tool<MapStrArgs>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns MapStrArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(MapStrArgs::env to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val meta = ToolMeta.build(tool)
+		val vt = meta.functions[0].parameters["env"]!!.valueType
+		assertTrue(vt is ToolMeta.ValueType.MapValue)
+		assertTrue(vt.key is ToolMeta.ValueType.StringValue)
+		assertTrue(vt.value is ToolMeta.ValueType.StringValue)
+	}
+	
+	@Test
+	fun `JsonElement maps to AnyValue`() = runBlocking {
+		@Serializable
+		data class JsonArgs(val data: JsonElement)
+		
+		val tool = mockk<Tool<JsonArgs>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns JsonArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(JsonArgs::data to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val meta = ToolMeta.build(tool)
+		assertTrue(meta.functions[0].parameters["data"]!!.valueType is ToolMeta.ValueType.AnyValue)
+	}
+	
+	@Test
+	fun `JsonObject maps to AnyValue`() = runBlocking {
+		@Serializable
+		data class JsonObjArgs(val obj: JsonObject)
+		
+		val tool = mockk<Tool<JsonObjArgs>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns JsonObjArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(JsonObjArgs::obj to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val meta = ToolMeta.build(tool)
+		assertTrue(meta.functions[0].parameters["obj"]!!.valueType is ToolMeta.ValueType.AnyValue)
+	}
+	
+	@Test
+	fun `JsonArray maps to ArrayValue with AnyValue items`() = runBlocking {
+		@Serializable
+		data class JsonArrArgs(val arr: JsonArray)
+		
+		val tool = mockk<Tool<JsonArrArgs>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns JsonArrArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(JsonArrArgs::arr to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val meta = ToolMeta.build(tool)
+		val vt = meta.functions[0].parameters["arr"]!!.valueType
+		assertTrue(vt is ToolMeta.ValueType.ArrayValue)
+		assertTrue(vt.items is ToolMeta.ValueType.AnyValue)
+	}
+	
+	@Test
+	fun `JsonPrimitive maps to AnyValue`() = runBlocking {
+		@Serializable
+		data class JsonPrimArgs(val prim: JsonPrimitive)
+		
+		val tool = mockk<Tool<JsonPrimArgs>>()
+		every { tool.name } returns "t"
+		every { tool.description } returns "d"
+		every { tool.argsSerializer } returns JsonPrimArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(JsonPrimArgs::prim to "desc")
+		coEvery { tool.describeFunctions() } returns emptyMap()
+		
+		val meta = ToolMeta.build(tool)
+		assertTrue(meta.functions[0].parameters["prim"]!!.valueType is ToolMeta.ValueType.AnyValue)
+	}
+	
 	// endregion
 	
 	// region snake_case conversion
@@ -487,32 +595,32 @@ class ToolMetaTest {
 	}
 	
 	// endregion
-
+	
 	// region sealed class edge cases
-
+	
 	@Serializable
 	private sealed class TwoOptions {
 		@Serializable
 		data class OptA(val value: String) : TwoOptions()
-
+		
 		@Serializable
 		data class OptB(val count: Int) : TwoOptions()
 	}
-
+	
 	@Serializable
 	private sealed class Single {
 		@Serializable
 		data class Only(val x: Int) : Single()
 	}
-
+	
 	@Serializable
 	private sealed class MixedArgs {
 		@Serializable
 		data class ReadFile(val filePath: String, val encoding: String = "utf-8") : MixedArgs()
-
+		
 		@Serializable
 		data object ListFiles : MixedArgs()
-
+		
 		@Serializable
 		data object GetStatus : MixedArgs()
 	}
@@ -552,7 +660,7 @@ class ToolMetaTest {
 		assertEquals(1, meta.functions.size)
 		assertEquals("only", meta.functions[0].name)
 	}
-
+	
 	private fun mockMixedTool(): Tool<MixedArgs> {
 		val tool = mockk<Tool<MixedArgs>>()
 		every { tool.name } returns "fs"
@@ -569,7 +677,7 @@ class ToolMetaTest {
 		)
 		return tool
 	}
-
+	
 	@Test
 	fun `sealed class with object subclass builds all functions`() = runBlocking {
 		val meta = ToolMeta.build(mockMixedTool())
@@ -579,7 +687,7 @@ class ToolMetaTest {
 		assertTrue(names.contains("list_files"))
 		assertTrue(names.contains("get_status"))
 	}
-
+	
 	@Test
 	fun `object function has no parameters`() = runBlocking {
 		val meta = ToolMeta.build(mockMixedTool())
@@ -588,7 +696,7 @@ class ToolMetaTest {
 		val getStatus = meta.functions.first { it.name == "get_status" }
 		assertTrue(getStatus.parameters.isEmpty())
 	}
-
+	
 	@Test
 	fun `object function uses describeFunctions description`() = runBlocking {
 		val meta = ToolMeta.build(mockMixedTool())
@@ -597,7 +705,7 @@ class ToolMetaTest {
 		val getStatus = meta.functions.first { it.name == "get_status" }
 		assertEquals("Get system status", getStatus.description)
 	}
-
+	
 	@Test
 	fun `data class function mixed with object functions works`() = runBlocking {
 		val meta = ToolMeta.build(mockMixedTool())
@@ -609,9 +717,9 @@ class ToolMetaTest {
 		assertTrue(readFile.parameters["file_path"]!!.required)
 		assertFalse(readFile.parameters["encoding"]!!.required)
 	}
-
+	
 	// endregion
-
+	
 	// region name validation
 	
 	@Test

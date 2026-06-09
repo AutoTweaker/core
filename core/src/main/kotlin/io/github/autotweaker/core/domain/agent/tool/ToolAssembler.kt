@@ -105,6 +105,13 @@ object ToolAssembler {
 					}
 				}
 			}
+			
+			is ToolMeta.ValueType.MapValue -> {
+				builder.put("type", "object")
+				builder.put("additionalProperties", buildJsonObject { value.fillJsonObject(this) })
+			}
+			
+			is ToolMeta.ValueType.AnyValue -> {}
 		}
 	}
 }

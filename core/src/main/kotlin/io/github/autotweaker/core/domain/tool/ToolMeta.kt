@@ -49,6 +49,8 @@ class ToolMeta private constructor(
 		data object BooleanValue : ValueType()
 		data class ArrayValue(val items: ValueType) : ValueType()
 		data class ObjectValue(val properties: Map<String, ValueType>) : ValueType()
+		data class MapValue(val key: ValueType, val value: ValueType) : ValueType()
+		data object AnyValue : ValueType()
 	}
 	
 	companion object {
@@ -92,7 +94,7 @@ class ToolMeta private constructor(
 			val grouped = describeMap.entries.groupBy { (prop, _) ->
 				prop.javaField?.declaringClass
 			}
-
+			
 			val sealedDesc = desc.getElementDescriptor(1)
 			val functions = (0 until sealedDesc.elementsCount).map { i ->
 				val subDesc = sealedDesc.getElementDescriptor(i)
@@ -120,24 +122,34 @@ class ToolMeta private constructor(
 		}
 		
 		@OptIn(ExperimentalSerializationApi::class)
-		private fun SerialDescriptor.toValueType(): ValueType = when (kind) {
-			PrimitiveKind.STRING, PrimitiveKind.CHAR -> ValueType.StringValue()
-			PrimitiveKind.INT, PrimitiveKind.LONG, PrimitiveKind.BYTE, PrimitiveKind.SHORT -> ValueType.IntegerValue()
-			PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> ValueType.NumberValue()
-			PrimitiveKind.BOOLEAN -> ValueType.BooleanValue
-			is StructureKind.LIST -> ValueType.ArrayValue(getElementDescriptor(0).toValueType())
-			is StructureKind.CLASS, is StructureKind.OBJECT, is PolymorphicKind.SEALED -> ValueType.ObjectValue(
-				(0 until elementsCount).associate { i ->
-					getElementName(i).toSnakeCase() to getElementDescriptor(i).toValueType()
-				}
-			)
+		private fun SerialDescriptor.toValueType(): ValueType = when (serialName) {
+			"kotlinx.serialization.json.JsonElement",
+			"kotlinx.serialization.json.JsonObject",
+			"kotlinx.serialization.json.JsonPrimitive" -> ValueType.AnyValue
 			
-			is StructureKind.MAP -> ValueType.ObjectValue(emptyMap())
-			SerialKind.ENUM -> ValueType.StringValue(
-				(0 until elementsCount).map { getElementName(it) }
-			)
-			
-			else -> error("Unsupported kind: $kind")
+			else -> when (kind) {
+				PrimitiveKind.STRING, PrimitiveKind.CHAR -> ValueType.StringValue()
+				PrimitiveKind.INT, PrimitiveKind.LONG, PrimitiveKind.BYTE, PrimitiveKind.SHORT -> ValueType.IntegerValue()
+				PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> ValueType.NumberValue()
+				PrimitiveKind.BOOLEAN -> ValueType.BooleanValue
+				is StructureKind.LIST -> ValueType.ArrayValue(getElementDescriptor(0).toValueType())
+				is StructureKind.CLASS, is StructureKind.OBJECT, is PolymorphicKind.SEALED -> ValueType.ObjectValue(
+					(0 until elementsCount).associate { i ->
+						getElementName(i).toSnakeCase() to getElementDescriptor(i).toValueType()
+					}
+				)
+				
+				is StructureKind.MAP -> ValueType.MapValue(
+					getElementDescriptor(0).toValueType(),
+					getElementDescriptor(1).toValueType(),
+				)
+				
+				SerialKind.ENUM -> ValueType.StringValue(
+					(0 until elementsCount).map { getElementName(it) }
+				)
+				
+				else -> error("Unsupported kind: $kind")
+			}
 		}
 		
 		//从kotlinx.serialization.json抄的
