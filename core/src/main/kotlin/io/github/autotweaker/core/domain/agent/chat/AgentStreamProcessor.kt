@@ -82,7 +82,7 @@ object AgentStreamProcessor {
 							)
 							streamResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
 						} else {
-							logger.debug("LLM stream completed  agentId={}", agentId)
+							logger.info("LLM stream completed  agentId={}", agentId)
 							streamResult = StreamProcessResult.Completed
 						}
 					}

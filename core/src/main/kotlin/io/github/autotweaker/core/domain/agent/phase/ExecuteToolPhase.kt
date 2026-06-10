@@ -61,7 +61,7 @@ object ExecuteToolPhase {
 					},
 				)
 			}.also {
-				logger.debug("Tool completed  agentId={}  tool={}  status={}", env.agentId, call.name, it.result.status)
+				logger.info("Tool completed  agentId={}  tool={}  status={}", env.agentId, call.name, it.result.status)
 			}
 		} catch (_: TimeoutCancellationException) {
 			logger.warn("Tool timed out  agentId={}  tool={}  timeout={}s", env.agentId, call.name, timeoutSeconds)

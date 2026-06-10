@@ -181,7 +181,7 @@ object ResilientChat {
 			}
 			
 			if (round < llmChatRetries) {
-				logger.debug("All candidate models exhausted  restarting  round={}", round + 1)
+				logger.info("All candidate models exhausted  restarting  round={}", round + 1)
 			}
 		}
 		

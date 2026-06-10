@@ -149,7 +149,7 @@ class Agent(
 				resumeFromCurrentState()
 			}
 		}
-		logger.debug("Event loop started  agentId={}", agentId)
+		logger.info("Event loop started  agentId={}", agentId)
 	}
 	
 	//处理指令（即时
@@ -312,7 +312,7 @@ class Agent(
 	//调用llm
 	private fun requestLlm() {
 		currentJob.set(scope.launch {
-			logger.debug("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.modelId)
+			logger.info("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.modelId)
 			val result = RequestLlmPhase.execute(this@Agent)
 			if (result == PhaseResult.Done || result == PhaseResult.Continue) {
 				checkAutoCompact()
@@ -323,7 +323,7 @@ class Agent(
 					workTrigger.trySend(Unit)
 				}
 				
-				PhaseResult.Done -> logger.debug("LLM phase completed  agentId={}", agentId)
+				PhaseResult.Done -> logger.info("LLM phase completed  agentId={}", agentId)
 				PhaseResult.Error -> logger.warn("Failed to complete LLM phase  agentId={}", agentId)
 			}
 		})
@@ -375,7 +375,7 @@ class Agent(
 	//处理工具调用
 	private fun executeTools() {
 		currentJob.set(scope.launch {
-			logger.debug("Tool execution phase started  agentId={}", agentId)
+			logger.info("Tool execution phase started  agentId={}", agentId)
 			val result = ValidateToolCallsPhase.execute(this@Agent)
 			when (result) {
 				PhaseResult.Continue -> {
@@ -383,7 +383,7 @@ class Agent(
 					workTrigger.trySend(Unit)
 				}
 				
-				PhaseResult.Done -> logger.debug("Tool execution completed  agentId={}", agentId)
+				PhaseResult.Done -> logger.info("Tool execution completed  agentId={}", agentId)
 				PhaseResult.Error -> logger.warn("Failed to execute tools  agentId={}", agentId)
 			}
 		})

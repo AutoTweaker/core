@@ -51,7 +51,7 @@ object WorkspaceManager {
 		if (workspaceListRef.get().any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
 		val data = WorkspaceData(meta = meta)
 		update(workspaceListRef.get().plus(data))
-		logger.debug("Workspace created  id={}  name={}", data.meta.id, meta.displayName)
+		logger.info("Workspace created  id={}  name={}", data.meta.id, meta.displayName)
 		return data
 	}
 	
@@ -77,7 +77,7 @@ object WorkspaceManager {
 		require(id in workspaceListRef.get().map { it.meta.id })
 		if (id == DEFAULT_WORKSPACE_ID) error("Cannot delete default workspace")
 		update(workspaceListRef.get().filterNot { it.meta.id == id })
-		logger.debug("Workspace deleted  id={}", id)
+		logger.info("Workspace deleted  id={}", id)
 	}
 	
 	@Synchronized
