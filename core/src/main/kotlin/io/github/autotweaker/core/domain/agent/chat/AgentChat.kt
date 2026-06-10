@@ -48,7 +48,8 @@ object AgentChat {
 				arguments = it.arguments,
 				timestamp = timestamp,
 				modelId = modelId,
-				reason = null
+				reason = null,
+				validatedArgs = null,
 			)
 		}
 	}

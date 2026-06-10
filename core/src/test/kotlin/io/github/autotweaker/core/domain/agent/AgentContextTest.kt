@@ -93,7 +93,7 @@ class AgentContextTest {
 			arguments = """{"cmd":"ls"}""",
 			reason = "test",
 			timestamp = now,
-			modelId = mockModelId
+			modelId = mockModelId, validatedArgs = null
 		)
 		val result = AgentContext.Message.Tool.Result(
 			content = "output", timestamp = now, status = ToolResultStatus.SUCCESS
@@ -114,7 +114,7 @@ class AgentContextTest {
 			assistantMessageId = UUID.randomUUID(),
 			arguments = "{}",
 			timestamp = now,
-			modelId = mockModelId
+			modelId = mockModelId, validatedArgs = null
 		)
 		val result = AgentContext.Message.Tool.Result(
 			content = "error", timestamp = now, status = ToolResultStatus.FAILURE
@@ -147,7 +147,7 @@ class AgentContextTest {
 			assistantMessageId = UUID.randomUUID(),
 			arguments = "{}",
 			timestamp = now,
-			modelId = mockModelId
+			modelId = mockModelId, validatedArgs = null
 		)
 		assertNull(call.reason)
 	}
@@ -190,7 +190,7 @@ class AgentContextTest {
 		val pending = listOf(
 			AgentContext.CurrentRound.PendingToolCall(
 				callId = "c1", assistantMessageId = UUID.randomUUID(), name = "read_file", modelId = mockModelId,
-				arguments = """{"path":"/tmp"}""", reason = "need to read", timestamp = now
+				arguments = """{"path":"/tmp"}""", reason = "need to read", timestamp = now, validatedArgs = null
 			)
 		)
 		val round = AgentContext.CurrentRound(userMsg, null, null, pending)
@@ -212,7 +212,7 @@ class AgentContextTest {
 			name = "bash_run",
 			modelId = mockModelId,
 			arguments = "{}",
-			timestamp = now
+			timestamp = now, validatedArgs = null
 		)
 		assertNull(pending.reason)
 	}
@@ -224,7 +224,7 @@ class AgentContextTest {
 			assistantMessageId = UUID.randomUUID(),
 			arguments = "{}",
 			timestamp = now,
-			modelId = mockModelId
+			modelId = mockModelId, validatedArgs = null
 		)
 		val result = AgentContext.Message.Tool.Result(
 			content = "ok",

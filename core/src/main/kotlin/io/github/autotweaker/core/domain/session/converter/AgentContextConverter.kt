@@ -81,6 +81,7 @@ object AgentContextConverter {
 						name = pending.name,
 						arguments = pending.arguments,
 						reason = pending.reason,
+						validatedArgs = pending.validatedArgs,
 					)
 				)
 			}
@@ -195,6 +196,7 @@ object AgentContextConverter {
 			name = tool.name,
 			arguments = tool.call.arguments,
 			reason = tool.call.reason,
+			validatedArgs = tool.call.validatedArgs,
 		)
 	}
 	

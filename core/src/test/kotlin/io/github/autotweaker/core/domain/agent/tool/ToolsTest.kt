@@ -21,7 +21,6 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
-import kotlinx.coroutines.channels.Channel
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -33,6 +32,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
@@ -79,6 +79,8 @@ class ToolsTest {
 		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, modelId = mockModel.id,
 		arguments = """{"cmd":"echo","reason":"test"}""",
 		reason = "test", timestamp = Clock.System.now(),
+		
+		validatedArgs = null,
 	)
 	
 	private fun validationSuccess(

@@ -51,6 +51,8 @@ class ToolCallHistoryImplTest {
 			reason = "test",
 			timestamp = Clock.System.now(),
 			modelId = mockModel.id,
+			
+			validatedArgs = null,
 		),
 		callId = "call-1",
 		result = AgentContext.Message.Tool.Result(

@@ -47,6 +47,23 @@ object ValidateToolCallsPhase {
 		//分别提取解析失败、成功和激活的
 		val failures = results.filterIsInstance<Tools.ToolCallResolveResult.ParseFailure>()
 		val needsApproval = results.filterIsInstance<Tools.ToolCallResolveResult.NeedsApproval>()
+		//填充validatedArgs
+		if (needsApproval.isNotEmpty()) {
+			val validatedMap = needsApproval.associate { n ->
+				n.callId to env.tools.serializeValidatedArgs(n.result.toolName, n.result.args)
+			}
+			env.updateContext { ctx ->
+				val current = ctx.currentRound ?: return@updateContext ctx
+				val pending = current.pendingToolCalls ?: return@updateContext ctx
+				ctx.copy(
+					currentRound = current.copy(
+						pendingToolCalls = pending.map { call ->
+							validatedMap[call.callId]?.let { call.copy(validatedArgs = it) } ?: call
+						}
+					)
+				)
+			}
+		}
 		val activations = results.filterIsInstance<Tools.ToolCallResolveResult.Activation>()
 		logger.debug(
 			"Tool calls resolved  agentId={}  total={}  failures={}  needsApproval={}  activations={}",

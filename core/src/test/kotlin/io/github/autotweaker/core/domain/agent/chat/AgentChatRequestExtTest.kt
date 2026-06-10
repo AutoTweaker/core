@@ -75,7 +75,7 @@ class AgentChatRequestExtTest {
 				assistantMessageId = UUID.randomUUID(),
 				arguments = "{}",
 				timestamp = Clock.System.now(),
-				modelId = testModel.id
+				modelId = testModel.id, validatedArgs = null
 			),
 			callId = "call-1",
 			result = AgentContext.Message.Tool.Result(
@@ -249,7 +249,7 @@ class AgentChatRequestExtTest {
 				name = "read",
 				modelId = testModel.id,
 				arguments = "{}",
-				timestamp = Clock.System.now()
+				timestamp = Clock.System.now(), validatedArgs = null
 			)
 		)
 		val round = AgentContext.CurrentRound(user, null, null, pending)

@@ -33,6 +33,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.slf4j.LoggerFactory
@@ -64,6 +67,12 @@ class Tools(private val service: SettingService) {
 			_entries.filter { it.active }.map { it.tool },
 			service,
 		)
+	
+	fun serializeValidatedArgs(toolName: String, args: Any): JsonElement? {
+		val tool = _entries.find { it.tool.name == toolName }?.tool ?: return null
+		@Suppress("UNCHECKED_CAST")
+		return Json.encodeToJsonElement(tool.argsSerializer as KSerializer<Any>, args)
+	}
 	
 	suspend fun resolveToolCalls(
 		calls: List<AgentContext.CurrentRound.PendingToolCall>,
@@ -242,6 +251,7 @@ class Tools(private val service: SettingService) {
 				reason = call.reason,
 				timestamp = call.timestamp,
 				modelId = call.modelId,
+				validatedArgs = call.validatedArgs,
 			),
 			callId = call.callId,
 			result = AgentContext.Message.Tool.Result(

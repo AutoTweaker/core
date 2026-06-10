@@ -171,6 +171,7 @@ object ContextPhase {
 			reason = call.reason,
 			timestamp = call.timestamp,
 			modelId = call.modelId,
+			validatedArgs = call.validatedArgs,
 		),
 		callId = call.callId,
 		result = AgentContext.Message.Tool.Result(

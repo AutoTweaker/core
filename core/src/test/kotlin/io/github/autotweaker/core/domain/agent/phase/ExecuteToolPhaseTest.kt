@@ -80,6 +80,8 @@ class ExecuteToolPhaseTest {
 		pendingCall = AgentContext.CurrentRound.PendingToolCall(
 			callId = "c1", assistantMessageId = UUID.randomUUID(), name = "bash_run", modelId = model.id,
 			arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
+			
+			validatedArgs = null,
 		)
 		
 		env = mockk(relaxUnitFun = true)
@@ -113,6 +115,8 @@ class ExecuteToolPhaseTest {
 			call = AgentContext.Message.Tool.Call(
 				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "test reason",
 				timestamp = pendingCall.timestamp, modelId = model.id,
+				
+				validatedArgs = null,
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "execution output", timestamp = Clock.System.now(),
@@ -184,6 +188,8 @@ class ExecuteToolPhaseTest {
 		call = AgentContext.Message.Tool.Call(
 			assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "test reason",
 			timestamp = pendingCall.timestamp, modelId = model.id,
+			
+			validatedArgs = null,
 		),
 		result = AgentContext.Message.Tool.Result(
 			content = "execution output", timestamp = Clock.System.now(),

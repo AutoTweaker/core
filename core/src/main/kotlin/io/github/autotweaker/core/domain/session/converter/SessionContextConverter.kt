@@ -109,7 +109,8 @@ object SessionContextConverter {
 				modelId = assistantModel,
 				arguments = call.arguments,
 				reason = call.reason,
-				timestamp = call.timestamp
+				timestamp = call.timestamp,
+				validatedArgs = call.validatedArgs,
 			)
 		}
 		
@@ -136,6 +137,7 @@ object SessionContextConverter {
 					arguments = callMsg.arguments,
 					reason = callMsg.reason,
 					timestamp = callMsg.timestamp,
+					validatedArgs = callMsg.validatedArgs,
 					modelId = assistantMsg.model,
 				), callId = callMsg.callId, result = AgentContext.Message.Tool.Result(
 					id = resultMsg.id,

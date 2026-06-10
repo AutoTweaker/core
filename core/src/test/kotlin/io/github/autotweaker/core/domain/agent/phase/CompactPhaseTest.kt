@@ -255,6 +255,8 @@ class CompactPhaseTest {
 			call = AgentContext.Message.Tool.Call(
 				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "needed",
 				timestamp = Clock.System.now(), modelId = model.id,
+				
+				validatedArgs = null,
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "command output",
@@ -488,6 +490,8 @@ class CompactPhaseTest {
 			call = AgentContext.Message.Tool.Call(
 				assistantMessageId = UUID.randomUUID(), arguments = "{}", reason = "needed",
 				timestamp = Clock.System.now(), modelId = model.id,
+				
+				validatedArgs = null,
 			),
 			result = AgentContext.Message.Tool.Result(
 				content = "this is a very long tool output exceeding limit",

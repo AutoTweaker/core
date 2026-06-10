@@ -149,7 +149,7 @@ class AgentStreamProcessorTest {
 				name = "read_file",
 				modelId = mockModel.id,
 				arguments = """{"path":"/tmp"}""",
-				timestamp = Clock.System.now()
+				timestamp = Clock.System.now(), validatedArgs = null
 			)
 		)
 		
@@ -225,7 +225,7 @@ class AgentStreamProcessorTest {
 				name = "read",
 				modelId = mockModel.id,
 				arguments = "{}",
-				timestamp = now
+				timestamp = now, validatedArgs = null
 			)
 		)
 		

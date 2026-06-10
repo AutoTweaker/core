@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Instant
 
@@ -73,6 +74,7 @@ sealed class SessionMessage {
 			val name: String,
 			val arguments: String,
 			val reason: String?,
+			val validatedArgs: JsonElement?,
 		) : Tool()
 		
 		@Serializable

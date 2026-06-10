@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Instant
 
@@ -68,6 +69,7 @@ data class AgentContext(
 				val reason: String? = null,
 				val timestamp: Instant,
 				val modelId: UUID,
+				val validatedArgs: JsonElement?,
 			)
 			
 			data class Result(
@@ -104,6 +106,7 @@ data class AgentContext(
 			val arguments: String,
 			val reason: String? = null,
 			val timestamp: Instant,
+			val validatedArgs: JsonElement?,
 		)
 	}
 	

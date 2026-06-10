@@ -185,7 +185,7 @@ class AgentChatDataTest {
 				name = "read",
 				modelId = testModel.id,
 				arguments = "{}",
-				timestamp = now
+				timestamp = now, validatedArgs = null
 			)
 		)
 		val finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP)

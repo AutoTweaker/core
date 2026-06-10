@@ -268,6 +268,8 @@ class ValidateToolCallsPhaseTest {
 	): AgentContext.CurrentRound.PendingToolCall = AgentContext.CurrentRound.PendingToolCall(
 		callId = callId, assistantMessageId = UUID.randomUUID(), name = name, modelId = model.id,
 		arguments = "{}", reason = "test reason", timestamp = Clock.System.now(),
+		
+		validatedArgs = null,
 	)
 	
 	private fun userMessage(): AgentContext.Message.User =
