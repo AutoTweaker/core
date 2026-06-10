@@ -55,7 +55,7 @@ object AgentStreamProcessor {
 					is AgentChatStreamResult.Failing -> {
 						val lastError = result.errors.lastOrNull() ?: return@collect
 						logger.debug(
-							"LLM stream retry initiated  agentId={}  model={}  error={}",
+							"LLM stream failed  agentId={}  model={}  error={}",
 							agentId,
 							lastError.model,
 							lastError.content

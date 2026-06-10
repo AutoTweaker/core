@@ -45,8 +45,6 @@ object ResilientChat {
 		this.settings = settings
 	}
 	
-	private class StatusCodeNullException : Exception()
-	
 	fun execute(
 		model: Model,
 		fallbackModels: List<Model>?,
@@ -70,7 +68,7 @@ object ResilientChat {
 		
 		val userMsg = messages.filterIsInstance<ChatMessage.UserMessage>()
 		
-		suspend fun attempt(target: Model): Int? {
+		suspend fun attempt(target: Model): Pair<Int?, Boolean> {
 			val chatRequest = buildRequest(target, messages, tools, responseFormat, stream, thinking)
 			val results = gateway.send(
 				request = chatRequest,
@@ -79,20 +77,21 @@ object ResilientChat {
 				providerType = target.provider.name,
 			)
 			
-			var errorStatusCode: Int? = null
+			var statusCode: Int? = null
+			var hasError = false
 			
 			results.collect { result ->
 				val msg = result.message
 				if (msg is ChatMessage.ErrorMessage) {
 					emit(CoreLlmResult(result, model = target.id))
-					val sc = msg.statusCode ?: throw StatusCodeNullException()
-					errorStatusCode = sc
+					statusCode = msg.statusCode
+					hasError = true
 				} else {
 					emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
 				}
 			}
 			
-			return errorStatusCode
+			return Pair(statusCode, hasError)
 		}
 		
 		for (round in 0..llmChatRetries) {
@@ -109,75 +108,72 @@ object ResilientChat {
 				val current = candidates.first()
 				val rules = current.provider.errorHandlingRules
 				
-				try {
-					suspend fun handle(statusCode: Int, retriesUsed: Int): Boolean {
-						when (rules.find { it.statusCode == statusCode }?.strategy) {
-							RecoveryStrategy.RETRY -> {
-								if (retriesUsed >= maxRetries - 1) {
-									logger.debug(
-										"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.modelId
-									)
-									candidates = candidates.drop(1)
-									return false
-								}
+				suspend fun handle(result: Pair<Int?, Boolean>, retriesUsed: Int): Boolean {
+					val (statusCode, hasError) = result
+					if (!hasError) return true
+					
+					when (rules.find { it.statusCode == statusCode }?.strategy) {
+						RecoveryStrategy.RETRY, null -> {
+							if (retriesUsed >= maxRetries - 1) {
 								logger.debug(
-									"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
-									current.modelInfo.modelId,
-									retriesUsed + 1,
-									statusCode
-								)
-								val baseDelay = settings.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
-								val maxDelay = settings.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
-								val jitterEnabled = settings.get(ResilientChatSettings.RetryJitterEnabled()).value
-								val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
-								val finalDelay = if (jitterEnabled) {
-									Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
-								} else capped
-								delay(finalDelay)
-								
-								val nextCode = attempt(current) ?: return true
-								return handle(nextCode, retriesUsed + 1)
-							}
-							
-							RecoveryStrategy.CONTEXT_FALLBACK -> {
-								logger.debug(
-									"Fell back to larger context window  model={}  statusCode={}",
-									current.modelInfo.modelId,
-									statusCode
-								)
-								candidates =
-									candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
-								return false
-							}
-							
-							RecoveryStrategy.PROVIDER_FALLBACK -> {
-								logger.debug(
-									"Fell back to different provider  model={}  provider={}  statusCode={}",
-									current.modelInfo.modelId,
-									current.provider.id,
-									statusCode
-								)
-								candidates = candidates.filter { it.provider.id != current.provider.id }
-								return false
-							}
-							
-							RecoveryStrategy.FALLBACK, null -> {
-								logger.debug(
-									"Fell back to next model  model={}  statusCode={}",
-									current.modelInfo.modelId,
-									statusCode
+									"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.modelId
 								)
 								candidates = candidates.drop(1)
 								return false
 							}
+							logger.debug(
+								"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
+								current.modelInfo.modelId,
+								retriesUsed + 1,
+								statusCode
+							)
+							val baseDelay = settings.get(ResilientChatSettings.RetryBaseDelaySeconds()).value
+							val maxDelay = settings.get(ResilientChatSettings.MaxRetryDelaySeconds()).value
+							val jitterEnabled = settings.get(ResilientChatSettings.RetryJitterEnabled()).value
+							val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
+							val finalDelay = if (jitterEnabled) {
+								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
+							} else capped
+							delay(finalDelay)
+							
+							return handle(attempt(current), retriesUsed + 1)
+						}
+						
+						RecoveryStrategy.CONTEXT_FALLBACK -> {
+							logger.debug(
+								"Fell back to larger context window  model={}  statusCode={}",
+								current.modelInfo.modelId,
+								statusCode
+							)
+							candidates =
+								candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
+							return false
+						}
+						
+						RecoveryStrategy.PROVIDER_FALLBACK -> {
+							logger.debug(
+								"Fell back to different provider  model={}  provider={}  statusCode={}",
+								current.modelInfo.modelId,
+								current.provider.id,
+								statusCode
+							)
+							candidates = candidates.filter { it.provider.id != current.provider.id }
+							return false
+						}
+						
+						RecoveryStrategy.FALLBACK -> {
+							logger.debug(
+								"Fell back to next model  model={}  statusCode={}",
+								current.modelInfo.modelId,
+								statusCode
+							)
+							candidates = candidates.drop(1)
+							return false
 						}
 					}
-					
-					val firstCode = attempt(current) ?: return@flow
-					if (handle(firstCode, 0)) return@flow
-				} catch (_: StatusCodeNullException) {
-					candidates = candidates.drop(1)
 				}
+				
+				if (handle(attempt(current), 0)) return@flow
 			}
 			
 			if (round < llmChatRetries) {
