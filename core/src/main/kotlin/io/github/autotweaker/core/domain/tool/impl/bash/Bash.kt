@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.tool.args.BashArgs
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
@@ -29,37 +30,29 @@ import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
 import kotlinx.coroutines.channels.Channel
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.seconds
 
 @AutoService(CoreTool::class)
-class Bash : CoreTool<Bash.Args> {
-	@Serializable
-	data class Args(
-		val command: String,
-		val timeoutSeconds: Int = 60,
-		val envIds: List<String> = emptyList(),
-	)
-	
+class Bash : CoreTool<BashArgs> {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var envStorage: EnvStorage
 	private lateinit var settings: SettingService
 	
-	override val argsSerializer = Args.serializer()
+	override val argsSerializer = BashArgs.serializer()
 	override val name = "bash"
 	override val description get() = settings.get(BashSettings.Description()).value
 	
 	override suspend fun describe(): Map<KProperty1<*, *>, String> {
 		val envIds = listEnv().sorted().let { if (it.isEmpty()) "[none]" else Json.encodeToString(it) }
 		return mapOf(
-			Args::command to settings.get(BashSettings.CommandPropDescription()).value,
-			Args::timeoutSeconds to settings.get(BashSettings.TimeoutPropDescription()).value.format(
+			BashArgs::command to settings.get(BashSettings.CommandPropDescription()).value,
+			BashArgs::timeoutSeconds to settings.get(BashSettings.TimeoutPropDescription()).value.format(
 				settings.get(BashSettings.DefaultTimeoutSeconds()).value
 			),
-			Args::envIds to settings.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
+			BashArgs::envIds to settings.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
 		)
 	}
 	
@@ -68,7 +61,11 @@ class Bash : CoreTool<Bash.Args> {
 		settings = service
 	}
 	
-	override suspend fun coreExec(container: SimpleContainer, args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput {
+	override suspend fun coreExec(
+		container: SimpleContainer,
+		args: BashArgs,
+		outputChannel: Channel<Tool.RuntimeOutput>?
+	): Tool.ToolOutput {
 		val s = settings
 		val command = args.command
 		if (command.isBlank()) {
@@ -96,7 +93,7 @@ class Bash : CoreTool<Bash.Args> {
 					outputChannel?.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.INFO))
 					stdout.appendLine(event.text)
 				}
-
+				
 				is ShellEvent.Stderr -> {
 					outputChannel?.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.ERROR))
 					stderr.appendLine(event.text)
