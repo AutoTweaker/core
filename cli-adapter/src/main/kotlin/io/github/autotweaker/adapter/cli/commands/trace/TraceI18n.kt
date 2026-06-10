@@ -32,16 +32,9 @@ object TraceI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class ListOriginDesc : I18nDef {
+	class ListDesc : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出所有记录来源"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
-	class ListNamespaceDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出指定记录来源下的命名空间及命名空间下条目数量"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出所有记录来源及命名空间及条目数量"),
 		)
 	}
 	
@@ -69,7 +62,7 @@ object TraceI18n {
 	@AutoService(I18nDef::class)
 	class Range : I18nDef {
 		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "范围，例如 '0-20'"),
+			LocalizedString(Locale.SIMPLIFIED_CHINESE, "范围，例如 '0-20'，或者'20'表示'20-20'"),
 		)
 	}
 	

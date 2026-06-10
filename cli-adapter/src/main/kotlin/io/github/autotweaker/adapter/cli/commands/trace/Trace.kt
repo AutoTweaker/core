@@ -41,8 +41,7 @@ class Trace : Command {
 	override val description get() = i18n.get(TraceI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(i18n, Type.FLAG, "list-origin", TraceI18n.ListOriginDesc(), aliases = emptyList()),
-			Syntax.leaf(i18n, Type.VALUE, "list-namespace", TraceI18n.ListNamespaceDesc(), aliases = emptyList()),
+			Syntax.leaf(i18n, Type.FLAG, "list", TraceI18n.ListDesc()),
 			Syntax.all(
 				Syntax.leaf(i18n, Type.FLAG, "show", TraceI18n.Show()),
 				Syntax.leaf(i18n, Type.POSITIONAL, "origin", TraceI18n.Origin()),
@@ -57,19 +56,14 @@ class Trace : Command {
 	
 	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> =
 		flow {
-			if (request.has("list-origin")) {
-				core.trace.origins().forEach {
-					emit(CmdOutput.Data(it))
-				}
-				emitDone()
-				return@flow
-			}
-			
-			if (request.has("list-namespace")) {
-				val origin = request.get("list-namespace") ?: return@flow
-				core.trace.namespaces(origin).forEach {
-					val count = core.trace.count(origin, it)
-					emit(CmdOutput.Data("$it ($count)"))
+			if (request.has("list")) {
+				core.trace.origins().forEach { origin ->
+					emit(CmdOutput.Data(origin, newline = false))
+					core.trace.namespaces(origin).forEach {
+						val count = core.trace.count(origin, it)
+						emit(CmdOutput.Data("[$it:$count]", newline = false))
+					}
+					emit(CmdOutput.Data(""))
 				}
 				emitDone()
 				return@flow
@@ -84,15 +78,11 @@ class Trace : Command {
 					emitDone(1)
 					return@flow
 				}
-				val to = range.getOrNull(1)?.toUIntOrNull() ?: run {
-					emitI18n(i18n, TraceI18n.InvalidValue())
-					emitDone(1)
-					return@flow
-				}
+				val to = range.getOrNull(1)?.toUIntOrNull() ?: from
 				val timestamp = core.trace.entries(origin, namespace, from..to)
 				timestamp.forEach {
 					val content = core.trace.get(origin, namespace, it)
-					emit(CmdOutput.Data("[$it] $content\n"))
+					emit(CmdOutput.Data("<timestamp>$it</timestamp>$content"))
 				}
 				emitDone()
 				return@flow
