@@ -46,7 +46,7 @@ class Trace : Command {
 				Syntax.leaf(i18n, Type.FLAG, "show", TraceI18n.Show()),
 				Syntax.leaf(i18n, Type.POSITIONAL, "origin", TraceI18n.Origin()),
 				Syntax.leaf(i18n, Type.POSITIONAL, "namespace", TraceI18n.Namespace()),
-				Syntax.leaf(i18n, Type.VALUE, "range", TraceI18n.Range())
+				Syntax.leaf(i18n, Type.POSITIONAL, "range", TraceI18n.Range())
 			)
 		)
 	
@@ -72,7 +72,7 @@ class Trace : Command {
 			if (request.has("show")) {
 				val origin = request.positional[0]
 				val namespace = request.positional[1]
-				val range = request.get("range")?.split("-", limit = 2)?.map { it.trim() } ?: return@flow
+				val range = request.positional[2].split("-", limit = 2).map { it.trim() }
 				val from = range[0].toUIntOrNull() ?: run {
 					emitI18n(i18n, TraceI18n.InvalidValue())
 					emitDone(1)
