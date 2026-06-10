@@ -35,7 +35,7 @@ object LlmClientLoader {
 		val externalNames = external.map { it.providerInfo.name }.toSet()
 		val result = external + builtIn.filter { it.providerInfo.name !in externalNames }
 		logger.info(
-			"LLM providers loaded  builtIn={}  external={}  total={}  source=LlmClientLoader",
+			"LLM providers loaded  builtIn={}  external={}  total={}",
 			builtIn.size,
 			external.size,
 			result.size

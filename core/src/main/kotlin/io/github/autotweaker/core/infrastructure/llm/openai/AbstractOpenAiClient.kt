@@ -20,12 +20,10 @@ package io.github.autotweaker.core.infrastructure.llm.openai
 
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.*
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -63,6 +61,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			install(ContentNegotiation) {
 				json(json)
 			}
+			install(HttpTimeout)
 		}
 		
 		private val closed = AtomicBoolean(false)
@@ -92,7 +91,12 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
 	protected abstract fun extractToolCalls(chunk: Chunk): List<ChatResult.ChunkToolCall>?
 	
-	override suspend fun chat(request: ChatRequest, apiKey: String, baseUrl: Url?): Flow<ChatResult> = flow {
+	override suspend fun chat(
+		request: ChatRequest,
+		apiKey: String,
+		baseUrl: Url?,
+		timeout: ChatTimeout?
+	): Flow<ChatResult> = flow {
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
 		try {
 			if (request.stream) {
@@ -102,6 +106,13 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 					header(HttpHeaders.Authorization, "Bearer $apiKey")
 					contentType(ContentType.Application.Json)
 					setBody(body, requestTypeInfo)
+					timeout?.let {
+						timeout {
+							connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
+							requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
+							socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds
+						}
+					}
 				}.execute { response ->
 					if (!response.status.isSuccess()) {
 						throw IllegalStateException("LLM Stream Error: ${response.status}")
@@ -177,6 +188,12 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 					header(HttpHeaders.Authorization, "Bearer $apiKey")
 					contentType(ContentType.Application.Json)
 					setBody(createRequestBody(request), requestTypeInfo)
+					timeout?.let {
+						timeout {
+							connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
+							requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
+						}
+					}
 				}
 				
 				if (!response.status.isSuccess()) {

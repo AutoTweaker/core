@@ -19,10 +19,7 @@
 package io.github.autotweaker.core.domain.chat
 
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.LlmGateway
@@ -53,9 +50,15 @@ object ResilientChat {
 		responseFormat: ChatRequest.ResponseFormat? = null,
 		stream: Boolean = false,
 		thinking: Boolean? = null,
+		timeout: ChatTimeout? = null,
 	): Flow<CoreLlmResult> = flow {
 		val maxRetries = settings.get(ResilientChatSettings.MaxRetries()).value
 		val llmChatRetries = settings.get(ResilientChatSettings.LlmChatRetries()).value
+		val effectiveTimeout = timeout ?: ChatTimeout(
+			requestTimeout = settings.get(ResilientChatSettings.ChatRequestTimeout()).value.seconds,
+			connectTimeout = settings.get(ResilientChatSettings.ChatConnectTimeout()).value.seconds,
+			streamChunkTimeout = settings.get(ResilientChatSettings.ChatStreamChunkTimeout()).value.seconds,
+		)
 		
 		logger.debug(
 			"Chat started  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
@@ -75,6 +78,7 @@ object ResilientChat {
 				apiKey = target.provider.apiKey,
 				baseUrl = target.provider.baseUrl,
 				providerType = target.provider.name,
+				timeout = effectiveTimeout,
 			)
 			
 			var statusCode: Int? = null

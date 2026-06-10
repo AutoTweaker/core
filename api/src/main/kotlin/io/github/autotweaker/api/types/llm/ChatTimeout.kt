@@ -16,20 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.port
+package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.ChatTimeout
-import kotlinx.coroutines.flow.Flow
+import kotlin.time.Duration
 
-interface LlmGateway {
-	suspend fun send(
-		request: ChatRequest,
-		apiKey: String,
-		baseUrl: Url,
-		providerType: String,
-		timeout: ChatTimeout
-	): Flow<ChatResult>
-}
+data class ChatTimeout(
+	val requestTimeout: Duration,
+	val connectTimeout: Duration,
+	val streamChunkTimeout: Duration
+)

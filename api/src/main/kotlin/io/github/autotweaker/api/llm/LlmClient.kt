@@ -19,10 +19,7 @@
 package io.github.autotweaker.api.llm
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.ProviderData
+import io.github.autotweaker.api.types.llm.*
 import kotlinx.coroutines.flow.Flow
 
 interface LlmClient {
@@ -35,5 +32,10 @@ interface LlmClient {
 		val errorHandlingRules: List<ProviderData.ErrorHandlingRule>
 	)
 	
-	suspend fun chat(request: ChatRequest, apiKey: String, baseUrl: Url? = null): Flow<ChatResult>
+	suspend fun chat(
+		request: ChatRequest,
+		apiKey: String,
+		baseUrl: Url? = null,
+		timeout: ChatTimeout? = null
+	): Flow<ChatResult>
 }

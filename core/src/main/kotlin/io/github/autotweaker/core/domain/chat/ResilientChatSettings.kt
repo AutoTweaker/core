@@ -52,4 +52,22 @@ object ResilientChatSettings {
 		override val default = SettingValue.ValBoolean(true)
 		override val description = "大模型请求重试的等待时间是否加入随机抖动"
 	}
+	
+	@AutoService(SettingDef::class)
+	class ChatRequestTimeout : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(300)
+		override val description = "大模型请求的默认总超时秒数"
+	}
+	
+	@AutoService(SettingDef::class)
+	class ChatConnectTimeout : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(20)
+		override val description = "默认大模型请求建立连接的超时秒数"
+	}
+	
+	@AutoService(SettingDef::class)
+	class ChatStreamChunkTimeout : SettingDef<SettingValue.ValInt> {
+		override val default = SettingValue.ValInt(30)
+		override val description = "大模型流式请求，两个数据块之间的默认最大等待秒数"
+	}
 }

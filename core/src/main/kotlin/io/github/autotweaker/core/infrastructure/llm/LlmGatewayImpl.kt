@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.llm
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.ChatTimeout
 import io.github.autotweaker.core.domain.port.LlmGateway
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +38,7 @@ object LlmGatewayImpl : LlmGateway {
 		apiKey: String,
 		baseUrl: Url,
 		providerType: String,
+		timeout: ChatTimeout,
 	): Flow<ChatResult> {
 		val chatId = UUID.randomUUID()
 		logger.debug(
@@ -47,9 +49,9 @@ object LlmGatewayImpl : LlmGateway {
 		)
 		trace.add(
 			"request",
-			"request=$request, apiKey=${maskKey(apiKey)}, baseUrl=$baseUrl, providerType=$providerType, chatId=$chatId"
+			"request=$request, apiKey=${maskKey(apiKey)}, baseUrl=$baseUrl, providerType=$providerType, timeout=$timeout, chatId=$chatId"
 		)
-		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl).onEach { result ->
+		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl, timeout).onEach { result ->
 			trace.add("response", "result=$result, chatId=$chatId")
 		}
 	}
