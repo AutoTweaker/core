@@ -19,7 +19,9 @@
 package io.github.autotweaker.core.infrastructure.persistence.json
 
 import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.eq
@@ -33,6 +35,7 @@ import kotlin.reflect.KClass
 
 object JsonStoreImpl {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 	private lateinit var db: Database
 	
@@ -51,7 +54,7 @@ object JsonStoreImpl {
 		override fun get(): JsonElement? {
 			return transaction(db) {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
-					runCatching { json.parseToJsonElement(row[JsonStoreTable.content]) }
+					trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
 						.onFailure {
 							logger.warn(
 								"Failed to parse JSON  namespace={}  reason={}",

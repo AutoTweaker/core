@@ -26,11 +26,13 @@ import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import org.slf4j.LoggerFactory
 import java.util.*
 
 object ProviderConfigAPI : ProviderRepository {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val apiKeyConfig = ApiKeyConfigAPI
 	private val modelConfig: ModelConfigRepository = ModelConfigAPI
 	private val store = ProviderStore
@@ -43,7 +45,8 @@ object ProviderConfigAPI : ProviderRepository {
 			type = it.providerType,
 			keyId = try {
 				apiKeyConfig.getName(it.apiKey)
-			} catch (_: IllegalStateException) {
+			} catch (e: IllegalStateException) {
+				trace.exception(e)
 				"unknown"
 			},
 			baseUrl = it.baseUrl,

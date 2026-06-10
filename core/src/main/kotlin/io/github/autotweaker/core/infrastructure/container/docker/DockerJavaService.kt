@@ -27,12 +27,14 @@ import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
 import io.github.autotweaker.core.infrastructure.container.ContainerService
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -46,6 +48,7 @@ import java.time.Duration as JavaDuration
 class DockerJavaService : ContainerService {
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	private val uidGid: String = run {
 		val unix = UnixSystem()
@@ -71,14 +74,14 @@ class DockerJavaService : ContainerService {
 	
 	override fun shutdown() {
 		scope.cancel()
-		runCatching { client.close() }
+		trace.catching { client.close() }
 	}
-
-	override fun checkAccess(): Boolean = runCatching {
+	
+	override fun checkAccess(): Boolean = trace.catching {
 		client.pingCmd().exec()
 		true
 	}.getOrDefault(false)
-
+	
 	override suspend fun pullImage(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
 		logger.info("Pulled image  image={}", image)
@@ -119,9 +122,11 @@ class DockerJavaService : ContainerService {
 			logger.info("Container started  containerId={}", createResponse.id)
 			createResponse.id
 		} catch (e: NotFoundException) {
+			trace.exception(e)
 			logger.warn("Failed to pull image  image={}", image)
 			throw ContainerOperationException("Image '$image' not found", e)
 		} catch (e: Exception) {
+			trace.exception(e)
 			logger.error("Failed to start container  image={}  name={}", image, config.name, e)
 			throw ContainerOperationException("Failed to start container: ${e.message}", e)
 		}
@@ -133,9 +138,11 @@ class DockerJavaService : ContainerService {
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			logger.info("Container stopped  containerId={}", containerId)
-		} catch (_: NotFoundException) {
+		} catch (e: NotFoundException) {
+			trace.exception(e)
 			logger.warn("Container not found  containerId={}", containerId)
 		} catch (e: Exception) {
+			trace.exception(e)
 			logger.error("Failed to stop container  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
 		}
@@ -143,7 +150,7 @@ class DockerJavaService : ContainerService {
 	
 	private fun fixWorkspacePermissions(containerId: String) {
 		val workDir = containerWorkDir ?: return
-		runCatching {
+		trace.catching {
 			val execId = client.execCreateCmd(containerId)
 				.withCmd("chown", "-R", uidGid, workDir.toString())
 				.withAttachStdout(true)
@@ -209,9 +216,11 @@ class DockerJavaService : ContainerService {
 					)
 				)
 			} catch (e: NotFoundException) {
+				trace.exception(e)
 				logger.warn("Failed to find container  containerId={}", containerId)
 				throw ContainerOperationException("Container not found: $containerId", e)
 			} catch (e: Exception) {
+				trace.exception(e)
 				logger.error("Failed to exec command  containerId={}", containerId, e)
 				throw ContainerOperationException("Failed to exec command: ${e.message}", e)
 			}

@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.store.h2
 
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -28,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 object H2DatabaseStore : DatabaseStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val databases = ConcurrentHashMap<String, Database>()
 	
 	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->
@@ -40,7 +43,7 @@ object H2DatabaseStore : DatabaseStore {
 	
 	override fun shutdown() {
 		databases.values.forEach { db ->
-			runCatching { transaction(db) { exec("SHUTDOWN") } }
+			trace.catching { transaction(db) { exec("SHUTDOWN") } }
 		}
 		databases.clear()
 	}

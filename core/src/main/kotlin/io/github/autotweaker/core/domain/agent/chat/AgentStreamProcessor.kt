@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -37,6 +38,7 @@ object AgentStreamProcessor {
 	}
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun processRequest(
 		request: AgentChatRequest,
@@ -94,6 +96,7 @@ object AgentStreamProcessor {
 			logger.debug("LLM stream cancelled  agentId={}", agentId)
 			return StreamProcessResult.Cancelled
 		} catch (e: Exception) {
+			trace.exception(e)
 			logger.error("Failed to process LLM stream  agentId={}", agentId, e)
 			val message = buildString {
 				append(e::class.simpleName ?: e::class.qualifiedName ?: "UnknownException")

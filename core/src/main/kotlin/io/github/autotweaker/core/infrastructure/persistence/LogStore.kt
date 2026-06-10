@@ -18,9 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -32,6 +34,7 @@ import kotlin.time.Instant
 
 object LogStore {
 	private val logger = LoggerFactory.getLogger(LogStore::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true }
 	private val logDir = File(System.getProperty("user.home"), ".config/autotweaker/logs")
 	
@@ -56,7 +59,7 @@ object LogStore {
 	}
 	
 	private fun parseLine(line: String): LogEvent<ExceptionInfo.Stored>? {
-		return runCatching {
+		return trace.catching {
 			val obj = json.decodeFromString<JsonObject>(line)
 			LogEvent(
 				timestamp = obj["@timestamp"]?.jsonPrimitive?.content?.let { parseInstant(it) }
@@ -72,7 +75,7 @@ object LogStore {
 	}
 	
 	private fun parseInstant(value: String): Instant? =
-		runCatching { Instant.parse(value) }.getOrNull()
+		trace.catching { Instant.parse(value) }.getOrNull()
 	
 	private fun String.toLogLevel(): LogLevel? = when (uppercase()) {
 		"TRACE" -> LogLevel.TRACE

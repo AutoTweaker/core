@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.tool.impl.read
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -30,6 +31,7 @@ import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
@@ -65,6 +67,7 @@ class Read : CoreTool<Read.Args> {
 	}
 	
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private lateinit var settings: SettingService
 	
 	override val argsSerializer = Args.serializer()
@@ -114,7 +117,7 @@ class Read : CoreTool<Read.Args> {
 			is Args.Unicode -> args.filePath
 		}
 		val fs = container.get<FileSystemService>()
-		val normalizedPath = runCatching { fs.normalize(filePath) }
+		val normalizedPath = trace.catching { fs.normalize(filePath) }
 			.getOrElse { return Tool.ToolOutput(s.get(ToolSettings.PathErrorMessage()).value, false) }
 		try {
 			if (!fs.exists(normalizedPath)) {
@@ -123,7 +126,8 @@ class Read : CoreTool<Read.Args> {
 			if (!fs.isRegularFile(normalizedPath)) {
 				return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 			}
-		} catch (_: FileSystemService.PathOutsideWorkspaceException) {
+		} catch (e: FileSystemService.PathOutsideWorkspaceException) {
+			trace.exception(e)
 			return Tool.ToolOutput(s.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
 		}
 		
@@ -183,10 +187,11 @@ class Read : CoreTool<Read.Args> {
 				truncateMessage = s.get(ReadSettings.FileMessageTruncateSetting()).value,
 				lineNumber = args.lineNumber
 			)
-		} catch (_: IllegalStateException) {
+		} catch (e: IllegalStateException) {
+			trace.exception(e)
 			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
-		val sha256 = runCatching { fs.sha256(normalizedPath) }
+		val sha256 = trace.catching { fs.sha256(normalizedPath) }
 			.getOrElse { return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		
 		val history = container.get<ToolCallHistory>()
@@ -194,7 +199,7 @@ class Read : CoreTool<Read.Args> {
 			.mapNotNull { entry -> (entry.args as? Args.File)?.let { entry to it } }
 			.filter { (_, fileArgs) -> fileArgs.lineNumber == args.lineNumber }
 		if (previousReads.any { (entry, fileArgs) ->
-				runCatching {
+				trace.catching {
 					val prevNormalized = fs.normalize(fileArgs.filePath)
 					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256 && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
 				}.getOrDefault(false)
@@ -227,7 +232,8 @@ class Read : CoreTool<Read.Args> {
 				truncateMessage = s.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false
 			)
-		} catch (_: IllegalStateException) {
+		} catch (e: IllegalStateException) {
+			trace.exception(e)
 			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		val summarizeMinChars = s.get(ReadSettings.SummarizeMinCharsSetting()).value
@@ -241,7 +247,7 @@ class Read : CoreTool<Read.Args> {
 		val summarizePrompt = s.get(ReadSettings.SummarizePromptSetting()).value
 		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		val summarizeService = container.get<SummarizeService>()
-		val output = runCatching { summarizeService.summarize(content, prompt) }
+		val output = trace.catching { summarizeService.summarize(content, prompt) }
 			.getOrElse { e ->
 				return Tool.ToolOutput(
 					s.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message),
@@ -266,7 +272,7 @@ class Read : CoreTool<Read.Args> {
 		normalizedPath: Path,
 		maxChars: Int,
 	): Tool.ToolOutput {
-		val allUnicode: List<Unicode> = runCatching { fs.readUnicode(normalizedPath) }
+		val allUnicode: List<Unicode> = trace.catching { fs.readUnicode(normalizedPath) }
 			.getOrElse { return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		return Tool.ToolOutput(allUnicode.take(maxChars).joinToString("") { it.value }, true)
 	}
@@ -275,7 +281,7 @@ class Read : CoreTool<Read.Args> {
 		fs: FileSystemService, path: Path, startLine: Int, endLine: Int,
 		maxChars: Int, truncateMessage: String, lineNumber: Boolean,
 	): String {
-		val allLines: List<String> = runCatching { fs.readAllLines(path) }
+		val allLines: List<String> = trace.catching { fs.readAllLines(path) }
 			.getOrElse { e -> throw IllegalStateException("Failed to read: $e") }
 		val actualEndLine = minOf(endLine, allLines.size)
 		val selectedLines = allLines.subList(startLine - 1, actualEndLine)

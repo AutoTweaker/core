@@ -20,9 +20,11 @@ package io.github.autotweaker.core.infrastructure.persistence.config
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
@@ -37,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 object Settings : SettingService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
@@ -48,7 +51,7 @@ object Settings : SettingService {
 	
 	private fun getValueFromRow(row: ResultRow): SettingValue? {
 		val jsonStr = row[ConfigTable.valJson]
-		return runCatching { json.decodeFromString(SettingValue.serializer(), jsonStr) }
+		return trace.catching { json.decodeFromString(SettingValue.serializer(), jsonStr) }
 			.onFailure { logger.warn("Failed to deserialize config value  key={}", row[ConfigTable.keyName]) }
 			.getOrNull()
 	}

@@ -24,6 +24,8 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.trace.TraceRecorder
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -33,6 +35,7 @@ import org.slf4j.LoggerFactory
 @AutoService(Command::class)
 class Secret : Command {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private lateinit var trace: TraceRecorder
 	override val name = "secret"
 	override val description get() = i18n.get(SecretI18n.Desc())
 	override val syntax
@@ -70,6 +73,7 @@ class Secret : Command {
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
+		this.trace = core.trace(this::class)
 	}
 	
 	override fun handle(
@@ -185,7 +189,7 @@ class Secret : Command {
 		
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false).also { emit(CmdOutput.Data("")) }
 		
-		runCatching {
+		trace.catching {
 			core.secret.unlock(password)
 			logger.info("Keystore unlocked  command=secret")
 		}.getOrElse {
@@ -200,7 +204,7 @@ class Secret : Command {
 	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		emit(CmdOutput.Data(""))
-		runCatching {
+		trace.catching {
 			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(password)
 			}
@@ -234,7 +238,7 @@ class Secret : Command {
 			return@flow
 		}
 		
-		runCatching {
+		trace.catching {
 			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(oldPassword)
 			}

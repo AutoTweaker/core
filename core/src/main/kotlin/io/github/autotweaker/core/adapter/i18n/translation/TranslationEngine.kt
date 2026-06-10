@@ -20,6 +20,7 @@ package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
@@ -27,6 +28,7 @@ import io.github.autotweaker.core.adapter.i18n.I18nRegistry
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -40,6 +42,7 @@ import kotlin.time.Clock
 
 object TranslationEngine {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(
@@ -141,7 +144,7 @@ object TranslationEngine {
 			if (value.isBlank()) continue
 			val sourceText = r.batch.find { it.key == key }?.localizations?.firstOrNull() ?: ""
 			if (PlaceholderValidator.validate(sourceText, value)) {
-				runCatching { i18nService.set(key, value, r.target) }
+				trace.catching { i18nService.set(key, value, r.target) }
 					.onFailure { logger.warn("Failed to persist translation  key={}  reason={}", key, it.message) }
 			} else {
 				logger.warn(
@@ -164,7 +167,7 @@ object TranslationEngine {
 		if (start == -1 || end == -1 || start >= end) return emptyMap()
 		
 		val jsonText = responseText.substring(start, end + 1)
-		return runCatching {
+		return trace.catching {
 			val obj = json.parseToJsonElement(jsonText).jsonObject
 			obj.mapNotNull { (k, v) -> v.jsonPrimitive.content.let { k to it } }.toMap()
 		}.onFailure { logger.warn("Failed to parse translation response  length={}", responseText.length) }

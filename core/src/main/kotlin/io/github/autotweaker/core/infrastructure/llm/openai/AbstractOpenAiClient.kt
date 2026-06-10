@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.llm.openai
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -47,6 +48,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 	private val chunkSerializer: KSerializer<Chunk>,
 ) : LlmClient {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	companion object {
 		private val json: Json = Json {
@@ -217,6 +219,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			logger.debug("LLM request cancelled  provider={}  model={}", providerInfo.name, request.model)
 			throw e
 		} catch (e: Throwable) {
+			trace.exception(e)
 			logger.error("Failed to execute LLM request  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
 				ChatResult.Assembled(

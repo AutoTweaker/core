@@ -26,6 +26,7 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
@@ -34,6 +35,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 object ExecuteToolPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun execute(
 		env: AgentEnvironment,
@@ -74,6 +76,7 @@ object ExecuteToolPhase {
 				call, env.toolCancelledMessage, ToolResultStatus.CANCELLED
 			)
 		} catch (e: Exception) {
+			trace.exception(e)
 			logger.error("Failed to execute tool  agentId={}  tool={}", env.agentId, call.name, e)
 			ContextPhase.buildErrorTool(call, e.message ?: "Tool execution failed")
 		}

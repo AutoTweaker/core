@@ -21,8 +21,10 @@ package io.github.autotweaker.core.infrastructure.data
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.domain.port.SecretStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +39,7 @@ import java.util.*
 
 object SecretManager : SecretStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val rootDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "secret")
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")
@@ -61,7 +64,7 @@ object SecretManager : SecretStore {
 	val isPasswordEmpty: Boolean get() = password?.isEmpty() == true
 	
 	fun killGpgAgent() {
-		runCatching {
+		trace.catching {
 			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
 			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
 			killPb.start().waitFor()
@@ -73,6 +76,7 @@ object SecretManager : SecretStore {
 		try {
 			unlock("")
 		} catch (e: Exception) {
+			trace.exception(e)
 			if (hasSecretKey()) {
 				logger.info("SecretManager auto-unlock skipped  reason=password_required")
 				return
@@ -86,12 +90,12 @@ object SecretManager : SecretStore {
 		Files.createDirectories(secretsDir)
 		Files.createDirectories(gpgHome)
 		//确保权限正确
-		runCatching { Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------")) }
+		trace.catching { Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------")) }
 			.onFailure { logger.debug("Failed to set gpgHome permissions  path={}  reason={}", gpgHome, it.message) }
 		//创建私钥目录
 		val privateKeysDir = gpgHome.resolve("private-keys-v1.d")
 		Files.createDirectories(privateKeysDir)
-		runCatching { Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------")) }
+		trace.catching { Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------")) }
 			.onFailure {
 				logger.debug(
 					"Failed to set privateKeysDir permissions  path={}  reason={}",
@@ -106,7 +110,7 @@ object SecretManager : SecretStore {
 			Files.setPosixFilePermissions(agentConf, PosixFilePermissions.fromString("rw-------"))
 		}
 		//干掉gpg agent
-		runCatching {
+		trace.catching {
 			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
 			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
 			killPb.start().waitFor()
@@ -129,7 +133,7 @@ object SecretManager : SecretStore {
 	private fun requireUnlocked() = check(password != null) { "SecretManager is locked. Call unlock() first." }
 	
 	//检查gpg密钥存在
-	private suspend fun hasSecretKey(): Boolean = runCatching {
+	private suspend fun hasSecretKey(): Boolean = trace.catching {
 		gpg("--list-secret-keys", "--with-colons", keyUid).lines().any {
 			it.startsWith("sec:")
 		}

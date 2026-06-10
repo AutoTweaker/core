@@ -21,10 +21,13 @@ package io.github.autotweaker.core
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.StartupHook
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -38,6 +41,7 @@ import java.util.*
 
 object AutoTweaker : CoreAPI.AdapterAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	val version: SemVer by lazy {
 		val props = Properties()
 		this::class.java.getResourceAsStream("/version.properties")?.use { props.load(it) }
@@ -69,7 +73,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		Launcher.start(version, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
 			logger.info("AutoTweaker shutdown initiated")
-			Launcher.shutdown(registry)
+			runBlocking { Launcher.shutdown(registry) }
 			PluginLoader.closeClassLoaders()
 			releaseLock()
 			logger.info("AutoTweaker shutdown completed")
@@ -116,7 +120,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		registry[name] ?: error("Unknown adapter: $name")
 	
 	private fun releaseLock() {
-		runCatching {
+		trace.catching {
 			fileLock?.release()
 			lockChannel?.close()
 			Files.deleteIfExists(lockFile)

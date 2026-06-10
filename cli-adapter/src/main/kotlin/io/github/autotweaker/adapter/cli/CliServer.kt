@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
@@ -70,7 +71,7 @@ class CliServer(service: SettingService, core: CoreAPI) {
 		
 		scope.launch {
 			while (channel.isOpen) {
-				val client = runCatching { channel.accept() }
+				val client = trace.catching { channel.accept() }
 					.onFailure {
 						logger.warn(
 							"Failed to accept connection  socketPath={}  reason={}",
@@ -95,11 +96,11 @@ class CliServer(service: SettingService, core: CoreAPI) {
 	}
 	
 	fun stop() {
-		activeClients.forEach { runCatching { it.close() } }
+		activeClients.forEach { trace.catching { it.close() } }
 		activeClients.clear()
-		runCatching { channel.close() }
+		trace.catching { channel.close() }
 		scope.cancel()
-		runCatching { socketPath().deleteIfExists() }
+		trace.catching { socketPath().deleteIfExists() }
 		logger.info("CliServer stopped  socketPath={}", socketPath())
 	}
 	
@@ -166,11 +167,11 @@ class CliServer(service: SettingService, core: CoreAPI) {
 				throw e
 			} catch (e: IOException) {
 				logger.warn("Client disconnected during command  command={}", cmdName)
-				trace.add("e", e.stackTraceToString())
+				trace.exception(e)
 			} catch (e: Exception) {
 				logger.error("Command failed  command={}", cmdName, e)
-				trace.add("e", e.stackTraceToString())
-				runCatching {
+				trace.exception(e)
+				trace.catching {
 					write(
 						client, json.encodeToString<CliResponse>(
 							CliResponse.Data(e.message ?: "Internal error", "stderr", true)
@@ -181,7 +182,7 @@ class CliServer(service: SettingService, core: CoreAPI) {
 			
 			if (!sawDone) {
 				logger.warn("Command did not emit Done  command={}", cmdName)
-				runCatching {
+				trace.catching {
 					write(client, json.encodeToString<CliResponse>(CliResponse.Done(1)))
 				}
 			}

@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.URLClassLoader
@@ -27,6 +29,7 @@ import java.util.*
 
 object PluginLoader {
 	val logger: Logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
 	
 	@Volatile
@@ -59,7 +62,7 @@ object PluginLoader {
 	}
 	
 	fun closeClassLoaders() {
-		classLoaders.forEach { runCatching { it.close() } }
+		classLoaders.forEach { trace.catching { it.close() } }
 		classLoaders.clear()
 		sharedClassLoader = null
 	}

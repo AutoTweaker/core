@@ -20,8 +20,10 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.ToolMeta.Companion.toSnakeCase
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.json.*
@@ -32,6 +34,7 @@ class ToolCallValidator(
 	private val service: SettingService,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	@OptIn(ExperimentalSerializationApi::class)
 	private val json = Json {
@@ -52,8 +55,8 @@ class ToolCallValidator(
 	}
 	
 	@OptIn(ExperimentalSerializationApi::class)
-	fun validate(toolCallName: String, argumentsJson: String, callId: String = ""): ValidationResult<*> {
-		val arguments = runCatching {
+	fun validate(toolCallName: String, argumentsJson: String, callId: String): ValidationResult<*> {
+		val arguments = trace.catching {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
@@ -126,7 +129,7 @@ class ToolCallValidator(
 			deserializationJson
 		}
 		
-		val args = runCatching {
+		val args = trace.catching {
 			json.decodeFromJsonElement(tool.argsSerializer, finalJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
@@ -183,7 +186,7 @@ class ToolCallValidator(
 		return when (child) {
 			is JsonArray -> {
 				if (rest.isEmpty()) {
-					child.mapIndexed { index, _ -> PrecisePath(listOf(segment, index), typeMap) }
+					List(child.size) { index -> PrecisePath(listOf(segment, index), typeMap) }
 				} else {
 					child.flatMapIndexed { index, item ->
 						expandOne(item, rest, typeMap).map { it.prependSegment(segment, index) }

@@ -19,8 +19,6 @@
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
@@ -32,7 +30,6 @@ import kotlin.time.Instant
 object TraceStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private lateinit var db: Database
-	private val mutex = Mutex()
 	
 	fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("Traces")
@@ -40,7 +37,7 @@ object TraceStore {
 		logger.info("TraceStore initialized  table=traces")
 	}
 	
-	suspend fun insert(origin: String, namespace: String, content: String): Unit = mutex.withLock {
+	fun insert(origin: String, namespace: String, content: String) {
 		transaction(db) {
 			TraceTable.insert {
 				it[TraceTable.origin] = origin

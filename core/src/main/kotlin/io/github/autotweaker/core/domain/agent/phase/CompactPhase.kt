@@ -30,6 +30,7 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.chat.mountSummary
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -40,6 +41,7 @@ import kotlin.time.Clock
 
 object CompactPhase {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun execute(
 		env: AgentEnvironment,
@@ -192,7 +194,8 @@ object CompactPhase {
 			}
 		} catch (e: CancellationException) {
 			throw e
-		} catch (_: Exception) {
+		} catch (e: Exception) {
+			trace.exception(e)
 			logger.warn("Failed to send compact request  agentId={}", env.agentId)
 			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastSnapshot, success = false)

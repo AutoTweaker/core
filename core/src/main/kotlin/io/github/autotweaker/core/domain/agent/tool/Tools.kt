@@ -28,6 +28,7 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -41,6 +42,7 @@ import kotlin.time.Clock
 
 class Tools(private val service: SettingService) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	data class Entry(
 		val tool: Tool<*>,
@@ -209,6 +211,7 @@ class Tools(private val service: SettingService) {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
+				trace.exception(e)
 				logger.error(
 					"Failed to execute tool  agentId={}  tool={}  function={}",
 					agentId,

@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -32,6 +34,7 @@ import kotlin.reflect.KClass
 
 class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val mutex = Mutex()
 	
@@ -39,7 +42,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 	
 	suspend fun getEnv(id: String): String? = mutex.withLock {
 		val uuid = getEnvUuidMap()[id] ?: return@withLock null
-		runCatching { secretStore.get(uuid) }
+		trace.catching { secretStore.get(uuid) }
 			.onFailure { logger.warn("Failed to get env  id={}  class={}", id, kClass.java.name) }
 			.getOrNull()
 	}

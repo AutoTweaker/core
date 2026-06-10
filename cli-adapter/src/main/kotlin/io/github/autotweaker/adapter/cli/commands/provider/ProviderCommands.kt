@@ -34,6 +34,7 @@ import java.util.*
 class ProviderCommands(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
+	private val trace = core.trace(this::class)
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	fun add(name: String?, type: String?, key: String?, url: String?): Flow<CmdOutput> = flow {
@@ -60,6 +61,7 @@ class ProviderCommands(
 			try {
 				Url(it)
 			} catch (e: IllegalArgumentException) {
+				trace.exception(e)
 				emitI18n(i18n, ProvCommandsI18n.InvalidUrl(), e.message ?: "Unknown Error", error = true)
 				emitDone(1)
 				return@flow

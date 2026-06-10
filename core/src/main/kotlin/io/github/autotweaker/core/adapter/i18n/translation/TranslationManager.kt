@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,7 @@ import java.util.*
 
 object TranslationManager {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	private lateinit var modelRepo: ModelRepository
@@ -86,6 +88,7 @@ object TranslationManager {
 			try {
 				TranslationEngine.run(settings, modelId, target, modelRepo, i18nService)
 			} catch (e: Exception) {
+				trace.exception(e)
 				logger.error("Failed to translate  target={}", target.toLanguageTag(), e)
 			} finally {
 				_status.value = TranslationStatus.IDLE

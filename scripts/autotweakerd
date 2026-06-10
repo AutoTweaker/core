@@ -19,5 +19,4 @@
 
 JVM_OPTS=$(grep -v '^#' /etc/autotweaker/jvm.options 2>/dev/null | tr '\n' ' ')
 export JAVA_OPTS="$JVM_OPTS $JAVA_OPTS"
-export AUTOTWEAKER_WEBSITE_URL="${AUTOTWEAKER_WEBSITE_URL:-https://autotweaker.github.io/website/}"
 exec /usr/share/autotweaker/bin/autotweaker

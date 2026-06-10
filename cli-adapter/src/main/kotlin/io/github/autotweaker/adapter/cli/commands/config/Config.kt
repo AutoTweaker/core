@@ -25,6 +25,8 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.trace.TraceRecorder
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
@@ -42,6 +44,7 @@ class Config : Command {
 	}
 	
 	lateinit var core: CoreAPI
+	private lateinit var trace: TraceRecorder
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name: String = "cfg"
@@ -77,6 +80,7 @@ class Config : Command {
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {
 		this.core = core
+		this.trace = core.trace(this::class)
 	}
 	
 	override fun handle(
@@ -146,7 +150,7 @@ class Config : Command {
 	
 	private fun set(key: String, value: String): Flow<CmdOutput> = flow {
 		val config = settingOrEmit(key) ?: return@flow
-		val newValue = runCatching { config.value.parse(value) }
+		val newValue = trace.catching { config.value.parse(value) }
 			.getOrElse {
 				emitI18n(i18n, CfgI18n.SetTypeError(), error = true)
 				emitDone(1)

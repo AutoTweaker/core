@@ -134,7 +134,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"a","x":42},"reason":"test"}"""
+			"""{"name":"test","inner":{"type":"a","x":42},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as NestedSealedArgs.Process
@@ -147,7 +147,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"test"}"""
+			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("hello", ((result.args as NestedSealedArgs.Process).inner as InnerChoice.B).y)
@@ -162,7 +162,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockListSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"batch-run",
-			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"test"}"""
+			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as ListSealedArgs.Run
@@ -176,7 +176,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockListSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"batch-run",
-			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"test"}"""
+			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as ListSealedArgs.Run
@@ -194,7 +194,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockMapSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"cfg-configure",
-			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"test"}"""
+			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as MapSealedArgs.Configure
@@ -212,7 +212,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockDeepNestedTool()), defaultSettings)
 		val result = validator.validate(
 			"deep-process",
-			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"test"}"""
+			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals(42, ((result.args as DeepNestedArgs.Process).wrapper.inner as InnerChoice.A).x)
@@ -227,7 +227,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"x":42},"reason":"test"}"""
+			"""{"name":"test","inner":{"x":42},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}
@@ -237,7 +237,7 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"test"}"""
+			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}

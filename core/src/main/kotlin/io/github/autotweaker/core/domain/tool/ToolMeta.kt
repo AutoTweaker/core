@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.descriptors.*
@@ -62,6 +64,7 @@ class ToolMeta private constructor(
 	)
 	
 	companion object {
+		private val trace = TraceRecorderImpl.recorder(this::class)
 		fun String.toSnakeCase() = convertCamelCase(this, '_')
 		
 		@OptIn(ExperimentalSerializationApi::class)
@@ -268,11 +271,11 @@ class ToolMeta private constructor(
 		private fun tryLoadClass(fqcn: String): Class<*>? {
 			var name = fqcn
 			while ('.' in name) {
-				runCatching { return Class.forName(name) }
+				trace.catching { return Class.forName(name) }
 				val lastDot = name.lastIndexOf('.')
 				name = name.substring(0, lastDot) + '$' + name.substring(lastDot + 1)
 			}
-			return runCatching { Class.forName(name) }.getOrNull()
+			return trace.catching { Class.forName(name) }.getOrNull()
 		}
 		
 		//从kotlinx.serialization.json抄的

@@ -19,14 +19,31 @@
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
 import io.github.autotweaker.api.trace.TraceRecorder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
 object TraceRecorderImpl {
+	private val scope = CoroutineScope(Dispatchers.IO)
+	private val queue = Channel<TraceEntry>(Channel.UNLIMITED)
+	
+	init {
+		scope.launch {
+			for (entry in queue) {
+				TraceStore.insert(entry.origin, entry.namespace, entry.content)
+			}
+		}
+	}
+	
 	fun recorder(kClass: KClass<*>): TraceRecorder = Recorder(kClass.java.name)
 	
 	private class Recorder(private val origin: String) : TraceRecorder {
-		override suspend fun add(namespace: String, content: String) {
-			TraceStore.insert(origin, namespace, content)
+		override fun add(namespace: String, content: String) {
+			queue.trySend(TraceEntry(origin, namespace, content))
 		}
 	}
+	
+	private data class TraceEntry(val origin: String, val namespace: String, val content: String)
 }

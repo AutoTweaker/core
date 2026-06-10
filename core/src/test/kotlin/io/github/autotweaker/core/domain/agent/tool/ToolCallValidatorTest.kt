@@ -83,7 +83,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `valid tool-function name with dash separator`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("bash", result.toolName)
 		assertEquals("run", result.functionName)
@@ -92,14 +92,14 @@ class ToolCallValidatorTest {
 	@Test
 	fun `name without separator fails`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bashrun", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("bashrun", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
 	@Test
 	fun `name with only separator fails`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("-", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("-", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -110,7 +110,7 @@ class ToolCallValidatorTest {
 		every { tool.argsSerializer } returns SimpleArgs.serializer()
 		// "my-tool-run" -> toolName="my", functionName="tool-run" -> not found
 		val validator = ToolCallValidator(listOf(tool), defaultSettings)
-		val result = validator.validate("my-tool-run", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("my-tool-run", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -121,7 +121,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `unknown tool name fails`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("unknown-run", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("unknown-run", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -131,7 +131,7 @@ class ToolCallValidatorTest {
 		// "bash-unknown" -> toolName="bash", functionName="unknown"
 		// SimpleArgs is not sealed, so "type" is not injected
 		// deserialization should still work since SimpleArgs doesn't care about function name
-		val result = validator.validate("bash-unknown", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("bash-unknown", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Success<*>>(result)
 	}
 	
@@ -142,21 +142,21 @@ class ToolCallValidatorTest {
 	@Test
 	fun `invalid JSON fails`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", "not json")
+		val result = validator.validate("bash-run", "not json", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
 	@Test
 	fun `JSON array fails`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", "[1,2,3]")
+		val result = validator.validate("bash-run", "[1,2,3]", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
 	@Test
 	fun `empty JSON object fails missing reason`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", "{}")
+		val result = validator.validate("bash-run", "{}", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -167,14 +167,14 @@ class ToolCallValidatorTest {
 	@Test
 	fun `missing reason field fails`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", """{"command":"echo"}""")
+		val result = validator.validate("bash-run", """{"command":"echo"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
 	@Test
 	fun `reason is extracted correctly`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", """{"command":"echo","reason":"testing"}""")
+		val result = validator.validate("bash-run", """{"command":"echo","reason":"testing"}""", "")
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("testing", result.reason)
 	}
@@ -182,7 +182,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `reason is not passed to args deserialization`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", """{"command":"echo","reason":"testing"}""")
+		val result = validator.validate("bash-run", """{"command":"echo","reason":"testing"}""", "")
 		assertIs<ValidationResult.Success<*>>(result)
 		// If "reason" was passed to SimpleArgs deserialization, it would fail
 		// because SimpleArgs has no "reason" field (unless ignoreUnknownKeys)
@@ -199,7 +199,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo hello","timeout_seconds":30,"reason":"test"}"""
+			"""{"command":"echo hello","timeout_seconds":30,"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs
@@ -210,7 +210,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `deserializes simple args with defaults`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs
 		assertEquals("echo", args.command)
@@ -222,7 +222,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo","timeoutSeconds":30,"reason":"test"}"""
+			"""{"command":"echo","timeoutSeconds":30,"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}
@@ -232,7 +232,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo","timeout_seconds":15,"reason":"test"}"""
+			"""{"command":"echo","timeout_seconds":15,"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs
@@ -242,7 +242,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `missing required field fails deserialization`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", """{"timeout_seconds":30,"reason":"test"}""")
+		val result = validator.validate("bash-run", """{"timeout_seconds":30,"reason":"test"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -251,7 +251,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo","timeout_seconds":"not_a_number","reason":"test"}"""
+			"""{"command":"echo","timeout_seconds":"not_a_number","reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}
@@ -265,7 +265,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"read-file",
-			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"read file"}"""
+			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"read file"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SealedArgs.File
@@ -279,7 +279,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"read-unicode",
-			"""{"file_path":"/tmp/test.txt","max_chars":1000,"reason":"read unicode"}"""
+			"""{"file_path":"/tmp/test.txt","max_chars":1000,"reason":"read unicode"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertIs<SealedArgs.Unicode>(result.args)
@@ -290,7 +290,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"read-nonexistent",
-			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"test"}"""
+			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}
@@ -300,7 +300,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSealedTool()), defaultSettings)
 		val result = validator.validate(
 			"read-file",
-			"""{"filePath":"/tmp/test.txt","startLine":1,"endLine":10,"reason":"read"}"""
+			"""{"filePath":"/tmp/test.txt","startLine":1,"endLine":10,"reason":"read"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}
@@ -313,13 +313,13 @@ class ToolCallValidatorTest {
 	fun `validator with multiple tools routes correctly`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool(), mockSealedTool()), defaultSettings)
 		
-		val bashResult = validator.validate("bash-run", """{"command":"echo","reason":"test"}""")
+		val bashResult = validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Success<*>>(bashResult)
 		assertEquals("bash", bashResult.toolName)
 		
 		val readResult = validator.validate(
 			"read-file",
-			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":5,"reason":"read"}"""
+			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":5,"reason":"read"}""", ""
 		)
 		assertIs<ValidationResult.Success<*>>(readResult)
 		assertEquals("read", readResult.toolName)
@@ -328,7 +328,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `validator with empty tool list fails all`() {
 		val validator = ToolCallValidator(emptyList(), defaultSettings)
-		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""")
+		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -354,7 +354,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `empty arguments string fails JSON parse`() {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
-		val result = validator.validate("bash-run", "")
+		val result = validator.validate("bash-run", "", "")
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
@@ -363,7 +363,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo","unknown_field":"value","reason":"test"}"""
+			"""{"command":"echo","unknown_field":"value","reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}
@@ -373,7 +373,7 @@ class ToolCallValidatorTest {
 		val validator = ToolCallValidator(listOf(mockSimpleTool()), defaultSettings)
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":{"nested":"object"},"reason":"test"}"""
+			"""{"command":{"nested":"object"},"reason":"test"}""", ""
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}

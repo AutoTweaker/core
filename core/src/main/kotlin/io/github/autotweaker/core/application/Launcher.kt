@@ -21,6 +21,7 @@ package io.github.autotweaker.core.application
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.Debugger
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
@@ -46,12 +47,13 @@ import io.github.autotweaker.core.infrastructure.persistence.session.SessionMess
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 object Launcher {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val databaseStore: DatabaseStore = H2DatabaseStore
 	
 	suspend fun start(
@@ -101,37 +103,25 @@ object Launcher {
 	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) =
 		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI)
 	
-	fun shutdown(registry: Map<String, Pair<Adapter, AdapterInfo>>) {
+	suspend fun shutdown(registry: Map<String, Pair<Adapter, AdapterInfo>>) {
 		registry.values.forEach { (adapter, info) ->
-			runBlocking {
-				runCatching {
-					adapter.stop()
-					logger.info("Stopped adapter  name={}", info.name)
-				}.onFailure { e -> logger.warn("Failed to stop adapter  name={}  reason={}", info.name, e.message) }
-			}
+			trace.catching {
+				adapter.stop()
+				logger.info("Stopped adapter  name={}", info.name)
+			}.onFailure { logger.warn("Failed to stop adapter  name={}  reason={}", info.name, it.message) }
 		}
-		runBlocking {
-			runCatching {
-				SessionManager.shutdown()
-			}.onFailure { logger.warn("Failed to shutdown SessionManager") }
-		}
-		runBlocking {
-			runCatching {
-				ContainerManager.stop()
-			}.onFailure { logger.warn("Failed to stop ContainerManager") }
-		}
-		runCatching {
-			TranslationManager.shutdown()
-		}.onFailure { logger.warn("Failed to shutdown TranslationManager") }
-		runCatching {
-			AbstractOpenAiClient.close()
-		}.onFailure { logger.warn("Failed to close LLM clients") }
-		runCatching {
-			SecretManager.killGpgAgent()
-		}.onFailure { logger.warn("Failed to kill GPG agent") }
-		runCatching {
-			databaseStore.shutdown()
-		}.onFailure { logger.warn("Failed to shutdown DatabaseStore") }
+		trace.catching { SessionManager.shutdown() }
+			.onFailure { logger.warn("Failed to shutdown SessionManager") }
+		trace.catching { ContainerManager.stop() }
+			.onFailure { logger.warn("Failed to stop ContainerManager") }
+		trace.catching { TranslationManager.shutdown() }
+			.onFailure { logger.warn("Failed to shutdown TranslationManager") }
+		trace.catching { AbstractOpenAiClient.close() }
+			.onFailure { logger.warn("Failed to close LLM clients") }
+		trace.catching { SecretManager.killGpgAgent() }
+			.onFailure { logger.warn("Failed to kill GPG agent") }
+		trace.catching { databaseStore.shutdown() }
+			.onFailure { logger.warn("Failed to shutdown DatabaseStore") }
 		logger.info("Launcher shutdown completed")
 	}
 }

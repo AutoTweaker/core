@@ -25,6 +25,7 @@ import io.github.autotweaker.adapter.cli.commands.ModelFeature
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
@@ -37,6 +38,7 @@ import java.util.*
 class ModelAdd(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) {
+	private val trace = core.trace(this::class)
 	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	fun addAll(providerName: String): Flow<CmdOutput> = flow {
@@ -192,9 +194,9 @@ class ModelAdd(
 	private suspend fun promptPrice(): Price? {
 		val tokenUnit = promptI18n(ModelI18n.PromptTokenUnit()).toIntOrNull() ?: return null
 		val currency =
-			runCatching { Currency.getInstance(promptI18n(ModelI18n.PromptPriceCurrency()).uppercase()) }.getOrNull()
+			trace.catching { Currency.getInstance(promptI18n(ModelI18n.PromptPriceCurrency()).uppercase()) }.getOrNull()
 				?: return null
-		val price = runCatching {
+		val price = trace.catching {
 			BigDecimal(
 				promptI18n(ModelI18n.PromptPrice(), currency.getDisplayName(core.i18n.i18nService.getLanguage()))
 			)

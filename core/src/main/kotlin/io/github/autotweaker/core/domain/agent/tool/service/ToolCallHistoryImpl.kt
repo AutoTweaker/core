@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PolymorphicKind
@@ -32,6 +34,7 @@ import kotlinx.serialization.json.JsonPrimitive
 class ToolCallHistoryImpl(
 	private val env: AgentEnvironment,
 ) : ToolCallHistory {
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json {
 		namingStrategy = JsonNamingStrategy.SnakeCase
 	}
@@ -66,12 +69,12 @@ class ToolCallHistoryImpl(
 		val parts = callName.split("-", limit = 2)
 		if (parts.size != 2 || parts[0] != expectedToolName) return null
 		val functionName = parts[1]
-		val base = runCatching { Json.parseToJsonElement(arguments) as? JsonObject }.getOrNull() ?: return null
+		val base = trace.catching { Json.parseToJsonElement(arguments) as? JsonObject }.getOrNull() ?: return null
 		val deserializationJson = if (argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
 			JsonObject(base + ("type" to JsonPrimitive(functionName)))
 		} else {
 			base
 		}
-		return runCatching { json.decodeFromJsonElement(argsSerializer, deserializationJson) }.getOrNull()
+		return trace.catching { json.decodeFromJsonElement(argsSerializer, deserializationJson) }.getOrNull()
 	}
 }

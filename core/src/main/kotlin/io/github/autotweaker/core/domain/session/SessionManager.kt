@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.SessionConfig
@@ -33,6 +34,7 @@ import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import org.slf4j.LoggerFactory
@@ -43,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap
 object SessionManager {
 	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value
 	
@@ -191,7 +194,7 @@ object SessionManager {
 	
 	suspend fun shutdown() {
 		logger.info("SessionManager shutdown initiated  activeSessions={}", sessions.size)
-		sessions.keys.toList().forEach { id -> runCatching { stop(id) } }
+		sessions.keys.toList().forEach { id -> trace.catching { stop(id) } }
 		scope.cancel()
 		logger.info("SessionManager shutdown completed")
 	}
