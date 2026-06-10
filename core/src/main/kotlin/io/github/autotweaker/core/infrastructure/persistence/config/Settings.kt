@@ -48,12 +48,9 @@ object Settings : SettingService {
 	
 	private fun getValueFromRow(row: ResultRow): SettingValue? {
 		val jsonStr = row[ConfigTable.valJson]
-		return try {
-			json.decodeFromString(SettingValue.serializer(), jsonStr)
-		} catch (_: Exception) {
-			logger.warn("Failed to deserialize config value  key={}", row[ConfigTable.keyName])
-			null
-		}
+		return runCatching { json.decodeFromString(SettingValue.serializer(), jsonStr) }
+			.onFailure { logger.warn("Failed to deserialize config value  key={}", row[ConfigTable.keyName]) }
+			.getOrNull()
 	}
 	
 	fun init(databaseStore: DatabaseStore) {

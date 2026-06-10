@@ -116,12 +116,10 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		registry[name] ?: error("Unknown adapter: $name")
 	
 	private fun releaseLock() {
-		try {
+		runCatching {
 			fileLock?.release()
 			lockChannel?.close()
 			Files.deleteIfExists(lockFile)
-		} catch (e: Exception) {
-			logger.warn("Failed to release lock  lockFile={}", lockFile, e)
-		}
+		}.onFailure { logger.warn("Failed to release lock  lockFile={}  reason={}", lockFile, it.message) }
 	}
 }

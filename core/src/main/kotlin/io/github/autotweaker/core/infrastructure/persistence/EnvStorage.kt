@@ -39,12 +39,9 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 	
 	suspend fun getEnv(id: String): String? = mutex.withLock {
 		val uuid = getEnvUuidMap()[id] ?: return@withLock null
-		try {
-			secretStore.get(uuid)
-		} catch (_: Exception) {
-			logger.warn("Failed to get env  id={}  class={}", id, kClass.java.name)
-			null
-		}
+		runCatching { secretStore.get(uuid) }
+			.onFailure { logger.warn("Failed to get env  id={}  class={}", id, kClass.java.name) }
+			.getOrNull()
 	}
 	
 	suspend fun setEnv(id: String, value: String) = mutex.withLock {

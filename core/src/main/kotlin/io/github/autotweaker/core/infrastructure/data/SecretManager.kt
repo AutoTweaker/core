@@ -129,14 +129,12 @@ object SecretManager : SecretStore {
 	private fun requireUnlocked() = check(password != null) { "SecretManager is locked. Call unlock() first." }
 	
 	//检查gpg密钥存在
-	private suspend fun hasSecretKey(): Boolean = try {
+	private suspend fun hasSecretKey(): Boolean = runCatching {
 		gpg("--list-secret-keys", "--with-colons", keyUid).lines().any {
 			it.startsWith("sec:")
 		}
-	} catch (_: Exception) {
-		logger.warn("Failed to check secret key existence  keyUid={}", keyUid)
-		false
-	}
+	}.onFailure { logger.warn("Failed to check secret key existence  keyUid={}", keyUid) }
+		.getOrDefault(false)
 	
 	//生成gpg密钥
 	private suspend fun generateKey() {

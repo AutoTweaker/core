@@ -51,12 +51,15 @@ object JsonStoreImpl {
 		override fun get(): JsonElement? {
 			return transaction(db) {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
-					try {
-						json.parseToJsonElement(row[JsonStoreTable.content])
-					} catch (e: Exception) {
-						logger.warn("Failed to parse JSON  namespace={}  reason={}", namespace, e.message)
-						null
-					}
+					runCatching { json.parseToJsonElement(row[JsonStoreTable.content]) }
+						.onFailure {
+							logger.warn(
+								"Failed to parse JSON  namespace={}  reason={}",
+								namespace,
+								it.message
+							)
+						}
+						.getOrNull()
 				}
 			}
 		}

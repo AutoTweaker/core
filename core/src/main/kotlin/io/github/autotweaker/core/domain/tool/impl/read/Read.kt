@@ -27,10 +27,10 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.impl.ToolSettings
-import kotlinx.coroutines.channels.Channel
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
+import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
@@ -102,7 +102,11 @@ class Read : CoreTool<Read.Args> {
 		settings = service
 	}
 	
-	override suspend fun coreExec(container: SimpleContainer, args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput {
+	override suspend fun coreExec(
+		container: SimpleContainer,
+		args: Args,
+		outputChannel: Channel<Tool.RuntimeOutput>?
+	): Tool.ToolOutput {
 		val s = settings
 		val filePath = when (args) {
 			is Args.File -> args.filePath
@@ -110,11 +114,8 @@ class Read : CoreTool<Read.Args> {
 			is Args.Unicode -> args.filePath
 		}
 		val fs = container.get<FileSystemService>()
-		val normalizedPath = try {
-			fs.normalize(filePath)
-		} catch (_: Exception) {
-			return Tool.ToolOutput(s.get(ToolSettings.PathErrorMessage()).value, false)
-		}
+		val normalizedPath = runCatching { fs.normalize(filePath) }
+			.getOrElse { return Tool.ToolOutput(s.get(ToolSettings.PathErrorMessage()).value, false) }
 		try {
 			if (!fs.exists(normalizedPath)) {
 				return Tool.ToolOutput(s.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
@@ -185,23 +186,18 @@ class Read : CoreTool<Read.Args> {
 		} catch (_: IllegalStateException) {
 			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
-		val sha256 = try {
-			fs.sha256(normalizedPath)
-		} catch (_: Exception) {
-			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
-		}
+		val sha256 = runCatching { fs.sha256(normalizedPath) }
+			.getOrElse { return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		
 		val history = container.get<ToolCallHistory>()
 		val previousReads = history.getAll(name, Args.serializer())
 			.mapNotNull { entry -> (entry.args as? Args.File)?.let { entry to it } }
 			.filter { (_, fileArgs) -> fileArgs.lineNumber == args.lineNumber }
 		if (previousReads.any { (entry, fileArgs) ->
-				try {
+				runCatching {
 					val prevNormalized = fs.normalize(fileArgs.filePath)
 					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256 && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
-				} catch (_: Exception) {
-					false
-				}
+				}.getOrDefault(false)
 			}) {
 			return Tool.ToolOutput(s.get(ReadSettings.FileMessageDuplicateSetting()).value.format(sha256), true)
 		}
@@ -245,11 +241,13 @@ class Read : CoreTool<Read.Args> {
 		val summarizePrompt = s.get(ReadSettings.SummarizePromptSetting()).value
 		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		val summarizeService = container.get<SummarizeService>()
-		val output = try {
-			summarizeService.summarize(content, prompt)
-		} catch (e: Exception) {
-			return Tool.ToolOutput(s.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message), false)
-		}
+		val output = runCatching { summarizeService.summarize(content, prompt) }
+			.getOrElse { e ->
+				return Tool.ToolOutput(
+					s.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message),
+					false
+				)
+			}
 		val summarizeMaxOutputChars = s.get(ReadSettings.SummarizeMaxOutputCharsSetting()).value
 		return if (output.length > summarizeMaxOutputChars) {
 			Tool.ToolOutput(
@@ -268,11 +266,8 @@ class Read : CoreTool<Read.Args> {
 		normalizedPath: Path,
 		maxChars: Int,
 	): Tool.ToolOutput {
-		val allUnicode: List<Unicode> = try {
-			fs.readUnicode(normalizedPath)
-		} catch (_: Exception) {
-			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
-		}
+		val allUnicode: List<Unicode> = runCatching { fs.readUnicode(normalizedPath) }
+			.getOrElse { return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		return Tool.ToolOutput(allUnicode.take(maxChars).joinToString("") { it.value }, true)
 	}
 	
@@ -280,11 +275,8 @@ class Read : CoreTool<Read.Args> {
 		fs: FileSystemService, path: Path, startLine: Int, endLine: Int,
 		maxChars: Int, truncateMessage: String, lineNumber: Boolean,
 	): String {
-		val allLines: List<String> = try {
-			fs.readAllLines(path)
-		} catch (e: Exception) {
-			throw IllegalStateException("Failed to read: $e")
-		}
+		val allLines: List<String> = runCatching { fs.readAllLines(path) }
+			.getOrElse { e -> throw IllegalStateException("Failed to read: $e") }
 		val actualEndLine = minOf(endLine, allLines.size)
 		val selectedLines = allLines.subList(startLine - 1, actualEndLine)
 		val sb = StringBuilder()

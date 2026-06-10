@@ -185,10 +185,10 @@ class Secret : Command {
 		
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false).also { emit(CmdOutput.Data("")) }
 		
-		try {
+		runCatching {
 			core.secret.unlock(password)
 			logger.info("Keystore unlocked  command=secret")
-		} catch (_: Exception) {
+		}.getOrElse {
 			logger.warn("Failed to unlock keystore  command=secret")
 			emitI18n(i18n, SecretI18n.UnlockFailed(), error = true)
 			emitDone(1)
@@ -200,13 +200,13 @@ class Secret : Command {
 	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
 		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		emit(CmdOutput.Data(""))
-		try {
+		runCatching {
 			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(password)
 			}
 			core.secret.changePassword(password, "")
 			logger.info("Password removed  command=secret")
-		} catch (_: Exception) {
+		}.getOrElse {
 			logger.warn("Failed to remove password  command=secret")
 			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
@@ -234,13 +234,13 @@ class Secret : Command {
 			return@flow
 		}
 		
-		try {
+		runCatching {
 			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(oldPassword)
 			}
 			core.secret.changePassword(oldPassword, newPassword)
 			logger.info("Password changed  command=secret")
-		} catch (_: Exception) {
+		}.getOrElse {
 			logger.warn("Failed to change password  command=secret")
 			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)

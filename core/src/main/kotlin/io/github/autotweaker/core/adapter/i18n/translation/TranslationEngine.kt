@@ -141,11 +141,8 @@ object TranslationEngine {
 			if (value.isBlank()) continue
 			val sourceText = r.batch.find { it.key == key }?.localizations?.firstOrNull() ?: ""
 			if (PlaceholderValidator.validate(sourceText, value)) {
-				try {
-					i18nService.set(key, value, r.target)
-				} catch (e: Exception) {
-					logger.warn("Failed to persist translation  key={}  reason={}", key, e.message)
-				}
+				runCatching { i18nService.set(key, value, r.target) }
+					.onFailure { logger.warn("Failed to persist translation  key={}  reason={}", key, it.message) }
 			} else {
 				logger.warn(
 					"Placeholder validation failed  key={}  source={}  translated={}", key, sourceText, value
@@ -167,12 +164,10 @@ object TranslationEngine {
 		if (start == -1 || end == -1 || start >= end) return emptyMap()
 		
 		val jsonText = responseText.substring(start, end + 1)
-		return try {
+		return runCatching {
 			val obj = json.parseToJsonElement(jsonText).jsonObject
 			obj.mapNotNull { (k, v) -> v.jsonPrimitive.content.let { k to it } }.toMap()
-		} catch (_: Exception) {
-			logger.warn("Failed to parse translation response  length={}", responseText.length)
-			emptyMap()
-		}
+		}.onFailure { logger.warn("Failed to parse translation response  length={}", responseText.length) }
+			.getOrDefault(emptyMap())
 	}
 }

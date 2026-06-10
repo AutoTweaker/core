@@ -56,7 +56,7 @@ object LogStore {
 	}
 	
 	private fun parseLine(line: String): LogEvent<ExceptionInfo.Stored>? {
-		return try {
+		return runCatching {
 			val obj = json.decodeFromString<JsonObject>(line)
 			LogEvent(
 				timestamp = obj["@timestamp"]?.jsonPrimitive?.content?.let { parseInstant(it) }
@@ -67,19 +67,12 @@ object LogStore {
 				message = obj["message"]?.jsonPrimitive?.content.orEmpty(),
 				exception = obj["stack_trace"]?.jsonPrimitive?.content?.let { ExceptionInfo.Stored(it) }
 			)
-		} catch (e: Exception) {
-			logger.debug("Failed to parse JSONL line  length={}", line.length, e)
-			null
-		}
+		}.onFailure { logger.debug("Failed to parse JSONL line  length={}  reason={}", line.length, it.message) }
+			.getOrNull()
 	}
 	
-	private fun parseInstant(value: String): Instant? {
-		return try {
-			Instant.parse(value)
-		} catch (_: Exception) {
-			null
-		}
-	}
+	private fun parseInstant(value: String): Instant? =
+		runCatching { Instant.parse(value) }.getOrNull()
 	
 	private fun String.toLogLevel(): LogLevel? = when (uppercase()) {
 		"TRACE" -> LogLevel.TRACE

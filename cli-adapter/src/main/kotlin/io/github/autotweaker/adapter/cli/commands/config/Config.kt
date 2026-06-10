@@ -146,13 +146,12 @@ class Config : Command {
 	
 	private fun set(key: String, value: String): Flow<CmdOutput> = flow {
 		val config = settingOrEmit(key) ?: return@flow
-		val newValue = try {
-			config.value.parse(value)
-		} catch (_: Exception) {
-			emitI18n(i18n, CfgI18n.SetTypeError(), error = true)
-			emitDone(1)
-			return@flow
-		}
+		val newValue = runCatching { config.value.parse(value) }
+			.getOrElse {
+				emitI18n(i18n, CfgI18n.SetTypeError(), error = true)
+				emitDone(1)
+				return@flow
+			}
 		core.config.settingService.set(key, newValue)
 		emitDone()
 	}
