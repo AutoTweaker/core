@@ -65,7 +65,7 @@ object SecretManager : SecretStore {
 			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
 			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
 			killPb.start().waitFor()
-		}
+		}.onFailure { logger.debug("Failed to kill gpg-agent  reason={}", it.message) }
 	}
 	
 	suspend fun init(service: SettingService) {
@@ -87,10 +87,18 @@ object SecretManager : SecretStore {
 		Files.createDirectories(gpgHome)
 		//确保权限正确
 		runCatching { Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------")) }
+			.onFailure { logger.debug("Failed to set gpgHome permissions  path={}  reason={}", gpgHome, it.message) }
 		//创建私钥目录
 		val privateKeysDir = gpgHome.resolve("private-keys-v1.d")
 		Files.createDirectories(privateKeysDir)
 		runCatching { Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------")) }
+			.onFailure {
+				logger.debug(
+					"Failed to set privateKeysDir permissions  path={}  reason={}",
+					privateKeysDir,
+					it.message
+				)
+			}
 		//创建gpg agent配置
 		val agentConf = gpgHome.resolve("gpg-agent.conf")
 		if (!Files.exists(agentConf)) {
@@ -102,7 +110,7 @@ object SecretManager : SecretStore {
 			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
 			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
 			killPb.start().waitFor()
-		}
+		}.onFailure { logger.debug("Failed to kill gpg-agent during unlock  reason={}", it.message) }
 		if (!hasSecretKey()) {
 			password = passphrase.toCharArray()
 			_isUnlocked.value = true
@@ -126,6 +134,7 @@ object SecretManager : SecretStore {
 			it.startsWith("sec:")
 		}
 	} catch (_: Exception) {
+		logger.warn("Failed to check secret key existence  keyUid={}", keyUid)
 		false
 	}
 	

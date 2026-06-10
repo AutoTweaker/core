@@ -42,6 +42,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		try {
 			secretStore.get(uuid)
 		} catch (_: Exception) {
+			logger.warn("Failed to get env  id={}  class={}", id, kClass.java.name)
 			null
 		}
 	}

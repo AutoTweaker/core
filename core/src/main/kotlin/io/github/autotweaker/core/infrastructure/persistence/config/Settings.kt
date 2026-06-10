@@ -23,7 +23,10 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
+import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -34,9 +37,24 @@ import java.util.concurrent.ConcurrentHashMap
 
 object Settings : SettingService {
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
 	private val cache = ConcurrentHashMap<String, SettingValue>()
+	
+	private fun fillColumn(it: UpdateBuilder<*>, value: SettingValue) {
+		it[ConfigTable.valJson] = json.encodeToString(SettingValue.serializer(), value)
+	}
+	
+	private fun getValueFromRow(row: ResultRow): SettingValue? {
+		val jsonStr = row[ConfigTable.valJson]
+		return try {
+			json.decodeFromString(SettingValue.serializer(), jsonStr)
+		} catch (_: Exception) {
+			logger.warn("Failed to deserialize config value  key={}", row[ConfigTable.keyName])
+			null
+		}
+	}
 	
 	fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("AppConfig")

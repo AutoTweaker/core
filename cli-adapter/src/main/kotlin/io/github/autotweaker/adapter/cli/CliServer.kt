@@ -70,7 +70,15 @@ class CliServer(service: SettingService, core: CoreAPI) {
 		
 		scope.launch {
 			while (channel.isOpen) {
-				val client = runCatching { channel.accept() }.getOrNull() ?: break
+				val client = runCatching { channel.accept() }
+					.onFailure {
+						logger.warn(
+							"Failed to accept connection  socketPath={}  reason={}",
+							socketPath(),
+							it.message
+						)
+					}
+					.getOrNull() ?: break
 				logger.info("Client connected  socketPath={}", socketPath())
 				connectionLimit.acquire()
 				activeClients.add(client)
