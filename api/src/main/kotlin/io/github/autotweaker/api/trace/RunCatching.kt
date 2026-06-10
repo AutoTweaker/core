@@ -18,8 +18,11 @@
 
 package io.github.autotweaker.api.trace
 
-interface TraceRecorder {
-	fun add(namespace: String, content: String)
-	
-	fun exception(e: Throwable) = add("e", e.stackTraceToString())
+inline fun <T> TraceRecorder.catching(block: () -> T): Result<T> {
+	return try {
+		Result.success(block())
+	} catch (e: Throwable) {
+		exception(e)
+		Result.failure(e)
+	}
 }
