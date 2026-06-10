@@ -19,12 +19,12 @@
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 object TraceStore {
@@ -88,5 +88,54 @@ object TraceStore {
 					(TraceTable.namespace eq namespace) and
 					(TraceTable.timestamp eq timestamp)
 		}
+	}
+	
+	fun deleteByAge(maxAgeDays: Int): Int = transaction(db) {
+		val cutoff = Clock.System.now() - maxAgeDays.days
+		TraceTable.deleteWhere { TraceTable.timestamp less cutoff }
+	}
+	
+	fun trimPerNamespace(maxEntries: Int): Int = transaction(db) {
+		var totalDeleted = 0
+		val origins = TraceTable.select(TraceTable.origin, TraceTable.namespace)
+			.withDistinct()
+			.groupBy({ it[TraceTable.origin] }, { it[TraceTable.namespace] })
+		
+		origins.forEach { (origin, namespaces) ->
+			namespaces.forEach { namespace ->
+				val nsCount = TraceTable.selectAll()
+					.where { (TraceTable.origin eq origin) and (TraceTable.namespace eq namespace) }
+					.count()
+				if (nsCount <= maxEntries.toLong()) return@forEach
+				
+				val cutoffTimestamp = TraceTable.select(TraceTable.timestamp)
+					.where { (TraceTable.origin eq origin) and (TraceTable.namespace eq namespace) }
+					.orderBy(TraceTable.timestamp, SortOrder.DESC)
+					.limit(1).offset(maxEntries.toLong() - 1)
+					.first()[TraceTable.timestamp]
+				
+				totalDeleted += TraceTable.deleteWhere {
+					(TraceTable.origin eq origin) and
+							(TraceTable.namespace eq namespace) and
+							(TraceTable.timestamp less cutoffTimestamp)
+				}
+			}
+		}
+		return@transaction totalDeleted
+	}
+	
+	fun trimGlobal(maxTotalEntries: Int): Int = transaction(db) {
+		val total = TraceTable.selectAll().count()
+		if (total <= maxTotalEntries.toLong()) return@transaction 0
+		deleteOldestBatch((total - maxTotalEntries).toInt())
+	}
+	
+	fun deleteOldestBatch(batchSize: Int): Int = transaction(db) {
+		val cutoffTimestamp = TraceTable.select(TraceTable.timestamp)
+			.orderBy(TraceTable.timestamp, SortOrder.ASC)
+			.limit(1).offset(batchSize.toLong() - 1)
+			.firstOrNull()?.get(TraceTable.timestamp) ?: return@transaction 0
+		
+		TraceTable.deleteWhere { TraceTable.timestamp lessEq cutoffTimestamp }
 	}
 }

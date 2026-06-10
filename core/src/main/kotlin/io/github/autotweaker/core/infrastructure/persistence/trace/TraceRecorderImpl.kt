@@ -19,11 +19,11 @@
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
 import io.github.autotweaker.api.trace.TraceRecorder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
+import kotlin.time.Duration.Companion.minutes
 
 object TraceRecorderImpl {
 	private val scope = CoroutineScope(Dispatchers.IO)
@@ -33,6 +33,14 @@ object TraceRecorderImpl {
 		scope.launch {
 			for (entry in queue) {
 				TraceStore.insert(entry.origin, entry.namespace, entry.content)
+			}
+		}
+		
+		val interval = Settings.get(TraceSettings.CleanupIntervalMinutes()).value
+		if (interval > 0) scope.launch {
+			while (isActive) {
+				delay(interval.minutes)
+				TraceCleanup.cleanup()
 			}
 		}
 	}
