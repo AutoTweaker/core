@@ -311,7 +311,7 @@ class ToolMetaValueTypeTest {
 	}
 	
 	@Test
-	fun `already snake_case names stay unchanged`() = runBlocking {
+	fun `already snake_case names stay unchanged`(): Unit = runBlocking {
 		@Serializable
 		data class Args(val already_snake: String)
 		
@@ -348,7 +348,7 @@ class ToolMetaValueTypeTest {
 		val meta = ToolMeta.build(tool)
 		val vt = meta.functions[0].parameters["color"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.StringValue)
-		val enum = (vt as ToolMeta.ValueType.StringValue).enum
+		val enum = vt.enum
 		assertNotNull(enum)
 		assertTrue(enum.contains("RED"))
 		assertTrue(enum.contains("GREEN"))

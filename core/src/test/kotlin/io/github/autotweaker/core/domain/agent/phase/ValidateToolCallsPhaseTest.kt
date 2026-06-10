@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
@@ -54,6 +55,7 @@ class ValidateToolCallsPhaseTest {
 		agentState = MutableAgentState()
 		model = mockModel()
 		tools = mockk(relaxUnitFun = true)
+		every { tools.serializeValidatedArgs(any(), any()) } returns buildJsonObject { put("validated", true) }
 		emittedOutputs.clear()
 		statusLog.clear()
 		
