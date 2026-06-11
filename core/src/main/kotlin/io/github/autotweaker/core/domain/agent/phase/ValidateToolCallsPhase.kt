@@ -47,18 +47,27 @@ object ValidateToolCallsPhase {
 		//分别提取解析失败、成功和激活的
 		val failures = results.filterIsInstance<Tools.ToolCallResolveResult.ParseFailure>()
 		val needsApproval = results.filterIsInstance<Tools.ToolCallResolveResult.NeedsApproval>()
-		//填充validatedArgs
-		if (needsApproval.isNotEmpty()) {
-			val validatedMap = needsApproval.associate { n ->
-				n.callId to env.tools.serializeValidatedArgs(n.result.toolName, n.result.args)
+		//填充validatedArgs和reason
+		val validatedMap = if (needsApproval.isNotEmpty()) {
+			needsApproval.associate { n ->
+				n.callId to Pair(
+					env.tools.serializeValidatedArgs(n.result.toolName, n.result.args),
+					n.result.reason,
+				)
 			}
+		} else {
+			emptyMap()
+		}
+		if (needsApproval.isNotEmpty()) {
 			env.updateContext { ctx ->
 				val current = ctx.currentRound ?: return@updateContext ctx
 				val pending = current.pendingToolCalls ?: return@updateContext ctx
 				ctx.copy(
 					currentRound = current.copy(
 						pendingToolCalls = pending.map { call ->
-							validatedMap[call.callId]?.let { call.copy(validatedArgs = it) } ?: call
+							validatedMap[call.callId]?.let { (args, reason) ->
+								call.copy(validatedArgs = args, reason = reason)
+							} ?: call
 						}
 					)
 				)
@@ -91,13 +100,17 @@ object ValidateToolCallsPhase {
 		return if (needsApproval.isNotEmpty()) {
 			//存储需要批准的工具请求
 			env.agentState.pendingApproval = needsApproval
-			val needsApprovalCalls = needsApproval.map { callById.getValue(it.callId) }
 			logger.debug(
 				"Tool calls queued for approval  agentId={}  count={}", env.agentId, needsApproval.size
 			)
-			env.emitOutput(AgentOutput.ToolRequest(needsApprovalCalls.map {
+			env.emitOutput(AgentOutput.ToolRequest(needsApproval.map { n ->
+				val call = callById.getValue(n.callId)
 				ToolCallRequest(
-					name = it.name, arguments = it.arguments, reason = it.reason, callId = it.callId
+					toolName = call.name,
+					arguments = call.arguments,
+					validatedArgs = validatedMap[n.callId]?.first,
+					reason = n.result.reason,
+					callId = n.callId
 				)
 			}))
 			env.updateStatus(AgentStatus.WAITING)

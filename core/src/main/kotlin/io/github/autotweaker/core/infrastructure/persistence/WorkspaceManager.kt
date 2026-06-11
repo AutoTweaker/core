@@ -43,7 +43,7 @@ object WorkspaceManager {
 			if (jsonArray == null) emptyList()
 			else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
 		)
-		logger.info("WorkspaceManager initialized  count={}", workspaceListRef.get().size)
+		logger.info("Initialized WorkspaceManager  count={}", workspaceListRef.get().size)
 	}
 	
 	@Synchronized
@@ -51,7 +51,7 @@ object WorkspaceManager {
 		if (workspaceListRef.get().any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
 		val data = WorkspaceData(meta = meta)
 		update(workspaceListRef.get().plus(data))
-		logger.info("Workspace created  id={}  name={}", data.meta.id, meta.displayName)
+		logger.info("Created workspace  id={}  name={}", data.meta.id, meta.displayName)
 		return data
 	}
 	
@@ -63,13 +63,13 @@ object WorkspaceManager {
 	fun updateMeta(meta: WorkspaceMeta) {
 		require(meta.id in workspaceListRef.get().map { it.meta.id })
 		update(workspaceListRef.get().map { if (it.meta.id == meta.id) it.copy(meta = meta) else it })
-		logger.debug("Workspace meta updated  id={}", meta.id)
+		logger.debug("Updated workspace meta  id={}", meta.id)
 	}
 	
 	@Synchronized
 	fun updateData(id: UUID, sessionIds: List<UUID>?) {
 		update(workspaceListRef.get().map { if (it.meta.id == id) it.copy(sessionIds = sessionIds) else it })
-		logger.debug("Workspace data updated  id={}", id)
+		logger.debug("Updated workspace data  id={}", id)
 	}
 	
 	@Synchronized
@@ -77,7 +77,7 @@ object WorkspaceManager {
 		require(id in workspaceListRef.get().map { it.meta.id })
 		if (id == DEFAULT_WORKSPACE_ID) error("Cannot delete default workspace")
 		update(workspaceListRef.get().filterNot { it.meta.id == id })
-		logger.info("Workspace deleted  id={}", id)
+		logger.info("Deleted workspace  id={}", id)
 	}
 	
 	@Synchronized
@@ -92,7 +92,7 @@ object WorkspaceManager {
 			)
 			val data = WorkspaceData(meta = meta)
 			update(workspaceListRef.get().plus(data))
-			logger.info("Default workspace created  id={}  path={}", data.meta.id, defaultPath)
+			logger.info("Created default workspace  id={}  path={}", data.meta.id, defaultPath)
 			data
 		}
 	}

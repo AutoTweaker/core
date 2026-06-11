@@ -104,7 +104,7 @@ data class AgentContext(
 			val name: String,
 			val modelId: UUID,
 			val arguments: String,
-			val reason: String? = null,
+			val reason: String?,
 			val timestamp: Instant,
 			val validatedArgs: JsonElement?,
 		)

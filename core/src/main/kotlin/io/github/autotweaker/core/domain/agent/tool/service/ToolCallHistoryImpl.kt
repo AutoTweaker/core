@@ -18,27 +18,17 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNamingStrategy
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonElement
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolCallHistoryImpl(
 	private val env: AgentEnvironment,
 ) : ToolCallHistory {
-	private val trace = TraceRecorderImpl.recorder(this::class)
-	private val json = Json {
-		namingStrategy = JsonNamingStrategy.SnakeCase
-	}
-	
 	override fun <Args : Any> getAll(
 		toolName: String,
 		argsSerializer: KSerializer<Args>
@@ -47,14 +37,16 @@ class ToolCallHistoryImpl(
 		for (round in ctx.historyRounds.orEmpty()) {
 			for (turn in round.turns.orEmpty()) {
 				for (tool in turn.tools) {
-					val args = tryDeserialize(toolName, tool.name, tool.call.arguments, argsSerializer) ?: continue
+					val args = tryDeserialize(toolName, tool.name, tool.call.validatedArgs ?: continue, argsSerializer)
+						?: continue
 					add(ToolCallHistory.Entry(args, tool.result.content))
 				}
 			}
 		}
 		for (turn in ctx.currentRound?.turns.orEmpty()) {
 			for (tool in turn.tools) {
-				val args = tryDeserialize(toolName, tool.name, tool.call.arguments, argsSerializer) ?: continue
+				val args =
+					tryDeserialize(toolName, tool.name, tool.call.validatedArgs ?: continue, argsSerializer) ?: continue
 				add(ToolCallHistory.Entry(args, tool.result.content))
 			}
 		}
@@ -63,18 +55,11 @@ class ToolCallHistoryImpl(
 	private fun <Args : Any> tryDeserialize(
 		expectedToolName: String,
 		callName: String,
-		arguments: String,
+		arguments: JsonElement,
 		argsSerializer: KSerializer<Args>,
 	): Args? {
-		val parts = callName.split("-", limit = 2)
-		if (parts.size != 2 || parts[0] != expectedToolName) return null
-		val functionName = parts[1]
-		val base = trace.catching { Json.parseToJsonElement(arguments) as? JsonObject }.getOrNull() ?: return null
-		val deserializationJson = if (argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
-			JsonObject(base + ("type" to JsonPrimitive(functionName)))
-		} else {
-			base
-		}
-		return trace.catching { json.decodeFromJsonElement(argsSerializer, deserializationJson) }.getOrNull()
+		val toolName = callName.substringBefore("-")
+		if (toolName != expectedToolName) return null
+		return Json.decodeFromJsonElement(argsSerializer, arguments)
 	}
 }

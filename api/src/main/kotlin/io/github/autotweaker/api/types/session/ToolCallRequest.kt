@@ -18,9 +18,12 @@
 
 package io.github.autotweaker.api.types.session
 
+import kotlinx.serialization.json.JsonElement
+
 data class ToolCallRequest(
-	val name: String,
+	val toolName: String,
 	val callId: String,
 	val arguments: String,
-	val reason: String? = null,
+	val validatedArgs: JsonElement?,
+	val reason: String,
 )

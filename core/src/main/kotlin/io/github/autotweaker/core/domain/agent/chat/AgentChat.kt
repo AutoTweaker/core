@@ -60,11 +60,12 @@ object AgentChat {
 		val messages = request.toChatMessages()
 		
 		logger.debug(
-			"Agent chat started  agentId={}  model={}  fallbackModels={}  messages={}",
+			"Agent chat started  agentId={}  model={}  fallbackModels={}  thinking={}  messages={}",
 			agentId,
 			request.model.modelInfo.modelId,
 			request.fallbackModels?.size,
-			messages.size
+			request.thinking,
+			messages.size,
 		)
 		
 		val modelById = buildMap {

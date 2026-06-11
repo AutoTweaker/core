@@ -74,9 +74,15 @@ object AgentToolSettings {
 	}
 	
 	@AutoService(SettingDef::class)
+	class ReasonEmptyError : SettingDef<SettingValue.ValString> {
+		override val default = SettingValue.ValString("reason不能为空，请提供reason")
+		override val description = "工具调用的reason属性为空时的ToolResult"
+	}
+	
+	@AutoService(SettingDef::class)
 	class TimeoutSeconds : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(1800)
-		override val description = "工具调用超时时间，单位秒"
+		override val description = "工具调用超时时间，单位秒，超时后工具将停止并丢弃响应，谨慎设置"
 	}
 	
 	@AutoService(SettingDef::class)

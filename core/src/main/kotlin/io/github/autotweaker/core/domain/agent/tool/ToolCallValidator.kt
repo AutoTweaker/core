@@ -95,6 +95,7 @@ class ToolCallValidator(
 			}
 		}
 		val reason = reasonElement.content
+		if (reason.isBlank()) return ValidationResult.Failure(service.get(AgentToolSettings.ReasonEmptyError()).value)
 		
 		val otherArguments = JsonObject(arguments.filterKeys { it != "reason" })
 		val deserializationJson = if (tool.argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
