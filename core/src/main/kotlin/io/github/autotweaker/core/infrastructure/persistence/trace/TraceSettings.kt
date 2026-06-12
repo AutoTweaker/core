@@ -25,7 +25,7 @@ import io.github.autotweaker.api.types.config.SettingValue
 object TraceSettings {
 	@AutoService(SettingDef::class)
 	class MaxEntriesPerNamespace : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(100_000)
+		override val default = SettingValue.ValInt(1_000_000)
 		override val description = "Traces数据库每个命名空间最多保留的条目数，设为0忽略命名空间条目计数"
 	}
 	
