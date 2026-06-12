@@ -18,11 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
-import com.google.auto.service.AutoService
-import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.Dispatchers
@@ -45,14 +42,9 @@ object SecretManager : SecretStore {
 	private val gpgHome = rootDir.resolve(".gnupg")
 	private val markerFile = rootDir.resolve(".verify")
 	
-	@AutoService(SettingDef::class)
-	class KeyUid : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("AutoTweaker(core.secret)@autogen.local")
-		override val description = "项目自动生成GPG密钥的UID"
-	}
+	private const val KEY_UID = "AutoTweaker(core.infrastructure.data)@autogen.local"
 	
 	private lateinit var service: SettingService
-	private val keyUid: String get() = service.get(KeyUid()).value
 	
 	private val mutex = Mutex()
 	
@@ -120,7 +112,7 @@ object SecretManager : SecretStore {
 			_isUnlocked.value = true
 			generateKey()
 			createMarker()
-			logger.info("Generated secret key  keyUid={}", keyUid)
+			logger.info("Generated secret key  keyUid={}", KEY_UID)
 		} else {
 			verifyPassword(passphrase)
 			password = passphrase.toCharArray()
@@ -134,10 +126,10 @@ object SecretManager : SecretStore {
 	
 	//检查gpg密钥存在
 	private suspend fun hasSecretKey(): Boolean = trace.catching {
-		gpg("--list-secret-keys", "--with-colons", keyUid).lines().any {
+		gpg("--list-secret-keys", "--with-colons", KEY_UID).lines().any {
 			it.startsWith("sec:")
 		}
-	}.onFailure { logger.warn("Failed secret key existence check  keyUid={}", keyUid) }
+	}.onFailure { logger.warn("Failed secret key existence check  keyUid={}", KEY_UID) }
 		.getOrDefault(false)
 	
 	//生成gpg密钥
@@ -148,7 +140,7 @@ object SecretManager : SecretStore {
 			"--pinentry-mode",
 			"loopback",
 			"--quick-generate-key",
-			keyUid,
+			KEY_UID,
 			"rsa4096",
 			"encrypt",
 			"never",
@@ -184,15 +176,15 @@ object SecretManager : SecretStore {
 	}
 	
 	private suspend fun fingerprint(): String =
-		gpg("--list-keys", "--with-colons", "--fingerprint", keyUid).lines().first { it.startsWith("fpr:") }.split(":")
-			.getOrNull(9) ?: error("Cannot find fingerprint for $keyUid")
+		gpg("--list-keys", "--with-colons", "--fingerprint", KEY_UID).lines().first { it.startsWith("fpr:") }.split(":")
+			.getOrNull(9) ?: error("Cannot find fingerprint for $KEY_UID")
 	
 	//删除密钥
 	private suspend fun deleteKey() = gpg("--batch", "--yes", "--delete-secret-and-public-key", fingerprint())
 	
 	//加密
 	private suspend fun encryptTo(input: String, output: Path) = gpg(
-		"--batch", "--yes", "--trust-model", "direct", "-r", keyUid, "-a", "-e", "-o", output.toString(), input = input
+		"--batch", "--yes", "--trust-model", "direct", "-r", KEY_UID, "-a", "-e", "-o", output.toString(), input = input
 	)
 	
 	private suspend fun gpg(vararg args: String, input: String? = null, passphrase: String? = null): String =
