@@ -34,6 +34,7 @@ class IdListStore<T : Any>(
 ) {
 	private val logger = LoggerFactory.getLogger(IdListStore::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
+	private val className = kClass.qualifiedName
 	
 	private val listSerializer = ListSerializer(serializer)
 	private val itemsRef = AtomicReference<List<T>>(emptyList())
@@ -44,7 +45,7 @@ class IdListStore<T : Any>(
 			if (jsonArray == null) emptyList()
 			else Json.decodeFromJsonElement(listSerializer, jsonArray)
 		)
-		logger.info("Initialized IdListStore  count={}", itemsRef.get().size)
+		logger.info("Initialized IdListStore  count={}  class={}", itemsRef.get().size, className)
 	}
 	
 	@Synchronized
@@ -52,7 +53,7 @@ class IdListStore<T : Any>(
 		val id = idOf(data)
 		if (itemsRef.get().any { idOf(it) == id }) error("Already exists  id=$id")
 		update(itemsRef.get() + data)
-		logger.debug("Added item  id={}", id)
+		logger.debug("Added item  id={}  class={}", id, className)
 	}
 	
 	fun get(): List<T> = itemsRef.get()
@@ -62,14 +63,14 @@ class IdListStore<T : Any>(
 	@Synchronized
 	fun delete(id: UUID) {
 		update(itemsRef.get().filterNot { idOf(it) == id })
-		logger.debug("Deleted item  id={}", id)
+		logger.debug("Deleted item  id={}  class={}", id, className)
 	}
 	
 	@Synchronized
 	fun override(data: T) {
 		val id = idOf(data)
 		update(itemsRef.get().map { if (idOf(it) == id) data else it })
-		logger.debug("Overridden item  id={}", id)
+		logger.debug("Overridden item  id={}  class={}", id, className)
 	}
 	
 	private fun update(new: List<T>) {
