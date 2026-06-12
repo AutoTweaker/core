@@ -50,7 +50,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		commands.forEach { it.init(core, coreVersion) }
 		val help = Help(commands, i18n)
 		handlers = (commands + help).associateBy { it.name }
-		logger.debug("CommandRouter loaded  commandCount={}  commands={}", handlers.size, handlers.keys)
+		logger.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
 	companion object {
@@ -72,7 +72,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		}
 		//找子命令
 		val handler = handlers[cmd] ?: run {
-			logger.warn("Unknown command received  command={}  args={}", cmd, request.args)
+			logger.warn("Received unknown command  command={}  args={}", cmd, request.args)
 			return flow {
 				emitI18n(i18n, CmdI18n.UnknownHint(), cmd, request.prog, error = true)
 				emitDone(1)
@@ -81,17 +81,17 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		
 		val conflicts = SyntaxValidator.checkConflicts(handler.syntax)
 		if (conflicts.isNotEmpty()) {
-			logger.warn("Param name conflict in command  command={}  conflicts={}", cmd, conflicts)
+			logger.warn("Detected param name conflict in command  command={}  conflicts={}", cmd, conflicts)
 			return flowOf(
 				*conflicts.map { CmdOutput.Data(it, CmdOutput.Channel.STDERR) }.toTypedArray(),
 				CmdOutput.Done(1),
 			)
 		}
 		
-		logger.debug("Command dispatched  command={}  args={}", cmd, request.args.drop(1))
+		logger.debug("Dispatched command  command={}  args={}", cmd, request.args.drop(1))
 		val parsed = argParser.parse(request.args.drop(1), handler.syntax, request.prog)
 			?: run {
-				logger.debug("Invalid arguments for command  command={}", cmd)
+				logger.debug("Rejected invalid arguments for command  command={}", cmd)
 				return flow {
 					emitI18n(i18n, CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
 					emitDone(1)

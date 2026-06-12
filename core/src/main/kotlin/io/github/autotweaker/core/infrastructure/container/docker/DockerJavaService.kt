@@ -98,9 +98,9 @@ class DockerJavaService : ContainerService {
 			if (existing != null) {
 				if (existing.state != "running") {
 					client.startContainerCmd(existing.id).exec()
-					logger.info("Container restarted  containerId={}", existing.id)
+					logger.info("Restarted container  containerId={}", existing.id)
 				} else {
-					logger.debug("Container already running  containerId={}", existing.id)
+					logger.debug("Found container already running  containerId={}", existing.id)
 				}
 				return@withContext existing.id
 			}
@@ -115,19 +115,19 @@ class DockerJavaService : ContainerService {
 				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
 					.withEnv(config.env.map { "${it.key}=${it.value}" }).withHostConfig(hostConfig)
 					.withEntrypoint("tail", "-f", "/dev/null").exec()
-			logger.info("Container created  containerId={}", createResponse.id)
+			logger.info("Created container  containerId={}", createResponse.id)
 			
 			client.startContainerCmd(createResponse.id).exec()
 			
-			logger.info("Container started  containerId={}", createResponse.id)
+			logger.info("Started container  containerId={}", createResponse.id)
 			createResponse.id
 		} catch (e: NotFoundException) {
 			trace.exception(e)
-			logger.warn("Failed to pull image  image={}", image)
+			logger.warn("Failed image pull  image={}", image)
 			throw ContainerOperationException("Image '$image' not found", e)
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed to start container  image={}  name={}", image, config.name, e)
+			logger.error("Failed container start  image={}  name={}", image, config.name, e)
 			throw ContainerOperationException("Failed to start container: ${e.message}", e)
 		}
 	}
@@ -137,13 +137,13 @@ class DockerJavaService : ContainerService {
 			permissionFixJob?.cancel()
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
-			logger.info("Container stopped  containerId={}", containerId)
+			logger.info("Stopped container  containerId={}", containerId)
 		} catch (e: NotFoundException) {
 			trace.exception(e)
-			logger.warn("Container not found  containerId={}", containerId)
+			logger.warn("Did not find container  containerId={}", containerId)
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed to stop container  containerId={}", containerId, e)
+			logger.error("Failed container stop  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
 		}
 	}
@@ -161,10 +161,10 @@ class DockerJavaService : ContainerService {
 			if (exitCode == 0) {
 				logger.debug("Fixed workspace permissions  containerId={}", containerId)
 			} else {
-				logger.warn("Failed to fix workspace permissions  containerId={}  exitCode={}", containerId, exitCode)
+				logger.warn("Failed workspace permissions fix  containerId={}  exitCode={}", containerId, exitCode)
 			}
 		}.onFailure { e ->
-			logger.warn("Failed to fix workspace permissions  containerId={}", containerId, e)
+			logger.warn("Failed workspace permissions fix  containerId={}", containerId, e)
 		}
 	}
 	
@@ -182,7 +182,7 @@ class DockerJavaService : ContainerService {
 		containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 	): Flow<ShellEvent> = callbackFlow {
 		logger.debug(
-			"Streaming exec started  containerId={}  cmd={}", containerId, command.joinToString(" ")
+			"Started streaming exec  containerId={}  cmd={}", containerId, command.joinToString(" ")
 		)
 		withContext(Dispatchers.IO) {
 			try {
@@ -217,11 +217,11 @@ class DockerJavaService : ContainerService {
 				)
 			} catch (e: NotFoundException) {
 				trace.exception(e)
-				logger.warn("Failed to find container  containerId={}", containerId)
+				logger.warn("Failed container lookup  containerId={}", containerId)
 				throw ContainerOperationException("Container not found: $containerId", e)
 			} catch (e: Exception) {
 				trace.exception(e)
-				logger.error("Failed to exec command  containerId={}", containerId, e)
+				logger.error("Failed command execution  containerId={}", containerId, e)
 				throw ContainerOperationException("Failed to exec command: ${e.message}", e)
 			}
 		}

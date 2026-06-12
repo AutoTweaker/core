@@ -80,7 +80,7 @@ class Bash : CoreTool<BashArgs> {
 		val selectedEnv = args.envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
 		logger.debug(
-			"Bash execution started  tool=bash  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds
+			"Started bash execution  tool=bash  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds
 		)
 		
 		val stdout = StringBuilder()
@@ -109,7 +109,7 @@ class Bash : CoreTool<BashArgs> {
 		val duration = String.format("%.3f", r.result.duration.inWholeMicroseconds / 1_000_000.0)
 		
 		logger.debug(
-			"Bash completed  tool=bash  exitCode={}  duration={}s  timeout={}",
+			"Completed bash  tool=bash  exitCode={}  duration={}s  timeout={}",
 			r.result.exitCode,
 			duration,
 			r.result.timeout

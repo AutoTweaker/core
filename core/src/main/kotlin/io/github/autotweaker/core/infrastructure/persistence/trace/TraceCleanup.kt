@@ -48,6 +48,6 @@ object TraceCleanup {
 		} else 0
 		
 		
-		logger.info("Trace cleanup completed  count={}", cleanupCount)
+		logger.info("Completed trace cleanup  count={}", cleanupCount)
 	}
 }

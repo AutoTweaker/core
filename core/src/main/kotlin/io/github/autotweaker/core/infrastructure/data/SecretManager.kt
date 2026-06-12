@@ -68,7 +68,7 @@ object SecretManager : SecretStore {
 			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
 			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
 			killPb.start().waitFor()
-		}.onFailure { logger.debug("Failed to kill gpg-agent  reason={}", it.message) }
+		}.onFailure { logger.debug("Failed gpg-agent kill  reason={}", it.message) }
 	}
 	
 	suspend fun init(service: SettingService) {
@@ -78,7 +78,7 @@ object SecretManager : SecretStore {
 		} catch (e: Exception) {
 			trace.exception(e)
 			if (hasSecretKey()) {
-				logger.info("SecretManager auto-unlock skipped  reason=password_required")
+				logger.info("Skipped SecretManager auto-unlock  reason=password_required")
 				return
 			}
 			throw e
@@ -91,14 +91,14 @@ object SecretManager : SecretStore {
 		Files.createDirectories(gpgHome)
 		//确保权限正确
 		trace.catching { Files.setPosixFilePermissions(gpgHome, PosixFilePermissions.fromString("rwx------")) }
-			.onFailure { logger.debug("Failed to set gpgHome permissions  path={}  reason={}", gpgHome, it.message) }
+			.onFailure { logger.debug("Failed gpgHome permissions set  path={}  reason={}", gpgHome, it.message) }
 		//创建私钥目录
 		val privateKeysDir = gpgHome.resolve("private-keys-v1.d")
 		Files.createDirectories(privateKeysDir)
 		trace.catching { Files.setPosixFilePermissions(privateKeysDir, PosixFilePermissions.fromString("rwx------")) }
 			.onFailure {
 				logger.debug(
-					"Failed to set privateKeysDir permissions  path={}  reason={}",
+					"Failed privateKeysDir permissions set  path={}  reason={}",
 					privateKeysDir,
 					it.message
 				)
@@ -114,19 +114,19 @@ object SecretManager : SecretStore {
 			val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")
 			killPb.environment()["GNUPGHOME"] = gpgHome.toString()
 			killPb.start().waitFor()
-		}.onFailure { logger.debug("Failed to kill gpg-agent during unlock  reason={}", it.message) }
+		}.onFailure { logger.debug("Failed gpg-agent kill during unlock  reason={}", it.message) }
 		if (!hasSecretKey()) {
 			password = passphrase.toCharArray()
 			_isUnlocked.value = true
 			generateKey()
 			createMarker()
-			logger.info("Secret key generated  keyUid={}", keyUid)
+			logger.info("Generated secret key  keyUid={}", keyUid)
 		} else {
 			verifyPassword(passphrase)
 			password = passphrase.toCharArray()
 			_isUnlocked.value = true
 		}
-		logger.info("SecretManager unlocked  keyExists={}", hasSecretKey())
+		logger.info("Unlocked SecretManager  keyExists={}", hasSecretKey())
 	}
 	
 	//确保unlocked，否则异常抛到上游
@@ -137,7 +137,7 @@ object SecretManager : SecretStore {
 		gpg("--list-secret-keys", "--with-colons", keyUid).lines().any {
 			it.startsWith("sec:")
 		}
-	}.onFailure { logger.warn("Failed to check secret key existence  keyUid={}", keyUid) }
+	}.onFailure { logger.warn("Failed secret key existence check  keyUid={}", keyUid) }
 		.getOrDefault(false)
 	
 	//生成gpg密钥
@@ -173,14 +173,14 @@ object SecretManager : SecretStore {
 		if (oldPassword != current) error("Invalid password")
 		if (newPassword == current) return@withLock
 		val cache = list().associateWith { get(it) }
-		logger.info("Password change started  secretCount={}", cache.size)
+		logger.info("Started password change  secretCount={}", cache.size)
 		deleteKey()
 		Files.deleteIfExists(markerFile)
 		this.password = newPassword.toCharArray()
 		generateKey()
 		cache.forEach { (id, secret) -> encryptTo(secret, secretsDir.resolve("$id.gpg")) }
 		createMarker()
-		logger.info("Password changed  secretCount={}", cache.size)
+		logger.info("Changed password  secretCount={}", cache.size)
 	}
 	
 	private suspend fun fingerprint(): String =
@@ -227,7 +227,7 @@ object SecretManager : SecretStore {
 		requireUnlocked()
 		val file = secretsDir.resolve("$id.gpg")
 		encryptTo(secret, file)
-		logger.debug("Secret added  id={}", id)
+		logger.debug("Added secret  id={}", id)
 		return id
 	}
 	
@@ -235,7 +235,7 @@ object SecretManager : SecretStore {
 		requireUnlocked()
 		val file = secretsDir.resolve("$id.gpg")
 		require(Files.exists(file)) { "Secret not found: $id" }
-		logger.debug("Secret retrieved  id={}", id)
+		logger.debug("Retrieved secret  id={}", id)
 		return gpg(
 			"--batch",
 			"--yes",
@@ -258,7 +258,7 @@ object SecretManager : SecretStore {
 	override fun remove(id: UUID) {
 		requireUnlocked()
 		Files.deleteIfExists(secretsDir.resolve("$id.gpg"))
-		logger.debug("Secret removed  id={}", id)
+		logger.debug("Removed secret  id={}", id)
 	}
 	// endregion
 }

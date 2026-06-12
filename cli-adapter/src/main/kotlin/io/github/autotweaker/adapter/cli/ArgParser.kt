@@ -118,7 +118,7 @@ class ArgParser(
 		if (positional.size !in requiredPosCount..declaredPosCount) return null
 		
 		if (!syntaxValidator.validate(syntax, values.keys, positional.size)) {
-			logger.debug("Syntax validation failed")
+			logger.debug("Failed syntax validation")
 			return null
 		}
 		

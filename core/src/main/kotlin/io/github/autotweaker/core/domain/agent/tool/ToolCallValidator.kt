@@ -62,19 +62,19 @@ class ToolCallValidator(
 			return ValidationResult.Failure(
 				service.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
 			).also {
-				logger.debug("Failed to parse tool call JSON  callId={}  name={}", callId, toolCallName)
+				logger.debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
 			}
 		} ?: return ValidationResult.Failure(
 			service.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
 		).also {
-			logger.debug("Failed to validate tool call JSON  callId={}  name={}", callId, toolCallName)
+			logger.debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
 		
 		val parts = toolCallName.split("-", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
 				service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-			).also { logger.debug("Failed to parse tool call name  callId={}  name={}", callId, toolCallName) }
+			).also { logger.debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName) }
 		}
 		
 		val toolName = parts[0]
@@ -82,7 +82,7 @@ class ToolCallValidator(
 		
 		val tool = tools.find { it.name == toolName } ?: return ValidationResult.Failure(
 			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-		).also { logger.debug("Failed to find tool  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
+		).also { logger.debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
 		
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
@@ -90,7 +90,7 @@ class ToolCallValidator(
 				service.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, "reason")
 			).also {
 				logger.debug(
-					"Failed to validate tool call reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
+					"Failed tool call validation reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
 				)
 			}
 		}
@@ -107,7 +107,7 @@ class ToolCallValidator(
 					service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 				).also {
 					logger.debug(
-						"Failed to find sealed subclass  callId={}  name={}  function={}",
+						"Failed sealed subclass lookup  callId={}  name={}  function={}",
 						callId,
 						toolCallName,
 						functionName
@@ -137,14 +137,14 @@ class ToolCallValidator(
 				service.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
 			).also {
 				logger.debug(
-					"Failed to deserialize tool call args  callId={}  name={}  tool={}  error={}",
+					"Failed tool call arg deserialization  callId={}  name={}  tool={}  error={}",
 					callId, toolCallName, toolName, e.message
 				)
 			}
 		}
 		
 		logger.debug(
-			"Tool call validated  callId={}  name={}  tool={}  function={}",
+			"Validated tool call  callId={}  name={}  tool={}  function={}",
 			callId, toolCallName, toolName, functionName
 		)
 		return ValidationResult.Success(

@@ -35,7 +35,7 @@ object HandleApprovalPhase {
 		executeTool: suspend (ToolCallValidator.ValidationResult.Success<*>, AgentContext.CurrentRound.PendingToolCall) -> AgentContext.Message.Tool,
 	): PhaseResult {
 		logger.debug(
-			"Tool approval phase started  agentId={}  approvals={}",
+			"Started tool approval phase  agentId={}  approvals={}",
 			env.agentId, approvals.size
 		)
 		env.updateStatus(AgentStatus.PROCESSING)
@@ -61,7 +61,7 @@ object HandleApprovalPhase {
 			//当前pendingApproval未批准
 			if (a == null) {
 				logger.debug(
-					"Tool approval deferred  agentId={}  tool={}  callId={}",
+					"Deferred tool approval  agentId={}  tool={}  callId={}",
 					env.agentId,
 					call.name,
 					call.callId
@@ -72,11 +72,11 @@ object HandleApprovalPhase {
 			//当前pendingApproval被批准或拒绝
 			processed.add(
 				if (a.approved) {
-					logger.debug("Tool approved  agentId={}  tool={}  callId={}", env.agentId, call.name, call.callId)
+					logger.debug("Approved tool  agentId={}  tool={}  callId={}", env.agentId, call.name, call.callId)
 					if (a.reason != null) env.agentState.approvalReasons.add(a.reason!!)
 					executeTool(n.result, call)
 				} else {
-					logger.debug("Tool rejected  agentId={}  tool={}  callId={}", env.agentId, call.name, call.callId)
+					logger.debug("Rejected tool  agentId={}  tool={}  callId={}", env.agentId, call.name, call.callId)
 					ContextPhase.buildRejectedTool(call, a.reason, env)
 				}
 			)

@@ -48,7 +48,10 @@ object ChatService {
 			modelRepo.resolve(it) ?: error("Unknown fallback model: $it")
 		}
 		logger.debug(
-			"Chat request  model={}  fallbackCount={}  stream={}", request.model, fallbacks?.size ?: 0, request.stream
+			"Started chat request  model={}  fallbackCount={}  stream={}",
+			request.model,
+			fallbacks?.size ?: 0,
+			request.stream
 		)
 		val modelMap = buildMap {
 			put(model.id, model)

@@ -74,7 +74,7 @@ object Launcher {
 		TraceStore.init(databaseStore)
 		
 		PluginLoader.load<Debugger>().forEach { debugger ->
-			logger.info("Initializing debugger  class={}", debugger::class.java.name)
+			logger.info("Initialized debugger  class={}", debugger::class.java.name)
 			debugger.init(DbDebugAPIImpl)
 		}
 		
@@ -92,7 +92,7 @@ object Launcher {
 			adapters.forEach { (adapter, info) ->
 				registry[info.name] = adapter to info
 				logger.info(
-					"Adapter loaded  name={}  version={}  description={}", info.name, info.version, info.description
+					"Loaded adapter  name={}  version={}  description={}", info.name, info.version, info.description
 				)
 				adapter.start(createCoreAPI(adapterAPI))
 				logger.info("Started adapter  name={}", info.name)
@@ -108,20 +108,20 @@ object Launcher {
 			trace.catching {
 				adapter.stop()
 				logger.info("Stopped adapter  name={}", info.name)
-			}.onFailure { logger.warn("Failed to stop adapter  name={}  reason={}", info.name, it.message) }
+			}.onFailure { logger.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
 		}
 		trace.catching { SessionManager.shutdown() }
-			.onFailure { logger.warn("Failed to shutdown SessionManager") }
+			.onFailure { logger.warn("Failed SessionManager shutdown") }
 		trace.catching { ContainerManager.stop() }
-			.onFailure { logger.warn("Failed to stop ContainerManager") }
+			.onFailure { logger.warn("Failed ContainerManager stop") }
 		trace.catching { TranslationManager.shutdown() }
-			.onFailure { logger.warn("Failed to shutdown TranslationManager") }
+			.onFailure { logger.warn("Failed TranslationManager shutdown") }
 		trace.catching { AbstractOpenAiClient.close() }
-			.onFailure { logger.warn("Failed to close LLM clients") }
+			.onFailure { logger.warn("Failed LLM client close") }
 		trace.catching { SecretManager.killGpgAgent() }
-			.onFailure { logger.warn("Failed to kill GPG agent") }
+			.onFailure { logger.warn("Failed GPG agent kill") }
 		trace.catching { databaseStore.shutdown() }
-			.onFailure { logger.warn("Failed to shutdown DatabaseStore") }
-		logger.info("Launcher shutdown completed")
+			.onFailure { logger.warn("Failed DatabaseStore shutdown") }
+		logger.info("Completed launcher shutdown")
 	}
 }

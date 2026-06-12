@@ -70,7 +70,7 @@ object LogStore {
 				message = obj["message"]?.jsonPrimitive?.content.orEmpty(),
 				exception = obj["stack_trace"]?.jsonPrimitive?.content?.let { ExceptionInfo.Stored(it) }
 			)
-		}.onFailure { logger.debug("Failed to parse JSONL line  length={}  reason={}", line.length, it.message) }
+		}.onFailure { logger.debug("Failed JSONL line parsing  length={}  reason={}", line.length, it.message) }
 			.getOrNull()
 	}
 	

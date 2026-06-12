@@ -61,25 +61,25 @@ object TranslationManager {
 	
 	fun setModel(modelId: UUID?) {
 		saveModelId(modelId)
-		logger.debug("Translation model updated  modelId={}", modelId)
+		logger.debug("Updated translation model  modelId={}", modelId)
 	}
 	
 	fun startTranslation() {
 		if (!_status.compareAndSet(TranslationStatus.IDLE, TranslationStatus.TRANSLATING)) {
-			logger.debug("Translation already in progress  action=skip")
+			logger.debug("Skipped translation  reason=already_in_progress")
 			return
 		}
 		
 		val modelId = loadModelId()
 		if (modelId == null) {
-			logger.info("Translation model not configured  action=skip")
+			logger.info("Skipped translation  reason=model_not_configured")
 			_status.value = TranslationStatus.IDLE
 			return
 		}
 		
 		val target = i18nService.getLanguage()
 		if (TranslationEngine.isLanguageCovered(target, i18nService)) {
-			logger.info("Translations already complete for target  target={}  action=skip", target.toLanguageTag())
+			logger.info("Skipped translation  reason=already_complete  target={}  action=skip", target.toLanguageTag())
 			_status.value = TranslationStatus.IDLE
 			return
 		}
@@ -89,12 +89,12 @@ object TranslationManager {
 				TranslationEngine.run(settings, modelId, target, modelRepo, i18nService)
 			} catch (e: Exception) {
 				trace.exception(e)
-				logger.error("Failed to translate  target={}", target.toLanguageTag(), e)
+				logger.error("Failed translation  target={}", target.toLanguageTag(), e)
 			} finally {
 				_status.value = TranslationStatus.IDLE
 			}
 		}
-		logger.info("Translation started  target={}  modelId={}", target.toLanguageTag(), modelId)
+		logger.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
 	}
 	
 	fun shutdown() {

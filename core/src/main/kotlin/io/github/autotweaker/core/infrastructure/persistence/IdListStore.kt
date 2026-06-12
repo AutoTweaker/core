@@ -44,7 +44,7 @@ class IdListStore<T : Any>(
 			if (jsonArray == null) emptyList()
 			else Json.decodeFromJsonElement(listSerializer, jsonArray)
 		)
-		logger.info("Initialized  count={}", itemsRef.get().size)
+		logger.info("Initialized IdListStore  count={}", itemsRef.get().size)
 	}
 	
 	@Synchronized
@@ -52,7 +52,7 @@ class IdListStore<T : Any>(
 		val id = idOf(data)
 		if (itemsRef.get().any { idOf(it) == id }) error("Already exists  id=$id")
 		update(itemsRef.get() + data)
-		logger.debug("Added  id={}", id)
+		logger.debug("Added item  id={}", id)
 	}
 	
 	fun get(): List<T> = itemsRef.get()
@@ -62,14 +62,14 @@ class IdListStore<T : Any>(
 	@Synchronized
 	fun delete(id: UUID) {
 		update(itemsRef.get().filterNot { idOf(it) == id })
-		logger.debug("Deleted  id={}", id)
+		logger.debug("Deleted item  id={}", id)
 	}
 	
 	@Synchronized
 	fun override(data: T) {
 		val id = idOf(data)
 		update(itemsRef.get().map { if (idOf(it) == id) data else it })
-		logger.debug("Overridden  id={}", id)
+		logger.debug("Overridden item  id={}", id)
 	}
 	
 	private fun update(new: List<T>) {

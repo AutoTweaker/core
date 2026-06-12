@@ -61,8 +61,8 @@ fun main() {
  *    错误: logger.error("Error: ${e.message}")  // 丢失堆栈
  *
  * 7. 变量注入: 用 SLF4J 占位符（{}）注入变量，禁止 Kotlin 字符串模板
- *    正确: logger.info("Agent created  agentId={}  model={}", agentId, model)
- *    错误: logger.info("Agent created  agentId=${agentId}  model=${model}")
+ *    正确: logger.info("Created agent  agentId={}  model={}", agentId, model)
+ *    错误: logger.info("Created agent  agentId=${agentId}  model=${model}")
  *    异常对象放在最后: logger.error("Failed config  key={}", key, e)
  *
  * 8. 肯定/否定一致:

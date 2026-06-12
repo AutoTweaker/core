@@ -46,7 +46,7 @@ class CliAdapter : Adapter {
 		)
 		adapterName = info.name
 		logger.info(
-			"CliAdapter loaded  adapter={}  version={}  coreVersion={}", adapterName, adapterVersion, coreVersion
+			"Loaded CliAdapter  adapter={}  version={}  coreVersion={}", adapterName, adapterVersion, coreVersion
 		)
 		return info
 	}
@@ -56,12 +56,12 @@ class CliAdapter : Adapter {
 		val router = CommandRouter.fromServiceLoader(core, coreVersion)
 		s.start(router)
 		server = s
-		logger.info("CliAdapter started  adapter={}  version={}", adapterName, adapterVersion)
+		logger.info("Started CliAdapter  adapter={}  version={}", adapterName, adapterVersion)
 	}
 	
 	override suspend fun stop() {
 		server?.stop()
 		server = null
-		logger.info("CliAdapter stopped  adapter={}", adapterName)
+		logger.info("Stopped CliAdapter  adapter={}", adapterName)
 	}
 }

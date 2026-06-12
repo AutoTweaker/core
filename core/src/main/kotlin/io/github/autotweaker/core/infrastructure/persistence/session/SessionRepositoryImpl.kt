@@ -40,7 +40,7 @@ object SessionRepositoryImpl : SessionRepository {
 		transaction(db) {
 			SchemaUtils.create(SessionDataTable, SessionContextTable, SessionMessageTable)
 		}
-		logger.info("SessionRepository initialized")
+		logger.info("Initialized SessionRepository")
 	}
 	
 	// region Sessions

@@ -62,7 +62,7 @@ object I18nServiceImpl : I18nService {
 			if (initialized) return
 			load()
 			initialized = true
-			logger.info("I18nService initialized  stored={}", cache.size)
+			logger.info("Initialized I18nService  stored={}", cache.size)
 		}
 	}
 	
@@ -105,7 +105,7 @@ object I18nServiceImpl : I18nService {
 			cache = mutable
 			save()
 		}
-		logger.debug("I18n text set  key={}  lang={}", id, languageCode.toLanguageTag())
+		logger.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
 	}
 	
 	override fun getAll(): List<I18nEntry> {

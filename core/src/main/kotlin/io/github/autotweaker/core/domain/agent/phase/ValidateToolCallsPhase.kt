@@ -31,7 +31,7 @@ object ValidateToolCallsPhase {
 	
 	suspend fun execute(env: AgentEnvironment): PhaseResult {
 		logger.debug(
-			"Tool calls validation started  agentId={}  pendingCallCount={}",
+			"Started tool calls validation  agentId={}  pendingCallCount={}",
 			env.agentId,
 			env.context.value.currentRound?.pendingToolCalls?.size
 		)
@@ -75,7 +75,7 @@ object ValidateToolCallsPhase {
 		}
 		val activations = results.filterIsInstance<Tools.ToolCallResolveResult.Activation>()
 		logger.debug(
-			"Tool calls resolved  agentId={}  total={}  failures={}  needsApproval={}  activations={}",
+			"Resolved tool calls  agentId={}  total={}  failures={}  needsApproval={}  activations={}",
 			env.agentId,
 			pendingCalls.size,
 			failures.size,
@@ -101,7 +101,7 @@ object ValidateToolCallsPhase {
 			//存储需要批准的工具请求
 			env.agentState.pendingApproval = needsApproval
 			logger.debug(
-				"Tool calls queued for approval  agentId={}  count={}", env.agentId, needsApproval.size
+				"Queued tool calls for approval  agentId={}  count={}", env.agentId, needsApproval.size
 			)
 			env.emitOutput(AgentOutput.ToolRequest(needsApproval.map { n ->
 				val call = callById.getValue(n.callId)
@@ -117,7 +117,7 @@ object ValidateToolCallsPhase {
 			PhaseResult.Done
 		} else {
 			logger.debug(
-				"All tool calls resolved  continued  agentId={}  processedToolCount={}", env.agentId, errorTools.size
+				"Continued all tool calls  agentId={}  processedToolCount={}", env.agentId, errorTools.size
 			)
 			//没有待处理的，直接继续
 			ContextPhase.writeToolTurn(env, assistantMsg, env::updateContext)

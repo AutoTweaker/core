@@ -138,7 +138,7 @@ object SessionManager {
 			id = workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + session.data.value.id
 		)
 		store.saveSessions(listOf(session.data.value))
-		logger.info("Session created  sessionId={}  workspaceId={}", session.data.value.id, workspaceData.meta.id)
+		logger.info("Created session  sessionId={}  workspaceId={}", session.data.value.id, workspaceData.meta.id)
 		return data.id
 	}
 	
@@ -193,9 +193,9 @@ object SessionManager {
 	}
 	
 	suspend fun shutdown() {
-		logger.info("SessionManager shutdown initiated  activeSessions={}", sessions.size)
+		logger.info("Initiated SessionManager shutdown  activeSessions={}", sessions.size)
 		sessions.keys.toList().forEach { id -> trace.catching { stop(id) } }
 		scope.cancel()
-		logger.info("SessionManager shutdown completed")
+		logger.info("Completed SessionManager shutdown")
 	}
 }

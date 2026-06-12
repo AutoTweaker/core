@@ -64,19 +64,19 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		acquireLock()
 		
 		PluginLoader.load<StartupHook>().forEach { hook ->
-			logger.info("Running startup hook  class={}", hook::class.java.name)
+			logger.info("Executed startup hook  class={}", hook::class.java.name)
 			hook.execute(version)
 		}
 		
-		logger.info("AutoTweaker started  version={}", version)
+		logger.info("Started AutoTweaker  version={}", version)
 		
 		Launcher.start(version, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
-			logger.info("AutoTweaker shutdown initiated")
+			logger.info("Initiated AutoTweaker shutdown")
 			runBlocking { Launcher.shutdown(registry) }
 			PluginLoader.closeClassLoaders()
 			releaseLock()
-			logger.info("AutoTweaker shutdown completed")
+			logger.info("Completed AutoTweaker shutdown")
 		})
 	}
 	
@@ -93,7 +93,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		channel.truncate(0)
 		channel.write(java.nio.ByteBuffer.wrap(ProcessHandle.current().pid().toString().toByteArray()))
 		channel.force(true)
-		logger.debug("Lock acquired  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
+		logger.debug("Acquired lock  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
 	override suspend fun list(): List<AdapterInfo> = registry.values.map { it.second }
@@ -124,6 +124,6 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 			fileLock?.release()
 			lockChannel?.close()
 			Files.deleteIfExists(lockFile)
-		}.onFailure { logger.warn("Failed to release lock  lockFile={}  reason={}", lockFile, it.message) }
+		}.onFailure { logger.warn("Failed lock release  lockFile={}  reason={}", lockFile, it.message) }
 	}
 }

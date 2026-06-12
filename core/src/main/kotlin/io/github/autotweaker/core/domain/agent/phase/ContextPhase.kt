@@ -38,7 +38,7 @@ object ContextPhase {
 		//当前round啥也没有（只有用户消息），直接丢弃
 		if (round.assistantMessage == null && round.turns.isNullOrEmpty() && round.pendingToolCalls.isNullOrEmpty()) {
 			logger.debug(
-				"Empty round discarded  agentId={}  userMessageId={}",
+				"Discarded empty round  agentId={}  userMessageId={}",
 				env.agentId, round.userMessage.id
 			)
 			updateContext { it.copy(currentRound = null) }
@@ -46,7 +46,7 @@ object ContextPhase {
 		}
 		
 		logger.debug(
-			"Round archive started  agentId={}  userMessageId={}  hasAssistant={}  turnCount={}  hasPendingCalls={}",
+			"Started round archive  agentId={}  userMessageId={}  hasAssistant={}  turnCount={}  hasPendingCalls={}",
 			env.agentId,
 			round.userMessage.id,
 			round.assistantMessage != null,
@@ -90,7 +90,7 @@ object ContextPhase {
 		}
 		
 		logger.debug(
-			"Round archived  agentId={}  userMessageId={}  toolCount={}",
+			"Archived round  agentId={}  userMessageId={}  toolCount={}",
 			env.agentId, round.userMessage.id, allTurns?.sumOf { it.tools.size }
 		)
 	}
@@ -124,7 +124,7 @@ object ContextPhase {
 		}
 		if (reasons.isNotEmpty()) {
 			logger.debug(
-				"Tool turn written with approval reasons  agentId={}  toolCount={}  reasonCount={}",
+				"Wrote tool turn with approval reasons  agentId={}  toolCount={}  reasonCount={}",
 				env.agentId, tools.size, reasons.size
 			)
 			val userMsg = AgentContext.Message.User(
@@ -137,7 +137,7 @@ object ContextPhase {
 				ctx.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
 			}
 		} else {
-			logger.debug("Tool turn written  agentId={}  toolCount={}", env.agentId, tools.size)
+			logger.debug("Wrote tool turn  agentId={}  toolCount={}", env.agentId, tools.size)
 		}
 		return PhaseResult.Continue
 	}

@@ -174,14 +174,14 @@ class Secret : Command {
 	
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
 		if (core.secret.isPasswordEmpty()) {
-			logger.debug("Unlock skipped  command=secret  reason=no_password_set")
+			logger.debug("Skipped unlock  command=secret  reason=no_password_set")
 			emitI18n(i18n, SecretI18n.UnlockNoPassword())
 			emitDone(0)
 			return@flow
 		}
 		
 		if (core.secret.isUnlocked.value) {
-			logger.debug("Unlock skipped  command=secret  reason=already_unlocked")
+			logger.debug("Skipped unlock  command=secret  reason=already_unlocked")
 			emitI18n(i18n, SecretI18n.UnlockAlready())
 			emitDone(0)
 			return@flow
@@ -191,9 +191,9 @@ class Secret : Command {
 		
 		trace.catching {
 			core.secret.unlock(password)
-			logger.info("Keystore unlocked  command=secret")
+			logger.info("Unlocked keystore  command=secret")
 		}.getOrElse {
-			logger.warn("Failed to unlock keystore  command=secret")
+			logger.warn("Failed keystore unlock  command=secret")
 			emitI18n(i18n, SecretI18n.UnlockFailed(), error = true)
 			emitDone(1)
 			return@flow
@@ -209,9 +209,9 @@ class Secret : Command {
 				core.secret.unlock(password)
 			}
 			core.secret.changePassword(password, "")
-			logger.info("Password removed  command=secret")
+			logger.info("Removed password  command=secret")
 		}.getOrElse {
-			logger.warn("Failed to remove password  command=secret")
+			logger.warn("Failed password removal  command=secret")
 			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
 			return@flow
@@ -232,7 +232,7 @@ class Secret : Command {
 		emit(CmdOutput.Data(""))
 		
 		if (newPassword != confirm) {
-			logger.debug("Password change aborted  command=secret  reason=confirmation_mismatch")
+			logger.debug("Aborted password change  command=secret  reason=confirmation_mismatch")
 			emitI18n(i18n, PasswdI18n.Mismatch(), error = true)
 			emitDone(1)
 			return@flow
@@ -243,9 +243,9 @@ class Secret : Command {
 				core.secret.unlock(oldPassword)
 			}
 			core.secret.changePassword(oldPassword, newPassword)
-			logger.info("Password changed  command=secret")
+			logger.info("Changed password  command=secret")
 		}.getOrElse {
-			logger.warn("Failed to change password  command=secret")
+			logger.warn("Failed password change  command=secret")
 			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
 			return@flow

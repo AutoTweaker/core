@@ -67,14 +67,14 @@ class CliServer(service: SettingService, core: CoreAPI) {
 			bind(UnixDomainSocketAddress.of(path))
 		}
 		Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
-		logger.info("CliServer started  socketPath={}", path)
+		logger.info("Started CliServer  socketPath={}", path)
 		
 		scope.launch {
 			while (channel.isOpen) {
 				val client = trace.catching { channel.accept() }
 					.onFailure {
 						logger.warn(
-							"Failed to accept connection  socketPath={}  reason={}",
+							"Failed connection acceptance  socketPath={}  reason={}",
 							socketPath(),
 							it.message
 						)
@@ -101,7 +101,7 @@ class CliServer(service: SettingService, core: CoreAPI) {
 		trace.catching { channel.close() }
 		scope.cancel()
 		trace.catching { socketPath().deleteIfExists() }
-		logger.info("CliServer stopped  socketPath={}", socketPath())
+		logger.info("Stopped CliServer  socketPath={}", socketPath())
 	}
 	
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
@@ -111,10 +111,10 @@ class CliServer(service: SettingService, core: CoreAPI) {
 				return
 			}
 			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: run {
-				logger.warn("Failed to parse CLI message")
+				logger.warn("Failed CLI message parsing")
 				return
 			}
-			logger.debug("CliMessage received  command={}  argCount={}", command.command(), command.args.size)
+			logger.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
 			
 			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
 				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text, echo)))
@@ -166,10 +166,10 @@ class CliServer(service: SettingService, core: CoreAPI) {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: IOException) {
-				logger.warn("Client disconnected during command  command={}", cmdName)
+				logger.warn("Disconnected client during command  command={}", cmdName)
 				trace.exception(e)
 			} catch (e: Exception) {
-				logger.error("Command failed  command={}", cmdName, e)
+				logger.error("Failed command  command={}", cmdName, e)
 				trace.exception(e)
 				trace.catching {
 					write(
@@ -210,7 +210,7 @@ class CliServer(service: SettingService, core: CoreAPI) {
 				return sb.toString()
 			}
 			if (sb.length + chunk.length > maxLineLength) {
-				logger.warn("Line exceeded max length  length={}", sb.length)
+				logger.warn("Exceeded line max length  length={}", sb.length)
 				return null
 			}
 			sb.append(chunk)

@@ -42,7 +42,7 @@ object JsonStoreImpl {
 	fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("AppConfig")
 		transaction(db) { SchemaUtils.create(JsonStoreTable) }
-		logger.info("JsonStoreImpl initialized  table=json_store")
+		logger.info("Initialized json store  table=json_store")
 	}
 	
 	fun namespace(kClass: KClass<*>): JsonStore {
@@ -57,7 +57,7 @@ object JsonStoreImpl {
 					trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
 						.onFailure {
 							logger.warn(
-								"Failed to parse JSON  namespace={}  reason={}",
+								"Failed JSON parsing  namespace={}  reason={}",
 								namespace,
 								it.message
 							)

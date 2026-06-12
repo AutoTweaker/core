@@ -61,7 +61,7 @@ object ContainerManager {
 		Files.createDirectories(ContainerConfig().workspaceHostPath)
 		if (!service.checkAccess()) {
 			containerAccess = false
-			logger.warn("Container access denied  features disabled")
+			logger.warn("Denied container access  features disabled")
 			return
 		}
 		imagePullJob = scope.async {
@@ -76,28 +76,28 @@ object ContainerManager {
 		val image = Settings.get(ContainerSettings.DockerImage()).value
 		val job = imagePullJob
 		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null) {
-			logger.warn("Image pull failed, restarted  image={}", image)
+			logger.warn("Failed image pull, retried  image={}", image)
 			imagePullJob = scope.async { service.pullImage(image) }
 		}
 		imagePullJob?.await()
 		val containerConfig =
 			ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
-		logger.debug("Container start initiated  image={}", image)
+		logger.debug("Initiated container start  image={}", image)
 		val id = service.start(image, containerConfig)
 		_containerId = id
-		logger.info("Container started  containerId={}", id)
+		logger.info("Started container  containerId={}", id)
 	}
 	
 	suspend fun stop() {
 		mutex.withLock {
 			val id = _containerId ?: return@withLock
 			try {
-				logger.debug("Container stop initiated  containerId={}", id)
+				logger.debug("Initiated container stop  containerId={}", id)
 				service.stop(id)
 			} finally {
 				_containerId = null
 				service.shutdown()
-				logger.info("Container stopped  containerId={}", id)
+				logger.info("Stopped container  containerId={}", id)
 			}
 		}
 	}
@@ -121,12 +121,12 @@ object ContainerManager {
 	
 	suspend fun setEnv(id: String, value: String) {
 		envStorage.setEnv(id, value)
-		logger.debug("Container env set  key={}", id)
+		logger.debug("Set container env  key={}", id)
 	}
 	
 	suspend fun removeEnv(id: String) {
 		envStorage.removeEnv(id)
-		logger.debug("Container env removed  key={}", id)
+		logger.debug("Removed container env  key={}", id)
 	}
 	
 	suspend fun getEnv(id: String? = null): Map<String, String> {
@@ -138,7 +138,7 @@ object ContainerManager {
 		return ids.mapNotNull { key ->
 			val value = envStorage.getEnv(key)
 			if (value == null) {
-				logger.warn("Failed to get env value  key={}", key)
+				logger.warn("Failed env value retrieval  key={}", key)
 				null
 			} else {
 				key to value

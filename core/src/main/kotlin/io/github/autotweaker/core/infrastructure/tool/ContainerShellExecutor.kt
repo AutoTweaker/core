@@ -34,7 +34,7 @@ class ContainerShellExecutor {
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> = flow {
 		val startNs = System.nanoTime()
 		logger.debug(
-			"Container shell command started  command={}  workDir={}  timeout={}s",
+			"Started container shell command  command={}  workDir={}  timeout={}s",
 			command,
 			workDir,
 			timeout.inWholeSeconds
@@ -44,7 +44,7 @@ class ContainerShellExecutor {
 				is ShellEvent.Exit -> {
 					val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
 					logger.debug(
-						"Container shell command completed  command={}  exitCode={}  duration={}s",
+						"Completed container shell command  command={}  exitCode={}  duration={}s",
 						command,
 						event.result.exitCode,
 						duration.inWholeSeconds

@@ -89,7 +89,7 @@ object TranslationEngine {
 			}.awaitAll()
 		}
 		
-		logger.info("Translation completed  target={}  keys={}", target.toLanguageTag(), units.size)
+		logger.info("Completed translation  target={}  keys={}", target.toLanguageTag(), units.size)
 	}
 	
 	private fun collectUnits(target: Locale, i18nService: I18nService): List<TranslationUnit> {
@@ -145,7 +145,7 @@ object TranslationEngine {
 			val sourceText = r.batch.find { it.key == key }?.localizations?.firstOrNull() ?: ""
 			if (PlaceholderValidator.validate(sourceText, value)) {
 				trace.catching { i18nService.set(key, value, r.target) }
-					.onFailure { logger.warn("Failed to persist translation  key={}  reason={}", key, it.message) }
+					.onFailure { logger.warn("Failed translation persistence  key={}  reason={}", key, it.message) }
 			} else {
 				logger.warn(
 					"Placeholder validation failed  key={}  source={}  translated={}", key, sourceText, value
@@ -170,7 +170,7 @@ object TranslationEngine {
 		return trace.catching {
 			val obj = json.parseToJsonElement(jsonText).jsonObject
 			obj.mapNotNull { (k, v) -> v.jsonPrimitive.content.let { k to it } }.toMap()
-		}.onFailure { logger.warn("Failed to parse translation response  length={}", responseText.length) }
+		}.onFailure { logger.warn("Failed translation response parsing  length={}", responseText.length) }
 			.getOrDefault(emptyMap())
 	}
 }

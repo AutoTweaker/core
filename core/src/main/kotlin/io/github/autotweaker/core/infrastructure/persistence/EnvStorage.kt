@@ -43,7 +43,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 	suspend fun getEnv(id: String): String? = mutex.withLock {
 		val uuid = getEnvUuidMap()[id] ?: return@withLock null
 		trace.catching { secretStore.get(uuid) }
-			.onFailure { logger.warn("Failed to get env  id={}  class={}", id, kClass.java.name) }
+			.onFailure { logger.warn("Failed env retrieval  id={}  class={}", id, kClass.java.name) }
 			.getOrNull()
 	}
 	
@@ -54,7 +54,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
-		logger.debug("Env set  id={}  class={}", id, kClass.java.name)
+		logger.debug("Set env  id={}  class={}", id, kClass.java.name)
 	}
 	
 	suspend fun removeEnv(id: String) = mutex.withLock {
@@ -62,7 +62,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
-		logger.debug("Env removed  id={}  class={}", id, kClass.java.name)
+		logger.debug("Removed env  id={}  class={}", id, kClass.java.name)
 	}
 	
 	private fun getEnvUuidMap(): Map<String, UUID> {

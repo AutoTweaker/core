@@ -38,7 +38,7 @@ class LocalShellExecutor {
 		channelFlow {
 			val startNs = System.nanoTime()
 			logger.debug(
-				"Shell command started  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds
+				"Started shell command  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds
 			)
 			val process = withContext(Dispatchers.IO) {
 				ProcessBuilder("bash", "-lc", command).directory(workDir.toFile()).redirectErrorStream(false)
@@ -71,7 +71,7 @@ class LocalShellExecutor {
 				if (!finished) {
 					process.destroyForcibly()
 					withContext(Dispatchers.IO) { process.waitFor(2, TimeUnit.SECONDS) }
-					logger.warn("Shell command timed out  command={}  timeout={}s", command, timeout.inWholeSeconds)
+					logger.warn("Timed out shell command  command={}  timeout={}s", command, timeout.inWholeSeconds)
 				}
 				
 				stdoutJob.join()
@@ -80,7 +80,7 @@ class LocalShellExecutor {
 				val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
 				val exitCode = if (finished) process.exitValue() else -1
 				logger.debug(
-					"Shell command completed  command={}  exitCode={}  duration={}s",
+					"Completed shell command  command={}  exitCode={}  duration={}s",
 					command,
 					exitCode,
 					duration.inWholeSeconds

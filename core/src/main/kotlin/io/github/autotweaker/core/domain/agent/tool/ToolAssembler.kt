@@ -31,7 +31,7 @@ object ToolAssembler {
 	suspend fun assemble(tools: List<Tool<*>>, service: SettingService): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
-		logger.debug("Tool assembly started  toolCount={}  source=ToolAssembler", tools.size)
+		logger.debug("Started tool assembly  toolCount={}  source=ToolAssembler", tools.size)
 		
 		val reasonDescription: String = service.get(AgentToolSettings.ReasonEmptyError()).value
 		val metas = tools.map { ToolMeta.build(it) }

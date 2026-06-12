@@ -61,7 +61,7 @@ object ResilientChat {
 		)
 		
 		logger.debug(
-			"Chat started  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
+			"Started chat  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
 			model.provider.name,
 			model.modelInfo.modelId,
 			(fallbackModels?.size ?: 0) + 1,
@@ -120,13 +120,13 @@ object ResilientChat {
 						RecoveryStrategy.RETRY, null -> {
 							if (retriesUsed >= maxRetries - 1) {
 								logger.debug(
-									"Chat retries exhausted  model={}  strategy=RETRY", current.modelInfo.modelId
+									"Exhausted chat retries  model={}  strategy=RETRY", current.modelInfo.modelId
 								)
 								candidates = candidates.drop(1)
 								return false
 							}
 							logger.debug(
-								"Chat retried  model={}  attempt={}  strategy=RETRY  statusCode={}",
+								"Retried chat  model={}  attempt={}  strategy=RETRY  statusCode={}",
 								current.modelInfo.modelId,
 								retriesUsed + 1,
 								statusCode
@@ -181,11 +181,11 @@ object ResilientChat {
 			}
 			
 			if (round < llmChatRetries) {
-				logger.info("All candidate models exhausted  restarting  round={}", round + 1)
+				logger.info("All candidate models exhausted  restarted  round={}", round + 1)
 			}
 		}
 		
-		logger.warn("All LLM chat retries exhausted")
+		logger.warn("Exhausted all LLM chat retries")
 		throw IllegalStateException("All LLM chat retries exhausted without success")
 	}
 	

@@ -51,7 +51,7 @@ object CompactPhase {
 		service: SettingService,
 	) {
 		logger.debug(
-			"Compact started  agentId={}  roundCount={}  summarizeModel={}",
+			"Started compact  agentId={}  roundCount={}  summarizeModel={}",
 			env.agentId,
 			rounds.size,
 			summarizeModel.modelInfo.modelId
@@ -85,7 +85,7 @@ object CompactPhase {
 		val minSummaryLength = service.get(CompactSettings.MinSummaryLength()).value
 		if (cleaned.length < minSummaryLength) {
 			logger.warn(
-				"Failed to produce compact summary  result too short  agentId={}  attempts={}  length={}",
+				"Failed compact summary production  reason=too_short  agentId={}  attempts={}  length={}",
 				env.agentId,
 				attempt,
 				cleaned.length
@@ -111,7 +111,7 @@ object CompactPhase {
 		}
 		
 		logger.debug(
-			"Compact completed  agentId={}  roundCount={}  attempts={}  summaryLength={}",
+			"Completed compact  agentId={}  roundCount={}  attempts={}  summaryLength={}",
 			env.agentId,
 			rounds.size,
 			attempt,
@@ -196,7 +196,7 @@ object CompactPhase {
 			throw e
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.warn("Failed to send compact request  agentId={}", env.agentId)
+			logger.warn("Failed compact request send  agentId={}", env.agentId)
 			env.emitOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastSnapshot, success = false)
 		}

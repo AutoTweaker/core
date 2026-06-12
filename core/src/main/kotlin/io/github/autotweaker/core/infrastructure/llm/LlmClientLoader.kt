@@ -35,7 +35,7 @@ object LlmClientLoader {
 		val externalNames = external.map { it.providerInfo.name }.toSet()
 		val result = external + builtIn.filter { it.providerInfo.name !in externalNames }
 		logger.info(
-			"LLM providers loaded  builtIn={}  external={}  total={}",
+			"Loaded LLM providers  builtIn={}  external={}  total={}",
 			builtIn.size,
 			external.size,
 			result.size
@@ -46,7 +46,7 @@ object LlmClientLoader {
 	fun load(name: String): LlmClient {
 		val client = all.firstOrNull { it.providerInfo.name == name }
 			?: throw IllegalArgumentException("Unknown LLM provider: $name")
-		logger.debug("LLM provider loaded  name={}", name)
+		logger.debug("Loaded LLM provider  name={}", name)
 		return client
 	}
 	

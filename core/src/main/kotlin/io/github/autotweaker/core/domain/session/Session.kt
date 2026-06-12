@@ -103,7 +103,7 @@ class Session(
 				_sessionOutput.tryEmit(output)
 			}
 		}
-		logger.info("Session initialized  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
+		logger.info("Initialized session  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
 	}
 	
 	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int): Set<UUID> {
@@ -145,7 +145,7 @@ class Session(
 	}
 	
 	suspend fun updateConfig(config: SessionConfig) {
-		logger.info("Session config updated  sessionId={}", _data.value.id)
+		logger.info("Updated session config  sessionId={}", _data.value.id)
 		_data.update { it.copy(config = config) }
 		dispatch(
 			AgentCommand.Directive.UpdateModel(
@@ -187,11 +187,11 @@ class Session(
 	
 	suspend fun stop() {
 		val agent = agent ?: return
-		logger.info("Session stop initiated  sessionId={}", _data.value.id)
+		logger.info("Initiated session stop  sessionId={}", _data.value.id)
 		dispatch(AgentCommand.Directive.Stop)
 		agent.statusFlow.first { it == AgentStatus.FREE }
 		save()
-		logger.info("Session stopped  sessionId={}", _data.value.id)
+		logger.info("Stopped session  sessionId={}", _data.value.id)
 	}
 	
 	

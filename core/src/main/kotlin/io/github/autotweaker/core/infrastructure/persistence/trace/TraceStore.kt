@@ -34,7 +34,7 @@ object TraceStore {
 	fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("Traces")
 		transaction(db) { SchemaUtils.create(TraceTable) }
-		logger.info("TraceStore initialized  table=traces")
+		logger.info("Initialized TraceStore  table=traces")
 	}
 	
 	fun insert(origin: String, namespace: String, content: String) {

@@ -32,7 +32,7 @@ object RequestLlmPhase {
 		env: AgentEnvironment,
 	): PhaseResult {
 		logger.debug(
-			"LLM request phase started  agentId={}  model={}  hasFallback={}  thinking={}",
+			"Started LLM request phase  agentId={}  model={}  hasFallback={}  thinking={}",
 			env.agentId,
 			env.currentModel.modelInfo.modelId,
 			env.currentFallbackModels != null,

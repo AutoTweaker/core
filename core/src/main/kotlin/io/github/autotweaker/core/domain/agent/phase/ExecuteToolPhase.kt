@@ -43,7 +43,7 @@ object ExecuteToolPhase {
 		call: AgentContext.CurrentRound.PendingToolCall,
 	): AgentContext.Message.Tool {
 		logger.debug(
-			"Tool execution started  agentId={}  tool={}  timeout={}s",
+			"Started tool execution  agentId={}  tool={}  timeout={}s",
 			env.agentId,
 			call.name,
 			env.service.get(AgentToolSettings.TimeoutSeconds()).value
@@ -63,21 +63,21 @@ object ExecuteToolPhase {
 					},
 				)
 			}.also {
-				logger.info("Tool completed  agentId={}  tool={}  status={}", env.agentId, call.name, it.result.status)
+				logger.info("Completed tool  agentId={}  tool={}  status={}", env.agentId, call.name, it.result.status)
 			}
 		} catch (_: TimeoutCancellationException) {
-			logger.warn("Tool timed out  agentId={}  tool={}  timeout={}s", env.agentId, call.name, timeoutSeconds)
+			logger.warn("Timed out tool  agentId={}  tool={}  timeout={}s", env.agentId, call.name, timeoutSeconds)
 			ContextPhase.buildToolResult(
 				call, timeoutMessage.format(timeoutSeconds), ToolResultStatus.TIMEOUT
 			)
 		} catch (_: CancellationException) {
-			logger.debug("Tool cancelled  agentId={}  tool={}", env.agentId, call.name)
+			logger.debug("Cancelled tool  agentId={}  tool={}", env.agentId, call.name)
 			ContextPhase.buildToolResult(
 				call, env.toolCancelledMessage, ToolResultStatus.CANCELLED
 			)
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed to execute tool  agentId={}  tool={}", env.agentId, call.name, e)
+			logger.error("Failed tool execution  agentId={}  tool={}", env.agentId, call.name, e)
 			ContextPhase.buildErrorTool(call, e.message ?: "Tool execution failed")
 		}
 	}

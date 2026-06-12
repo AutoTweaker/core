@@ -110,14 +110,14 @@ class Agent(
 	
 	//更新状态
 	override fun updateStatus(status: AgentStatus) {
-		logger.debug("Agent status changed  agentId={}  from={}  to={}", agentId, _status.value, status)
+		logger.debug("Changed agent status  agentId={}  from={}  to={}", agentId, _status.value, status)
 		_status.value = status
 	}
 	
 	//初始化
 	init {
 		logger.info(
-			"Agent created  agentId={}  model={}  fallbackModels={}  thinking={}",
+			"Created agent  agentId={}  model={}  fallbackModels={}  thinking={}",
 			agentId,
 			model.modelInfo.modelId,
 			fallbackModels?.map { it.modelInfo.modelId },
@@ -149,7 +149,7 @@ class Agent(
 				resumeFromCurrentState()
 			}
 		}
-		logger.info("Event loop started  agentId={}", agentId)
+		logger.info("Started event loop  agentId={}", agentId)
 	}
 	
 	//处理指令（即时
@@ -157,14 +157,14 @@ class Agent(
 		when (directive) {
 			is AgentCommand.Directive.Stop -> {
 				//任何状态
-				logger.info("Stop requested  agentId={}", agentId)
+				logger.info("Requested stop  agentId={}", agentId)
 				currentJob.get()?.cancel()
 				currentJob.set(null)
 				compactJob.get()?.cancel()
 				compactJob.set(null)
 				ContextPhase.archiveCurrentRound(this, this::updateContext)
 				updateStatus(AgentStatus.FREE)
-				logger.info("Agent stopped  agentId={}", agentId)
+				logger.info("Stopped agent  agentId={}", agentId)
 			}
 			
 			is AgentCommand.Directive.UpdateModel -> {
@@ -173,7 +173,7 @@ class Agent(
 				directive.fallbackModels?.let { currentFallbackModels = it }
 				directive.thinking?.let { currentThinking = it }
 				logger.info(
-					"Model updated  agentId={}  model={}  fallbackModels={}  thinking={}",
+					"Updated model  agentId={}  model={}  fallbackModels={}  thinking={}",
 					agentId,
 					directive.model.modelInfo.modelId,
 					directive.fallbackModels?.map { it.modelInfo.modelId },
@@ -184,21 +184,21 @@ class Agent(
 			is AgentCommand.Directive.Pause -> {
 				//非空闲非等待非错误
 				if (_status.value == AgentStatus.FREE || _status.value == AgentStatus.ERROR || _status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
-				logger.info("Pause requested  agentId={}  status={}", agentId, _status.value)
+				logger.info("Requested pause  agentId={}  status={}", agentId, _status.value)
 				updateStatus(AgentStatus.PAUSED)
 			}
 			
 			is AgentCommand.Directive.Resume -> {
 				//暂停状态
 				if (_status.value != AgentStatus.PAUSED) return
-				logger.info("Resume requested  agentId={}", agentId)
+				logger.info("Requested resume  agentId={}", agentId)
 				updateStatus(AgentStatus.PROCESSING)
 				workTrigger.trySend(Unit)
 			}
 			
 			is AgentCommand.Directive.Cancel -> {
 				//任何状态
-				logger.info("Cancel requested  agentId={}  status={}", agentId, _status.value)
+				logger.info("Requested cancel  agentId={}  status={}", agentId, _status.value)
 				if (_status.value == AgentStatus.TOOL_CALLING) {
 					currentJob.get()?.cancel()
 				}
@@ -216,7 +216,7 @@ class Agent(
 			
 			is AgentCommand.Directive.Compact -> {
 				//任何状态
-				logger.debug("Compact requested  agentId={}", agentId)
+				logger.debug("Requested compact  agentId={}", agentId)
 				launchCompact()
 			}
 		}
@@ -250,7 +250,7 @@ class Agent(
 					return
 				}
 				if (agentState.pendingApproval == null) return
-				logger.debug("Tool approvals processed  agentId={}  approvalCount={}", agentId, message.approvals.size)
+				logger.debug("Processed tool approvals  agentId={}  approvalCount={}", agentId, message.approvals.size)
 				val result = HandleApprovalPhase.execute(this@Agent, message.approvals) { result, call ->
 					scope.async {
 						ExecuteToolPhase.execute(this@Agent, result, call)
@@ -259,7 +259,7 @@ class Agent(
 				when (result) {
 					PhaseResult.Continue -> workTrigger.trySend(Unit)
 					PhaseResult.Done -> {}
-					PhaseResult.Error -> logger.warn("Failed to execute tool approval phase  agentId={}", agentId)
+					PhaseResult.Error -> logger.warn("Failed tool approval phase execution  agentId={}", agentId)
 				}
 			}
 		}
@@ -275,7 +275,7 @@ class Agent(
 		updateContext {
 			it.copy(currentRound = AgentContext.CurrentRound(userMessage = userMsg, turns = null))
 		}
-		logger.debug("User message processed  agentId={}  messageId={}", agentId, id)
+		logger.debug("Processed user message  agentId={}  messageId={}", agentId, id)
 		workTrigger.trySend(Unit)
 	}
 	
@@ -284,17 +284,17 @@ class Agent(
 		if (_status.value == AgentStatus.PAUSED || _status.value == AgentStatus.WAITING) return
 		when (detectNextAction()) {
 			NextAction.IDLE -> {
-				logger.debug("Next action determined  action=IDLE  agentId={}", agentId)
+				logger.debug("Determined next action  action=IDLE  agentId={}", agentId)
 				updateStatus(AgentStatus.FREE)
 			}
 			
 			NextAction.REQUEST_LLM -> {
-				logger.debug("Next action determined  action=REQUEST_LLM  agentId={}", agentId)
+				logger.debug("Determined next action  action=REQUEST_LLM  agentId={}", agentId)
 				requestLlm()
 			}
 			
 			NextAction.EXECUTE_TOOLS -> {
-				logger.debug("Next action determined  action=EXECUTE_TOOLS  agentId={}", agentId)
+				logger.debug("Determined next action  action=EXECUTE_TOOLS  agentId={}", agentId)
 				executeTools()
 			}
 		}
@@ -312,19 +312,19 @@ class Agent(
 	//调用llm
 	private fun requestLlm() {
 		currentJob.set(scope.launch {
-			logger.info("LLM request started  agentId={}  model={}", agentId, currentModel.modelInfo.modelId)
+			logger.info("Started LLM request  agentId={}  model={}", agentId, currentModel.modelInfo.modelId)
 			val result = RequestLlmPhase.execute(this@Agent)
 			if (result == PhaseResult.Done || result == PhaseResult.Continue) {
 				checkAutoCompact()
 			}
 			when (result) {
 				PhaseResult.Continue -> {
-					logger.debug("LLM phase continued  agentId={}", agentId)
+					logger.debug("Continued LLM phase  agentId={}", agentId)
 					workTrigger.trySend(Unit)
 				}
 				
-				PhaseResult.Done -> logger.info("LLM phase completed  agentId={}", agentId)
-				PhaseResult.Error -> logger.warn("Failed to complete LLM phase  agentId={}", agentId)
+				PhaseResult.Done -> logger.info("Completed LLM phase  agentId={}", agentId)
+				PhaseResult.Error -> logger.warn("Failed LLM phase completion  agentId={}", agentId)
 			}
 		})
 	}
@@ -334,7 +334,7 @@ class Agent(
 		if (compactJob.get()?.isActive == true) return
 		val rounds = _context.value.historyRounds
 		if (rounds.isNullOrEmpty()) return
-		logger.debug("Compact launched  agentId={}  roundCount={}", agentId, rounds.size)
+		logger.debug("Launched compact  agentId={}  roundCount={}", agentId, rounds.size)
 		compactJob.set(scope.launch {
 			CompactPhase.execute(this@Agent, rounds, summarizeModel, currentFallbackModels, service)
 		})
@@ -363,7 +363,7 @@ class Agent(
 		val shouldCompact = exceedContextUsage || exceedTotalTokens
 		if (shouldCompact) {
 			logger.debug(
-				"Auto-compact triggered  agentId={}  usage={}  contextWindow={}",
+				"Triggered auto-compact  agentId={}  usage={}  contextWindow={}",
 				agentId,
 				usage.totalTokens,
 				contextWindow
@@ -375,16 +375,16 @@ class Agent(
 	//处理工具调用
 	private fun executeTools() {
 		currentJob.set(scope.launch {
-			logger.info("Tool execution phase started  agentId={}", agentId)
+			logger.info("Started tool execution phase  agentId={}", agentId)
 			val result = ValidateToolCallsPhase.execute(this@Agent)
 			when (result) {
 				PhaseResult.Continue -> {
-					logger.debug("Tool execution decided  result=Continue  agentId={}", agentId)
+					logger.debug("Decided tool execution  result=Continue  agentId={}", agentId)
 					workTrigger.trySend(Unit)
 				}
 				
-				PhaseResult.Done -> logger.info("Tool execution completed  agentId={}", agentId)
-				PhaseResult.Error -> logger.warn("Failed to execute tools  agentId={}", agentId)
+				PhaseResult.Done -> logger.info("Completed tool execution  agentId={}", agentId)
+				PhaseResult.Error -> logger.warn("Failed tool execution  agentId={}", agentId)
 			}
 		})
 	}
@@ -396,7 +396,7 @@ class Agent(
 	
 	//外部发送命令
 	fun dispatch(command: AgentCommand) {
-		logger.debug("Command dispatched  agentId={}  commandType={}", agentId, command::class.simpleName)
+		logger.debug("Dispatched command  agentId={}  commandType={}", agentId, command::class.simpleName)
 		when (command) {
 			is AgentCommand.Directive -> directiveChannel.trySend(command)
 			is AgentCommand.Message -> messageChannel.trySend(command)

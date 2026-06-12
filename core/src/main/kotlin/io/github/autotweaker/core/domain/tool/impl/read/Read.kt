@@ -106,7 +106,7 @@ class Read : CoreTool<ReadArgs> {
 			return Tool.ToolOutput(s.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
 		}
 		
-		logger.debug("Read tool started  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
+		logger.debug("Started read tool  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
 		
 		return when (args) {
 			is ReadArgs.File -> {

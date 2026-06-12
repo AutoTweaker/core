@@ -58,7 +58,7 @@ class Tools(private val service: SettingService) {
 	val entries: List<Entry> get() = _entries
 	
 	fun add(tool: Tool<*>) {
-		logger.debug("Tool added  tool={}", tool.name)
+		logger.debug("Added tool  tool={}", tool.name)
 		_entries.add(Entry(tool))
 	}
 	
@@ -84,7 +84,7 @@ class Tools(private val service: SettingService) {
 				val message = activateTool(inactiveEntry.tool.name)
 				return@map ToolCallResolveResult.Activation(call.callId, inactiveEntry.tool.name, message).also {
 					logger.debug(
-						"Inactive tool activation detected  agentId={}  callId={}  tool={}",
+						"Detected inactive tool activation  agentId={}  callId={}  tool={}",
 						agentId,
 						call.callId,
 						call.name
@@ -97,7 +97,7 @@ class Tools(private val service: SettingService) {
 					call.callId, validated.errorMessage
 				).also {
 					logger.debug(
-						"Failed to parse tool call  agentId={}  callId={}  tool={}  error={}",
+						"Failed tool call parsing  agentId={}  callId={}  tool={}  error={}",
 						agentId,
 						call.callId,
 						call.name,
@@ -108,12 +108,12 @@ class Tools(private val service: SettingService) {
 				is ToolCallValidator.ValidationResult.Success -> ToolCallResolveResult.NeedsApproval(
 					call.callId, validated
 				).also {
-					logger.debug("Tool call validated  agentId={}  callId={}  tool={}", agentId, call.callId, call.name)
+					logger.debug("Validated tool call  agentId={}  callId={}  tool={}", agentId, call.callId, call.name)
 				}
 			}
 		}
 		logger.debug(
-			"Tool calls resolved  agentId={}  success={}  failed={}  activation={}",
+			"Resolved tool calls  agentId={}  success={}  failed={}  activation={}",
 			agentId,
 			results.count { it is ToolCallResolveResult.NeedsApproval },
 			results.count { it is ToolCallResolveResult.ParseFailure },
@@ -128,7 +128,7 @@ class Tools(private val service: SettingService) {
 			entry.consecutiveUnused.set(0)
 		}
 		val meta = ToolMeta.build(entry.tool)
-		logger.debug("Tool activated  tool={}  functionCount={}", toolName, meta.functions.size)
+		logger.debug("Activated tool  tool={}  functionCount={}", toolName, meta.functions.size)
 		return service.get(AgentToolSettings.ActiveMessage()).value.format(
 			meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name
 		)
@@ -166,7 +166,7 @@ class Tools(private val service: SettingService) {
 		val tool = entry.tool
 		
 		logger.info(
-			"Tool execution started  agentId={}  tool={}  function={}  reason={}  active={}",
+			"Started tool execution  agentId={}  tool={}  function={}  reason={}  active={}",
 			agentId,
 			result.toolName,
 			result.functionName,
@@ -189,7 +189,7 @@ class Tools(private val service: SettingService) {
 				for (deactivated in toDeactivate) {
 					synchronized(deactivated) {
 						logger.debug(
-							"Tool deactivated  agentId={}  tool={}  consecutiveUnused={}  threshold={}",
+							"Deactivated tool  agentId={}  tool={}  consecutiveUnused={}  threshold={}",
 							agentId,
 							deactivated.tool.name,
 							deactivated.consecutiveUnused.get(),
@@ -222,7 +222,7 @@ class Tools(private val service: SettingService) {
 			} catch (e: Exception) {
 				trace.exception(e)
 				logger.error(
-					"Failed to execute tool  agentId={}  tool={}  function={}",
+					"Failed tool execution  agentId={}  tool={}  function={}",
 					agentId,
 					result.toolName,
 					result.functionName,
@@ -236,7 +236,7 @@ class Tools(private val service: SettingService) {
 		}
 		
 		logger.debug(
-			"Tool execution completed  agentId={}  tool={}  function={}  success={}",
+			"Completed tool execution  agentId={}  tool={}  function={}  success={}",
 			agentId,
 			result.toolName,
 			result.functionName,

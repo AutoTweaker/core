@@ -57,7 +57,7 @@ object AgentStreamProcessor {
 					is AgentChatStreamResult.Failing -> {
 						val lastError = result.errors.lastOrNull() ?: return@collect
 						logger.debug(
-							"LLM stream failed  agentId={}  model={}  error={}",
+							"Failed LLM stream  agentId={}  model={}  error={}",
 							agentId,
 							lastError.model,
 							lastError.content
@@ -78,7 +78,7 @@ object AgentStreamProcessor {
 						
 						if (!resultToolCalls.isNullOrEmpty()) {
 							logger.debug(
-								"LLM stream completed with tool calls  agentId={}  toolCallCount={}",
+								"Completed LLM stream with tool calls  agentId={}  toolCallCount={}",
 								agentId,
 								resultToolCalls.size
 							)
@@ -97,7 +97,7 @@ object AgentStreamProcessor {
 			return StreamProcessResult.Cancelled
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed to process LLM stream  agentId={}", agentId, e)
+			logger.error("Failed LLM stream processing  agentId={}", agentId, e)
 			val message = buildString {
 				append(e::class.simpleName ?: e::class.qualifiedName ?: "UnknownException")
 				e.message?.let { append(": ").append(it) }

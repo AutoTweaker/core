@@ -105,7 +105,7 @@ object AgentChat {
 					when (val msg = result.message) {
 						is ChatMessage.ErrorMessage -> {
 							logger.debug(
-								"Agent chat error received  agentId={}  model={}  statusCode={}  errorCount={}",
+								"Received agent chat error  agentId={}  model={}  statusCode={}  errorCount={}",
 								agentId,
 								resilientResult.model,
 								msg.statusCode,

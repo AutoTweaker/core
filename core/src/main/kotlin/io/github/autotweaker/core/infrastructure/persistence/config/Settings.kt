@@ -52,7 +52,7 @@ object Settings : SettingService {
 	private fun getValueFromRow(row: ResultRow): SettingValue? {
 		val jsonStr = row[ConfigTable.valJson]
 		return trace.catching { json.decodeFromString(SettingValue.serializer(), jsonStr) }
-			.onFailure { logger.warn("Failed to deserialize config value  key={}", row[ConfigTable.keyName]) }
+			.onFailure { logger.warn("Failed config value deserialization  key={}", row[ConfigTable.keyName]) }
 			.getOrNull()
 	}
 	
@@ -62,7 +62,7 @@ object Settings : SettingService {
 			SchemaUtils.create(ConfigTable)
 		}
 		cache.putAll(loadAllIntoCache())
-		logger.info("Settings initialized  count={}", cache.size)
+		logger.info("Initialized settings  count={}", cache.size)
 	}
 	
 	private fun loadAllIntoCache(): Map<String, SettingValue> = transaction(db) {
@@ -83,7 +83,7 @@ object Settings : SettingService {
 		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		upsertValue(id, value, def.description)
 		cache[id] = value
-		logger.debug("Setting updated by def  id={}  value={}", id, value)
+		logger.debug("Updated setting by def  id={}  value={}", id, value)
 	}
 	
 	override fun set(id: String, value: SettingValue) {
@@ -95,7 +95,7 @@ object Settings : SettingService {
 		}
 		upsertValue(id, value, def.description)
 		cache[id] = value
-		logger.debug("Setting updated by id  id={}  value={}", id, value)
+		logger.debug("Updated setting by id  id={}  value={}", id, value)
 	}
 	
 	private fun upsertValue(id: String, value: SettingValue, description: String) {
@@ -124,7 +124,7 @@ object Settings : SettingService {
 		if (!cache.containsKey(id)) {
 			cache[id] = def.default
 		}
-		logger.debug("Setting description updated  id={}", id)
+		logger.debug("Updated setting description  id={}", id)
 	}
 	
 	override fun getAll(): List<SettingEntry> = transaction(db) {

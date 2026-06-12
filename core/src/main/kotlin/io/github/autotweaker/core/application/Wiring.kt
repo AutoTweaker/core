@@ -47,6 +47,6 @@ object Wiring {
 		)
 		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl, SecretManager)
 		ToolProvider.init(ShellRouter, RawFileSystemImpl)
-		logger.info("Wiring initialized")
+		logger.info("Initialized wiring")
 	}
 }
