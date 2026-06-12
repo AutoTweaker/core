@@ -26,3 +26,12 @@ inline fun <T> TraceRecorder.catching(block: () -> T): Result<T> {
 		Result.failure(e)
 	}
 }
+
+inline fun <T, R> T.catching(recorder: TraceRecorder, block: T.() -> R): Result<R> {
+	return try {
+		Result.success(block())
+	} catch (e: Throwable) {
+		recorder.exception(e)
+		Result.failure(e)
+	}
+}
