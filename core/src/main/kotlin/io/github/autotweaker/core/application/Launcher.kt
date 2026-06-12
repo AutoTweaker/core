@@ -72,6 +72,7 @@ object Launcher {
 		SecretManager.init(Settings)
 		DbDebugAPIImpl.init(databaseStore)
 		TraceStore.init(databaseStore)
+		TraceRecorderImpl.init()
 		
 		PluginLoader.load<Debugger>().forEach { debugger ->
 			logger.info("Initialized debugger  class={}", debugger::class.java.name)

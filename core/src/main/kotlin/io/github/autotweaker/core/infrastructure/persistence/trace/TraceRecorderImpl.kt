@@ -29,7 +29,7 @@ object TraceRecorderImpl {
 	private val scope = CoroutineScope(Dispatchers.IO)
 	private val queue = Channel<TraceEntry>(Channel.UNLIMITED)
 	
-	init {
+	fun init() {
 		scope.launch {
 			for (entry in queue) {
 				TraceStore.insert(entry.origin, entry.namespace, entry.content)
