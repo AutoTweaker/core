@@ -26,6 +26,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -52,7 +53,7 @@ class ToolCallHistoryImplTest {
 			timestamp = Clock.System.now(),
 			modelId = mockModel.id,
 			
-			validatedArgs = null,
+			validatedArgs = Json.parseToJsonElement(arguments),
 		),
 		callId = "call-1",
 		result = AgentContext.Message.Tool.Result(

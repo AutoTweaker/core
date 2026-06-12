@@ -234,7 +234,9 @@ class ValidateToolCallsPhaseTest {
 		val req = emittedOutputs.firstOrNull { it is AgentOutput.ToolRequest } as? AgentOutput.ToolRequest
 		assertNotNull(req)
 		assertEquals(1, req.requests.size)
-		assertEquals("bash_run", req.requests[0].name)
+		assertEquals("bash_run", req.requests[0].toolName)
+		assertEquals("needed", req.requests[0].reason)
+		assertNotNull(req.requests[0].validatedArgs)
 	}
 	
 	// region helpers

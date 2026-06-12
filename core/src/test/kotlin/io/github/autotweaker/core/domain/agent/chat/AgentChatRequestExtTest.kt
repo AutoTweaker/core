@@ -249,7 +249,7 @@ class AgentChatRequestExtTest {
 				name = "read",
 				modelId = testModel.id,
 				arguments = "{}",
-				timestamp = Clock.System.now(), validatedArgs = null
+				reason = null, timestamp = Clock.System.now(), validatedArgs = null
 			)
 		)
 		val round = AgentContext.CurrentRound(user, null, null, pending)

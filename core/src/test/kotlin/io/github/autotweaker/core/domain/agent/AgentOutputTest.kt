@@ -142,15 +142,16 @@ class AgentOutputTest {
 	fun `ToolCallRequest wraps pending tool calls`() {
 		val requests = listOf(
 			ToolCallRequest(
-				name = "bash_run",
+				toolName = "bash_run",
 				arguments = """{"cmd":"ls"}""",
+				validatedArgs = null,
 				reason = "test",
 				callId = "call1"
 			)
 		)
 		val output = AgentOutput.ToolRequest(requests)
 		assertEquals(1, output.requests.size)
-		assertEquals("bash_run", output.requests[0].name)
+		assertEquals("bash_run", output.requests[0].toolName)
 	}
 	
 	@Test

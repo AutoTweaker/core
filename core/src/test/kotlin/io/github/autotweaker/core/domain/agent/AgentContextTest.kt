@@ -212,7 +212,7 @@ class AgentContextTest {
 			name = "bash_run",
 			modelId = mockModelId,
 			arguments = "{}",
-			timestamp = now, validatedArgs = null
+			reason = null, timestamp = now, validatedArgs = null
 		)
 		assertNull(pending.reason)
 	}
