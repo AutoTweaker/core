@@ -209,7 +209,7 @@ class Agent(
 			is AgentCommand.Directive.Retry -> {
 				//错误状态
 				if (_status.value != AgentStatus.ERROR) return
-				logger.info("Retried from error  agentId={}", agentId)
+				logger.info("Retried agent from error  agentId={}", agentId)
 				updateStatus(AgentStatus.FREE)
 				workTrigger.trySend(Unit)
 			}

@@ -84,7 +84,7 @@ object AgentStreamProcessor {
 							)
 							streamResult = StreamProcessResult.ToolCallsRequired(resultToolCalls)
 						} else {
-							logger.info("LLM stream completed  agentId={}", agentId)
+							logger.info("Completed LLM stream  agentId={}", agentId)
 							streamResult = StreamProcessResult.Completed
 						}
 					}
@@ -93,7 +93,7 @@ object AgentStreamProcessor {
 			
 			return streamResult ?: StreamProcessResult.Failed("LLM stream ended without result")
 		} catch (_: CancellationException) {
-			logger.debug("LLM stream cancelled  agentId={}", agentId)
+			logger.debug("Cancelled LLM stream  agentId={}", agentId)
 			return StreamProcessResult.Cancelled
 		} catch (e: Exception) {
 			trace.exception(e)

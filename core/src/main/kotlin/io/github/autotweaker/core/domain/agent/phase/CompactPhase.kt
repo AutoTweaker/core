@@ -214,7 +214,7 @@ object CompactPhase {
 			)
 		} else {
 			logger.debug(
-				"Compact summary found too short  agentId={}  length={}", env.agentId, extracted.length
+				"Found compact summary too short  agentId={}  length={}", env.agentId, extracted.length
 			)
 			env.emitOutput(
 				AgentOutput.Compact(
