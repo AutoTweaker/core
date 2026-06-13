@@ -23,47 +23,51 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.config.SettingValue
 
 object AgentToolSettings {
+	const val TOOL_NOT_EXECUTED =
+		"工具未被执行，文件系统与外部环境处于工具调用之前的状态，工具没有对文件系统或外部环境产生任何影响"
+	
 	@AutoService(SettingDef::class)
 	class Cancelled : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("工具调用已取消")
+		override val default = SettingValue.ValString("工具调用已取消，$TOOL_NOT_EXECUTED")
 		override val description = "工具调用被取消时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class Rejected : SettingDef<SettingValue.ValString> {
 		override val default = SettingValue.ValString(
-			"工具调用已被用户拒绝，工具未被执行。请停止当前操作；向用户解释为什么要执行这个操作；询问用户意见；等待用户告知如何继续"
+			"工具调用已被用户拒绝，$TOOL_NOT_EXECUTED。请停止当前操作；向用户解释为什么要执行这个操作；询问用户意见；等待用户告知如何继续"
 		)
 		override val description = "工具调用被拒绝时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class RejectedWithFeedback : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("工具未被执行，用户拒绝了工具调用，并留言：%s")
+		override val default =
+			SettingValue.ValString("$TOOL_NOT_EXECUTED，用户拒绝了工具调用，并留言：%s")
 		override val description = "工具调用被拒绝时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class PropertyMissing : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("%s工具需要属性：%s")
+		override val default = SettingValue.ValString("%s工具需要属性：%s\n$TOOL_NOT_EXECUTED")
 		override val description = "工具调用缺少属性时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class DeserializationError : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("%s工具的参数无效：%s")
+		override val default = SettingValue.ValString("%s工具的参数无效：%s\n$TOOL_NOT_EXECUTED")
 		override val description = "工具调用参数反序列化失败时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class FunctionNameError : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("%s工具不存在，请检查工具是否已激活")
+		override val default = SettingValue.ValString("%s工具不存在，请检查工具是否已激活\n$TOOL_NOT_EXECUTED")
 		override val description = "调用工具不存在时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class JsonError : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("调用参数不是一个有效的JSON对象：%s")
+		override val default = SettingValue.ValString("调用参数不是一个有效的JSON对象：%s\n$TOOL_NOT_EXECUTED")
 		override val description = "工具调用参数无法解析时的ToolResult"
 	}
 	
@@ -75,19 +79,20 @@ object AgentToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ReasonEmptyError : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("reason不能为空，请提供reason")
+		override val default = SettingValue.ValString("reason不能为空，请提供reason\n$TOOL_NOT_EXECUTED")
 		override val description = "工具调用的reason属性为空时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)
 	class TimeoutSeconds : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(1800)
-		override val description = "工具调用超时时间，单位秒，超时后工具将停止并丢弃响应，谨慎设置"
+		override val description = "工具调用超时时间，单位秒，超时后工具将中止并丢弃响应，谨慎设置"
 	}
 	
 	@AutoService(SettingDef::class)
 	class TimeoutMessage : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("工具调用超时（%s秒）")
+		override val default =
+			SettingValue.ValString("工具调用超时（%s秒），工具可能已经对文件系统或外部环境产生影响，在继续之前请完成确认")
 		override val description = "工具调用超时后的ToolResult"
 	}
 	
