@@ -29,7 +29,6 @@ import io.github.autotweaker.core.domain.agent.AgentContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
-import io.github.autotweaker.core.domain.agent.chat.mountSummary
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.findModelInfo
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -73,7 +72,7 @@ class CompactService(
 			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, thinkingEnabled
 		)
 		
-		val processedMessages = preprocessedMessages.mountSummary(context.summarizedMessage?.content)
+		val processedMessages = preprocessedMessages.inject(context.injections, context.summarizedMessage?.content)
 		val systemAndMessages = processedMessages + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
 		
 		val snapshots = preprocessSnapshots.toMutableList()

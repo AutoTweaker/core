@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.core.domain.agent.AgentContext
 import kotlin.time.Clock
@@ -39,17 +38,6 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 	check(lastMessage !is AgentContext.Message.Assistant) { "Last message is an assistant message, cannot send request" }
 	check(current.pendingToolCalls == null) { "Pending tool calls exist, cannot send request" }
 	
-	
-	val summarizeInjection = context.summarizedMessage?.let {
-		listOf(
-			ContextInjection(
-				tag = "summary",
-				content = it.content
-			)
-		)
-	}
-	val injections = (context.injections ?: emptyList()) + (summarizeInjection ?: emptyList())
-	
 	return buildList {
 		//系统提示
 		context.systemPrompt?.let {
@@ -64,7 +52,7 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		//当前轮次
 		add(current.userMessage.toChatMessage())
 		current.turns?.forEach { addTurn(it) }
-	}.inject(injections)
+	}.inject(context.injections, context.summarizedMessage?.content)
 }
 
 fun AgentContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
