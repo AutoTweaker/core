@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.types.agent.AgentIndex.AgentNode.Companion.findNode
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -31,5 +32,30 @@ data class AgentIndex(
 		@Serializable(with = UuidSerializer::class)
 		val id: UUID,
 		val children: List<AgentNode>
-	)
+	) {
+		companion object {
+			fun AgentNode.findNode(agentId: UUID): AgentNode? {
+				if (id == agentId) return this
+				children.forEach { child ->
+					child.findNode(agentId)?.let { return it }
+				}
+				return null
+			}
+		}
+	}
+	
+	companion object {
+		fun AgentIndex.findChildren(agentId: UUID): List<AgentNode> =
+			main.findNode(agentId)?.children.orEmpty()
+		
+		fun AgentIndex.addChild(parent: UUID, child: UUID): AgentIndex {
+			fun AgentNode.replace(): AgentNode {
+				if (id == parent) {
+					return copy(children = children + AgentNode(id = child, children = emptyList()))
+				}
+				return copy(children = children.map { replace() })
+			}
+			return copy(main = main.replace())
+		}
+	}
 }

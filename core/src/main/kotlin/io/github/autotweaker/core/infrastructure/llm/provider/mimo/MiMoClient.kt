@@ -20,7 +20,7 @@ package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
@@ -37,7 +37,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 ) {
 	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
 		name = "mimo",
-		baseUrl = Url("https://api.xiaomimimo.com/v1"),
+		baseUrl = "https://api.xiaomimimo.com/v1".toUrl(),
 		models = listOf(
 			ModelData.ModelInfo(
 				modelId = "mimo-v2.5-pro",

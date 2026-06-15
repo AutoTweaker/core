@@ -96,7 +96,7 @@ object I18nServiceImpl : I18nService {
 					it.languageCode != languageCode
 				} + LocalizedString(languageCode, text))
 			} else {
-				val base = I18nRegistry.get(id)?.localizations ?: emptyList()
+				val base = I18nRegistry.get(id)?.localizations.orEmpty()
 				mutable.add(
 					I18nEntry(
 						id,

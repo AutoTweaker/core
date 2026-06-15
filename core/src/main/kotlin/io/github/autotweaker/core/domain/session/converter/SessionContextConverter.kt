@@ -25,7 +25,7 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import java.util.*
 
 object SessionContextConverter {
-	fun toAgentContext(
+	fun buildAgentContext(
 		context: SessionContext,
 		messages: List<SessionMessage>,
 		maxCompactedRounds: Int = 0

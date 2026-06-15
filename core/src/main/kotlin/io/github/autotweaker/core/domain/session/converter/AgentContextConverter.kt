@@ -30,7 +30,7 @@ object AgentContextConverter {
 		val newMessageIds = newMessages.map { it.id }.toSet()
 		
 		val oldNonCompactedIds = collectNonCompactedIds(oldCtx)
-		val dropped = ((oldNonCompactedIds - newMessageIds) + (oldCtx.droppedMessages ?: emptyList()))
+		val dropped = ((oldNonCompactedIds - newMessageIds) + oldCtx.droppedMessages.orEmpty())
 			.toList().takeIf { it.isNotEmpty() }
 		
 		return Result(

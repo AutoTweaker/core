@@ -86,7 +86,7 @@ interface CoreAPI {
 		suspend fun loadContext(sessionId: UUID): SessionContext?
 		suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>
 		
-		fun getUsageSnapshots(): List<UsageSnapshot>
+		suspend fun getUsageSnapshots(): List<UsageSnapshot>
 		
 		fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
 		fun renameWorkspace(id: UUID, newName: String)

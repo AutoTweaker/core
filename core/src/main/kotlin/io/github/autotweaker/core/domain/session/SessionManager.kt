@@ -141,8 +141,8 @@ object SessionManager {
 		return data.id
 	}
 	
-	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids) ?: emptyList()
-	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids) ?: emptyList()
+	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids).orEmpty()
+	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids).orEmpty()
 	suspend fun loadContext(id: UUID) = store.loadContext(id)
 	
 	private suspend fun sessionOrRestore(id: UUID): Session = sessions[id] ?: restore(id)

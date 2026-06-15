@@ -16,24 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types
+package io.github.autotweaker.core.domain.agent
 
-import kotlinx.serialization.Serializable
-import java.net.URI
+import io.github.autotweaker.api.types.session.ModelConfig
+import io.github.autotweaker.core.domain.model.Model
 
-@JvmInline
-@Serializable
-value class Url private constructor(val value: String) {
+data class AgentModel(
+	val model: Model,
+	val summarize: Model,
+	val compact: Model,
+	val fallback: List<Model>?,
+	val thinking: Boolean,
+) {
 	companion object {
-		fun String.toUrl(): Url {
-			val trimmed = trim().trimEnd('/')
-			require(trimmed.isNotBlank()) { "URL must not be blank" }
-			runCatching { URI(trimmed) }.getOrNull()
-				?.takeIf { it.isAbsolute && it.scheme in listOf("http", "https") }
-				?: throw IllegalArgumentException("Invalid URL: $trimmed")
-			return Url(trimmed)
+		fun AgentModel.all(): List<Model> = buildList {
+			add(model)
+			add(summarize)
+			add(compact)
+			fallback?.let { addAll(it) }
 		}
 		
-		fun String.toUrlOrNull(): Url? = runCatching { toUrl() }.getOrNull()
+		fun AgentModel.toModelConfig(): ModelConfig = ModelConfig(
+			model = model.id,
+			summarize = summarize.id,
+			compact = compact.id,
+			fallback = fallback?.map { it.id }.orEmpty(),
+			thinking = thinking
+		)
 	}
 }

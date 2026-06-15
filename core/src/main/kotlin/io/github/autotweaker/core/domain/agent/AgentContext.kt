@@ -38,7 +38,7 @@ data class AgentContext(
 		val id: UUID = UUID.randomUUID(),
 		val timestamp: Instant,
 		val content: String,
-		val snapshots: List<UsageSnapshot>? = null,
+		val snapshots: Map<UUID, UsageSnapshot>? = null,
 	)
 	
 	sealed class Message {

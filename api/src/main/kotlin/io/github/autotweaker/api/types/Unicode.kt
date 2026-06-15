@@ -16,10 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:JvmName("Unicode")
-
 package io.github.autotweaker.api.types
-
 
 @JvmInline
 value class Unicode(val value: String) {

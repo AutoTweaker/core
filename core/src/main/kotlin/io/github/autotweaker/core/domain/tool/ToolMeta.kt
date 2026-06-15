@@ -133,7 +133,7 @@ class ToolMeta private constructor(
 				require(funcClass.annotations.filterIsInstance<SerialName>().isEmpty()) {
 					"Sealed subclass must not use @SerialName: ${funcClass.qualifiedName}"
 				}
-				val funcEntries = grouped[funcClass.java] ?: emptyList()
+				val funcEntries = grouped[funcClass.java].orEmpty()
 				val descByName = funcEntries.associate { (prop, d) -> prop.name to d }
 				val funcDesc = funcDescMap[funcClass]
 					?: error("Missing function description for '$funcName' in describeFunctions()")

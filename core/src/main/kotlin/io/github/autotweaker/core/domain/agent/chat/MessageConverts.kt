@@ -30,13 +30,10 @@ fun MessageContent.inject(injectImageTag: Boolean = false): String = buildString
 }
 
 fun MessageContent.injectTimestamp(timestamp: Instant) = copy(
-	injections = listOf(
-		ContextInjection(
-			tag = "timestamp",
-			content = timestamp.toString()
-		)
+	injections = injections.orEmpty() + ContextInjection(
+		tag = "timestamp",
+		content = timestamp.toString()
 	)
-			+ (injections ?: emptyList())
 )
 
 fun List<ChatMessage>.inject(injections: List<ContextInjection>?, summarize: String?): List<ChatMessage> =

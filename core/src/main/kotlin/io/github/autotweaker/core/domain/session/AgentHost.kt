@@ -16,24 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types
+package io.github.autotweaker.core.domain.session
 
-import kotlinx.serialization.Serializable
-import java.net.URI
+import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.session.ModelConfig
+import io.github.autotweaker.core.domain.agent.Agent
+import java.util.*
 
-@JvmInline
-@Serializable
-value class Url private constructor(val value: String) {
-	companion object {
-		fun String.toUrl(): Url {
-			val trimmed = trim().trimEnd('/')
-			require(trimmed.isNotBlank()) { "URL must not be blank" }
-			runCatching { URI(trimmed) }.getOrNull()
-				?.takeIf { it.isAbsolute && it.scheme in listOf("http", "https") }
-				?: throw IllegalArgumentException("Invalid URL: $trimmed")
-			return Url(trimmed)
-		}
-		
-		fun String.toUrlOrNull(): Url? = runCatching { toUrl() }.getOrNull()
-	}
+interface AgentHost {
+	suspend fun create(name: KebabId, systemPrompt: String, model: ModelConfig): Agent
+	fun list(): List<UUID>
+	suspend fun get(id: UUID): Agent?
 }

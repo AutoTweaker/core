@@ -22,9 +22,9 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
@@ -55,8 +55,7 @@ class ToolCallingStage(
 		call: ThinkingStage.ResolvedToolCall,
 		workspace: WorkspaceMeta,
 		containerConfig: ContainerConfig,
-		summarizeModel: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		context: AgentContext,
 	): AgentContext.Message.Tool.Result {
 		val timeoutSeconds = service.get(AgentToolSettings.TimeoutSeconds()).value
@@ -72,8 +71,7 @@ class ToolCallingStage(
 						workspace = workspace,
 						containerConfig = containerConfig,
 						onOutput = onOutput,
-						summarizeModel = summarizeModel,
-						fallbackModels = fallbackModels,
+						model = model,
 						context = context
 					)
 					

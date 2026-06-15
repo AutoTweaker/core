@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.adapter
 
+import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -32,6 +33,7 @@ import java.util.*
 
 interface AgentAPI {
 	val id: UUID
+	val name: KebabId
 	
 	val model: ModelConfig
 	val status: StateFlow<AgentStatus>
@@ -44,11 +46,12 @@ interface AgentAPI {
 	suspend fun pause()
 	suspend fun stop()
 	suspend fun compact()
+	suspend fun cancelCompact()
+	suspend fun cancelTool()
 	
-	suspend fun inject(injections: List<ContextInjection>?)
 	suspend fun setModel(config: ModelConfig)
 	suspend fun approve(approval: ToolApprove)
 	
-	suspend fun cancelCompact()
-	suspend fun cancelTool()
+	suspend fun inject(injection: ContextInjection)
+	suspend fun removeInjection(id: UUID)
 }

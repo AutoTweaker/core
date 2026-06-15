@@ -22,23 +22,21 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.model.Model
 
 class ThinkingStage(
 	private val llmService: LlmService,
 	private val tools: Tools,
 ) {
 	suspend fun execute(
-		model: Model,
-		fallbackModels: List<Model>?,
-		thinking: Boolean?,
+		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
 		context: AgentContext,
-	): Result = when (val callResult = llmService.execute(model, fallbackModels, thinking, assembledTools, context)) {
+	): Result = when (val callResult = llmService.execute(model, assembledTools, context)) {
 		is LlmService.CallResult.Failed -> Result.Failed
 		is LlmService.CallResult.Success -> {
 			val rawCalls = callResult.toolCalls

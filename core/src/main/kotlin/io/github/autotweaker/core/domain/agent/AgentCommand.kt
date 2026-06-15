@@ -19,31 +19,13 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.tool.ToolApprove
-import io.github.autotweaker.core.domain.model.Model
 
 sealed class AgentCommand {
 	data object Stop : AgentCommand()
-	
-	// 当前任务完成后暂停，并令Agent空闲
 	data object Pause : AgentCommand()
-	
-	// 取消当前工具调用
 	data object CancelTool : AgentCommand()
-	
-	// 取消当前压缩
 	data object CancelCompact : AgentCommand()
-	
-	// 压缩对话
 	data object Compact : AgentCommand()
-	
-	// 更新模型
-	data class UpdateModel(
-		val model: Model,
-		val fallbackModels: List<Model>? = null,
-		val summarizeModel: Model? = null,
-		val thinking: Boolean? = null,
-	) : AgentCommand()
-	
-	// 批准单个工具调用
+	data class UpdateModel(val model: AgentModel) : AgentCommand()
 	data class ApproveTool(val approval: ToolApprove) : AgentCommand()
 }

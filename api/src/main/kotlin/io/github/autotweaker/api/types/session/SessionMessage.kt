@@ -96,7 +96,7 @@ sealed class SessionMessage {
 		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
 		val content: String,
-		val snapshots: List<UsageSnapshot>? = null,
+		val snapshots: Map<@Serializable(with = UuidSerializer::class) UUID, UsageSnapshot>? = null,
 	) : SessionMessage()
 	
 	@Serializable

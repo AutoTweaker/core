@@ -20,7 +20,7 @@ package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
@@ -36,7 +36,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 	chunkSerializer = serializer<DeepSeekStreamChunk>(),
 ) {
 	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
-		name = "deepseek", baseUrl = Url("https://api.deepseek.com/v1"), models = listOf(
+		name = "deepseek", baseUrl = "https://api.deepseek.com/v1".toUrl(), models = listOf(
 			ModelData.ModelInfo(
 				modelId = "deepseek-v4-flash",
 				contextWindow = 1_000_000,

@@ -21,11 +21,13 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolInfo
+import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
@@ -34,7 +36,7 @@ import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.buildToolInfo
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.session.AgentHost
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.*
 import java.util.*
@@ -42,15 +44,13 @@ import java.util.*
 class Agent(
 	context: AgentContext,
 	val agentId: UUID = UUID.randomUUID(),
+	val name: KebabId,
 	private val workspace: WorkspaceMeta,
-	private val model: Model,
-	private val summarizeModel: Model,
-	private val fallbackModels: List<Model>?,
-	private val thinking: Boolean,
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
 	private val tools: List<Tool<ToolArgs>>,
-	private val activeTools: List<String>
+	private val activeTools: List<String>,
+	private val host: AgentHost,
 ) {
 	init {
 		check(context.currentRound == null)
@@ -76,7 +76,11 @@ class Agent(
 	
 	private lateinit var runner: RoundRunner
 	
-	suspend fun init() {
+	val model get() = runner.model.toModelConfig()
+	
+	suspend fun init(
+		model: AgentModel
+	) {
 		val info = tools.map { buildToolInfo(it, it.name in activeTools) }
 		toolManager = Tools(info, service, tools, agentId)
 		runner = RoundRunner(
@@ -87,10 +91,7 @@ class Agent(
 			thinkingStage = thinkingStage,
 			toolCalling = toolCalling,
 			compactService = compact,
-			model = model,
-			summarizeModel = summarizeModel,
-			fallbackModels = fallbackModels,
-			thinking = thinking,
+			agentModel = model,
 			service = service,
 			statusFlow = _status,
 			agentId = agentId,
@@ -98,14 +99,12 @@ class Agent(
 		runner.start()
 	}
 	
+	
 	suspend fun execute(command: AgentCommand) = runner.execute(command)
 	
 	fun sendMessage(content: MessageContent) = runner.send(content)
 	
 	suspend fun updateInjections(injections: List<ContextInjection>?) = ctx.updateInjections(injections)
 	
-	fun shutdown() {
-		check(_status.value == AgentStatus.FREE)
-		runner.shutdown()
-	}
+	suspend fun shutdown() = runner.shutdown()
 }

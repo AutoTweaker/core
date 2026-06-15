@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -63,8 +64,8 @@ class MessageQueue(private val agentId: UUID) {
 	
 	fun merge(all: List<MessageContent>): AgentContext.Message.User? {
 		if (all.isEmpty()) return null
-		val injections = all.flatMap { it.injections ?: emptyList() }.orNull()
-		val images = all.flatMap { it.images ?: emptyList() }.orNull()
+		val injections = all.flatMap { it.injections.orEmpty() }.orNull()
+		val images = all.flatMap { it.images.orEmpty() }.orNull()
 		val content = buildString {
 			val filtered = all.filterNot { it.content.isNullOrBlank() }
 			filtered.forEachIndexed { index, content ->
@@ -96,10 +97,6 @@ class MessageQueue(private val agentId: UUID) {
 	fun send(msg: MessageContent) {
 		channel.trySend(msg)
 	}
-	
-	private fun <T> List<T>.orNull() = ifEmpty { null }
-	
-	private fun String.orNull() = ifBlank { null }
 	
 	fun allNull(vararg items: Any?): Boolean = items.all { it == null }
 }

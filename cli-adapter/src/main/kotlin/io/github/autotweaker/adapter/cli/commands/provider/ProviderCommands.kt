@@ -25,6 +25,7 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrlOrNull
 import io.github.autotweaker.api.types.config.CoreConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -54,18 +55,10 @@ class ProviderCommands(
 			emitDone(1)
 			return@flow
 		}
-		
-		val urlString = url ?: promptOrNull(ProvCommandsI18n.PromptUrl())
-		
-		val url = urlString?.let {
-			try {
-				Url(it)
-			} catch (e: IllegalArgumentException) {
-				trace.exception(e)
-				emitI18n(i18n, ProvCommandsI18n.InvalidUrl(), e.message ?: "Unknown Error", error = true)
-				emitDone(1)
-				return@flow
-			}
+		val baseUrl: Url = if (url != null) {
+			url.toUrlOrNull()
+		} else {
+			promptOrNull(ProvCommandsI18n.PromptUrl())?.toUrlOrNull()
 		} ?: core.config.getProviderMeta(type).baseUrl
 		
 		core.config.addProvider(
@@ -73,7 +66,7 @@ class ProviderCommands(
 				id = UUID.randomUUID(),
 				type = type,
 				keyId = key,
-				baseUrl = url,
+				baseUrl = baseUrl,
 				displayName = name,
 				errorHandlingRules = core.config.getProviderMeta(type).errorHandlingRules,
 			)

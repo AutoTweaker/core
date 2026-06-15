@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.chat
 
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.model.Model
@@ -194,10 +195,9 @@ object ResilientChat {
 		if (msg !is ChatMessage.AssistantMessage) return this
 		val content = msg.content
 		val reasoningContent = msg.reasoningContent
-		if (content != "" && reasoningContent != "") return this
 		val normalized = msg.copy(
-			content = if (content == "") null else content,
-			reasoningContent = if (reasoningContent == "") null else reasoningContent
+			content = content?.orNull(),
+			reasoningContent = reasoningContent?.orNull()
 		)
 		return when (this) {
 			is ChatResult.Chunk -> copy(message = normalized)

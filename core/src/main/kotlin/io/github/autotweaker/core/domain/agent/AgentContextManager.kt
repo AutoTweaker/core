@@ -79,7 +79,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		_context.update {
 			it.copy(
 				currentRound = current.copy(
-					turns = (current.turns ?: emptyList()) + turn,
+					turns = current.turns.orEmpty() + turn,
 					assistantMessage = null,
 					pendingToolCalls = null,
 				)
@@ -145,7 +145,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		_context.update {
 			it.copy(
 				currentRound = null,
-				historyRounds = (it.historyRounds ?: emptyList()) + completed,
+				historyRounds = it.historyRounds.orEmpty() + completed,
 			)
 		}
 	}
@@ -160,7 +160,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		val compacted = AgentContext.CompactedRound(rounds = rounds, summarizedMessage = summarizedMessage)
 		_context.update {
 			it.copy(
-				compactedRounds = (it.compactedRounds ?: emptyList()) + compacted,
+				compactedRounds = it.compactedRounds.orEmpty() + compacted,
 				historyRounds = remaining.ifEmpty { null },
 			)
 		}

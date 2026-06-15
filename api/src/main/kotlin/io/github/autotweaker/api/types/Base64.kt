@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:JvmName("Base64")
-
 package io.github.autotweaker.api.types
 
 import kotlinx.serialization.Serializable

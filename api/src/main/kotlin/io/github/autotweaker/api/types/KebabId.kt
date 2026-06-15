@@ -19,21 +19,17 @@
 package io.github.autotweaker.api.types
 
 import kotlinx.serialization.Serializable
-import java.net.URI
 
 @JvmInline
 @Serializable
-value class Url private constructor(val value: String) {
+value class KebabId private constructor(val value: String) {
 	companion object {
-		fun String.toUrl(): Url {
-			val trimmed = trim().trimEnd('/')
-			require(trimmed.isNotBlank()) { "URL must not be blank" }
-			runCatching { URI(trimmed) }.getOrNull()
-				?.takeIf { it.isAbsolute && it.scheme in listOf("http", "https") }
-				?: throw IllegalArgumentException("Invalid URL: $trimmed")
-			return Url(trimmed)
+		fun String.toKebabId(): KebabId {
+			require(!isEmpty())
+			require(all { it.isLowerCase() || it == '-' })
+			return KebabId(this)
 		}
 		
-		fun String.toUrlOrNull(): Url? = runCatching { toUrl() }.getOrNull()
+		fun String.toKebabIdOrNull(): KebabId? = runCatching { toKebabId() }.getOrNull()
 	}
 }

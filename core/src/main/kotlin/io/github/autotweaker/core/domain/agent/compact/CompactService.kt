@@ -27,12 +27,12 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.AgentContextManager
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.findModelInfo
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
@@ -49,8 +49,7 @@ class CompactService(
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun execute(
-		summarizeModel: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		service: SettingService,
 		ctx: AgentContextManager,
 	) {
@@ -59,7 +58,7 @@ class CompactService(
 		
 		logger.info(
 			"Started compact  agentId={}  rounds={}  summarizeModel={}",
-			agentId, rounds.size, summarizeModel.id
+			agentId, rounds.size, model.summarize.id
 		)
 		
 		val compactPrompt = service.get(CompactSettings.Prompt()).value
@@ -69,7 +68,7 @@ class CompactService(
 		val maxRetries = service.get(CompactSettings.MaxCompactRetries()).value
 		
 		val (preprocessedMessages, preprocessSnapshots) = preprocessMessages(
-			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, thinkingEnabled
+			rounds, model, maxMessageChars, messageSummarizePrompt, thinkingEnabled
 		)
 		
 		val processedMessages = preprocessedMessages.inject(context.injections, context.summarizedMessage?.content)
@@ -80,7 +79,7 @@ class CompactService(
 		var finalResult: CompactRequestResult
 		do {
 			finalResult = runCompactRequest(
-				summarizeModel, fallbackModels, systemAndMessages, thinkingEnabled, service
+				model, systemAndMessages, thinkingEnabled, service
 			)
 			attempt++
 			finalResult.snapshot?.let { snapshots.add(it) }
@@ -112,7 +111,7 @@ class CompactService(
 		val compactMsg = SummarizedMessage(
 			timestamp = Clock.System.now(),
 			content = finalResult.content,
-			snapshots = snapshots.takeIf { it.isNotEmpty() },
+			snapshots = snapshots.associateBy { UUID.randomUUID() },
 		)
 		
 		ctx.applyCompact(compactMsg, rounds)
@@ -125,8 +124,7 @@ class CompactService(
 	)
 	
 	private suspend fun runCompactRequest(
-		summarizeModel: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		messages: List<ChatMessage>,
 		thinkingEnabled: Boolean,
 		service: SettingService,
@@ -135,8 +133,8 @@ class CompactService(
 		var lastSnapshot: UsageSnapshot? = null
 		try {
 			val results = ResilientChat.execute(
-				model = summarizeModel,
-				fallbackModels = fallbackModels,
+				model = model.summarize,
+				fallbackModels = model.fallback,
 				messages = messages,
 				stream = true,
 				thinking = thinkingEnabled,
@@ -165,7 +163,7 @@ class CompactService(
 						if (!assistantMsg.content.isNullOrEmpty()) rawContent = assistantMsg.content!!
 						result.usage?.let {
 							lastSnapshot =
-								UsageSnapshot(it, findModelInfo(summarizeModel, fallbackModels, resilientResult.model))
+								UsageSnapshot(it, model.findModelInfo(resilientResult.model))
 						}
 					}
 				}
@@ -202,8 +200,7 @@ class CompactService(
 	
 	private suspend fun preprocessMessages(
 		rounds: List<AgentContext.CompletedRound>,
-		summarizeModel: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		maxMessageChars: Int,
 		messageSummarizePrompt: String,
 		thinkingEnabled: Boolean,
@@ -216,8 +213,7 @@ class CompactService(
 				round.userMessage,
 				maxMessageChars,
 				messageSummarizePrompt,
-				summarizeModel,
-				fallbackModels,
+				model,
 				thinkingEnabled
 			)
 			userSnapshot?.let { snapshots.add(it) }
@@ -231,13 +227,13 @@ class CompactService(
 				}
 				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
 					turn.assistantMessage, toolCalls, maxMessageChars, messageSummarizePrompt,
-					summarizeModel, fallbackModels, thinkingEnabled
+					model, thinkingEnabled
 				)
 				assistantSnapshot?.let { snapshots.add(it) }
 				messages.add(assistantMsg)
 				turn.tools.forEach {
 					val (toolMsg, toolSnapshot) = convertToolMessage(
-						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled
+						it, maxMessageChars, messageSummarizePrompt, model, thinkingEnabled
 					)
 					toolSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 					messages.add(toolMsg)
@@ -245,7 +241,7 @@ class CompactService(
 			}
 			round.finalAssistantMessage?.let {
 				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
-					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled
+					it, null, maxMessageChars, messageSummarizePrompt, model, thinkingEnabled
 				)
 				assistantSnapshot?.let { snapshot -> snapshots.add(snapshot) }
 				messages.add(assistantMsg)
@@ -259,23 +255,21 @@ class CompactService(
 		content: String,
 		maxChars: Int,
 		prompt: String,
-		model: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		thinking: Boolean,
 	): Pair<String, UsageSnapshot?> =
-		if (content.length > maxChars) summarizeMessage(content, prompt, model, fallbackModels, thinking)
+		if (content.length > maxChars) summarizeMessage(content, prompt, model, thinking)
 		else content to null
 	
 	private suspend fun convertUserMessage(
 		msg: AgentContext.Message.User,
 		maxChars: Int,
 		prompt: String,
-		model: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		thinking: Boolean,
 	): Pair<ChatMessage.UserMessage, UsageSnapshot?> {
 		val content = msg.content.inject(true)
-		val (final, snapshot) = maybeSummarize(content, maxChars, prompt, model, fallbackModels, thinking)
+		val (final, snapshot) = maybeSummarize(content, maxChars, prompt, model, thinking)
 		return ChatMessage.UserMessage(final, msg.timestamp) to snapshot
 	}
 	
@@ -284,11 +278,10 @@ class CompactService(
 		toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
 		maxChars: Int,
 		prompt: String,
-		model: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		thinking: Boolean,
 	): Pair<ChatMessage.AssistantMessage, UsageSnapshot?> {
-		val (final, snapshot) = maybeSummarize(msg.content ?: "", maxChars, prompt, model, fallbackModels, thinking)
+		val (final, snapshot) = maybeSummarize(msg.content.orEmpty(), maxChars, prompt, model, thinking)
 		return ChatMessage.AssistantMessage(
 			content = final, createdAt = msg.timestamp,
 			reasoningContent = msg.reasoning, toolCalls = toolCalls, model = null,
@@ -299,11 +292,10 @@ class CompactService(
 		msg: AgentContext.Message.Tool,
 		maxChars: Int,
 		prompt: String,
-		model: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		thinking: Boolean,
 	): Pair<ChatMessage.ToolMessage, UsageSnapshot?> {
-		val (final, snapshot) = maybeSummarize(msg.result.content, maxChars, prompt, model, fallbackModels, thinking)
+		val (final, snapshot) = maybeSummarize(msg.result.content, maxChars, prompt, model, thinking)
 		return ChatMessage.ToolMessage(
 			content = final,
 			createdAt = msg.result.timestamp,

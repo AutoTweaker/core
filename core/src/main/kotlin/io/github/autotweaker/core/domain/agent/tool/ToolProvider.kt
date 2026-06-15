@@ -20,12 +20,12 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.tool.service.BashServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.FileSystemServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.ToolCallHistoryImpl
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.SimpleContainer
@@ -50,14 +50,13 @@ object ToolProvider {
 	fun buildToolProvider(
 		workspace: WorkspaceMeta,
 		containerConfig: ContainerConfig,
-		summarizeModel: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		context: AgentContext,
 		onOutput: suspend (AgentOutput) -> Unit,
 	): SimpleContainer {
 		val container = SimpleContainer()
 		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, containerConfig, workspace))
-		container.register(SummarizeService::class, SummarizeServiceImpl(summarizeModel, fallbackModels, onOutput))
+		container.register(SummarizeService::class, SummarizeServiceImpl(model, onOutput))
 		container.register(BashService::class, BashServiceImpl(shellExecutor, containerConfig, workspace))
 		container.register(ToolCallHistory::class, ToolCallHistoryImpl(context))
 		return container

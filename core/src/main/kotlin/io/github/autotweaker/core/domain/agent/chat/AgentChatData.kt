@@ -24,14 +24,12 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.domain.agent.AgentContext
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.agent.AgentModel
 import java.util.*
 import kotlin.time.Instant
 
 data class AgentChatRequest(
-	val model: Model,
-	val fallbackModels: List<Model>?,
-	val thinking: Boolean?,
+	val model: AgentModel,
 	val tools: List<ChatRequest.Tool>?,
 	val context: AgentContext,
 )

@@ -24,6 +24,8 @@ import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentContextManager
+import io.github.autotweaker.core.domain.agent.AgentModel
+import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.compact.CompactSettings
@@ -31,7 +33,6 @@ import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
@@ -50,10 +51,7 @@ class RoundRunner(
 	private val thinkingStage: ThinkingStage,
 	toolCalling: ToolCallingStage,
 	private val compactService: CompactService,
-	model: Model,
-	summarizeModel: Model,
-	fallbackModels: List<Model>?,
-	thinking: Boolean,
+	agentModel: AgentModel,
 	private val service: SettingService,
 	private val statusFlow: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
@@ -78,16 +76,11 @@ class RoundRunner(
 	private var shouldBreak = false
 	
 	@Volatile
-	var currentModel = model
+	private var shutdownStarted = false
 	
 	@Volatile
-	var currentSummarizeModel = summarizeModel
-	
-	@Volatile
-	var currentFallbackModels = fallbackModels
-	
-	@Volatile
-	var currentThinking: Boolean = thinking
+	private var currentModel = agentModel
+	val model = currentModel
 	
 	fun send(content: MessageContent) = messages.send(content)
 	
@@ -95,14 +88,18 @@ class RoundRunner(
 		scope.launch { workLoop() }
 	}
 	
-	fun shutdown() {
+	suspend fun shutdown() {
+		shutdownStarted = true
+		compactJob?.cancel()
+		execute(AgentCommand.Stop)
 		scope.cancel()
 	}
 	
 	suspend fun execute(command: AgentCommand) = mutex.withLock {
+		if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
 		when (command) {
 			is AgentCommand.Stop -> {
-				check(statusFlow.value != AgentStatus.FREE)
+				if (statusFlow.value == AgentStatus.FREE) return@withLock
 				markBreak()
 				thinkJob?.cancel()
 				approval.cancelToolJob()
@@ -110,6 +107,7 @@ class RoundRunner(
 			}
 			
 			is AgentCommand.Pause -> {
+				if (statusFlow.value == AgentStatus.FREE) return@withLock
 				markBreak()
 				statusFlow.first { it == AgentStatus.FREE }
 			}
@@ -128,9 +126,6 @@ class RoundRunner(
 			
 			is AgentCommand.UpdateModel -> {
 				currentModel = command.model
-				command.summarizeModel?.let { currentSummarizeModel = it }
-				command.fallbackModels?.let { currentFallbackModels = it }
-				command.thinking?.let { currentThinking = it }
 			}
 			
 			is AgentCommand.ApproveTool -> {
@@ -159,8 +154,6 @@ class RoundRunner(
 			val deferred = scope.async {
 				thinkingStage.execute(
 					model = currentModel,
-					fallbackModels = currentFallbackModels,
-					thinking = currentThinking,
 					assembledTools = tools.assembleTools(),
 					context = ctx.get(),
 				)
@@ -190,8 +183,7 @@ class RoundRunner(
 				val reasons = approval.process(
 					result.needsApproval,
 					result.assistantMessage.id,
-					currentSummarizeModel,
-					currentFallbackModels,
+					currentModel,
 					statusFlow,
 				) { shouldBreak }
 				messages.sendReasons(reasons)
@@ -217,11 +209,11 @@ class RoundRunner(
 		val threshold = service.get(AgentToolSettings.DeactivationThreshold()).value
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
-			(context.historyRounds ?: emptyList()) + (context.compactedRounds?.flatMap { it.rounds } ?: emptyList())
+			context.historyRounds.orEmpty() + context.compactedRounds?.flatMap { it.rounds }.orEmpty()
 		}
 		if (history.isEmpty()) return
 		val allCalls = history.flatMap { round ->
-			round.turns?.flatMap { turn -> turn.tools.map { it.name.substringBefore("-") } } ?: emptyList()
+			round.turns?.flatMap { turn -> turn.tools.map { it.name.substringBefore("-") } }.orEmpty()
 		}
 		if (allCalls.size < threshold) return
 		val recentNames = allCalls.takeLast(threshold).toSet()
@@ -234,13 +226,14 @@ class RoundRunner(
 	
 	private suspend fun checkAutoCompact() {
 		if (compactJob?.isActive == true) return
-		val usage = ctx.get().let { context ->
-			context.currentRound?.assistantMessage?.usageSnapshot?.usage
-				?: context.currentRound?.turns?.lastOrNull()?.assistantMessage?.usageSnapshot?.usage
-				?: context.historyRounds?.lastOrNull()?.finalAssistantMessage?.usageSnapshot?.usage
+		val assistantMessage = ctx.get().let { context ->
+			context.currentRound?.assistantMessage
+				?: context.currentRound?.turns?.lastOrNull()?.assistantMessage
+				?: context.historyRounds?.lastOrNull()?.finalAssistantMessage
 		} ?: return
-		val contextWindow = currentModel.modelInfo.contextWindow
-		val config = currentModel.config
+		val usage = assistantMessage.usageSnapshot?.usage ?: return
+		val contextWindow = assistantMessage.usageSnapshot.model.contextWindow
+		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
 		
 		val contextUsageThreshold = config?.compactContextUsage
 			?: service.get(CompactSettings.DefaultCompactContextUsage()).value
@@ -270,7 +263,7 @@ class RoundRunner(
 	private fun launchCompact() {
 		if (compactJob?.isActive == true) return
 		compactJob = scope.launch {
-			compactService.execute(currentSummarizeModel, currentFallbackModels, service, ctx)
+			compactService.execute(currentModel, service, ctx)
 		}
 	}
 	

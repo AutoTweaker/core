@@ -21,11 +21,11 @@ package io.github.autotweaker.core.domain.agent.think
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
@@ -39,16 +39,12 @@ class LlmService(
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun execute(
-		model: Model,
-		fallbackModels: List<Model>?,
-		thinking: Boolean?,
+		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
 		context: AgentContext,
 	): CallResult {
 		val request = AgentChatRequest(
 			model = model,
-			fallbackModels = fallbackModels,
-			thinking = thinking,
 			tools = assembledTools,
 			context = context,
 		)

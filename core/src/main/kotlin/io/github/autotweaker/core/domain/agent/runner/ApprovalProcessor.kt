@@ -22,9 +22,9 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.domain.agent.AgentContextManager
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -49,8 +49,7 @@ class ApprovalProcessor(
 	suspend fun process(
 		needsApproval: List<ThinkingStage.ResolvedToolCall>,
 		assistantMessageId: UUID,
-		summarizeModel: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		statusFlow: MutableStateFlow<AgentStatus>,
 		shouldBreak: () -> Boolean,
 	): List<String> {
@@ -70,7 +69,7 @@ class ApprovalProcessor(
 				approval.reason?.let { reasons.add(it) }
 				statusFlow.value = AgentStatus.TOOL_CALLING
 				val deferred = scope.async {
-					tool.execute(call, workspace, containerConfig, summarizeModel, fallbackModels, ctx.get())
+					tool.execute(call, workspace, containerConfig, model, ctx.get())
 				}
 				val toolResult = deferred.await()
 				ctx.recordToolResult(factory.buildToolMessage(assistantMessageId, call.pendingCall, toolResult))

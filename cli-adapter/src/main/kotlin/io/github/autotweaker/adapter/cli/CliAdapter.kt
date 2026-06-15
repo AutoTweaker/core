@@ -22,7 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import org.slf4j.LoggerFactory
 
@@ -42,7 +42,7 @@ class CliAdapter : Adapter {
 			name = "cli-adapter",
 			description = "CLI adapter — Unix domain socket based command interface",
 			version = adapterVersion,
-			source = Url("https://github.com/AutoTweaker/core"),
+			source = "https://github.com/AutoTweaker/core".toUrl(),
 		)
 		adapterName = info.name
 		logger.info(

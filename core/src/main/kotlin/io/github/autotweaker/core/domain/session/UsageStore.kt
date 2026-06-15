@@ -19,59 +19,58 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import org.slf4j.LoggerFactory
+import java.util.*
 
 object UsageStore {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val store by lazy { JsonStoreImpl.namespace(this::class) }
+	private val mutex = Mutex()
 	
-	private val mapSerializer = MapSerializer(String.serializer(), UsageSnapshot.serializer())
+	private val mapSerializer = MapSerializer(UuidSerializer, UsageSnapshot.serializer())
 	
-	private fun load(): MutableMap<String, UsageSnapshot> {
-		val raw = store.get() ?: return mutableMapOf()
-		return Json.decodeFromJsonElement(mapSerializer, raw).toMutableMap()
+	private fun load(): Map<UUID, UsageSnapshot> {
+		val raw = store.get() ?: return emptyMap()
+		return Json.decodeFromJsonElement(mapSerializer, raw)
 	}
 	
-	private fun save(data: Map<String, UsageSnapshot>) {
+	private fun save(data: Map<UUID, UsageSnapshot>) {
 		store.set(Json.encodeToJsonElement(data))
 	}
 	
-	fun collect(messages: List<SessionMessage>) = synchronized(this) {
-		val data = load()
+	suspend fun collect(messages: List<SessionMessage>) = mutex.withLock {
+		val data = load().toMutableMap()
 		var count = 0
+		
+		fun add(key: UUID, snapshot: UsageSnapshot) {
+			if (key !in data) {
+				data[key] = snapshot
+				count++
+			}
+		}
 		
 		messages.forEach { message ->
 			when (message) {
-				is SessionMessage.Assistant -> message.usageSnapshot?.let { snapshot ->
-					val key = message.id.toString()
-					if (key !in data) {
-						data[key] = snapshot
-						count++
-					}
+				is SessionMessage.Assistant -> message.usageSnapshot?.let {
+					add(message.id, it)
 				}
 				
 				is SessionMessage.Compact -> {
-					message.snapshots?.forEachIndexed { index, snapshot ->
-						val key = "${message.id}_$index"
-						if (key !in data) {
-							data[key] = snapshot
-							count++
-						}
+					message.snapshots?.forEach { (id, snapshot) ->
+						add(id, snapshot)
 					}
 				}
 				
 				is SessionMessage.UsageRecord -> {
-					val key = message.id.toString()
-					if (key !in data) {
-						data[key] = message.snapshot
-						count++
-					}
+					add(message.id, message.snapshot)
 				}
 				
 				else -> {}
@@ -84,5 +83,5 @@ object UsageStore {
 		}
 	}
 	
-	fun getSnapshots(): List<UsageSnapshot> = synchronized(this) { load().values.toList() }
+	suspend fun getSnapshots(): Map<UUID, UsageSnapshot> = mutex.withLock { load() }
 }

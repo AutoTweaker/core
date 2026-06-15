@@ -21,8 +21,9 @@ package io.github.autotweaker.core.domain.agent.compact
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.core.domain.agent.AgentModel
+import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
@@ -35,14 +36,13 @@ object SummaryService {
 	suspend fun summarizeMessage(
 		content: String,
 		prompt: String,
-		model: Model,
-		fallbackModels: List<Model>?,
+		model: AgentModel,
 		thinkingEnabled: Boolean,
 	): Pair<String, UsageSnapshot?> {
 		val results = try {
 			ResilientChat.execute(
-				model = model,
-				fallbackModels = fallbackModels,
+				model = model.model,
+				fallbackModels = model.fallback,
 				messages = listOf(ChatMessage.UserMessage(prompt.format(content), Clock.System.now())),
 				thinking = thinkingEnabled,
 			).toList()
@@ -59,12 +59,11 @@ object SummaryService {
 			.filter { it.result.message !is ChatMessage.ErrorMessage }
 		val lastest = success.lastOrNull() ?: return content to null
 		val snapshot = lastest.result.usage
-			?.let { UsageSnapshot(it, findModelInfo(model, fallbackModels, lastest.model)) }
+			?.let { UsageSnapshot(it, model.findModelInfo(lastest.model)) }
 		return (lastest.result.message?.content ?: content) to snapshot
 	}
 	
-	fun findModelInfo(model: Model, fallbacks: List<Model>?, modelId: UUID) =
-		(listOf(model) + (fallbacks ?: emptyList()))
-			.find { it.id == modelId }?.modelInfo
+	fun AgentModel.findModelInfo(modelId: UUID) =
+		all().find { it.id == modelId }?.modelInfo
 			?: model.modelInfo
 }

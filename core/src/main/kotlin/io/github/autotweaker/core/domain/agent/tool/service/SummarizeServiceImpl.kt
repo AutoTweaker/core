@@ -18,23 +18,21 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
+import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import kotlin.time.Clock
 
 class SummarizeServiceImpl(
-	private val summarizeModel: Model,
-	private val fallbackModels: List<Model>?,
+	private val model: AgentModel,
 	private val onOutput: suspend (AgentOutput) -> Unit,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
 		val (result, snapshot) = SummaryService.summarizeMessage(
 			content = content,
 			prompt = prompt,
-			model = summarizeModel,
-			fallbackModels = fallbackModels,
+			model = model,
 			thinkingEnabled = false,
 		)
 		snapshot?.let { onOutput(AgentOutput.UsageConsumed(Clock.System.now(), it.usage, it.model)) }
