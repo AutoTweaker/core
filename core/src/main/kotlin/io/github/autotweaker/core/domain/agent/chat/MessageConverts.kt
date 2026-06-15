@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.llm.ChatMessage
 import kotlin.time.Instant
 
 fun MessageContent.inject(injectImageTag: Boolean = false): String = buildString {
@@ -38,8 +39,20 @@ fun MessageContent.injectTimestamp(timestamp: Instant) = copy(
 			+ (injections ?: emptyList())
 )
 
-fun String.inject(injection: ContextInjection) = buildString {
-	appendLine(injection.toXml())
+fun List<ChatMessage>.inject(injections: List<ContextInjection>?): List<ChatMessage> {
+	if (injections.isNullOrEmpty()) return this
+	val firstUserIndex = indexOfFirst { it is ChatMessage.UserMessage }
+	if (firstUserIndex == -1) return this
+	return mapIndexed { index, msg ->
+		if (index == firstUserIndex) {
+			val userMsg = msg as ChatMessage.UserMessage
+			userMsg.copy(content = userMsg.content.inject(injections))
+		} else msg
+	}
+}
+
+fun String.inject(injections: List<ContextInjection>) = buildString {
+	injections.forEach { appendLine(it.toXml()) }
 	append(this@inject)
 }
 

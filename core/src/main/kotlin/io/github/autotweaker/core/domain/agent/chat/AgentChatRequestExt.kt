@@ -36,13 +36,19 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		else -> null
 	}
 	
-	if (lastMessage is AgentContext.Message.Assistant) {
-		throw IllegalStateException("Last message is an assistant message, cannot send request")
-	}
+	check(lastMessage !is AgentContext.Message.Assistant) { "Last message is an assistant message, cannot send request" }
+	check(current.pendingToolCalls == null) { "Pending tool calls exist, cannot send request" }
 	
-	if (current.pendingToolCalls != null) {
-		throw IllegalStateException("Pending tool calls exist, cannot send request")
+	
+	val summarizeInjection = context.summarizedMessage?.let {
+		listOf(
+			ContextInjection(
+				tag = "summary",
+				content = it.content
+			)
+		)
 	}
+	val injections = (context.injections ?: emptyList()) + (summarizeInjection ?: emptyList())
 	
 	return buildList {
 		//系统提示
@@ -58,7 +64,7 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		//当前轮次
 		add(current.userMessage.toChatMessage())
 		current.turns?.forEach { addTurn(it) }
-	}.mountSummary(context.summarizedMessage?.content)
+	}.inject(injections)
 }
 
 fun AgentContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
@@ -81,25 +87,6 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 		add(turn.assistantMessage.toChatMessage())
 	}
 	turn.tools.forEach { add(it.toChatMessage()) }
-}
-
-fun List<ChatMessage>.mountSummary(summary: String?): List<ChatMessage> {
-	if (summary.isNullOrEmpty()) return this
-	val firstUserIndex = indexOfFirst { it is ChatMessage.UserMessage }
-	if (firstUserIndex == -1) return this
-	return mapIndexed { index, msg ->
-		if (index == firstUserIndex) {
-			val userMsg = msg as ChatMessage.UserMessage
-			userMsg.copy(
-				content = userMsg.content.inject(
-					ContextInjection(
-						tag = "summary",
-						content = summary
-					)
-				)
-			)
-		} else msg
-	}
 }
 
 private fun AgentContext.Message.User.toChatMessage() = content

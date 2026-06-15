@@ -22,6 +22,7 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.agent.ToolInfo
 import io.github.autotweaker.api.types.session.WorkspaceMeta
@@ -51,6 +52,11 @@ class Agent(
 	private val tools: List<Tool<ToolArgs>>,
 	private val activeTools: List<String>
 ) {
+	init {
+		check(context.currentRound == null)
+		check(activeTools.all { it in tools.map { tool -> tool.name } })
+	}
+	
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
 	
@@ -93,6 +99,8 @@ class Agent(
 	suspend fun execute(command: AgentCommand) = runner.execute(command)
 	
 	fun sendMessage(content: MessageContent) = runner.send(content)
+	
+	suspend fun updateInjections(injections: List<ContextInjection>?) = ctx.updateInjections(injections)
 	
 	fun shutdown() {
 		check(_status.value == AgentStatus.FREE)

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
+import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -161,6 +162,14 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 			it.copy(
 				compactedRounds = (it.compactedRounds ?: emptyList()) + compacted,
 				historyRounds = remaining.ifEmpty { null },
+			)
+		}
+	}
+	
+	suspend fun updateInjections(injections: List<ContextInjection>?) = mutex.withLock {
+		_context.update {
+			it.copy(
+				injections = injections
 			)
 		}
 	}
