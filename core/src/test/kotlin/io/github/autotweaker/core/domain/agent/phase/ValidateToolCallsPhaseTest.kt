@@ -24,6 +24,7 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.MutableAgentState
+import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
@@ -119,9 +120,9 @@ class ValidateToolCallsPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		coEvery { tools.resolveToolCalls(any(), any()) } returns listOf(
-			Tools.ToolCallResolveResult.ParseFailure("c1", "Invalid JSON"),
-			Tools.ToolCallResolveResult.ParseFailure("c2", "Function not found"),
+		coEvery { tools.resolveToolCall(any(), any()) } returns listOf(
+			ToolCallResolveResult.ParseFailure("c1", "Invalid JSON"),
+			ToolCallResolveResult.ParseFailure("c2", "Function not found"),
 		)
 		
 		val result = ValidateToolCallsPhase.execute(env)
@@ -151,9 +152,9 @@ class ValidateToolCallsPhaseTest {
 		
 		val vs1 = validationSuccess("bash", "run")
 		val vs2 = validationSuccess("read", "file")
-		coEvery { tools.resolveToolCalls(any(), any()) } returns listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", vs1),
-			Tools.ToolCallResolveResult.NeedsApproval("c2", vs2),
+		coEvery { tools.resolveToolCall(any(), any()) } returns listOf(
+			ToolCallResolveResult.NeedsApproval("c1", vs1),
+			ToolCallResolveResult.NeedsApproval("c2", vs2),
 		)
 		
 		val result = ValidateToolCallsPhase.execute(env)
@@ -176,9 +177,9 @@ class ValidateToolCallsPhaseTest {
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
 		
-		coEvery { tools.resolveToolCalls(any(), any()) } returns listOf(
-			Tools.ToolCallResolveResult.ParseFailure("c1", "Bad JSON"),
-			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
+		coEvery { tools.resolveToolCall(any(), any()) } returns listOf(
+			ToolCallResolveResult.ParseFailure("c1", "Bad JSON"),
+			ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
 		)
 		
 		val result = ValidateToolCallsPhase.execute(env)
@@ -208,8 +209,8 @@ class ValidateToolCallsPhaseTest {
 			assistantMessage = assistantMessage(),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { tools.resolveToolCalls(any(), any()) } returns listOf(
-			Tools.ToolCallResolveResult.ParseFailure("c1", "error"),
+		coEvery { tools.resolveToolCall(any(), any()) } returns listOf(
+			ToolCallResolveResult.ParseFailure("c1", "error"),
 		)
 		
 		ValidateToolCallsPhase.execute(env)
@@ -225,8 +226,8 @@ class ValidateToolCallsPhaseTest {
 			assistantMessage = assistantMessage(),
 		)
 		_contextFlow.value = AgentContext(null, null, null, null, round)
-		coEvery { tools.resolveToolCalls(any(), any()) } returns listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+		coEvery { tools.resolveToolCall(any(), any()) } returns listOf(
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		
 		ValidateToolCallsPhase.execute(env)

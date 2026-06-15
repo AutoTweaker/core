@@ -216,6 +216,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 				emit(mapToChatResult(openAiResponse))
 			}
 		} catch (e: CancellationException) {
+			trace.exception(e)
 			logger.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
 			throw e
 		} catch (e: Throwable) {

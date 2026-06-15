@@ -16,15 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.tool
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-	REJECTED,
-}
+interface ToolArgs

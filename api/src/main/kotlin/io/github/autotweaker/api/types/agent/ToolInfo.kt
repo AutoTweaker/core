@@ -18,13 +18,9 @@
 
 package io.github.autotweaker.api.types.agent
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-	REJECTED,
-}
+data class ToolInfo(
+	val name: String,
+	val description: String,
+	val functionNames: List<String>,
+	val active: Boolean,
+)

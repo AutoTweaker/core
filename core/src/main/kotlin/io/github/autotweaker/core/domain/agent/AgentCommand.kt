@@ -18,50 +18,32 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.core.domain.model.Model
-import java.util.*
-import kotlin.time.Instant
 
 sealed class AgentCommand {
-	sealed class Directive : AgentCommand() {
-		//终止Agent当前任何任务并令Agent空闲
-		data object Stop : Directive()
-		
-		//在当前任务完成后暂停
-		data object Pause : Directive()
-		
-		//从暂停中恢复
-		data object Resume : Directive()
-		
-		//取消工具调用或上下文压缩并继续
-		data object Cancel : Directive()
-		
-		//重试（当出错时）
-		data object Retry : Directive()
-		
-		//压缩对话
-		data object Compact : Directive()
-		
-		//更新模型
-		data class UpdateModel(
-			val model: Model,
-			val fallbackModels: List<Model>? = null,
-			val thinking: Boolean? = null,
-		) : Directive()
-	}
+	data object Stop : AgentCommand()
 	
-	sealed class Message : AgentCommand() {
-		data class SendMessage(
-			val id: UUID = UUID.randomUUID(),
-			val content: String,
-			val images: List<Base64>? = null,
-			val timestamp: Instant,
-		) : Message()
-		
-		data class ApproveToolCall(
-			val approvals: List<ToolApprove>,
-		) : Message()
-	}
+	// 当前任务完成后暂停，并令Agent空闲
+	data object Pause : AgentCommand()
+	
+	// 取消当前工具调用
+	data object CancelTool : AgentCommand()
+	
+	// 取消当前压缩
+	data object CancelCompact : AgentCommand()
+	
+	// 压缩对话
+	data object Compact : AgentCommand()
+	
+	// 更新模型
+	data class UpdateModel(
+		val model: Model,
+		val fallbackModels: List<Model>? = null,
+		val summarizeModel: Model? = null,
+		val thinking: Boolean? = null,
+	) : AgentCommand()
+	
+	// 批准单个工具调用
+	data class ApproveTool(val approval: ToolApprove) : AgentCommand()
 }

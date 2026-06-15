@@ -18,10 +18,11 @@
 
 package io.github.autotweaker.api.types.tool.args
 
+import io.github.autotweaker.api.tool.ToolArgs
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class ReadArgs {
+sealed class ReadArgs : ToolArgs {
 	@Serializable
 	data class File(
 		val filePath: String,

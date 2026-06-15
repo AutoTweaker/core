@@ -20,6 +20,8 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.agent.ToolInfo
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.serialization.json.*
@@ -28,15 +30,22 @@ import org.slf4j.LoggerFactory
 object ToolAssembler {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	
-	suspend fun assemble(tools: List<Tool<*>>, service: SettingService): List<ChatRequest.Tool>? {
+	suspend fun assemble(
+		tools: List<Tool<ToolArgs>>,
+		toolInfo: List<ToolInfo>,
+		service: SettingService,
+	): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
-		logger.debug("Started tool assembly  toolCount={}  source=ToolAssembler", tools.size)
+		logger.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription: String = service.get(AgentToolSettings.ReasonEmptyError()).value
-		val metas = tools.map { ToolMeta.build(it) }
+		val reasonDescription = service.get(AgentToolSettings.ReasonEmptyError()).value
+		val enableDesc = service.get(AgentToolSettings.EnableDescription()).value
 		
-		return metas.flatMap { meta ->
+		val activeNames = toolInfo.filter { it.active }.map { it.name }.toSet()
+		val activeMetas = tools.filter { it.name in activeNames }.map { ToolMeta.build(it) }
+		
+		val activeTools = activeMetas.flatMap { meta ->
 			meta.functions.map { func ->
 				ChatRequest.Tool(
 					name = "${meta.name}-${func.name}",
@@ -45,6 +54,25 @@ object ToolAssembler {
 				)
 			}
 		}
+		
+		val inactiveTools = tools.filter { it.name !in activeNames }.map { tool ->
+			ChatRequest.Tool(
+				name = tool.name,
+				description = tool.description,
+				parameters = buildJsonObject {
+					put("type", "object")
+					put("properties", buildJsonObject {
+						put("enable", buildJsonObject {
+							put("type", "boolean")
+							put("description", enableDesc)
+						})
+					})
+				},
+			)
+		}
+		
+		return if (activeTools.isNotEmpty() || inactiveTools.isNotEmpty()) activeTools + inactiveTools
+		else null
 	}
 	
 	private fun Map<String, ToolMeta.Property>.toChatRequestParameters(
@@ -52,9 +80,7 @@ object ToolAssembler {
 	): JsonElement = buildJsonObject {
 		put("type", "object")
 		putJsonObject("properties") {
-			forEach { (name, prop) ->
-				put(name, prop.toPropertyJson())
-			}
+			forEach { (name, prop) -> put(name, prop.toPropertyJson()) }
 			put("reason", buildJsonObject {
 				put("type", "string")
 				put("description", reasonDescription)
@@ -88,10 +114,7 @@ object ToolAssembler {
 				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
 			}
 			
-			is ToolMeta.ValueType.BooleanValue -> {
-				builder.put("type", "boolean")
-			}
-			
+			is ToolMeta.ValueType.BooleanValue -> builder.put("type", "boolean")
 			is ToolMeta.ValueType.ArrayValue -> {
 				builder.put("type", "array")
 				builder.put("items", buildJsonObject { items.fillJsonObject(this) })
@@ -112,7 +135,6 @@ object ToolAssembler {
 			}
 			
 			is ToolMeta.ValueType.AnyValue -> {}
-			
 			is ToolMeta.ValueType.OneOfValue -> {
 				builder.put("type", "object")
 				builder.putJsonArray("oneOf") {

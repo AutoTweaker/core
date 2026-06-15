@@ -44,7 +44,7 @@ object AgentToolSettings {
 	class RejectedWithFeedback : SettingDef<SettingValue.ValString> {
 		override val default =
 			SettingValue.ValString("$TOOL_NOT_EXECUTED，用户拒绝了工具调用，并留言：%s")
-		override val description = "工具调用被拒绝时的ToolResult"
+		override val description = "工具调用被拒绝，有原因时的ToolResult"
 	}
 	
 	@AutoService(SettingDef::class)

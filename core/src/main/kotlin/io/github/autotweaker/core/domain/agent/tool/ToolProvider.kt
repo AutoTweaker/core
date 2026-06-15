@@ -18,11 +18,14 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
-import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.tool.service.BashServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.FileSystemServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.ToolCallHistoryImpl
+import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.SimpleContainer
@@ -30,6 +33,7 @@ import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 
 object ToolProvider {
 	@Volatile
@@ -43,12 +47,19 @@ object ToolProvider {
 		this.rawFileSystem = rawFileSystem
 	}
 	
-	fun buildToolProvider(env: AgentEnvironment): SimpleContainer {
+	fun buildToolProvider(
+		workspace: WorkspaceMeta,
+		containerConfig: ContainerConfig,
+		summarizeModel: Model,
+		fallbackModels: List<Model>?,
+		context: AgentContext,
+		onOutput: suspend (AgentOutput) -> Unit,
+	): SimpleContainer {
 		val container = SimpleContainer()
-		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, env))
-		container.register(SummarizeService::class, SummarizeServiceImpl(env))
-		container.register(BashService::class, BashServiceImpl(shellExecutor, env))
-		container.register(ToolCallHistory::class, ToolCallHistoryImpl(env))
+		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, containerConfig, workspace))
+		container.register(SummarizeService::class, SummarizeServiceImpl(summarizeModel, fallbackModels, onOutput))
+		container.register(BashService::class, BashServiceImpl(shellExecutor, containerConfig, workspace))
+		container.register(ToolCallHistory::class, ToolCallHistoryImpl(context))
 		return container
 	}
 }

@@ -18,27 +18,28 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
+import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
-import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.port.BashService
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Duration
 
 class BashServiceImpl(
 	private val executor: ShellExecutor,
-	private val env: AgentEnvironment,
+	private val containerConfig: ContainerConfig,
+	private val workspace: WorkspaceMeta,
 ) : BashService {
 	override fun run(command: String, timeout: Duration, env: Map<String, String>): Flow<ShellEvent> {
-		val config = this.env.containerConfig
-		val inContainer = config.isContainerPath(this.env.workspace.path)
+		val inContainer = containerConfig.isContainerPath(workspace.path)
 		val workDir = if (inContainer) {
-			val containerMount = config.workDir.normalize()
-			val hostMount = config.workspaceHostPath.normalize()
-			containerMount.resolve(hostMount.relativize(this.env.workspace.path))
+			val containerMount = containerConfig.workDir.normalize()
+			val hostMount = containerConfig.workspaceHostPath.normalize()
+			containerMount.resolve(hostMount.relativize(workspace.path))
 		} else {
-			this.env.workspace.path.normalize()
+			workspace.path.normalize()
 		}
 		return executor.exec(ShellExec(command, workDir, inContainer, env, timeout))
 	}

@@ -125,6 +125,9 @@ class DockerJavaService : ContainerService {
 			trace.exception(e)
 			logger.warn("Failed image pull  image={}", image)
 			throw ContainerOperationException("Image '$image' not found", e)
+		} catch (e: CancellationException) {
+			trace.exception(e)
+			throw e
 		} catch (e: Exception) {
 			trace.exception(e)
 			logger.error("Failed container start  image={}  name={}", image, config.name, e)
@@ -141,6 +144,9 @@ class DockerJavaService : ContainerService {
 		} catch (e: NotFoundException) {
 			trace.exception(e)
 			logger.warn("Did not find container  containerId={}", containerId)
+		} catch (e: CancellationException) {
+			trace.exception(e)
+			throw e
 		} catch (e: Exception) {
 			trace.exception(e)
 			logger.error("Failed container stop  containerId={}", containerId, e)
@@ -219,6 +225,9 @@ class DockerJavaService : ContainerService {
 				trace.exception(e)
 				logger.warn("Failed container lookup  containerId={}", containerId)
 				throw ContainerOperationException("Container not found: $containerId", e)
+			} catch (e: CancellationException) {
+				trace.exception(e)
+				throw e
 			} catch (e: Exception) {
 				trace.exception(e)
 				logger.error("Failed command execution  containerId={}", containerId, e)

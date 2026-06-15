@@ -18,7 +18,8 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import kotlinx.serialization.json.JsonElement
@@ -28,12 +29,13 @@ import kotlin.time.Instant
 data class AgentContext(
 	val compactedRounds: List<CompactedRound>?,
 	val systemPrompt: String?,
+	val injections: List<ContextInjection>?,
 	val historyRounds: List<CompletedRound>?,
 	val summarizedMessage: SummarizedMessage?,
 	val currentRound: CurrentRound?,
 ) {
 	data class SummarizedMessage(
-		val id: UUID,
+		val id: UUID = UUID.randomUUID(),
 		val timestamp: Instant,
 		val content: String,
 		val snapshots: List<UsageSnapshot>? = null,
@@ -42,8 +44,7 @@ data class AgentContext(
 	sealed class Message {
 		data class User(
 			val id: UUID = UUID.randomUUID(),
-			val content: String,
-			val images: List<Base64>? = null,
+			val content: MessageContent,
 			val timestamp: Instant,
 		) : Message()
 		
@@ -68,8 +69,7 @@ data class AgentContext(
 				val arguments: String,
 				val reason: String? = null,
 				val timestamp: Instant,
-				val modelId: UUID,
-				val validatedArgs: JsonElement?,
+				val validatedArgs: JsonElement? = null,
 			)
 			
 			data class Result(
@@ -82,7 +82,8 @@ data class AgentContext(
 	}
 	
 	data class CompactedRound(
-		val rounds: List<CompletedRound>, val summarizedMessage: SummarizedMessage
+		val rounds: List<CompletedRound>,
+		val summarizedMessage: SummarizedMessage
 	)
 	
 	data class CompletedRound(
@@ -100,13 +101,11 @@ data class AgentContext(
 		data class PendingToolCall(
 			val id: UUID = UUID.randomUUID(),
 			val callId: String,
-			val assistantMessageId: UUID,
 			val name: String,
-			val modelId: UUID,
 			val arguments: String,
-			val reason: String?,
+			val reason: String,
 			val timestamp: Instant,
-			val validatedArgs: JsonElement?,
+			val validatedArgs: JsonElement,
 		)
 	}
 	

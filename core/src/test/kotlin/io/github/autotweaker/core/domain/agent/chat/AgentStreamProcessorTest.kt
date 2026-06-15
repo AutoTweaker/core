@@ -24,7 +24,6 @@ import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
-import io.github.autotweaker.core.domain.agent.chat.AgentStreamProcessor.StreamProcessResult
 import io.github.autotweaker.core.domain.model.Model
 import io.mockk.every
 import io.mockk.mockk

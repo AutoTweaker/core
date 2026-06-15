@@ -46,15 +46,15 @@ object ContainerManager {
 	
 	@Volatile
 	private var _containerId: String? = null
-
+	
 	@Volatile
 	private var containerAccess = true
-
+	
 	val isRunning: Boolean get() = _containerId != null
-
+	
 	@Suppress("unused")
 	val containerId: String? get() = _containerId
-
+	
 	@Synchronized
 	fun init(secretStore: SecretStore) {
 		envStorage = EnvStorage(this::class, secretStore)
@@ -69,7 +69,7 @@ object ContainerManager {
 			service.pullImage(image)
 		}
 	}
-
+	
 	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ensureRunning() = mutex.withLock {
 		if (_containerId != null) return@withLock

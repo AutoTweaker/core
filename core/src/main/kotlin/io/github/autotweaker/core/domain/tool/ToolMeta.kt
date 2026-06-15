@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -68,7 +69,7 @@ class ToolMeta private constructor(
 		fun String.toSnakeCase() = convertCamelCase(this, '_')
 		
 		@OptIn(ExperimentalSerializationApi::class)
-		suspend fun build(tool: Tool<*>): ToolMeta {
+		suspend fun build(tool: Tool<ToolArgs>): ToolMeta {
 			require('-' !in tool.name) { "Tool name must not contain '-': ${tool.name}" }
 			val desc = tool.argsSerializer.descriptor
 			val describeMap = tool.describe()
@@ -278,7 +279,9 @@ class ToolMeta private constructor(
 			return trace.catching { Class.forName(name) }.getOrNull()
 		}
 		
-		//从kotlinx.serialization.json抄的
+		// Adapted from kotlinx.serialization.json.JsonNamingStrategy
+		// SPDX-License-Identifier: Apache-2.0
+		// Copyright JetBrains s.r.o. and kotlinx.serialization contributors
 		@Suppress("SameParameterValue")
 		private fun convertCamelCase(
 			serialName: String,

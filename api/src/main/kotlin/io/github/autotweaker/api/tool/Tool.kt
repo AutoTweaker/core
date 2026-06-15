@@ -23,7 +23,7 @@ import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
-interface Tool<Args : Any> {
+interface Tool<Args : ToolArgs> {
 	val argsSerializer: KSerializer<Args>
 	val name: String
 	val description: String

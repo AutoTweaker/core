@@ -28,31 +28,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
 import java.util.*
-import kotlin.time.Instant
 
 object AgentChat {
 	private val logger = LoggerFactory.getLogger(this::class.java)
-	
-	private fun toPendingToolCalls(
-		toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
-		assistantMessageId: UUID,
-		timestamp: Instant,
-		modelId: UUID,
-	): List<AgentContext.CurrentRound.PendingToolCall>? {
-		if (toolCalls.isNullOrEmpty()) return null
-		return toolCalls.map {
-			AgentContext.CurrentRound.PendingToolCall(
-				callId = it.id,
-				assistantMessageId = assistantMessageId,
-				name = it.name,
-				arguments = it.arguments,
-				timestamp = timestamp,
-				modelId = modelId,
-				reason = null,
-				validatedArgs = null,
-			)
-		}
-	}
 	
 	fun execute(
 		request: AgentChatRequest, agentId: UUID
@@ -136,9 +114,7 @@ object AgentChat {
 							emit(
 								AgentChatStreamResult.Assembled(
 									message = assistantMessage,
-									toolCalls = toPendingToolCalls(
-										msg.toolCalls, assistantMessage.id, msg.createdAt, resilientResult.model
-									),
+									toolCalls = msg.toolCalls,
 									finishReason = result.finishReason,
 								)
 							)

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -27,14 +27,13 @@ import kotlinx.serialization.json.JsonElement
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolCallHistoryImpl(
-	private val env: AgentEnvironment,
+	private val context: AgentContext,
 ) : ToolCallHistory {
 	override fun <Args : Any> getAll(
 		toolName: String,
 		argsSerializer: KSerializer<Args>
 	): List<ToolCallHistory.Entry<Args>> = buildList {
-		val ctx = env.context.value
-		for (round in ctx.historyRounds.orEmpty()) {
+		for (round in context.historyRounds.orEmpty()) {
 			for (turn in round.turns.orEmpty()) {
 				for (tool in turn.tools) {
 					val args = tryDeserialize(toolName, tool.name, tool.call.validatedArgs ?: continue, argsSerializer)
@@ -43,7 +42,7 @@ class ToolCallHistoryImpl(
 				}
 			}
 		}
-		for (turn in ctx.currentRound?.turns.orEmpty()) {
+		for (turn in context.currentRound?.turns.orEmpty()) {
 			for (tool in turn.tools) {
 				val args =
 					tryDeserialize(toolName, tool.name, tool.call.validatedArgs ?: continue, argsSerializer) ?: continue

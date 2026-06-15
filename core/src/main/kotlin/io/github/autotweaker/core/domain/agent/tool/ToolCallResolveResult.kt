@@ -16,10 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.agent.phase
+package io.github.autotweaker.core.domain.agent.tool
 
-sealed class PhaseResult {
-	data object Continue : PhaseResult()
-	data object Done : PhaseResult()
-	data object Error : PhaseResult()
+sealed class ToolCallResolveResult {
+	data class ParseFailure(
+		val errorMessage: String,
+	) : ToolCallResolveResult()
+	
+	data class NeedsApproval(
+		val result: ToolCallValidator.ValidationResult.Success<*>,
+	) : ToolCallResolveResult()
+	
+	data class Activation(
+		val message: String,
+	) : ToolCallResolveResult()
 }

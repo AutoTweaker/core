@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.core.domain.agent.AgentContext
 import kotlin.time.Clock
@@ -89,26 +90,35 @@ fun List<ChatMessage>.mountSummary(summary: String?): List<ChatMessage> {
 	return mapIndexed { index, msg ->
 		if (index == firstUserIndex) {
 			val userMsg = msg as ChatMessage.UserMessage
-			userMsg.copy(content = "<summary>\n$summary\n</summary>\n${userMsg.content}")
+			userMsg.copy(
+				content = userMsg.content.inject(
+					ContextInjection(
+						tag = "summary",
+						content = summary
+					)
+				)
+			)
 		} else msg
 	}
 }
 
-private fun AgentContext.Message.User.toChatMessage() = ChatMessage.UserMessage(
-	content = buildString {
-		appendLine("<time>$timestamp</time>")
-		append(content)
-	}.trimEnd(),
-	createdAt = timestamp,
-	pictures = images,
-)
+private fun AgentContext.Message.User.toChatMessage() = content
+	.injectTimestamp(timestamp)
+	.inject()
+	.let { text ->
+		ChatMessage.UserMessage(
+			content = text,
+			createdAt = timestamp,
+			pictures = content.images,
+		)
+	}
 
 private fun AgentContext.Message.Assistant.toChatMessage(
 	toolCalls: List<ChatMessage.AssistantMessage.ToolCall>? = null,
 ) = ChatMessage.AssistantMessage(
-	content = content ?: "",
+	content = content,
 	createdAt = timestamp,
-	reasoningContent = reasoning ?: "",
+	reasoningContent = reasoning,
 	toolCalls = toolCalls,
 )
 

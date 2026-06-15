@@ -18,13 +18,10 @@
 
 package io.github.autotweaker.api.types.agent
 
-import kotlinx.serialization.Serializable
+import io.github.autotweaker.api.types.Base64
 
-@Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-	REJECTED,
-}
+data class MessageContent(
+	val injections: List<ContextInjection>? = null,
+	val content: String? = null,
+	val images: List<Base64>? = null,
+)

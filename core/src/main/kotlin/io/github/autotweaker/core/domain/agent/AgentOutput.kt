@@ -24,7 +24,6 @@ import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.session.ToolCallRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import kotlin.time.Instant
 
@@ -38,14 +37,6 @@ sealed class AgentOutput {
 	
 	data class Tool(
 		val output: ToolOutput
-	) : AgentOutput()
-	
-	data class ToolRequest(
-		val requests: List<ToolCallRequest>,
-	) : AgentOutput()
-	
-	data class ToolListUpdate(
-		val activeTools: List<String>,
 	) : AgentOutput()
 	
 	data class Error(

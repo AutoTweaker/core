@@ -104,7 +104,7 @@ class ToolsTest {
 		}
 	
 	private suspend fun Tools.activate(toolName: String) {
-		resolveToolCalls(listOf(pendingToolCall(name = toolName)))
+		resolveToolCall(listOf(pendingToolCall(name = toolName)))
 	}
 	
 	// endregion
@@ -141,10 +141,10 @@ class ToolsTest {
 		tools.add(mockTool())
 		val calls = listOf(pendingToolCall("c1"), pendingToolCall("c2"))
 		
-		val results = tools.resolveToolCalls(calls)
+		val results = tools.resolveToolCall(calls)
 		
 		assertEquals(2, results.size)
-		results.forEach { assertIs<Tools.ToolCallResolveResult.ParseFailure>(it) }
+		results.forEach { assertIs<ToolCallResolveResult.ParseFailure>(it) }
 	}
 	
 	@Test
@@ -156,10 +156,10 @@ class ToolsTest {
 		tools.activate("bash")
 		
 		val calls = listOf(pendingToolCall("c2", "bash-run"))
-		val results = tools.resolveToolCalls(calls)
+		val results = tools.resolveToolCall(calls)
 		
 		assertEquals(1, results.size)
-		assertIs<Tools.ToolCallResolveResult.NeedsApproval>(results[0])
+		assertIs<ToolCallResolveResult.NeedsApproval>(results[0])
 	}
 	
 	@Test
@@ -168,10 +168,10 @@ class ToolsTest {
 		tools.add(mockTool("inactive"))
 		
 		val calls = listOf(pendingToolCall("c1", "inactive-run"))
-		val results = tools.resolveToolCalls(calls)
+		val results = tools.resolveToolCall(calls)
 		
 		assertEquals(1, results.size)
-		assertIs<Tools.ToolCallResolveResult.ParseFailure>(results[0])
+		assertIs<ToolCallResolveResult.ParseFailure>(results[0])
 	}
 	// endregion
 	
@@ -183,10 +183,10 @@ class ToolsTest {
 		val tool = mockTool("bash", "bash tool")
 		tools.add(tool)
 		
-		val results = tools.resolveToolCalls(listOf(pendingToolCall("c1", "bash")))
+		val results = tools.resolveToolCall(listOf(pendingToolCall("c1", "bash")))
 		
 		assertEquals(1, results.size)
-		val activation = results[0] as Tools.ToolCallResolveResult.Activation
+		val activation = results[0] as ToolCallResolveResult.Activation
 		assertTrue(tools.entries[0].active)
 		assertTrue(activation.message.contains("bash-run"))
 	}

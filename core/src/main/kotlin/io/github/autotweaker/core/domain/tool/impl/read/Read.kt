@@ -33,6 +33,7 @@ import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import org.slf4j.LoggerFactory
 import java.nio.file.Path
@@ -162,6 +163,9 @@ class Read : CoreTool<ReadArgs> {
 				truncateMessage = s.get(ReadSettings.FileMessageTruncateSetting()).value,
 				lineNumber = args.lineNumber
 			)
+		} catch (e: CancellationException) {
+			trace.exception(e)
+			throw e
 		} catch (e: IllegalStateException) {
 			trace.exception(e)
 			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
@@ -207,6 +211,9 @@ class Read : CoreTool<ReadArgs> {
 				truncateMessage = s.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false
 			)
+		} catch (e: CancellationException) {
+			trace.exception(e)
+			throw e
 		} catch (e: IllegalStateException) {
 			trace.exception(e)
 			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)

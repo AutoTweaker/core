@@ -87,6 +87,9 @@ object TranslationManager {
 		scope.launch {
 			try {
 				TranslationEngine.run(settings, modelId, target, modelRepo, i18nService)
+			} catch (e: CancellationException) {
+				trace.exception(e)
+				throw e
 			} catch (e: Exception) {
 				trace.exception(e)
 				logger.error("Failed translation  target={}", target.toLanguageTag(), e)

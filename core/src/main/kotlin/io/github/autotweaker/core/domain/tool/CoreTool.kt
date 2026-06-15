@@ -20,13 +20,18 @@ package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.channels.Channel
 
-interface CoreTool<Args : Any> : Tool<Args> {
+interface CoreTool<Args : ToolArgs> : Tool<Args> {
 	suspend fun init(service: SettingService, secretStore: SecretStore)
-	suspend fun coreExec(container: SimpleContainer, args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput
-
+	suspend fun coreExec(
+		container: SimpleContainer,
+		args: Args,
+		outputChannel: Channel<Tool.RuntimeOutput>?
+	): Tool.ToolOutput
+	
 	override suspend fun execute(args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput =
 		throw UnsupportedOperationException("Use coreExec")
 }

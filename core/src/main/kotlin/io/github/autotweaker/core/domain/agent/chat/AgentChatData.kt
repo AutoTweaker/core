@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
@@ -54,7 +55,7 @@ sealed class AgentChatStreamResult {
 	
 	data class Assembled(
 		val message: AgentContext.Message.Assistant,
-		val toolCalls: List<AgentContext.CurrentRound.PendingToolCall>?,
+		val toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
 		val finishReason: ChatResult.FinishReason?,
 	) : AgentChatStreamResult()
 }

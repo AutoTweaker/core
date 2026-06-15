@@ -1,0 +1,317 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.core.domain.agent.compact
+
+import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.CompactOutput
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.AgentContext.SummarizedMessage
+import io.github.autotweaker.core.domain.agent.AgentContextManager
+import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.chat.inject
+import io.github.autotweaker.core.domain.agent.chat.mountSummary
+import io.github.autotweaker.core.domain.agent.compact.SummaryService.findModelInfo
+import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
+import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import org.slf4j.LoggerFactory
+import java.util.*
+import kotlin.time.Clock
+
+class CompactService(
+	private val agentId: UUID,
+	private val onOutput: suspend (AgentOutput) -> Unit,
+) {
+	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val trace = TraceRecorderImpl.recorder(this::class)
+	
+	suspend fun execute(
+		summarizeModel: Model,
+		fallbackModels: List<Model>?,
+		service: SettingService,
+		ctx: AgentContextManager,
+	) {
+		val context = ctx.get()
+		val rounds = context.historyRounds ?: return
+		
+		logger.info(
+			"Started compact  agentId={}  rounds={}  summarizeModel={}",
+			agentId, rounds.size, summarizeModel.id
+		)
+		
+		val compactPrompt = service.get(CompactSettings.Prompt()).value
+		val maxMessageChars = service.get(CompactSettings.MaxMessageChars()).value
+		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt()).value
+		val thinkingEnabled = service.get(CompactSettings.Thinking()).value
+		val maxRetries = service.get(CompactSettings.MaxCompactRetries()).value
+		
+		val (preprocessedMessages, preprocessSnapshots) = preprocessMessages(
+			rounds, summarizeModel, fallbackModels, maxMessageChars, messageSummarizePrompt, thinkingEnabled
+		)
+		
+		val processedMessages = preprocessedMessages.mountSummary(context.summarizedMessage?.content)
+		val systemAndMessages = processedMessages + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
+		
+		val snapshots = preprocessSnapshots.toMutableList()
+		var attempt = 0
+		var finalResult: CompactRequestResult
+		do {
+			finalResult = runCompactRequest(
+				summarizeModel, fallbackModels, systemAndMessages, thinkingEnabled, service
+			)
+			attempt++
+			finalResult.snapshot?.let { snapshots.add(it) }
+		} while (!finalResult.success && attempt < maxRetries)
+		
+		if (!finalResult.success) {
+			logger.warn(
+				"Failed compact  agentId={}  attempts={}", agentId, attempt
+			)
+			snapshots.forEach {
+				onOutput(AgentOutput.UsageConsumed(Clock.System.now(), it.usage, it.model))
+			}
+			onOutput(
+				AgentOutput.Error(
+					AgentError(
+						"Compact failed after $attempt attempts",
+						AgentError.Type.COMPACT
+					)
+				)
+			)
+			return
+		}
+		
+		logger.info(
+			"Completed compact  agentId={}  roundCount={}  attempts={}  summaryLength={}",
+			agentId, rounds.size, attempt, finalResult.content.length
+		)
+		
+		val compactMsg = SummarizedMessage(
+			timestamp = Clock.System.now(),
+			content = finalResult.content,
+			snapshots = snapshots.takeIf { it.isNotEmpty() },
+		)
+		
+		ctx.applyCompact(compactMsg, rounds)
+	}
+	
+	private data class CompactRequestResult(
+		val content: String,
+		val snapshot: UsageSnapshot?,
+		val success: Boolean,
+	)
+	
+	private suspend fun runCompactRequest(
+		summarizeModel: Model,
+		fallbackModels: List<Model>?,
+		messages: List<ChatMessage>,
+		thinkingEnabled: Boolean,
+		service: SettingService,
+	): CompactRequestResult {
+		var rawContent = ""
+		var lastSnapshot: UsageSnapshot? = null
+		try {
+			val results = ResilientChat.execute(
+				model = summarizeModel,
+				fallbackModels = fallbackModels,
+				messages = messages,
+				stream = true,
+				thinking = thinkingEnabled,
+			)
+			results.collect { resilientResult ->
+				currentCoroutineContext().ensureActive()
+				when (val result = resilientResult.result) {
+					is ChatResult.Chunk -> {
+						val msg = result.message ?: return@collect
+						if (!msg.content.isNullOrEmpty()) {
+							rawContent += msg.content
+							onOutput(
+								AgentOutput.Compact(
+									CompactOutput(
+										CompactOutput.Status.OUTPUTTING,
+										rawContent,
+										null
+									)
+								)
+							)
+						}
+					}
+					
+					is ChatResult.Assembled -> {
+						val assistantMsg = result.message as? ChatMessage.AssistantMessage ?: return@collect
+						if (!assistantMsg.content.isNullOrEmpty()) rawContent = assistantMsg.content!!
+						result.usage?.let {
+							lastSnapshot =
+								UsageSnapshot(it, findModelInfo(summarizeModel, fallbackModels, resilientResult.model))
+						}
+					}
+				}
+			}
+		} catch (e: CancellationException) {
+			trace.exception(e)
+			logger.debug("Cancelled compact  agentId={}", agentId)
+			throw e
+		} catch (e: Exception) {
+			trace.exception(e)
+			logger.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)
+			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
+			return CompactRequestResult(rawContent, lastSnapshot, success = false)
+		}
+		
+		val extracted = extractSummary(rawContent)
+		val minSummaryLength = service.get(CompactSettings.MinSummaryLength()).value
+		val valid = extracted.length >= minSummaryLength
+		
+		if (valid) {
+			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastSnapshot?.usage)))
+		} else {
+			logger.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted.length)
+			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastSnapshot?.usage)))
+		}
+		
+		return CompactRequestResult(extracted, lastSnapshot, success = valid)
+	}
+	
+	private data class PreprocessResult(
+		val messages: List<ChatMessage>,
+		val snapshots: List<UsageSnapshot>,
+	)
+	
+	private suspend fun preprocessMessages(
+		rounds: List<AgentContext.CompletedRound>,
+		summarizeModel: Model,
+		fallbackModels: List<Model>?,
+		maxMessageChars: Int,
+		messageSummarizePrompt: String,
+		thinkingEnabled: Boolean,
+	): PreprocessResult {
+		val messages = mutableListOf<ChatMessage>()
+		val snapshots = mutableListOf<UsageSnapshot>()
+		
+		rounds.forEach { round ->
+			val (userMsg, userSnapshot) = convertUserMessage(
+				round.userMessage,
+				maxMessageChars,
+				messageSummarizePrompt,
+				summarizeModel,
+				fallbackModels,
+				thinkingEnabled
+			)
+			userSnapshot?.let { snapshots.add(it) }
+			messages.add(userMsg)
+			
+			round.turns?.forEach { turn ->
+				val toolCalls = turn.tools.map { tool ->
+					ChatMessage.AssistantMessage.ToolCall(
+						id = tool.callId, name = tool.name, arguments = tool.call.arguments
+					)
+				}
+				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
+					turn.assistantMessage, toolCalls, maxMessageChars, messageSummarizePrompt,
+					summarizeModel, fallbackModels, thinkingEnabled
+				)
+				assistantSnapshot?.let { snapshots.add(it) }
+				messages.add(assistantMsg)
+				turn.tools.forEach {
+					val (toolMsg, toolSnapshot) = convertToolMessage(
+						it, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled
+					)
+					toolSnapshot?.let { snapshot -> snapshots.add(snapshot) }
+					messages.add(toolMsg)
+				}
+			}
+			round.finalAssistantMessage?.let {
+				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(
+					it, null, maxMessageChars, messageSummarizePrompt, summarizeModel, fallbackModels, thinkingEnabled
+				)
+				assistantSnapshot?.let { snapshot -> snapshots.add(snapshot) }
+				messages.add(assistantMsg)
+			}
+		}
+		
+		return PreprocessResult(messages, snapshots)
+	}
+	
+	private suspend fun maybeSummarize(
+		content: String,
+		maxChars: Int,
+		prompt: String,
+		model: Model,
+		fallbackModels: List<Model>?,
+		thinking: Boolean,
+	): Pair<String, UsageSnapshot?> =
+		if (content.length > maxChars) summarizeMessage(content, prompt, model, fallbackModels, thinking)
+		else content to null
+	
+	private suspend fun convertUserMessage(
+		msg: AgentContext.Message.User,
+		maxChars: Int,
+		prompt: String,
+		model: Model,
+		fallbackModels: List<Model>?,
+		thinking: Boolean,
+	): Pair<ChatMessage.UserMessage, UsageSnapshot?> {
+		val content = msg.content.inject(true)
+		val (final, snapshot) = maybeSummarize(content, maxChars, prompt, model, fallbackModels, thinking)
+		return ChatMessage.UserMessage(final, msg.timestamp) to snapshot
+	}
+	
+	private suspend fun convertAssistantMessage(
+		msg: AgentContext.Message.Assistant,
+		toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
+		maxChars: Int,
+		prompt: String,
+		model: Model,
+		fallbackModels: List<Model>?,
+		thinking: Boolean,
+	): Pair<ChatMessage.AssistantMessage, UsageSnapshot?> {
+		val (final, snapshot) = maybeSummarize(msg.content ?: "", maxChars, prompt, model, fallbackModels, thinking)
+		return ChatMessage.AssistantMessage(
+			content = final, createdAt = msg.timestamp,
+			reasoningContent = msg.reasoning, toolCalls = toolCalls, model = null,
+		) to snapshot
+	}
+	
+	private suspend fun convertToolMessage(
+		msg: AgentContext.Message.Tool,
+		maxChars: Int,
+		prompt: String,
+		model: Model,
+		fallbackModels: List<Model>?,
+		thinking: Boolean,
+	): Pair<ChatMessage.ToolMessage, UsageSnapshot?> {
+		val (final, snapshot) = maybeSummarize(msg.result.content, maxChars, prompt, model, fallbackModels, thinking)
+		return ChatMessage.ToolMessage(
+			content = final,
+			createdAt = msg.result.timestamp,
+			toolCallId = msg.callId
+		) to snapshot
+	}
+	
+	private fun extractSummary(text: String): String =
+		text.substringAfter("<summary>").substringBefore("</summary>").trim()
+}

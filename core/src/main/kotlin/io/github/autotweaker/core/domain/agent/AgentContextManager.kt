@@ -1,0 +1,167 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.core.domain.agent
+
+import io.github.autotweaker.api.types.agent.ToolResultStatus
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.time.Clock
+import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool as ToolMessage
+
+class AgentContextManager(initial: AgentContext, private val cancelledMessage: String) {
+	private val _context = MutableStateFlow(initial)
+	private val mutex = Mutex()
+	
+	val context: StateFlow<AgentContext> = _context.asStateFlow()
+	
+	private val pendingToolResults = mutableListOf<ToolMessage>()
+	
+	suspend fun get(): AgentContext = mutex.withLock { _context.value }
+	
+	suspend fun beginRound(userMessage: AgentContext.Message.User) = mutex.withLock {
+		check(_context.value.currentRound == null)
+		check(pendingToolResults.isEmpty())
+		val round = AgentContext.CurrentRound(userMessage = userMessage, turns = null)
+		_context.update { it.copy(currentRound = round) }
+	}
+	
+	suspend fun applyThinking(
+		assistant: AgentContext.Message.Assistant,
+		pendingCalls: List<AgentContext.CurrentRound.PendingToolCall>,
+		immediateResults: List<ToolMessage>,
+	) = mutex.withLock {
+		val current = requireNotNull(_context.value.currentRound)
+		check(current.assistantMessage == null)
+		check(current.pendingToolCalls == null)
+		check(pendingToolResults.isEmpty())
+		pendingToolResults.addAll(immediateResults)
+		_context.update {
+			it.copy(
+				currentRound = current.copy(assistantMessage = assistant, pendingToolCalls = pendingCalls)
+			)
+		}
+	}
+	
+	suspend fun recordToolResult(tool: ToolMessage) = mutex.withLock {
+		val current = requireNotNull(_context.value.currentRound)
+		check(current.assistantMessage != null)
+		check(current.pendingToolCalls != null)
+		check(current.pendingToolCalls.any { it.callId == tool.callId })
+		pendingToolResults.add(tool)
+	}
+	
+	suspend fun finalizeToolTurn() = mutex.withLock {
+		val current = requireNotNull(_context.value.currentRound)
+		val assistant = requireNotNull(current.assistantMessage)
+		val turn = AgentContext.Turn(assistantMessage = assistant, tools = pendingToolResults.toList())
+		pendingToolResults.clear()
+		_context.update {
+			it.copy(
+				currentRound = current.copy(
+					turns = (current.turns ?: emptyList()) + turn,
+					assistantMessage = null,
+					pendingToolCalls = null,
+				)
+			)
+		}
+	}
+	
+	suspend fun archiveCurrentRound() = mutex.withLock {
+		val round = _context.value.currentRound ?: return@withLock
+		
+		
+		//丢弃空round
+		if (round.assistantMessage == null && round.turns.isNullOrEmpty() &&
+			round.pendingToolCalls.isNullOrEmpty()
+		) {
+			check(pendingToolResults.isEmpty())
+			_context.update { it.copy(currentRound = null) }
+			return@withLock
+		}
+		
+		//生成CANCELLED消息
+		if (round.pendingToolCalls != null) {
+			val processedIds = pendingToolResults.map { it.callId }.toSet()
+			round.pendingToolCalls.filter { it.callId !in processedIds }.forEach { call ->
+				pendingToolResults.add(
+					ToolMessage(
+						name = call.name,
+						callId = call.callId,
+						call = ToolMessage.Call(
+							assistantMessageId = requireNotNull(round.assistantMessage?.id),
+							arguments = call.arguments,
+							reason = call.reason,
+							timestamp = call.timestamp,
+							validatedArgs = call.validatedArgs,
+						),
+						result = ToolMessage.Result(
+							content = cancelledMessage,
+							timestamp = Clock.System.now(),
+							status = ToolResultStatus.CANCELLED,
+						),
+					)
+				)
+			}
+		}
+		
+		val assistantMsg = round.assistantMessage
+		val archivedTurn =
+			if (assistantMsg != null && pendingToolResults.isNotEmpty()) {
+				AgentContext.Turn(assistantMsg, pendingToolResults.toList())
+			} else null
+		pendingToolResults.clear()
+		
+		val allTurns = buildList {
+			round.turns?.let { addAll(it) }
+			archivedTurn?.let { add(it) }
+		}.ifEmpty { null }
+		
+		val completed = AgentContext.CompletedRound(
+			userMessage = round.userMessage,
+			turns = allTurns,
+			finalAssistantMessage = if (archivedTurn != null) null else assistantMsg,
+		)
+		_context.update {
+			it.copy(
+				currentRound = null,
+				historyRounds = (it.historyRounds ?: emptyList()) + completed,
+			)
+		}
+	}
+	
+	suspend fun applyCompact(
+		summarizedMessage: AgentContext.SummarizedMessage,
+		rounds: List<AgentContext.CompletedRound>,
+	) = mutex.withLock {
+		val currentHistory = requireNotNull(_context.value.historyRounds)
+		check(rounds.all { it in currentHistory })
+		val remaining = currentHistory.filter { it !in rounds }
+		val compacted = AgentContext.CompactedRound(rounds = rounds, summarizedMessage = summarizedMessage)
+		_context.update {
+			it.copy(
+				compactedRounds = (it.compactedRounds ?: emptyList()) + compacted,
+				historyRounds = remaining.ifEmpty { null },
+			)
+		}
+	}
+}

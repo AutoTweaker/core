@@ -227,7 +227,7 @@ object ResilientChat {
 				if (result is ChatMessage.AssistantMessage) {
 					result = when {
 						shouldStripReasoning -> result.copy(reasoningContent = null)
-						!shouldStripReasoning && result.reasoningContent == null -> result.copy(reasoningContent = "</think>")
+						!shouldStripReasoning && result.reasoningContent == null -> result.copy(reasoningContent = "<think />")
 						else -> result
 					}
 				}

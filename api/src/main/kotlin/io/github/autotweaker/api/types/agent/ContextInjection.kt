@@ -18,13 +18,10 @@
 
 package io.github.autotweaker.api.types.agent
 
-import kotlinx.serialization.Serializable
+import java.util.*
 
-@Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-	REJECTED,
-}
+data class ContextInjection(
+	val id: UUID = UUID.randomUUID(),
+	val tag: String,
+	val content: String,
+)

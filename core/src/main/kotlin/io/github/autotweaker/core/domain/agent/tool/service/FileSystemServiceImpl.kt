@@ -19,19 +19,21 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.types.Unicode
-import io.github.autotweaker.core.domain.agent.AgentEnvironment
+import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import java.nio.file.Path
 
 class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
-	private val env: AgentEnvironment,
+	private val containerConfig: ContainerConfig,
+	private val workspace: WorkspaceMeta,
 ) : FileSystemService {
-	private val inContainer: Boolean get() = env.containerConfig.isContainerPath(env.workspace.path)
-	private val containerMount: Path get() = env.containerConfig.workDir.normalize()
-	private val hostMount: Path get() = env.containerConfig.workspaceHostPath.normalize()
-	private val workspaceInContainer: Path get() = containerMount.resolve(hostMount.relativize(env.workspace.path))
+	private val inContainer: Boolean get() = containerConfig.isContainerPath(workspace.path)
+	private val containerMount: Path get() = containerConfig.workDir.normalize()
+	private val hostMount: Path get() = containerConfig.workspaceHostPath.normalize()
+	private val workspaceInContainer: Path get() = containerMount.resolve(hostMount.relativize(workspace.path))
 	
 	override fun normalize(filePath: String): Path {
 		val path = Path.of(filePath)

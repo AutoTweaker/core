@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.agent.phase
+package io.github.autotweaker.core.domain.agent.compact
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.config.SettingDef
@@ -39,7 +39,7 @@ object CompactSettings {
 	@AutoService(SettingDef::class)
 	class MessageSummarizePrompt : SettingDef<SettingValue.ValString> {
 		override val default =
-			SettingValue.ValString("请对以下消息内容进行概括，输出不要太长\n\n" + "<message>\n%s\n</message>")
+			SettingValue.ValString("请对以下消息内容进行概括，输出不要太长\n\n<message>\n%s\n</message>")
 		override val description = "上下文压缩前对字符数过多的消息进行单独总结时的提示词"
 	}
 	
@@ -64,12 +64,12 @@ object CompactSettings {
 	@AutoService(SettingDef::class)
 	class DefaultCompactContextUsage : SettingDef<SettingValue.ValDouble> {
 		override val default = SettingValue.ValDouble(0.85)
-		override val description = "自动上下文压缩的默认百分比阈值"
+		override val description = "自动上下文压缩的默认百分比阈值（根据上下文窗口）"
 	}
 	
 	@AutoService(SettingDef::class)
 	class DefaultCompactTotalTokens : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(1_000_000)
+		override val default = SettingValue.ValInt(500_000)
 		override val description = "自动上下文压缩的默认 tokens 阈值"
 	}
 }

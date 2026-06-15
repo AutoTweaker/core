@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.ToolMeta.Companion.toSnakeCase
@@ -30,7 +31,6 @@ import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 
 class ToolCallValidator(
-	private val tools: List<Tool<*>>,
 	private val service: SettingService,
 ) {
 	private val logger = LoggerFactory.getLogger(this::class.java)
@@ -41,10 +41,9 @@ class ToolCallValidator(
 		namingStrategy = JsonNamingStrategy.SnakeCase
 	}
 	
-	sealed class ValidationResult<out Args : Any> {
-		data class Success<Args : Any>(
+	sealed class ValidationResult<out Args : ToolArgs> {
+		data class Success<Args : ToolArgs>(
 			val toolName: String,
-			val functionName: String,
 			val reason: String,
 			val args: Args,
 		) : ValidationResult<Args>()
@@ -55,7 +54,12 @@ class ToolCallValidator(
 	}
 	
 	@OptIn(ExperimentalSerializationApi::class)
-	fun validate(toolCallName: String, argumentsJson: String, callId: String): ValidationResult<*> {
+	fun validate(
+		toolCallName: String,
+		argumentsJson: String,
+		callId: String,
+		tools: List<Tool<ToolArgs>>
+	): ValidationResult<*> {
 		val arguments = trace.catching {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 		}.getOrElse { e ->
@@ -149,7 +153,6 @@ class ToolCallValidator(
 		)
 		return ValidationResult.Success(
 			toolName = toolName,
-			functionName = functionName,
 			reason = reason,
 			args = args,
 		)

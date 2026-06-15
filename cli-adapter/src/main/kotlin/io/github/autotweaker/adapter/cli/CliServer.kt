@@ -164,13 +164,14 @@ class CliServer(service: SettingService, core: CoreAPI) {
 					}
 				}
 			} catch (e: CancellationException) {
+				trace.exception(e)
 				throw e
 			} catch (e: IOException) {
+				trace.exception(e)
 				logger.warn("Disconnected client during command  command={}", cmdName)
-				trace.exception(e)
 			} catch (e: Exception) {
-				logger.error("Failed command  command={}", cmdName, e)
 				trace.exception(e)
+				logger.error("Failed command  command={}", cmdName, e)
 				trace.catching {
 					write(
 						client, json.encodeToString<CliResponse>(

@@ -16,15 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.core.domain.agent
 
-import kotlinx.serialization.Serializable
+import io.github.autotweaker.api.types.llm.ChatMessage
 
-@Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-	REJECTED,
-}
+data class ToolActivation(
+	val toolCall: ChatMessage.AssistantMessage.ToolCall,
+	val message: String,
+)

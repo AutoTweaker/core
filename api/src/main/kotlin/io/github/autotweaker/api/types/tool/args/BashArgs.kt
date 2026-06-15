@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.tool.args
 
+import io.github.autotweaker.api.tool.ToolArgs
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -25,4 +26,4 @@ data class BashArgs(
 	val command: String,
 	val timeoutSeconds: Int = 60,
 	val envIds: List<String> = emptyList(),
-)
+) : ToolArgs

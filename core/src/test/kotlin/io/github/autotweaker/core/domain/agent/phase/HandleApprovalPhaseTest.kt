@@ -25,8 +25,8 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.MutableAgentState
+import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
-import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.coEvery
@@ -126,7 +126,7 @@ class HandleApprovalPhaseTest {
 	fun `approved tool calls executeTool and writes turn to context`() = runTest {
 		val call = pendingToolCall("c1")
 		val vs = validationSuccess()
-		agentState.pendingApproval = listOf(Tools.ToolCallResolveResult.NeedsApproval("c1", vs))
+		agentState.pendingApproval = listOf(ToolCallResolveResult.NeedsApproval("c1", vs))
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
 			userMessage = userMessage(), turns = null,
@@ -149,7 +149,7 @@ class HandleApprovalPhaseTest {
 	fun `rejected tool writes cancelled turn to context`() = runTest {
 		val call = pendingToolCall("c1")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
@@ -177,8 +177,8 @@ class HandleApprovalPhaseTest {
 		val call1 = pendingToolCall("c1")
 		val call2 = pendingToolCall("c2")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
-			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
@@ -207,9 +207,9 @@ class HandleApprovalPhaseTest {
 		val call2 = pendingToolCall("c2")
 		val call3 = pendingToolCall("c3")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
-			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
-			Tools.ToolCallResolveResult.NeedsApproval("c3", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c3", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
@@ -238,7 +238,7 @@ class HandleApprovalPhaseTest {
 	fun `throws when assistantMessage is null`() = runTest {
 		val call = pendingToolCall("c1")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		val round = AgentContext.CurrentRound(
 			userMessage = userMessage(), turns = null,
@@ -262,7 +262,7 @@ class HandleApprovalPhaseTest {
 		)
 		agentState.processedTools = listOf(preExistingTool)
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
@@ -288,7 +288,7 @@ class HandleApprovalPhaseTest {
 	fun `approved with reason archives round and starts new round with reason`() = runTest {
 		val call = pendingToolCall("c1")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
@@ -315,7 +315,7 @@ class HandleApprovalPhaseTest {
 	fun `approved without reason does not archive`() = runTest {
 		val call = pendingToolCall("c1")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
@@ -341,8 +341,8 @@ class HandleApprovalPhaseTest {
 		val call1 = pendingToolCall("c1")
 		val call2 = pendingToolCall("c2")
 		agentState.pendingApproval = listOf(
-			Tools.ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
-			Tools.ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c1", validationSuccess()),
+			ToolCallResolveResult.NeedsApproval("c2", validationSuccess()),
 		)
 		val assistantMsg = assistantMessage("assistant")
 		val round = AgentContext.CurrentRound(
