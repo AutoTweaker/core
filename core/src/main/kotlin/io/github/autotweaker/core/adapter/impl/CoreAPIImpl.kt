@@ -25,7 +25,6 @@ import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
@@ -34,10 +33,10 @@ import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
-import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
+import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.application.LogBus

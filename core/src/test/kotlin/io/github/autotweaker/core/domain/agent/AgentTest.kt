@@ -22,9 +22,9 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.RawFileSystem

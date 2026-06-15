@@ -20,8 +20,8 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Instant

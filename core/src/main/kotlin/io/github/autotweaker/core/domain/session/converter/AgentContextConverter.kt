@@ -71,13 +71,15 @@ object AgentContextConverter {
 		
 		ctx.currentRound?.let { round ->
 			messages.addAll(extractRoundMessages(round.userMessage, round.turns, round.assistantMessage))
+			val assistantMsgId =
+				requireNotNull(round.assistantMessage?.id) { "Pending tool calls without assistant message" }
 			round.pendingToolCalls?.forEach { pending ->
 				messages.add(
 					SessionMessage.Tool.Call(
 						id = pending.id,
 						timestamp = pending.timestamp,
 						callId = pending.callId,
-						assistantMessage = pending.assistantMessageId,
+						assistantMessage = assistantMsgId,
 						name = pending.name,
 						arguments = pending.arguments,
 						reason = pending.reason,
@@ -172,7 +174,6 @@ object AgentContextConverter {
 			id = msg.id,
 			timestamp = msg.timestamp,
 			content = msg.content,
-			images = msg.images
 		)
 	}
 	

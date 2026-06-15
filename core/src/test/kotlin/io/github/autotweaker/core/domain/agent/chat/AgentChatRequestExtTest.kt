@@ -20,12 +20,12 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.Price
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider

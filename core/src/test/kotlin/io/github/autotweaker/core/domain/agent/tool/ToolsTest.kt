@@ -21,8 +21,8 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator.ValidationResult
 import io.github.autotweaker.core.domain.model.Model

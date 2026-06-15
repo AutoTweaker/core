@@ -21,7 +21,7 @@ package io.github.autotweaker.api.types.session
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
-import io.github.autotweaker.api.types.agent.ToolOutput
+import io.github.autotweaker.api.types.tool.ToolOutput
 import java.util.*
 import kotlin.time.Instant
 
@@ -42,12 +42,7 @@ sealed class SessionOutput {
 		val output: ToolOutput
 	) : SessionOutput()
 	
-	data class ToolRequest(
-		val requests: List<ToolCallRequest>,
-	) : SessionOutput()
-	
 	data class Error(
 		val error: AgentError
 	) : SessionOutput()
 }
-

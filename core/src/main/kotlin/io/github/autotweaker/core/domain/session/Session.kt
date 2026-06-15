@@ -20,11 +20,13 @@ package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
-import io.github.autotweaker.api.types.session.SessionContextIndex.CurrentRound
+import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.agent.AgentCommand
@@ -42,10 +44,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Clock
 
 class Session(
 	data: SessionData,
@@ -60,16 +63,20 @@ class Session(
 ) {
 	//region 初始化
 	private val logger = LoggerFactory.getLogger(this::class.java)
+	private val syncMutex = Mutex()
+	private val configMutex = Mutex()
 	
-	private lateinit var _coreTools: List<CoreTool<*>>
-	private lateinit var _pluginTools: List<Tool<*>>
-	private lateinit var _tools: List<Tool<*>>
+	private lateinit var _coreTools: List<CoreTool<ToolArgs>>
+	private lateinit var _pluginTools: List<Tool<ToolArgs>>
+	private lateinit var _tools: List<Tool<ToolArgs>>
 	
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
 	
 	private val _context = MutableStateFlow(context)
 	val context: StateFlow<SessionContext> = _context.asStateFlow()
+	
+	val toolInfo: StateFlow<List<ToolInfo>>? get() = agent?.toolInfo
 	
 	private val messages = ConcurrentHashMap<UUID, SessionMessage>()
 	
@@ -81,7 +88,7 @@ class Session(
 	)
 	val output = _sessionOutput.asSharedFlow()
 	
-	val agentStatus: StateFlow<AgentStatus> get() = agent?.statusFlow ?: error("No agent created")
+	val agentStatus: StateFlow<AgentStatus> get() = agent?.status ?: error("No agent created")
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
@@ -128,9 +135,10 @@ class Session(
 		coreTools.forEach { it.init(service, secretStore) }
 		val duplicates = coreTools.map { it.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
 		require(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
-		_coreTools = coreTools
+		@Suppress("UNCHECKED_CAST")
+		_coreTools = coreTools as List<CoreTool<ToolArgs>>
 		
-		val pluginTools = PluginLoader.load<Tool<*>>().distinctBy { it.name }
+		val pluginTools = PluginLoader.load<Tool<ToolArgs>>().distinctBy { it.name }
 		_pluginTools = pluginTools
 		
 		val pluginNames = pluginTools.map { it.name }.toSet()
@@ -139,17 +147,18 @@ class Session(
 	
 	//endregion
 	
-	fun dispatch(command: AgentCommand) {
+	suspend fun dispatch(command: AgentCommand) {
 		val target = agent ?: error("No agent created")
-		target.dispatch(command)
+		target.execute(command)
 	}
 	
-	suspend fun updateConfig(config: SessionConfig) {
+	suspend fun updateConfig(config: SessionConfig) = configMutex.withLock {
 		logger.info("Updated session config  sessionId={}", _data.value.id)
 		_data.update { it.copy(config = config) }
 		dispatch(
-			AgentCommand.Directive.UpdateModel(
+			AgentCommand.UpdateModel(
 				model = resolveModel(config.model),
+				summarizeModel = resolveModel(config.summarizeModel),
 				fallbackModels = config.fallbackModel?.map { resolveModel(it) },
 				thinking = config.thinking,
 			)
@@ -160,49 +169,38 @@ class Session(
 		_data.update { it.copy(title = title) }
 	}
 	
-	suspend fun send(content: String, images: List<Base64>? = null) {
+	fun send(content: MessageContent) {
 		val agent = agent ?: return
-		agent.statusFlow.first { it == AgentStatus.FREE }
-		logger.info("Sent user message  sessionId={}  charCount={}", _data.value.id, content.length)
 		
-		val id = UUID.randomUUID()
-		val timestamp = Clock.System.now()
-		val userMsg = SessionMessage.User(id = id, timestamp = timestamp, content = content, images = images)
-		messages[id] = userMsg
-		
-		dispatch(AgentCommand.Message.SendMessage(id = id, content = content, images = images, timestamp = timestamp))
-		
-		saveMessages(newMessages = listOf(userMsg))
-		val currentCtx = _context.value
-		updateContext(
-			currentCtx.copy(
-				index = currentCtx.index.copy(
-					currentRound = CurrentRound(
-						userMessage = userMsg.id, turns = null, assistantMessage = null, pendingToolCalls = null
-					),
-				)
-			)
-		)
+		agent.sendMessage(content)
+		logger.info("Sent user message  sessionId={}  charCount={}", _data.value.id, content.content?.length)
 	}
 	
+	suspend fun inject(injections: List<ContextInjection>?) = agent?.updateInjections(injections)
+	
 	suspend fun stop() {
-		val agent = agent ?: return
 		logger.info("Initiated session stop  sessionId={}", _data.value.id)
-		dispatch(AgentCommand.Directive.Stop)
-		agent.statusFlow.first { it == AgentStatus.FREE }
+		dispatch(AgentCommand.Stop)
 		save()
 		logger.info("Stopped session  sessionId={}", _data.value.id)
 	}
 	
+	fun shutdown() {
+		agents.forEach { (_, agent) -> agent.shutdown() }
+		logger.info("Completed session shutdown  sessionId={}", _data.value.id)
+	}
 	
-	private suspend fun syncContext(ctx: AgentContext) {
+	private suspend fun syncContext(ctx: AgentContext) = syncMutex.withLock {
 		val oldCtx = _context.value
 		val result = AgentContextConverter.sync(ctx, oldCtx)
 		
 		saveMessages(result.messages)
 		updateContext(
 			SessionContext(
-				systemPrompt = oldCtx.systemPrompt, index = result.index, droppedMessages = result.droppedMessageIds
+				systemPrompt = oldCtx.systemPrompt,
+				index = result.index,
+				droppedMessages = result.droppedMessageIds,
+				injections = oldCtx.injections
 			)
 		)
 	}
@@ -216,7 +214,6 @@ class Session(
 		is AgentOutput.Compact -> SessionOutput.Compact(output.output)
 		is AgentOutput.Error -> SessionOutput.Error(output.error)
 		is AgentOutput.Tool -> SessionOutput.Tool(output.output)
-		is AgentOutput.ToolRequest -> SessionOutput.ToolRequest(output.requests)
 		is AgentOutput.UsageConsumed -> {
 			val record = SessionMessage.UsageRecord(
 				id = UUID.randomUUID(),
@@ -227,8 +224,6 @@ class Session(
 			save()
 			null
 		}
-		
-		else -> null
 	}
 	
 	private fun toAgentContext(): AgentContext {
@@ -267,6 +262,7 @@ class Session(
 			containerConfig = containerConfig,
 			service = service,
 			tools = _tools,
+			activeTools = emptyList()
 		)
 		agents[newAgent.agentId] = newAgent
 	}

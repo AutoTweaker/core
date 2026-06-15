@@ -21,10 +21,10 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.agent.ToolInfo
-import io.github.autotweaker.api.types.agent.ToolOutput
-import io.github.autotweaker.api.types.agent.ToolResultStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.tool.ToolInfo
+import io.github.autotweaker.api.types.tool.ToolOutput
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool

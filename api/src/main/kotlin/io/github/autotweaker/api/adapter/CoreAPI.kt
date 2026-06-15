@@ -26,7 +26,6 @@ import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
@@ -35,6 +34,7 @@ import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
+import io.github.autotweaker.api.types.tool.ToolApprove
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow

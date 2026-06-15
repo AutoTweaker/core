@@ -18,8 +18,18 @@
 
 package io.github.autotweaker.api.types.agent
 
-data class ToolOutput(
-	val name: String,
-	val callId: String,
-	val content: String,
-)
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import kotlinx.serialization.Serializable
+import java.util.*
+
+@Serializable
+data class AgentIndex(
+	val main: AgentNode,
+) {
+	@Serializable
+	data class AgentNode(
+		@Serializable(with = UuidSerializer::class)
+		val id: UUID,
+		val children: List<AgentNode>
+	)
+}

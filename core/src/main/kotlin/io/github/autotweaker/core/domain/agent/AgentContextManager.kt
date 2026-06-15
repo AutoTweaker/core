@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

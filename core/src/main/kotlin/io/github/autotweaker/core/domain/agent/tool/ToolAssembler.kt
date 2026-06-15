@@ -21,8 +21,8 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.agent.ToolInfo
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory

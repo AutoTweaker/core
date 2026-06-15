@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.infrastructure.persistence.session
 
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
 import kotlinx.serialization.builtins.ListSerializer

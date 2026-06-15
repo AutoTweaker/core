@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.Base64
-import io.github.autotweaker.api.types.agent.ToolApprove
+import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.domain.model.Model
 import io.mockk.mockk
 import kotlin.test.*

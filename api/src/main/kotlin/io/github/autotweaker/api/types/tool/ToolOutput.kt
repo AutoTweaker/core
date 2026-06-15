@@ -16,12 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.tool
 
-import io.github.autotweaker.api.adapter.AgentAPI
-import kotlinx.coroutines.flow.StateFlow
-
-class SessionHandle(
-	val agents: List<AgentAPI>,
-	val data: StateFlow<SessionData>,
+data class ToolOutput(
+	val name: String,
+	val callId: String,
+	val content: String,
 )

@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings

@@ -18,9 +18,13 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import kotlinx.serialization.Serializable
 import java.util.*
 
+@Serializable
 data class ContextInjection(
+	@Serializable(with = UuidSerializer::class)
 	val id: UUID = UUID.randomUUID(),
 	val tag: String,
 	val content: String,

@@ -18,18 +18,24 @@
 
 package io.github.autotweaker.api.types.session
 
+import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.serializer.UuidListSerializer
+import kotlinx.serialization.Serializable
 import java.util.*
 
+@Serializable
 data class SessionContext(
 	val systemPrompt: String,
+	val injections: List<ContextInjection>?,
 	val index: SessionContextIndex,
+	@Serializable(with = UuidListSerializer::class)
 	val droppedMessages: List<UUID>?,
 ) {
 	companion object {
 		fun emptyContext(systemPrompt: String) = SessionContext(
 			systemPrompt = systemPrompt, index = SessionContextIndex(
 				compactedRounds = null, historyRounds = null, currentRound = null, summarizedMessage = null
-			), droppedMessages = null
+			), droppedMessages = null, injections = null
 		)
 	}
 }

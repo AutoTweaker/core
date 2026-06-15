@@ -16,15 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.types.session
 
+import io.github.autotweaker.api.types.serializer.UuidListSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
+import java.util.*
 
 @Serializable
-enum class ToolResultStatus {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT,
-	CANCELLED,
-	REJECTED,
-}
+data class ModelConfig(
+	@Serializable(with = UuidSerializer::class)
+	val model: UUID,
+	val thinking: Boolean,
+	@Serializable(with = UuidSerializer::class)
+	val summarize: UUID,
+	@Serializable(with = UuidSerializer::class)
+	val compact: UUID,
+	@Serializable(with = UuidListSerializer::class)
+	val fallback: List<UUID>,
+)

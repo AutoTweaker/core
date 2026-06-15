@@ -81,7 +81,7 @@ class ToolMeta private constructor(
 		}
 		
 		private fun buildSingle(
-			tool: Tool<*>,
+			tool: Tool<ToolArgs>,
 			desc: SerialDescriptor,
 			describeMap: Map<KProperty1<*, *>, String>,
 		): ToolMeta {
@@ -99,7 +99,7 @@ class ToolMeta private constructor(
 		
 		@OptIn(ExperimentalSerializationApi::class)
 		private fun buildSealed(
-			tool: Tool<*>,
+			tool: Tool<ToolArgs>,
 			desc: SerialDescriptor,
 			describeMap: Map<KProperty1<*, *>, String>,
 			funcDescMap: Map<KClass<*>, String>,
@@ -204,7 +204,7 @@ class ToolMeta private constructor(
 		}
 		
 		@OptIn(ExperimentalSerializationApi::class)
-		fun buildTypeMapping(tool: Tool<*>): List<SealedPath> {
+		fun buildTypeMapping(tool: Tool<ToolArgs>): List<SealedPath> {
 			val desc = tool.argsSerializer.descriptor
 			val result = mutableListOf<SealedPath>()
 			if (desc.kind == PolymorphicKind.SEALED) {

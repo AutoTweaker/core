@@ -21,9 +21,9 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.agent.StreamDelta
-import io.github.autotweaker.api.types.agent.ToolOutput
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.tool.ToolOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import kotlin.time.Instant
 

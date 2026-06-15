@@ -19,7 +19,9 @@
 package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.Base64
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class MessageContent(
 	val injections: List<ContextInjection>? = null,
 	val content: String? = null,

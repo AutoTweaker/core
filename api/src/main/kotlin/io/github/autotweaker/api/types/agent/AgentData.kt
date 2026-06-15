@@ -16,16 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.api.types.session.ModelConfig
+import io.github.autotweaker.api.types.session.SessionContext
 import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
-data class SessionConfig(
-	@Serializable(with = UuidSerializer::class) val model: UUID,
-	val fallbackModel: List<@Serializable(with = UuidSerializer::class) UUID>?,
-	@Serializable(with = UuidSerializer::class) val summarizeModel: UUID,
-	val thinking: Boolean,
+data class AgentData(
+	@Serializable(with = UuidSerializer::class)
+	val id: UUID,
+	val model: ModelConfig,
+	val context: SessionContext,
+	val activeTools: List<String>,
 )

@@ -20,11 +20,10 @@ package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.Base64
-import io.github.autotweaker.api.types.agent.ToolApprove
-import io.github.autotweaker.api.types.session.SessionConfig
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
+import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository

@@ -18,11 +18,11 @@
 
 package io.github.autotweaker.api.types.session
 
-import io.github.autotweaker.api.types.Base64
-import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.util.*
@@ -38,22 +38,23 @@ sealed class SessionMessage {
 	
 	@Serializable
 	data class User(
-		@Serializable(with = UuidSerializer::class) override val id: UUID,
-		
-		@Serializable(with = InstantLongSerializer::class) override val timestamp: Instant,
-		
-		val content: String, val images: List<Base64>?
+		@Serializable(with = UuidSerializer::class)
+		override val id: UUID,
+		@Serializable(with = InstantLongSerializer::class)
+		override val timestamp: Instant,
+		val content: MessageContent,
 	) : SessionMessage()
 	
 	@Serializable
 	data class Assistant(
-		@Serializable(with = UuidSerializer::class) override val id: UUID,
-		
-		@Serializable(with = InstantLongSerializer::class) override val timestamp: Instant,
-		
+		@Serializable(with = UuidSerializer::class)
+		override val id: UUID,
+		@Serializable(with = InstantLongSerializer::class)
+		override val timestamp: Instant,
 		val reasoning: String?,
 		val content: String?,
-		@Serializable(with = UuidSerializer::class) val model: UUID,
+		@Serializable(with = UuidSerializer::class)
+		val model: UUID,
 		val usageSnapshot: UsageSnapshot? = null,
 	) : SessionMessage()
 	
@@ -63,14 +64,13 @@ sealed class SessionMessage {
 		
 		@Serializable
 		data class Call(
-			@Serializable(with = UuidSerializer::class) override val id: UUID,
-			
-			@Serializable(with = InstantLongSerializer::class) override val timestamp: Instant,
-			
+			@Serializable(with = UuidSerializer::class)
+			override val id: UUID,
+			@Serializable(with = InstantLongSerializer::class)
+			override val timestamp: Instant,
 			override val callId: String,
-			
-			@Serializable(with = UuidSerializer::class) val assistantMessage: UUID,
-			
+			@Serializable(with = UuidSerializer::class)
+			val assistantMessage: UUID,
 			val name: String,
 			val arguments: String,
 			val reason: String?,
@@ -79,30 +79,32 @@ sealed class SessionMessage {
 		
 		@Serializable
 		data class Result(
-			@Serializable(with = UuidSerializer::class) override val id: UUID,
-			
-			@Serializable(with = InstantLongSerializer::class) override val timestamp: Instant,
-			
-			override val callId: String, val content: String, val status: ToolResultStatus
+			@Serializable(with = UuidSerializer::class)
+			override val id: UUID,
+			@Serializable(with = InstantLongSerializer::class)
+			override val timestamp: Instant,
+			override val callId: String,
+			val content: String,
+			val status: ToolResultStatus
 		) : Tool()
 	}
 	
 	@Serializable
 	data class Compact(
-		@Serializable(with = UuidSerializer::class) override val id: UUID,
-		
-		@Serializable(with = InstantLongSerializer::class) override val timestamp: Instant,
-		
+		@Serializable(with = UuidSerializer::class)
+		override val id: UUID,
+		@Serializable(with = InstantLongSerializer::class)
+		override val timestamp: Instant,
 		val content: String,
 		val snapshots: List<UsageSnapshot>? = null,
 	) : SessionMessage()
 	
 	@Serializable
 	data class UsageRecord(
-		@Serializable(with = UuidSerializer::class) override val id: UUID,
-		
-		@Serializable(with = InstantLongSerializer::class) override val timestamp: Instant,
-		
+		@Serializable(with = UuidSerializer::class)
+		override val id: UUID,
+		@Serializable(with = InstantLongSerializer::class)
+		override val timestamp: Instant,
 		val snapshot: UsageSnapshot,
 	) : SessionMessage()
 }

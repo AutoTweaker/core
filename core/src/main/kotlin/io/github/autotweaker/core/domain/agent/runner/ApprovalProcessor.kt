@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ToolApprove
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage

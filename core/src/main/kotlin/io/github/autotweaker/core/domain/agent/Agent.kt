@@ -24,8 +24,8 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.agent.ToolInfo
 import io.github.autotweaker.api.types.session.WorkspaceMeta
+import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
@@ -64,13 +64,15 @@ class Agent(
 	val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
 	private val ctx = AgentContextManager(context, service.get(AgentToolSettings.Cancelled()).value)
+	val context: StateFlow<AgentContext> = ctx.context
+	
 	private lateinit var toolManager: Tools
 	val toolInfo: StateFlow<List<ToolInfo>> get() = toolManager.toolInfo
 	
-	private val llmService = LlmService(agentId) { _output.emit(it) }
+	private val llmService = LlmService(agentId) { _output.tryEmit(it) }
 	private val thinkingStage by lazy { ThinkingStage(llmService, toolManager) }
-	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager, service) { _output.emit(it) } }
-	private val compact = CompactService(agentId) { _output.emit(it) }
+	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager, service) { _output.tryEmit(it) } }
+	private val compact = CompactService(agentId) { _output.tryEmit(it) }
 	
 	private lateinit var runner: RoundRunner
 	

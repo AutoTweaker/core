@@ -16,11 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.types.tool
 
-data class ToolInfo(
-	val name: String,
-	val description: String,
-	val functionNames: List<String>,
-	val active: Boolean,
-)
+import kotlinx.serialization.Serializable
+
+@Serializable
+enum class ToolResultStatus {
+	SUCCESS,
+	FAILURE,
+	TIMEOUT,
+	CANCELLED,
+	REJECTED,
+}

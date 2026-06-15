@@ -53,10 +53,6 @@ object SessionContextConverter {
 			buildCompletedRound(it, messageMap)
 		}
 		
-		val currentRound = context.index.currentRound?.let {
-			buildCurrentRound(it, messageMap)
-		}
-		
 		val summarizedMessage =
 			context.index.summarizedMessage?.let { messageMap[it] as? SessionMessage.Compact }?.let {
 				AgentContext.SummarizedMessage(
@@ -67,9 +63,10 @@ object SessionContextConverter {
 		return AgentContext(
 			compactedRounds = compactedRounds,
 			systemPrompt = context.systemPrompt.takeIf { it.isNotEmpty() },
+			injections = context.injections,
 			historyRounds = historyRounds,
 			summarizedMessage = summarizedMessage,
-			currentRound = currentRound
+			currentRound = null
 		)
 	}
 	
@@ -86,39 +83,6 @@ object SessionContextConverter {
 		return AgentContext.CompletedRound(
 			userMessage = buildUserMessage(userMsg), turns = turns, finalAssistantMessage = finalAssistant
 		)
-	}
-	
-	private fun buildCurrentRound(
-		roundIndex: SessionContextIndex.CurrentRound,
-		messageMap: Map<UUID, SessionMessage>
-	): AgentContext.CurrentRound? {
-		val userMsg = messageMap[roundIndex.userMessage] as? SessionMessage.User ?: return null
-		
-		val turns = roundIndex.turns?.mapNotNull { buildTurn(it, messageMap) }
-		
-		val assistantMsg = roundIndex.assistantMessage?.let { messageMap[it] as? SessionMessage.Assistant }
-		
-		val pendingToolCalls = roundIndex.pendingToolCalls?.mapNotNull { callId ->
-			val call = messageMap[callId] as? SessionMessage.Tool.Call ?: return@mapNotNull null
-			val assistantModel =
-				(messageMap[call.assistantMessage] as? SessionMessage.Assistant)?.model ?: return@mapNotNull null
-			AgentContext.CurrentRound.PendingToolCall(
-				callId = call.callId,
-				assistantMessageId = call.assistantMessage,
-				name = call.name,
-				modelId = assistantModel,
-				arguments = call.arguments,
-				reason = call.reason,
-				timestamp = call.timestamp,
-				validatedArgs = call.validatedArgs,
-			)
-		}
-		
-		return AgentContext.CurrentRound(
-			userMessage = buildUserMessage(userMsg),
-			turns = turns,
-			assistantMessage = assistantMsg?.let { buildAssistantMessage(it) },
-			pendingToolCalls = pendingToolCalls?.takeIf { it.isNotEmpty() })
 	}
 	
 	private fun buildTurn(
@@ -138,7 +102,6 @@ object SessionContextConverter {
 					reason = callMsg.reason,
 					timestamp = callMsg.timestamp,
 					validatedArgs = callMsg.validatedArgs,
-					modelId = assistantMsg.model,
 				), callId = callMsg.callId, result = AgentContext.Message.Tool.Result(
 					id = resultMsg.id,
 					content = resultMsg.content,
@@ -155,7 +118,7 @@ object SessionContextConverter {
 	
 	private fun buildUserMessage(msg: SessionMessage.User): AgentContext.Message.User {
 		return AgentContext.Message.User(
-			id = msg.id, content = msg.content, images = msg.images, timestamp = msg.timestamp
+			id = msg.id, content = msg.content, timestamp = msg.timestamp
 		)
 	}
 	

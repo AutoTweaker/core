@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent.phase
 
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ToolResultStatus
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentEnvironment
 import io.github.autotweaker.core.domain.agent.AgentOutput
