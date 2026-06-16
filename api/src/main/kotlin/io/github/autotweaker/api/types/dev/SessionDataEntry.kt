@@ -21,6 +21,8 @@ package io.github.autotweaker.api.types.dev
 data class SessionDataEntry(
 	override val key: String,
 	val title: String?,
+	val overview: String?,
+	val model: String,
 	val workspaceId: String,
-	val config: String
+	val agentIndex: String
 ) : DbEntry()

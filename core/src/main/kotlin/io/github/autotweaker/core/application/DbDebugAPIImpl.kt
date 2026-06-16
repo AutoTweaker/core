@@ -45,7 +45,7 @@ object DbDebugAPIImpl : DbDebugAPI {
 	override val setting: DbAPI<SettingEntry> get() = SettingDbApi
 	override val jsonStore: DbAPI<JsonStoreEntry> get() = JsonStoreDbApi
 	override val sessionData: DbAPI<SessionDataEntry> get() = SessionDataDbApi
-	override val sessionContext: DbAPI<SessionContextEntry> get() = SessionContextDbApi
+	override val agentData: DbAPI<AgentDataEntry> get() = AgentDataDbApi
 	override val sessionMessage: DbAPI<SessionMessageEntry> get() = SessionMessageDbApi
 	override val secrets: DbAPI<SecretEntry> get() = SecretDbApi
 	
@@ -59,7 +59,7 @@ object DbDebugAPIImpl : DbDebugAPI {
 		"Sessions" to transaction(sessionDb) {
 			mapOf(
 				"session_data" to SessionDataTable.selectAll().count(),
-				"session_context" to SessionContextTable.selectAll().count(),
+				"agent_data" to AgentDataTable.selectAll().count(),
 				"session_message" to SessionMessageTable.selectAll().count(),
 			)
 		},

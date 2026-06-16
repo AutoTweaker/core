@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
 import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
@@ -84,12 +85,15 @@ object SessionManager {
 	
 	suspend fun get(id: UUID): SessionHandle = getOrRestore(id).toHandle()
 	
-	suspend fun delete(id: UUID) {
+	suspend fun delete(id: UUID): Boolean {
+		val data = store.loadSessions(listOf(id)).firstOrNull() ?: return false
 		sessions[id]?.shutdown()
 		listener[id]?.cancel()
 		sessions.remove(id)
 		store.deleteSessions(listOf(id))
+		data.agentIndex.getAll().forEach { store.deleteAgent(it) }
 		logger.info("Deleted session  id={}", id)
+		return true
 	}
 	
 	suspend fun updateTitle(session: UUID, title: String) =

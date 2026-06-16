@@ -18,24 +18,77 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.session
 
+import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.session.ModelConfig
+import io.github.autotweaker.api.types.session.SessionContext
+import io.github.autotweaker.api.types.session.SessionMessage
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
+import kotlinx.serialization.serializer
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+
+private val sessionJson = Json {
+	ignoreUnknownKeys = true
+	serializersModule = SerializersModule {
+		polymorphic(SessionMessage::class) {
+			subclass(SessionMessage.User::class)
+			subclass(SessionMessage.Assistant::class)
+			subclass(SessionMessage.Tool.Call::class)
+			subclass(SessionMessage.Tool.Result::class)
+			subclass(SessionMessage.Compact::class)
+			subclass(SessionMessage.UsageRecord::class)
+		}
+	}
+}
+
+private inline fun <reified T> fillJson(it: UpdateBuilder<*>, column: Column<String>, value: T) {
+	it[column] = sessionJson.encodeToString(serializer<T>(), value)
+}
+
+private inline fun <reified T> readJson(row: ResultRow, column: Column<String>): T =
+	sessionJson.decodeFromString(serializer<T>(), row[column])
 
 object SessionDataTable : Table("session_data") {
 	val id = varchar("id", 36)
 	val title = varchar("title", 512).nullable()
+	val overview = varchar("overview", 512).nullable()
+	val modelJson = text("model_json")
 	val workspaceId = varchar("workspace_id", 36)
-	val configJson = text("config_json")
+	val agentIndexJson = text("agent_index_json")
 	
 	override val primaryKey = PrimaryKey(id)
+	
+	fun fillModel(it: UpdateBuilder<*>, model: ModelConfig) = fillJson(it, modelJson, model)
+	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
+	fun fillAgentIndex(it: UpdateBuilder<*>, index: AgentIndex) = fillJson(it, agentIndexJson, index)
+	fun readAgentIndex(row: ResultRow): AgentIndex = readJson(row, agentIndexJson)
 }
 
-object SessionContextTable : Table("session_context") {
-	val sessionId = varchar("session_id", 36)
-	val systemPrompt = text("system_prompt")
-	val indexJson = text("index_json")
-	val droppedMessagesJson = text("dropped_messages_json")
+object AgentDataTable : Table("agent_data") {
+	val id = varchar("id", 36)
+	val name = varchar("name", 128)
+	val modelJson = text("model_json")
+	val contextJson = text("context_json")
+	val activeToolsJson = text("active_tools_json")
 	
-	override val primaryKey = PrimaryKey(sessionId)
+	override val primaryKey = PrimaryKey(id)
+	
+	fun fillModel(it: UpdateBuilder<*>, model: ModelConfig) = fillJson(it, modelJson, model)
+	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
+	fun fillContext(it: UpdateBuilder<*>, context: SessionContext) = fillJson(it, contextJson, context)
+	fun readContext(row: ResultRow): SessionContext = readJson(row, contextJson)
+	fun fillActiveTools(it: UpdateBuilder<*>, tools: List<String>) = fillJson(it, activeToolsJson, tools)
+	
+	fun readActiveTools(row: ResultRow): List<String> {
+		val jsonStr = row[activeToolsJson]
+		if (jsonStr.isBlank()) return emptyList()
+		return readJson(row, activeToolsJson)
+	}
 }
 
 object SessionMessageTable : Table("session_message") {
@@ -45,4 +98,16 @@ object SessionMessageTable : Table("session_message") {
 	val contentJson = text("content_json")
 	
 	override val primaryKey = PrimaryKey(id)
+	
+	fun fillContent(it: UpdateBuilder<*>, msg: SessionMessage) = fillJson(it, contentJson, msg)
+	fun readContent(row: ResultRow): SessionMessage = readJson(row, contentJson)
+	
+	fun typeOf(msg: SessionMessage): String = when (msg) {
+		is SessionMessage.User -> "USER"
+		is SessionMessage.Assistant -> "ASSISTANT"
+		is SessionMessage.Tool.Call -> "TOOL_CALL"
+		is SessionMessage.Tool.Result -> "TOOL_RESULT"
+		is SessionMessage.Compact -> "COMPACT"
+		is SessionMessage.UsageRecord -> "USAGE_RECORD"
+	}
 }

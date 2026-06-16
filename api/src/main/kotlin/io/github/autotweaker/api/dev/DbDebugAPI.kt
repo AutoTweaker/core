@@ -24,8 +24,8 @@ interface DbDebugAPI {
 	val setting: DbAPI<SettingEntry>
 	val jsonStore: DbAPI<JsonStoreEntry>
 	val sessionData: DbAPI<SessionDataEntry>
-	val sessionContext: DbAPI<SessionContextEntry>
 	val sessionMessage: DbAPI<SessionMessageEntry>
+	val agentData: DbAPI<AgentDataEntry>
 	val secrets: DbAPI<SecretEntry>
 	
 	fun tables(): Map<String, Map<String, Long>>

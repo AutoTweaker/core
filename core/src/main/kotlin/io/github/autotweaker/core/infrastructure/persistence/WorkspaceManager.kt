@@ -55,6 +55,7 @@ object WorkspaceManager {
 	}
 	
 	suspend fun updateSessions(id: UUID, sessionIds: List<UUID>?) = mutex.withLock {
+		require(id in workspaces.map { it.meta.id })
 		update(id) { copy(sessionIds = sessionIds) }
 		logger.debug("Updated workspace data  id={}", id)
 	}

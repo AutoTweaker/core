@@ -18,28 +18,30 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.session
 
-import io.github.autotweaker.api.types.dev.SessionContextEntry
+import io.github.autotweaker.api.types.dev.AgentDataEntry
 import io.github.autotweaker.core.infrastructure.persistence.store.AbstractDbApi
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
 
-object SessionContextDbApi : AbstractDbApi<SessionContextEntry>() {
+object AgentDataDbApi : AbstractDbApi<AgentDataEntry>() {
 	fun init(databaseStore: DatabaseStore) {
-		super.init(databaseStore.connect("Sessions"), SessionContextTable, SessionContextTable.sessionId)
+		super.init(databaseStore.connect("Sessions"), AgentDataTable, AgentDataTable.id)
 	}
 	
-	override fun ResultRow.toEntry() = SessionContextEntry(
-		key = this[SessionContextTable.sessionId],
-		systemPrompt = this[SessionContextTable.systemPrompt],
-		index = this[SessionContextTable.indexJson],
-		droppedMessages = this[SessionContextTable.droppedMessagesJson],
+	override fun ResultRow.toEntry() = AgentDataEntry(
+		key = this[AgentDataTable.id],
+		name = this[AgentDataTable.name],
+		model = this[AgentDataTable.modelJson],
+		context = this[AgentDataTable.contextJson],
+		activeTools = this[AgentDataTable.activeToolsJson],
 	)
 	
-	override fun UpsertStatement<Long>.fill(content: SessionContextEntry) {
-		this[SessionContextTable.sessionId] = content.key
-		this[SessionContextTable.systemPrompt] = content.systemPrompt
-		this[SessionContextTable.indexJson] = content.index
-		this[SessionContextTable.droppedMessagesJson] = content.droppedMessages
+	override fun UpsertStatement<Long>.fill(content: AgentDataEntry) {
+		this[AgentDataTable.id] = content.key
+		this[AgentDataTable.name] = content.name
+		this[AgentDataTable.modelJson] = content.model
+		this[AgentDataTable.contextJson] = content.context
+		this[AgentDataTable.activeToolsJson] = content.activeTools
 	}
 }

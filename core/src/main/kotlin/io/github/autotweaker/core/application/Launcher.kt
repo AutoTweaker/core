@@ -42,7 +42,7 @@ import io.github.autotweaker.core.infrastructure.persistence.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persistence.session.SessionContextDbApi
+import io.github.autotweaker.core.infrastructure.persistence.session.AgentDataDbApi
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionDataDbApi
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionMessageDbApi
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
@@ -70,7 +70,7 @@ object Launcher {
 		SettingDbApi.init(databaseStore)
 		JsonStoreDbApi.init(databaseStore)
 		SessionDataDbApi.init(databaseStore)
-		SessionContextDbApi.init(databaseStore)
+		AgentDataDbApi.init(databaseStore)
 		SessionMessageDbApi.init(databaseStore)
 		SecretManager.init(Settings)
 		DbDebugAPIImpl.init(databaseStore)

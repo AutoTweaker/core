@@ -28,18 +28,22 @@ object SessionDataDbApi : AbstractDbApi<SessionDataEntry>() {
 	fun init(databaseStore: DatabaseStore) {
 		super.init(databaseStore.connect("Sessions"), SessionDataTable, SessionDataTable.id)
 	}
-	
+
 	override fun ResultRow.toEntry() = SessionDataEntry(
 		key = this[SessionDataTable.id],
 		title = this[SessionDataTable.title],
+		overview = this[SessionDataTable.overview],
+		model = this[SessionDataTable.modelJson],
 		workspaceId = this[SessionDataTable.workspaceId],
-		config = this[SessionDataTable.configJson],
+		agentIndex = this[SessionDataTable.agentIndexJson],
 	)
-	
+
 	override fun UpsertStatement<Long>.fill(content: SessionDataEntry) {
 		this[SessionDataTable.id] = content.key
 		this[SessionDataTable.title] = content.title
+		this[SessionDataTable.overview] = content.overview
+		this[SessionDataTable.modelJson] = content.model
 		this[SessionDataTable.workspaceId] = content.workspaceId
-		this[SessionDataTable.configJson] = content.config
+		this[SessionDataTable.agentIndexJson] = content.agentIndex
 	}
 }

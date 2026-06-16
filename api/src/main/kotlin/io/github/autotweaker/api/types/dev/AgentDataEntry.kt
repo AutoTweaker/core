@@ -18,9 +18,10 @@
 
 package io.github.autotweaker.api.types.dev
 
-data class SessionContextEntry(
+data class AgentDataEntry(
 	override val key: String,
-	val systemPrompt: String,
-	val index: String,
-	val droppedMessages: String
+	val name: String,
+	val model: String,
+	val context: String,
+	val activeTools: String
 ) : DbEntry()

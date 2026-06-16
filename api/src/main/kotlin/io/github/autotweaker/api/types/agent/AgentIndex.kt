@@ -58,6 +58,18 @@ data class AgentIndex(
 			return copy(main = main.replace())
 		}
 		
+		fun AgentIndex.getAll(): Set<UUID> {
+			val all = mutableSetOf<UUID>()
+			fun AgentNode.addAll() {
+				all.add(id)
+				children.forEach { child ->
+					child.addAll()
+				}
+			}
+			main.addAll()
+			return all
+		}
+		
 		fun emptyIndex() = AgentIndex(AgentNode(UUID.randomUUID(), emptyList()))
 	}
 }
