@@ -27,6 +27,7 @@ import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
@@ -46,7 +47,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import java.time.Duration as JavaDuration
 
 class DockerJavaService : ContainerService {
-	
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
@@ -79,7 +79,7 @@ class DockerJavaService : ContainerService {
 	
 	override fun checkAccess(): Boolean = trace.catching {
 		client.pingCmd().exec()
-		true
+		return true
 	}.getOrDefault(false)
 	
 	override suspend fun pullImage(image: String) = withContext(Dispatchers.IO) {
@@ -111,11 +111,13 @@ class DockerJavaService : ContainerService {
 				)
 			).withExtraHosts("host.docker.internal:host-gateway").withInit(true)
 			
-			val createResponse =
-				client.createContainerCmd(image).withName(config.name).withWorkingDir(config.workDir.toString())
-					.withEnv(config.env.map { "${it.key}=${it.value}" }).withHostConfig(hostConfig)
-					.withEntrypoint("tail", "-f", "/dev/null").exec()
-			logger.info("Created container  containerId={}", createResponse.id)
+			val createResponse = client.createContainerCmd(image)
+				.withName(config.name)
+				.withWorkingDir(config.workDir.toString())
+				.withEnv(config.env.map { "${it.key}=${it.value}" })
+				.withHostConfig(hostConfig)
+				.withEntrypoint("tail", "-f", "/dev/null")
+				.exec().andLog(logger) { info("Created container  containerId={}", it.id) }
 			
 			client.startContainerCmd(createResponse.id).exec()
 			

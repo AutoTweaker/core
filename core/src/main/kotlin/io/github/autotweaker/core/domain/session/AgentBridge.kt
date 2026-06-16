@@ -53,15 +53,13 @@ class AgentBridge(
 	private val host: AgentHost,
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
-	private var workspace: WorkspaceMeta,
+	private val workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
 	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI {
-	
 	/* 初始化 */
-	
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val saveMutex = Mutex()
 	private val injectMutex = Mutex()
@@ -101,7 +99,7 @@ class AgentBridge(
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
-	suspend fun init(data: AgentData) {
+	suspend fun init(data: AgentData) = also {
 		initialData = data
 		
 		val ids = collectMessageIds(_context.value, maxCompactedRounds).toList().orNull()
@@ -116,8 +114,9 @@ class AgentBridge(
 		}
 		scope.launch {
 			_agent.output.collect {
-				val output = processAgentOutput(it) ?: return@collect
-				_output.tryEmit(output)
+				it.toSessionOutput()?.let { result ->
+					_output.tryEmit(result)
+				}
 			}
 		}
 		logger.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
@@ -138,47 +137,49 @@ class AgentBridge(
 	
 	/* API */
 	
-	override fun send(content: MessageContent) {
+	override fun send(content: MessageContent) = also {
 		_agent.sendMessage(content)
 		logger.info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
 	}
 	
-	override suspend fun inject(injection: ContextInjection) = injectMutex.withLock {
-		val oldInjections = agentData.context.injections.orEmpty()
-		val new = (oldInjections.filterNot { it.id == injection.id } + injection).orNull()
-		_agent.updateInjections(new)
+	override suspend fun inject(injection: ContextInjection) = also {
+		injectMutex.withLock {
+			val oldInjections = agentData.context.injections.orEmpty()
+			val new = (oldInjections.filterNot { it.id == injection.id } + injection).orNull()
+			_agent.updateInjections(new)
+		}
 	}
 	
-	override suspend fun removeInjection(id: UUID) = injectMutex.withLock {
-		val oldInjections = agentData.context.injections.orEmpty()
-		val new = oldInjections.filterNot { it.id == id }.orNull()
-		_agent.updateInjections(new)
+	override suspend fun removeInjection(id: UUID) = also {
+		injectMutex.withLock {
+			val oldInjections = agentData.context.injections.orEmpty()
+			val new = oldInjections.filterNot { it.id == id }.orNull()
+			_agent.updateInjections(new)
+		}
 	}
 	
-	override suspend fun pause() = _agent.execute(AgentCommand.Pause)
-	override suspend fun compact() = _agent.execute(AgentCommand.Compact)
-	override suspend fun cancelCompact() = _agent.execute(AgentCommand.CancelCompact)
-	override suspend fun cancelTool() = _agent.execute(AgentCommand.CancelTool)
-	override suspend fun approve(approval: ToolApprove) = _agent.execute(AgentCommand.ApproveTool(approval))
+	override suspend fun pause() = also { _agent.execute(AgentCommand.Pause) }
+	override suspend fun compact() = also { _agent.execute(AgentCommand.Compact) }
+	override suspend fun cancelCompact() = also { _agent.execute(AgentCommand.CancelCompact) }
+	override suspend fun cancelTool() = also { _agent.execute(AgentCommand.CancelTool) }
+	override suspend fun approve(approval: ToolApprove) = also { _agent.execute(AgentCommand.ApproveTool(approval)) }
 	
-	override suspend fun setModel(config: ModelConfig) {
+	override suspend fun setModel(config: ModelConfig) = also {
 		_agent.execute(
 			AgentCommand.UpdateModel(
 				model = config.toAgentModel()
 			)
-		)
-		save()
+		).andSave()
 		logger.info("Updated agent model  agentId={}", _agent.agentId)
 	}
 	
-	override suspend fun stop() {
+	override suspend fun stop() = also {
 		logger.info("Initiated agent stop  agentId={}", _agent.agentId)
-		_agent.execute(AgentCommand.Stop)
-		save()
+		_agent.execute(AgentCommand.Stop).andSave()
 		logger.info("Stopped agent  agentId={}", _agent.agentId)
 	}
 	
-	suspend fun shutdown() {
+	suspend fun shutdown() = also {
 		_agent.shutdown()
 		scope.cancel()
 		logger.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
@@ -186,24 +187,23 @@ class AgentBridge(
 	
 	/* 内部工具 */
 	
-	private suspend fun processAgentOutput(output: AgentOutput): SessionOutput? = when (output) {
-		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(output.delta)
+	private suspend fun AgentOutput.toSessionOutput(): SessionOutput? = when (this) {
+		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(delta)
 		is AgentOutput.LlmError -> SessionOutput.LlmError(
-			output.error.content, output.error.statusCode, output.error.model, output.error.timestamp
+			error.content, error.statusCode, error.model, error.timestamp
 		)
 		
-		is AgentOutput.Compact -> SessionOutput.Compact(output.output)
-		is AgentOutput.Error -> SessionOutput.Error(output.error)
-		is AgentOutput.Tool -> SessionOutput.Tool(output.output)
+		is AgentOutput.Compact -> SessionOutput.Compact(output)
+		is AgentOutput.Error -> SessionOutput.Error(error)
+		is AgentOutput.Tool -> SessionOutput.Tool(output)
 		is AgentOutput.UsageConsumed -> {
 			val record = SessionMessage.UsageRecord(
 				id = UUID.randomUUID(),
-				timestamp = output.timestamp,
-				snapshot = UsageSnapshot(output.usage, output.modelInfo),
+				timestamp = timestamp,
+				snapshot = UsageSnapshot(usage, modelInfo),
 			)
 			messages[record.id] = record
-			save()
-			null
+			null.andSave()
 		}
 	}
 	
@@ -218,8 +218,7 @@ class AgentBridge(
 			activeTools = initialData.activeTools,
 			host = host,
 			name = initialData.name
-		)
-		_agent.init(
+		).init(
 			model = initialData.model.toAgentModel()
 		)
 	}
@@ -233,8 +232,7 @@ class AgentBridge(
 	private suspend fun AgentContext.save() = saveMutex.withLock {
 		val oldCtx = _context.value
 		val result = AgentContextConverter.sync(this, oldCtx)
-		
-		saveMessages(result.messages)
+		result.messages.save()
 		updateContext(
 			SessionContext(
 				systemPrompt = oldCtx.systemPrompt,
@@ -245,18 +243,16 @@ class AgentBridge(
 		)
 	}
 	
-	private suspend fun updateContext(context: SessionContext) {
-		_context.update { context }
-		save()
+	private suspend fun updateContext(context: SessionContext) =
+		_context.update { context }.andSave()
+	
+	
+	private suspend fun List<SessionMessage>.save() {
+		forEach { messages[it.id] = it }.andSave()
+		UsageStore.collect(this)
 	}
 	
-	private suspend fun saveMessages(newMessages: List<SessionMessage>) {
-		newMessages.forEach { messages[it.id] = it }
-		UsageStore.collect(newMessages)
-		save()
-	}
-	
-	private suspend fun save() {
+	private suspend fun <T> T.andSave(): T = also {
 		store.saveAgent(agentData)
 		if (messages.isNotEmpty()) {
 			store.saveMessages(messages.values.toList())

@@ -57,5 +57,7 @@ data class AgentIndex(
 			}
 			return copy(main = main.replace())
 		}
+		
+		fun emptyIndex() = AgentIndex(AgentNode(UUID.randomUUID(), emptyList()))
 	}
 }

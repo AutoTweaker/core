@@ -80,7 +80,7 @@ class Agent(
 	
 	suspend fun init(
 		model: AgentModel
-	) {
+	) = also {
 		val info = tools.map { buildToolInfo(it, it.name in activeTools) }
 		toolManager = Tools(info, service, tools, agentId)
 		runner = RoundRunner(
@@ -95,16 +95,23 @@ class Agent(
 			service = service,
 			statusFlow = _status,
 			agentId = agentId,
-		)
-		runner.start()
+		).start()
 	}
 	
 	
-	suspend fun execute(command: AgentCommand) = runner.execute(command)
+	suspend fun execute(command: AgentCommand) = also {
+		runner.execute(command)
+	}
 	
-	fun sendMessage(content: MessageContent) = runner.send(content)
+	fun sendMessage(content: MessageContent) = also {
+		runner.send(content)
+	}
 	
-	suspend fun updateInjections(injections: List<ContextInjection>?) = ctx.updateInjections(injections)
+	suspend fun updateInjections(injections: List<ContextInjection>?) = also {
+		ctx.updateInjections(injections)
+	}
 	
-	suspend fun shutdown() = runner.shutdown()
+	suspend fun shutdown() = also {
+		runner.shutdown()
+	}
 }

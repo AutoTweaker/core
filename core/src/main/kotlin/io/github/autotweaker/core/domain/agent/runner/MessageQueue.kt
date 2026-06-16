@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -79,7 +80,7 @@ class MessageQueue(private val agentId: UUID) {
 				injections, content, images
 			),
 			timestamp = Clock.System.now()
-		).also { logger.info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
+		).andLog(logger) { info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
 	}
 	
 	fun sendReasons(reasons: List<String>) = reasons.forEach {

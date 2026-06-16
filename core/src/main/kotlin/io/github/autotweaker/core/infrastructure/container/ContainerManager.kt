@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -83,9 +84,8 @@ object ContainerManager {
 		val containerConfig =
 			ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
 		logger.debug("Initiated container start  image={}", image)
-		val id = service.start(image, containerConfig)
-		_containerId = id
-		logger.info("Started container  containerId={}", id)
+		_containerId = service.start(image, containerConfig)
+			.andLog(logger) { info("Started container  containerId={}", it) }
 	}
 	
 	suspend fun stop() {

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
@@ -30,30 +31,35 @@ object WorkspaceAPI {
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val wsm = WorkspaceManager
 	
-	fun create(meta: WorkspaceMeta): WorkspaceData {
+	suspend fun create(meta: WorkspaceMeta): WorkspaceData {
 		require(!wsm.getAll().any { it.meta.displayName == meta.displayName })
+		
 		val home = Path.of(System.getProperty("user.home"))
 		val resolved = if (meta.path.isAbsolute) meta.path else home.resolve(meta.path)
 		val meta = meta.copy(path = resolved)
+		
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
-		val data = wsm.create(meta)
-		logger.info("Created workspace  id={}  name={}  path={}", data.meta.id, meta.displayName, meta.path)
-		return data
+		
+		return wsm.create(meta).andLog(logger) {
+			info("Created workspace  id={}  name={}  path={}", it.meta.id, it.meta.displayName, it.meta.path)
+		}
 	}
 	
-	fun rename(id: UUID, newName: String) {
+	suspend fun rename(id: UUID, newName: String) {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		require(!wsm.getAll().any { it.meta.displayName == newName })
+		
 		wsm.updateMeta(data.meta.copy(displayName = newName))
 		logger.info("Renamed workspace  id={}  newName={}", id, newName)
 	}
 	
-	suspend fun delete(id: UUID) {
+	suspend fun delete(id: UUID): Boolean {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		data.sessionIds?.forEach { SessionManager.delete(it) }
-		wsm.delete(id)
-		logger.info("Deleted workspace  id={}  sessionCount={}", id, data.sessionIds?.size ?: 0)
+		
+		return wsm.delete(id).andLog(logger)
+		{ info("Deleted workspace  success={}  id={}  sessionCount={}", it, id, data.sessionIds?.size ?: 0) }
 	}
 	
-	fun list() = wsm.getAll()
+	suspend fun list() = wsm.getAll()
 }

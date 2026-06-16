@@ -18,9 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -28,77 +31,79 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import java.util.concurrent.atomic.AtomicReference
 
 object WorkspaceManager {
-	val DEFAULT_WORKSPACE_ID: UUID = UUID.nameUUIDFromBytes("autotweaker-default-workspace".toByteArray())
 	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
-	private val workspaceListRef = AtomicReference<List<WorkspaceData>>(emptyList())
+	private val workspaces: MutableList<WorkspaceData> = mutableListOf()
 	
-	init {
-		val jsonArray = jsonEntry.get()
-		workspaceListRef.set(
-			if (jsonArray == null) emptyList()
-			else Json.decodeFromJsonElement<List<WorkspaceData>>(jsonArray)
-		)
-		logger.info("Initialized WorkspaceManager  count={}", workspaceListRef.get().size)
+	private val mutex = Mutex()
+	
+	suspend fun init() = mutex.withLock {
+		jsonEntry.get()?.let {
+			workspaces.addAll(
+				Json.decodeFromJsonElement<List<WorkspaceData>>(it)
+			)
+		}.andLog(logger) { info("Initialized WorkspaceManager  count={}", workspaces.size) }
 	}
 	
-	@Synchronized
-	fun create(meta: WorkspaceMeta): WorkspaceData {
-		if (workspaceListRef.get().any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
-		val data = WorkspaceData(meta = meta)
-		update(workspaceListRef.get().plus(data))
-		logger.info("Created workspace  id={}  name={}", data.meta.id, meta.displayName)
-		return data
-	}
-	
-	fun getData(id: UUID): WorkspaceData? = workspaceListRef.get().find { it.meta.id == id }
-	
-	fun getAll(): List<WorkspaceData> = workspaceListRef.get()
-	
-	@Synchronized
-	fun updateMeta(meta: WorkspaceMeta) {
-		require(meta.id in workspaceListRef.get().map { it.meta.id })
-		update(workspaceListRef.get().map { if (it.meta.id == meta.id) it.copy(meta = meta) else it })
+	suspend fun updateMeta(meta: WorkspaceMeta) = mutex.withLock {
+		require(meta.id in workspaces.map { it.meta.id })
+		update(meta.id) { copy(meta = meta) }
 		logger.debug("Updated workspace meta  id={}", meta.id)
 	}
 	
-	@Synchronized
-	fun updateData(id: UUID, sessionIds: List<UUID>?) {
-		update(workspaceListRef.get().map { if (it.meta.id == id) it.copy(sessionIds = sessionIds) else it })
+	suspend fun updateSessions(id: UUID, sessionIds: List<UUID>?) = mutex.withLock {
+		update(id) { copy(sessionIds = sessionIds) }
 		logger.debug("Updated workspace data  id={}", id)
 	}
 	
-	@Synchronized
-	fun delete(id: UUID) {
-		require(id in workspaceListRef.get().map { it.meta.id })
-		if (id == DEFAULT_WORKSPACE_ID) error("Cannot delete default workspace")
-		update(workspaceListRef.get().filterNot { it.meta.id == id })
-		logger.info("Deleted workspace  id={}", id)
+	suspend fun delete(id: UUID): Boolean = mutex.withLock {
+		if (id == defaultWorkspaceId) error("Cannot delete default workspace")
+		return remove(id).andLog(logger) { info("Deleted workspace  id={}", id) }
 	}
 	
-	@Synchronized
-	fun getOrCreateDefault(): WorkspaceData {
-		return getData(DEFAULT_WORKSPACE_ID) ?: run {
+	suspend fun getDefault(): WorkspaceData = mutex.withLock {
+		lookup(defaultWorkspaceId) ?: run {
 			val defaultPath = Path.of(
 				System.getProperty("user.home"), ".config", "autotweaker", "workspace"
 			)
 			Files.createDirectories(defaultPath)
 			val meta = WorkspaceMeta(
-				id = DEFAULT_WORKSPACE_ID, displayName = "default", path = defaultPath
+				id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
 			)
-			val data = WorkspaceData(meta = meta)
-			update(workspaceListRef.get().plus(data))
-			logger.info("Created default workspace  id={}  path={}", data.meta.id, defaultPath)
-			data
+			return WorkspaceData(meta = meta).add()
+				.andLog(logger) { info("Created default workspace  id={}  path={}", it.meta.id, it.meta.path) }
 		}
 	}
 	
-	private fun update(new: List<WorkspaceData>) {
-		workspaceListRef.set(new)
-		jsonEntry.set(Json.encodeToJsonElement(workspaceListRef.get()))
+	suspend fun create(meta: WorkspaceMeta): WorkspaceData = mutex.withLock {
+		if (workspaces.any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
+		return WorkspaceData(meta = meta).add()
+			.andLog(logger) { info("Created workspace  id={}  name={}", it.meta.id, it.meta.displayName) }
 	}
+	
+	suspend fun getData(id: UUID): WorkspaceData? = mutex.withLock { lookup(id) }
+	
+	suspend fun getAll(): List<WorkspaceData> = mutex.withLock { workspaces.toList() }
+	
+	private fun lookup(id: UUID): WorkspaceData? = workspaces.find { it.meta.id == id }
+	
+	private fun update(id: UUID, transform: WorkspaceData.() -> WorkspaceData) {
+		val index = workspaces.indexOfFirst { it.meta.id == id }
+		workspaces[index] = workspaces[index].transform()
+	}
+	
+	private fun remove(id: UUID): Boolean =
+		workspaces.removeAll { it.meta.id == id }.andSave()
+	
+	private fun WorkspaceData.add(): WorkspaceData =
+		also { workspaces.add(this).andSave() }
+	
+	private fun <T> T.andSave(): T =
+		also { jsonEntry.set(Json.encodeToJsonElement(workspaces)) }
+	
+	private const val DEFAULT_WORKSPACE_NAME = "default"
+	val defaultWorkspaceId: UUID = UUID.nameUUIDFromBytes(DEFAULT_WORKSPACE_NAME.toByteArray())
 }

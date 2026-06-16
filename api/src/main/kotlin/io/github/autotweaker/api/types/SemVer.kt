@@ -26,6 +26,20 @@ data class SemVer(
 	val buildMetadata: List<String> = emptyList()
 ) : Comparable<SemVer> {
 	
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (other !is SemVer) return false
+		return major == other.major && minor == other.minor && patch == other.patch && preRelease == other.preRelease
+	}
+	
+	override fun hashCode(): Int {
+		var result = major
+		result = 31 * result + minor
+		result = 31 * result + patch
+		result = 31 * result + preRelease.hashCode()
+		return result
+	}
+	
 	init {
 		require(major >= 0) { "Major version must be non-negative, got: $major" }
 		require(minor >= 0) { "Minor version must be non-negative, got: $minor" }

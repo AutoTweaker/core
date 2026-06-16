@@ -25,6 +25,7 @@ plugins {
 dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+	implementation("org.slf4j:slf4j-api:2.0.18")
 }
 
 // region Maven 发布到 GitHub Packages

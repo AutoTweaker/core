@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
@@ -78,7 +79,7 @@ class ToolCallValidator(
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
 				service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-			).also { logger.debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName) }
+			).andLog(logger) { debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName) }
 		}
 		
 		val toolName = parts[0]
@@ -86,7 +87,7 @@ class ToolCallValidator(
 		
 		val tool = tools.find { it.name == toolName } ?: return ValidationResult.Failure(
 			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-		).also { logger.debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
+		).andLog(logger) { debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
 		
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {

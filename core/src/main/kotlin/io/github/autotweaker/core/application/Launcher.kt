@@ -37,6 +37,7 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreDbApi
@@ -49,6 +50,8 @@ import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 
 object Launcher {
@@ -73,6 +76,7 @@ object Launcher {
 		DbDebugAPIImpl.init(databaseStore)
 		TraceStore.init(databaseStore)
 		TraceRecorderImpl.init()
+		WorkspaceManager.init()
 		
 		PluginLoader.load<Debugger>().forEach { debugger ->
 			logger.info("Initialized debugger  class={}", debugger::class.java.name)
@@ -104,12 +108,16 @@ object Launcher {
 	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) =
 		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI)
 	
-	suspend fun shutdown(registry: Map<String, Pair<Adapter, AdapterInfo>>) {
-		registry.values.forEach { (adapter, info) ->
-			trace.catching {
-				adapter.stop()
-				logger.info("Stopped adapter  name={}", info.name)
-			}.onFailure { logger.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
+	suspend fun shutdown(registry: List<Pair<Adapter, AdapterInfo>>) {
+		coroutineScope {
+			registry.forEach { (adapter, info) ->
+				launch {
+					trace.catching {
+						adapter.stop()
+						logger.info("Stopped adapter  name={}", info.name)
+					}.onFailure { logger.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
+				}
+			}
 		}
 		trace.catching { SessionManager.shutdown() }
 			.onFailure { logger.warn("Failed SessionManager shutdown") }

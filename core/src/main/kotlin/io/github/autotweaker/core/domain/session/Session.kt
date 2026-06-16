@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
@@ -34,10 +35,12 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -46,7 +49,7 @@ class Session(
 	data: SessionData,
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
-	private var workspace: WorkspaceMeta,
+	private val workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
 	private val secretStore: SecretStore,
@@ -61,29 +64,38 @@ class Session(
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
 	val agents: Map<UUID, AgentAPI> = bridges.toMap()
 	
-	suspend fun init(model: ModelConfig, systemPrompt: String, activeTools: List<String>) {
+	suspend fun init(systemPrompt: String, activeTools: List<String>) = also {
 		val mainId = index.main.id
 		restoreOrNull(mainId) ?: createAgent(
-			mainId, AgentData(
+			AgentData(
 				id = mainId,
 				name = MAIN_AGENT_NAME.toKebabId(),
-				model = model,
+				model = _data.value.model,
 				context = SessionContext.emptyContext(systemPrompt),
 				activeTools = activeTools
 			)
-		)
-		logger.info("Initialized session  sessionId={}  workspace={}", _data.value.id, workspace.displayName)
+		).andLog(logger) {
+			info(
+				"Initialized session  sessionId={}  workspace={}",
+				it.id,
+				workspace.displayName
+			)
+		}
 	}
 	
-	fun updateTitle(title: String) {
+	fun updateTitle(title: String) = also {
 		_data.update { it.copy(title = title) }
 	}
 	
-	suspend fun shutdown() {
-		bridges.forEach { it.value.shutdown() }
+	suspend fun shutdown() = also {
+		coroutineScope {
+			bridges.values.forEach { bridge ->
+				launch { bridge.shutdown() }
+			}
+		}
 	}
 	
-	private fun agentHost(agentId: UUID) = object : AgentHost {
+	private fun getHost(agentId: UUID) = object : AgentHost {
 		override suspend fun create(name: KebabId, systemPrompt: String, model: ModelConfig): Agent {
 			val childId = UUID.randomUUID()
 			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
@@ -100,11 +112,12 @@ class Session(
 		override suspend fun get(id: UUID): Agent? = getOrRestore(id)?.agent
 	}
 	
-	private suspend fun getOrRestore(id: UUID): AgentBridge? = bridges[id] ?: restoreOrNull(id)
+	private suspend fun getOrRestore(id: UUID): AgentBridge? =
+		bridges[id] ?: restoreOrNull(id)
 	
 	private suspend fun restoreOrNull(id: UUID): AgentBridge? {
 		val data: AgentData = store.loadAgent(id) ?: return null
-		return createAgent(id, data)
+		return createAgent(data)
 	}
 	
 	private suspend fun createAgent(
@@ -113,7 +126,7 @@ class Session(
 		systemPrompt: String,
 		model: ModelConfig,
 	): AgentBridge = createAgent(
-		id, AgentData(
+		AgentData(
 			id = id,
 			name = name,
 			model = model,
@@ -123,22 +136,16 @@ class Session(
 	)
 	
 	private suspend fun createAgent(
-		id: UUID,
 		data: AgentData,
-	): AgentBridge {
-		val new = AgentBridge(
-			host = agentHost(id),
-			store = store,
-			resolveModel = resolveModel,
-			workspace = workspace,
-			containerConfig = containerConfig,
-			service = service,
-			secretStore = secretStore
-		)
-		new.init(data)
-		bridges[id] = new
-		return new
-	}
+	) = AgentBridge(
+		host = getHost(data.id),
+		store = store,
+		resolveModel = resolveModel,
+		workspace = workspace,
+		containerConfig = containerConfig,
+		service = service,
+		secretStore = secretStore
+	).init(data).also { bridges[data.id] = it }
 	
 	companion object {
 		const val MAIN_AGENT_NAME = "main"

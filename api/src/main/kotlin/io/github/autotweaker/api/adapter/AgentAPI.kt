@@ -41,17 +41,17 @@ interface AgentAPI {
 	val context: StateFlow<SessionContext>
 	val toolInfo: StateFlow<List<ToolInfo>>
 	
-	fun send(content: MessageContent)
+	fun send(content: MessageContent): AgentAPI
 	
-	suspend fun pause()
-	suspend fun stop()
-	suspend fun compact()
-	suspend fun cancelCompact()
-	suspend fun cancelTool()
+	suspend fun pause(): AgentAPI
+	suspend fun stop(): AgentAPI
+	suspend fun compact(): AgentAPI
+	suspend fun cancelCompact(): AgentAPI
+	suspend fun cancelTool(): AgentAPI
 	
-	suspend fun setModel(config: ModelConfig)
-	suspend fun approve(approval: ToolApprove)
+	suspend fun setModel(config: ModelConfig): AgentAPI
+	suspend fun approve(approval: ToolApprove): AgentAPI
 	
-	suspend fun inject(injection: ContextInjection)
-	suspend fun removeInjection(id: UUID)
+	suspend fun inject(injection: ContextInjection): AgentAPI
+	suspend fun removeInjection(id: UUID): AgentAPI
 }

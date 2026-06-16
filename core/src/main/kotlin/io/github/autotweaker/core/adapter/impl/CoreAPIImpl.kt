@@ -80,7 +80,7 @@ class CoreAPIImpl(
 	}
 	
 	override val session = object : CoreAPI.SessionAPI {
-		override val defaultWorkspaceId = WorkspaceManager.DEFAULT_WORKSPACE_ID
+		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
 		override suspend fun create(config: SessionConfig) = SessionManager.create(config)
 		override suspend fun create(workspaceId: UUID, config: SessionConfig) =
 			SessionManager.create(workspaceId, config)

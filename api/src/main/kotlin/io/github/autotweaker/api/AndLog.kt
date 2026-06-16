@@ -16,16 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.types.agent.AgentIndex
-import java.util.*
+import org.slf4j.Logger
 
-data class SessionData(
-	val id: UUID,
-	val title: String?,
-	val overview: String?,
-	val model: ModelConfig,
-	val workspaceId: UUID,
-	val agentIndex: AgentIndex
-)
+fun <T> T.andLog(logger: Logger, log: Logger.(T) -> Unit): T = also { logger.log(this) }

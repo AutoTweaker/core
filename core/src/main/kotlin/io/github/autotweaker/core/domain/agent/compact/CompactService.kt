@@ -179,7 +179,7 @@ class CompactService(
 			return CompactRequestResult(rawContent, lastSnapshot, success = false)
 		}
 		
-		val extracted = extractSummary(rawContent)
+		val extracted = rawContent.extractSummary()
 		val minSummaryLength = service.get(CompactSettings.MinSummaryLength()).value
 		val valid = extracted.length >= minSummaryLength
 		
@@ -303,6 +303,6 @@ class CompactService(
 		) to snapshot
 	}
 	
-	private fun extractSummary(text: String): String =
-		text.substringAfter("<summary>").substringBefore("</summary>").trim()
+	private fun String.extractSummary(): String =
+		substringAfter("<summary>").substringBefore("</summary>").trim()
 }

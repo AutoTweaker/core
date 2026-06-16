@@ -25,8 +25,8 @@ import java.util.*
 
 interface SessionRepository {
 	suspend fun saveSessions(sessionData: List<SessionData>)
-	suspend fun loadSessions(ids: List<UUID>): List<SessionData>?
-	suspend fun loadAllSessions(): List<SessionData>?
+	suspend fun loadSessions(ids: List<UUID>): List<SessionData>
+	suspend fun loadAllSessions(): List<SessionData>
 	suspend fun deleteSessions(id: List<UUID>)
 	
 	suspend fun saveAgent(agentData: AgentData)
@@ -34,6 +34,6 @@ interface SessionRepository {
 	suspend fun deleteAgent(agentId: UUID)
 	
 	suspend fun saveMessages(messages: List<SessionMessage>)
-	suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>?
+	suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>
 	suspend fun deleteMessages(ids: List<UUID>)
 }

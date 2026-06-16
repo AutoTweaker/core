@@ -26,10 +26,15 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.*
 
 class ApprovalProcessor(
@@ -39,7 +44,9 @@ class ApprovalProcessor(
 	private val workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
 	private val scope: CoroutineScope,
+	private val shouldBreak: StateFlow<Boolean>,
 ) {
+	private val trace = TraceRecorderImpl.recorder(this::class)
 	val approvalChannel = Channel<ToolApprove>(Channel.UNLIMITED)
 	
 	fun cancelToolJob() {
@@ -51,19 +58,35 @@ class ApprovalProcessor(
 		assistantMessageId: UUID,
 		model: AgentModel,
 		statusFlow: MutableStateFlow<AgentStatus>,
-		shouldBreak: () -> Boolean,
 	): List<String> {
 		val reasons = mutableListOf<String>()
 		val stashed = mutableMapOf<String, ToolApprove>()
 		
 		for (call in needsApproval) {
+			if (shouldBreak.value) break
+			
 			statusFlow.value = AgentStatus.WAITING
 			var approval = stashed.remove(call.pendingCall.callId)
 			while (approval == null) {
-				val next = approvalChannel.receive()
+				val deferred = scope.async { approvalChannel.receive() }
+				val watcher = scope.launch {
+					shouldBreak.first { it }
+					deferred.cancel()
+				}
+				val next = try {
+					deferred.await()
+				} catch (e: CancellationException) {
+					trace.exception(e)
+					return reasons
+				} finally {
+					watcher.cancel()
+				}
+				
 				if (next.callId == call.pendingCall.callId) approval = next
 				else stashed[next.callId] = next
 			}
+			
+			if (shouldBreak.value) break
 			
 			if (approval.approved) {
 				approval.reason?.let { reasons.add(it) }
@@ -76,8 +99,6 @@ class ApprovalProcessor(
 			} else {
 				ctx.recordToolResult(factory.buildRejected(assistantMessageId, call.pendingCall, approval.reason))
 			}
-			
-			if (shouldBreak()) break
 		}
 		return reasons
 	}

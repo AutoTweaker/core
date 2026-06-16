@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -61,19 +62,13 @@ class RoundRunner(
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	private val mutex = Mutex()
 	
-	private val messages = MessageQueue(agentId)
-	private val approval =
-		ApprovalProcessor(ctx, toolCalling, ToolResultFactory(service), workspace, containerConfig, scope)
-	private val roundCtx = RoundContext(ctx, ToolResultFactory(service))
-	
 	@Volatile
 	private var thinkJob: Job? = null
 	
 	@Volatile
 	private var compactJob: Job? = null
 	
-	@Volatile
-	private var shouldBreak = false
+	private val shouldBreak = MutableStateFlow(false)
 	
 	@Volatile
 	private var shutdownStarted = false
@@ -82,65 +77,77 @@ class RoundRunner(
 	private var currentModel = agentModel
 	val model = currentModel
 	
-	fun send(content: MessageContent) = messages.send(content)
+	private val messages = MessageQueue(agentId)
+	private val approval = ApprovalProcessor(
+		ctx, toolCalling,
+		ToolResultFactory(service),
+		workspace, containerConfig, scope, shouldBreak
+	)
+	private val roundCtx = RoundContext(ctx, ToolResultFactory(service))
 	
-	fun start() {
+	fun send(content: MessageContent) = also {
+		messages.send(content)
+	}
+	
+	fun start() = also {
 		scope.launch { workLoop() }
 	}
 	
-	suspend fun shutdown() {
+	suspend fun shutdown() = also {
 		shutdownStarted = true
 		compactJob?.cancel()
 		execute(AgentCommand.Stop)
 		scope.cancel()
 	}
 	
-	suspend fun execute(command: AgentCommand) = mutex.withLock {
-		if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
-		when (command) {
-			is AgentCommand.Stop -> {
-				if (statusFlow.value == AgentStatus.FREE) return@withLock
-				markBreak()
-				thinkJob?.cancel()
-				approval.cancelToolJob()
-				statusFlow.first { it == AgentStatus.FREE }
+	suspend fun execute(command: AgentCommand) = also {
+		mutex.withLock {
+			if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
+			when (command) {
+				is AgentCommand.Stop -> {
+					if (statusFlow.value == AgentStatus.FREE) return@withLock
+					markBreak()
+					thinkJob?.cancel()
+					approval.cancelToolJob()
+					statusFlow.first { it == AgentStatus.FREE }
+				}
+				
+				is AgentCommand.Pause -> {
+					if (statusFlow.value == AgentStatus.FREE) return@withLock
+					markBreak()
+					statusFlow.first { it == AgentStatus.FREE }
+				}
+				
+				is AgentCommand.CancelTool -> {
+					approval.cancelToolJob()
+				}
+				
+				is AgentCommand.CancelCompact -> {
+					compactJob?.cancel()
+				}
+				
+				is AgentCommand.Compact -> {
+					launchCompact()
+				}
+				
+				is AgentCommand.UpdateModel -> {
+					currentModel = command.model
+				}
+				
+				is AgentCommand.ApproveTool -> {
+					check(statusFlow.value == AgentStatus.WAITING)
+					approval.approvalChannel.send(command.approval)
+				}
 			}
-			
-			is AgentCommand.Pause -> {
-				if (statusFlow.value == AgentStatus.FREE) return@withLock
-				markBreak()
-				statusFlow.first { it == AgentStatus.FREE }
-			}
-			
-			is AgentCommand.CancelTool -> {
-				approval.cancelToolJob()
-			}
-			
-			is AgentCommand.CancelCompact -> {
-				compactJob?.cancel()
-			}
-			
-			is AgentCommand.Compact -> {
-				launchCompact()
-			}
-			
-			is AgentCommand.UpdateModel -> {
-				currentModel = command.model
-			}
-			
-			is AgentCommand.ApproveTool -> {
-				check(statusFlow.value == AgentStatus.WAITING)
-				approval.approvalChannel.send(command.approval)
-			}
+			logger.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
 		}
-		logger.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
 	}
 	
 	private suspend fun workLoop() {
 		logger.info("Started workLoop  agentId={}", agentId)
 		while (true) {
 			val msg = messages.receive()
-			shouldBreak = false
+			shouldBreak.value = false
 			ctx.beginRound(msg)
 			executeRound()
 			ctx.archiveCurrentRound()
@@ -168,7 +175,7 @@ class RoundRunner(
 			}
 			thinkJob = null
 			
-			if (shouldBreak || result is ThinkingStage.Result.Failed) break
+			if (shouldBreak.value || result is ThinkingStage.Result.Failed) break
 			
 			if (result is ThinkingStage.Result.Done) {
 				roundCtx.applyDone(result)
@@ -185,27 +192,28 @@ class RoundRunner(
 					result.assistantMessage.id,
 					currentModel,
 					statusFlow,
-				) { shouldBreak }
+				)
 				messages.sendReasons(reasons)
 			}
 			
 			ctx.finalizeToolTurn()
 			
-			if (shouldBreak) break
+			if (shouldBreak.value) break
 			
-			checkAutoDeactivate()
-			checkAutoCompact()
+			autoDeactivate()
+			autoCompact()
 			
-			val drained = messages.drain()
-			if (drained != null) {
+			if (shouldBreak.value) break
+			
+			messages.drain()?.let {
 				ctx.archiveCurrentRound()
-				ctx.beginRound(drained)
+				ctx.beginRound(it)
 			}
 		}
 		logger.info("Completed round execution  agentId={}", agentId)
 	}
 	
-	private suspend fun checkAutoDeactivate() {
+	private suspend fun autoDeactivate() {
 		val threshold = service.get(AgentToolSettings.DeactivationThreshold()).value
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
@@ -224,7 +232,7 @@ class RoundRunner(
 		}
 	}
 	
-	private suspend fun checkAutoCompact() {
+	private suspend fun autoCompact() {
 		if (compactJob?.isActive == true) return
 		val assistantMessage = ctx.get().let { context ->
 			context.currentRound?.assistantMessage
@@ -246,14 +254,13 @@ class RoundRunner(
 				usage.totalTokens.toDouble() / contextWindow >= contextUsageThreshold
 		val exceedTotalTokens = totalTokensThreshold != null &&
 				usage.totalTokens >= totalTokensThreshold
-		if (exceedContextUsage || exceedTotalTokens) {
-			logger.debug(
+		if (exceedContextUsage || exceedTotalTokens) launchCompact().andLog(logger) {
+			debug(
 				"Triggered auto-compact  agentId={}  totalTokens={}  contextWindow={}",
 				agentId,
 				usage.totalTokens,
 				contextWindow
 			)
-			launchCompact()
 		}
 	}
 	
@@ -268,6 +275,6 @@ class RoundRunner(
 	}
 	
 	private fun markBreak() {
-		shouldBreak = true
+		shouldBreak.value = true
 	}
 }
