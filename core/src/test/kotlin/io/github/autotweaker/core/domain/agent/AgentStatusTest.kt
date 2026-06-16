@@ -26,7 +26,7 @@ class AgentStatusTest {
 	
 	@Test
 	fun `all six status values exist`() {
-		assertEquals(6, AgentStatus.entries.size)
+		assertEquals(4, AgentStatus.entries.size)
 	}
 	
 	@Test

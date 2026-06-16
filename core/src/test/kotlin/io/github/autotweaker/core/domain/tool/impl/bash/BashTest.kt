@@ -38,6 +38,8 @@ import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
 
 class BashTest {
 	
@@ -109,20 +111,23 @@ class BashTest {
 	
 	@Test
 	fun `meta returns correct name`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		assertEquals("bash", meta.name)
 	}
 	
 	@Test
 	fun `meta returns one function named run`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		assertEquals(1, meta.functions.size)
 		assertEquals("run", meta.functions.first().name)
 	}
 	
 	@Test
 	fun `meta run function has required command string parameter`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val runFunc = meta.functions.first()
 		val command = runFunc.parameters["command"]!!
 		assertTrue(command.required)
@@ -131,7 +136,8 @@ class BashTest {
 	
 	@Test
 	fun `meta run function has optional timeout_seconds integer parameter`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val runFunc = meta.functions.first()
 		val timeout = runFunc.parameters["timeout_seconds"]!!
 		assertFalse(timeout.required)
@@ -140,7 +146,8 @@ class BashTest {
 	
 	@Test
 	fun `meta run function has optional env_ids array parameter`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val runFunc = meta.functions.first()
 		val envIds = runFunc.parameters["env_ids"]!!
 		assertFalse(envIds.required)
@@ -149,7 +156,8 @@ class BashTest {
 	
 	@Test
 	fun `meta timeout parameter description contains formatted default timeout`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val runFunc = meta.functions.first()
 		val timeout = runFunc.parameters["timeout_seconds"]!!
 		assertTrue(timeout.description.contains("120"))
@@ -157,7 +165,8 @@ class BashTest {
 	
 	@Test
 	fun `meta env_ids description references available envs`() = runTest {
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val runFunc = meta.functions.first()
 		val envIds = runFunc.parameters["env_ids"]!!
 		assertTrue(envIds.description.contains("[none]"))
@@ -487,7 +496,8 @@ class BashTest {
 		bash.setEnv("API_KEY", "secret")
 		bash.init(defaultSettings, secretStore)
 		
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val envIdsDesc = meta.functions.first().parameters["env_ids"]!!.description
 		assertTrue(envIdsDesc.contains("DB_URL"))
 		assertTrue(envIdsDesc.contains("API_KEY"))
@@ -498,7 +508,8 @@ class BashTest {
 		bash.setEnv("KEY_WITH\"QUOTE", "val")
 		bash.init(defaultSettings, secretStore)
 		
-		val meta = ToolMeta.build(bash)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
 		val envIdsDesc = meta.functions.first().parameters["env_ids"]!!.description
 		assertTrue(envIdsDesc.contains("KEY_WITH\\\"QUOTE"))
 	}

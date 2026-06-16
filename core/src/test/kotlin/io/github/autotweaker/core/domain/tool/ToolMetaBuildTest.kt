@@ -26,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlin.test.*
+import io.github.autotweaker.api.tool.ToolArgs
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolMetaBuildTest {
@@ -38,10 +39,10 @@ class ToolMetaBuildTest {
 		val timeoutSeconds: Int = 60,
 		val verbose: Boolean = false,
 		val tags: List<String> = emptyList(),
-	)
+	) : ToolArgs
 	
 	@Serializable
-	private sealed class MultiArgs {
+	private sealed class MultiArgs : ToolArgs {
 		@Serializable
 		data class File(
 			val filePath: String,
@@ -69,7 +70,8 @@ class ToolMetaBuildTest {
 	
 	// region helpers
 	
-	private fun mockSimpleTool(): Tool<SimpleArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockSimpleTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<SimpleArgs>>()
 		every { tool.name } returns "simple"
 		every { tool.description } returns "A simple tool"
@@ -81,10 +83,11 @@ class ToolMetaBuildTest {
 			SimpleArgs::tags to "List of tags",
 		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
-	private fun mockMultiTool(): Tool<MultiArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockMultiTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<MultiArgs>>()
 		every { tool.name } returns "read"
 		every { tool.description } returns "Read file content"
@@ -106,7 +109,7 @@ class ToolMetaBuildTest {
 			MultiArgs.Summarize::class to "Summarize file content",
 			MultiArgs.Unicode::class to "Read unicode characters",
 		)
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
 	// endregion
@@ -270,7 +273,7 @@ class ToolMetaBuildTest {
 	@Test
 	fun `missing description for field throws error`() = runBlocking {
 		@Serializable
-		data class IncompleteArgs(val a: String, val b: String)
+		data class IncompleteArgs(val a: String, val b: String) : ToolArgs
 		
 		val tool = mockk<Tool<IncompleteArgs>>()
 		every { tool.name } returns "t"
@@ -280,7 +283,7 @@ class ToolMetaBuildTest {
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		assertFailsWith<IllegalStateException> {
-			ToolMeta.build(tool)
+			ToolMeta.build(tool as Tool<ToolArgs>)
 		}
 	}
 	
@@ -302,7 +305,7 @@ class ToolMetaBuildTest {
 	@Test
 	fun `tool name with dash throws error`() = runBlocking {
 		@Serializable
-		data class Args(val x: String)
+		data class Args(val x: String) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "my-tool"
@@ -312,14 +315,14 @@ class ToolMetaBuildTest {
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		assertFailsWith<IllegalArgumentException> {
-			ToolMeta.build(tool)
+			ToolMeta.build(tool as Tool<ToolArgs>)
 		}
 	}
 	
 	@Test
 	fun `tool name without dash is valid`() = runBlocking {
 		@Serializable
-		data class Args(val x: String)
+		data class Args(val x: String) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "valid_name"
@@ -328,7 +331,8 @@ class ToolMetaBuildTest {
 		coEvery { tool.describe() } returns mapOf(Args::x to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertEquals("valid_name", meta.name)
 	}
 	

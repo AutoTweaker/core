@@ -29,6 +29,7 @@ import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import io.github.autotweaker.api.tool.ToolArgs
 
 class ToolCallValidatorSealedTest {
 	
@@ -39,7 +40,7 @@ class ToolCallValidatorSealedTest {
 	// region test data
 	
 	@Serializable
-	private sealed class InnerChoice {
+	private sealed class InnerChoice : ToolArgs {
 		@Serializable
 		data class A(val x: Int) : InnerChoice()
 		
@@ -48,7 +49,7 @@ class ToolCallValidatorSealedTest {
 	}
 	
 	@Serializable
-	private sealed class NestedSealedArgs {
+	private sealed class NestedSealedArgs : ToolArgs {
 		@Serializable
 		data class Process(
 			val name: String,
@@ -60,7 +61,7 @@ class ToolCallValidatorSealedTest {
 	}
 	
 	@Serializable
-	private sealed class ListSealedArgs {
+	private sealed class ListSealedArgs : ToolArgs {
 		@Serializable
 		data class Run(val items: List<InnerChoice>) : ListSealedArgs()
 		
@@ -69,7 +70,7 @@ class ToolCallValidatorSealedTest {
 	}
 	
 	@Serializable
-	private sealed class MapSealedArgs {
+	private sealed class MapSealedArgs : ToolArgs {
 		@Serializable
 		data class Configure(val config: Map<String, InnerChoice>) : MapSealedArgs()
 		
@@ -78,10 +79,10 @@ class ToolCallValidatorSealedTest {
 	}
 	
 	@Serializable
-	private data class Wrapper(val inner: InnerChoice)
+	private data class Wrapper(val inner: InnerChoice) : ToolArgs
 	
 	@Serializable
-	private sealed class DeepNestedArgs {
+	private sealed class DeepNestedArgs : ToolArgs {
 		@Serializable
 		data class Process(val wrapper: Wrapper) : DeepNestedArgs()
 		
@@ -93,36 +94,40 @@ class ToolCallValidatorSealedTest {
 	
 	// region helpers
 	
-	private fun mockNestedSealedTool(): Tool<NestedSealedArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockNestedSealedTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<NestedSealedArgs>>()
 		every { tool.name } returns "task"
 		every { tool.description } returns "Task operations"
 		every { tool.argsSerializer } returns NestedSealedArgs.serializer()
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
-	private fun mockListSealedTool(): Tool<ListSealedArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockListSealedTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<ListSealedArgs>>()
 		every { tool.name } returns "batch"
 		every { tool.description } returns "Batch operations"
 		every { tool.argsSerializer } returns ListSealedArgs.serializer()
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
-	private fun mockMapSealedTool(): Tool<MapSealedArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockMapSealedTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<MapSealedArgs>>()
 		every { tool.name } returns "cfg"
 		every { tool.description } returns "Config operations"
 		every { tool.argsSerializer } returns MapSealedArgs.serializer()
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
-	private fun mockDeepNestedTool(): Tool<DeepNestedArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockDeepNestedTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<DeepNestedArgs>>()
 		every { tool.name } returns "deep"
 		every { tool.description } returns "Deep nested operations"
 		every { tool.argsSerializer } returns DeepNestedArgs.serializer()
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
 	// endregion
@@ -131,11 +136,10 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed type is resolved correctly`() {
-		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"a","x":42},"reason":"test"}""", ""
-		)
+			"""{"name":"test","inner":{"type":"a","x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool()))
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as NestedSealedArgs.Process
 		assertEquals("test", args.name)
@@ -144,11 +148,10 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed type with variant b works`() {
-		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"test"}""", ""
-		)
+			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"test"}""", "", listOf(mockNestedSealedTool()))
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("hello", ((result.args as NestedSealedArgs.Process).inner as InnerChoice.B).y)
 	}
@@ -159,11 +162,10 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `list of sealed types is resolved correctly`() {
-		val validator = ToolCallValidator(listOf(mockListSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"batch-run",
-			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"test"}""", ""
-		)
+			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"test"}""", "", listOf(mockListSealedTool()))
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as ListSealedArgs.Run
 		assertEquals(2, args.items.size)
@@ -173,11 +175,10 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `list with mixed sealed types resolves each independently`() {
-		val validator = ToolCallValidator(listOf(mockListSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"batch-run",
-			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"test"}""", ""
-		)
+			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"test"}""", "", listOf(mockListSealedTool()))
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as ListSealedArgs.Run
 		assertEquals(3, args.items.size)
@@ -191,11 +192,10 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `map of sealed types is resolved correctly`() {
-		val validator = ToolCallValidator(listOf(mockMapSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"cfg-configure",
-			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"test"}""", ""
-		)
+			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"test"}""", "", listOf(mockMapSealedTool()))
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as MapSealedArgs.Configure
 		assertEquals(2, args.config.size)
@@ -209,11 +209,10 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `deep nested sealed type is resolved correctly`() {
-		val validator = ToolCallValidator(listOf(mockDeepNestedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"deep-process",
-			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"test"}""", ""
-		)
+			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"test"}""", "", listOf(mockDeepNestedTool()))
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals(42, ((result.args as DeepNestedArgs.Process).wrapper.inner as InnerChoice.A).x)
 	}
@@ -224,21 +223,19 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed without type field fails deserialization`() {
-		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"x":42},"reason":"test"}""", ""
-		)
+			"""{"name":"test","inner":{"x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool()))
 		assertIs<ValidationResult.Failure>(result)
 	}
 	
 	@Test
 	fun `nested sealed with unknown type value fails deserialization`() {
-		val validator = ToolCallValidator(listOf(mockNestedSealedTool()), defaultSettings)
+		val validator = ToolCallValidator(defaultSettings)
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"test"}""", ""
-		)
+			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool()))
 		assertIs<ValidationResult.Failure>(result)
 	}
 	

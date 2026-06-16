@@ -33,6 +33,7 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import io.github.autotweaker.api.tool.ToolArgs
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolMetaValueTypeTest {
@@ -42,7 +43,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `string descriptor maps to StringValue`() = runBlocking {
 		@Serializable
-		data class Args(val name: String)
+		data class Args(val name: String) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -51,14 +52,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::name to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["name"]!!.valueType is ToolMeta.ValueType.StringValue)
 	}
 	
 	@Test
 	fun `int descriptor maps to IntegerValue`() = runBlocking {
 		@Serializable
-		data class Args(val count: Int)
+		data class Args(val count: Int) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -67,14 +69,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::count to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["count"]!!.valueType is ToolMeta.ValueType.IntegerValue)
 	}
 	
 	@Test
 	fun `long descriptor maps to IntegerValue`() = runBlocking {
 		@Serializable
-		data class Args(val big: Long)
+		data class Args(val big: Long) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -83,14 +86,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::big to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["big"]!!.valueType is ToolMeta.ValueType.IntegerValue)
 	}
 	
 	@Test
 	fun `float descriptor maps to NumberValue`() = runBlocking {
 		@Serializable
-		data class Args(val ratio: Float)
+		data class Args(val ratio: Float) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -99,14 +103,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::ratio to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["ratio"]!!.valueType is ToolMeta.ValueType.NumberValue)
 	}
 	
 	@Test
 	fun `double descriptor maps to NumberValue`() = runBlocking {
 		@Serializable
-		data class Args(val price: Double)
+		data class Args(val price: Double) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -115,14 +120,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::price to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["price"]!!.valueType is ToolMeta.ValueType.NumberValue)
 	}
 	
 	@Test
 	fun `boolean descriptor maps to BooleanValue`() = runBlocking {
 		@Serializable
-		data class Args(val flag: Boolean)
+		data class Args(val flag: Boolean) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -131,7 +137,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::flag to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["flag"]!!.valueType is ToolMeta.ValueType.BooleanValue)
 	}
 	
@@ -142,7 +149,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `list of strings maps to ArrayValue with StringValue items`() = runBlocking {
 		@Serializable
-		data class Args(val items: List<String>)
+		data class Args(val items: List<String>) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -151,7 +158,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::items to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val vt = meta.functions[0].parameters["items"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.ArrayValue)
 		assertTrue(vt.items is ToolMeta.ValueType.StringValue)
@@ -160,7 +168,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `list of ints maps to ArrayValue with IntegerValue items`() = runBlocking {
 		@Serializable
-		data class Args(val numbers: List<Int>)
+		data class Args(val numbers: List<Int>) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -169,7 +177,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::numbers to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val vt = meta.functions[0].parameters["numbers"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.ArrayValue)
 		assertTrue(vt.items is ToolMeta.ValueType.IntegerValue)
@@ -178,7 +187,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `map of string to int maps to MapValue`() = runBlocking {
 		@Serializable
-		data class Args(val config: Map<String, Int>)
+		data class Args(val config: Map<String, Int>) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -187,7 +196,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::config to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val vt = meta.functions[0].parameters["config"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.MapValue)
 		assertTrue(vt.key is ToolMeta.ValueType.StringValue)
@@ -197,7 +207,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `map of string to string maps to MapValue`() = runBlocking {
 		@Serializable
-		data class Args(val env: Map<String, String>)
+		data class Args(val env: Map<String, String>) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -206,7 +216,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::env to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val vt = meta.functions[0].parameters["env"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.MapValue)
 		assertTrue(vt.key is ToolMeta.ValueType.StringValue)
@@ -220,7 +231,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `JsonElement maps to AnyValue`() = runBlocking {
 		@Serializable
-		data class Args(val data: JsonElement)
+		data class Args(val data: JsonElement) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -229,14 +240,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::data to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["data"]!!.valueType is ToolMeta.ValueType.AnyValue)
 	}
 	
 	@Test
 	fun `JsonObject maps to AnyValue`() = runBlocking {
 		@Serializable
-		data class Args(val obj: JsonObject)
+		data class Args(val obj: JsonObject) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -245,14 +257,15 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::obj to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["obj"]!!.valueType is ToolMeta.ValueType.AnyValue)
 	}
 	
 	@Test
 	fun `JsonArray maps to ArrayValue with AnyValue items`() = runBlocking {
 		@Serializable
-		data class Args(val arr: JsonArray)
+		data class Args(val arr: JsonArray) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -261,7 +274,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::arr to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val vt = meta.functions[0].parameters["arr"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.ArrayValue)
 		assertTrue(vt.items is ToolMeta.ValueType.AnyValue)
@@ -270,7 +284,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `JsonPrimitive maps to AnyValue`() = runBlocking {
 		@Serializable
-		data class Args(val prim: JsonPrimitive)
+		data class Args(val prim: JsonPrimitive) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -279,7 +293,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::prim to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertTrue(meta.functions[0].parameters["prim"]!!.valueType is ToolMeta.ValueType.AnyValue)
 	}
 	
@@ -290,7 +305,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `camelCase property names converted to snake_case`() = runBlocking {
 		@Serializable
-		data class Args(val myFieldName: String, val anotherProp: Int)
+		data class Args(val myFieldName: String, val anotherProp: Int) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -302,7 +317,8 @@ class ToolMetaValueTypeTest {
 		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val params = meta.functions[0].parameters
 		assertNotNull(params["my_field_name"])
 		assertNotNull(params["another_prop"])
@@ -313,7 +329,7 @@ class ToolMetaValueTypeTest {
 	@Test
 	fun `already snake_case names stay unchanged`(): Unit = runBlocking {
 		@Serializable
-		data class Args(val already_snake: String)
+		data class Args(val already_snake: String) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
@@ -322,7 +338,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(Args::already_snake to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertNotNull(meta.functions[0].parameters["already_snake"])
 	}
 	
@@ -334,7 +351,7 @@ class ToolMetaValueTypeTest {
 	private enum class Color { RED, GREEN, BLUE }
 	
 	@Serializable
-	private data class EnumArgs(val color: Color)
+	private data class EnumArgs(val color: Color) : ToolArgs
 	
 	@Test
 	fun `enum descriptor maps to StringValue with enum list`() = runBlocking {
@@ -345,7 +362,8 @@ class ToolMetaValueTypeTest {
 		coEvery { tool.describe() } returns mapOf(EnumArgs::color to "desc")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val vt = meta.functions[0].parameters["color"]!!.valueType
 		assertTrue(vt is ToolMeta.ValueType.StringValue)
 		val enum = vt.enum

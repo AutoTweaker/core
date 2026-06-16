@@ -28,6 +28,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlin.test.*
+import io.github.autotweaker.api.tool.ToolArgs
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolMetaSealedTest {
@@ -35,7 +36,7 @@ class ToolMetaSealedTest {
 	// region guard test data (top-level for @SerialName / @JsonClassDiscriminator)
 	
 	@Serializable
-	private sealed class SealedWithCustomName {
+	private sealed class SealedWithCustomName : ToolArgs {
 		@Serializable
 		@SerialName("custom")
 		data class Sub(val x: String) : SealedWithCustomName()
@@ -43,7 +44,7 @@ class ToolMetaSealedTest {
 	
 	@Serializable
 	@JsonClassDiscriminator("kind")
-	private sealed class CustomDiscriminator {
+	private sealed class CustomDiscriminator : ToolArgs {
 		@Serializable
 		data class Sub(val x: String) : CustomDiscriminator()
 	}
@@ -53,7 +54,7 @@ class ToolMetaSealedTest {
 	// region sealed class edge cases
 	
 	@Serializable
-	private sealed class TwoOptions {
+	private sealed class TwoOptions : ToolArgs {
 		@Serializable
 		data class OptA(val value: String) : TwoOptions()
 		
@@ -62,13 +63,13 @@ class ToolMetaSealedTest {
 	}
 	
 	@Serializable
-	private sealed class Single {
+	private sealed class Single : ToolArgs {
 		@Serializable
 		data class Only(val x: Int) : Single()
 	}
 	
 	@Serializable
-	private sealed class MixedArgs {
+	private sealed class MixedArgs : ToolArgs {
 		@Serializable
 		data class ReadFile(val filePath: String, val encoding: String = "utf-8") : MixedArgs()
 		
@@ -79,7 +80,8 @@ class ToolMetaSealedTest {
 		data object GetStatus : MixedArgs()
 	}
 	
-	private fun mockMixedTool(): Tool<MixedArgs> {
+	@Suppress("UNCHECKED_CAST")
+	private fun mockMixedTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<MixedArgs>>()
 		every { tool.name } returns "fs"
 		every { tool.description } returns "File system operations"
@@ -93,7 +95,7 @@ class ToolMetaSealedTest {
 			MixedArgs.ListFiles::class to "List all files in directory",
 			MixedArgs.GetStatus::class to "Get system status",
 		)
-		return tool
+		return tool as Tool<ToolArgs>
 	}
 	
 	@Test
@@ -111,7 +113,8 @@ class ToolMetaSealedTest {
 			TwoOptions.OptB::class to "Option B",
 		)
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertEquals(2, meta.functions.size)
 		assertTrue(meta.functions.any { it.name == "opt_a" })
 		assertTrue(meta.functions.any { it.name == "opt_b" })
@@ -126,7 +129,8 @@ class ToolMetaSealedTest {
 		coEvery { tool.describe() } returns mapOf(Single.Only::x to "x val")
 		coEvery { tool.describeFunctions() } returns mapOf(Single.Only::class to "Only option")
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		assertEquals(1, meta.functions.size)
 		assertEquals("only", meta.functions[0].name)
 	}
@@ -171,7 +175,7 @@ class ToolMetaSealedTest {
 	// region OneOfValue
 	
 	@Serializable
-	private sealed class InnerChoice {
+	private sealed class InnerChoice : ToolArgs {
 		@Serializable
 		data class A(val x: Int) : InnerChoice()
 		
@@ -183,7 +187,7 @@ class ToolMetaSealedTest {
 	private data class NestedSealedArgs(
 		val name: String,
 		val inner: InnerChoice,
-	)
+	) : ToolArgs
 	
 	@Test
 	fun `nested sealed field produces OneOfValue`() = runBlocking {
@@ -197,7 +201,8 @@ class ToolMetaSealedTest {
 		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val innerType = meta.functions[0].parameters["inner"]!!.valueType
 		assertTrue(innerType is ToolMeta.ValueType.OneOfValue)
 		val oneOf = innerType as ToolMeta.ValueType.OneOfValue
@@ -213,7 +218,7 @@ class ToolMetaSealedTest {
 	@Serializable
 	private data class ListSealedArgs(
 		val items: List<InnerChoice>,
-	)
+	) : ToolArgs
 	
 	@Test
 	fun `list of sealed produces ArrayValue with OneOfValue items`() = runBlocking {
@@ -224,7 +229,8 @@ class ToolMetaSealedTest {
 		coEvery { tool.describe() } returns mapOf(ListSealedArgs::items to "Items")
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
-		val meta = ToolMeta.build(tool)
+		@Suppress("UNCHECKED_CAST")
+		val meta = ToolMeta.build(tool as Tool<ToolArgs>)
 		val itemsType = meta.functions[0].parameters["items"]!!.valueType
 		assertTrue(itemsType is ToolMeta.ValueType.ArrayValue)
 		assertTrue((itemsType as ToolMeta.ValueType.ArrayValue).items is ToolMeta.ValueType.OneOfValue)
@@ -235,7 +241,7 @@ class ToolMetaSealedTest {
 	// region buildTypeMapping
 	
 	@Serializable
-	private data class SimpleArgs(val command: String)
+	private data class SimpleArgs(val command: String) : ToolArgs
 	
 	@Test
 	fun `buildTypeMapping returns empty for non-sealed tool`() = runBlocking {
@@ -244,7 +250,7 @@ class ToolMetaSealedTest {
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns SimpleArgs.serializer()
 		
-		val mapping = ToolMeta.buildTypeMapping(tool)
+		val mapping = ToolMeta.buildTypeMapping(tool as Tool<ToolArgs>)
 		assertTrue(mapping.isEmpty())
 	}
 	
@@ -255,7 +261,7 @@ class ToolMetaSealedTest {
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns NestedSealedArgs.serializer()
 		
-		val mapping = ToolMeta.buildTypeMapping(tool)
+		val mapping = ToolMeta.buildTypeMapping(tool as Tool<ToolArgs>)
 		assertEquals(1, mapping.size)
 		val sp = mapping[0]
 		assertEquals(listOf("inner"), sp.segments)
@@ -270,7 +276,7 @@ class ToolMetaSealedTest {
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns ListSealedArgs.serializer()
 		
-		val mapping = ToolMeta.buildTypeMapping(tool)
+		val mapping = ToolMeta.buildTypeMapping(tool as Tool<ToolArgs>)
 		assertEquals(1, mapping.size)
 		assertEquals(listOf("items"), mapping[0].segments)
 	}
@@ -278,7 +284,7 @@ class ToolMetaSealedTest {
 	@Serializable
 	private data class MapSealedArgs(
 		val config: Map<String, InnerChoice>,
-	)
+	) : ToolArgs
 	
 	@Test
 	fun `buildTypeMapping handles map of sealed`() = runBlocking {
@@ -287,18 +293,18 @@ class ToolMetaSealedTest {
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns MapSealedArgs.serializer()
 		
-		val mapping = ToolMeta.buildTypeMapping(tool)
+		val mapping = ToolMeta.buildTypeMapping(tool as Tool<ToolArgs>)
 		assertEquals(1, mapping.size)
 		assertEquals(listOf("config"), mapping[0].segments)
 	}
 	
 	@Serializable
-	private data class Wrapper(val inner: InnerChoice)
+	private data class Wrapper(val inner: InnerChoice) : ToolArgs
 	
 	@Serializable
 	private data class DeepNestedArgs(
 		val wrapper: Wrapper,
-	)
+	) : ToolArgs
 	
 	@Test
 	fun `buildTypeMapping handles deep nested sealed`() = runBlocking {
@@ -307,7 +313,7 @@ class ToolMetaSealedTest {
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns DeepNestedArgs.serializer()
 		
-		val mapping = ToolMeta.buildTypeMapping(tool)
+		val mapping = ToolMeta.buildTypeMapping(tool as Tool<ToolArgs>)
 		assertEquals(1, mapping.size)
 		assertEquals(listOf("wrapper", "inner"), mapping[0].segments)
 	}
@@ -326,7 +332,7 @@ class ToolMetaSealedTest {
 		coEvery { tool.describeFunctions() } returns mapOf(SealedWithCustomName.Sub::class to "Sub")
 		
 		assertFailsWith<IllegalArgumentException> {
-			ToolMeta.build(tool)
+			ToolMeta.build(tool as Tool<ToolArgs>)
 		}
 	}
 	
@@ -344,7 +350,7 @@ class ToolMetaSealedTest {
 		coEvery { tool.describeFunctions() } returns mapOf(CustomDiscriminator.Sub::class to "Sub")
 		
 		assertFailsWith<IllegalArgumentException> {
-			ToolMeta.build(tool)
+			ToolMeta.build(tool as Tool<ToolArgs>)
 		}
 	}
 	
