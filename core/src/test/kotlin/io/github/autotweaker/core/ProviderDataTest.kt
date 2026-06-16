@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ProviderData
 import java.util.*
 import kotlin.test.Test
@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
 
 class ProviderDataTest {
 	
-	private val testUrl = Url("https://api.example.com")
+	private val testUrl = "https://api.example.com".toUrl()
 	
 	// region ErrorHandlingRule
 	

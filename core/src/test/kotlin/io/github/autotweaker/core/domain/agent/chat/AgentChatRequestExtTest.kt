@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.Base64
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ModelData.*
@@ -37,7 +37,7 @@ import kotlin.time.Clock
 
 class AgentChatRequestExtTest {
 	
-	private val testUrl = Url("https://api.test.com/v1")
+	private val testUrl = "https://api.test.com/v1".toUrl()
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
 		modelId = "test-model-id",

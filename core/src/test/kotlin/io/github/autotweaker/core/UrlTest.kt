@@ -19,6 +19,7 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,49 +32,49 @@ class UrlTest {
 	
 	@Test
 	fun `construct with valid HTTPS URL`() {
-		val url = Url("https://example.com")
+		val url = "https://example.com".toUrl()
 		assertEquals("https://example.com", url.value)
 	}
 	
 	@Test
 	fun `construct with valid HTTP URL`() {
-		val url = Url("http://example.com")
+		val url = "http://example.com".toUrl()
 		assertEquals("http://example.com", url.value)
 	}
 	
 	@Test
 	fun `construct with URL containing path`() {
-		val url = Url("https://api.example.com/v1/chat")
+		val url = "https://api.example.com/v1/chat".toUrl()
 		assertEquals("https://api.example.com/v1/chat", url.value)
 	}
 	
 	@Test
 	fun `construct with URL containing query string`() {
-		val url = Url("https://example.com/search?q=test")
+		val url = "https://example.com/search?q=test".toUrl()
 		assertEquals("https://example.com/search?q=test", url.value)
 	}
 	
 	@Test
 	fun `trailing slash is trimmed`() {
-		val url = Url("https://example.com/")
+		val url = "https://example.com/".toUrl()
 		assertEquals("https://example.com", url.value)
 	}
 	
 	@Test
 	fun `multiple trailing slashes are trimmed`() {
-		val url = Url("https://example.com///")
+		val url = "https://example.com///".toUrl()
 		assertEquals("https://example.com", url.value)
 	}
 	
 	@Test
 	fun `whitespace is trimmed`() {
-		val url = Url("  https://example.com  ")
+		val url = "  https://example.com  ".toUrl()
 		assertEquals("https://example.com", url.value)
 	}
 	
 	@Test
 	fun `whitespace and trailing slash both trimmed`() {
-		val url = Url("  https://example.com/  ")
+		val url = "  https://example.com/  ".toUrl()
 		assertEquals("https://example.com", url.value)
 	}
 	
@@ -84,7 +85,7 @@ class UrlTest {
 	@Test
 	fun `blank URL throws`() {
 		val ex = assertFailsWith<IllegalArgumentException> {
-			Url("")
+			"".toUrl()
 		}
 		assertTrue(ex.message!!.contains("blank"))
 	}
@@ -92,7 +93,7 @@ class UrlTest {
 	@Test
 	fun `whitespace-only URL throws`() {
 		val ex = assertFailsWith<IllegalArgumentException> {
-			Url("   ")
+			"   ".toUrl()
 		}
 		assertTrue(ex.message!!.contains("blank"))
 	}
@@ -100,7 +101,7 @@ class UrlTest {
 	@Test
 	fun `invalid URL format throws`() {
 		val ex = assertFailsWith<IllegalArgumentException> {
-			Url("not-a-url")
+			"not-a-url".toUrl()
 		}
 		assertTrue(ex.message!!.contains("Invalid URL"))
 	}
@@ -108,17 +109,17 @@ class UrlTest {
 	@Test
 	fun `non-HTTP scheme throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			Url("ftp://example.com")
+			"ftp://example.com".toUrl()
 		}
 		assertFailsWith<IllegalArgumentException> {
-			Url("file:///etc/passwd")
+			"file:///etc/passwd".toUrl()
 		}
 	}
 	
 	@Test
 	fun `relative URL throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			Url("/relative/path")
+			"/relative/path".toUrl()
 		}
 	}
 	
@@ -129,7 +130,7 @@ class UrlTest {
 	@Test
 	fun `serialize and deserialize roundtrip`() {
 		val json = Json { prettyPrint = false }
-		val original = Url("https://api.test.com")
+		val original = "https://api.test.com".toUrl()
 		val serialized = json.encodeToString(Url.serializer(), original)
 		val deserialized = json.decodeFromString(Url.serializer(), serialized)
 		assertEquals(original.value, deserialized.value)
@@ -141,16 +142,16 @@ class UrlTest {
 	
 	@Test
 	fun `same URLs are equal`() {
-		val a = Url("https://example.com")
-		val b = Url("https://example.com")
+		val a = "https://example.com".toUrl()
+		val b = "https://example.com".toUrl()
 		assertEquals(a, b)
 		assertEquals(a.hashCode(), b.hashCode())
 	}
 	
 	@Test
 	fun `different URLs are not equal`() {
-		val a = Url("https://example.com")
-		val b = Url("https://other.com")
+		val a = "https://example.com".toUrl()
+		val b = "https://other.com".toUrl()
 		assertTrue(a != b)
 	}
 	

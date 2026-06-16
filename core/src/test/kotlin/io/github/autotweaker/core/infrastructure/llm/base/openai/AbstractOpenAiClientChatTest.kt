@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.base.openai
 
-import io.github.autotweaker.api.types.Url
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -93,7 +93,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(createMockHttpClientEngine(responseJson))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(userRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(userRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
 		assertEquals("hello world", results[0].message?.content)
@@ -106,7 +106,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(createMockHttpClientEngine("{}", HttpStatusCode.InternalServerError))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(userRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(userRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
 		assertIs<ChatMessage.ErrorMessage>(results[0].message)
@@ -127,7 +127,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertTrue(results.size >= 3)
 		assertEquals("hello", results[0].message?.content)
@@ -144,7 +144,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		val last = results.last()
 		assertEquals(ChatResult.FinishReason.Type.TOOL, last.finishReason?.type)
@@ -160,7 +160,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(createMockHttpClientEngine("", HttpStatusCode.BadGateway))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
 		assertIs<ChatMessage.ErrorMessage>(results[0].message)
@@ -172,7 +172,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
 		assertIs<ChatMessage.ErrorMessage>(results[0].message)
@@ -186,7 +186,7 @@ class AbstractOpenAiClientChatTest {
 		injectHttpClient(errorEngine)
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
 		assertIs<ChatMessage.ErrorMessage>(results[0].message)
@@ -201,7 +201,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(2, results.size)
 		assertEquals("ok", results[0].message?.content)
@@ -214,7 +214,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertTrue(results.isEmpty())
 	}
@@ -225,7 +225,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertTrue(results.isEmpty())
 	}
@@ -237,7 +237,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		assertEquals(2, results.size)
 		assertEquals("partial", results[0].message?.content)
 		assertIs<ChatResult.Assembled>(results[1])
@@ -251,7 +251,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		val last = results.last()
 		val tc = (last.message as ChatMessage.AssistantMessage).toolCalls
 		assertNotNull(tc)
@@ -266,7 +266,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		val last = results.last()
 		val tc = (last.message as ChatMessage.AssistantMessage).toolCalls
 		assertNotNull(tc)
@@ -279,7 +279,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		injectHttpClient(createMockHttpClientEngine(sseData))
 		
 		val client = DeepSeekClient()
-		val results = client.chat(streamRequest(), "test-key", Url("https://mock.test/v1")).toList()
+		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
 		assertIs<ChatMessage.ErrorMessage>(results[0].message)
