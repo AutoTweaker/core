@@ -50,7 +50,7 @@ class Debug : Command {
 					Syntax.leaf(i18n, Param.Type.FLAG, "setting", Table(), aliases = emptyList()),
 					Syntax.leaf(i18n, Param.Type.FLAG, "jsonStore", Table(), aliases = emptyList()),
 					Syntax.leaf(i18n, Param.Type.FLAG, "sessionData", Table(), aliases = emptyList()),
-					Syntax.leaf(i18n, Param.Type.FLAG, "sessionContext", Table(), aliases = emptyList()),
+					Syntax.leaf(i18n, Param.Type.FLAG, "agentData", Table(), aliases = emptyList()),
 					Syntax.leaf(i18n, Param.Type.FLAG, "sessionMessage", Table(), aliases = emptyList()),
 					Syntax.leaf(i18n, Param.Type.FLAG, "secrets", Table(), aliases = emptyList()),
 				),

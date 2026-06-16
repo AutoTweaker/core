@@ -73,7 +73,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		Launcher.start(version, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
 			logger.info("Initiated AutoTweaker shutdown")
-			runBlocking { Launcher.shutdown(registry) }
+			runBlocking { Launcher.shutdown(registry.values.toList()) }
 			PluginLoader.closeClassLoaders()
 			releaseLock()
 			logger.info("Completed AutoTweaker shutdown")

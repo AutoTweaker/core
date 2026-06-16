@@ -35,7 +35,7 @@ class DebugHandler(
 	companion object {
 		private val TABLES = listOf(
 			"setting", "jsonStore", "sessionData",
-			"sessionContext", "sessionMessage", "secrets"
+			"agentData", "sessionMessage", "secrets"
 		)
 	}
 	
@@ -84,7 +84,7 @@ class DebugHandler(
 		"setting" -> debug.setting
 		"jsonStore" -> debug.jsonStore
 		"sessionData" -> debug.sessionData
-		"sessionContext" -> debug.sessionContext
+		"agentData" -> debug.agentData
 		"sessionMessage" -> debug.sessionMessage
 		"secrets" -> debug.secrets
 		else -> error("Unknown table: $table")
@@ -109,15 +109,18 @@ class DebugHandler(
 			"sessionData" -> SessionDataEntry(
 				key,
 				prompt("title: ", true),
+				prompt("overview: ", true),
+				prompt("model: ", true),
 				prompt("workspaceId: ", true),
-				prompt("config: ", true)
+				prompt("agentIndex: ", true)
 			)
 			
-			"sessionContext" -> SessionContextEntry(
+			"agentData" -> AgentDataEntry(
 				key,
-				prompt("systemPrompt: ", true),
-				prompt("index: ", true),
-				prompt("droppedMessages: ", true)
+				prompt("name: ", true),
+				prompt("model: ", true),
+				prompt("context: ", true),
+				prompt("activeTools: ", true)
 			)
 			
 			"sessionMessage" -> SessionMessageEntry(

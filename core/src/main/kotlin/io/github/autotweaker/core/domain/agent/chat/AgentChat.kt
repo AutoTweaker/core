@@ -40,24 +40,24 @@ object AgentChat {
 		logger.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  thinking={}  messages={}",
 			agentId,
-			request.model.modelInfo.modelId,
-			request.fallbackModels?.size,
-			request.thinking,
+			request.model.model.modelInfo.modelId,
+			request.model.fallback?.size,
+			request.model.thinking,
 			messages.size,
 		)
 		
 		val modelById = buildMap {
-			put(request.model.id, request.model)
-			request.fallbackModels?.forEach { put(it.id, it) }
+			put(request.model.model.id, request.model.model)
+			request.model.fallback?.forEach { put(it.id, it) }
 		}
 		
 		val results = ResilientChat.execute(
-			model = request.model,
-			fallbackModels = request.fallbackModels,
+			model = request.model.model,
+			fallbackModels = request.model.fallback,
 			messages = messages,
 			tools = request.tools,
 			stream = true,
-			thinking = request.thinking,
+			thinking = request.model.thinking,
 		)
 		
 		val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
@@ -100,7 +100,7 @@ object AgentChat {
 						}
 						
 						is ChatMessage.AssistantMessage -> {
-							val resultModel = modelById[resilientResult.model] ?: request.model
+							val resultModel = modelById[resilientResult.model] ?: request.model.model
 							val snapshot = result.usage?.let { usage ->
 								UsageSnapshot(usage, resultModel.modelInfo)
 							}
