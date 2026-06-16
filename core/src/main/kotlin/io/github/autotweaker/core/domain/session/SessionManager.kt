@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
@@ -98,7 +99,7 @@ object SessionManager {
 	
 	suspend fun updateTitle(session: UUID, title: String) =
 		getOrRestore(session).updateTitle(title).andLog(logger)
-		{ debug("Updated session title  session={}  title={}", session, title) }
+		{ debug("Updated session title  session={}  title={}", session, title) }.discard()
 	
 	
 	suspend fun create(model: ModelConfig) = create(wsm.getDefault().meta.id, model)
@@ -106,34 +107,6 @@ object SessionManager {
 	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids)
 	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
 	suspend fun loadAgent(id: UUID) = store.loadAgent(id)
-	
-	
-	private suspend fun getOrRestore(id: UUID): Session = sessions[id] ?: restore(id)
-	
-	private suspend fun restore(id: UUID): Session {
-		val data = store.loadSessions(listOf(id)).firstOrNull() ?: error("Session not found: $id")
-		val workspaceId = data.workspaceId
-		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
-		if (!Files.isDirectory(workspaceMeta.path)) {
-			error("Workspace directory does not exist: ${workspaceMeta.path}")
-		}
-		return Session(
-			data = data,
-			store = store,
-			resolveModel = ::resolveModel,
-			workspace = workspaceMeta,
-			service = Settings,
-			containerConfig = ContainerConfig(),
-			secretStore = secretStore,
-		).init(
-			systemPrompt = systemPrompt,
-			activeTools = emptyList()
-		)
-			.listen()
-			.also { sessions[data.id] = it }
-			.andLog(logger)
-			{ info("Restored session  sessionId={}  workspaceId={}", it.data.value.id, workspaceId) }
-	}
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID {
 		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
@@ -167,6 +140,32 @@ object SessionManager {
 		return data.id
 	}
 	
+	private suspend fun getOrRestore(id: UUID): Session = sessions[id] ?: restore(id)
+	
+	private suspend fun restore(id: UUID): Session {
+		val data = store.loadSessions(listOf(id)).firstOrNull() ?: error("Session not found: $id")
+		val workspaceId = data.workspaceId
+		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
+		if (!Files.isDirectory(workspaceMeta.path)) {
+			error("Workspace directory does not exist: ${workspaceMeta.path}")
+		}
+		return Session(
+			data = data,
+			store = store,
+			resolveModel = ::resolveModel,
+			workspace = workspaceMeta,
+			service = Settings,
+			containerConfig = ContainerConfig(),
+			secretStore = secretStore,
+		).init(
+			systemPrompt = systemPrompt,
+			activeTools = emptyList()
+		)
+			.listen()
+			.also { sessions[data.id] = it }
+			.andLog(logger)
+			{ info("Restored session  sessionId={}  workspaceId={}", it.data.value.id, workspaceId) }
+	}
 	
 	private fun Session.toHandle() = SessionHandle(
 		data = data,

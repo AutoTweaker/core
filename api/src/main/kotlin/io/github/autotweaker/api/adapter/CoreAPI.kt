@@ -23,9 +23,9 @@ import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.trace.TraceRecorder
-import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
@@ -34,7 +34,6 @@ import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.*
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
-import io.github.autotweaker.api.types.tool.ToolApprove
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,33 +64,22 @@ interface CoreAPI {
 	interface SessionAPI {
 		val defaultWorkspaceId: UUID
 		
-		suspend fun create(config: SessionConfig): UUID
-		suspend fun create(workspaceId: UUID, config: SessionConfig): UUID
-		suspend fun delete(sessionId: UUID)
+		suspend fun create(model: ModelConfig): UUID
+		suspend fun create(workspaceId: UUID, model: ModelConfig): UUID
+		suspend fun delete(sessionId: UUID): Boolean
 		suspend fun getHandle(sessionId: UUID): SessionHandle
 		suspend fun updateTitle(sessionId: UUID, title: String)
-		suspend fun updateConfig(sessionId: UUID, config: SessionConfig)
-		
-		suspend fun stop(sessionId: UUID)
-		suspend fun pause(sessionId: UUID)
-		suspend fun resume(sessionId: UUID)
-		suspend fun cancel(sessionId: UUID)
-		suspend fun retry(sessionId: UUID)
-		suspend fun compact(sessionId: UUID)
-		
-		suspend fun send(sessionId: UUID, content: String, images: List<Base64>? = null)
-		suspend fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>)
 		
 		suspend fun loadData(ids: List<UUID>): List<SessionData>
-		suspend fun loadContext(sessionId: UUID): SessionContext?
+		suspend fun loadAgent(id: UUID): AgentData?
 		suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>
 		
-		suspend fun getUsageSnapshots(): List<UsageSnapshot>
+		suspend fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
 		
-		fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
-		fun renameWorkspace(id: UUID, newName: String)
-		suspend fun deleteWorkspace(id: UUID)
-		fun listWorkspaces(): List<WorkspaceData>
+		suspend fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
+		suspend fun renameWorkspace(id: UUID, newName: String)
+		suspend fun deleteWorkspace(id: UUID): Boolean
+		suspend fun listWorkspaces(): List<WorkspaceData>
 		
 		fun isContainerRunning(): Boolean
 	}

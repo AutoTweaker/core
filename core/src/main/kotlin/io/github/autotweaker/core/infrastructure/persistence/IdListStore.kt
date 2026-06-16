@@ -37,44 +37,44 @@ class IdListStore<T : Any>(
 	private val className = kClass.qualifiedName
 	
 	private val listSerializer = ListSerializer(serializer)
-	private val itemsRef = AtomicReference<List<T>>(emptyList())
+	private val items = AtomicReference<List<T>>(emptyList())
 	
 	init {
 		val jsonArray = jsonEntry.get()
-		itemsRef.set(
+		items.set(
 			if (jsonArray == null) emptyList()
 			else Json.decodeFromJsonElement(listSerializer, jsonArray)
 		)
-		logger.info("Initialized IdListStore  count={}  class={}", itemsRef.get().size, className)
+		logger.info("Initialized IdListStore  count={}  class={}", items.get().size, className)
 	}
 	
 	@Synchronized
 	fun add(data: T) {
 		val id = idOf(data)
-		if (itemsRef.get().any { idOf(it) == id }) error("Already exists  id=$id")
-		update(itemsRef.get() + data)
+		if (items.get().any { idOf(it) == id }) error("Already exists  id=$id")
+		update(items.get() + data)
 		logger.debug("Added item  id={}  class={}", id, className)
 	}
 	
-	fun get(): List<T> = itemsRef.get()
+	fun get(): List<T> = items.get()
 	
-	fun get(id: UUID): T? = itemsRef.get().find { idOf(it) == id }
+	fun get(id: UUID): T? = items.get().find { idOf(it) == id }
 	
 	@Synchronized
 	fun delete(id: UUID) {
-		update(itemsRef.get().filterNot { idOf(it) == id })
+		update(items.get().filterNot { idOf(it) == id })
 		logger.debug("Deleted item  id={}  class={}", id, className)
 	}
 	
 	@Synchronized
 	fun override(data: T) {
 		val id = idOf(data)
-		update(itemsRef.get().map { if (idOf(it) == id) data else it })
+		update(items.get().map { if (idOf(it) == id) data else it })
 		logger.debug("Overridden item  id={}  class={}", id, className)
 	}
 	
 	private fun update(new: List<T>) {
-		itemsRef.set(new)
+		items.set(new)
 		jsonEntry.set(Json.encodeToJsonElement(listSerializer, new))
 	}
 }

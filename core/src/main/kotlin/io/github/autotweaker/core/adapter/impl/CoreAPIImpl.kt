@@ -22,7 +22,6 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.config.CoreConfig
@@ -33,10 +32,10 @@ import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
+import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
-import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.application.LogBus
@@ -81,36 +80,24 @@ class CoreAPIImpl(
 	
 	override val session = object : CoreAPI.SessionAPI {
 		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
-		override suspend fun create(config: SessionConfig) = SessionManager.create(config)
-		override suspend fun create(workspaceId: UUID, config: SessionConfig) =
-			SessionManager.create(workspaceId, config)
+		override suspend fun create(model: ModelConfig) = SessionManager.create(model)
+		override suspend fun create(workspaceId: UUID, model: ModelConfig) =
+			SessionManager.create(workspaceId, model)
 		
 		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
-		override suspend fun send(sessionId: UUID, content: String, images: List<Base64>?) =
-			SessionManager.send(sessionId, content, images)
-		
-		override suspend fun stop(sessionId: UUID) = SessionManager.stop(sessionId)
-		override suspend fun pause(sessionId: UUID) = SessionManager.pauseAgent(sessionId)
-		override suspend fun resume(sessionId: UUID) = SessionManager.resumeAgent(sessionId)
-		override suspend fun cancel(sessionId: UUID) = SessionManager.cancelAgent(sessionId)
-		override suspend fun retry(sessionId: UUID) = SessionManager.retryAgent(sessionId)
-		override suspend fun compact(sessionId: UUID) = SessionManager.compactAgent(sessionId)
-		override suspend fun approveToolCall(sessionId: UUID, approvals: List<ToolApprove>) =
-			SessionManager.approveToolCall(sessionId, approvals)
 		
 		override suspend fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
 		override suspend fun updateTitle(sessionId: UUID, title: String) = SessionManager.updateTitle(sessionId, title)
-		override suspend fun updateConfig(sessionId: UUID, config: SessionConfig) =
-			SessionManager.updateConfig(sessionId, config)
 		
 		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
-		override suspend fun loadContext(sessionId: UUID) = SessionManager.loadContext(sessionId)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
+		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
 		override suspend fun getUsageSnapshots() = UsageStore.getSnapshots()
-		override fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
-		override fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
+		
+		override suspend fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
+		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
-		override fun listWorkspaces() = WorkspaceAPI.list()
+		override suspend fun listWorkspaces() = WorkspaceAPI.list()
 		override fun isContainerRunning(): Boolean = SessionManager.isContainerRunning()
 	}
 	
