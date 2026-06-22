@@ -20,4 +20,5 @@ package io.github.autotweaker.api
 
 import org.slf4j.Logger
 
-inline fun <T> T.andLog(logger: Logger, crossinline log: Logger.(T) -> Unit): T = also { logger.log(this) }
+inline fun <T> T.andLog(logger: Logger, crossinline log: Logger.(T) -> Unit): T =
+	also { logger.log(this) }

@@ -18,10 +18,13 @@
 
 package io.github.autotweaker.core.domain.session
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
@@ -31,6 +34,7 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
+import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
@@ -39,9 +43,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 object SessionManager : Loggable, Traceable, Settable {
-	//region 初始化
-	
-	private val systemPrompt = setting.get(SessionSettings.SystemPrompt()).value
+	private val systemPrompt = setting.get(SystemPrompt()).value
 	
 	private val wsm = WorkspaceManager
 	
@@ -59,7 +61,7 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	private val sessions = ConcurrentHashMap<UUID, Session>()
 	private val listener = ConcurrentHashMap<UUID, Job>()
-	//endregion
+	
 	
 	suspend fun shutdown() {
 		log.info("Initiated SessionManager shutdown  activeSessions={}", sessions.size)
@@ -179,4 +181,10 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	private suspend fun resolveModel(id: UUID): Model =
 		modelRepo.resolve(id) ?: error("Unknown model: $id")
+	
+	@AutoService(SettingDef::class)
+	class SystemPrompt : SettingDef<SettingValue.ValString> {
+		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("system")) }
+		override val description = "系统提示词，作用于整个项目"
+	}
 }
