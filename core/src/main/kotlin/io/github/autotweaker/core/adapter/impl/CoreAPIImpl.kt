@@ -19,8 +19,6 @@
 package io.github.autotweaker.core.adapter.impl
 
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -36,7 +34,6 @@ import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
-import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.application.LogBus
 import io.github.autotweaker.core.application.ShellRouter
@@ -53,15 +50,11 @@ import io.github.autotweaker.core.infrastructure.persistence.LogStore
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
-import kotlin.reflect.KClass
 import kotlin.time.Instant
 
 class CoreAPIImpl(
@@ -102,8 +95,6 @@ class CoreAPIImpl(
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
-		override val settingService: SettingService = Settings
-		override fun jsonStore(kClass: KClass<*>) = JsonStoreImpl.namespace(kClass)
 		override suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
 		override suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
 		override suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
@@ -144,7 +135,6 @@ class CoreAPIImpl(
 	}
 	
 	override val i18n = object : CoreAPI.I18nAPI {
-		override val i18nService: I18nService = I18nServiceImpl
 		override fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)
 		override fun getTranslationModel(): UUID? = TranslationManager.getModel()
 		override fun startTranslation() = TranslationManager.startTranslation()
@@ -171,7 +161,6 @@ class CoreAPIImpl(
 			LogStore.readLogs(start, end)
 	}
 	
-	override fun trace(kClass: KClass<*>) = TraceRecorderImpl.recorder(kClass)
 	override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
 	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter.exec(arg)
 }

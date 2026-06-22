@@ -18,11 +18,7 @@
 
 package io.github.autotweaker.api.adapter
 
-import io.github.autotweaker.api.config.JsonStore
-import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
@@ -38,7 +34,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
-import kotlin.reflect.KClass
 import kotlin.time.Instant
 
 interface CoreAPI {
@@ -52,8 +47,7 @@ interface CoreAPI {
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	fun bash(arg: ShellExec): Flow<ShellEvent>
-	fun trace(kClass: KClass<*>): TraceRecorder
-	
+
 	interface AdapterAPI {
 		suspend fun list(): List<AdapterInfo>
 		suspend fun start(name: String)
@@ -85,9 +79,7 @@ interface CoreAPI {
 	}
 	
 	interface ConfigAPI {
-		val settingService: SettingService
-		fun jsonStore(kClass: KClass<*>): JsonStore
-		
+						
 		suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
 		suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
 		suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>)
@@ -128,8 +120,7 @@ interface CoreAPI {
 	}
 	
 	interface I18nAPI {
-		val i18nService: I18nService
-		
+				
 		fun setTranslationModel(modelId: UUID?)
 		fun getTranslationModel(): UUID?
 		
