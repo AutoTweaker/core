@@ -18,22 +18,23 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import java.nio.file.Files
 import java.nio.file.Path
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 
-object TraceCleanup : Loggable {
+object TraceCleanup : Loggable, Settable {
 	private val dbFilePath =
 		Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database", "Traces.mv.db")
 	
 	fun cleanup() {
-		val maxAgeDays = Settings.get(TraceSettings.MaxAgeDays()).value
-		val maxEntriesPerNs = Settings.get(TraceSettings.MaxEntriesPerNamespace()).value
-		val maxTotalEntries = Settings.get(TraceSettings.MaxTotalEntries()).value
-		val maxDbSizeMB = Settings.get(TraceSettings.MaxDbSizeMB()).value
-		val batchSize = Settings.get(TraceSettings.CleanupBatchSize()).value
+		val maxAgeDays = setting.get(TraceSettings.MaxAgeDays()).value
+		val maxEntriesPerNs = setting.get(TraceSettings.MaxEntriesPerNamespace()).value
+		val maxTotalEntries = setting.get(TraceSettings.MaxTotalEntries()).value
+		val maxDbSizeMB = setting.get(TraceSettings.MaxDbSizeMB()).value
+		val batchSize = setting.get(TraceSettings.CleanupBatchSize()).value
 		
 		var cleanupCount = 0
 		

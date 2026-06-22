@@ -19,12 +19,16 @@
 package io.github.autotweaker.core.domain.tool.impl.read
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.tool.args.ReadArgs
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.get
@@ -37,74 +41,65 @@ import kotlinx.coroutines.channels.Channel
 import java.nio.file.Path
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 @AutoService(CoreTool::class)
-class Read : CoreTool<ReadArgs>, Loggable, Traceable {
-	private lateinit var settings: SettingService
+class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	
 	override val argsSerializer = ReadArgs.serializer()
 	override val name = "read"
-	override val description get() = settings.get(ReadSettings.DescriptionSetting()).value
+	override val description get() = setting.get(ReadSettings.DescriptionSetting()).value
 	
 	override suspend fun describe(): Map<KProperty1<*, *>, String> = mapOf(
-		ReadArgs.File::filePath to settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
-		ReadArgs.File::startLine to settings.get(ReadSettings.StartLinePropDescriptionSetting()).value,
-		ReadArgs.File::endLine to settings.get(ReadSettings.EndLinePropDescriptionSetting()).value,
-		ReadArgs.File::lineNumber to settings.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
-		ReadArgs.Summarize::filePath to settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
-		ReadArgs.Summarize::startLine to settings.get(ReadSettings.StartLinePropDescriptionSetting()).value,
-		ReadArgs.Summarize::endLine to settings.get(ReadSettings.EndLinePropDescriptionSetting()).value,
-		ReadArgs.Summarize::prompt to settings.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
-		ReadArgs.Unicode::filePath to settings.get(ReadSettings.FilePathPropDescriptionSetting()).value,
-		ReadArgs.Unicode::maxChars to settings.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting())
-			.value.format(settings.get(ReadSettings.UnicodeMaxCharsSetting()).value),
+		ReadArgs.File::filePath to setting.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		ReadArgs.File::startLine to setting.get(ReadSettings.StartLinePropDescriptionSetting()).value,
+		ReadArgs.File::endLine to setting.get(ReadSettings.EndLinePropDescriptionSetting()).value,
+		ReadArgs.File::lineNumber to setting.get(ReadSettings.LineNumberPropDescriptionSetting()).value,
+		ReadArgs.Summarize::filePath to setting.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		ReadArgs.Summarize::startLine to setting.get(ReadSettings.StartLinePropDescriptionSetting()).value,
+		ReadArgs.Summarize::endLine to setting.get(ReadSettings.EndLinePropDescriptionSetting()).value,
+		ReadArgs.Summarize::prompt to setting.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
+		ReadArgs.Unicode::filePath to setting.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		ReadArgs.Unicode::maxChars to setting.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting())
+			.value.format(setting.get(ReadSettings.UnicodeMaxCharsSetting()).value),
 	)
 	
 	override suspend fun describeFunctions(): Map<KClass<*>, String> = mapOf(
-		ReadArgs.File::class to settings.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
-			settings.get(ReadSettings.FileMaxCharsSetting()).value,
-			settings.get(ReadSettings.FileMaxLinesSetting()).value
+		ReadArgs.File::class to setting.get(ReadSettings.FileFuncDescriptionSetting()).value.format(
+			setting.get(ReadSettings.FileMaxCharsSetting()).value,
+			setting.get(ReadSettings.FileMaxLinesSetting()).value
 		),
-		ReadArgs.Summarize::class to settings.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
-			settings.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
-			settings.get(ReadSettings.SummarizeMinCharsSetting()).value,
-			settings.get(ReadSettings.SummarizeMaxLinesSetting()).value
+		ReadArgs.Summarize::class to setting.get(ReadSettings.SummarizeFuncDescriptionSetting()).value.format(
+			setting.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
+			setting.get(ReadSettings.SummarizeMinCharsSetting()).value,
+			setting.get(ReadSettings.SummarizeMaxLinesSetting()).value
 		),
-		ReadArgs.Unicode::class to settings.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
+		ReadArgs.Unicode::class to setting.get(ReadSettings.UnicodeFuncDescriptionSetting()).value,
 	)
 	
-	override suspend fun init(service: SettingService, secretStore: SecretStore) {
-		settings = service
-	}
 	
 	override suspend fun coreExec(
 		container: SimpleContainer,
 		args: ReadArgs,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput {
-		val s = settings
-		val filePath = when (args) {
+				val filePath = when (args) {
 			is ReadArgs.File -> args.filePath
 			is ReadArgs.Summarize -> args.filePath
 			is ReadArgs.Unicode -> args.filePath
 		}
 		val fs = container.get<FileSystemService>()
 		val normalizedPath = trace.catching { fs.normalize(filePath) }
-			.getOrElse { return Tool.ToolOutput(s.get(ToolSettings.PathErrorMessage()).value, false) }
+			.getOrElse { return Tool.ToolOutput(setting.get(ToolSettings.PathErrorMessage()).value, false) }
 		try {
 			if (!fs.exists(normalizedPath)) {
-				return Tool.ToolOutput(s.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
+				return Tool.ToolOutput(setting.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
 			}
 			if (!fs.isRegularFile(normalizedPath)) {
-				return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
+				return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 			}
 		} catch (e: FileSystemService.PathOutsideWorkspaceException) {
 			trace.exception(e)
-			return Tool.ToolOutput(s.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
+			return Tool.ToolOutput(setting.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
 		}
 		
 		log.debug("Started read tool  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
@@ -112,46 +107,45 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		return when (args) {
 			is ReadArgs.File -> {
 				if (args.startLine < 1) return Tool.ToolOutput(
-					s.get(ReadSettings.MessageStartLineErrorSetting()).value, false
+					setting.get(ReadSettings.MessageStartLineErrorSetting()).value, false
 				)
 				if (args.endLine < args.startLine) return Tool.ToolOutput(
-					s.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false
+					setting.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false
 				)
-				executeFile(s, container, fs, normalizedPath, args)
+				executeFile(container, fs, normalizedPath, args)
 			}
 			
 			is ReadArgs.Summarize -> {
 				if (args.startLine < 1) return Tool.ToolOutput(
-					s.get(ReadSettings.MessageStartLineErrorSetting()).value, false
+					setting.get(ReadSettings.MessageStartLineErrorSetting()).value, false
 				)
 				if (args.endLine < args.startLine) return Tool.ToolOutput(
-					s.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false
+					setting.get(ReadSettings.MessageStartLineBiggerThanEndSetting()).value, false
 				)
-				executeSummarize(s, container, fs, normalizedPath, args)
+				executeSummarize(container, fs, normalizedPath, args)
 			}
 			
 			is ReadArgs.Unicode -> {
-				val unicodeMaxChars = s.get(ReadSettings.UnicodeMaxCharsSetting()).value
+				val unicodeMaxChars = setting.get(ReadSettings.UnicodeMaxCharsSetting()).value
 				if (args.maxChars > unicodeMaxChars) {
 					return Tool.ToolOutput(
-						s.get(ReadSettings.UnicodeMessageTooManyCharsSetting()).value.format(unicodeMaxChars), false
+						setting.get(ReadSettings.UnicodeMessageTooManyCharsSetting()).value.format(unicodeMaxChars), false
 					)
 				}
-				executeUnicode(s, fs, normalizedPath, args.maxChars)
+				executeUnicode(fs, normalizedPath, args.maxChars)
 			}
 		}
 	}
 	
 	private suspend fun executeFile(
-		s: SettingService,
-		container: SimpleContainer,
+				container: SimpleContainer,
 		fs: FileSystemService,
 		normalizedPath: Path,
 		args: ReadArgs.File,
 	): Tool.ToolOutput {
-		val fileMaxLines = s.get(ReadSettings.FileMaxLinesSetting()).value
+		val fileMaxLines = setting.get(ReadSettings.FileMaxLinesSetting()).value
 		if (args.endLine - args.startLine + 1 > fileMaxLines) {
-			return Tool.ToolOutput(s.get(ReadSettings.MessageTooManyLinesSetting()).value.format(fileMaxLines), false)
+			return Tool.ToolOutput(setting.get(ReadSettings.MessageTooManyLinesSetting()).value.format(fileMaxLines), false)
 		}
 		val content = try {
 			readFileContent(
@@ -159,8 +153,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				normalizedPath,
 				args.startLine,
 				args.endLine,
-				maxChars = s.get(ReadSettings.FileMaxCharsSetting()).value,
-				truncateMessage = s.get(ReadSettings.FileMessageTruncateSetting()).value,
+				maxChars = setting.get(ReadSettings.FileMaxCharsSetting()).value,
+				truncateMessage = setting.get(ReadSettings.FileMessageTruncateSetting()).value,
 				lineNumber = args.lineNumber
 			)
 		} catch (e: CancellationException) {
@@ -168,10 +162,10 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			throw e
 		} catch (e: IllegalStateException) {
 			trace.exception(e)
-			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
+			return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
 		val sha256 = trace.catching { fs.sha256(normalizedPath) }
-			.getOrElse { return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
+			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		
 		val history = container.get<ToolCallHistory>()
 		val previousReads = history.getAll(name, ReadArgs.serializer())
@@ -183,22 +177,21 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256 && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
 				}.getOrDefault(false)
 			}) {
-			return Tool.ToolOutput(s.get(ReadSettings.FileMessageDuplicateSetting()).value.format(sha256), true)
+			return Tool.ToolOutput(setting.get(ReadSettings.FileMessageDuplicateSetting()).value.format(sha256), true)
 		}
 		return Tool.ToolOutput("$sha256\n$content", true)
 	}
 	
 	private suspend fun executeSummarize(
-		s: SettingService,
-		container: SimpleContainer,
+				container: SimpleContainer,
 		fs: FileSystemService,
 		normalizedPath: Path,
 		args: ReadArgs.Summarize,
 	): Tool.ToolOutput {
-		val summarizeMaxLines = s.get(ReadSettings.SummarizeMaxLinesSetting()).value
+		val summarizeMaxLines = setting.get(ReadSettings.SummarizeMaxLinesSetting()).value
 		if (args.endLine - args.startLine + 1 > summarizeMaxLines) {
 			return Tool.ToolOutput(
-				s.get(ReadSettings.MessageTooManyLinesSetting()).value.format(summarizeMaxLines), false
+				setting.get(ReadSettings.MessageTooManyLinesSetting()).value.format(summarizeMaxLines), false
 			)
 		}
 		val content = try {
@@ -207,8 +200,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				normalizedPath,
 				args.startLine,
 				args.endLine,
-				maxChars = s.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
-				truncateMessage = s.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
+				maxChars = setting.get(ReadSettings.SummarizeMaxInputCharsSetting()).value,
+				truncateMessage = setting.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false
 			)
 		} catch (e: CancellationException) {
@@ -216,30 +209,30 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			throw e
 		} catch (e: IllegalStateException) {
 			trace.exception(e)
-			return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
+			return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 		}
-		val summarizeMinChars = s.get(ReadSettings.SummarizeMinCharsSetting()).value
+		val summarizeMinChars = setting.get(ReadSettings.SummarizeMinCharsSetting()).value
 		if (content.length < summarizeMinChars) {
 			return Tool.ToolOutput(
-				s.get(ReadSettings.SummarizeMessageTooFewSetting()).value.format(
+				setting.get(ReadSettings.SummarizeMessageTooFewSetting()).value.format(
 					content.length, summarizeMinChars
 				), false
 			)
 		}
-		val summarizePrompt = s.get(ReadSettings.SummarizePromptSetting()).value
+		val summarizePrompt = setting.get(ReadSettings.SummarizePromptSetting()).value
 		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		val summarizeService = container.get<SummarizeService>()
 		val output = trace.catching { summarizeService.summarize(content, prompt) }
 			.getOrElse { e ->
 				return Tool.ToolOutput(
-					s.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message),
+					setting.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message),
 					false
 				)
 			}
-		val summarizeMaxOutputChars = s.get(ReadSettings.SummarizeMaxOutputCharsSetting()).value
+		val summarizeMaxOutputChars = setting.get(ReadSettings.SummarizeMaxOutputCharsSetting()).value
 		return if (output.length > summarizeMaxOutputChars) {
 			Tool.ToolOutput(
-				output.take(summarizeMaxOutputChars) + s.get(ReadSettings.SummarizeMessageOutputTruncateSetting()).value.format(
+				output.take(summarizeMaxOutputChars) + setting.get(ReadSettings.SummarizeMessageOutputTruncateSetting()).value.format(
 					output.length
 				), true
 			)
@@ -249,13 +242,12 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	}
 	
 	private suspend fun executeUnicode(
-		s: SettingService,
-		fs: FileSystemService,
+				fs: FileSystemService,
 		normalizedPath: Path,
 		maxChars: Int,
 	): Tool.ToolOutput {
 		val allUnicode: List<Unicode> = trace.catching { fs.readUnicode(normalizedPath) }
-			.getOrElse { return Tool.ToolOutput(s.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
+			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		return Tool.ToolOutput(allUnicode.take(maxChars).joinToString("") { it.value }, true)
 	}
 	

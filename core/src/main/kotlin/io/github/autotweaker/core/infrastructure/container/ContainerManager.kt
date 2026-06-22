@@ -24,7 +24,6 @@ import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -35,11 +34,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.config.JsonStorable
 import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 
-object ContainerManager : Loggable, JsonStorable {
+object ContainerManager : Loggable, JsonStorable, Settable {
 	private val mutex = Mutex()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
@@ -68,7 +69,7 @@ object ContainerManager : Loggable, JsonStorable {
 			return
 		}
 		imagePullJob = scope.async {
-			val image = Settings.get(ContainerSettings.DockerImage()).value
+			val image = setting.get(ContainerSettings.DockerImage()).value
 			service.pullImage(image)
 		}
 	}
@@ -76,7 +77,7 @@ object ContainerManager : Loggable, JsonStorable {
 	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ensureRunning() = mutex.withLock {
 		if (_containerId != null) return@withLock
-		val image = Settings.get(ContainerSettings.DockerImage()).value
+		val image = setting.get(ContainerSettings.DockerImage()).value
 		val job = imagePullJob
 		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null) {
 			log.warn("Failed image pull, retried  image={}", image)
@@ -84,7 +85,7 @@ object ContainerManager : Loggable, JsonStorable {
 		}
 		imagePullJob?.await()
 		val containerConfig =
-			ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
+			ContainerConfig(name = setting.get(ContainerSettings.ContainerName()).value, env = getEnv())
 		log.debug("Initiated container start  image={}", image)
 		_containerId = service.start(image, containerConfig)
 			.andLog(log) { info("Started container  containerId={}", it) }
@@ -108,7 +109,7 @@ object ContainerManager : Loggable, JsonStorable {
 		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
 	): Flow<ShellEvent> = flow {
 		if (!containerAccess) {
-			val msg = Settings.get(ContainerSettings.AccessDeniedMessage()).value
+			val msg = setting.get(ContainerSettings.AccessDeniedMessage()).value
 			emit(ShellEvent.Stderr("$msg\n"))
 			emit(ShellEvent.Exit(ShellResult(exitCode = 1, timeout = false, duration = Duration.ZERO)))
 			return@flow

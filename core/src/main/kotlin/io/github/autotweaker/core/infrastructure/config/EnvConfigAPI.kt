@@ -24,7 +24,6 @@ import io.github.autotweaker.core.domain.port.EnvRepository
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
 
@@ -35,7 +34,7 @@ object EnvConfigAPI : EnvRepository, Loggable {
 	
 	suspend fun init(secretStore: SecretStore) {
 		secret = secretStore
-		bash.init(Settings, secret)
+		bash.init(secret)
 	}
 	
 	

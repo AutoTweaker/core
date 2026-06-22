@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.config.SettingValue
@@ -41,9 +40,6 @@ class ToolAssemblerTest {
 		}
 	}
 	
-	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
-		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-	}
 	
 	// region test data
 	
@@ -105,7 +101,7 @@ class ToolAssemblerTest {
 		tools.map { Tools.buildToolInfo(it, true) }
 	
 	private fun assemble(tools: List<Tool<ToolArgs>>) = runBlocking {
-		ToolAssembler.assemble(tools, activeInfo(tools), defaultSettings)
+		ToolAssembler.assemble(tools, activeInfo(tools))
 	}
 	
 	// endregion
@@ -114,7 +110,7 @@ class ToolAssemblerTest {
 	
 	@Test
 	fun `empty tools returns null`() = runBlocking {
-		val result = ToolAssembler.assemble(emptyList(), emptyList(), defaultSettings)
+		val result = ToolAssembler.assemble(emptyList(), emptyList())
 		assertNull(result)
 	}
 	
@@ -278,8 +274,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		assertEquals("boolean", props["flag"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 	}
@@ -300,8 +295,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val items = props["items"]?.jsonObject!!
 		assertEquals("array", items["type"]?.jsonPrimitive?.content)
@@ -324,8 +318,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val config = props["config"]?.jsonObject!!
 		assertEquals("object", config["type"]?.jsonPrimitive?.content)
@@ -357,8 +350,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val inner = props["inner"]?.jsonObject!!
 		assertEquals("object", inner["type"]?.jsonPrimitive?.content)
@@ -389,8 +381,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		assertEquals("number", props["ratio"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 	}
@@ -414,8 +405,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val nested = props["nested"]?.jsonObject!!
 		assertEquals("object", nested["type"]?.jsonPrimitive?.content)
@@ -464,8 +454,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val required = result!![0].parameters.jsonObject["required"]?.jsonArray
 		val requiredNames = required!!.map { it.jsonPrimitive.content }
 		assertEquals(1, requiredNames.size)
@@ -491,8 +480,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-			defaultSettings
-		)
+					)
 		val required = result!![0].parameters.jsonObject["required"]?.jsonArray
 		val requiredNames = required!!.map { it.jsonPrimitive.content }.toSet()
 		assertTrue(requiredNames.contains("a"))

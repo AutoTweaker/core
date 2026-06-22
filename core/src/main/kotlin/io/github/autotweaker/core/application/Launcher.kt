@@ -84,7 +84,7 @@ object Launcher : Loggable, Traceable {
 		SessionDataDbApi.init(databaseStore)
 		AgentDataDbApi.init(databaseStore)
 		SessionMessageDbApi.init(databaseStore)
-		SecretManager.init(Settings)
+		SecretManager.init()
 		DbDebugAPIImpl.init(databaseStore)
 		TraceStore.init(databaseStore)
 		TraceRecorderImpl.init()
@@ -97,7 +97,7 @@ object Launcher : Loggable, Traceable {
 		
 		Wiring.init()
 		
-		TranslationManager.init(ModelRepositoryImpl, Settings, I18nServiceImpl)
+		TranslationManager.init(ModelRepositoryImpl, I18nServiceImpl)
 		TranslationManager.startTranslation()
 		
 		val all = PluginLoader.load<Adapter>().map { it to it.load(version) }

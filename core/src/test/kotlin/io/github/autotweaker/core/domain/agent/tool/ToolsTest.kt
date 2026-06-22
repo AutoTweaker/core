@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.config.SettingValue
@@ -48,9 +47,6 @@ class ToolsTest {
 	}
 	
 	private val agentId = UUID.randomUUID()
-	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
-		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-	}
 	
 	// region helpers
 	
@@ -87,7 +83,6 @@ class ToolsTest {
 	
 	private fun makeTools(tools: List<Tool<ToolArgs>>, toolInfo: List<ToolInfo>) = Tools(
 		toolInfo = toolInfo,
-		service = defaultSettings,
 		tools = tools,
 		agentId = agentId,
 	)

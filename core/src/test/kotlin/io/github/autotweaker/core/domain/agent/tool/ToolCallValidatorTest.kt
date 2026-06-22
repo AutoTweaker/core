@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.config.SettingValue
@@ -39,11 +38,8 @@ class ToolCallValidatorTest {
 		}
 	}
 	
-	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
-		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-	}
 	
-	private val validator = ToolCallValidator(defaultSettings)
+	private val validator = ToolCallValidator()
 	
 	// region test data
 	

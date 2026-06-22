@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -32,6 +31,8 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
@@ -39,9 +40,8 @@ import io.github.autotweaker.api.trace.trace
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
-	private val service: SettingService,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) : Loggable, Traceable {
+) : Loggable, Traceable, Settable {
 	
 	@Volatile
 	private var toolJob: Job? = null
@@ -58,9 +58,9 @@ class ToolCallingStage(
 		model: AgentModel,
 		context: AgentContext,
 	): AgentContext.Message.Tool.Result {
-		val timeoutSeconds = service.get(AgentToolSettings.TimeoutSeconds()).value
-		val timeoutMessage = service.get(AgentToolSettings.TimeoutMessage()).value
-		val cancelledMessage = service.get(AgentToolSettings.Cancelled()).value
+		val timeoutSeconds = setting.get(AgentToolSettings.TimeoutSeconds()).value
+		val timeoutMessage = setting.get(AgentToolSettings.TimeoutMessage()).value
+		val cancelledMessage = setting.get(AgentToolSettings.Cancelled()).value
 		
 		val startTime = TimeSource.Monotonic.markNow()
 		return try {

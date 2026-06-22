@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent.compact
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -39,6 +38,8 @@ import kotlinx.coroutines.ensureActive
 import java.util.*
 import kotlin.time.Clock
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
@@ -46,11 +47,10 @@ import io.github.autotweaker.api.trace.trace
 class CompactService(
 	private val agentId: UUID,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) : Loggable, Traceable {
+) : Loggable, Traceable, Settable {
 	
 	suspend fun execute(
 		model: AgentModel,
-		service: SettingService,
 		ctx: AgentContextManager,
 	) {
 		val context = ctx.get()
@@ -61,11 +61,11 @@ class CompactService(
 			agentId, rounds.size, model.summarize.id
 		)
 		
-		val compactPrompt = service.get(CompactSettings.Prompt()).value
-		val maxMessageChars = service.get(CompactSettings.MaxMessageChars()).value
-		val messageSummarizePrompt = service.get(CompactSettings.MessageSummarizePrompt()).value
-		val thinkingEnabled = service.get(CompactSettings.Thinking()).value
-		val maxRetries = service.get(CompactSettings.MaxCompactRetries()).value
+		val compactPrompt = setting.get(CompactSettings.Prompt()).value
+		val maxMessageChars = setting.get(CompactSettings.MaxMessageChars()).value
+		val messageSummarizePrompt = setting.get(CompactSettings.MessageSummarizePrompt()).value
+		val thinkingEnabled = setting.get(CompactSettings.Thinking()).value
+		val maxRetries = setting.get(CompactSettings.MaxCompactRetries()).value
 		
 		val (preprocessedMessages, preprocessSnapshots) = preprocessMessages(
 			rounds, model, maxMessageChars, messageSummarizePrompt, thinkingEnabled
@@ -79,7 +79,7 @@ class CompactService(
 		var finalResult: CompactRequestResult
 		do {
 			finalResult = runCompactRequest(
-				model, systemAndMessages, thinkingEnabled, service
+				model, systemAndMessages, thinkingEnabled
 			)
 			attempt++
 			finalResult.snapshot?.let { snapshots.add(it) }
@@ -127,7 +127,6 @@ class CompactService(
 		model: AgentModel,
 		messages: List<ChatMessage>,
 		thinkingEnabled: Boolean,
-		service: SettingService,
 	): CompactRequestResult {
 		var rawContent = ""
 		var lastSnapshot: UsageSnapshot? = null
@@ -180,7 +179,7 @@ class CompactService(
 		}
 		
 		val extracted = rawContent.extractSummary()
-		val minSummaryLength = service.get(CompactSettings.MinSummaryLength()).value
+		val minSummaryLength = setting.get(CompactSettings.MinSummaryLength()).value
 		val valid = extracted.length >= minSummaryLength
 		
 		if (valid) {

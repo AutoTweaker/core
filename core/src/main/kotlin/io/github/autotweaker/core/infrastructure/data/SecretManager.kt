@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +31,13 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
 
-object SecretManager : SecretStore, Loggable, Traceable {
+object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	private val rootDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "secret")
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")
@@ -44,7 +45,6 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	
 	private const val KEY_UID = "AutoTweaker(core.infrastructure.data)@autogen.local"
 	
-	private lateinit var service: SettingService
 	
 	private val mutex = Mutex()
 	
@@ -63,8 +63,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		}.onFailure { log.debug("Failed gpg-agent kill  reason={}", it.message) }
 	}
 	
-	suspend fun init(service: SettingService) {
-		this.service = service
+	suspend fun init() {
 		try {
 			unlock("")
 		} catch (e: Exception) {

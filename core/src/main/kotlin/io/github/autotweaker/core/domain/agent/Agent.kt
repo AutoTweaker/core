@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabId
@@ -40,6 +39,8 @@ import io.github.autotweaker.core.domain.session.AgentHost
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.*
 import java.util.*
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 
 class Agent(
 	context: AgentContext,
@@ -47,11 +48,10 @@ class Agent(
 	val name: KebabId,
 	private val workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
-	private val service: SettingService,
 	private val tools: List<Tool<ToolArgs>>,
 	private val activeTools: List<String>,
 	private val host: AgentHost,
-) {
+) : Settable {
 	init {
 		check(context.currentRound == null)
 		check(activeTools.all { it in tools.map { tool -> tool.name } })
@@ -63,7 +63,7 @@ class Agent(
 	private val _output = MutableSharedFlow<AgentOutput>()
 	val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
-	private val ctx = AgentContextManager(context, service.get(AgentToolSettings.Cancelled()).value)
+	private val ctx = AgentContextManager(context, setting.get(AgentToolSettings.Cancelled()).value)
 	val context: StateFlow<AgentContext> = ctx.context
 	
 	private lateinit var toolManager: Tools
@@ -71,7 +71,7 @@ class Agent(
 	
 	private val llmService = LlmService(agentId) { _output.tryEmit(it) }
 	private val thinkingStage by lazy { ThinkingStage(llmService, toolManager) }
-	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager, service) { _output.tryEmit(it) } }
+	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager) { _output.tryEmit(it) } }
 	private val compact = CompactService(agentId) { _output.tryEmit(it) }
 	
 	private lateinit var runner: RoundRunner
@@ -82,7 +82,7 @@ class Agent(
 		model: AgentModel
 	) = also {
 		val info = tools.map { buildToolInfo(it, it.name in activeTools) }
-		toolManager = Tools(info, service, tools, agentId)
+		toolManager = Tools(info, tools, agentId)
 		runner = RoundRunner(
 			workspace = workspace,
 			containerConfig = containerConfig,
@@ -92,8 +92,7 @@ class Agent(
 			toolCalling = toolCalling,
 			compactService = compact,
 			agentModel = model,
-			service = service,
-			statusFlow = _status,
+						statusFlow = _status,
 			agentId = agentId,
 		).start()
 	}

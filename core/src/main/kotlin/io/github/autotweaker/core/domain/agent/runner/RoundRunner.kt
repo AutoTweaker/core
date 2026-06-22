@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.session.WorkspaceMeta
@@ -42,6 +41,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
@@ -55,10 +56,9 @@ class RoundRunner(
 	toolCalling: ToolCallingStage,
 	private val compactService: CompactService,
 	agentModel: AgentModel,
-	private val service: SettingService,
 	private val statusFlow: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
-) : Loggable, Traceable {
+) : Loggable, Traceable, Settable {
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	private val mutex = Mutex()
 	
@@ -80,10 +80,10 @@ class RoundRunner(
 	private val messages = MessageQueue(agentId)
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
-		ToolResultFactory(service),
+		ToolResultFactory(),
 		workspace, containerConfig, scope, shouldBreak
 	)
-	private val roundCtx = RoundContext(ctx, ToolResultFactory(service))
+	private val roundCtx = RoundContext(ctx, ToolResultFactory())
 	
 	fun send(content: MessageContent) = also {
 		messages.send(content)
@@ -214,7 +214,7 @@ class RoundRunner(
 	}
 	
 	private suspend fun autoDeactivate() {
-		val threshold = service.get(AgentToolSettings.DeactivationThreshold()).value
+		val threshold = setting.get(AgentToolSettings.DeactivationThreshold()).value
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
 			context.historyRounds.orEmpty() + context.compactedRounds?.flatMap { it.rounds }.orEmpty()
@@ -244,10 +244,10 @@ class RoundRunner(
 		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
 		
 		val contextUsageThreshold = config?.compactContextUsage
-			?: service.get(CompactSettings.DefaultCompactContextUsage()).value
+			?: setting.get(CompactSettings.DefaultCompactContextUsage()).value
 				.takeIf { it > 0.0 && it <= 1.0 }
 		val totalTokensThreshold = config?.compactTotalTokens
-			?: service.get(CompactSettings.DefaultCompactTotalTokens()).value
+			?: setting.get(CompactSettings.DefaultCompactTotalTokens()).value
 				.takeIf { it > 0 }
 		
 		val exceedContextUsage = contextUsageThreshold != null &&
@@ -270,7 +270,7 @@ class RoundRunner(
 	private fun launchCompact() {
 		if (compactJob?.isActive == true) return
 		compactJob = scope.launch {
-			compactService.execute(currentModel, service, ctx)
+			compactService.execute(currentModel, ctx)
 		}
 	}
 	

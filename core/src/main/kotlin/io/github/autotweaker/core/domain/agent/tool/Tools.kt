@@ -19,7 +19,8 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
@@ -49,15 +50,14 @@ import kotlin.time.Clock
 
 class Tools(
 	toolInfo: List<ToolInfo>,
-	private val service: SettingService,
 	private val tools: List<Tool<ToolArgs>>,
 	private val agentId: UUID
-) : Loggable, Traceable {
+) : Loggable, Traceable, Settable {
 	
 	private val _toolInfo = MutableStateFlow(toolInfo)
 	val toolInfo: StateFlow<List<ToolInfo>> = _toolInfo.asStateFlow()
 	
-	private val validator: ToolCallValidator = ToolCallValidator(service)
+	private val validator: ToolCallValidator = ToolCallValidator()
 	
 	//工具激活
 	
@@ -122,7 +122,7 @@ class Tools(
 		if (_toolInfo.value.any { !it.active && it.name == call.name }) {
 			val tool = tools.first { it.name == call.name }
 			val meta = ToolMeta.build(tool)
-			val message = service.get(AgentToolSettings.ActiveMessage()).value
+			val message = setting.get(AgentToolSettings.ActiveMessage()).value
 				.format(meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name)
 			log.debug(
 				"Resolved tool activation  agentId={}  callId={}  tool={}",
@@ -154,7 +154,7 @@ class Tools(
 	}
 	
 	suspend fun assembleTools() =
-		ToolAssembler.assemble(tools, _toolInfo.value, service)
+		ToolAssembler.assemble(tools, _toolInfo.value)
 	
 	fun serializeValidatedArgs(toolName: String, args: ToolArgs): JsonElement {
 		val tool = requireNotNull(tools.find { it.name == toolName })

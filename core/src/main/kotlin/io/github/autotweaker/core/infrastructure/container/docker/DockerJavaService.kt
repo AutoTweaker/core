@@ -34,7 +34,6 @@ import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
 import io.github.autotweaker.core.infrastructure.container.ContainerService
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -44,11 +43,13 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import java.time.Duration as JavaDuration
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
 
-class DockerJavaService : ContainerService, Loggable, Traceable {
+class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	
 	private val uidGid: String = run {
 		val unix = UnixSystem()
@@ -177,7 +178,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	}
 	
 	private fun schedulePermissionFix(containerId: String) {
-		val delaySeconds = Settings.get(DockerSettings.PermissionFixDelaySeconds()).value
+		val delaySeconds = setting.get(DockerSettings.PermissionFixDelaySeconds()).value
 		if (delaySeconds <= 0) return
 		permissionFixJob?.cancel()
 		permissionFixJob = scope.launch {

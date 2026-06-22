@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.adapter.i18n.translation
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -38,16 +37,17 @@ import kotlinx.serialization.json.*
 import java.util.*
 import kotlin.time.Clock
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
 
-object TranslationEngine : Loggable, Traceable {
+object TranslationEngine : Loggable, Traceable, Settable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(
 		val model: Model,
-		val svc: SettingService,
 		val systemPrompt: String,
 		val userPromptTemplate: String,
 		val target: Locale,
@@ -61,22 +61,22 @@ object TranslationEngine : Loggable, Traceable {
 	)
 	
 	suspend fun run(
-		svc: SettingService, modelId: UUID, target: Locale,
+		modelId: UUID, target: Locale,
 		modelRepo: ModelRepository, i18nService: I18nService,
 	) {
 		val model = modelRepo.resolve(modelId) ?: throw IllegalStateException("Model not found: $modelId")
 		val systemPrompt =
-			svc.get(TranslateSettings.SystemPrompt()).value.replace("{{target_language}}", target.displayName)
-		val userPromptTemplate = svc.get(TranslateSettings.UserPrompt()).value
-		val batchSize = svc.get(TranslateSettings.BatchSize()).value
+			setting.get(TranslateSettings.SystemPrompt()).value.replace("{{target_language}}", target.displayName)
+		val userPromptTemplate = setting.get(TranslateSettings.UserPrompt()).value
+		val batchSize = setting.get(TranslateSettings.BatchSize()).value
 		
 		val units = collectUnits(target, i18nService)
 		if (units.isEmpty()) return
 		
 		val jobs = units.chunked(batchSize).map {
-			BatchJob(model, svc, systemPrompt, userPromptTemplate, target, it)
+			BatchJob(model, systemPrompt, userPromptTemplate, target, it)
 		}
-		val semaphore = Semaphore(svc.get(TranslateSettings.MaxConcurrent()).value)
+		val semaphore = Semaphore(setting.get(TranslateSettings.MaxConcurrent()).value)
 		
 		coroutineScope {
 			jobs.map { job ->
@@ -121,7 +121,7 @@ object TranslationEngine : Loggable, Traceable {
 				ChatMessage.UserMessage(userPrompt, Clock.System.now()),
 			),
 			stream = false,
-			thinking = job.svc.get(TranslateSettings.Thinking()).value,
+			thinking = setting.get(TranslateSettings.Thinking()).value,
 			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		)
 		val results = ChatService.chat(request).toList()

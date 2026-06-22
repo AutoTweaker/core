@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.adapter.AgentAPI
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
@@ -48,6 +47,8 @@ import kotlinx.coroutines.sync.withLock
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 
 class AgentBridge(
@@ -56,10 +57,9 @@ class AgentBridge(
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
 	private val containerConfig: ContainerConfig,
-	private val service: SettingService,
 	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
-) : AgentAPI, Loggable {
+) : AgentAPI, Loggable, Settable {
 	/* 初始化 */
 	private val saveMutex = Mutex()
 	private val injectMutex = Mutex()
@@ -124,7 +124,7 @@ class AgentBridge(
 	
 	private suspend fun initTools() {
 		val coreTools = ServiceLoader.load(CoreTool::class.java).toList()
-		coreTools.forEach { it.init(service, secretStore) }
+		coreTools.forEach { it.init(secretStore) }
 		val duplicates = coreTools.map { it.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
 		check(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
 		
@@ -213,8 +213,7 @@ class AgentBridge(
 			context = buildAgentContext(),
 			workspace = workspace,
 			containerConfig = containerConfig,
-			service = service,
-			tools = tools,
+						tools = tools,
 			activeTools = initialData.activeTools,
 			host = host,
 			name = initialData.name

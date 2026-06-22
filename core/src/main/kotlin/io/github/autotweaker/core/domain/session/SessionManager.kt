@@ -33,21 +33,22 @@ import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
 
-object SessionManager : Loggable, Traceable {
+object SessionManager : Loggable, Traceable, Settable {
 	//region 初始化
 	
-	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value
+	private val systemPrompt = setting.get(SessionSettings.SystemPrompt()).value
 	
 	private val wsm = WorkspaceManager
 	
@@ -127,7 +128,6 @@ object SessionManager : Loggable, Traceable {
 			resolveModel = ::resolveModel,
 			workspace = workspaceData.meta,
 			containerConfig = ContainerConfig(),
-			service = Settings,
 			secretStore = secretStore,
 		).init(
 			systemPrompt = systemPrompt,
@@ -154,7 +154,6 @@ object SessionManager : Loggable, Traceable {
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceMeta,
-			service = Settings,
 			containerConfig = ContainerConfig(),
 			secretStore = secretStore,
 		).init(

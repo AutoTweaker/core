@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.config.SettingValue
@@ -39,9 +38,6 @@ class ToolCallValidatorSealedTest {
 		}
 	}
 	
-	private val defaultSettings: SettingService = mockk<SettingService>().also { svc ->
-		every { svc.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
-	}
 	
 	// region test data
 	
@@ -142,7 +138,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed type is resolved correctly`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"task-process",
 			"""{"name":"test","inner":{"type":"a","x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool())
@@ -155,7 +151,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed type with variant b works`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"task-process",
 			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"test"}""", "", listOf(mockNestedSealedTool())
@@ -170,7 +166,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `list of sealed types is resolved correctly`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"batch-run",
 			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"test"}""",
@@ -186,7 +182,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `list with mixed sealed types resolves each independently`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"batch-run",
 			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"test"}""",
@@ -206,7 +202,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `map of sealed types is resolved correctly`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"cfg-configure",
 			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"test"}""",
@@ -226,7 +222,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `deep nested sealed type is resolved correctly`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"deep-process",
 			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"test"}""", "", listOf(mockDeepNestedTool())
@@ -241,7 +237,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed without type field fails deserialization`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"task-process",
 			"""{"name":"test","inner":{"x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool())
@@ -251,7 +247,7 @@ class ToolCallValidatorSealedTest {
 	
 	@Test
 	fun `nested sealed with unknown type value fails deserialization`() {
-		val validator = ToolCallValidator(defaultSettings)
+		val validator = ToolCallValidator()
 		val result = validator.validate(
 			"task-process",
 			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool())

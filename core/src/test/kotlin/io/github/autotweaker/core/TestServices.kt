@@ -19,19 +19,29 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.api.ServiceRegistry
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
+import io.mockk.every
 import io.mockk.mockk
 
 object TestServices {
+	private val settingService = mockk<SettingService>(relaxed = true)
+
+	init {
+		every { settingService.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+	}
+
 	fun init() {
 		try {
 			initServices(
 				ServiceRegistry(
 					TraceRecorderImpl::recorder,
 					JsonStoreImpl::namespace,
-					mockk(relaxed = true),
+					settingService,
 					mockk(relaxed = true)
 				)
 			)

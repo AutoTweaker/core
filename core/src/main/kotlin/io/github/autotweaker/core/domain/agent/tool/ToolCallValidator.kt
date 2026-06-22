@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace.catching
@@ -29,20 +28,21 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.json.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
 
 class ToolCallValidator(
-	private val service: SettingService,
-) : Loggable, Traceable {
+) : Loggable, Traceable, Settable {
 	
 	@OptIn(ExperimentalSerializationApi::class)
 	private val json = Json {
 		namingStrategy = JsonNamingStrategy.SnakeCase
 	}
 	
-	sealed class ValidationResult<out Args : ToolArgs> {
+	sealed class ValidationResult<out Args : ToolArgs> : Settable {
 		data class Success<Args : ToolArgs>(
 			val toolName: String,
 			val reason: String,
@@ -65,12 +65,12 @@ class ToolCallValidator(
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
+				setting.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
 			).also {
 				log.debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
 			}
 		} ?: return ValidationResult.Failure(
-			service.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
+			setting.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
 		).also {
 			log.debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
@@ -78,7 +78,7 @@ class ToolCallValidator(
 		val parts = toolCallName.split("-", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+				setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 			).andLog(log) { debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName) }
 		}
 		
@@ -86,13 +86,13 @@ class ToolCallValidator(
 		val functionName = parts[1]
 		
 		val tool = tools.find { it.name == toolName } ?: return ValidationResult.Failure(
-			service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+			setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 		).andLog(log) { debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
 		
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, "reason")
+				setting.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, "reason")
 			).also {
 				log.debug(
 					"Failed tool call validation reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
@@ -100,7 +100,7 @@ class ToolCallValidator(
 			}
 		}
 		val reason = reasonElement.content
-		if (reason.isBlank()) return ValidationResult.Failure(service.get(AgentToolSettings.ReasonEmptyError()).value)
+		if (reason.isBlank()) return ValidationResult.Failure(setting.get(AgentToolSettings.ReasonEmptyError()).value)
 		
 		val otherArguments = JsonObject(arguments.filterKeys { it != "reason" })
 		val deserializationJson = if (tool.argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
@@ -109,7 +109,7 @@ class ToolCallValidator(
 				.map { sealedDesc.getElementName(it) }
 				.find { it.substringAfterLast('.').toSnakeCase() == functionName }
 				?: return ValidationResult.Failure(
-					service.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+					setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
 				).also {
 					log.debug(
 						"Failed sealed subclass lookup  callId={}  name={}  function={}",
@@ -139,7 +139,7 @@ class ToolCallValidator(
 			json.decodeFromJsonElement(tool.argsSerializer, finalJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				service.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
+				setting.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
 			).also {
 				log.debug(
 					"Failed tool call arg deserialization  callId={}  name={}  tool={}  error={}",

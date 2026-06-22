@@ -30,7 +30,6 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
-import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
@@ -40,7 +39,7 @@ object Wiring : Loggable {
 		ApiKeyConfigAPI.init(SecretManager)
 		EnvConfigAPI.init(SecretManager)
 		ContainerManager.init(SecretManager)
-		ResilientChat.init(LlmGatewayImpl, Settings)
+		ResilientChat.init(LlmGatewayImpl)
 		ChatService.init(
 			ModelRepositoryImpl, SessionRepositoryImpl
 		)

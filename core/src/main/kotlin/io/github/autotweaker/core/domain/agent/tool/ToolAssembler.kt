@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatRequest
@@ -26,20 +25,21 @@ import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.serialization.json.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
 import io.github.autotweaker.api.log
 
-object ToolAssembler : Loggable {
+object ToolAssembler : Loggable, Settable {
 	suspend fun assemble(
 		tools: List<Tool<ToolArgs>>,
 		toolInfo: List<ToolInfo>,
-		service: SettingService,
 	): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription = service.get(AgentToolSettings.ReasonEmptyError()).value
-		val enableDesc = service.get(AgentToolSettings.EnableDescription()).value
+		val reasonDescription = setting.get(AgentToolSettings.ReasonEmptyError()).value
+		val enableDesc = setting.get(AgentToolSettings.EnableDescription()).value
 		
 		val activeNames = toolInfo.filter { it.active }.map { it.name }.toSet()
 		val activeMetas = tools.filter { it.name in activeNames }.map { ToolMeta.build(it) }
