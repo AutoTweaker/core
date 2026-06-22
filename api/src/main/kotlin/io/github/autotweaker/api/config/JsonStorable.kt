@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.api.config
 
+import io.github.autotweaker.api.ServiceRegistry
+
 interface JsonStorable
 
 inline val JsonStorable.store: JsonStore
-	get() = StoreRegistry.factory(this::class)
+	get() = ServiceRegistry.store(this::class)

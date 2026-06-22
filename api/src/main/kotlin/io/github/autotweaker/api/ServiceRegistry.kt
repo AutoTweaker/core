@@ -16,8 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.config
+package io.github.autotweaker.api
 
-object SettingRegistry {
-	lateinit var instance: SettingService
+import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.trace.TraceRecorder
+import kotlin.reflect.KClass
+
+object ServiceRegistry {
+	lateinit var trace: (KClass<*>) -> TraceRecorder
+	lateinit var store: (KClass<*>) -> JsonStore
+	lateinit var setting: SettingService
+	lateinit var i18n: I18nService
 }

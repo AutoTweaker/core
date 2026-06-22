@@ -19,11 +19,8 @@
 package io.github.autotweaker.core.application
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.SettingRegistry
-import io.github.autotweaker.api.config.StoreRegistry
-import io.github.autotweaker.api.i18n.I18nRegistry
+import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.TraceRegistry
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
@@ -35,18 +32,18 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
+import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
 	suspend fun init() {
-		SettingRegistry.instance = Settings
-		I18nRegistry.instance = I18nServiceImpl
-		TraceRegistry.factory = TraceRecorderImpl::recorder
-		StoreRegistry.factory = JsonStoreImpl::namespace
+		ServiceRegistry.setting = Settings
+		ServiceRegistry.i18n = I18nServiceImpl
+		ServiceRegistry.trace = TraceRecorderImpl::recorder
+		ServiceRegistry.store = JsonStoreImpl::namespace
 		
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)

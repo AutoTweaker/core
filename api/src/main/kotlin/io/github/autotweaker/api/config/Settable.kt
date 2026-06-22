@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.api.config
 
+import io.github.autotweaker.api.ServiceRegistry
+
 interface Settable
 
 @Suppress("UnusedReceiverParameter")
 inline val Settable.setting: SettingService
-	get() = SettingRegistry.instance
+	get() = ServiceRegistry.setting
