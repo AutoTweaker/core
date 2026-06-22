@@ -22,12 +22,14 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
-import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.config.Settable
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.i18n.I18nService
-import io.github.autotweaker.api.trace.TraceRecorder
+import io.github.autotweaker.api.config.setting
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
+import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.flow.Flow
@@ -36,16 +38,12 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
 @AutoService(Command::class)
-class Config : Command {
+class Config : Command, Settable, I18nable, Traceable {
 	@AutoService(SettingDef::class)
 	class DefaultLimit : SettingDef<SettingValue.ValInt> {
 		override val default = SettingValue.ValInt(1000)
 		override val description = "cfg命令的默认limit参数值"
 	}
-	
-	lateinit var core: CoreAPI
-	private lateinit var trace: TraceRecorder
-	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name: String = "cfg"
 	override val description: String
@@ -78,16 +76,11 @@ class Config : Command {
 			)
 		)
 	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
-		this.core = core
-		this.trace = core.trace(this::class)
-	}
-	
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		val full: Boolean = request.get("full").toBoolean()
-		val limit: Int = request.get("limit")?.toIntOrNull() ?: core.config.settingService.get(DefaultLimit()).value
+		val limit: Int = request.get("limit")?.toIntOrNull() ?: setting.get(DefaultLimit()).value
 		
 		if (request.has("list")) {
 			emitAll(list(limit, full))
@@ -127,14 +120,14 @@ class Config : Command {
 	}
 	
 	private fun list(limit: Int, full: Boolean = false): Flow<CmdOutput> = flow {
-		val settings = core.config.settingService.getAll().take(limit)
+		val settings = setting.getAll().take(limit)
 		printConfig(settings, full)
 	}
 	
 	private fun search(
 		limit: Int, full: Boolean = false, query: String, mode: SearchMode?
 	): Flow<CmdOutput> = flow {
-		val settings = core.config.settingService.getAll()
+		val settings = setting.getAll()
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.value.value.toString(), query) }
@@ -156,7 +149,7 @@ class Config : Command {
 				emitDone(1)
 				return@flow
 			}
-		core.config.settingService.set(key, newValue)
+		setting.set(key, newValue)
 		emitDone()
 	}
 	
@@ -177,9 +170,9 @@ class Config : Command {
 		}
 		
 		if (sure) {
-			val default = core.config.settingService.getDefault(config.id) ?: run { emitDone(1); return@flow }
-			core.config.settingService.set(id = config.id, value = default.default)
-			core.config.settingService.setDescription(id = config.id, description = default.description)
+			val default = setting.getDefault(config.id) ?: run { emitDone(1); return@flow }
+			setting.set(id = config.id, value = default.default)
+			setting.setDescription(id = config.id, description = default.description)
 			emitDone()
 		} else {
 			emitDone(1)
@@ -187,7 +180,7 @@ class Config : Command {
 	}
 	
 	private suspend fun FlowCollector<CmdOutput>.settingOrEmit(key: String): SettingEntry? =
-		core.config.settingService.getAll().find { it.id == key } ?: run {
+		setting.getAll().find { it.id == key } ?: run {
 			emitI18n(i18n, CfgI18n.ShowSetting(), key, error = true)
 			emitDone(1)
 			null

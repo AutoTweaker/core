@@ -22,5 +22,5 @@ import io.github.autotweaker.api.ServiceRegistry
 
 interface Traceable
 
-inline val Traceable.trace: TraceRecorder
-	get() = ServiceRegistry.trace(this::class)
+val Traceable.trace: TraceRecorder
+	get() = ServiceRegistry.servicesOrError().trace(this::class)

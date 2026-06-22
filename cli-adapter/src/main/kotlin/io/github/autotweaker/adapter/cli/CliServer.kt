@@ -19,10 +19,14 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.config.setting
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
@@ -39,11 +43,9 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
-class CliServer(service: SettingService, core: CoreAPI) : Loggable {
-	private val trace = core.trace(this::class)
+object CliServer : Loggable, Settable, Traceable {
+	val isRunning get() = ::channel.isInitialized && channel.isOpen
 	
 	@AutoService(SettingDef::class)
 	class MaxLineLength : SettingDef<SettingValue.ValInt> {
@@ -51,12 +53,18 @@ class CliServer(service: SettingService, core: CoreAPI) : Loggable {
 		override val description = "CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
 	}
 	
-	private val maxLineLength = service.get(MaxLineLength()).value
+	private val maxLineLength = setting.get(MaxLineLength()).value
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 	private val activeClients = ConcurrentHashMap.newKeySet<SocketChannel>()
 	private val connectionLimit = Semaphore(64)
 	private lateinit var channel: ServerSocketChannel
+	private const val MAX_RESPONSE_CHUNK = 256 * 1024
+	
+	private fun socketPath(): Path = Path.of(
+		System.getProperty("user.home"),
+		".config", "autotweaker", "cli.sock",
+	)
 	
 	fun start(router: CommandRouter) {
 		val path = socketPath()
@@ -240,14 +248,5 @@ class CliServer(service: SettingService, core: CoreAPI) : Loggable {
 			if (written < 0) throw IOException("Channel not writable")
 			pos += written
 		}
-	}
-	
-	companion object {
-		private const val MAX_RESPONSE_CHUNK = 256 * 1024
-		
-		private fun socketPath(): Path = Path.of(
-			System.getProperty("user.home"),
-			".config", "autotweaker", "cli.sock",
-		)
 	}
 }

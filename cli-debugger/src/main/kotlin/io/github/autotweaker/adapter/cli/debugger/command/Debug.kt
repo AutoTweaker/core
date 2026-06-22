@@ -24,7 +24,8 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.debugger.CliDebugger
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +34,7 @@ import kotlinx.coroutines.flow.flow
 import java.util.*
 
 @AutoService(Command::class)
-class Debug : Command {
+class Debug : Command, I18nable {
 	override val name = "debug"
 	override val description get() = i18n.get(Description())
 	override val syntax
@@ -57,7 +58,6 @@ class Debug : Command {
 			),
 		)
 	private lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18n.i18nService
 	private val debug get() = CliDebugger.instance
 	
 	override fun init(core: CoreAPI, coreVersion: SemVer) {

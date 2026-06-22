@@ -31,9 +31,13 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.config.setting
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
 import io.github.autotweaker.api.log
 
-class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: List<Command>) : Loggable {
+class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: List<Command>) : Loggable, Settable, I18nable {
 	private val handlers: Map<String, Command>
 	
 	@AutoService(SettingDef::class)
@@ -42,9 +46,8 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		override val description = "CLI命令的最大参数数量，超出会报错"
 	}
 	
-	private val maxArgsCount = core.config.settingService.get(MaxArgsCount()).value
-	private val i18n = core.i18n.i18nService
-	private val argParser = ArgParser(maxArgsCount)
+	private val maxArgsCount = setting.get(MaxArgsCount()).value
+		private val argParser = ArgParser(maxArgsCount)
 	
 	init {
 		commands.forEach { it.init(core, coreVersion) }

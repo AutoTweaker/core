@@ -23,7 +23,9 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
+import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.Url.Companion.toUrlOrNull
 import io.github.autotweaker.api.types.config.CoreConfig
@@ -34,10 +36,7 @@ import java.util.*
 
 class ProviderCommands(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
-) {
-	private val trace = core.trace(this::class)
-	private val i18n: I18nService get() = core.i18n.i18nService
-	
+) : Traceable, I18nable {
 	fun add(name: String?, type: String?, key: String?, url: String?): Flow<CmdOutput> = flow {
 		val name = name ?: promptOrNull(ProvCommandsI18n.PromptName(), ProvCommandsI18n.MissingName()) ?: return@flow
 		val type = type ?: promptOrNull(ProvCommandsI18n.PromptType(), ProvCommandsI18n.MissingType()) ?: return@flow

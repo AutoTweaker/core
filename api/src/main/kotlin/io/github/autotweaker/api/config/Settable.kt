@@ -23,5 +23,5 @@ import io.github.autotweaker.api.ServiceRegistry
 interface Settable
 
 @Suppress("UnusedReceiverParameter")
-inline val Settable.setting: SettingService
-	get() = ServiceRegistry.setting
+val Settable.setting: SettingService
+	get() = ServiceRegistry.servicesOrError().setting

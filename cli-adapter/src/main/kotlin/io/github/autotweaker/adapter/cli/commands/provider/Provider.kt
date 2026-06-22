@@ -22,7 +22,8 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -30,9 +31,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 @AutoService(Command::class)
-class Provider : Command {
+class Provider : Command, I18nable {
 	lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name = "prov"
 	override val description get() = i18n.get(ProvI18n.Desc())

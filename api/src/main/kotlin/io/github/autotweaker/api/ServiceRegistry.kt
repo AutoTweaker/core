@@ -24,9 +24,20 @@ import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.trace.TraceRecorder
 import kotlin.reflect.KClass
 
-object ServiceRegistry {
-	lateinit var trace: (KClass<*>) -> TraceRecorder
-	lateinit var store: (KClass<*>) -> JsonStore
-	lateinit var setting: SettingService
-	lateinit var i18n: I18nService
+class ServiceRegistry(
+	val trace: (KClass<*>) -> TraceRecorder,
+	val store: (KClass<*>) -> JsonStore,
+	val setting: SettingService,
+	val i18n: I18nService,
+) {
+	internal companion object {
+		var services: ServiceRegistry? = null
+		fun servicesOrError() = services ?: error("Services not initialized")
+	}
+}
+
+
+fun initServices(services: ServiceRegistry) {
+	check(ServiceRegistry.services == null) { "Services already initialized" }
+	ServiceRegistry.services = services
 }

@@ -23,5 +23,5 @@ import io.github.autotweaker.api.ServiceRegistry
 interface I18nable
 
 @Suppress("UnusedReceiverParameter")
-inline val I18nable.i18n: I18nService
-	get() = ServiceRegistry.i18n
+val I18nable.i18n: I18nService
+	get() = ServiceRegistry.servicesOrError().i18n

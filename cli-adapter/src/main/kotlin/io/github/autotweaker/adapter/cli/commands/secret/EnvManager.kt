@@ -21,15 +21,15 @@ package io.github.autotweaker.adapter.cli.commands.secret
 import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
 import io.github.autotweaker.api.types.config.CoreConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class EnvManager(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
-) {
-	private val i18n: I18nService get() = core.i18n.i18nService
+) : I18nable {
 	
 	fun list(type: EnvType): Flow<CmdOutput> = flow {
 		core.config.listEnv(

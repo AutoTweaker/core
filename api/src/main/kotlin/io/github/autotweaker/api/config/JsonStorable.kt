@@ -22,5 +22,5 @@ import io.github.autotweaker.api.ServiceRegistry
 
 interface JsonStorable
 
-inline val JsonStorable.store: JsonStore
-	get() = ServiceRegistry.store(this::class)
+val JsonStorable.store: JsonStore
+	get() = ServiceRegistry.servicesOrError().store(this::class)

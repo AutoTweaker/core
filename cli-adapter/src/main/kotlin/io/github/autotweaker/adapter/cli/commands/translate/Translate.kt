@@ -24,16 +24,16 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.commands.model.Model.Companion.findModel
 import io.github.autotweaker.adapter.cli.commands.model.ModelI18n
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.i18n.I18nable
+import io.github.autotweaker.api.i18n.i18n
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.*
 
 @AutoService(Command::class)
-class Translate : Command {
+class Translate : Command, I18nable {
 	lateinit var core: CoreAPI
-	private val i18n: I18nService get() = core.i18n.i18nService
 	
 	override val name = "translate"
 	override val description get() = i18n.get(TranslateI18n.Desc())
@@ -74,7 +74,7 @@ class Translate : Command {
 					emitDone(1)
 					return@flow
 				}
-				core.i18n.i18nService.setLanguage(locale)
+				i18n.setLanguage(locale)
 				emitDone()
 				return@flow
 			}

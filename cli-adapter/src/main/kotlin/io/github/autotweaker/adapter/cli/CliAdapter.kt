@@ -19,22 +19,21 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 @AutoService(Adapter::class)
 class CliAdapter : Adapter, Loggable {
 	private val adapterVersion = SemVer.parse("0.1.0")
-	private var server: CliServer? = null
 	private lateinit var coreVersion: SemVer
 	private lateinit var adapterName: String
 	
-	override val isRunning: Boolean get() = server != null
+	override val isRunning: Boolean get() = CliServer.isRunning
 	
 	override suspend fun load(coreVersion: SemVer): AdapterInfo {
 		this.coreVersion = coreVersion
@@ -52,16 +51,13 @@ class CliAdapter : Adapter, Loggable {
 	}
 	
 	override suspend fun start(core: CoreAPI) {
-		val s = CliServer(core.config.settingService, core)
 		val router = CommandRouter.fromServiceLoader(core, coreVersion)
-		s.start(router)
-		server = s
+		CliServer.start(router)
 		log.info("Started CliAdapter  adapter={}  version={}", adapterName, adapterVersion)
 	}
 	
 	override suspend fun stop() {
-		server?.stop()
-		server = null
+		CliServer.stop()
 		log.info("Stopped CliAdapter  adapter={}", adapterName)
 	}
 }
