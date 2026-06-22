@@ -69,7 +69,7 @@ class Agent(
 	
 	private val llmService = LlmService(agentId) { _output.tryEmit(it) }
 	private val thinkingStage by lazy { ThinkingStage(llmService, toolManager) }
-	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager) { _output.tryEmit(it) } }
+	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager, workspace) { _output.tryEmit(it) } }
 	private val compact = CompactService(agentId) { _output.tryEmit(it) }
 	
 	private lateinit var runner: RoundRunner
@@ -82,7 +82,6 @@ class Agent(
 		val info = tools.map { buildToolInfo(it, it.name in activeTools) }
 		toolManager = Tools(info, tools, agentId)
 		runner = RoundRunner(
-			workspace = workspace,
 			ctx = ctx,
 			tools = toolManager,
 			thinkingStage = thinkingStage,

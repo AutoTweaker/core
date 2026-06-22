@@ -34,6 +34,7 @@ import kotlin.time.TimeSource
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
+	private val workspace: WorkspaceMeta,
 	private val onOutput: suspend (AgentOutput) -> Unit,
 ) : Loggable, Traceable, Settable {
 	
@@ -47,7 +48,6 @@ class ToolCallingStage(
 	
 	suspend fun execute(
 		call: ThinkingStage.ResolvedToolCall,
-		workspace: WorkspaceMeta,
 		model: AgentModel,
 		context: AgentContext,
 	): AgentContext.Message.Tool.Result {
