@@ -35,9 +35,11 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 
-object ContainerManager : Loggable {
+object ContainerManager : Loggable, JsonStorable {
 	private val mutex = Mutex()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
@@ -58,7 +60,7 @@ object ContainerManager : Loggable {
 	
 	@Synchronized
 	fun init(secretStore: SecretStore) {
-		envStorage = EnvStorage(this::class, secretStore)
+		envStorage = EnvStorage(this::class, store, secretStore)
 		Files.createDirectories(ContainerConfig().workspaceHostPath)
 		if (!service.checkAccess()) {
 			containerAccess = false

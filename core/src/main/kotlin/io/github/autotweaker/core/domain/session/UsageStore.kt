@@ -21,7 +21,6 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionMessage
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.MapSerializer
@@ -29,10 +28,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 
-object UsageStore : Loggable {
-	private val store by lazy { JsonStoreImpl.namespace(this::class) }
+object UsageStore : Loggable, JsonStorable {
 	private val mutex = Mutex()
 	
 	private val mapSerializer = MapSerializer(UuidSerializer, UsageSnapshot.serializer())

@@ -23,15 +23,15 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 
-object ModelRepositoryImpl : ModelRepository, Loggable {
-	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
+object ModelRepositoryImpl : ModelRepository, Loggable, JsonStorable {
 	
 	private lateinit var secretStore: SecretStore
 	
@@ -40,13 +40,13 @@ object ModelRepositoryImpl : ModelRepository, Loggable {
 	}
 	
 	fun getDefaultModel(): UUID? {
-		val element = jsonEntry.get() ?: return null
+		val element = store.get() ?: return null
 		return Json.decodeFromJsonElement(UuidSerializer.nullable, element)
 	}
 	
 	fun setDefaultModel(id: UUID) {
 		if (ModelStore.get(id) == null) error("Model not found: $id")
-		jsonEntry.set(Json.encodeToJsonElement(UuidSerializer.nullable, id))
+		store.set(Json.encodeToJsonElement(UuidSerializer.nullable, id))
 		log.info("Set default model  modelId={}", id)
 	}
 	

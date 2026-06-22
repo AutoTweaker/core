@@ -21,7 +21,6 @@ package io.github.autotweaker.core.infrastructure.persistence
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -31,17 +30,18 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 
-object WorkspaceManager : Loggable {
-	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
+object WorkspaceManager : Loggable, JsonStorable {
 	
 	private val workspaces: MutableList<WorkspaceData> = mutableListOf()
 	
 	private val mutex = Mutex()
 	
 	suspend fun init() = mutex.withLock {
-		jsonEntry.get()?.let {
+		store.get()?.let {
 			workspaces.addAll(
 				Json.decodeFromJsonElement<List<WorkspaceData>>(it)
 			)
@@ -103,7 +103,7 @@ object WorkspaceManager : Loggable {
 		also { workspaces.add(this).andSave() }
 	
 	private fun <T> T.andSave(): T =
-		also { jsonEntry.set(Json.encodeToJsonElement(workspaces)) }
+		also { store.set(Json.encodeToJsonElement(workspaces)) }
 	
 	private const val DEFAULT_WORKSPACE_NAME = "default"
 	val defaultWorkspaceId: UUID = UUID.nameUUIDFromBytes(DEFAULT_WORKSPACE_NAME.toByteArray())

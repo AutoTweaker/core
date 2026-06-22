@@ -23,7 +23,6 @@ import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,13 +31,14 @@ import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.trace
 
-object TranslationManager : Loggable, Traceable {
-	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
-	
+object TranslationManager : Loggable, Traceable, JsonStorable {
+		
 	private lateinit var modelRepo: ModelRepository
 	private lateinit var settings: SettingService
 	private lateinit var i18nService: I18nService
@@ -105,11 +105,11 @@ object TranslationManager : Loggable, Traceable {
 	}
 	
 	private fun loadModelId(): UUID? {
-		val element = jsonEntry.get() ?: return null
+		val element = store.get() ?: return null
 		return Json.decodeFromJsonElement(UuidSerializer.nullable, element)
 	}
 	
 	private fun saveModelId(modelId: UUID?) {
-		jsonEntry.set(Json.encodeToJsonElement(UuidSerializer.nullable, modelId))
+		store.set(Json.encodeToJsonElement(UuidSerializer.nullable, modelId))
 	}
 }

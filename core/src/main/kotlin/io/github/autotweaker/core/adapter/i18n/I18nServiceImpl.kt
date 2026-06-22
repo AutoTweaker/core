@@ -18,23 +18,22 @@
 
 package io.github.autotweaker.core.adapter.i18n
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
-object I18nServiceImpl : I18nService, Loggable {
-	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
-	
+object I18nServiceImpl : I18nService, Loggable, JsonStorable {
 	@Volatile
 	private var cache: List<I18nEntry> = emptyList()
 	
@@ -67,7 +66,7 @@ object I18nServiceImpl : I18nService, Loggable {
 	}
 	
 	private fun load() {
-		val json = jsonEntry.get() ?: return
+		val json = store.get() ?: return
 		val data = Json.decodeFromJsonElement<Store>(json)
 		cache = data.entries
 		language = data.language
@@ -75,7 +74,7 @@ object I18nServiceImpl : I18nService, Loggable {
 	
 	private fun save() {
 		ensureInit()
-		jsonEntry.set(Json.encodeToJsonElement(Store(cache, language)))
+		store.set(Json.encodeToJsonElement(Store(cache, language)))
 	}
 	
 	override fun get(def: I18nDef): String {

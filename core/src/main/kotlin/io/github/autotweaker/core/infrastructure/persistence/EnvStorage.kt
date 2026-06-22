@@ -18,9 +18,13 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -29,13 +33,9 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.util.*
 import kotlin.reflect.KClass
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
-class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) : Loggable, Traceable {
-	private val jsonEntry = JsonStoreImpl.namespace(kClass)
+class EnvStorage(private val kClass: KClass<*>, private val store: JsonStore, private val secretStore: SecretStore) :
+	Loggable, Traceable {
 	private val mutex = Mutex()
 	
 	suspend fun listEnv(): List<String> = mutex.withLock { getEnvUuidMap().keys.toList() }
@@ -53,7 +53,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		val uuid = secretStore.add(value)
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
-		jsonEntry.set(updated)
+		store.set(updated)
 		log.debug("Set env  id={}  class={}", id, kClass.java.name)
 	}
 	
@@ -61,12 +61,12 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		val current = getEnvUuidMap()
 		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
-		jsonEntry.set(updated)
+		store.set(updated)
 		log.debug("Removed env  id={}  class={}", id, kClass.java.name)
 	}
 	
 	private fun getEnvUuidMap(): Map<String, UUID> {
-		val obj = jsonEntry.get() as? JsonObject ?: return emptyMap()
+		val obj = store.get() as? JsonObject ?: return emptyMap()
 		return obj.mapNotNull { (k, v) ->
 			v.jsonPrimitive.contentOrNull?.let { UUID.fromString(it) }?.let { k to it }
 		}.toMap()

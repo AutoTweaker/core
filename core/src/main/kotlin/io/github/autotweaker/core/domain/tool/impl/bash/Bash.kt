@@ -34,10 +34,12 @@ import kotlinx.serialization.json.Json
 import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.seconds
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.log
 
 @AutoService(CoreTool::class)
-class Bash : CoreTool<BashArgs>, Loggable {
+class Bash : CoreTool<BashArgs>, Loggable, JsonStorable {
 	private lateinit var envStorage: EnvStorage
 	private lateinit var settings: SettingService
 	
@@ -57,7 +59,7 @@ class Bash : CoreTool<BashArgs>, Loggable {
 	}
 	
 	override suspend fun init(service: SettingService, secretStore: SecretStore) {
-		envStorage = EnvStorage(this::class, secretStore)
+		envStorage = EnvStorage(this::class, store, secretStore)
 		settings = service
 	}
 	

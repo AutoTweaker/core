@@ -18,16 +18,18 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.config.JsonStorable
+import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.types.llm.ProviderData
 import java.util.*
 
-object ProviderStore {
-	private val store = IdListStore(this::class, ProviderData.serializer()) { it.id }
+object ProviderStore : JsonStorable {
+	private val listStore = IdListStore(this::class, store, ProviderData.serializer()) { it.id }
 	
-	fun add(data: ProviderData) = store.add(data)
-	fun get(): List<ProviderData> = store.get()
-	fun get(id: UUID): ProviderData? = store.get(id)
-	fun delete(id: UUID) = store.delete(id)
-	fun override(data: ProviderData) = store.override(data)
+	fun add(data: ProviderData) = listStore.add(data)
+	fun get(): List<ProviderData> = listStore.get()
+	fun get(id: UUID): ProviderData? = listStore.get(id)
+	fun delete(id: UUID) = listStore.delete(id)
+	fun override(data: ProviderData) = listStore.override(data)
 }
 

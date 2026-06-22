@@ -18,29 +18,29 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.log
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 class IdListStore<T : Any>(
 	kClass: KClass<*>,
+	private val store: JsonStore,
 	serializer: KSerializer<T>,
 	private val idOf: (T) -> UUID,
 ) : Loggable {
-	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val className = kClass.qualifiedName
 	
 	private val listSerializer = ListSerializer(serializer)
 	private val items = AtomicReference<List<T>>(emptyList())
 	
 	init {
-		val jsonArray = jsonEntry.get()
+		val jsonArray = store.get()
 		items.set(
 			if (jsonArray == null) emptyList()
 			else Json.decodeFromJsonElement(listSerializer, jsonArray)
@@ -75,6 +75,6 @@ class IdListStore<T : Any>(
 	
 	private fun update(new: List<T>) {
 		items.set(new)
-		jsonEntry.set(Json.encodeToJsonElement(listSerializer, new))
+		store.set(Json.encodeToJsonElement(listSerializer, new))
 	}
 }
