@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.core.TestServices
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -28,10 +30,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlin.test.*
-import io.github.autotweaker.api.tool.ToolArgs
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolMetaSealedTest {
+	companion object {
+		init {
+			TestServices.init()
+		}
+	}
 	
 	// region guard test data (top-level for @SerialName / @JsonClassDiscriminator)
 	

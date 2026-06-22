@@ -41,7 +41,6 @@ import java.util.*
 class ModelAdd(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) : I18nable, Traceable {
-	
 	fun addAll(providerName: String): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == providerName } ?: run {
 			emitI18n(i18n, ModelI18n.ProviderNotFound(), error = true)

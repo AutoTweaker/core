@@ -19,10 +19,7 @@
 package io.github.autotweaker.core.application
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.ServiceRegistry
-import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.log
-import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -34,22 +31,11 @@ import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
-import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
 	suspend fun init() {
-		initServices(
-			ServiceRegistry(
-				trace = TraceRecorderImpl::recorder,
-				store = JsonStoreImpl::namespace,
-				setting = Settings,
-				i18n = I18nServiceImpl,
-			)
-		)
-		
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
 		EnvConfigAPI.init(SecretManager)

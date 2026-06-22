@@ -21,10 +21,13 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.args.BashArgs
+import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
@@ -38,10 +41,13 @@ import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
-import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
 
 class BashTest {
+	companion object {
+		init {
+			TestServices.init()
+		}
+	}
 	
 	// region helpers
 	

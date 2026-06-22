@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.provider.deepseek.DeepSeekClient
 import io.ktor.client.*
@@ -288,6 +289,10 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 	// endregion
 	
 	companion object {
+		init {
+			TestServices.init()
+		}
+		
 		private fun buildStreamResponse(vararg chunks: String): String =
 			chunks.joinToString("\r\n\r\n") { "data: $it\r\n" }.plus("\r\ndata: [DONE]\r\n\r\n")
 	}

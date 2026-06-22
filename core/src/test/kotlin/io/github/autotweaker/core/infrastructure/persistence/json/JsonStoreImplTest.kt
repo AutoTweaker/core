@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.json
 
+import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk
@@ -38,6 +39,10 @@ class JsonStoreImplTest {
 	
 	companion object {
 		private val counter = AtomicInteger(0)
+		
+		init {
+			TestServices.init()
+		}
 	}
 	
 	private lateinit var databaseStore: DatabaseStore

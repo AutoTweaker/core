@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.types.i18n.TranslationStatus
+import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.mockk.every
@@ -34,6 +35,10 @@ class TranslationManagerTest {
 	
 	companion object {
 		private val counter = AtomicInteger(0)
+		
+		init {
+			TestServices.init()
+		}
 	}
 	
 	@BeforeTest

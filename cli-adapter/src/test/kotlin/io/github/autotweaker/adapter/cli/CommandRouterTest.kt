@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingValue
 import io.mockk.every
@@ -35,6 +37,22 @@ import kotlin.test.assertTrue
 
 class CommandRouterTest {
 	
+	companion object {
+		private val settingService = mockk<SettingService>(relaxed = true)
+		
+		init {
+			every { settingService.get<SettingValue.ValInt>(any()) } returns SettingValue.ValInt(100_000)
+			initServices(
+				ServiceRegistry(
+					mockk(relaxed = true),
+					mockk(relaxed = true),
+					settingService,
+					mockk(relaxed = true)
+				)
+			)
+		}
+	}
+	
 	private val core = mockk<CoreAPI>(relaxed = true)
 	private val commands = mutableListOf<Command>()
 	private lateinit var router: CommandRouter
@@ -42,11 +60,6 @@ class CommandRouterTest {
 	@BeforeTest
 	fun setUp() {
 		commands.clear()
-		val config = mockk<CoreAPI.ConfigAPI>(relaxed = true)
-		val settingService = mockk<SettingService>(relaxed = true)
-		every { core.config } returns config
-		every { config.settingService } returns settingService
-		every { settingService.get<SettingValue.ValInt>(any()) } returns SettingValue.ValInt(100_000)
 		val secret = mockk<CoreAPI.SecretAPI>()
 		every { core.secret } returns secret
 		every { secret.isUnlocked } returns MutableStateFlow(true)
