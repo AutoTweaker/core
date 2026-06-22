@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.tool.Tool
@@ -29,6 +30,7 @@ import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.*
@@ -134,10 +136,10 @@ class AgentBridge(
 	
 	/* API */
 	
-	override fun send(content: MessageContent) = also {
-		_agent.sendMessage(content)
-		log.info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
-	}
+	override fun send(content: MessageContent) =
+		_agent.sendMessage(content).andLog(log) {
+			info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
+		}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
 		injectMutex.withLock {

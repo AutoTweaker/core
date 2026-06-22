@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentContextManager
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class RoundRunner(
 	private val ctx: AgentContextManager,
@@ -68,6 +70,8 @@ class RoundRunner(
 	val model = currentModel
 	
 	private val messages = MessageQueue(agentId)
+	private val pendingDeliveries = ConcurrentHashMap<UUID, CompletableDeferred<UUID>>()
+
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
 		ToolResultFactory(),
@@ -75,8 +79,14 @@ class RoundRunner(
 	)
 	private val roundCtx = RoundContext(ctx, ToolResultFactory())
 	
-	fun send(content: MessageContent) = also {
+	fun send(content: MessageContent): Delivery {
+		val token = UUID.randomUUID()
+		val deferred = CompletableDeferred<UUID>()
+		pendingDeliveries[token] = deferred
 		messages.send(content)
+		return object : Delivery {
+			override suspend fun await() = deferred.await()
+		}
 	}
 	
 	fun start() = also {
@@ -88,6 +98,8 @@ class RoundRunner(
 		compactJob?.cancel()
 		execute(AgentCommand.Stop)
 		scope.cancel()
+		pendingDeliveries.values.forEach { it.cancel() }
+		pendingDeliveries.clear()
 	}
 	
 	suspend fun execute(command: AgentCommand) = also {
@@ -137,6 +149,7 @@ class RoundRunner(
 		log.info("Started workLoop  agentId={}", agentId)
 		while (true) {
 			val msg = messages.receive()
+			signalDeliveries(msg.id)
 			shouldBreak.value = false
 			ctx.beginRound(msg)
 			executeRound()
@@ -196,6 +209,7 @@ class RoundRunner(
 			if (shouldBreak.value) break
 			
 			messages.drain()?.let {
+				signalDeliveries(it.id)
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it)
 			}
@@ -264,6 +278,13 @@ class RoundRunner(
 		}
 	}
 	
+	private fun signalDeliveries(messageId: UUID) {
+		if (pendingDeliveries.isEmpty()) return
+		pendingDeliveries.keys.toList().forEach { token ->
+			pendingDeliveries.remove(token)?.complete(messageId)
+		}
+	}
+
 	private fun markBreak() {
 		shouldBreak.value = true
 	}

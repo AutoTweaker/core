@@ -19,12 +19,14 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolInfo
@@ -98,9 +100,7 @@ class Agent(
 		runner.execute(command)
 	}
 	
-	fun sendMessage(content: MessageContent) = also {
-		runner.send(content)
-	}
+	fun sendMessage(content: MessageContent): Delivery = runner.send(content)
 	
 	suspend fun updateInjections(injections: List<ContextInjection>?) = also {
 		ctx.updateInjections(injections)

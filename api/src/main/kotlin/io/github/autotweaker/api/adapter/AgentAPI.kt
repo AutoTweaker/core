@@ -21,6 +21,7 @@ package io.github.autotweaker.api.adapter
 import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.SessionContext
@@ -41,7 +42,7 @@ interface AgentAPI {
 	val context: StateFlow<SessionContext>
 	val toolInfo: StateFlow<List<ToolInfo>>
 	
-	fun send(content: MessageContent): AgentAPI
+	fun send(content: MessageContent): Delivery
 	
 	suspend fun pause(): AgentAPI
 	suspend fun stop(): AgentAPI
