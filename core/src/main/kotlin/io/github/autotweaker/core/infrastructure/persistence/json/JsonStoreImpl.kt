@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.json
 
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
@@ -30,13 +32,13 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object JsonStoreImpl : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
-	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
+	private val cache = ConcurrentHashMap<KClass<*>, JsonStore>()
+	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
 	fun init(databaseStore: DatabaseStore) {
@@ -45,9 +47,8 @@ object JsonStoreImpl : Loggable {
 		log.info("Initialized json store  table=json_store")
 	}
 	
-	fun namespace(kClass: KClass<*>): JsonStore {
-		return JsonEntry(kClass)
-	}
+	fun namespace(kClass: KClass<*>) =
+		cache.computeIfAbsent(kClass) { JsonEntry(it) }
 	
 	private class JsonEntry(kClass: KClass<*>) : JsonStore {
 		val namespace: String = kClass.java.name

@@ -22,12 +22,14 @@ import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.minutes
 
 object TraceRecorderImpl {
 	private val scope = CoroutineScope(Dispatchers.IO)
 	private val queue = Channel<TraceEntry>(Channel.UNLIMITED)
+	private val cache = ConcurrentHashMap<KClass<*>, TraceRecorder>()
 	
 	fun init() {
 		scope.launch {
@@ -45,7 +47,8 @@ object TraceRecorderImpl {
 		}
 	}
 	
-	fun recorder(kClass: KClass<*>): TraceRecorder = Recorder(kClass.java.name)
+	fun recorder(kClass: KClass<*>): TraceRecorder =
+		cache.computeIfAbsent(kClass) { Recorder(it.java.name) }
 	
 	private class Recorder(private val origin: String) : TraceRecorder {
 		override fun add(namespace: String, content: String) {
