@@ -25,7 +25,6 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.*
 import java.util.*
 import kotlin.time.Clock
@@ -49,7 +48,6 @@ class ToolCallingStage(
 	suspend fun execute(
 		call: ThinkingStage.ResolvedToolCall,
 		workspace: WorkspaceMeta,
-		containerConfig: ContainerConfig,
 		model: AgentModel,
 		context: AgentContext,
 	): AgentContext.Message.Tool.Result {
@@ -64,7 +62,6 @@ class ToolCallingStage(
 				withTimeout((timeoutSeconds * 1000L).milliseconds) {
 					val provider = ToolProvider.buildToolProvider(
 						workspace = workspace,
-						containerConfig = containerConfig,
 						onOutput = onOutput,
 						model = model,
 						context = context

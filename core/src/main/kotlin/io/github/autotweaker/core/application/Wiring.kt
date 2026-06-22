@@ -26,7 +26,9 @@ import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
 import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
+import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
+import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
@@ -34,6 +36,8 @@ import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepo
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
+	val pathResolver = PathResolverImpl(ContainerConfig())
+
 	suspend fun init() {
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
@@ -44,7 +48,7 @@ object Wiring : Loggable {
 			ModelRepositoryImpl, SessionRepositoryImpl
 		)
 		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl, SecretManager)
-		ToolProvider.init(ShellRouter, RawFileSystemImpl)
+		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver)
 		log.info("Initialized wiring")
 	}
 }

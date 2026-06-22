@@ -20,6 +20,7 @@ package io.github.autotweaker.core.adapter.impl
 
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.path.PathResolver
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.config.CoreConfig
@@ -63,6 +64,7 @@ class CoreAPIImpl(
 	private val providerRepo: ProviderRepository,
 	private val modelRepo: ModelConfigRepository,
 	private val apiKeyRepo: ApiKeyRepository,
+	override val pathResolver: PathResolver,
 ) : CoreAPI {
 	override val adapter = object : CoreAPI.AdapterAPI {
 		override suspend fun list(): List<AdapterInfo> = adapterAPI.list()

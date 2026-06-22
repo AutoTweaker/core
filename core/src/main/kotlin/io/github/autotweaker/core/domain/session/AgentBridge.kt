@@ -42,7 +42,6 @@ import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
 import io.github.autotweaker.core.domain.tool.CoreTool
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -55,7 +54,6 @@ class AgentBridge(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
-	private val containerConfig: ContainerConfig,
 	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI, Loggable, Settable {
@@ -211,7 +209,6 @@ class AgentBridge(
 		_agent = Agent(
 			context = buildAgentContext(),
 			workspace = workspace,
-			containerConfig = containerConfig,
 			tools = tools,
 			activeTools = initialData.activeTools,
 			host = host,

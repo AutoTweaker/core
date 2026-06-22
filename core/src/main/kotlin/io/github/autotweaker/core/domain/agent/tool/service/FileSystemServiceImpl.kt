@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
+import io.github.autotweaker.api.path.PathResolver
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -27,32 +28,36 @@ import java.nio.file.Path
 
 class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
-	private val containerConfig: ContainerConfig,
+	private val pathResolver: PathResolver,
 	private val workspace: WorkspaceMeta,
 ) : FileSystemService {
-	private val inContainer: Boolean get() = containerConfig.isContainerPath(workspace.path)
-	private val containerMount: Path get() = containerConfig.workDir.normalize()
-	private val hostMount: Path get() = containerConfig.workspaceHostPath.normalize()
-	private val workspaceInContainer: Path get() = containerMount.resolve(hostMount.relativize(workspace.path))
+	private val containerConfig = ContainerConfig()
+	private val containerMount = containerConfig.workDir.normalize()
 	
-	override fun normalize(filePath: String): Path {
-		val path = Path.of(filePath)
-		return if (path.isAbsolute) path.normalize() else workspaceInContainer.resolve(path).normalize()
-	}
+	override fun normalize(filePath: String): Path =
+		pathResolver.toAbsolutePath(
+			workspace.path,
+			Path.of(filePath)
+		)
+	
+	override suspend fun exists(path: Path): Boolean =
+		fs.exists(resolve(path))
+	
+	override suspend fun isRegularFile(path: Path): Boolean =
+		fs.isRegularFile(resolve(path))
+	
+	override suspend fun readUnicode(path: Path): List<Unicode> =
+		fs.readUnicode(resolve(path))
+	
+	override suspend fun readAllLines(path: Path): List<String> =
+		fs.readAllLines(resolve(path))
+	
+	override suspend fun sha256(path: Path): String =
+		fs.sha256(resolve(path))
 	
 	private fun resolve(path: Path): Path {
-		if (!inContainer) return path
+		if (!pathResolver.inContainer(workspace.path)) return path
 		if (!path.startsWith(containerMount)) throw FileSystemService.PathOutsideWorkspaceException(path)
-		return hostMount.resolve(containerMount.relativize(path))
+		return pathResolver.toHostPath(path)
 	}
-	
-	override suspend fun exists(path: Path): Boolean = fs.exists(resolve(path))
-	
-	override suspend fun isRegularFile(path: Path): Boolean = fs.isRegularFile(resolve(path))
-	
-	override suspend fun readUnicode(path: Path): List<Unicode> = fs.readUnicode(resolve(path))
-	
-	override suspend fun readAllLines(path: Path): List<String> = fs.readAllLines(resolve(path))
-	
-	override suspend fun sha256(path: Path): String = fs.sha256(resolve(path))
 }

@@ -33,7 +33,6 @@ import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -43,7 +42,6 @@ import java.util.*
 
 class RoundRunner(
 	workspace: WorkspaceMeta,
-	containerConfig: ContainerConfig,
 	private val ctx: AgentContextManager,
 	private val tools: Tools,
 	private val thinkingStage: ThinkingStage,
@@ -75,7 +73,7 @@ class RoundRunner(
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
 		ToolResultFactory(),
-		workspace, containerConfig, scope, shouldBreak
+		workspace, scope, shouldBreak
 	)
 	private val roundCtx = RoundContext(ctx, ToolResultFactory())
 	

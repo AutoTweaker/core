@@ -16,15 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.container
+package io.github.autotweaker.api.path
 
 import java.nio.file.Path
 
-data class ContainerConfig(
-	val name: String = "autotweaker-workspace",
-	val env: Map<String, String> = emptyMap(),
-	val workDir: Path = Path.of("/workspace"),
-	val workspaceHostPath: Path = Path.of(
-		System.getProperty("user.home"), ".config", "autotweaker", "container", "workspace"
-	),
-)
+interface PathResolver {
+	//工作区是否在容器内
+	fun inContainer(workspace: Path): Boolean
+	
+	//基于工作区解析相对路径，不转换
+	fun toAbsolutePath(workspace: Path, path: Path): Path
+	
+	//HostToContainer
+	fun toContainerPath(path: Path): Path
+	
+	//ContainerToHost
+	fun toHostPath(path: Path): Path
+}

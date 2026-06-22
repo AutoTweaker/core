@@ -32,7 +32,6 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
@@ -122,7 +121,6 @@ object SessionManager : Loggable, Traceable, Settable {
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceData.meta,
-			containerConfig = ContainerConfig(),
 			secretStore = secretStore,
 		).init(
 			systemPrompt = systemPrompt,
@@ -149,7 +147,6 @@ object SessionManager : Loggable, Traceable, Settable {
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceMeta,
-			containerConfig = ContainerConfig(),
 			secretStore = secretStore,
 		).init(
 			systemPrompt = systemPrompt,

@@ -27,7 +27,6 @@ import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -43,7 +42,6 @@ class ApprovalProcessor(
 	private val tool: ToolCallingStage,
 	private val factory: ToolResultFactory,
 	private val workspace: WorkspaceMeta,
-	private val containerConfig: ContainerConfig,
 	private val scope: CoroutineScope,
 	private val shouldBreak: StateFlow<Boolean>,
 ) : Traceable {
@@ -92,7 +90,7 @@ class ApprovalProcessor(
 				approval.reason?.let { reasons.add(it) }
 				statusFlow.value = AgentStatus.TOOL_CALLING
 				val deferred = scope.async {
-					tool.execute(call, workspace, containerConfig, model, ctx.get())
+					tool.execute(call, workspace, model, ctx.get())
 				}
 				val toolResult = deferred.await()
 				ctx.recordToolResult(factory.buildToolMessage(assistantMessageId, call.pendingCall, toolResult))

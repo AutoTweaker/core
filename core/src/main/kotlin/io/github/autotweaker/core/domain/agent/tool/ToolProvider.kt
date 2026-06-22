@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
+import io.github.autotweaker.api.path.PathResolver
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentModel
@@ -33,7 +34,6 @@ import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 
 object ToolProvider {
 	@Volatile
@@ -42,22 +42,25 @@ object ToolProvider {
 	@Volatile
 	private lateinit var rawFileSystem: RawFileSystem
 	
-	fun init(shellExecutor: ShellExecutor, rawFileSystem: RawFileSystem) {
+	@Volatile
+	private lateinit var pathResolver: PathResolver
+	
+	fun init(shellExecutor: ShellExecutor, rawFileSystem: RawFileSystem, pathResolver: PathResolver) {
 		this.shellExecutor = shellExecutor
 		this.rawFileSystem = rawFileSystem
+		this.pathResolver = pathResolver
 	}
 	
 	fun buildToolProvider(
 		workspace: WorkspaceMeta,
-		containerConfig: ContainerConfig,
 		model: AgentModel,
 		context: AgentContext,
 		onOutput: suspend (AgentOutput) -> Unit,
 	): SimpleContainer {
 		val container = SimpleContainer()
-		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, containerConfig, workspace))
+		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, pathResolver, workspace))
 		container.register(SummarizeService::class, SummarizeServiceImpl(model, onOutput))
-		container.register(BashService::class, BashServiceImpl(shellExecutor, containerConfig, workspace))
+		container.register(BashService::class, BashServiceImpl(shellExecutor, pathResolver, workspace))
 		container.register(ToolCallHistory::class, ToolCallHistoryImpl(context))
 		return container
 	}

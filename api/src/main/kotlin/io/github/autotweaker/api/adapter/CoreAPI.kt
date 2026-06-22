@@ -19,6 +19,7 @@
 package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.path.PathResolver
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
@@ -45,9 +46,11 @@ interface CoreAPI {
 	val trace: TraceAPI
 	val log: LogAPI
 	
+	val pathResolver: PathResolver
+	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	fun bash(arg: ShellExec): Flow<ShellEvent>
-
+	
 	interface AdapterAPI {
 		suspend fun list(): List<AdapterInfo>
 		suspend fun start(name: String)
@@ -79,7 +82,6 @@ interface CoreAPI {
 	}
 	
 	interface ConfigAPI {
-						
 		suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
 		suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
 		suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>)
@@ -120,7 +122,6 @@ interface CoreAPI {
 	}
 	
 	interface I18nAPI {
-				
 		fun setTranslationModel(modelId: UUID?)
 		fun getTranslationModel(): UUID?
 		

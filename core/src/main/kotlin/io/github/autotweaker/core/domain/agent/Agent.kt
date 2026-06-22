@@ -38,7 +38,6 @@ import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.buildToolInfo
 import io.github.autotweaker.core.domain.session.AgentHost
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.*
 import java.util.*
 
@@ -47,7 +46,6 @@ class Agent(
 	val agentId: UUID = UUID.randomUUID(),
 	val name: KebabId,
 	private val workspace: WorkspaceMeta,
-	private val containerConfig: ContainerConfig,
 	private val tools: List<Tool<ToolArgs>>,
 	private val activeTools: List<String>,
 	private val host: AgentHost,
@@ -85,7 +83,6 @@ class Agent(
 		toolManager = Tools(info, tools, agentId)
 		runner = RoundRunner(
 			workspace = workspace,
-			containerConfig = containerConfig,
 			ctx = ctx,
 			tools = toolManager,
 			thinkingStage = thinkingStage,

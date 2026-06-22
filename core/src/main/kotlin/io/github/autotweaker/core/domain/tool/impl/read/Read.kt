@@ -39,7 +39,6 @@ import kotlin.reflect.KProperty1
 
 @AutoService(CoreTool::class)
 class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
-	
 	override val argsSerializer = ReadArgs.serializer()
 	override val name = "read"
 	override val description get() = setting.get(ReadSettings.DescriptionSetting()).value

@@ -113,7 +113,7 @@ object Launcher : Loggable, Traceable {
 	}
 	
 	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) =
-		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI)
+		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI, Wiring.pathResolver)
 	
 	suspend fun shutdown(registry: List<Pair<Adapter, AdapterInfo>>) {
 		coroutineScope {
