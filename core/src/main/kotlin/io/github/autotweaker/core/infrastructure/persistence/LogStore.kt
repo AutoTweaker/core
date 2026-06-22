@@ -33,7 +33,7 @@ import java.io.File
 import kotlin.time.Instant
 
 object LogStore {
-	private val logger = LoggerFactory.getLogger(LogStore::class.java)
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true }
 	private val logDir = File(System.getProperty("user.home"), ".config/autotweaker/logs")

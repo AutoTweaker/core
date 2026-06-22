@@ -32,7 +32,7 @@ class IdListStore<T : Any>(
 	serializer: KSerializer<T>,
 	private val idOf: (T) -> UUID,
 ) {
-	private val logger = LoggerFactory.getLogger(IdListStore::class.java)
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val className = kClass.qualifiedName
 	

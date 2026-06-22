@@ -34,7 +34,7 @@ import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 import org.slf4j.LoggerFactory
 
 object Wiring {
-	private val logger = LoggerFactory.getLogger(Wiring::class.java)
+	private val logger = LoggerFactory.getLogger(this::class.java)
 	
 	suspend fun init() {
 		ModelRepositoryImpl.init(SecretManager)
