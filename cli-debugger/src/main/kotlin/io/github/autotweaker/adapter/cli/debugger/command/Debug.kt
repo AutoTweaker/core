@@ -39,21 +39,21 @@ class Debug : Command, I18nable {
 	override val description get() = i18n.get(Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(i18n, Param.Type.FLAG, "list-db", ParamListDb(), aliases = emptyList()),
+			Syntax.leaf(Param.Type.FLAG, "list-db", ParamListDb(), aliases = emptyList()),
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.VALUE, "list", ParamList()),
-					Syntax.leaf(i18n, Param.Type.VALUE, "get", ParamGet()),
-					Syntax.leaf(i18n, Param.Type.VALUE, "put", ParamPut()),
-					Syntax.leaf(i18n, Param.Type.VALUE, "delete", ParamDelete()),
+					Syntax.leaf(Param.Type.VALUE, "list", ParamList()),
+					Syntax.leaf(Param.Type.VALUE, "get", ParamGet()),
+					Syntax.leaf(Param.Type.VALUE, "put", ParamPut()),
+					Syntax.leaf(Param.Type.VALUE, "delete", ParamDelete()),
 				),
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.FLAG, "setting", Table(), aliases = emptyList()),
-					Syntax.leaf(i18n, Param.Type.FLAG, "jsonStore", Table(), aliases = emptyList()),
-					Syntax.leaf(i18n, Param.Type.FLAG, "sessionData", Table(), aliases = emptyList()),
-					Syntax.leaf(i18n, Param.Type.FLAG, "agentData", Table(), aliases = emptyList()),
-					Syntax.leaf(i18n, Param.Type.FLAG, "sessionMessage", Table(), aliases = emptyList()),
-					Syntax.leaf(i18n, Param.Type.FLAG, "secrets", Table(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "setting", Table(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "jsonStore", Table(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "sessionData", Table(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "agentData", Table(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "sessionMessage", Table(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "secrets", Table(), aliases = emptyList()),
 				),
 			),
 		)

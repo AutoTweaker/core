@@ -92,7 +92,7 @@ object Launcher : Loggable, Traceable {
 		
 		Wiring.init()
 		
-		TranslationManager.init(ModelRepositoryImpl, I18nServiceImpl)
+		TranslationManager.init(ModelRepositoryImpl)
 		TranslationManager.startTranslation()
 		
 		val all = PluginLoader.load<Adapter>().map { it to it.load(version) }

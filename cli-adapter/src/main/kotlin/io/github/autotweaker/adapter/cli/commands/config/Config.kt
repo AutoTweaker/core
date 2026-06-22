@@ -47,27 +47,27 @@ class Config : Command, Settable, I18nable, Traceable {
 		get() = Syntax.xor(
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.FLAG, "list", CfgI18n.List()),
+					Syntax.leaf(Param.Type.FLAG, "list", CfgI18n.List()),
 					Syntax.all(
-						Syntax.leaf(i18n, Param.Type.VALUE, "search", CfgI18n.Search(), aliases = emptyList()),
+						Syntax.leaf(Param.Type.VALUE, "search", CfgI18n.Search(), aliases = emptyList()),
 						Syntax.xor(
-							Syntax.leaf(i18n, Param.Type.FLAG, "key", CfgI18n.SearchKey(), aliases = emptyList()),
-							Syntax.leaf(i18n, Param.Type.FLAG, "value", CfgI18n.SearchValue(), aliases = emptyList()),
-							Syntax.leaf(i18n, Param.Type.FLAG, "desc", CfgI18n.SearchDesc(), aliases = emptyList()),
+							Syntax.leaf(Param.Type.FLAG, "key", CfgI18n.SearchKey(), aliases = emptyList()),
+							Syntax.leaf(Param.Type.FLAG, "value", CfgI18n.SearchValue(), aliases = emptyList()),
+							Syntax.leaf(Param.Type.FLAG, "desc", CfgI18n.SearchDesc(), aliases = emptyList()),
 							required = false,
 						),
 					),
 				),
-				Syntax.leaf(i18n, Param.Type.VALUE, "limit", CfgI18n.Limit(), required = false, aliases = emptyList()),
-				Syntax.leaf(i18n, Param.Type.FLAG, "full", CfgI18n.Full(), required = false),
+				Syntax.leaf(Param.Type.VALUE, "limit", CfgI18n.Limit(), required = false, aliases = emptyList()),
+				Syntax.leaf(Param.Type.FLAG, "full", CfgI18n.Full(), required = false),
 			),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.VALUE, "set", CfgI18n.Set()),
-				Syntax.leaf(i18n, Param.Type.POSITIONAL, "value", CfgI18n.SetValue()),
+				Syntax.leaf(Param.Type.VALUE, "set", CfgI18n.Set()),
+				Syntax.leaf(Param.Type.POSITIONAL, "value", CfgI18n.SetValue()),
 			),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.VALUE, "reset", CfgI18n.Yes()),
-				Syntax.leaf(i18n, Param.Type.FLAG, "yes", CfgI18n.Yes(), required = false),
+				Syntax.leaf(Param.Type.VALUE, "reset", CfgI18n.Yes()),
+				Syntax.leaf(Param.Type.FLAG, "yes", CfgI18n.Yes(), required = false),
 			)
 		)
 	
@@ -140,7 +140,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		val config = settingOrEmit(key) ?: return@flow
 		val newValue = trace.catching { config.value.parse(value) }
 			.getOrElse {
-				emitI18n(i18n, CfgI18n.SetTypeError(), error = true)
+				emitI18n(CfgI18n.SetTypeError(), error = true)
 				emitDone(1)
 				return@flow
 			}
@@ -156,7 +156,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		val config = settingOrEmit(key) ?: return@flow
 		
 		val sure: Boolean = if (!yes) {
-			emitI18n(i18n, CfgI18n.ShowSetting())
+			emitI18n(CfgI18n.ShowSetting())
 			printConfig(listOf(config), full = true)
 			val result = prompt(i18n.get(CfgI18n.SureReset()) + " ", true).trim()
 			result == "y" || result == "yes"
@@ -176,7 +176,7 @@ class Config : Command, Settable, I18nable, Traceable {
 	
 	private suspend fun FlowCollector<CmdOutput>.settingOrEmit(key: String): SettingEntry? =
 		setting.getAll().find { it.id == key } ?: run {
-			emitI18n(i18n, CfgI18n.ShowSetting(), key, error = true)
+			emitI18n(CfgI18n.ShowSetting(), key, error = true)
 			emitDone(1)
 			null
 		}
@@ -184,9 +184,9 @@ class Config : Command, Settable, I18nable, Traceable {
 	private suspend fun FlowCollector<CmdOutput>.printConfig(settings: List<SettingEntry>, full: Boolean) {
 		if (full) {
 			settings.forEachIndexed { index, setting ->
-				emitI18n(i18n, CfgI18n.OutKey(), setting.id)
-				emitI18n(i18n, CfgI18n.OutDesc(), setting.description)
-				emitI18n(i18n, CfgI18n.OutValue(), setting.value.value.toString())
+				emitI18n(CfgI18n.OutKey(), setting.id)
+				emitI18n(CfgI18n.OutDesc(), setting.description)
+				emitI18n(CfgI18n.OutValue(), setting.value.value.toString())
 				if (index != settings.lastIndex) emit(CmdOutput.Data("-".repeat(10)))
 			}
 		} else {

@@ -18,19 +18,20 @@
 
 package io.github.autotweaker.adapter.cli.commands.help
 
+import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
-import io.github.autotweaker.api.i18n.I18nService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
-class Help(private val loaded: List<Command>, private val i18n: I18nService) : Command {
+class Help(private val loaded: List<Command>) : Command, I18nable {
 	override val name = "help"
 	override val description get() = i18n.get(HelpI18n.HelpDesc())
 	override val syntax
-		get() = Syntax.leaf(i18n, Param.Type.POSITIONAL, "command", HelpI18n.HelpParamCommand(), required = false)
+		get() = Syntax.leaf(Param.Type.POSITIONAL, "command", HelpI18n.HelpParamCommand(), required = false)
 	
 	private val all: List<Command> get() = loaded + this
 	
@@ -41,7 +42,7 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emitI18n(i18n, HelpI18n.Unknown(), target, error = true)
+				emitI18n(HelpI18n.Unknown(), target, error = true)
 				emitDone(1)
 				return@flow
 			}
@@ -49,12 +50,12 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 			emitDone()
 			return@flow
 		}
-		emitI18n(i18n, HelpI18n.Available())
+		emitI18n(HelpI18n.Available())
 		for (cmd in all.sortedBy { it.name }) {
 			emit(CmdOutput.Data("  ${cmd.name}  —  ${cmd.description}"))
 		}
 		emit(CmdOutput.Data(""))
-		emitI18n(i18n, HelpI18n.HelpHint(), request.prog)
+		emitI18n(HelpI18n.HelpHint(), request.prog)
 		emitDone()
 	}
 	
@@ -63,7 +64,7 @@ class Help(private val loaded: List<Command>, private val i18n: I18nService) : C
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
 			emit(CmdOutput.Data(""))
-			emitI18n(i18n, HelpI18n.Params())
+			emitI18n(HelpI18n.Params())
 			for (line in lines) {
 				emit(CmdOutput.Data(line))
 			}

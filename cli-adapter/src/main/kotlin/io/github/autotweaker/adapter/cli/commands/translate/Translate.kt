@@ -40,12 +40,12 @@ class Translate : Command, I18nable {
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.FLAG, "model", TranslateI18n.SetModelDesc()),
-				Syntax.leaf(i18n, Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
-				Syntax.leaf(i18n, Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
+				Syntax.leaf(Param.Type.FLAG, "model", TranslateI18n.SetModelDesc()),
+				Syntax.leaf(Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
+				Syntax.leaf(Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
 			),
-			Syntax.leaf(i18n, Param.Type.FLAG, "rm-model", TranslateI18n.RemoveModelDesc()),
-			Syntax.leaf(i18n, Param.Type.VALUE, "language", TranslateI18n.SetLanguageDesc()),
+			Syntax.leaf(Param.Type.FLAG, "rm-model", TranslateI18n.RemoveModelDesc()),
+			Syntax.leaf(Param.Type.VALUE, "language", TranslateI18n.SetLanguageDesc()),
 			required = false
 		)
 	
@@ -56,7 +56,7 @@ class Translate : Command, I18nable {
 	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> =
 		flow {
 			if (request.has("model")) {
-				val model = findModel(request, core, i18n) ?: return@flow
+				val model = findModel(request, core) ?: return@flow
 				core.i18n.setTranslationModel(model)
 				emitDone()
 				return@flow

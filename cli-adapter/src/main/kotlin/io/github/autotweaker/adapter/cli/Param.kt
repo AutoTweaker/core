@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.i18n.I18nService
 
 sealed class Param {
 	abstract val name: String
@@ -72,15 +73,15 @@ sealed class Param {
 	
 	enum class Type { FLAG, VALUE, POSITIONAL }
 	
-	companion object {
-		fun fromI18n(i18n: I18nService, type: Type, name: String, desc: I18nDef, aliases: List<String>): Param =
+	companion object : I18nable {
+		fun fromI18n(type: Type, name: String, desc: I18nDef, aliases: List<String>): Param =
 			when (type) {
 				Type.FLAG -> Flag(name, i18n.get(desc), aliases)
 				Type.VALUE -> Value(name, i18n.get(desc), aliases)
 				Type.POSITIONAL -> Positional(name, i18n.get(desc))
 			}
 		
-		fun fromI18n(i18n: I18nService, type: Type, name: String, desc: I18nDef): Param =
+		fun fromI18n(type: Type, name: String, desc: I18nDef): Param =
 			when (type) {
 				Type.FLAG -> Flag(name, i18n.get(desc))
 				Type.VALUE -> Value(name, i18n.get(desc))

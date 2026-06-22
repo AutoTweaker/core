@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
@@ -31,18 +30,15 @@ import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
 
-object TranslationManager : Loggable, Traceable, JsonStorable, Settable {
+object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nable {
 	
 	private lateinit var modelRepo: ModelRepository
-	private lateinit var i18nService: I18nService
-	
+		
 	fun init(
 		modelRepo: ModelRepository,
-		i18nService: I18nService,
-	) {
+			) {
 		this.modelRepo = modelRepo
-		this.i18nService = i18nService
-	}
+			}
 	
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
 	private val _status = MutableStateFlow(TranslationStatus.IDLE)
@@ -68,8 +64,8 @@ object TranslationManager : Loggable, Traceable, JsonStorable, Settable {
 			return
 		}
 		
-		val target = i18nService.getLanguage()
-		if (TranslationEngine.isLanguageCovered(target, i18nService)) {
+		val target = i18n.getLanguage()
+		if (TranslationEngine.isLanguageCovered(target)) {
 			log.info("Skipped translation  reason=already_complete  target={}  action=skip", target.toLanguageTag())
 			_status.value = TranslationStatus.IDLE
 			return
@@ -77,7 +73,7 @@ object TranslationManager : Loggable, Traceable, JsonStorable, Settable {
 		
 		scope.launch {
 			try {
-				TranslationEngine.run(modelId, target, modelRepo, i18nService)
+				TranslationEngine.run(modelId, target, modelRepo)
 			} catch (e: CancellationException) {
 				trace.exception(e)
 				throw e

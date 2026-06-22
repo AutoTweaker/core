@@ -39,9 +39,8 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.FLAG, "passwd", SecretI18n.ParamUnlock(), aliases = emptyList()),
+				Syntax.leaf(Param.Type.FLAG, "passwd", SecretI18n.ParamUnlock(), aliases = emptyList()),
 				Syntax.leaf(
-					i18n,
 					Param.Type.FLAG,
 					"reset",
 					PasswdI18n.ParamRemove(),
@@ -49,19 +48,19 @@ class Secret : Command, Loggable, I18nable, Traceable {
 					aliases = emptyList()
 				),
 			),
-			Syntax.leaf(i18n, Param.Type.FLAG, "unlock", SecretI18n.ParamUnlock()),
+			Syntax.leaf(Param.Type.FLAG, "unlock", SecretI18n.ParamUnlock()),
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.FLAG, "list", SecretI18n.ParamList()),
-					Syntax.leaf(i18n, Param.Type.VALUE, "add", SecretI18n.ParamAdd()),
-					Syntax.leaf(i18n, Param.Type.VALUE, "remove", SecretI18n.ParamRemove(), aliases = listOf("rm")),
-					Syntax.leaf(i18n, Param.Type.VALUE, "get", SecretI18n.ParamGet()),
+					Syntax.leaf(Param.Type.FLAG, "list", SecretI18n.ParamList()),
+					Syntax.leaf(Param.Type.VALUE, "add", SecretI18n.ParamAdd()),
+					Syntax.leaf(Param.Type.VALUE, "remove", SecretI18n.ParamRemove(), aliases = listOf("rm")),
+					Syntax.leaf(Param.Type.VALUE, "get", SecretI18n.ParamGet()),
 				),
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.FLAG, "key", SecretI18n.ParamKey()),
+					Syntax.leaf(Param.Type.FLAG, "key", SecretI18n.ParamKey()),
 					Syntax.all(
-						Syntax.leaf(i18n, Param.Type.FLAG, "env", SecretI18n.ParamEnv()),
-						Syntax.leaf(i18n, Param.Type.VALUE, "type", SecretI18n.ParamEnvType()),
+						Syntax.leaf(Param.Type.FLAG, "env", SecretI18n.ParamEnv()),
+						Syntax.leaf(Param.Type.VALUE, "type", SecretI18n.ParamEnvType()),
 					),
 				),
 			),
@@ -90,7 +89,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 		}
 		
 		suspend fun emitInvalidArg() {
-			emitI18n(i18n, SecretI18n.InvalidArg(), error = true)
+			emitI18n(SecretI18n.InvalidArg(), error = true)
 			emitDone(1)
 		}
 		
@@ -170,14 +169,14 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
 		if (core.secret.isPasswordEmpty()) {
 			this@Secret.log.debug("Skipped unlock  command=secret  reason=no_password_set")
-			emitI18n(i18n, SecretI18n.UnlockNoPassword())
+			emitI18n(SecretI18n.UnlockNoPassword())
 			emitDone(0)
 			return@flow
 		}
 		
 		if (core.secret.isUnlocked.value) {
 			this@Secret.log.debug("Skipped unlock  command=secret  reason=already_unlocked")
-			emitI18n(i18n, SecretI18n.UnlockAlready())
+			emitI18n(SecretI18n.UnlockAlready())
 			emitDone(0)
 			return@flow
 		}
@@ -189,7 +188,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 			this@Secret.log.info("Unlocked keystore  command=secret")
 		}.getOrElse {
 			this@Secret.log.warn("Failed keystore unlock  command=secret")
-			emitI18n(i18n, SecretI18n.UnlockFailed(), error = true)
+			emitI18n(SecretI18n.UnlockFailed(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -207,7 +206,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 			this@Secret.log.info("Removed password  command=secret")
 		}.getOrElse {
 			this@Secret.log.warn("Failed password removal  command=secret")
-			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
+			emitI18n(SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -228,7 +227,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 		
 		if (newPassword != confirm) {
 			this@Secret.log.debug("Aborted password change  command=secret  reason=confirmation_mismatch")
-			emitI18n(i18n, PasswdI18n.Mismatch(), error = true)
+			emitI18n(PasswdI18n.Mismatch(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -241,7 +240,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 			this@Secret.log.info("Changed password  command=secret")
 		}.getOrElse {
 			this@Secret.log.warn("Failed password change  command=secret")
-			emitI18n(i18n, SecretI18n.InvalidPasswd(), error = true)
+			emitI18n(SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
 			return@flow
 		}

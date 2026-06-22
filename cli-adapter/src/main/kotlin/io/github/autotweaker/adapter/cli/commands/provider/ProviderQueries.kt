@@ -61,15 +61,15 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 	
 	fun info(name: String): Flow<CmdOutput> = flow {
 		if (!core.config.listAvailableProviderTypes().any { it == name }) {
-			emitI18n(i18n, ProvI18n.ProviderNotFound(), name, error = true)
+			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		
 		val meta = core.config.getProviderMeta(name)
-		emitI18n(i18n, ProvQueriesI18n.Name(), meta.name)
-		emitI18n(i18n, ProvQueriesI18n.Url(), meta.baseUrl.value)
-		emitI18n(i18n, ProvQueriesI18n.Rule())
+		emitI18n(ProvQueriesI18n.Name(), meta.name)
+		emitI18n(ProvQueriesI18n.Url(), meta.baseUrl.value)
+		emitI18n(ProvQueriesI18n.Rule())
 		emitAll(printRules(meta.errorHandlingRules).map { CmdOutput.Data(it) })
 		meta.models.forEach {
 			emit(CmdOutput.Data(LINE))

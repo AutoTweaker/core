@@ -42,7 +42,7 @@ class ProviderCommands(
 		val type = type ?: promptOrNull(ProvCommandsI18n.PromptType(), ProvCommandsI18n.MissingType()) ?: return@flow
 		
 		if (core.config.listAvailableProviderTypes().find { it == type } == null) {
-			emitI18n(i18n, ProvCommandsI18n.InvalidType(), error = true)
+			emitI18n(ProvCommandsI18n.InvalidType(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -50,7 +50,7 @@ class ProviderCommands(
 		val key = key ?: promptOrNull(ProvCommandsI18n.PromptKey(), ProvCommandsI18n.MissingKey()) ?: return@flow
 		
 		if (core.config.listApiKeyNames().find { it == key } == null) {
-			emitI18n(i18n, ProvCommandsI18n.InvalidKey(), error = true)
+			emitI18n(ProvCommandsI18n.InvalidKey(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -76,13 +76,13 @@ class ProviderCommands(
 	fun remove(name: String, yes: Boolean): Flow<CmdOutput> = flow {
 		val ids = core.config.listProviders().filter { it.displayName == name }.map { it.id }
 		if (ids.isEmpty()) {
-			emitI18n(i18n, ProvI18n.ProviderNotFound(), name, error = true)
+			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		if (!yes) {
 			emitI18n(
-				i18n, ProvCommandsI18n.RemoveListCount(), core.config.listProviders().count { it.displayName == name })
+				ProvCommandsI18n.RemoveListCount(), core.config.listProviders().count { it.displayName == name })
 			ids.forEach { emit(CmdOutput.Data(it.toString())) }
 			val sure = promptOrNull(ProvCommandsI18n.RemoveConfirm())?.trim()
 			if (sure != "yes" && sure != "y") {
@@ -97,13 +97,13 @@ class ProviderCommands(
 	
 	fun rename(name: String, new: String): Flow<CmdOutput> = flow {
 		val provider = core.config.listProviders().find { it.displayName == name } ?: run {
-			emitI18n(i18n, ProvI18n.ProviderNotFound(), name, error = true)
+			emitI18n(ProvI18n.ProviderNotFound(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
 		
 		if (core.config.listProviders().any { it.displayName == new }) {
-			emitI18n(i18n, ProvCommandsI18n.ProviderExistsError(), new, error = true)
+			emitI18n(ProvCommandsI18n.ProviderExistsError(), new, error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -119,7 +119,7 @@ class ProviderCommands(
 		val result = prompt(i18n.get(def) + " ", true)
 		if (result.isBlank()) {
 			defOnEmpty?.let {
-				emitI18n(i18n, it, error = true)
+				emitI18n(it, error = true)
 				emitDone(1)
 			}
 			return null

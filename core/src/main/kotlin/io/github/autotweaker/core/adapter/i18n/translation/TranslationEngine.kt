@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
@@ -38,7 +37,7 @@ import kotlinx.serialization.json.*
 import java.util.*
 import kotlin.time.Clock
 
-object TranslationEngine : Loggable, Traceable, Settable {
+object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(
@@ -57,7 +56,7 @@ object TranslationEngine : Loggable, Traceable, Settable {
 	
 	suspend fun run(
 		modelId: UUID, target: Locale,
-		modelRepo: ModelRepository, i18nService: I18nService,
+		modelRepo: ModelRepository,
 	) {
 		val model = modelRepo.resolve(modelId) ?: throw IllegalStateException("Model not found: $modelId")
 		val systemPrompt =
@@ -65,7 +64,7 @@ object TranslationEngine : Loggable, Traceable, Settable {
 		val userPromptTemplate = setting.get(TranslateSettings.UserPrompt()).value
 		val batchSize = setting.get(TranslateSettings.BatchSize()).value
 		
-		val units = collectUnits(target, i18nService)
+		val units = collectUnits(target)
 		if (units.isEmpty()) return
 		
 		val jobs = units.chunked(batchSize).map {
@@ -78,7 +77,7 @@ object TranslationEngine : Loggable, Traceable, Settable {
 				async {
 					semaphore.withPermit {
 						val result = translateBatch(job)
-						persistResults(result, i18nService)
+						persistResults(result)
 					}
 				}
 			}.awaitAll()
@@ -87,8 +86,8 @@ object TranslationEngine : Loggable, Traceable, Settable {
 		log.info("Completed translation  target={}  keys={}", target.toLanguageTag(), units.size)
 	}
 	
-	private fun collectUnits(target: Locale, i18nService: I18nService): List<TranslationUnit> {
-		val persisted = i18nService.getAll().associateBy { it.key }
+	private fun collectUnits(target: Locale): List<TranslationUnit> {
+		val persisted = i18n.getAll().associateBy { it.key }
 		return I18nRegistry.getAll().mapNotNull { (key, def) ->
 			val alreadyHas = persisted[key]?.localizations?.any { it.languageCode == target } == true
 			if (alreadyHas) null
@@ -96,8 +95,8 @@ object TranslationEngine : Loggable, Traceable, Settable {
 		}
 	}
 	
-	fun isLanguageCovered(target: Locale, i18nService: I18nService): Boolean {
-		val persisted = i18nService.getAll().associateBy { it.key }
+	fun isLanguageCovered(target: Locale): Boolean {
+		val persisted = i18n.getAll().associateBy { it.key }
 		return I18nRegistry.getAll().keys.all { key ->
 			persisted[key]?.localizations?.any { it.languageCode == target } == true
 		}
@@ -134,12 +133,12 @@ object TranslationEngine : Loggable, Traceable, Settable {
 		return BatchResult(parseResponse(text), job.batch, job.target)
 	}
 	
-	private fun persistResults(r: BatchResult, i18nService: I18nService) {
+	private fun persistResults(r: BatchResult) {
 		for ((key, value) in r.translated) {
 			if (value.isBlank()) continue
 			val sourceText = r.batch.find { it.key == key }?.localizations?.firstOrNull() ?: ""
 			if (PlaceholderValidator.validate(sourceText, value)) {
-				trace.catching { i18nService.set(key, value, r.target) }
+				trace.catching { i18n.set(key, value, r.target) }
 					.onFailure { log.warn("Failed translation persistence  key={}  reason={}", key, it.message) }
 			} else {
 				log.warn(

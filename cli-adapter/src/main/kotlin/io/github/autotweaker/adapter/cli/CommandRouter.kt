@@ -47,7 +47,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	
 	init {
 		commands.forEach { it.init(core, coreVersion) }
-		val help = Help(commands, i18n)
+		val help = Help(commands)
 		handlers = (commands + help).associateBy { it.name }
 		log.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
@@ -73,7 +73,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		val handler = handlers[cmd] ?: run {
 			log.warn("Received unknown command  command={}  args={}", cmd, request.args)
 			return flow {
-				emitI18n(i18n, CmdI18n.UnknownHint(), cmd, request.prog, error = true)
+				emitI18n(CmdI18n.UnknownHint(), cmd, request.prog, error = true)
 				emitDone(1)
 			}
 		}
@@ -92,7 +92,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 			?: run {
 				log.debug("Rejected invalid arguments for command  command={}", cmd)
 				return flow {
-					emitI18n(i18n, CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
+					emitI18n(CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
 					emitDone(1)
 				}
 			}
@@ -101,7 +101,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked.value) {
 			log.debug("Rejected command, keystore locked  command={}", cmd)
 			return flow {
-				emitI18n(i18n, CmdI18n.KeystoreLocked(), request.prog, error = true)
+				emitI18n(CmdI18n.KeystoreLocked(), request.prog, error = true)
 				emitDone(1)
 			}
 		}

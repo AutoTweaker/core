@@ -26,7 +26,6 @@ import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -42,21 +41,21 @@ class Model : Command, I18nable, Traceable {
 	override val description get() = i18n.get(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(i18n, Param.Type.FLAG, "list", ModelI18n.ParamList()),
+			Syntax.leaf(Param.Type.FLAG, "list", ModelI18n.ParamList()),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.FLAG, "add", ModelI18n.ParamAdd()),
-				Syntax.leaf(i18n, Param.Type.VALUE, "name", ModelI18n.ParamName()),
-				Syntax.leaf(i18n, Param.Type.VALUE, "provider", ModelI18n.ParamProvider()),
-				Syntax.leaf(i18n, Param.Type.VALUE, "info", ModelI18n.ParamAddInfo(), required = false),
+				Syntax.leaf(Param.Type.FLAG, "add", ModelI18n.ParamAdd()),
+				Syntax.leaf(Param.Type.VALUE, "name", ModelI18n.ParamName()),
+				Syntax.leaf(Param.Type.VALUE, "provider", ModelI18n.ParamProvider()),
+				Syntax.leaf(Param.Type.VALUE, "info", ModelI18n.ParamAddInfo(), required = false),
 			),
-			Syntax.leaf(i18n, Param.Type.VALUE, "add-all", ModelI18n.ParamAddAll(), aliases = emptyList()),
+			Syntax.leaf(Param.Type.VALUE, "add-all", ModelI18n.ParamAddAll(), aliases = emptyList()),
 			Syntax.all(
 				Syntax.xor(
-					Syntax.leaf(i18n, Param.Type.FLAG, "remove", ModelI18n.ParamRemove(), aliases = listOf("rm")),
-					Syntax.leaf(i18n, Param.Type.FLAG, "set-default", ModelI18n.ParamDefault(), aliases = emptyList()),
+					Syntax.leaf(Param.Type.FLAG, "remove", ModelI18n.ParamRemove(), aliases = listOf("rm")),
+					Syntax.leaf(Param.Type.FLAG, "set-default", ModelI18n.ParamDefault(), aliases = emptyList()),
 				),
-				Syntax.leaf(i18n, Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
-				Syntax.leaf(i18n, Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
+				Syntax.leaf(Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
+				Syntax.leaf(Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
 			)
 		)
 	
@@ -87,13 +86,13 @@ class Model : Command, I18nable, Traceable {
 		}
 		
 		if (request.has("remove")) {
-			core.config.removeModel(findModel(request, core, i18n) ?: return@flow)
+			core.config.removeModel(findModel(request, core) ?: return@flow)
 			emitDone()
 			return@flow
 		}
 		
 		if (request.has("set-default")) {
-			core.config.setDefaultModel(findModel(request, core, i18n) ?: return@flow)
+			core.config.setDefaultModel(findModel(request, core) ?: return@flow)
 			emitDone()
 			return@flow
 		}
@@ -111,12 +110,12 @@ class Model : Command, I18nable, Traceable {
 		emitDone()
 	}
 	
-	companion object {
-		suspend fun FlowCollector<CmdOutput>.findModel(request: Request, core: CoreAPI, i18n: I18nService): UUID? {
+	companion object : I18nable {
+		suspend fun FlowCollector<CmdOutput>.findModel(request: Request, core: CoreAPI): UUID? {
 			val provider = request.positional[0]
 			val model = request.positional[1]
 			val providerId = core.config.listProviders().find { it.displayName == provider }?.id ?: run {
-				emitI18n(i18n, ModelI18n.ProviderNotFound(), provider, error = true)
+				emitI18n(ModelI18n.ProviderNotFound(), provider, error = true)
 				emitDone(1)
 				return null
 			}
@@ -124,7 +123,7 @@ class Model : Command, I18nable, Traceable {
 				core.config.listModels()
 					.find { it.data.displayName == model && it.data.providerId == providerId }?.data?.id
 					?: run {
-						emitI18n(i18n, ModelI18n.ModelNotFound(), model, error = true)
+						emitI18n(ModelI18n.ModelNotFound(), model, error = true)
 						emitDone(1)
 						return null
 					}

@@ -38,7 +38,7 @@ class KeyManager(
 	
 	fun add(name: String): Flow<CmdOutput> = flow {
 		if (name.isBlank()) {
-			emitI18n(i18n, SecretI18n.EmptyNameError(), error = true)
+			emitI18n(SecretI18n.EmptyNameError(), error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -46,12 +46,12 @@ class KeyManager(
 		emit(CmdOutput.Data(" " + i18n.get(PasswdI18n.Length()).format(key.length)))
 		
 		if (key.isBlank()) {
-			emitI18n(i18n, SecretI18n.EmptyKeyError(), error = true)
+			emitI18n(SecretI18n.EmptyKeyError(), error = true)
 			emitDone(1)
 			return@flow
 		}
 		if (core.config.listApiKeyNames().any { it == name }) {
-			emitI18n(i18n, SecretI18n.KeyExistsError(), name, error = true)
+			emitI18n(SecretI18n.KeyExistsError(), name, error = true)
 			emitDone(1)
 			return@flow
 		}
@@ -69,7 +69,7 @@ class KeyManager(
 			core.config.removeApiKey(name)
 			emitDone()
 		} else {
-			emitI18n(i18n, SecretI18n.KeyNotFoundError(), name, error = true)
+			emitI18n(SecretI18n.KeyNotFoundError(), name, error = true)
 			emitDone(1)
 		}
 	}

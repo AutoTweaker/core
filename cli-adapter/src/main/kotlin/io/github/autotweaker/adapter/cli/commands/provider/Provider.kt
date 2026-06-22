@@ -38,14 +38,13 @@ class Provider : Command, I18nable {
 	override val description get() = i18n.get(ProvI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
-			Syntax.leaf(i18n, Param.Type.FLAG, "list", ProvI18n.List()),
-			Syntax.leaf(i18n, Param.Type.VALUE, "show", ProvI18n.Show(), aliases = emptyList()),
-			Syntax.leaf(i18n, Param.Type.FLAG, "types", ProvI18n.Types(), aliases = emptyList()),
-			Syntax.leaf(i18n, Param.Type.VALUE, "info", ProvI18n.Info()),
+			Syntax.leaf(Param.Type.FLAG, "list", ProvI18n.List()),
+			Syntax.leaf(Param.Type.VALUE, "show", ProvI18n.Show(), aliases = emptyList()),
+			Syntax.leaf(Param.Type.FLAG, "types", ProvI18n.Types(), aliases = emptyList()),
+			Syntax.leaf(Param.Type.VALUE, "info", ProvI18n.Info()),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.FLAG, "add", ProvI18n.Add()),
+				Syntax.leaf(Param.Type.FLAG, "add", ProvI18n.Add()),
 				Syntax.leaf(
-					i18n,
 					Param.Type.VALUE,
 					"name",
 					ProvI18n.AddName(),
@@ -53,23 +52,22 @@ class Provider : Command, I18nable {
 					aliases = emptyList()
 				),
 				Syntax.leaf(
-					i18n,
 					Param.Type.VALUE,
 					"type",
 					ProvI18n.AddType(),
 					required = false,
 					aliases = emptyList()
 				),
-				Syntax.leaf(i18n, Param.Type.VALUE, "key", ProvI18n.AddKey(), required = false, aliases = emptyList()),
-				Syntax.leaf(i18n, Param.Type.VALUE, "url", ProvI18n.AddUrl(), required = false, aliases = emptyList()),
+				Syntax.leaf(Param.Type.VALUE, "key", ProvI18n.AddKey(), required = false, aliases = emptyList()),
+				Syntax.leaf(Param.Type.VALUE, "url", ProvI18n.AddUrl(), required = false, aliases = emptyList()),
 			),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.VALUE, "remove", ProvI18n.Remove(), aliases = listOf("rm")),
-				Syntax.leaf(i18n, Param.Type.FLAG, "yes", ProvI18n.Yes(), required = false),
+				Syntax.leaf(Param.Type.VALUE, "remove", ProvI18n.Remove(), aliases = listOf("rm")),
+				Syntax.leaf(Param.Type.FLAG, "yes", ProvI18n.Yes(), required = false),
 			),
 			Syntax.all(
-				Syntax.leaf(i18n, Param.Type.VALUE, "rename", ProvI18n.Rename()),
-				Syntax.leaf(i18n, Param.Type.POSITIONAL, "new", ProvI18n.NewName()),
+				Syntax.leaf(Param.Type.VALUE, "rename", ProvI18n.Rename()),
+				Syntax.leaf(Param.Type.POSITIONAL, "new", ProvI18n.NewName()),
 			),
 		)
 	
