@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.domain.agent
 
+import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabId
@@ -39,8 +41,6 @@ import io.github.autotweaker.core.domain.session.AgentHost
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import kotlinx.coroutines.flow.*
 import java.util.*
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
 
 class Agent(
 	context: AgentContext,
@@ -92,7 +92,7 @@ class Agent(
 			toolCalling = toolCalling,
 			compactService = compact,
 			agentModel = model,
-						statusFlow = _status,
+			statusFlow = _status,
 			agentId = agentId,
 		).start()
 	}

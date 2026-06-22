@@ -19,14 +19,9 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore

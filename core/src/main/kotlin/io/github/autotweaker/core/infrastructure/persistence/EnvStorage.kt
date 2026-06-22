@@ -19,11 +19,11 @@
 package io.github.autotweaker.core.infrastructure.persistence
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

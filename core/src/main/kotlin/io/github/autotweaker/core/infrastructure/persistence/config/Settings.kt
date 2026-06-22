@@ -18,8 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.config
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
@@ -34,10 +38,6 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.concurrent.ConcurrentHashMap
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object Settings : SettingService, Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true }

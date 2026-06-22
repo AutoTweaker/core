@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.compact
 
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -37,12 +38,6 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.util.*
 import kotlin.time.Clock
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 class CompactService(
 	private val agentId: UUID,

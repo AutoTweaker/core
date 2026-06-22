@@ -19,12 +19,7 @@
 package io.github.autotweaker.core.domain.tool.impl.bash
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.JsonStorable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.config.store
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.tool.args.BashArgs

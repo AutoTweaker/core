@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.config
 
+import io.github.autotweaker.api.JsonStorable
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
@@ -29,10 +33,6 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.JsonStorable
-import io.github.autotweaker.api.config.store
-import io.github.autotweaker.api.log
 
 object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 	private lateinit var secret: SecretStore

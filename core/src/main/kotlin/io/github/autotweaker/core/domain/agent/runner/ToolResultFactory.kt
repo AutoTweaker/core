@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
+import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage

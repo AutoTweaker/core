@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.JsonStorable
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
@@ -26,10 +30,6 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.JsonStorable
-import io.github.autotweaker.api.config.store
-import io.github.autotweaker.api.log
 
 object ModelRepositoryImpl : ModelRepository, Loggable, JsonStorable {
 	

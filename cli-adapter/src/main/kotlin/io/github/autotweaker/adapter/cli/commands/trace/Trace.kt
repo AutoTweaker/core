@@ -26,9 +26,9 @@ import io.github.autotweaker.adapter.cli.Command
 import io.github.autotweaker.adapter.cli.Param.Type
 import io.github.autotweaker.adapter.cli.Request
 import io.github.autotweaker.adapter.cli.Syntax
+import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n.I18nable
-import io.github.autotweaker.api.i18n.i18n
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

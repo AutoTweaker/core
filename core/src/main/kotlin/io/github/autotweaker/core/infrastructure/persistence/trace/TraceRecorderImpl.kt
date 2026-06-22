@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
+import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.trace.TraceRecorder
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel

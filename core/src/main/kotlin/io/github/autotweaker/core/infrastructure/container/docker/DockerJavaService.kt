@@ -27,7 +27,7 @@ import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
-import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
@@ -42,12 +42,6 @@ import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import java.time.Duration as JavaDuration
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	

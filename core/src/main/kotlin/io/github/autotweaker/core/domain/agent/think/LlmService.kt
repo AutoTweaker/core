@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.domain.agent.think
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -28,10 +32,6 @@ import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import kotlinx.coroutines.CancellationException
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 class LlmService(
 	private val agentId: UUID,

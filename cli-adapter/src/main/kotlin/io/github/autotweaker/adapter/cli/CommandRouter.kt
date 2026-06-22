@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.help.Help
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.SemVer
@@ -30,14 +31,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.i18n.I18nable
-import io.github.autotweaker.api.i18n.i18n
-import io.github.autotweaker.api.log
 
-class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: List<Command>) : Loggable, Settable, I18nable {
+class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: List<Command>) : Loggable, Settable,
+	I18nable {
 	private val handlers: Map<String, Command>
 	
 	@AutoService(SettingDef::class)
@@ -47,7 +43,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	}
 	
 	private val maxArgsCount = setting.get(MaxArgsCount()).value
-		private val argParser = ArgParser(maxArgsCount)
+	private val argParser = ArgParser(maxArgsCount)
 	
 	init {
 		commands.forEach { it.init(core, coreVersion) }

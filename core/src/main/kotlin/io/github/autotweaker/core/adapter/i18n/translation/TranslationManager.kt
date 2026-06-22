@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.adapter.i18n.translation
 
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
@@ -29,17 +30,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.config.JsonStorable
-import io.github.autotweaker.api.config.store
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object TranslationManager : Loggable, Traceable, JsonStorable, Settable {
-		
+	
 	private lateinit var modelRepo: ModelRepository
 	private lateinit var i18nService: I18nService
 	

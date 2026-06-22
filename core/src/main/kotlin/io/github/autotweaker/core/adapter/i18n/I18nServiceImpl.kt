@@ -18,12 +18,12 @@
 
 package io.github.autotweaker.core.adapter.i18n
 
+import io.github.autotweaker.api.JsonStorable
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.JsonStorable
-import io.github.autotweaker.api.config.store
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import io.github.autotweaker.api.types.serializer.LocaleSerializer

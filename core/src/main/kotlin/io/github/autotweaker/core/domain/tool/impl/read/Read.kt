@@ -19,14 +19,9 @@
 package io.github.autotweaker.core.domain.tool.impl.read
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.trace.Traceable
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.tool.args.ReadArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -82,7 +77,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		args: ReadArgs,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput {
-				val filePath = when (args) {
+		val filePath = when (args) {
 			is ReadArgs.File -> args.filePath
 			is ReadArgs.Summarize -> args.filePath
 			is ReadArgs.Unicode -> args.filePath
@@ -129,7 +124,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				val unicodeMaxChars = setting.get(ReadSettings.UnicodeMaxCharsSetting()).value
 				if (args.maxChars > unicodeMaxChars) {
 					return Tool.ToolOutput(
-						setting.get(ReadSettings.UnicodeMessageTooManyCharsSetting()).value.format(unicodeMaxChars), false
+						setting.get(ReadSettings.UnicodeMessageTooManyCharsSetting()).value.format(unicodeMaxChars),
+						false
 					)
 				}
 				executeUnicode(fs, normalizedPath, args.maxChars)
@@ -138,14 +134,17 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	}
 	
 	private suspend fun executeFile(
-				container: SimpleContainer,
+		container: SimpleContainer,
 		fs: FileSystemService,
 		normalizedPath: Path,
 		args: ReadArgs.File,
 	): Tool.ToolOutput {
 		val fileMaxLines = setting.get(ReadSettings.FileMaxLinesSetting()).value
 		if (args.endLine - args.startLine + 1 > fileMaxLines) {
-			return Tool.ToolOutput(setting.get(ReadSettings.MessageTooManyLinesSetting()).value.format(fileMaxLines), false)
+			return Tool.ToolOutput(
+				setting.get(ReadSettings.MessageTooManyLinesSetting()).value.format(fileMaxLines),
+				false
+			)
 		}
 		val content = try {
 			readFileContent(
@@ -183,7 +182,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	}
 	
 	private suspend fun executeSummarize(
-				container: SimpleContainer,
+		container: SimpleContainer,
 		fs: FileSystemService,
 		normalizedPath: Path,
 		args: ReadArgs.Summarize,
@@ -242,7 +241,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	}
 	
 	private suspend fun executeUnicode(
-				fs: FileSystemService,
+		fs: FileSystemService,
 		normalizedPath: Path,
 		maxChars: Int,
 	): Tool.ToolOutput {

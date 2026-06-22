@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
@@ -30,12 +31,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	private val rootDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "secret")

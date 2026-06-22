@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.adapter.i18n.translation
 
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -36,12 +37,6 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.*
 import java.util.*
 import kotlin.time.Clock
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object TranslationEngine : Loggable, Traceable, Settable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }

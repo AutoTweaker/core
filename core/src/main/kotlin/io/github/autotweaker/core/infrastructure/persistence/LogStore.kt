@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
@@ -29,10 +33,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import kotlin.time.Instant
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object LogStore : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true }

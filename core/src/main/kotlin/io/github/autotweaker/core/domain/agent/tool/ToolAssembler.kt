@@ -18,16 +18,16 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.serialization.json.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
 
 object ToolAssembler : Loggable, Settable {
 	suspend fun assemble(

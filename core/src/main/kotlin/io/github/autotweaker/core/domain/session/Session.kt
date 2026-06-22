@@ -18,8 +18,11 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
 import io.github.autotweaker.api.types.agent.AgentData
@@ -42,10 +45,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
 
 class Session(
 	data: SessionData,
@@ -142,7 +141,7 @@ class Session(
 		resolveModel = resolveModel,
 		workspace = workspace,
 		containerConfig = containerConfig,
-				secretStore = secretStore
+		secretStore = secretStore
 	).init(data).also { bridges[data.id] = it }
 	
 	companion object {

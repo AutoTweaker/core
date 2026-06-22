@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.chat
 
-import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.model.Model
@@ -29,10 +29,6 @@ import kotlinx.coroutines.flow.flow
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
 
 object ResilientChat : Loggable, Settable {
 	private lateinit var gateway: LlmGateway

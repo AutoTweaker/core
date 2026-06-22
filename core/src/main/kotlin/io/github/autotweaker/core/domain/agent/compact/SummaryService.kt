@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.domain.agent.compact
 
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.UsageSnapshot
@@ -28,9 +30,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
 import java.util.*
 import kotlin.time.Clock
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
-import io.github.autotweaker.api.trace.trace
 
 object SummaryService : Traceable {
 	

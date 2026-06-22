@@ -18,9 +18,13 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.StartupHook
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -36,10 +40,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	val version: SemVer by lazy {

@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
-import io.github.autotweaker.api.config.JsonStorable
-import io.github.autotweaker.api.config.store
+import io.github.autotweaker.api.JsonStorable
+import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.llm.ModelData
 import java.util.*
 

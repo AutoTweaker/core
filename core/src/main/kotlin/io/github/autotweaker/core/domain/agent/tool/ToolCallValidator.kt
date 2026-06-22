@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
-import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace.catching
@@ -27,15 +27,8 @@ import io.github.autotweaker.core.domain.tool.ToolMeta.Companion.toSnakeCase
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.json.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
-class ToolCallValidator(
-) : Loggable, Traceable, Settable {
+class ToolCallValidator : Loggable, Traceable, Settable {
 	
 	@OptIn(ExperimentalSerializationApi::class)
 	private val json = Json {

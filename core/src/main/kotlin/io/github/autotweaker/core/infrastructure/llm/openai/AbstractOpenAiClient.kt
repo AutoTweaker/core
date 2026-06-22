@@ -18,7 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.llm.openai
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.ktor.client.*
@@ -39,10 +43,6 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Clock
 import kotlin.time.Instant
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiResponse, Chunk : OpenAiStreamChunk>(
 	private val requestTypeInfo: TypeInfo,

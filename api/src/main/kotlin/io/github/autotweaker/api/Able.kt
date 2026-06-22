@@ -18,10 +18,30 @@
 
 package io.github.autotweaker.api
 
+import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.trace.TraceRecorder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 interface Loggable
+interface Traceable
+interface JsonStorable
+interface Settable
+interface I18nable
 
-inline val Loggable.log: Logger
-	get() = LoggerFactory.getLogger(this::class.java)
+inline val Loggable.log: Logger get() = LoggerFactory.getLogger(this::class.java)
+
+val Traceable.trace: TraceRecorder get() = services.trace(this::class)
+
+val JsonStorable.store: JsonStore get() = services.store(this::class)
+
+@Suppress("UnusedReceiverParameter")
+val Settable.setting: SettingService get() = services.setting
+
+@Suppress("UnusedReceiverParameter")
+val I18nable.i18n: I18nService get() = services.i18n
+
+
+internal inline val services get() = ServiceRegistry.servicesOrError()

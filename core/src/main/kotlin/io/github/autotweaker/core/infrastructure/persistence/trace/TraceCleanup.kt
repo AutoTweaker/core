@@ -18,12 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.setting
 import java.nio.file.Files
 import java.nio.file.Path
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.config.Settable
-import io.github.autotweaker.api.config.setting
-import io.github.autotweaker.api.log
 
 object TraceCleanup : Loggable, Settable {
 	private val dbFilePath =

@@ -18,6 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.llm
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -26,10 +30,6 @@ import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace.Traceable
-import io.github.autotweaker.api.trace.trace
 
 object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 	
