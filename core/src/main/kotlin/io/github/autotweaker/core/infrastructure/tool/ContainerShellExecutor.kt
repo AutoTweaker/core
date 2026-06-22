@@ -23,17 +23,16 @@ import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-class ContainerShellExecutor {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+class ContainerShellExecutor : Loggable {
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> = flow {
 		val startNs = System.nanoTime()
-		logger.debug(
+		log.debug(
 			"Started container shell command  command={}  workDir={}  timeout={}s",
 			command,
 			workDir,
@@ -43,7 +42,7 @@ class ContainerShellExecutor {
 			when (event) {
 				is ShellEvent.Exit -> {
 					val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
-					logger.debug(
+					log.debug(
 						"Completed container shell command  command={}  exitCode={}  duration={}s",
 						command,
 						event.result.exitCode,

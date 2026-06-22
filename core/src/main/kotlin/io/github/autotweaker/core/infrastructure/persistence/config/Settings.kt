@@ -34,11 +34,11 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
-import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object Settings : SettingService {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object Settings : SettingService, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
@@ -52,7 +52,7 @@ object Settings : SettingService {
 	private fun getValueFromRow(row: ResultRow): SettingValue? {
 		val jsonStr = row[ConfigTable.valJson]
 		return trace.catching { json.decodeFromString(SettingValue.serializer(), jsonStr) }
-			.onFailure { logger.warn("Failed config value deserialization  key={}", row[ConfigTable.keyName]) }
+			.onFailure { log.warn("Failed config value deserialization  key={}", row[ConfigTable.keyName]) }
 			.getOrNull()
 	}
 	
@@ -62,7 +62,7 @@ object Settings : SettingService {
 			SchemaUtils.create(ConfigTable)
 		}
 		cache.putAll(loadAllIntoCache())
-		logger.info("Initialized settings  count={}", cache.size)
+		log.info("Initialized settings  count={}", cache.size)
 	}
 	
 	private fun loadAllIntoCache(): Map<String, SettingValue> = transaction(db) {
@@ -83,7 +83,7 @@ object Settings : SettingService {
 		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		upsertValue(id, value, def.description)
 		cache[id] = value
-		logger.debug("Updated setting by def  id={}  value={}", id, value)
+		log.debug("Updated setting by def  id={}  value={}", id, value)
 	}
 	
 	override fun set(id: String, value: SettingValue) {
@@ -95,7 +95,7 @@ object Settings : SettingService {
 		}
 		upsertValue(id, value, def.description)
 		cache[id] = value
-		logger.debug("Updated setting by id  id={}  value={}", id, value)
+		log.debug("Updated setting by id  id={}  value={}", id, value)
 	}
 	
 	private fun upsertValue(id: String, value: SettingValue, description: String) {
@@ -124,7 +124,7 @@ object Settings : SettingService {
 		if (!cache.containsKey(id)) {
 			cache[id] = def.default
 		}
-		logger.debug("Updated setting description  id={}", id)
+		log.debug("Updated setting description  id={}", id)
 	}
 	
 	override fun getAll(): List<SettingEntry> = transaction(db) {

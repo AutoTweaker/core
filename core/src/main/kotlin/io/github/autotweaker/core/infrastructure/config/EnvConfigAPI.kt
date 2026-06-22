@@ -25,10 +25,10 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object EnvConfigAPI : EnvRepository {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object EnvConfigAPI : EnvRepository, Loggable {
 	private lateinit var secret: SecretStore
 	private val bash = Bash()
 	private val con = ContainerManager
@@ -49,7 +49,7 @@ object EnvConfigAPI : EnvRepository {
 		val conEnv = env.filter { it.type == Type.CONTAINER_ENV }
 		bashEnv.forEach { bash.setEnv(it.id, it.value) }
 		conEnv.forEach { con.setEnv(it.id, it.value) }
-		logger.info("Set environment variables  bashCount={}  containerCount={}", bashEnv.size, conEnv.size)
+		log.info("Set environment variables  bashCount={}  containerCount={}", bashEnv.size, conEnv.size)
 	}
 	
 	override suspend fun get(type: Type, id: String): String? = when (type) {
@@ -62,6 +62,6 @@ object EnvConfigAPI : EnvRepository {
 			Type.CONTAINER_ENV -> con.removeEnv(id)
 			Type.BASH_ENV -> bash.removeEnv(id)
 		}
-		logger.info("Removed environment variable  type={}  id={}", type, id)
+		log.info("Removed environment variable  type={}  id={}", type, id)
 	}
 }

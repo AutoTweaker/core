@@ -52,10 +52,10 @@ import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorder
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object Launcher {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object Launcher : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val databaseStore: DatabaseStore = H2DatabaseStore
 	
@@ -79,7 +79,7 @@ object Launcher {
 		WorkspaceManager.init()
 		
 		PluginLoader.load<Debugger>().forEach { debugger ->
-			logger.info("Initialized debugger  class={}", debugger::class.java.name)
+			log.info("Initialized debugger  class={}", debugger::class.java.name)
 			debugger.init(DbDebugAPIImpl)
 		}
 		
@@ -93,14 +93,14 @@ object Launcher {
 			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
 		if (!adapters.isEmpty()) {
-			logger.info("Found adapters to start  count={}", adapters.size)
+			log.info("Found adapters to start  count={}", adapters.size)
 			adapters.forEach { (adapter, info) ->
 				registry[info.name] = adapter to info
-				logger.info(
+				log.info(
 					"Loaded adapter  name={}  version={}  description={}", info.name, info.version, info.description
 				)
 				adapter.start(createCoreAPI(adapterAPI))
-				logger.info("Started adapter  name={}", info.name)
+				log.info("Started adapter  name={}", info.name)
 			}
 		}
 	}
@@ -114,23 +114,23 @@ object Launcher {
 				launch {
 					trace.catching {
 						adapter.stop()
-						logger.info("Stopped adapter  name={}", info.name)
-					}.onFailure { logger.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
+						log.info("Stopped adapter  name={}", info.name)
+					}.onFailure { log.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
 				}
 			}
 		}
 		trace.catching { SessionManager.shutdown() }
-			.onFailure { logger.warn("Failed SessionManager shutdown") }
+			.onFailure { log.warn("Failed SessionManager shutdown") }
 		trace.catching { ContainerManager.stop() }
-			.onFailure { logger.warn("Failed ContainerManager stop") }
+			.onFailure { log.warn("Failed ContainerManager stop") }
 		trace.catching { TranslationManager.shutdown() }
-			.onFailure { logger.warn("Failed TranslationManager shutdown") }
+			.onFailure { log.warn("Failed TranslationManager shutdown") }
 		trace.catching { AbstractOpenAiClient.close() }
-			.onFailure { logger.warn("Failed LLM client close") }
+			.onFailure { log.warn("Failed LLM client close") }
 		trace.catching { SecretManager.killGpgAgent() }
-			.onFailure { logger.warn("Failed GPG agent kill") }
+			.onFailure { log.warn("Failed GPG agent kill") }
 		trace.catching { databaseStore.shutdown() }
-			.onFailure { logger.warn("Failed DatabaseStore shutdown") }
-		logger.info("Completed launcher shutdown")
+			.onFailure { log.warn("Failed DatabaseStore shutdown") }
+		log.info("Completed launcher shutdown")
 	}
 }

@@ -26,18 +26,17 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object AgentChat {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+object AgentChat : Loggable {
 	fun execute(
 		request: AgentChatRequest, agentId: UUID
 	): Flow<AgentChatStreamResult> = flow {
 		val messages = request.toChatMessages()
 		
-		logger.debug(
+		log.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  thinking={}  messages={}",
 			agentId,
 			request.model.model.modelInfo.modelId,
@@ -82,7 +81,7 @@ object AgentChat {
 				is ChatResult.Assembled -> {
 					when (val msg = result.message) {
 						is ChatMessage.ErrorMessage -> {
-							logger.debug(
+							log.debug(
 								"Received agent chat error  agentId={}  model={}  statusCode={}  errorCount={}",
 								agentId,
 								resilientResult.model,

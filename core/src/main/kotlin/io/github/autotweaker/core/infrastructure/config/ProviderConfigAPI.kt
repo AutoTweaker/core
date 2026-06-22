@@ -27,11 +27,11 @@ import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ProviderConfigAPI : ProviderRepository {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object ProviderConfigAPI : ProviderRepository, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val apiKeyConfig = ApiKeyConfigAPI
 	private val modelConfig: ModelConfigRepository = ModelConfigAPI
@@ -61,7 +61,7 @@ object ProviderConfigAPI : ProviderRepository {
 		if (defaultModel != null && defaultModel in modelIds) error("Cannot delete provider: contains default model $defaultModel")
 		modelIds.forEach { modelConfig.remove(it) }
 		store.delete(id)
-		logger.info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
+		log.info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
 	}
 	
 	override fun create(provider: CoreConfig.ProviderConfig.Provider) {
@@ -77,33 +77,33 @@ object ProviderConfigAPI : ProviderRepository {
 				errorHandlingRules = provider.errorHandlingRules ?: meta.errorHandlingRules,
 			)
 		)
-		logger.info("Created provider  id={}  type={}  name={}", provider.id, provider.type, provider.displayName)
+		log.info("Created provider  id={}  type={}  name={}", provider.id, provider.type, provider.displayName)
 	}
 	
 	override fun updateType(id: UUID, new: String) {
 		store.override(get(id).copy(providerType = new))
-		logger.info("Updated provider type  id={}  type={}", id, new)
+		log.info("Updated provider type  id={}  type={}", id, new)
 	}
 	
 	override fun updateKey(id: UUID, keyName: String) {
 		store.override(get(id).copy(apiKey = apiKeyConfig.getId(keyName)))
-		logger.info("Updated provider key  id={}  keyName={}", id, keyName)
+		log.info("Updated provider key  id={}  keyName={}", id, keyName)
 	}
 	
 	override fun updateUrl(id: UUID, url: Url) {
 		store.override(get(id).copy(baseUrl = url))
-		logger.info("Updated provider url  id={}  url={}", id, url)
+		log.info("Updated provider url  id={}  url={}", id, url)
 	}
 	
 	override fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) {
 		store.override(get(id).copy(errorHandlingRules = rules))
-		logger.info("Updated provider error rules  id={}  ruleCount={}", id, rules.size)
+		log.info("Updated provider error rules  id={}  ruleCount={}", id, rules.size)
 	}
 	
 	override fun updateDisplayName(id: UUID, displayName: String) {
 		require(!store.get().any { it.displayName == displayName })
 		store.override(get(id).copy(displayName = displayName))
-		logger.info("Updated provider display name  id={}  name={}", id, displayName)
+		log.info("Updated provider display name  id={}  name={}", id, displayName)
 	}
 	
 	fun get(id: UUID) = store.get(id) ?: error("ProviderData $id not found")

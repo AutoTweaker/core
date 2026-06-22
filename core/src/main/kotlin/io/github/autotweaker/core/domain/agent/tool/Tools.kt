@@ -41,17 +41,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class Tools(
 	toolInfo: List<ToolInfo>,
 	private val service: SettingService,
 	private val tools: List<Tool<ToolArgs>>,
 	private val agentId: UUID
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	private val _toolInfo = MutableStateFlow(toolInfo)
@@ -63,7 +63,7 @@ class Tools(
 	
 	fun activate(toolName: String, active: Boolean) {
 		_toolInfo.update { list -> list.map { if (it.name == toolName) it.copy(active = active) else it } }
-		logger.debug("Changed tool activation  tool={}  active={}  agentId={}", toolName, active, agentId)
+		log.debug("Changed tool activation  tool={}  active={}  agentId={}", toolName, active, agentId)
 	}
 	
 	//工具调用
@@ -78,7 +78,7 @@ class Tools(
 		val tool = tools.first { it.name == toolName }
 		check(_toolInfo.value.first { it.name == tool.name }.active)
 		
-		logger.info("Started tool execution  agentId={}  tool={}", agentId, toolName)
+		log.info("Started tool execution  agentId={}  tool={}", agentId, toolName)
 		
 		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)
 		val output = supervisorScope {
@@ -97,7 +97,7 @@ class Tools(
 				throw e
 			} catch (e: Exception) {
 				trace.exception(e)
-				logger.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
+				log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
 				Tool.ToolOutput(e.message ?: "Unknown error", false)
 			}
 			outputChannel.close()
@@ -105,7 +105,7 @@ class Tools(
 			result
 		}
 		
-		logger.debug("Completed tool execution  agentId={}  tool={}  success={}", agentId, toolName, output.success)
+		log.debug("Completed tool execution  agentId={}  tool={}  success={}", agentId, toolName, output.success)
 		
 		return AgentContext.Message.Tool.Result(
 			content = output.result,
@@ -124,7 +124,7 @@ class Tools(
 			val meta = ToolMeta.build(tool)
 			val message = service.get(AgentToolSettings.ActiveMessage()).value
 				.format(meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name)
-			logger.debug(
+			log.debug(
 				"Resolved tool activation  agentId={}  callId={}  tool={}",
 				agentId, call.id, call.name
 			)
@@ -139,7 +139,7 @@ class Tools(
 		
 		when (val result = validator.validate(call.name, call.arguments, call.id, activeTools)) {
 			is ToolCallValidator.ValidationResult.Success -> {
-				logger.debug(
+				log.debug(
 					"Resolved tool call  agentId={}  callId={}  tool={}",
 					agentId, call.id, call.name
 				)
@@ -147,7 +147,7 @@ class Tools(
 			}
 			
 			is ToolCallValidator.ValidationResult.Failure -> {
-				logger.debug("Failed to resolve tool call  agentId={}  callId={}  tool={}", agentId, call.id, call.name)
+				log.debug("Failed to resolve tool call  agentId={}  callId={}  tool={}", agentId, call.id, call.name)
 				return ToolCallResolveResult.ParseFailure(result.errorMessage)
 			}
 		}

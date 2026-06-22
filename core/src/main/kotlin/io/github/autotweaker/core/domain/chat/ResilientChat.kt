@@ -27,14 +27,13 @@ import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.slf4j.LoggerFactory
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ResilientChat {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+object ResilientChat : Loggable {
 	private lateinit var gateway: LlmGateway
 	private lateinit var settings: SettingService
 	
@@ -61,7 +60,7 @@ object ResilientChat {
 			streamChunkTimeout = settings.get(ResilientChatSettings.ChatStreamChunkTimeout()).value.seconds,
 		)
 		
-		logger.debug(
+		log.debug(
 			"Started chat  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
 			model.provider.name,
 			model.modelInfo.modelId,
@@ -120,13 +119,13 @@ object ResilientChat {
 					when (rules.find { it.statusCode == statusCode }?.strategy) {
 						RecoveryStrategy.RETRY, null -> {
 							if (retriesUsed >= maxRetries - 1) {
-								logger.debug(
+								log.debug(
 									"Exhausted chat retries  model={}  strategy=RETRY", current.modelInfo.modelId
 								)
 								candidates = candidates.drop(1)
 								return false
 							}
-							logger.debug(
+							log.debug(
 								"Retried chat  model={}  attempt={}  strategy=RETRY  statusCode={}",
 								current.modelInfo.modelId,
 								retriesUsed + 1,
@@ -145,7 +144,7 @@ object ResilientChat {
 						}
 						
 						RecoveryStrategy.CONTEXT_FALLBACK -> {
-							logger.debug(
+							log.debug(
 								"Fell back to larger context window  model={}  statusCode={}",
 								current.modelInfo.modelId,
 								statusCode
@@ -156,7 +155,7 @@ object ResilientChat {
 						}
 						
 						RecoveryStrategy.PROVIDER_FALLBACK -> {
-							logger.debug(
+							log.debug(
 								"Fell back to different provider  model={}  provider={}  statusCode={}",
 								current.modelInfo.modelId,
 								current.provider.id,
@@ -167,7 +166,7 @@ object ResilientChat {
 						}
 						
 						RecoveryStrategy.FALLBACK -> {
-							logger.debug(
+							log.debug(
 								"Fell back to next model  model={}  statusCode={}",
 								current.modelInfo.modelId,
 								statusCode
@@ -182,11 +181,11 @@ object ResilientChat {
 			}
 			
 			if (round < llmChatRetries) {
-				logger.info("Exhausted all candidate models and restarted  round={}", round + 1)
+				log.info("Exhausted all candidate models and restarted  round={}", round + 1)
 			}
 		}
 		
-		logger.warn("Exhausted all LLM chat retries")
+		log.warn("Exhausted all LLM chat retries")
 		throw IllegalStateException("All LLM chat retries exhausted without success")
 	}
 	

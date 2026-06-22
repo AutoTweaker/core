@@ -28,11 +28,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object I18nServiceImpl : I18nService {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object I18nServiceImpl : I18nService, Loggable {
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	@Volatile
@@ -62,7 +62,7 @@ object I18nServiceImpl : I18nService {
 			if (initialized) return
 			load()
 			initialized = true
-			logger.info("Initialized I18nService  stored={}", cache.size)
+			log.info("Initialized I18nService  stored={}", cache.size)
 		}
 	}
 	
@@ -105,7 +105,7 @@ object I18nServiceImpl : I18nService {
 			cache = mutable
 			save()
 		}
-		logger.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
+		log.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
 	}
 	
 	override fun getAll(): List<I18nEntry> {

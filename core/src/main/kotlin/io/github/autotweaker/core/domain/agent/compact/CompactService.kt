@@ -37,15 +37,15 @@ import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class CompactService(
 	private val agentId: UUID,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun execute(
@@ -56,7 +56,7 @@ class CompactService(
 		val context = ctx.get()
 		val rounds = context.historyRounds ?: return
 		
-		logger.info(
+		log.info(
 			"Started compact  agentId={}  rounds={}  summarizeModel={}",
 			agentId, rounds.size, model.summarize.id
 		)
@@ -86,7 +86,7 @@ class CompactService(
 		} while (!finalResult.success && attempt < maxRetries)
 		
 		if (!finalResult.success) {
-			logger.warn(
+			log.warn(
 				"Failed compact  agentId={}  attempts={}", agentId, attempt
 			)
 			snapshots.forEach {
@@ -103,7 +103,7 @@ class CompactService(
 			return
 		}
 		
-		logger.info(
+		log.info(
 			"Completed compact  agentId={}  roundCount={}  attempts={}  summaryLength={}",
 			agentId, rounds.size, attempt, finalResult.content.length
 		)
@@ -170,11 +170,11 @@ class CompactService(
 			}
 		} catch (e: CancellationException) {
 			trace.exception(e)
-			logger.debug("Cancelled compact  agentId={}", agentId)
+			log.debug("Cancelled compact  agentId={}", agentId)
 			throw e
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)
+			log.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)
 			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastSnapshot, success = false)
 		}
@@ -186,7 +186,7 @@ class CompactService(
 		if (valid) {
 			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastSnapshot?.usage)))
 		} else {
-			logger.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted.length)
+			log.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted.length)
 			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastSnapshot?.usage)))
 		}
 		

@@ -35,14 +35,14 @@ import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
-import org.slf4j.LoggerFactory
 import java.nio.file.Path
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 @AutoService(CoreTool::class)
-class Read : CoreTool<ReadArgs> {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+class Read : CoreTool<ReadArgs>, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private lateinit var settings: SettingService
 	
@@ -107,7 +107,7 @@ class Read : CoreTool<ReadArgs> {
 			return Tool.ToolOutput(s.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
 		}
 		
-		logger.debug("Started read tool  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
+		log.debug("Started read tool  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
 		
 		return when (args) {
 			is ReadArgs.File -> {

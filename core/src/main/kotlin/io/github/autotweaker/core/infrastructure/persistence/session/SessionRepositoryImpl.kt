@@ -29,11 +29,11 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object SessionRepositoryImpl : SessionRepository {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object SessionRepositoryImpl : SessionRepository, Loggable {
 	private lateinit var db: Database
 	
 	fun init(databaseStore: DatabaseStore) {
@@ -41,7 +41,7 @@ object SessionRepositoryImpl : SessionRepository {
 		transaction(db) {
 			SchemaUtils.create(SessionDataTable, AgentDataTable, SessionMessageTable)
 		}
-		logger.info("Initialized SessionRepository")
+		log.info("Initialized SessionRepository")
 	}
 	
 	// region Sessions

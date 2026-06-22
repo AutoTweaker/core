@@ -26,11 +26,11 @@ import io.github.autotweaker.core.domain.port.LlmGateway
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object LlmGatewayImpl : LlmGateway {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object LlmGatewayImpl : LlmGateway, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	override suspend fun send(
@@ -41,7 +41,7 @@ object LlmGatewayImpl : LlmGateway {
 		timeout: ChatTimeout,
 	): Flow<ChatResult> {
 		val chatId = UUID.randomUUID()
-		logger.debug(
+		log.debug(
 			"Sent LLM request  providerType={}  model={}  stream={}  chatId={}",
 			providerType,
 			request.model,

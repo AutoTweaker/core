@@ -22,17 +22,17 @@ import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class IdListStore<T : Any>(
 	kClass: KClass<*>,
 	serializer: KSerializer<T>,
 	private val idOf: (T) -> UUID,
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : Loggable {
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val className = kClass.qualifiedName
 	
@@ -45,7 +45,7 @@ class IdListStore<T : Any>(
 			if (jsonArray == null) emptyList()
 			else Json.decodeFromJsonElement(listSerializer, jsonArray)
 		)
-		logger.info("Initialized IdListStore  count={}  class={}", items.get().size, className)
+		log.info("Initialized IdListStore  count={}  class={}", items.get().size, className)
 	}
 	
 	@Synchronized
@@ -53,7 +53,7 @@ class IdListStore<T : Any>(
 		val id = idOf(data)
 		if (items.get().any { idOf(it) == id }) error("Already exists  id=$id")
 		update(items.get() + data)
-		logger.debug("Added item  id={}  class={}", id, className)
+		log.debug("Added item  id={}  class={}", id, className)
 	}
 	
 	fun get(): List<T> = items.get()
@@ -63,14 +63,14 @@ class IdListStore<T : Any>(
 	@Synchronized
 	fun delete(id: UUID) {
 		update(items.get().filterNot { idOf(it) == id })
-		logger.debug("Deleted item  id={}  class={}", id, className)
+		log.debug("Deleted item  id={}  class={}", id, className)
 	}
 	
 	@Synchronized
 	fun override(data: T) {
 		val id = idOf(data)
 		update(items.get().map { if (idOf(it) == id) data else it })
-		logger.debug("Overridden item  id={}  class={}", id, className)
+		log.debug("Overridden item  id={}  class={}", id, className)
 	}
 	
 	private fun update(new: List<T>) {

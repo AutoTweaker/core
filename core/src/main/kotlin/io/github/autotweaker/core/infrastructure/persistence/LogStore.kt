@@ -28,12 +28,12 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.slf4j.LoggerFactory
 import java.io.File
 import kotlin.time.Instant
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object LogStore {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object LogStore : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true }
 	private val logDir = File(System.getProperty("user.home"), ".config/autotweaker/logs")
@@ -70,7 +70,7 @@ object LogStore {
 				message = obj["message"]?.jsonPrimitive?.content.orEmpty(),
 				exception = obj["stack_trace"]?.jsonPrimitive?.content?.let { ExceptionInfo.Stored(it) }
 			)
-		}.onFailure { logger.debug("Failed JSONL line parsing  length={}  reason={}", line.length, it.message) }
+		}.onFailure { log.debug("Failed JSONL line parsing  length={}  reason={}", line.length, it.message) }
 			.getOrNull()
 	}
 	

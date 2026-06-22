@@ -37,14 +37,14 @@ import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object SessionManager {
+object SessionManager : Loggable {
 	//region 初始化
-	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value
@@ -68,18 +68,18 @@ object SessionManager {
 	//endregion
 	
 	suspend fun shutdown() {
-		logger.info("Initiated SessionManager shutdown  activeSessions={}", sessions.size)
+		log.info("Initiated SessionManager shutdown  activeSessions={}", sessions.size)
 		coroutineScope {
 			sessions.forEach { (id, session) ->
 				launch {
 					trace.catching { session.shutdown() }.onFailure { e ->
-						logger.warn("Failed to shutdown session  sessionId={}  reason={}", id, e.message)
+						log.warn("Failed to shutdown session  sessionId={}  reason={}", id, e.message)
 					}
 				}
 			}
 		}
 		scope.cancel()
-		logger.info("Completed SessionManager shutdown")
+		log.info("Completed SessionManager shutdown")
 	}
 	
 	fun isContainerRunning() = ContainerManager.isRunning
@@ -93,12 +93,12 @@ object SessionManager {
 		sessions.remove(id)
 		store.deleteSessions(listOf(id))
 		data.agentIndex.getAll().forEach { store.deleteAgent(it) }
-		logger.info("Deleted session  id={}", id)
+		log.info("Deleted session  id={}", id)
 		return true
 	}
 	
 	suspend fun updateTitle(session: UUID, title: String) =
-		getOrRestore(session).updateTitle(title).andLog(logger)
+		getOrRestore(session).updateTitle(title).andLog(log)
 		{ debug("Updated session title  session={}  title={}", session, title) }.discard()
 	
 	
@@ -136,7 +136,7 @@ object SessionManager {
 		wsm.updateSessions(
 			workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + data.id
 		)
-		logger.info("Created session  sessionId={}  workspaceId={}", data.id, workspaceData.meta.id)
+		log.info("Created session  sessionId={}  workspaceId={}", data.id, workspaceData.meta.id)
 		return data.id
 	}
 	
@@ -163,7 +163,7 @@ object SessionManager {
 		)
 			.listen()
 			.also { sessions[data.id] = it }
-			.andLog(logger)
+			.andLog(log)
 			{ info("Restored session  sessionId={}  workspaceId={}", it.data.value.id, workspaceId) }
 	}
 	

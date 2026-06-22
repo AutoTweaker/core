@@ -31,16 +31,16 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import org.slf4j.LoggerFactory
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object AutoTweaker : CoreAPI.AdapterAPI {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object AutoTweaker : CoreAPI.AdapterAPI, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	val version: SemVer by lazy {
 		val props = Properties()
@@ -64,19 +64,19 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		acquireLock()
 		
 		PluginLoader.load<StartupHook>().forEach { hook ->
-			logger.info("Executed startup hook  class={}", hook::class.java.name)
+			log.info("Executed startup hook  class={}", hook::class.java.name)
 			hook.execute(version)
 		}
 		
-		logger.info("Started AutoTweaker  version={}", version)
+		log.info("Started AutoTweaker  version={}", version)
 		
 		Launcher.start(version, registry, this)
 		Runtime.getRuntime().addShutdownHook(Thread {
-			logger.info("Initiated AutoTweaker shutdown")
+			log.info("Initiated AutoTweaker shutdown")
 			runBlocking { Launcher.shutdown(registry.values.toList()) }
 			PluginLoader.closeClassLoaders()
 			releaseLock()
-			logger.info("Completed AutoTweaker shutdown")
+			log.info("Completed AutoTweaker shutdown")
 		})
 	}
 	
@@ -93,7 +93,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		channel.truncate(0)
 		channel.write(java.nio.ByteBuffer.wrap(ProcessHandle.current().pid().toString().toByteArray()))
 		channel.force(true)
-		logger.debug("Acquired lock  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
+		log.debug("Acquired lock  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
 	override suspend fun list(): List<AdapterInfo> = registry.values.map { it.second }
@@ -102,7 +102,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 		val (adapter, info) = requireAdapter(name)
 		if (adapter.isRunning) error("Adapter already running: ${info.name}")
 		adapter.start(Launcher.createCoreAPI(this))
-		logger.info("Started adapter  name={}", info.name)
+		log.info("Started adapter  name={}", info.name)
 	}
 	
 	override suspend fun alive(name: String): Boolean {
@@ -113,7 +113,7 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 	override suspend fun stop(name: String) = adapterMutex.withLock {
 		val (adapter, info) = requireAdapter(name)
 		adapter.stop()
-		logger.info("Stopped adapter  name={}", info.name)
+		log.info("Stopped adapter  name={}", info.name)
 	}
 	
 	private fun requireAdapter(name: String): Pair<Adapter, AdapterInfo> =
@@ -124,6 +124,6 @@ object AutoTweaker : CoreAPI.AdapterAPI {
 			fileLock?.release()
 			lockChannel?.close()
 			Files.deleteIfExists(lockFile)
-		}.onFailure { logger.warn("Failed lock release  lockFile={}  reason={}", lockFile, it.message) }
+		}.onFailure { log.warn("Failed lock release  lockFile={}  reason={}", lockFile, it.message) }
 	}
 }

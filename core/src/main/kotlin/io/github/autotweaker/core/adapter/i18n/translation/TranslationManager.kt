@@ -31,11 +31,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object TranslationManager {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object TranslationManager : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
@@ -61,25 +61,25 @@ object TranslationManager {
 	
 	fun setModel(modelId: UUID?) {
 		saveModelId(modelId)
-		logger.debug("Updated translation model  modelId={}", modelId)
+		log.debug("Updated translation model  modelId={}", modelId)
 	}
 	
 	fun startTranslation() {
 		if (!_status.compareAndSet(TranslationStatus.IDLE, TranslationStatus.TRANSLATING)) {
-			logger.debug("Skipped translation  reason=already_in_progress")
+			log.debug("Skipped translation  reason=already_in_progress")
 			return
 		}
 		
 		val modelId = loadModelId()
 		if (modelId == null) {
-			logger.info("Skipped translation  reason=model_not_configured")
+			log.info("Skipped translation  reason=model_not_configured")
 			_status.value = TranslationStatus.IDLE
 			return
 		}
 		
 		val target = i18nService.getLanguage()
 		if (TranslationEngine.isLanguageCovered(target, i18nService)) {
-			logger.info("Skipped translation  reason=already_complete  target={}  action=skip", target.toLanguageTag())
+			log.info("Skipped translation  reason=already_complete  target={}  action=skip", target.toLanguageTag())
 			_status.value = TranslationStatus.IDLE
 			return
 		}
@@ -92,12 +92,12 @@ object TranslationManager {
 				throw e
 			} catch (e: Exception) {
 				trace.exception(e)
-				logger.error("Failed translation  target={}", target.toLanguageTag(), e)
+				log.error("Failed translation  target={}", target.toLanguageTag(), e)
 			} finally {
 				_status.value = TranslationStatus.IDLE
 			}
 		}
-		logger.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
+		log.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
 	}
 	
 	fun shutdown() {

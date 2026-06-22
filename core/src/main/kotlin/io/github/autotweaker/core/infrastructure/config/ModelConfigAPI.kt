@@ -22,17 +22,17 @@ import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ModelConfigAPI : ModelConfigRepository {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object ModelConfigAPI : ModelConfigRepository, Loggable {
 	private val store = ModelStore
 	
 	override fun add(model: CoreConfig.ProviderConfig.Model) {
 		require(!store.get().any { it.displayName == model.data.displayName && it.providerId == model.data.providerId })
 		store.add(model.data)
-		logger.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
+		log.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
 	}
 	
 	override fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
@@ -40,13 +40,13 @@ object ModelConfigAPI : ModelConfigRepository {
 	override fun remove(id: UUID) {
 		if (ModelRepositoryImpl.getDefaultModel() == id) error("Cannot remove default model: $id")
 		store.delete(id)
-		logger.info("Removed model  id={}", id)
+		log.info("Removed model  id={}", id)
 	}
 	
 	override fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
 		require(!store.get().filter { it.id != id }
 			.any { it.displayName == model.data.displayName && it.providerId == model.data.providerId })
 		store.override(model.data.copy(id = id))
-		logger.info("Updated model  id={}  modelId={}", id, model.data.modelInfo.modelId)
+		log.info("Updated model  id={}  modelId={}", id, model.data.modelInfo.modelId)
 	}
 }

@@ -20,15 +20,14 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object PluginLoader {
-	val logger: Logger = LoggerFactory.getLogger(this::class.java)
+object PluginLoader : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
 	
@@ -48,7 +47,7 @@ object PluginLoader {
 			val urls = jars.map { it.toUri().toURL() }.toTypedArray()
 			val classLoader = URLClassLoader(urls, apiClassLoader)
 			classLoaders.add(classLoader)
-			logger.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
+			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
 			sharedClassLoader = classLoader
 			return classLoader
 		}
@@ -57,7 +56,7 @@ object PluginLoader {
 	inline fun <reified T : Any> load(): List<T> {
 		val classLoader = getOrCreateClassLoader(T::class.java.classLoader)
 		val plugins = ServiceLoader.load(T::class.java, classLoader).toList()
-		logger.info("Loaded plugins  type={}  pluginCount={}", T::class.simpleName, plugins.size)
+		log.info("Loaded plugins  type={}  pluginCount={}", T::class.simpleName, plugins.size)
 		return plugins
 	}
 	

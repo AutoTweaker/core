@@ -28,12 +28,12 @@ import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.UsageStore
 import kotlinx.coroutines.flow.*
-import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ChatService {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object ChatService : Loggable {
 	private lateinit var modelRepo: ModelRepository
 	private lateinit var sessionRepository: SessionRepository
 	
@@ -47,7 +47,7 @@ object ChatService {
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it) ?: error("Unknown fallback model: $it")
 		}
-		logger.debug(
+		log.debug(
 			"Started chat request  model={}  fallbackCount={}  stream={}",
 			request.model,
 			fallbacks?.size ?: 0,

@@ -27,13 +27,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object WorkspaceManager {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object WorkspaceManager : Loggable {
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	private val workspaces: MutableList<WorkspaceData> = mutableListOf()
@@ -45,24 +45,24 @@ object WorkspaceManager {
 			workspaces.addAll(
 				Json.decodeFromJsonElement<List<WorkspaceData>>(it)
 			)
-		}.andLog(logger) { info("Initialized WorkspaceManager  count={}", workspaces.size) }
+		}.andLog(log) { info("Initialized WorkspaceManager  count={}", workspaces.size) }
 	}
 	
 	suspend fun updateMeta(meta: WorkspaceMeta) = mutex.withLock {
 		require(meta.id in workspaces.map { it.meta.id })
 		update(meta.id) { copy(meta = meta) }
-		logger.debug("Updated workspace meta  id={}", meta.id)
+		log.debug("Updated workspace meta  id={}", meta.id)
 	}
 	
 	suspend fun updateSessions(id: UUID, sessionIds: List<UUID>?) = mutex.withLock {
 		require(id in workspaces.map { it.meta.id })
 		update(id) { copy(sessionIds = sessionIds) }
-		logger.debug("Updated workspace data  id={}", id)
+		log.debug("Updated workspace data  id={}", id)
 	}
 	
 	suspend fun delete(id: UUID): Boolean = mutex.withLock {
 		if (id == defaultWorkspaceId) error("Cannot delete default workspace")
-		return remove(id).andLog(logger) { info("Deleted workspace  id={}", id) }
+		return remove(id).andLog(log) { info("Deleted workspace  id={}", id) }
 	}
 	
 	suspend fun getDefault(): WorkspaceData = mutex.withLock {
@@ -75,14 +75,14 @@ object WorkspaceManager {
 				id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
 			)
 			return WorkspaceData(meta = meta).add()
-				.andLog(logger) { info("Created default workspace  id={}  path={}", it.meta.id, it.meta.path) }
+				.andLog(log) { info("Created default workspace  id={}  path={}", it.meta.id, it.meta.path) }
 		}
 	}
 	
 	suspend fun create(meta: WorkspaceMeta): WorkspaceData = mutex.withLock {
 		if (workspaces.any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
 		return WorkspaceData(meta = meta).add()
-			.andLog(logger) { info("Created workspace  id={}  name={}", it.meta.id, it.meta.displayName) }
+			.andLog(log) { info("Created workspace  id={}  name={}", it.meta.id, it.meta.displayName) }
 	}
 	
 	suspend fun getData(id: UUID): WorkspaceData? = mutex.withLock { lookup(id) }

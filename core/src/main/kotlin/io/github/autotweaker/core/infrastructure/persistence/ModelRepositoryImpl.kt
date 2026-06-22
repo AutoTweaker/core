@@ -26,11 +26,11 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ModelRepositoryImpl : ModelRepository {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object ModelRepositoryImpl : ModelRepository, Loggable {
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	private lateinit var secretStore: SecretStore
@@ -47,7 +47,7 @@ object ModelRepositoryImpl : ModelRepository {
 	fun setDefaultModel(id: UUID) {
 		if (ModelStore.get(id) == null) error("Model not found: $id")
 		jsonEntry.set(Json.encodeToJsonElement(UuidSerializer.nullable, id))
-		logger.info("Set default model  modelId={}", id)
+		log.info("Set default model  modelId={}", id)
 	}
 	
 	override suspend fun resolve(id: UUID): Model? {
@@ -72,12 +72,12 @@ object ModelRepositoryImpl : ModelRepository {
 		if (ModelStore.get(id) != null) return id
 		val defaultId = getDefaultModel()
 		if (defaultId != null && ModelStore.get(defaultId) != null) {
-			logger.warn("Resolved model via default  requestedId={}  defaultId={}", id, defaultId)
+			log.warn("Resolved model via default  requestedId={}  defaultId={}", id, defaultId)
 			return defaultId
 		}
 		val first = ModelStore.get().firstOrNull()
 		if (first != null) {
-			logger.warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, first.id)
+			log.warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, first.id)
 			return first.id
 		}
 		return id

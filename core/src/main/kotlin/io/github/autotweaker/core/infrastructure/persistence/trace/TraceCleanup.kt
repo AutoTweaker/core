@@ -19,12 +19,12 @@
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object TraceCleanup {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object TraceCleanup : Loggable {
 	private val dbFilePath =
 		Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database", "Traces.mv.db")
 	
@@ -48,6 +48,6 @@ object TraceCleanup {
 		} else 0
 		
 		if (cleanupCount > 0)
-			logger.info("Completed trace cleanup  count={}", cleanupCount)
+			log.info("Completed trace cleanup  count={}", cleanupCount)
 	}
 }

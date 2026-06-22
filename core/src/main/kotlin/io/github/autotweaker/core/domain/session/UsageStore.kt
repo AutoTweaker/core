@@ -27,11 +27,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object UsageStore {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object UsageStore : Loggable {
 	private val store by lazy { JsonStoreImpl.namespace(this::class) }
 	private val mutex = Mutex()
 	
@@ -79,7 +79,7 @@ object UsageStore {
 		
 		if (count > 0) {
 			save(data)
-			logger.info("Collected usage entries  new={}  total={}", count, data.size)
+			log.info("Collected usage entries  new={}  total={}", count, data.size)
 		}
 	}
 	

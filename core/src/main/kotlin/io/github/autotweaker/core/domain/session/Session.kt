@@ -41,9 +41,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class Session(
 	data: SessionData,
@@ -53,9 +54,7 @@ class Session(
 	private val containerConfig: ContainerConfig,
 	private val service: SettingService,
 	private val secretStore: SecretStore,
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+) : Loggable {
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
 	
@@ -74,7 +73,7 @@ class Session(
 				context = SessionContext.emptyContext(systemPrompt),
 				activeTools = activeTools
 			)
-		).andLog(logger) {
+		).andLog(log) {
 			info(
 				"Initialized session  sessionId={}  workspace={}",
 				it.id,
@@ -100,7 +99,7 @@ class Session(
 			val childId = UUID.randomUUID()
 			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
 			val bridge = createAgent(childId, name, systemPrompt, model)
-			logger.info("Created child agent  parentId={}  childId={}", agentId, childId)
+			log.info("Created child agent  parentId={}  childId={}", agentId, childId)
 			return bridge.agent
 		}
 		

@@ -27,7 +27,6 @@ import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
@@ -40,8 +39,10 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-class CliServer(service: SettingService, core: CoreAPI) {
+class CliServer(service: SettingService, core: CoreAPI) : Loggable {
 	private val trace = core.trace(this::class)
 	
 	@AutoService(SettingDef::class)
@@ -51,7 +52,6 @@ class CliServer(service: SettingService, core: CoreAPI) {
 	}
 	
 	private val maxLineLength = service.get(MaxLineLength()).value
-	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 	private val activeClients = ConcurrentHashMap.newKeySet<SocketChannel>()
@@ -67,20 +67,20 @@ class CliServer(service: SettingService, core: CoreAPI) {
 			bind(UnixDomainSocketAddress.of(path))
 		}
 		Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
-		logger.info("Started CliServer  socketPath={}", path)
+		log.info("Started CliServer  socketPath={}", path)
 		
 		scope.launch {
 			while (channel.isOpen) {
 				val client = trace.catching { channel.accept() }
 					.onFailure {
-						logger.warn(
+						log.warn(
 							"Failed connection acceptance  socketPath={}  reason={}",
 							socketPath(),
 							it.message
 						)
 					}
 					.getOrNull() ?: break
-				logger.info("Client connected  socketPath={}", socketPath())
+				log.info("Client connected  socketPath={}", socketPath())
 				connectionLimit.acquire()
 				activeClients.add(client)
 				scope.launch {
@@ -101,20 +101,20 @@ class CliServer(service: SettingService, core: CoreAPI) {
 		trace.catching { channel.close() }
 		scope.cancel()
 		trace.catching { socketPath().deleteIfExists() }
-		logger.info("Stopped CliServer  socketPath={}", socketPath())
+		log.info("Stopped CliServer  socketPath={}", socketPath())
 	}
 	
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
 		client.use {
 			val line = readLine(client) ?: run {
-				logger.debug("Client sent no data")
+				log.debug("Client sent no data")
 				return
 			}
 			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: run {
-				logger.warn("Failed CLI message parsing")
+				log.warn("Failed CLI message parsing")
 				return
 			}
-			logger.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
+			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
 			
 			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
 				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text, echo)))
@@ -168,10 +168,10 @@ class CliServer(service: SettingService, core: CoreAPI) {
 				throw e
 			} catch (e: IOException) {
 				trace.exception(e)
-				logger.warn("Disconnected client during command  command={}", cmdName)
+				log.warn("Disconnected client during command  command={}", cmdName)
 			} catch (e: Exception) {
 				trace.exception(e)
-				logger.error("Failed command  command={}", cmdName, e)
+				log.error("Failed command  command={}", cmdName, e)
 				trace.catching {
 					write(
 						client, json.encodeToString<CliResponse>(
@@ -182,7 +182,7 @@ class CliServer(service: SettingService, core: CoreAPI) {
 			}
 			
 			if (!sawDone) {
-				logger.warn("Command did not emit Done  command={}", cmdName)
+				log.warn("Command did not emit Done  command={}", cmdName)
 				trace.catching {
 					write(client, json.encodeToString<CliResponse>(CliResponse.Done(1)))
 				}
@@ -211,7 +211,7 @@ class CliServer(service: SettingService, core: CoreAPI) {
 				return sb.toString()
 			}
 			if (sb.length + chunk.length > maxLineLength) {
-				logger.warn("Exceeded line max length  length={}", sb.length)
+				log.warn("Exceeded line max length  length={}", sb.length)
 				return null
 			}
 			sb.append(chunk)

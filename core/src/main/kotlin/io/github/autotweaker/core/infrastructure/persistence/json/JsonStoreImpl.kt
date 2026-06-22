@@ -30,11 +30,11 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
-import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object JsonStoreImpl {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object JsonStoreImpl : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 	private lateinit var db: Database
@@ -42,7 +42,7 @@ object JsonStoreImpl {
 	fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("AppConfig")
 		transaction(db) { SchemaUtils.create(JsonStoreTable) }
-		logger.info("Initialized json store  table=json_store")
+		log.info("Initialized json store  table=json_store")
 	}
 	
 	fun namespace(kClass: KClass<*>): JsonStore {
@@ -56,7 +56,7 @@ object JsonStoreImpl {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
 					trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
 						.onFailure {
-							logger.warn(
+							log.warn(
 								"Failed JSON parsing  namespace={}  reason={}",
 								namespace,
 								it.message

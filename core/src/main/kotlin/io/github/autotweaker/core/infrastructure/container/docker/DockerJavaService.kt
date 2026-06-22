@@ -39,15 +39,15 @@ import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorder
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import java.time.Duration as JavaDuration
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-class DockerJavaService : ContainerService {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+class DockerJavaService : ContainerService, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	private val uidGid: String = run {
@@ -84,7 +84,7 @@ class DockerJavaService : ContainerService {
 	
 	override suspend fun pullImage(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
-		logger.info("Pulled image  image={}", image)
+		log.info("Pulled image  image={}", image)
 	}
 	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
@@ -98,9 +98,9 @@ class DockerJavaService : ContainerService {
 			if (existing != null) {
 				if (existing.state != "running") {
 					client.startContainerCmd(existing.id).exec()
-					logger.info("Restarted container  containerId={}", existing.id)
+					log.info("Restarted container  containerId={}", existing.id)
 				} else {
-					logger.debug("Found container already running  containerId={}", existing.id)
+					log.debug("Found container already running  containerId={}", existing.id)
 				}
 				return@withContext existing.id
 			}
@@ -117,22 +117,22 @@ class DockerJavaService : ContainerService {
 				.withEnv(config.env.map { "${it.key}=${it.value}" })
 				.withHostConfig(hostConfig)
 				.withEntrypoint("tail", "-f", "/dev/null")
-				.exec().andLog(logger) { info("Created container  containerId={}", it.id) }
+				.exec().andLog(log) { info("Created container  containerId={}", it.id) }
 			
 			client.startContainerCmd(createResponse.id).exec()
 			
-			logger.info("Started container  containerId={}", createResponse.id)
+			log.info("Started container  containerId={}", createResponse.id)
 			createResponse.id
 		} catch (e: NotFoundException) {
 			trace.exception(e)
-			logger.warn("Failed image pull  image={}", image)
+			log.warn("Failed image pull  image={}", image)
 			throw ContainerOperationException("Image '$image' not found", e)
 		} catch (e: CancellationException) {
 			trace.exception(e)
 			throw e
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed container start  image={}  name={}", image, config.name, e)
+			log.error("Failed container start  image={}  name={}", image, config.name, e)
 			throw ContainerOperationException("Failed to start container: ${e.message}", e)
 		}
 	}
@@ -142,16 +142,16 @@ class DockerJavaService : ContainerService {
 			permissionFixJob?.cancel()
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
-			logger.info("Stopped container  containerId={}", containerId)
+			log.info("Stopped container  containerId={}", containerId)
 		} catch (e: NotFoundException) {
 			trace.exception(e)
-			logger.warn("Did not find container  containerId={}", containerId)
+			log.warn("Did not find container  containerId={}", containerId)
 		} catch (e: CancellationException) {
 			trace.exception(e)
 			throw e
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed container stop  containerId={}", containerId, e)
+			log.error("Failed container stop  containerId={}", containerId, e)
 			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
 		}
 	}
@@ -167,12 +167,12 @@ class DockerJavaService : ContainerService {
 			client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {}).awaitCompletion()
 			val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
 			if (exitCode == 0) {
-				logger.debug("Fixed workspace permissions  containerId={}", containerId)
+				log.debug("Fixed workspace permissions  containerId={}", containerId)
 			} else {
-				logger.warn("Failed workspace permissions fix  containerId={}  exitCode={}", containerId, exitCode)
+				log.warn("Failed workspace permissions fix  containerId={}  exitCode={}", containerId, exitCode)
 			}
 		}.onFailure { e ->
-			logger.warn("Failed workspace permissions fix  containerId={}", containerId, e)
+			log.warn("Failed workspace permissions fix  containerId={}", containerId, e)
 		}
 	}
 	
@@ -189,7 +189,7 @@ class DockerJavaService : ContainerService {
 	override fun execStream(
 		containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 	): Flow<ShellEvent> = callbackFlow {
-		logger.debug(
+		log.debug(
 			"Started streaming exec  containerId={}  cmd={}", containerId, command.joinToString(" ")
 		)
 		withContext(Dispatchers.IO) {
@@ -225,14 +225,14 @@ class DockerJavaService : ContainerService {
 				)
 			} catch (e: NotFoundException) {
 				trace.exception(e)
-				logger.warn("Failed container lookup  containerId={}", containerId)
+				log.warn("Failed container lookup  containerId={}", containerId)
 				throw ContainerOperationException("Container not found: $containerId", e)
 			} catch (e: CancellationException) {
 				trace.exception(e)
 				throw e
 			} catch (e: Exception) {
 				trace.exception(e)
-				logger.error("Failed command execution  containerId={}", containerId, e)
+				log.error("Failed command execution  containerId={}", containerId, e)
 				throw ContainerOperationException("Failed to exec command: ${e.message}", e)
 			}
 		}

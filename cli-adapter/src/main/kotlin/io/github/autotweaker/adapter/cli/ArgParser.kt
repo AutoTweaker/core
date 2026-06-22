@@ -18,14 +18,13 @@
 
 package io.github.autotweaker.adapter.cli
 
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class ArgParser(
 	private val maxArgsCount: Int,
-) {
+) : Loggable {
 	private val syntaxValidator = SyntaxValidator
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
 	fun parse(args: List<String>, syntax: Syntax, prog: String): Request? {
 		val positional = mutableListOf<String>()
 		val values = mutableMapOf<String, String>()
@@ -118,7 +117,7 @@ class ArgParser(
 		if (positional.size !in requiredPosCount..declaredPosCount) return null
 		
 		if (!syntaxValidator.validate(syntax, values.keys, positional.size)) {
-			logger.debug("Failed syntax validation")
+			log.debug("Failed syntax validation")
 			return null
 		}
 		

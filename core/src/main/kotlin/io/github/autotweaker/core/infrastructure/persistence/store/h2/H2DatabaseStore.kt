@@ -23,13 +23,13 @@ import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object H2DatabaseStore : DatabaseStore {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object H2DatabaseStore : DatabaseStore, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val databases = ConcurrentHashMap<String, Database>()
 	
@@ -37,7 +37,7 @@ object H2DatabaseStore : DatabaseStore {
 		val dbDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database")
 		Files.createDirectories(dbDir)
 		val url = "jdbc:h2:${dbDir.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0"
-		logger.info("Connected database  db={}  url={}", name, url)
+		log.info("Connected database  db={}  url={}", name, url)
 		Database.connect(url, "org.h2.Driver")
 	}
 	

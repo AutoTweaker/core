@@ -22,13 +22,13 @@ import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object WorkspaceAPI {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object WorkspaceAPI : Loggable {
 	private val wsm = WorkspaceManager
 	
 	suspend fun create(meta: WorkspaceMeta): WorkspaceData {
@@ -40,7 +40,7 @@ object WorkspaceAPI {
 		
 		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
 		
-		return wsm.create(meta).andLog(logger) {
+		return wsm.create(meta).andLog(log) {
 			info("Created workspace  id={}  name={}  path={}", it.meta.id, it.meta.displayName, it.meta.path)
 		}
 	}
@@ -50,14 +50,14 @@ object WorkspaceAPI {
 		require(!wsm.getAll().any { it.meta.displayName == newName })
 		
 		wsm.updateMeta(data.meta.copy(displayName = newName))
-		logger.info("Renamed workspace  id={}  newName={}", id, newName)
+		log.info("Renamed workspace  id={}  newName={}", id, newName)
 	}
 	
 	suspend fun delete(id: UUID): Boolean {
 		val data = wsm.getData(id) ?: error("Workspace not found: $id")
 		data.sessionIds?.forEach { SessionManager.delete(it) }
 		
-		return wsm.delete(id).andLog(logger)
+		return wsm.delete(id).andLog(log)
 		{ info("Deleted workspace  success={}  id={}  sessionCount={}", it, id, data.sessionIds?.size ?: 0) }
 	}
 	

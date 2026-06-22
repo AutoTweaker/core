@@ -31,13 +31,13 @@ import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.seconds
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 @AutoService(CoreTool::class)
-class Bash : CoreTool<BashArgs> {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+class Bash : CoreTool<BashArgs>, Loggable {
 	private lateinit var envStorage: EnvStorage
 	private lateinit var settings: SettingService
 	
@@ -69,17 +69,17 @@ class Bash : CoreTool<BashArgs> {
 		val s = settings
 		val command = args.command
 		if (command.isBlank()) {
-			logger.debug("Rejected blank bash command  tool=bash")
+			log.debug("Rejected blank bash command  tool=bash")
 			return Tool.ToolOutput(s.get(BashSettings.InvalidCommandMessage()).value, false)
 		}
 		val timeoutSeconds = args.timeoutSeconds
 		if (timeoutSeconds <= 0) {
-			logger.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
+			log.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
 			return Tool.ToolOutput(s.get(BashSettings.InvalidTimeoutMessage()).value, false)
 		}
 		val selectedEnv = args.envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
-		logger.debug(
+		log.debug(
 			"Started bash execution  tool=bash  commandPreview={}  timeout={}s", command.take(100), timeoutSeconds
 		)
 		
@@ -108,7 +108,7 @@ class Bash : CoreTool<BashArgs> {
 		val stderrStr = stderr.toString().trimEnd().ifBlank { "[empty]" }
 		val duration = String.format("%.3f", r.result.duration.inWholeMicroseconds / 1_000_000.0)
 		
-		logger.debug(
+		log.debug(
 			"Completed bash  tool=bash  exitCode={}  duration={}s  timeout={}",
 			r.result.exitCode,
 			duration,

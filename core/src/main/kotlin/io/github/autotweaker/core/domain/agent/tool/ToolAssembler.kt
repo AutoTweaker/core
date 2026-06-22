@@ -25,11 +25,10 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.serialization.json.*
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ToolAssembler {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+object ToolAssembler : Loggable {
 	suspend fun assemble(
 		tools: List<Tool<ToolArgs>>,
 		toolInfo: List<ToolInfo>,
@@ -37,7 +36,7 @@ object ToolAssembler {
 	): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
-		logger.debug("Started tool assembly  toolCount={}", tools.size)
+		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
 		val reasonDescription = service.get(AgentToolSettings.ReasonEmptyError()).value
 		val enableDesc = service.get(AgentToolSettings.EnableDescription()).value

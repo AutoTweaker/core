@@ -28,14 +28,14 @@ import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class LlmService(
 	private val agentId: UUID,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	suspend fun execute(
@@ -53,11 +53,11 @@ class LlmService(
 			runStream(request)
 		} catch (e: CancellationException) {
 			trace.exception(e)
-			logger.debug("Cancelled LLM call  agentId={}", agentId)
+			log.debug("Cancelled LLM call  agentId={}", agentId)
 			CallResult.Failed
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed LLM call  agentId={}", agentId, e)
+			log.error("Failed LLM call  agentId={}", agentId, e)
 			onOutput(
 				AgentOutput.Error(
 					io.github.autotweaker.api.types.agent.AgentError(
@@ -94,7 +94,7 @@ class LlmService(
 		val final = assembled
 			?: error("Stream ended without assembled result")
 		
-		logger.info(
+		log.info(
 			"Completed LLM call  agentId={}  model={}  charCount={}",
 			agentId, final.message.modelId, final.message.content?.length ?: 0
 		)

@@ -28,12 +28,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.reflect.KClass
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val mutex = Mutex()
@@ -43,7 +43,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 	suspend fun getEnv(id: String): String? = mutex.withLock {
 		val uuid = getEnvUuidMap()[id] ?: return@withLock null
 		trace.catching { secretStore.get(uuid) }
-			.onFailure { logger.warn("Failed env retrieval  id={}  class={}", id, kClass.java.name) }
+			.onFailure { log.warn("Failed env retrieval  id={}  class={}", id, kClass.java.name) }
 			.getOrNull()
 	}
 	
@@ -54,7 +54,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		val updated =
 			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
 		jsonEntry.set(updated)
-		logger.debug("Set env  id={}  class={}", id, kClass.java.name)
+		log.debug("Set env  id={}  class={}", id, kClass.java.name)
 	}
 	
 	suspend fun removeEnv(id: String) = mutex.withLock {
@@ -62,7 +62,7 @@ class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretS
 		current[id]?.let { secretStore.remove(it) }
 		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
 		jsonEntry.set(updated)
-		logger.debug("Removed env  id={}  class={}", id, kClass.java.name)
+		log.debug("Removed env  id={}  class={}", id, kClass.java.name)
 	}
 	
 	private fun getEnvUuidMap(): Map<String, UUID> {

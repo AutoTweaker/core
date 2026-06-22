@@ -45,9 +45,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class AgentBridge(
 	private val host: AgentHost,
@@ -58,9 +59,8 @@ class AgentBridge(
 	private val service: SettingService,
 	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
-) : AgentAPI {
+) : AgentAPI, Loggable {
 	/* 初始化 */
-	private val logger = LoggerFactory.getLogger(this::class.java)
 	private val saveMutex = Mutex()
 	private val injectMutex = Mutex()
 	
@@ -119,7 +119,7 @@ class AgentBridge(
 				}
 			}
 		}
-		logger.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
+		log.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
 	}
 	
 	private suspend fun initTools() {
@@ -139,7 +139,7 @@ class AgentBridge(
 	
 	override fun send(content: MessageContent) = also {
 		_agent.sendMessage(content)
-		logger.info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
+		log.info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
 	}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
@@ -170,19 +170,19 @@ class AgentBridge(
 				model = config.toAgentModel()
 			)
 		).andSave()
-		logger.info("Updated agent model  agentId={}", _agent.agentId)
+		log.info("Updated agent model  agentId={}", _agent.agentId)
 	}
 	
 	override suspend fun stop() = also {
-		logger.info("Initiated agent stop  agentId={}", _agent.agentId)
+		log.info("Initiated agent stop  agentId={}", _agent.agentId)
 		_agent.execute(AgentCommand.Stop).andSave()
-		logger.info("Stopped agent  agentId={}", _agent.agentId)
+		log.info("Stopped agent  agentId={}", _agent.agentId)
 	}
 	
 	suspend fun shutdown() = also {
 		_agent.shutdown()
 		scope.cancel()
-		logger.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
+		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
 	}
 	
 	/* 内部工具 */

@@ -31,13 +31,13 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object ContainerManager {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object ContainerManager : Loggable {
 	private val mutex = Mutex()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
@@ -62,7 +62,7 @@ object ContainerManager {
 		Files.createDirectories(ContainerConfig().workspaceHostPath)
 		if (!service.checkAccess()) {
 			containerAccess = false
-			logger.warn("Denied container access  features disabled")
+			log.warn("Denied container access  features disabled")
 			return
 		}
 		imagePullJob = scope.async {
@@ -77,27 +77,27 @@ object ContainerManager {
 		val image = Settings.get(ContainerSettings.DockerImage()).value
 		val job = imagePullJob
 		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null) {
-			logger.warn("Failed image pull, retried  image={}", image)
+			log.warn("Failed image pull, retried  image={}", image)
 			imagePullJob = scope.async { service.pullImage(image) }
 		}
 		imagePullJob?.await()
 		val containerConfig =
 			ContainerConfig(name = Settings.get(ContainerSettings.ContainerName()).value, env = getEnv())
-		logger.debug("Initiated container start  image={}", image)
+		log.debug("Initiated container start  image={}", image)
 		_containerId = service.start(image, containerConfig)
-			.andLog(logger) { info("Started container  containerId={}", it) }
+			.andLog(log) { info("Started container  containerId={}", it) }
 	}
 	
 	suspend fun stop() {
 		mutex.withLock {
 			val id = _containerId ?: return@withLock
 			try {
-				logger.debug("Initiated container stop  containerId={}", id)
+				log.debug("Initiated container stop  containerId={}", id)
 				service.stop(id)
 			} finally {
 				_containerId = null
 				service.shutdown()
-				logger.info("Stopped container  containerId={}", id)
+				log.info("Stopped container  containerId={}", id)
 			}
 		}
 	}
@@ -121,12 +121,12 @@ object ContainerManager {
 	
 	suspend fun setEnv(id: String, value: String) {
 		envStorage.setEnv(id, value)
-		logger.debug("Set container env  key={}", id)
+		log.debug("Set container env  key={}", id)
 	}
 	
 	suspend fun removeEnv(id: String) {
 		envStorage.removeEnv(id)
-		logger.debug("Removed container env  key={}", id)
+		log.debug("Removed container env  key={}", id)
 	}
 	
 	suspend fun getEnv(id: String? = null): Map<String, String> {
@@ -138,7 +138,7 @@ object ContainerManager {
 		return ids.mapNotNull { key ->
 			val value = envStorage.getEnv(key)
 			if (value == null) {
-				logger.warn("Failed env value retrieval  key={}", key)
+				log.warn("Failed env value retrieval  key={}", key)
 				null
 			} else {
 				key to value

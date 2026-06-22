@@ -24,11 +24,11 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 @AutoService(Adapter::class)
-class CliAdapter : Adapter {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+class CliAdapter : Adapter, Loggable {
 	private val adapterVersion = SemVer.parse("0.1.0")
 	private var server: CliServer? = null
 	private lateinit var coreVersion: SemVer
@@ -45,7 +45,7 @@ class CliAdapter : Adapter {
 			source = "https://github.com/AutoTweaker/core".toUrl(),
 		)
 		adapterName = info.name
-		logger.info(
+		log.info(
 			"Loaded CliAdapter  adapter={}  version={}  coreVersion={}", adapterName, adapterVersion, coreVersion
 		)
 		return info
@@ -56,12 +56,12 @@ class CliAdapter : Adapter {
 		val router = CommandRouter.fromServiceLoader(core, coreVersion)
 		s.start(router)
 		server = s
-		logger.info("Started CliAdapter  adapter={}  version={}", adapterName, adapterVersion)
+		log.info("Started CliAdapter  adapter={}  version={}", adapterName, adapterVersion)
 	}
 	
 	override suspend fun stop() {
 		server?.stop()
 		server = null
-		logger.info("Stopped CliAdapter  adapter={}", adapterName)
+		log.info("Stopped CliAdapter  adapter={}", adapterName)
 	}
 }

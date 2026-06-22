@@ -28,19 +28,19 @@ import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
-import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
 	private val service: SettingService,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	@Volatile
@@ -82,7 +82,7 @@ class ToolCallingStage(
 						provider = provider,
 						onToolOutput = onOutput
 					).also {
-						logger.info(
+						log.info(
 							"Called tool  agentId={}  tool={}  status={}",
 							agentId, call.validated.toolName, it.status
 						)
@@ -92,7 +92,7 @@ class ToolCallingStage(
 		} catch (e: TimeoutCancellationException) {
 			trace.exception(e)
 			val elapsed = startTime.elapsedNow().inWholeSeconds
-			logger.warn(
+			log.warn(
 				"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}s",
 				agentId, call.pendingCall.name, elapsed
 			)
@@ -102,11 +102,11 @@ class ToolCallingStage(
 			)
 		} catch (e: CancellationException) {
 			trace.exception(e)
-			logger.debug("Failed tool execution  agentId={}  tool={}  reason=CANCELLED", agentId, call.pendingCall.name)
+			log.debug("Failed tool execution  agentId={}  tool={}  reason=CANCELLED", agentId, call.pendingCall.name)
 			buildToolResult(cancelledMessage, ToolResultStatus.CANCELLED)
 		} catch (e: Exception) {
 			trace.exception(e)
-			logger.error("Failed tool execution  agentId={}  tool={}", agentId, call.pendingCall.name, e)
+			log.error("Failed tool execution  agentId={}  tool={}", agentId, call.pendingCall.name, e)
 			buildToolResult(e.message ?: "Tool execution failed", ToolResultStatus.FAILURE)
 		} finally {
 			toolJob = null

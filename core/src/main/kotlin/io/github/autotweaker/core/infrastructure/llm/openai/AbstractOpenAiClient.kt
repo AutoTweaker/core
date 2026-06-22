@@ -37,17 +37,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Clock
 import kotlin.time.Instant
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiResponse, Chunk : OpenAiStreamChunk>(
 	private val requestTypeInfo: TypeInfo,
 	private val responseTypeInfo: TypeInfo,
 	private val chunkSerializer: KSerializer<Chunk>,
-) : LlmClient {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : LlmClient, Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	companion object {
@@ -217,11 +217,11 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			}
 		} catch (e: CancellationException) {
 			trace.exception(e)
-			logger.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
+			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
 			throw e
 		} catch (e: Throwable) {
 			trace.exception(e)
-			logger.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
+			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
 				ChatResult.Assembled(
 					message = ChatMessage.ErrorMessage(

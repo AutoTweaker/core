@@ -24,12 +24,12 @@ import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentContext
 import kotlinx.coroutines.channels.Channel
-import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-class MessageQueue(private val agentId: UUID) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+class MessageQueue(private val agentId: UUID) : Loggable {
 	private val channel = Channel<MessageContent>(Channel.UNLIMITED)
 	
 	suspend fun receive(): AgentContext.Message.User {
@@ -43,7 +43,7 @@ class MessageQueue(private val agentId: UUID) {
 			}
 			merge(all)?.let {
 				return it.also {
-					logger.info(
+					log.info(
 						"Received message  injections={}  images={}  length={}  agentId={}",
 						it.content.injections?.count(),
 						it.content.images?.count(),
@@ -80,7 +80,7 @@ class MessageQueue(private val agentId: UUID) {
 				injections, content, images
 			),
 			timestamp = Clock.System.now()
-		).andLog(logger) { info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
+		).andLog(log) { info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
 	}
 	
 	fun sendReasons(reasons: List<String>) = reasons.forEach {

@@ -22,19 +22,19 @@ import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object TraceStore {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+object TraceStore : Loggable {
 	private lateinit var db: Database
 	
 	fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("Traces")
 		transaction(db) { SchemaUtils.create(TraceTable) }
-		logger.info("Initialized TraceStore  table=traces")
+		log.info("Initialized TraceStore  table=traces")
 	}
 	
 	fun insert(origin: String, namespace: String, content: String) {

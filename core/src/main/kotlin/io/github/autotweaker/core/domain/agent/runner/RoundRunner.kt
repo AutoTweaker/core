@@ -41,8 +41,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.slf4j.LoggerFactory
 import java.util.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
 class RoundRunner(
 	workspace: WorkspaceMeta,
@@ -56,8 +57,7 @@ class RoundRunner(
 	private val service: SettingService,
 	private val statusFlow: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
-) {
-	private val logger = LoggerFactory.getLogger(this::class.java)
+) : Loggable {
 	private val trace = TraceRecorderImpl.recorder(this::class)
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	private val mutex = Mutex()
@@ -139,12 +139,12 @@ class RoundRunner(
 					approval.approvalChannel.send(command.approval)
 				}
 			}
-			logger.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
+			log.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
 		}
 	}
 	
 	private suspend fun workLoop() {
-		logger.info("Started workLoop  agentId={}", agentId)
+		log.info("Started workLoop  agentId={}", agentId)
 		while (true) {
 			val msg = messages.receive()
 			shouldBreak.value = false
@@ -210,7 +210,7 @@ class RoundRunner(
 				ctx.beginRound(it)
 			}
 		}
-		logger.info("Completed round execution  agentId={}", agentId)
+		log.info("Completed round execution  agentId={}", agentId)
 	}
 	
 	private suspend fun autoDeactivate() {
@@ -254,7 +254,7 @@ class RoundRunner(
 				usage.totalTokens.toDouble() / contextWindow >= contextUsageThreshold
 		val exceedTotalTokens = totalTokensThreshold != null &&
 				usage.totalTokens >= totalTokensThreshold
-		if (exceedContextUsage || exceedTotalTokens) launchCompact().andLog(logger) {
+		if (exceedContextUsage || exceedTotalTokens) launchCompact().andLog(log) {
 			debug(
 				"Triggered auto-compact  agentId={}  totalTokens={}  contextWindow={}",
 				agentId,

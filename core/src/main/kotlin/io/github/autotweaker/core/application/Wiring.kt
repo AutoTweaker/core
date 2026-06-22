@@ -31,11 +31,10 @@ import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
-import org.slf4j.LoggerFactory
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 
-object Wiring {
-	private val logger = LoggerFactory.getLogger(this::class.java)
-	
+object Wiring : Loggable {
 	suspend fun init() {
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
@@ -47,6 +46,6 @@ object Wiring {
 		)
 		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl, SecretManager)
 		ToolProvider.init(ShellRouter, RawFileSystemImpl)
-		logger.info("Initialized wiring")
+		log.info("Initialized wiring")
 	}
 }
