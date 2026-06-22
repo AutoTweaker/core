@@ -21,7 +21,6 @@ package io.github.autotweaker.core.infrastructure.data
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,9 +33,10 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object SecretManager : SecretStore, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object SecretManager : SecretStore, Loggable, Traceable {
 	private val rootDir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "secret")
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")

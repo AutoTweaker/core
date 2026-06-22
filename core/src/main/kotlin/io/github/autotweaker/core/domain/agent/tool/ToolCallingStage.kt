@@ -26,7 +26,6 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import java.util.*
 import kotlin.time.Clock
@@ -34,14 +33,15 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
 	private val service: SettingService,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : Loggable, Traceable {
 	
 	@Volatile
 	private var toolJob: Job? = null

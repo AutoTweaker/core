@@ -21,7 +21,6 @@ package io.github.autotweaker.core.infrastructure.llm.openai
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -42,13 +41,14 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiResponse, Chunk : OpenAiStreamChunk>(
 	private val requestTypeInfo: TypeInfo,
 	private val responseTypeInfo: TypeInfo,
 	private val chunkSerializer: KSerializer<Chunk>,
-) : LlmClient, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : LlmClient, Loggable, Traceable {
 	
 	companion object {
 		private val json: Json = Json {
@@ -216,11 +216,11 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 				emit(mapToChatResult(openAiResponse))
 			}
 		} catch (e: CancellationException) {
-			trace.exception(e)
+			this@AbstractOpenAiClient.trace.exception(e)
 			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
 			throw e
 		} catch (e: Throwable) {
-			trace.exception(e)
+			this@AbstractOpenAiClient.trace.exception(e)
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
 				ChatResult.Assembled(

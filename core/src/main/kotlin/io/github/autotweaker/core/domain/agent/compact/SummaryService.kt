@@ -24,14 +24,15 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
 import java.util.*
 import kotlin.time.Clock
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
+import io.github.autotweaker.api.trace.trace
 
-object SummaryService {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object SummaryService : Traceable {
 	
 	suspend fun summarizeMessage(
 		content: String,

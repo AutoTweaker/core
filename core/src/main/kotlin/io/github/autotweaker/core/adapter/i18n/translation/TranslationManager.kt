@@ -24,7 +24,6 @@ import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,9 +33,10 @@ import kotlinx.serialization.json.Json
 import java.util.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object TranslationManager : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object TranslationManager : Loggable, Traceable {
 	private val jsonEntry by lazy { JsonStoreImpl.namespace(this::class) }
 	
 	private lateinit var modelRepo: ModelRepository

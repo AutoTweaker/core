@@ -23,15 +23,15 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ChatTimeout
 import io.github.autotweaker.core.domain.port.LlmGateway
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 import java.util.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object LlmGatewayImpl : LlmGateway, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 	
 	override suspend fun send(
 		request: ChatRequest,

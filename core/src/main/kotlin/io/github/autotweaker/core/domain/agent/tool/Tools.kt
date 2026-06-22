@@ -18,9 +18,13 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.config.SettingService
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolOutput
@@ -30,7 +34,6 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.SimpleContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,16 +46,13 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Clock
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 class Tools(
 	toolInfo: List<ToolInfo>,
 	private val service: SettingService,
 	private val tools: List<Tool<ToolArgs>>,
 	private val agentId: UUID
-) : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : Loggable, Traceable {
 	
 	private val _toolInfo = MutableStateFlow(toolInfo)
 	val toolInfo: StateFlow<List<ToolInfo>> = _toolInfo.asStateFlow()

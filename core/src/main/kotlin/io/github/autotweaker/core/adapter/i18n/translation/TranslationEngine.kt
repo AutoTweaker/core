@@ -28,7 +28,6 @@ import io.github.autotweaker.core.adapter.i18n.I18nRegistry
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -40,9 +39,10 @@ import java.util.*
 import kotlin.time.Clock
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object TranslationEngine : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object TranslationEngine : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(

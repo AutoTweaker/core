@@ -33,7 +33,6 @@ import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.findModelInfo
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -41,12 +40,13 @@ import java.util.*
 import kotlin.time.Clock
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 class CompactService(
 	private val agentId: UUID,
 	private val onOutput: suspend (AgentOutput) -> Unit,
-) : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : Loggable, Traceable {
 	
 	suspend fun execute(
 		model: AgentModel,

@@ -25,7 +25,6 @@ import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -39,9 +38,10 @@ import java.nio.file.StandardOpenOption
 import java.util.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object AutoTweaker : CoreAPI.AdapterAPI, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	val version: SemVer by lazy {
 		val props = Properties()
 		this::class.java.getResourceAsStream("/version.properties")?.use { props.load(it) }

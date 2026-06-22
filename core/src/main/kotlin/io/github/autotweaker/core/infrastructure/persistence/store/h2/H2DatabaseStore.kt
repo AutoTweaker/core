@@ -20,7 +20,6 @@ package io.github.autotweaker.core.infrastructure.persistence.store.h2
 
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.nio.file.Files
@@ -28,9 +27,10 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object H2DatabaseStore : DatabaseStore, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 	private val databases = ConcurrentHashMap<String, Database>()
 	
 	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->

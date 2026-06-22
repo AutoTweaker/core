@@ -26,7 +26,6 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -36,6 +35,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.*
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 class ApprovalProcessor(
 	private val ctx: AgentContextManager,
@@ -45,8 +46,7 @@ class ApprovalProcessor(
 	private val containerConfig: ContainerConfig,
 	private val scope: CoroutineScope,
 	private val shouldBreak: StateFlow<Boolean>,
-) {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : Traceable {
 	val approvalChannel = Channel<ToolApprove>(Channel.UNLIMITED)
 	
 	fun cancelToolJob() {

@@ -25,17 +25,17 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.ToolMeta.Companion.toSnakeCase
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.json.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 class ToolCallValidator(
 	private val service: SettingService,
-) : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : Loggable, Traceable {
 	
 	@OptIn(ExperimentalSerializationApi::class)
 	private val json = Json {

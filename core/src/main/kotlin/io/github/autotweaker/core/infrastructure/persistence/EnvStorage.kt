@@ -21,7 +21,6 @@ package io.github.autotweaker.core.infrastructure.persistence
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -32,9 +31,10 @@ import java.util.*
 import kotlin.reflect.KClass
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+class EnvStorage(private val kClass: KClass<*>, private val secretStore: SecretStore) : Loggable, Traceable {
 	private val jsonEntry = JsonStoreImpl.namespace(kClass)
 	private val mutex = Mutex()
 	

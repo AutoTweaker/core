@@ -35,7 +35,6 @@ import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -44,6 +43,8 @@ import kotlinx.coroutines.sync.withLock
 import java.util.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 class RoundRunner(
 	workspace: WorkspaceMeta,
@@ -57,8 +58,7 @@ class RoundRunner(
 	private val service: SettingService,
 	private val statusFlow: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
-) : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+) : Loggable, Traceable {
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	private val mutex = Mutex()
 	

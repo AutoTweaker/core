@@ -48,15 +48,16 @@ import io.github.autotweaker.core.infrastructure.persistence.session.SessionMess
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persistence.store.h2.H2DatabaseStore
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
+import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object Launcher : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object Launcher : Loggable, Traceable {
 	private val databaseStore: DatabaseStore = H2DatabaseStore
 	
 	suspend fun start(

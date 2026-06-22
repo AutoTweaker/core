@@ -32,7 +32,6 @@ import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import java.nio.file.Path
@@ -40,10 +39,11 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
 @AutoService(CoreTool::class)
-class Read : CoreTool<ReadArgs>, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	private lateinit var settings: SettingService
 	
 	override val argsSerializer = ReadArgs.serializer()

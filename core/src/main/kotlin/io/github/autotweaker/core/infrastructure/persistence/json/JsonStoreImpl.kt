@@ -23,7 +23,8 @@ import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.eq
@@ -35,8 +36,7 @@ import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
-object JsonStoreImpl : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object JsonStoreImpl : Loggable, Traceable {
 	private val cache = ConcurrentHashMap<KClass<*>, JsonStore>()
 	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
@@ -50,7 +50,7 @@ object JsonStoreImpl : Loggable {
 	fun namespace(kClass: KClass<*>) =
 		cache.computeIfAbsent(kClass) { JsonEntry(it) }
 	
-	private class JsonEntry(kClass: KClass<*>) : JsonStore {
+	private class JsonEntry(kClass: KClass<*>) : JsonStore, Traceable {
 		val namespace: String = kClass.java.name
 		override fun get(): JsonElement? {
 			return transaction(db) {

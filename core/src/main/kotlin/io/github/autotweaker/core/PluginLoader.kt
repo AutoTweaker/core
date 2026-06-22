@@ -19,16 +19,16 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object PluginLoader : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object PluginLoader : Loggable, Traceable {
 	private val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
 	
 	@Volatile

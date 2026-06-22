@@ -34,7 +34,6 @@ import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.nio.file.Files
@@ -42,10 +41,11 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object SessionManager : Loggable {
+object SessionManager : Loggable, Traceable {
 	//region 初始化
-	private val trace = TraceRecorderImpl.recorder(this::class)
 	
 	private val systemPrompt = Settings.get(SessionSettings.SystemPrompt()).value
 	

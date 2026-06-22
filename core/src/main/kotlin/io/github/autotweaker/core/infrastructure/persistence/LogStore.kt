@@ -22,7 +22,6 @@ import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -32,9 +31,10 @@ import java.io.File
 import kotlin.time.Instant
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-object LogStore : Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+object LogStore : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true }
 	private val logDir = File(System.getProperty("user.home"), ".config/autotweaker/logs")
 	

@@ -35,7 +35,6 @@ import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
 import io.github.autotweaker.core.infrastructure.container.ContainerService
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -46,9 +45,10 @@ import kotlin.time.Duration.Companion.milliseconds
 import java.time.Duration as JavaDuration
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
 
-class DockerJavaService : ContainerService, Loggable {
-	private val trace = TraceRecorderImpl.recorder(this::class)
+class DockerJavaService : ContainerService, Loggable, Traceable {
 	
 	private val uidGid: String = run {
 		val unix = UnixSystem()

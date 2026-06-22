@@ -20,8 +20,10 @@ package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.trace.Traceable
+import io.github.autotweaker.api.trace.trace
+import io.github.autotweaker.api.trace.trace
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.core.infrastructure.persistence.trace.TraceRecorderImpl
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.descriptors.*
@@ -64,8 +66,7 @@ class ToolMeta private constructor(
 		val typeMap: Map<String, String>,
 	)
 	
-	companion object {
-		private val trace = TraceRecorderImpl.recorder(this::class)
+	companion object : Traceable {
 		fun String.toSnakeCase() = convertCamelCase(this, '_')
 		
 		@OptIn(ExperimentalSerializationApi::class)
