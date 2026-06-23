@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelRepository
@@ -33,12 +34,12 @@ import java.util.*
 object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nable {
 	
 	private lateinit var modelRepo: ModelRepository
-		
+	
 	fun init(
 		modelRepo: ModelRepository,
-			) {
+	) {
 		this.modelRepo = modelRepo
-			}
+	}
 	
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
 	private val _status = MutableStateFlow(TranslationStatus.IDLE)
@@ -72,17 +73,12 @@ object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nabl
 		}
 		
 		scope.launch {
-			try {
+			trace.catching {
 				TranslationEngine.run(modelId, target, modelRepo)
-			} catch (e: CancellationException) {
-				trace.exception(e)
-				throw e
-			} catch (e: Exception) {
-				trace.exception(e)
-				log.error("Failed translation  target={}", target.toLanguageTag(), e)
-			} finally {
-				_status.value = TranslationStatus.IDLE
-			}
+			}.rethrow<CancellationException>()
+				.onFailure { log.error("Failed translation  target={}", target.toLanguageTag(), it) }
+				.also { _status.value = TranslationStatus.IDLE }
+				.getOrThrow()
 		}
 		log.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
 	}

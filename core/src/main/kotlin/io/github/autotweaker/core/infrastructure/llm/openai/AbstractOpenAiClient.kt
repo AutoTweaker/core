@@ -23,6 +23,8 @@ import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.ktor.client.*
@@ -100,7 +102,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		timeout: ChatTimeout?
 	): Flow<ChatResult> = flow {
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
-		try {
+		this@AbstractOpenAiClient.trace.catching {
 			if (request.stream) {
 				val body = createRequestBody(request)
 				
@@ -215,12 +217,9 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 				val openAiResponse = response.body<Response>(responseTypeInfo)
 				emit(mapToChatResult(openAiResponse))
 			}
-		} catch (e: CancellationException) {
-			this@AbstractOpenAiClient.trace.exception(e)
+		}.rethrow<CancellationException> {
 			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
-			throw e
-		} catch (e: Throwable) {
-			this@AbstractOpenAiClient.trace.exception(e)
+		}.getOrElse { e ->
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
 				ChatResult.Assembled(

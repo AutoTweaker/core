@@ -20,6 +20,8 @@ package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.UsageSnapshot
@@ -38,20 +40,15 @@ object SummaryService : Traceable {
 		model: AgentModel,
 		thinkingEnabled: Boolean,
 	): Pair<String, UsageSnapshot?> {
-		val results = try {
+		val results = trace.catching {
 			ResilientChat.execute(
 				model = model.model,
 				fallbackModels = model.fallback,
 				messages = listOf(ChatMessage.UserMessage(prompt.format(content), Clock.System.now())),
 				thinking = thinkingEnabled,
 			).toList()
-		} catch (e: CancellationException) {
-			trace.exception(e)
-			throw e
-		} catch (e: IllegalStateException) {
-			trace.exception(e)
-			return content to null
-		}
+		}.rethrow<CancellationException>()
+			.getOrElse { return content to null }
 		
 		val success = results
 			.filter { it.result is ChatResult.Assembled }

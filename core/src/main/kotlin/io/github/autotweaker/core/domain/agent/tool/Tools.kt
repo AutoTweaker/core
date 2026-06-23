@@ -21,6 +21,8 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolOutput
@@ -82,19 +84,16 @@ class Tools(
 					onToolOutput(AgentOutput.Tool(ToolOutput(toolName, callId, msg.content)))
 				}
 			}
-			val result = try {
+			val result = trace.catching {
 				when (tool) {
 					is CoreTool -> tool.coreExec(provider, arguments, outputChannel)
 					else -> tool.execute(arguments, outputChannel)
 				}
-			} catch (e: CancellationException) {
-				trace.exception(e)
-				throw e
-			} catch (e: Exception) {
-				trace.exception(e)
-				log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
-				Tool.ToolOutput(e.message ?: "Unknown error", false)
-			}
+			}.rethrow<CancellationException>()
+				.getOrElse { e ->
+					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
+					Tool.ToolOutput(e.message ?: "Unknown error", false)
+				}
 			outputChannel.close()
 			drainJob.join()
 			return@supervisorScope result

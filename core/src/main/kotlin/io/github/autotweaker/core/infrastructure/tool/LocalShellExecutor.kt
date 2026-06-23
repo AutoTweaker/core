@@ -18,6 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.tool
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import kotlinx.coroutines.Dispatchers
@@ -29,11 +34,11 @@ import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
-class LocalShellExecutor : Loggable {
-	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> =
+class LocalShellExecutor : Loggable, Traceable {
+	fun exec(
+		command: String, workDir: Path, env: Map<String, String>, timeout: Duration
+	): Flow<ShellEvent> =
 		channelFlow {
 			val startNs = System.nanoTime()
 			log.debug(
@@ -43,7 +48,7 @@ class LocalShellExecutor : Loggable {
 				ProcessBuilder("bash", "-lc", command).directory(workDir.toFile()).redirectErrorStream(false)
 					.apply { environment().putAll(env) }.start()
 			}
-			try {
+			trace.catching {
 				val stdoutJob = launch(Dispatchers.IO) {
 					process.inputStream.bufferedReader().use { reader ->
 						var line = reader.readLine()
@@ -93,8 +98,8 @@ class LocalShellExecutor : Loggable {
 						)
 					)
 				)
-			} finally {
+			}.also {
 				process.destroyForcibly()
-			}
+			}.getOrThrow()
 		}
 }

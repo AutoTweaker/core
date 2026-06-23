@@ -84,12 +84,12 @@ object CliServer : Loggable, Settable, Traceable {
 				connectionLimit.acquire()
 				activeClients.add(client)
 				scope.launch {
-					try {
+					trace.catching {
 						handle(client, router)
-					} finally {
+					}.also {
 						activeClients.remove(client)
 						connectionLimit.release()
-					}
+					}.getOrThrow()
 				}
 			}
 		}
@@ -126,7 +126,7 @@ object CliServer : Loggable, Settable, Traceable {
 			
 			var sawDone = false
 			val cmdName = command.command()
-			try {
+			trace.catching {
 				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
 						is CmdOutput.Data -> {
@@ -163,23 +163,18 @@ object CliServer : Loggable, Settable, Traceable {
 						}
 					}
 				}
-			} catch (e: CancellationException) {
-				trace.exception(e)
-				throw e
-			} catch (e: IOException) {
-				trace.exception(e)
-				log.warn("Disconnected client during command  command={}", cmdName)
-			} catch (e: Exception) {
-				trace.exception(e)
-				log.error("Failed command  command={}", cmdName, e)
-				trace.catching {
-					write(
-						client, json.encodeToString<CliResponse>(
-							CliResponse.Data(e.message ?: "Internal error", "stderr", true)
+			}.rethrow<CancellationException>()
+				.onException<IOException> { log.warn("Disconnected client during command  command={}", cmdName) }
+				.onExceptionExcept<IOException> { e ->
+					log.error("Failed command  command={}", cmdName, e)
+					trace.catching {
+						write(
+							client, json.encodeToString<CliResponse>(
+								CliResponse.Data(e.message ?: "Internal error", "stderr", true)
+							)
 						)
-					)
+					}
 				}
-			}
 			
 			if (!sawDone) {
 				log.warn("Command did not emit Done  command={}", cmdName)

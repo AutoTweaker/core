@@ -22,6 +22,8 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -48,14 +50,11 @@ class LlmService(
 			context = context,
 		)
 		
-		return try {
+		return trace.catching {
 			runStream(request)
-		} catch (e: CancellationException) {
-			trace.exception(e)
+		}.rethrow<CancellationException> {
 			log.debug("Cancelled LLM call  agentId={}", agentId)
-			CallResult.Failed
-		} catch (e: Exception) {
-			trace.exception(e)
+		}.getOrElse { e ->
 			log.error("Failed LLM call  agentId={}", agentId, e)
 			onOutput(
 				AgentOutput.Error(

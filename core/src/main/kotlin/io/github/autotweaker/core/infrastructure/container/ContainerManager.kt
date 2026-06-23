@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.container
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -34,7 +35,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
-object ContainerManager : Loggable, JsonStorable, Settable {
+object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
 	private val mutex = Mutex()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
@@ -82,14 +83,14 @@ object ContainerManager : Loggable, JsonStorable, Settable {
 	
 	suspend fun stop() = mutex.withLock {
 		val id = containerId ?: return@withLock
-		try {
+		trace.catching {
 			log.debug("Initiated container stop  containerId={}", id)
 			service.stop(id)
-		} finally {
+		}.also {
 			containerId = null
 			service.shutdown()
 			log.info("Stopped container  containerId={}", id)
-		}
+		}.getOrThrow()
 	}
 	
 	

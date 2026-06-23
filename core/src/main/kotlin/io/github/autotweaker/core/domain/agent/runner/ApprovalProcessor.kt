@@ -20,13 +20,14 @@ package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -69,14 +70,11 @@ class ApprovalProcessor(
 					shouldBreak.first { it }
 					deferred.cancel()
 				}
-				val next = try {
+				val next = trace.catching {
 					deferred.await()
-				} catch (e: CancellationException) {
-					trace.exception(e)
-					return reasons
-				} finally {
+				}.also {
 					watcher.cancel()
-				}
+				}.getOrElse { return reasons }
 				
 				if (next.callId == call.pendingCall.callId)
 					approval = next

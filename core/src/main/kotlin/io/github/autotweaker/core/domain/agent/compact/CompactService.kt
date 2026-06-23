@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -124,7 +126,7 @@ class CompactService(
 	): CompactRequestResult {
 		var rawContent = ""
 		var lastSnapshot: UsageSnapshot? = null
-		try {
+		trace.catching {
 			val results = ResilientChat.execute(
 				model = model.summarize,
 				fallbackModels = model.fallback,
@@ -161,12 +163,9 @@ class CompactService(
 					}
 				}
 			}
-		} catch (e: CancellationException) {
-			trace.exception(e)
+		}.rethrow<CancellationException> {
 			log.debug("Cancelled compact  agentId={}", agentId)
-			throw e
-		} catch (e: Exception) {
-			trace.exception(e)
+		}.getOrElse { e ->
 			log.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)
 			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastSnapshot, success = false)

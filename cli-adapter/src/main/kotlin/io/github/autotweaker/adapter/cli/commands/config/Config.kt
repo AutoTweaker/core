@@ -25,6 +25,7 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.flow.Flow

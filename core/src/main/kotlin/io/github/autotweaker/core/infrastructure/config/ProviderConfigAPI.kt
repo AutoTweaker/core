@@ -22,6 +22,8 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrDefault
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ProviderData
@@ -43,12 +45,10 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 		CoreConfig.ProviderConfig.Provider(
 			id = it.id,
 			type = it.providerType,
-			keyId = try {
+			keyId = trace.catching {
 				apiKeyConfig.getName(it.apiKey)
-			} catch (e: IllegalStateException) {
-				trace.exception(e)
-				"unknown"
-			},
+			}.rethrowNot<IllegalStateException>()
+				.getOrDefault("unknown"),
 			baseUrl = it.baseUrl,
 			displayName = it.displayName,
 			errorHandlingRules = it.errorHandlingRules,

@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.data
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrDefault
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,14 +56,13 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		killPb.start().waitFor()
 	}.onFailure { log.debug("Failed gpg-agent kill  reason={}", it.message) }.discard()
 	
-	suspend fun init() = try {
+	suspend fun init() = trace.catching {
 		unlock("")
-	} catch (e: Exception) {
-		trace.exception(e)
+	}.onFailure { e ->
 		if (hasSecretKey()) {
 			log.info("Skipped SecretManager auto-unlock  reason=password_required")
 		} else throw e
-	}
+	}.getOrThrow()
 	
 	suspend fun unlock(passphrase: String) = mutex.withLock {
 		//确保目录存在

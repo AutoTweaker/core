@@ -29,6 +29,7 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrDefault
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
@@ -82,7 +83,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	}
 	
 	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
-		try {
+		trace.catching {
 			val hostPath = config.workspaceHostPath
 			this@DockerJavaService.workspaceHostPath = hostPath
 			this@DockerJavaService.containerWorkDir = config.workDir
@@ -117,37 +118,28 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			
 			log.info("Started container  containerId={}", createResponse.id)
 			createResponse.id
-		} catch (e: NotFoundException) {
-			trace.exception(e)
-			log.warn("Failed image pull  image={}", image)
-			throw ContainerOperationException("Image '$image' not found", e)
-		} catch (e: CancellationException) {
-			trace.exception(e)
-			throw e
-		} catch (e: Exception) {
-			trace.exception(e)
-			log.error("Failed container start  image={}  name={}", image, config.name, e)
-			throw ContainerOperationException("Failed to start container: ${e.message}", e)
-		}
+		}.rethrow<CancellationException>()
+			.onException<NotFoundException> {
+				log.warn("Failed image pull  image={}", image)
+				throw ContainerOperationException("Image '$image' not found", it)
+			}.onExceptionExcept<NotFoundException> { e ->
+				log.error("Failed container start  image={}  name={}", image, config.name, e)
+				throw ContainerOperationException("Failed to start container: ${e.message}", e)
+			}.getOrThrow()
 	}
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
-		try {
+		trace.catching {
 			permissionFixJob?.cancel()
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			log.info("Stopped container  containerId={}", containerId)
-		} catch (e: NotFoundException) {
-			trace.exception(e)
-			log.warn("Did not find container  containerId={}", containerId)
-		} catch (e: CancellationException) {
-			trace.exception(e)
-			throw e
-		} catch (e: Exception) {
-			trace.exception(e)
-			log.error("Failed container stop  containerId={}", containerId, e)
-			throw ContainerOperationException("Failed to stop container: ${e.message}", e)
-		}
+		}.rethrow<CancellationException>()
+			.onException<NotFoundException> { log.warn("Did not find container  containerId={}", containerId) }
+			.onExceptionExcept<NotFoundException> { e ->
+				log.error("Failed container stop  containerId={}", containerId, e)
+				throw ContainerOperationException("Failed to stop container: ${e.message}", e)
+			}.discard()
 	}
 	
 	private fun fixWorkspacePermissions(containerId: String) {
@@ -187,7 +179,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			"Started streaming exec  containerId={}  cmd={}", containerId, command.joinToString(" ")
 		)
 		withContext(Dispatchers.IO) {
-			try {
+			trace.catching {
 				val execCmd =
 					client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
 						.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
@@ -217,18 +209,14 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 						)
 					)
 				)
-			} catch (e: NotFoundException) {
-				trace.exception(e)
-				log.warn("Failed container lookup  containerId={}", containerId)
-				throw ContainerOperationException("Container not found: $containerId", e)
-			} catch (e: CancellationException) {
-				trace.exception(e)
-				throw e
-			} catch (e: Exception) {
-				trace.exception(e)
-				log.error("Failed command execution  containerId={}", containerId, e)
-				throw ContainerOperationException("Failed to exec command: ${e.message}", e)
-			}
+			}.rethrow<CancellationException>()
+				.onException<NotFoundException> {
+					log.warn("Failed container lookup  containerId={}", containerId)
+					throw ContainerOperationException("Container not found: $containerId", it)
+				}.onExceptionExcept<NotFoundException> { e ->
+					log.error("Failed command execution  containerId={}", containerId, e)
+					throw ContainerOperationException("Failed to exec command: ${e.message}", e)
+				}.getOrThrow()
 		}
 		schedulePermissionFix(containerId)
 		close()

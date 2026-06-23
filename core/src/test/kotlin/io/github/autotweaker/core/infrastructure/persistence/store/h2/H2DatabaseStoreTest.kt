@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.store.h2
 
+import io.github.autotweaker.api.CONFIG_PATH
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -28,19 +28,10 @@ class H2DatabaseStoreTest {
 	
 	@Test
 	fun `connect creates database directory and file`() {
-		val tmpHome = Files.createTempDirectory("autotweaker_test")
-		val originalHome = System.getProperty("user.home")
-		try {
-			System.setProperty("user.home", tmpHome.toString())
-			H2DatabaseStore.connect("TestDb_${UUID.randomUUID()}")
-			
-			val dbDir = Path.of(tmpHome.toString(), ".config", "autotweaker", "database")
-			assertTrue(Files.exists(dbDir))
-		} finally {
-			if (originalHome != null) {
-				System.setProperty("user.home", originalHome)
-			}
-			tmpHome.toFile().deleteRecursively()
-		}
+		val dbName = "TestDb_${UUID.randomUUID()}"
+		H2DatabaseStore.connect(dbName)
+		
+		val dbDir = CONFIG_PATH.resolve("database")
+		assertTrue(Files.exists(dbDir))
 	}
 }

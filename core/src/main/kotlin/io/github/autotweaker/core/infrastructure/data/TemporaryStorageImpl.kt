@@ -23,6 +23,7 @@ import io.github.autotweaker.api.TMP_PATH
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import java.io.IOException
 import java.nio.file.Files
@@ -49,14 +50,12 @@ object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
 	override fun list(): Map<UUID, Path> {
 		if (!dirExists) return emptyMap()
 		
-		val files = try {
+		val files = trace.catching {
 			Files.list(TMP_PATH).use { stream ->
 				stream.asSequence().toList()
 			}
-		} catch (e: IOException) {
-			trace.exception(e)
-			return emptyMap()
-		}
+		}.rethrowNot<IOException>()
+			.getOrElse { return emptyMap() }
 		val map = mutableMapOf<UUID, Path>()
 		files.forEach {
 			val id = trace.catching {
@@ -71,12 +70,10 @@ object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
 		val path = TMP_PATH.resolve(id.toString())
 		if (!dirExists || Files.notExists(path)) return null
 		
-		return try {
+		return trace.catching {
 			path.readText()
-		} catch (e: IOException) {
-			trace.exception(e)
-			null
-		}
+		}.rethrowNot<IOException>()
+			.getOrNull()
 	}
 	
 	private fun createDir() {

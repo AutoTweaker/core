@@ -22,6 +22,8 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrDefault
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.tool.args.ReadArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -84,17 +86,20 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		val fs = container.get<FileSystemService>()
 		val normalizedPath = trace.catching { fs.normalize(filePath) }
 			.getOrElse { return Tool.ToolOutput(setting.get(ToolSettings.PathErrorMessage()).value, false) }
-		try {
+		trace.catching {
 			if (!fs.exists(normalizedPath)) {
 				return Tool.ToolOutput(setting.get(ReadSettings.MessageFileNotFoundSetting()).value, false)
 			}
 			if (!fs.isRegularFile(normalizedPath)) {
 				return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 			}
-		} catch (e: FileSystemService.PathOutsideWorkspaceException) {
-			trace.exception(e)
-			return Tool.ToolOutput(setting.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value, false)
-		}
+		}.rethrowNot<FileSystemService.PathOutsideWorkspaceException>()
+			.getOrElse {
+				return Tool.ToolOutput(
+					setting.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value,
+					false
+				)
+			}
 		
 		log.debug("Started read tool  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
 		
@@ -145,7 +150,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				false
 			)
 		}
-		val content = try {
+		val content = trace.catching {
 			readFileContent(
 				fs,
 				normalizedPath,
@@ -155,13 +160,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				truncateMessage = setting.get(ReadSettings.FileMessageTruncateSetting()).value,
 				lineNumber = args.lineNumber
 			)
-		} catch (e: CancellationException) {
-			trace.exception(e)
-			throw e
-		} catch (e: IllegalStateException) {
-			trace.exception(e)
-			return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
-		}
+		}.rethrow<CancellationException>()
+			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		val sha256 = trace.catching { fs.sha256(normalizedPath) }
 			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		
@@ -192,7 +192,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				setting.get(ReadSettings.MessageTooManyLinesSetting()).value.format(summarizeMaxLines), false
 			)
 		}
-		val content = try {
+		val content = trace.catching {
 			readFileContent(
 				fs,
 				normalizedPath,
@@ -202,13 +202,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				truncateMessage = setting.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false
 			)
-		} catch (e: CancellationException) {
-			trace.exception(e)
-			throw e
-		} catch (e: IllegalStateException) {
-			trace.exception(e)
-			return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
-		}
+		}.rethrow<CancellationException>()
+			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		val summarizeMinChars = setting.get(ReadSettings.SummarizeMinCharsSetting()).value
 		if (content.length < summarizeMinChars) {
 			return Tool.ToolOutput(

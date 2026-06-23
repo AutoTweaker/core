@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -175,13 +177,9 @@ class RoundRunner(
 			}
 			thinkJob = deferred
 			
-			val result = try {
+			val result = trace.catching {
 				deferred.await()
-			} catch (e: CancellationException) {
-				trace.exception(e)
-				thinkJob = null
-				break
-			}
+			}.getOrElse { ThinkingStage.Result.Failed }
 			thinkJob = null
 			
 			if (shouldBreak.value || result is ThinkingStage.Result.Failed) break
