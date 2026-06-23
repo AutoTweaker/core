@@ -55,7 +55,7 @@ class AgentBridge(
 	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI, Loggable, Settable {
 	/* 初始化 */
-	private val saveMutex = Mutex()
+	private val contextMutex = Mutex()
 	private val injectMutex = Mutex()
 	
 	private lateinit var initialData: AgentData
@@ -196,8 +196,13 @@ class AgentBridge(
 				timestamp = timestamp,
 				snapshot = UsageSnapshot(usage, modelInfo),
 			)
-			messages[record.id] = record
-			null.andSave()
+			let { messages[record.id] = record }.andSave()
+			contextMutex.withLock {
+				val ctx = _context.value
+				updateContext(
+					ctx.copy(droppedMessages = ctx.droppedMessages.orEmpty() + record.id)
+				)
+			}.discard(null)
 		}
 	}
 	
@@ -215,13 +220,13 @@ class AgentBridge(
 		)
 	}
 	
-	private fun buildAgentContext(): AgentContext {
-		return SessionContextConverter.buildAgentContext(
+	private fun buildAgentContext(): AgentContext =
+		SessionContextConverter.buildAgentContext(
 			context = _context.value, messages = messages.values.toList(), maxCompactedRounds = maxCompactedRounds
 		)
-	}
 	
-	private suspend fun AgentContext.save() = saveMutex.withLock {
+	
+	private suspend fun AgentContext.save() = contextMutex.withLock {
 		val oldCtx = _context.value
 		val result = AgentContextConverter.sync(this, oldCtx)
 		result.messages.save()

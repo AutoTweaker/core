@@ -20,3 +20,6 @@ package io.github.autotweaker.api
 
 @Suppress("UnusedReceiverParameter")
 fun <T> T.discard(): Unit = Unit
+
+@Suppress("UnusedReceiverParameter")
+fun <T, R> T.discard(result: R?): R? = result
