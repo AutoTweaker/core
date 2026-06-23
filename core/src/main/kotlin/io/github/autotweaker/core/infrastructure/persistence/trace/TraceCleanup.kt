@@ -26,8 +26,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object TraceCleanup : Loggable, Settable {
-	private val dbFilePath =
-		Path.of(System.getProperty("user.home"), ".config", "autotweaker", "database", "Traces.mv.db")
+	private const val BYTES_PER_MB = 1024 * 1024
+	private val dbFilePath = Path.of(
+		System.getProperty("user.home"), ".config", "autotweaker", "database", "Traces.mv.db"
+	)
 	
 	fun cleanup() {
 		val maxAgeDays = setting.get(TraceSettings.MaxAgeDays()).value
@@ -42,13 +44,12 @@ object TraceCleanup : Loggable, Settable {
 		cleanupCount += if (maxEntriesPerNs > 0) TraceStore.trimPerNamespace(maxEntriesPerNs) else 0
 		cleanupCount += if (maxTotalEntries > 0) TraceStore.trimGlobal(maxTotalEntries) else 0
 		cleanupCount += if (maxDbSizeMB > 0 && batchSize > 0) {
-			val maxSizeBytes = maxDbSizeMB * 1024 * 1024
+			val maxSizeBytes = maxDbSizeMB * BYTES_PER_MB
 			if (Files.size(dbFilePath) > maxSizeBytes) {
 				TraceStore.deleteOldestBatch(batchSize)
 			} else 0
 		} else 0
 		
-		if (cleanupCount > 0)
-			log.info("Completed trace cleanup  count={}", cleanupCount)
+		if (cleanupCount > 0) log.info("Completed trace cleanup  count={}", cleanupCount)
 	}
 }

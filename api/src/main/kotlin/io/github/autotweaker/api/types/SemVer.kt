@@ -25,21 +25,6 @@ data class SemVer(
 	val preRelease: List<String> = emptyList(),
 	val buildMetadata: List<String> = emptyList()
 ) : Comparable<SemVer> {
-	
-	override fun equals(other: Any?): Boolean {
-		if (this === other) return true
-		if (other !is SemVer) return false
-		return major == other.major && minor == other.minor && patch == other.patch && preRelease == other.preRelease
-	}
-	
-	override fun hashCode(): Int {
-		var result = major
-		result = 31 * result + minor
-		result = 31 * result + patch
-		result = 31 * result + preRelease.hashCode()
-		return result
-	}
-	
 	init {
 		require(major >= 0) { "Major version must be non-negative, got: $major" }
 		require(minor >= 0) { "Minor version must be non-negative, got: $minor" }
@@ -71,6 +56,20 @@ data class SemVer(
 		}
 	}
 	
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (other !is SemVer) return false
+		return major == other.major && minor == other.minor && patch == other.patch && preRelease == other.preRelease
+	}
+	
+	override fun hashCode(): Int {
+		var result = major
+		result = 31 * result + minor
+		result = 31 * result + patch
+		result = 31 * result + preRelease.hashCode()
+		return result
+	}
+	
 	override fun compareTo(other: SemVer): Int {
 		if (major != other.major) return major.compareTo(other.major)
 		if (minor != other.minor) return minor.compareTo(other.minor)
@@ -98,11 +97,16 @@ data class SemVer(
 		return preRelease.size.compareTo(other.preRelease.size)
 	}
 	
-	override fun toString(): String {
-		val base = "$major.$minor.$patch"
-		val pre = if (preRelease.isNotEmpty()) "-" + preRelease.joinToString(".") else ""
-		val build = if (buildMetadata.isNotEmpty()) "+" + buildMetadata.joinToString(".") else ""
-		return base + pre + build
+	override fun toString(): String = buildString {
+		append(major); append('.'); append(minor); append('.'); append(patch)
+		if (preRelease.isNotEmpty()) {
+			append('-')
+			append(preRelease.joinToString("."))
+		}
+		if (buildMetadata.isNotEmpty()) {
+			append('+')
+			append(buildMetadata.joinToString("."))
+		}
 	}
 	
 	companion object {

@@ -59,20 +59,22 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
 				setting.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
-			).also {
-				log.debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
+			).andLog(log) {
+				debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
 			}
 		} ?: return ValidationResult.Failure(
 			setting.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
-		).also {
-			log.debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
+		).andLog(log) {
+			debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
 		
 		val parts = toolCallName.split("-", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
 				setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-			).andLog(log) { debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName) }
+			).andLog(log) {
+				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
+			}
 		}
 		
 		val toolName = parts[0]
@@ -80,14 +82,16 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 		
 		val tool = tools.find { it.name == toolName } ?: return ValidationResult.Failure(
 			setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-		).andLog(log) { debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName) }
+		).andLog(log) {
+			debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName)
+		}
 		
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
 				setting.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, "reason")
-			).also {
-				log.debug(
+			).andLog(log) {
+				debug(
 					"Failed tool call validation reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
 				)
 			}
@@ -103,8 +107,8 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 				.find { it.substringAfterLast('.').toSnakeCase() == functionName }
 				?: return ValidationResult.Failure(
 					setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
-				).also {
-					log.debug(
+				).andLog(log) {
+					debug(
 						"Failed sealed subclass lookup  callId={}  name={}  function={}",
 						callId,
 						toolCallName,
@@ -112,9 +116,8 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 					)
 				}
 			JsonObject(otherArguments + ("type" to JsonPrimitive(typeName)))
-		} else {
-			otherArguments
-		}
+		} else otherArguments
+		
 		
 		val typeMapping = ToolMeta.buildTypeMapping(tool)
 		val finalJson = if (typeMapping.isNotEmpty()) {
@@ -124,17 +127,16 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 			precisePaths.fold(deserializationJson) { current, precisePath ->
 				applyPath(current, precisePath)
 			}
-		} else {
-			deserializationJson
-		}
+		} else deserializationJson
+		
 		
 		val args = trace.catching {
 			json.decodeFromJsonElement(tool.argsSerializer, finalJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
 				setting.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
-			).also {
-				log.debug(
+			).andLog(log) {
+				debug(
 					"Failed tool call arg deserialization  callId={}  name={}  tool={}  error={}",
 					callId, toolCallName, toolName, e.message
 				)

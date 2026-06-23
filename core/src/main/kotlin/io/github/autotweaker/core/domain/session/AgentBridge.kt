@@ -132,9 +132,8 @@ class AgentBridge(
 	/* API */
 	
 	override fun send(content: MessageContent) =
-		_agent.sendMessage(content).andLog(log) {
-			info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
-		}
+		_agent.sendMessage(content).andLog(log)
+		{ info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length) }
 	
 	override suspend fun inject(injection: ContextInjection) = also {
 		injectMutex.withLock {

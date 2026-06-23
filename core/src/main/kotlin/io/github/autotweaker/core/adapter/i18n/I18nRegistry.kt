@@ -35,7 +35,7 @@ object I18nRegistry {
 				?: throw IllegalStateException("Anonymous I18nDef not allowed: $def")
 			map[key] = def
 		}
-		map
+		return@run map
 	}
 	
 	fun get(key: String): I18nDef? = _defs[key]

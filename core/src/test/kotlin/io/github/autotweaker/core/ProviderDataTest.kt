@@ -27,6 +27,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ProviderDataTest {
+	companion object {
+		init {
+			TestServices.init()
+		}
+	}
 	
 	private val testUrl = "https://api.example.com".toUrl()
 	

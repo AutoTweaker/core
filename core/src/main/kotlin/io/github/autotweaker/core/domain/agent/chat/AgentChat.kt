@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -27,8 +29,6 @@ import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object AgentChat : Loggable {
 	fun execute(
@@ -65,17 +65,15 @@ object AgentChat : Loggable {
 			when (val result = resilientResult.result) {
 				is ChatResult.Chunk -> {
 					val msg = result.message
-					if (msg != null) {
-						emit(
-							AgentChatStreamResult.Delta(
-								StreamDelta(
-									content = msg.content,
-									reasoningContent = msg.reasoningContent,
-									toolCallFragments = result.toolCalls,
-								)
+					if (msg != null) emit(
+						AgentChatStreamResult.Delta(
+							StreamDelta(
+								content = msg.content,
+								reasoningContent = msg.reasoningContent,
+								toolCallFragments = result.toolCalls,
 							)
 						)
-					}
+					)
 				}
 				
 				is ChatResult.Assembled -> {

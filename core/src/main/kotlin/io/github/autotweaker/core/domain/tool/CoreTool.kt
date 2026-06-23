@@ -26,7 +26,7 @@ import kotlinx.coroutines.channels.Channel
 interface CoreTool<Args : ToolArgs> : Tool<Args> {
 	suspend fun init(secretStore: SecretStore) {}
 	suspend fun coreExec(
-		container: SimpleContainer,
+		container: DependencyProvider,
 		args: Args,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput

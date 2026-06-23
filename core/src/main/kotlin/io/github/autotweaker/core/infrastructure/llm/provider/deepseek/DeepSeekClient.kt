@@ -256,11 +256,10 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		}
 	)
 	
-	override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ChatResult.ChunkToolCall>? {
-		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
+	override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ChatResult.ChunkToolCall>? =
+		chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
 			ChatResult.ChunkToolCall(
 				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
 			)
 		}
-	}
 }

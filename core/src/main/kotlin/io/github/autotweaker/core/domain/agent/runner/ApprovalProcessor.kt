@@ -78,7 +78,8 @@ class ApprovalProcessor(
 					watcher.cancel()
 				}
 				
-				if (next.callId == call.pendingCall.callId) approval = next
+				if (next.callId == call.pendingCall.callId)
+					approval = next
 				else stashed[next.callId] = next
 			}
 			

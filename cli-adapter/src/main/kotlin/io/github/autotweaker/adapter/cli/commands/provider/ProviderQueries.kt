@@ -24,6 +24,7 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.ModelFeature
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.forEachBetween
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Price
@@ -31,16 +32,13 @@ import io.github.autotweaker.api.types.llm.ProviderData
 import kotlinx.coroutines.flow.*
 
 class ProviderQueries(private val core: CoreAPI) : I18nable {
-	
 	fun list(): Flow<String> = flow {
-		val providers = core.config.listProviders()
-		providers.forEachIndexed { index, provider ->
+		core.config.listProviders().forEachBetween({ provider ->
 			val modelCount = core.config.listModels().count { it.data.providerId == provider.id }
 			emit(i18n.get(ProvQueriesI18n.Name()).format(provider.displayName))
 			emit(i18n.get(ProvQueriesI18n.Type()).format(provider.type))
 			emit(i18n.get(ProvQueriesI18n.Model()).format(modelCount))
-			if (index != providers.lastIndex) emit(LINE)
-		}
+		}, between = { emit(LINE) })
 	}
 	
 	fun show(name: String): Flow<String> = flow {
@@ -96,6 +94,7 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 			if (info.supportsImage) add(i18n.get(ModelFeature.ImageFeature()))
 			if (info.supportsJsonOutput) add(i18n.get(ModelFeature.JsonOutputFeature()))
 		}.joinToString(separator = " ") { "[${it}]" }
+		
 		emit(i18n.get(ProvQueriesI18n.ModelId()).format(info.modelId))
 		emit(i18n.get(ProvQueriesI18n.ContextWindow()).format(processUnit(info.contextWindow)))
 		emit(i18n.get(ProvQueriesI18n.MaxOutput()).format(processUnit(info.maxOutputTokens)))
@@ -122,7 +121,6 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 								it.price, it.cachedPrice
 							)
 						}"
-						
 					}
 				)
 			}

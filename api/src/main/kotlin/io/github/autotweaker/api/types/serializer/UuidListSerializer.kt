@@ -34,7 +34,6 @@ object UuidListSerializer : KSerializer<List<UUID>> {
 		delegate.serialize(encoder, value)
 	}
 	
-	override fun deserialize(decoder: Decoder): List<UUID> {
-		return delegate.deserialize(decoder)
-	}
+	override fun deserialize(decoder: Decoder): List<UUID> =
+		delegate.deserialize(decoder)
 }

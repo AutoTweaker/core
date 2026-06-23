@@ -37,7 +37,7 @@ import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
 	val pathResolver = PathResolverImpl(ContainerConfig())
-
+	
 	suspend fun init() {
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
@@ -49,6 +49,7 @@ object Wiring : Loggable {
 		)
 		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl, SecretManager)
 		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver)
-		log.info("Initialized wiring")
+		
+		log.info("Completed wiring")
 	}
 }

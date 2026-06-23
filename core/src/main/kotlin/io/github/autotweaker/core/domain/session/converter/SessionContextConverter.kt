@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session.converter
 
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
@@ -62,7 +63,7 @@ object SessionContextConverter {
 		
 		return AgentContext(
 			compactedRounds = compactedRounds,
-			systemPrompt = context.systemPrompt.takeIf { it.isNotEmpty() },
+			systemPrompt = context.systemPrompt.orNull(),
 			injections = context.injections,
 			historyRounds = historyRounds,
 			summarizedMessage = summarizedMessage,
@@ -116,11 +117,10 @@ object SessionContextConverter {
 		)
 	}
 	
-	private fun buildUserMessage(msg: SessionMessage.User): AgentContext.Message.User {
-		return AgentContext.Message.User(
+	private fun buildUserMessage(msg: SessionMessage.User): AgentContext.Message.User =
+		AgentContext.Message.User(
 			id = msg.id, content = msg.content, timestamp = msg.timestamp
 		)
-	}
 	
 	private fun buildAssistantMessage(
 		msg: SessionMessage.Assistant

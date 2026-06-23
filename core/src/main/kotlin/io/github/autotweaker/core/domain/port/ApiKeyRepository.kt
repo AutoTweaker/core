@@ -24,5 +24,5 @@ interface ApiKeyRepository {
 	suspend fun add(key: CoreConfig.ProviderConfig.ApiKey)
 	fun list(): List<String>
 	suspend fun get(name: String): String
-	fun delete(name: String)
+	suspend fun delete(name: String)
 }

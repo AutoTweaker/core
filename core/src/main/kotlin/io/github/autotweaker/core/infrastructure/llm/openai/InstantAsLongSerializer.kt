@@ -33,7 +33,6 @@ object InstantAsLongSerializer : KSerializer<Instant> {
 		encoder.encodeLong(value.epochSeconds)
 	}
 	
-	override fun deserialize(decoder: Decoder): Instant {
-		return Instant.fromEpochSeconds(decoder.decodeLong())
-	}
+	override fun deserialize(decoder: Decoder): Instant =
+		Instant.fromEpochSeconds(decoder.decodeLong())
 }

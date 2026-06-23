@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session.converter
 
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.session.SessionContext
 import io.github.autotweaker.api.types.session.SessionContextIndex
 import io.github.autotweaker.api.types.session.SessionMessage
@@ -31,7 +32,7 @@ object AgentContextConverter {
 		
 		val oldNonCompactedIds = collectNonCompactedIds(oldCtx)
 		val dropped = ((oldNonCompactedIds - newMessageIds) + oldCtx.droppedMessages.orEmpty())
-			.toList().takeIf { it.isNotEmpty() }
+			.toList().orNull()
 		
 		return Result(
 			messages = newMessages,
@@ -92,9 +93,8 @@ object AgentContextConverter {
 		return messages
 	}
 	
-	private fun extractCompletedRound(round: AgentContext.CompletedRound): List<SessionMessage> {
-		return extractRoundMessages(round.userMessage, round.turns, round.finalAssistantMessage)
-	}
+	private fun extractCompletedRound(round: AgentContext.CompletedRound): List<SessionMessage> =
+		extractRoundMessages(round.userMessage, round.turns, round.finalAssistantMessage)
 	
 	private fun extractRoundMessages(
 		userMessage: AgentContext.Message.User,
@@ -126,7 +126,7 @@ object AgentContextConverter {
 				summarizedMessage = compacted.summarizedMessage.id,
 				rounds = compacted.rounds.map { toCompletedRound(it) }
 			)
-		}.orEmpty() + preservedCompacted.orEmpty()).takeIf { it.isNotEmpty() }
+		}.orEmpty() + preservedCompacted.orEmpty()).orNull()
 		
 		return SessionContextIndex(
 			compactedRounds = mergedCompacted,
@@ -153,8 +153,8 @@ object AgentContextConverter {
 		)
 	}
 	
-	private fun toTurn(turn: AgentContext.Turn): SessionContextIndex.Turn {
-		return SessionContextIndex.Turn(
+	private fun toTurn(turn: AgentContext.Turn): SessionContextIndex.Turn =
+		SessionContextIndex.Turn(
 			assistantMessage = turn.assistantMessage.id,
 			tools = turn.tools.map { tool ->
 				SessionContextIndex.Turn.Tool(
@@ -163,22 +163,20 @@ object AgentContextConverter {
 				)
 			}
 		)
-	}
 	
 	// endregion
 	
 	// region Message conversion
 	
-	private fun convertUser(msg: AgentContext.Message.User): SessionMessage.User {
-		return SessionMessage.User(
+	private fun convertUser(msg: AgentContext.Message.User): SessionMessage.User =
+		SessionMessage.User(
 			id = msg.id,
 			timestamp = msg.timestamp,
 			content = msg.content,
 		)
-	}
 	
-	private fun convertAssistant(msg: AgentContext.Message.Assistant): SessionMessage.Assistant {
-		return SessionMessage.Assistant(
+	private fun convertAssistant(msg: AgentContext.Message.Assistant): SessionMessage.Assistant =
+		SessionMessage.Assistant(
 			id = msg.id,
 			timestamp = msg.timestamp,
 			reasoning = msg.reasoning,
@@ -186,10 +184,9 @@ object AgentContextConverter {
 			model = msg.modelId,
 			usageSnapshot = msg.usageSnapshot
 		)
-	}
 	
-	private fun convertToolCall(tool: AgentContext.Message.Tool): SessionMessage.Tool.Call {
-		return SessionMessage.Tool.Call(
+	private fun convertToolCall(tool: AgentContext.Message.Tool): SessionMessage.Tool.Call =
+		SessionMessage.Tool.Call(
 			id = tool.call.id,
 			timestamp = tool.call.timestamp,
 			callId = tool.callId,
@@ -199,17 +196,15 @@ object AgentContextConverter {
 			reason = tool.call.reason,
 			validatedArgs = tool.call.validatedArgs,
 		)
-	}
 	
-	private fun convertToolResult(tool: AgentContext.Message.Tool): SessionMessage.Tool.Result {
-		return SessionMessage.Tool.Result(
+	private fun convertToolResult(tool: AgentContext.Message.Tool): SessionMessage.Tool.Result =
+		SessionMessage.Tool.Result(
 			id = tool.result.id,
 			timestamp = tool.result.timestamp,
 			callId = tool.callId,
 			content = tool.result.content,
 			status = tool.result.status
 		)
-	}
 	
 	// endregion
 	

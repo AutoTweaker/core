@@ -32,7 +32,6 @@ import java.util.*
 import kotlin.time.Clock
 
 object SummaryService : Traceable {
-	
 	suspend fun summarizeMessage(
 		content: String,
 		prompt: String,

@@ -34,8 +34,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.util.*
 import kotlin.reflect.KClass
 
-class EnvStorage(private val kClass: KClass<*>, private val store: JsonStore, private val secretStore: SecretStore) :
-	Loggable, Traceable {
+class EnvStorage(
+	private val kClass: KClass<*>, private val store: JsonStore, private val secretStore: SecretStore
+) : Loggable, Traceable {
 	private val mutex = Mutex()
 	
 	suspend fun listEnv(): List<String> = mutex.withLock { getEnvUuidMap().keys.toList() }

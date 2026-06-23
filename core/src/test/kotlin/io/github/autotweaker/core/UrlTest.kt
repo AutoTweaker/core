@@ -27,6 +27,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class UrlTest {
+	companion object {
+		init {
+			TestServices.init()
+		}
+	}
 	
 	// region construction & validation
 	

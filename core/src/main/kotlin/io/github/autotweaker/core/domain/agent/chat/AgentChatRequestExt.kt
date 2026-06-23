@@ -23,7 +23,7 @@ import io.github.autotweaker.core.domain.agent.AgentContext
 import kotlin.time.Clock
 
 fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
-	val current = context.currentRound ?: throw IllegalStateException("No current round available")
+	val current = checkNotNull(context.currentRound) { "No current round available" }
 	
 	val lastMessage = when {
 		current.assistantMessage != null -> current.assistantMessage
@@ -35,8 +35,10 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		else -> null
 	}
 	
-	check(lastMessage !is AgentContext.Message.Assistant) { "Last message is an assistant message, cannot send request" }
-	check(current.pendingToolCalls == null) { "Pending tool calls exist, cannot send request" }
+	check(lastMessage !is AgentContext.Message.Assistant)
+	{ "Last message is an assistant message, cannot send request" }
+	check(current.pendingToolCalls == null)
+	{ "Pending tool calls exist, cannot send request" }
 	
 	return buildList {
 		//系统提示
@@ -69,11 +71,11 @@ private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
 			arguments = tool.call.arguments,
 		)
 	}
-	if (toolCalls.isNotEmpty()) {
+	if (toolCalls.isNotEmpty())
 		add(turn.assistantMessage.toChatMessage(toolCalls))
-	} else {
+	else
 		add(turn.assistantMessage.toChatMessage())
-	}
+	
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
 

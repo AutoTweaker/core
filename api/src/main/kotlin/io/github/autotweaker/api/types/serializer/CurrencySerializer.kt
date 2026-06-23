@@ -34,7 +34,6 @@ object CurrencySerializer : KSerializer<Currency> {
 		encoder.encodeString(value.currencyCode)
 	}
 	
-	override fun deserialize(decoder: Decoder): Currency {
-		return Currency.getInstance(decoder.decodeString())
-	}
+	override fun deserialize(decoder: Decoder): Currency =
+		Currency.getInstance(decoder.decodeString())
 }

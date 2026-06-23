@@ -29,7 +29,8 @@ import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.ToolCallHistoryImpl
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
-import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.DependencyProvider
+import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
@@ -56,12 +57,17 @@ object ToolProvider {
 		model: AgentModel,
 		context: AgentContext,
 		onOutput: suspend (AgentOutput) -> Unit,
-	): SimpleContainer {
-		val container = SimpleContainer()
-		container.register(FileSystemService::class, FileSystemServiceImpl(rawFileSystem, pathResolver, workspace))
-		container.register(SummarizeService::class, SummarizeServiceImpl(model, onOutput))
-		container.register(BashService::class, BashServiceImpl(shellExecutor, pathResolver, workspace))
-		container.register(ToolCallHistory::class, ToolCallHistoryImpl(context))
-		return container
-	}
+	): DependencyProvider = ServiceContainer()
+		.register(
+			FileSystemService::class, FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
+		)
+		.register(
+			SummarizeService::class, SummarizeServiceImpl(model, onOutput)
+		)
+		.register(
+			BashService::class, BashServiceImpl(shellExecutor, pathResolver, workspace)
+		)
+		.register(
+			ToolCallHistory::class, ToolCallHistoryImpl(context)
+		)
 }

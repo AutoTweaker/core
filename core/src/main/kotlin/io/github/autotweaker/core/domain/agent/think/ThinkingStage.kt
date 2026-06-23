@@ -40,13 +40,12 @@ class ThinkingStage(
 		is LlmService.CallResult.Failed -> Result.Failed
 		is LlmService.CallResult.Success -> {
 			val rawCalls = callResult.toolCalls
-			if (rawCalls.isNullOrEmpty()) {
-				return Result.Done(
-					assistantMessage = callResult.assistantMessage,
-					activations = emptyList(),
-					parseFailures = emptyList(),
-				)
-			}
+			if (rawCalls.isNullOrEmpty()) return Result.Done(
+				assistantMessage = callResult.assistantMessage,
+				activations = emptyList(),
+				parseFailures = emptyList(),
+			)
+			
 			
 			val activations = mutableListOf<ToolActivation>()
 			val parseFailures = mutableListOf<ParseFailure>()
@@ -77,20 +76,17 @@ class ThinkingStage(
 				}
 			}
 			
-			if (needsApproval.isNotEmpty()) {
-				Result.HasPending(
-					assistantMessage = callResult.assistantMessage,
-					activations = activations,
-					parseFailures = parseFailures,
-					needsApproval = needsApproval,
-				)
-			} else {
-				Result.Done(
-					assistantMessage = callResult.assistantMessage,
-					activations = activations,
-					parseFailures = parseFailures,
-				)
-			}
+			if (needsApproval.isNotEmpty()) Result.HasPending(
+				assistantMessage = callResult.assistantMessage,
+				activations = activations,
+				parseFailures = parseFailures,
+				needsApproval = needsApproval,
+			)
+			else Result.Done(
+				assistantMessage = callResult.assistantMessage,
+				activations = activations,
+				parseFailures = parseFailures,
+			)
 		}
 	}
 	

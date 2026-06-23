@@ -116,7 +116,6 @@ class CoreAPIImpl(
 			providerRepo.updateRule(id, rules)
 		
 		override fun listModels() = modelRepo.list()
-		override fun listModelIds(): List<UUID> = modelRepo.list().map { it.data.id }
 		override fun getModelMeta(id: UUID): ModelData.ModelInfo? = ModelStore.get(id)?.modelInfo
 		override fun addModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.add(model)
 		override fun removeModel(id: UUID) = modelRepo.remove(id)
@@ -125,7 +124,7 @@ class CoreAPIImpl(
 		override fun setDefaultModel(id: UUID) = ModelRepositoryImpl.setDefaultModel(id)
 		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
 		override fun listApiKeyNames() = apiKeyRepo.list()
-		override fun removeApiKey(name: String) = apiKeyRepo.delete(name)
+		override suspend fun removeApiKey(name: String) = apiKeyRepo.delete(name)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {

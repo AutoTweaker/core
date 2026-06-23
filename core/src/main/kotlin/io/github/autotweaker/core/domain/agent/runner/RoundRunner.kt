@@ -52,7 +52,8 @@ class RoundRunner(
 	private val agentId: UUID,
 ) : Loggable, Traceable, Settable {
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-	private val mutex = Mutex()
+	private val cmdMutex = Mutex()
+	private val compactMutex = Mutex()
 	
 	@Volatile
 	private var thinkJob: Job? = null
@@ -71,7 +72,7 @@ class RoundRunner(
 	
 	private val messages = MessageQueue(agentId)
 	private val pendingDeliveries = ConcurrentHashMap<UUID, CompletableDeferred<UUID>>()
-
+	
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
 		ToolResultFactory(),
@@ -103,7 +104,7 @@ class RoundRunner(
 	}
 	
 	suspend fun execute(command: AgentCommand) = also {
-		mutex.withLock {
+		cmdMutex.withLock {
 			if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
 			when (command) {
 				is AgentCommand.Stop -> {
@@ -140,8 +141,9 @@ class RoundRunner(
 					check(statusFlow.value == AgentStatus.WAITING)
 					approval.approvalChannel.send(command.approval)
 				}
+			}.andLog(log) {
+				debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
 			}
-			log.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
 		}
 	}
 	
@@ -151,9 +153,11 @@ class RoundRunner(
 			val msg = messages.receive()
 			signalDeliveries(msg.id)
 			shouldBreak.value = false
+			
 			ctx.beginRound(msg)
 			executeRound()
 			ctx.archiveCurrentRound()
+			
 			statusFlow.value = AgentStatus.FREE
 		}
 	}
@@ -161,6 +165,7 @@ class RoundRunner(
 	private suspend fun executeRound() {
 		while (true) {
 			statusFlow.value = AgentStatus.THINKING
+			
 			val deferred = scope.async {
 				thinkingStage.execute(
 					model = currentModel,
@@ -169,6 +174,7 @@ class RoundRunner(
 				)
 			}
 			thinkJob = deferred
+			
 			val result = try {
 				deferred.await()
 			} catch (e: CancellationException) {
@@ -238,6 +244,7 @@ class RoundRunner(
 	
 	private suspend fun autoCompact() {
 		if (compactJob?.isActive == true) return
+		
 		val assistantMessage = ctx.get().let { context ->
 			context.currentRound?.assistantMessage
 				?: context.currentRound?.turns?.lastOrNull()?.assistantMessage
@@ -258,21 +265,22 @@ class RoundRunner(
 				usage.totalTokens.toDouble() / contextWindow >= contextUsageThreshold
 		val exceedTotalTokens = totalTokensThreshold != null &&
 				usage.totalTokens >= totalTokensThreshold
-		if (exceedContextUsage || exceedTotalTokens) launchCompact().andLog(log) {
-			debug(
-				"Triggered auto-compact  agentId={}  totalTokens={}  contextWindow={}",
-				agentId,
-				usage.totalTokens,
-				contextWindow
-			)
-		}
+		if (exceedContextUsage || exceedTotalTokens)
+			launchCompact().andLog(log) {
+				debug(
+					"Triggered auto-compact  agentId={}  totalTokens={}  contextWindow={}",
+					agentId,
+					usage.totalTokens,
+					contextWindow
+				)
+			}
 	}
 	
 	private fun activeAll(activations: List<ToolActivation>) =
 		activations.forEach { tools.activate(it.toolCall.name, true) }
 	
-	private fun launchCompact() {
-		if (compactJob?.isActive == true) return
+	private suspend fun launchCompact() = compactMutex.withLock {
+		if (compactJob?.isActive == true) return@withLock
 		compactJob = scope.launch {
 			compactService.execute(currentModel, ctx)
 		}
@@ -284,7 +292,7 @@ class RoundRunner(
 			pendingDeliveries.remove(token)?.complete(messageId)
 		}
 	}
-
+	
 	private fun markBreak() {
 		shouldBreak.value = true
 	}

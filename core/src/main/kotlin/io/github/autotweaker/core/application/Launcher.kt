@@ -96,8 +96,8 @@ object Launcher : Loggable, Traceable {
 		TranslationManager.startTranslation()
 		
 		val all = PluginLoader.load<Adapter>().map { it to it.load(version) }
-		val adapters =
-			all.groupBy { (_, info) -> info.name }.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
+		val adapters = all.groupBy { (_, info) -> info.name }
+			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
 		if (!adapters.isEmpty()) {
 			log.info("Found adapters to start  count={}", adapters.size)
@@ -112,8 +112,14 @@ object Launcher : Loggable, Traceable {
 		}
 	}
 	
-	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) =
-		CoreAPIImpl(adapterAPI, EnvConfigAPI, ProviderConfigAPI, ModelConfigAPI, ApiKeyConfigAPI, Wiring.pathResolver)
+	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) = CoreAPIImpl(
+		adapterAPI,
+		EnvConfigAPI,
+		ProviderConfigAPI,
+		ModelConfigAPI,
+		ApiKeyConfigAPI,
+		Wiring.pathResolver
+	)
 	
 	suspend fun shutdown(registry: List<Pair<Adapter, AdapterInfo>>) {
 		coroutineScope {
@@ -126,6 +132,7 @@ object Launcher : Loggable, Traceable {
 				}
 			}
 		}
+		
 		trace.catching { SessionManager.shutdown() }
 			.onFailure { log.warn("Failed SessionManager shutdown") }
 		trace.catching { ContainerManager.stop() }
@@ -138,6 +145,7 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed GPG agent kill") }
 		trace.catching { databaseStore.shutdown() }
 			.onFailure { log.warn("Failed DatabaseStore shutdown") }
+		
 		log.info("Completed launcher shutdown")
 	}
 }

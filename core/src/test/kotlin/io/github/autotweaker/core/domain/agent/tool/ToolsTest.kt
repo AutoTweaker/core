@@ -18,16 +18,14 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
-import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentOutput
-import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -135,7 +133,7 @@ class ToolsTest {
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } returns Tool.ToolOutput("output ok", true)
 		val tools = makeTools(listOf(tool), listOf(tool.info()))
 		
-		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), SimpleContainer()) {}
+		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer()) {}
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)
 		assertEquals("output ok", result.content)
@@ -147,7 +145,7 @@ class ToolsTest {
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } returns Tool.ToolOutput("error happened", false)
 		val tools = makeTools(listOf(tool), listOf(tool.info()))
 		
-		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), SimpleContainer()) {}
+		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer()) {}
 		
 		assertEquals(ToolResultStatus.FAILURE, result.status)
 		assertEquals("error happened", result.content)
@@ -159,7 +157,7 @@ class ToolsTest {
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } throws RuntimeException("crash!")
 		val tools = makeTools(listOf(tool), listOf(tool.info()))
 		
-		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), SimpleContainer()) {}
+		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer()) {}
 		
 		assertEquals(ToolResultStatus.FAILURE, result.status)
 		assertEquals("crash!", result.content)
@@ -172,7 +170,7 @@ class ToolsTest {
 		val tools = makeTools(listOf(tool), listOf(tool.info()))
 		
 		assertFailsWith<CancellationException> {
-			tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), SimpleContainer()) {}
+			tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer()) {}
 		}
 	}
 	
@@ -189,7 +187,7 @@ class ToolsTest {
 		
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
-			"bash", "c2", BashArgs(cmd = "echo"), SimpleContainer(),
+			"bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(),
 			onToolOutput = { outputs.add((it as AgentOutput.Tool).output.content) },
 		)
 		

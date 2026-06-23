@@ -25,7 +25,7 @@ class RoundContext(
 	private val ctx: AgentContextManager,
 	private val factory: ToolResultFactory,
 ) {
-	suspend fun applyDone(result: ThinkingStage.Result.Done) {
+	suspend fun applyDone(result: ThinkingStage.Result.Done) =
 		ctx.applyThinking(
 			assistant = result.assistantMessage,
 			pendingCalls = emptyList(),
@@ -34,9 +34,9 @@ class RoundContext(
 				result.activations, result.parseFailures,
 			),
 		)
-	}
 	
-	suspend fun applyHasPending(result: ThinkingStage.Result.HasPending) {
+	
+	suspend fun applyHasPending(result: ThinkingStage.Result.HasPending) =
 		ctx.applyThinking(
 			assistant = result.assistantMessage,
 			pendingCalls = result.needsApproval.map { it.pendingCall },
@@ -45,5 +45,4 @@ class RoundContext(
 				result.activations, result.parseFailures,
 			),
 		)
-	}
 }

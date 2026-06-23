@@ -28,7 +28,7 @@ import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import kotlinx.coroutines.*
 import java.util.*
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 class ToolCallingStage(
@@ -37,7 +37,6 @@ class ToolCallingStage(
 	private val workspace: WorkspaceMeta,
 	private val onOutput: suspend (AgentOutput) -> Unit,
 ) : Loggable, Traceable, Settable {
-	
 	@Volatile
 	private var toolJob: Job? = null
 	
@@ -59,7 +58,7 @@ class ToolCallingStage(
 		return try {
 			coroutineScope {
 				toolJob = coroutineContext[Job]
-				withTimeout((timeoutSeconds * 1000L).milliseconds) {
+				withTimeout(timeoutSeconds.seconds) {
 					val provider = ToolProvider.buildToolProvider(
 						workspace = workspace,
 						onOutput = onOutput,
@@ -73,8 +72,8 @@ class ToolCallingStage(
 						arguments = call.validated.args,
 						provider = provider,
 						onToolOutput = onOutput
-					).also {
-						log.info(
+					).andLog(log) {
+						info(
 							"Called tool  agentId={}  tool={}  status={}",
 							agentId, call.validated.toolName, it.status
 						)

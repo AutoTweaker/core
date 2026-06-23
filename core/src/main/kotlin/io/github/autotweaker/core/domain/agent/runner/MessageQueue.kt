@@ -18,16 +18,13 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
-import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentContext
 import kotlinx.coroutines.channels.Channel
 import java.util.*
 import kotlin.time.Clock
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 class MessageQueue(private val agentId: UUID) : Loggable {
 	private val channel = Channel<MessageContent>(Channel.UNLIMITED)
@@ -38,16 +35,15 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			//等一个
 			all.add(channel.receive())
 			//全拿完
-			while (true) {
-				all.add(channel.tryReceive().getOrNull() ?: break)
-			}
+			while (true) all.add(channel.tryReceive().getOrNull() ?: break)
+			
 			merge(all)?.let {
-				return it.also {
-					log.info(
+				return it.andLog(log) { message ->
+					info(
 						"Received message  injections={}  images={}  length={}  agentId={}",
-						it.content.injections?.count(),
-						it.content.images?.count(),
-						it.content.content?.length,
+						message.content.injections?.count(),
+						message.content.images?.count(),
+						message.content.content?.length,
 						agentId
 					)
 				}
@@ -57,9 +53,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	
 	fun drain(): AgentContext.Message.User? {
 		val all = mutableListOf<MessageContent>()
-		while (true) {
-			all.add(channel.tryReceive().getOrNull() ?: break)
-		}
+		while (true) all.add(channel.tryReceive().getOrNull() ?: break)
 		return merge(all)
 	}
 	
@@ -69,10 +63,9 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		val images = all.flatMap { it.images.orEmpty() }.orNull()
 		val content = buildString {
 			val filtered = all.filterNot { it.content.isNullOrBlank() }
-			filtered.forEachIndexed { index, content ->
-				append(content.content)
-				if (index != filtered.lastIndex) append("\n\n---\n\n")
-			}
+			filtered.forEachBetween(
+				action = { append(it.content) },
+				between = { append("\n\n---\n\n") })
 		}.orNull()
 		if (allNull(injections, images, content)) return null
 		return AgentContext.Message.User(
@@ -95,9 +88,5 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		MessageContent(injections = listOf(injection))
 	)
 	
-	fun send(msg: MessageContent) {
-		channel.trySend(msg)
-	}
-	
-	fun allNull(vararg items: Any?): Boolean = items.all { it == null }
+	fun send(msg: MessageContent) = channel.trySend(msg).discard()
 }

@@ -18,22 +18,25 @@
 
 package io.github.autotweaker.api.types
 
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
 import kotlinx.serialization.Serializable
 import java.net.URI
 
 @JvmInline
 @Serializable
 value class Url private constructor(val value: String) {
-	companion object {
+	companion object : Traceable {
 		fun String.toUrl(): Url {
 			val trimmed = trim().trimEnd('/')
 			require(trimmed.isNotBlank()) { "URL must not be blank" }
-			runCatching { URI(trimmed) }.getOrNull()
+			trace.catching { URI(trimmed) }.getOrNull()
 				?.takeIf { it.isAbsolute && it.scheme in listOf("http", "https") }
 				?: throw IllegalArgumentException("Invalid URL: $trimmed")
 			return Url(trimmed)
 		}
 		
-		fun String.toUrlOrNull(): Url? = runCatching { toUrl() }.getOrNull()
+		fun String.toUrlOrNull(): Url? = trace.catching { toUrl() }.getOrNull()
 	}
 }

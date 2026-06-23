@@ -18,11 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.llm
 
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.log
 import io.github.autotweaker.core.PluginLoader
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object LlmClientLoader : Loggable {
 	private val builtIn: List<LlmClient> by lazy {
@@ -39,7 +39,7 @@ object LlmClientLoader : Loggable {
 			external.size,
 			result.size
 		)
-		result
+		return@lazy result
 	}
 	
 	fun load(name: String): LlmClient {
@@ -49,7 +49,6 @@ object LlmClientLoader : Loggable {
 		return client
 	}
 	
-	fun availableProviders(): List<String> {
-		return all.map { it.providerInfo.name }
-	}
+	fun availableProviders(): List<String> =
+		all.map { it.providerInfo.name }
 }

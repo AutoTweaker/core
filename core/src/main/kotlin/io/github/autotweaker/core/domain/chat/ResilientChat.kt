@@ -225,7 +225,7 @@ object ResilientChat : Loggable, Settable {
 						else -> result
 					}
 				}
-				result
+				return@map result
 			},
 			tools = tools,
 			responseFormat = responseFormat,

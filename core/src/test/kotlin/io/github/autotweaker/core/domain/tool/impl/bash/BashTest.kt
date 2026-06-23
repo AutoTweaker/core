@@ -19,16 +19,14 @@
 package io.github.autotweaker.core.domain.tool.impl.bash
 
 import io.github.autotweaker.api.config.JsonStore
-import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.args.BashArgs
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
@@ -67,8 +65,8 @@ class BashTest {
 		secretStore = object : SecretStore {
 			override suspend fun add(secret: String, id: UUID): UUID = id.also { secretMap[it] = secret }
 			override suspend fun get(id: UUID): String = secretMap[id]!!
-			override fun list(): List<UUID> = secretMap.keys.toList()
-			override fun remove(id: UUID) {
+			override suspend fun list(): List<UUID> = secretMap.keys.toList()
+			override suspend fun remove(id: UUID) {
 				secretMap.remove(id)
 			}
 		}
@@ -93,8 +91,8 @@ class BashTest {
 		envIds = envIds ?: emptyList(),
 	)
 	
-	private fun container(bashService: BashService): SimpleContainer {
-		val c = SimpleContainer()
+	private fun container(bashService: BashService): ServiceContainer {
+		val c = ServiceContainer()
 		c.register(BashService::class, bashService)
 		return c
 	}

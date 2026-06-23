@@ -25,7 +25,7 @@ import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.tool.args.ReadArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
-import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
@@ -72,7 +72,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	
 	
 	override suspend fun coreExec(
-		container: SimpleContainer,
+		container: DependencyProvider,
 		args: ReadArgs,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput {
@@ -133,7 +133,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	}
 	
 	private suspend fun executeFile(
-		container: SimpleContainer,
+		container: DependencyProvider,
 		fs: FileSystemService,
 		normalizedPath: Path,
 		args: ReadArgs.File,
@@ -181,7 +181,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	}
 	
 	private suspend fun executeSummarize(
-		container: SimpleContainer,
+		container: DependencyProvider,
 		fs: FileSystemService,
 		normalizedPath: Path,
 		args: ReadArgs.Summarize,

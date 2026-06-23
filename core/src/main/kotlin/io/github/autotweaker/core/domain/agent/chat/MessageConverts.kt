@@ -36,20 +36,21 @@ fun MessageContent.injectTimestamp(timestamp: Instant) = copy(
 	)
 )
 
-fun List<ChatMessage>.inject(injections: List<ContextInjection>?, summarize: String?): List<ChatMessage> =
-	inject(buildList {
-		summarize?.let {
-			add(
-				ContextInjection(
-					tag = "summary",
-					content = summarize
-				)
+fun List<ChatMessage>.inject(
+	injections: List<ContextInjection>?, summarize: String?
+): List<ChatMessage> = inject(buildList {
+	summarize?.let {
+		add(
+			ContextInjection(
+				tag = "summary",
+				content = summarize
 			)
-		}
-		injections?.let {
-			addAll(it)
-		}
-	})
+		)
+	}
+	injections?.let {
+		addAll(it)
+	}
+})
 
 fun List<ChatMessage>.inject(injections: List<ContextInjection>?): List<ChatMessage> {
 	if (injections.isNullOrEmpty()) return this

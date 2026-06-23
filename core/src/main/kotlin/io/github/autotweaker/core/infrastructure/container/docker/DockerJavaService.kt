@@ -40,11 +40,10 @@ import kotlinx.coroutines.flow.callbackFlow
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import java.time.Duration as JavaDuration
 
 class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
-	
 	private val uidGid: String = run {
 		val unix = UnixSystem()
 		"${unix.uid}:${unix.gid}"
@@ -176,7 +175,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 		if (delaySeconds <= 0) return
 		permissionFixJob?.cancel()
 		permissionFixJob = scope.launch {
-			delay((delaySeconds * 1000L).milliseconds)
+			delay(delaySeconds.seconds)
 			fixWorkspacePermissions(containerId)
 		}
 	}
@@ -235,8 +234,8 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 		close()
 	}
 	
-	private fun findContainerByName(name: String): ExistingContainer? {
-		return client.listContainersCmd()
+	private fun findContainerByName(name: String): ExistingContainer? =
+		client.listContainersCmd()
 			.withShowAll(true)
 			.withNameFilter(listOf("/$name"))
 			.exec()
@@ -245,7 +244,6 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 				val details = client.inspectContainerCmd(container.id).exec()
 				ExistingContainer(container.id, details.state?.status ?: "unknown")
 			}
-	}
 	
 	private data class ExistingContainer(val id: String, val state: String)
 }

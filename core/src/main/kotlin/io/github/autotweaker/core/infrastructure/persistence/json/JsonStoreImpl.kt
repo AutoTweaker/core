@@ -52,8 +52,8 @@ object JsonStoreImpl : Loggable, Traceable {
 	
 	private class JsonEntry(kClass: KClass<*>) : JsonStore, Traceable {
 		val namespace: String = kClass.java.name
-		override fun get(): JsonElement? {
-			return transaction(db) {
+		override fun get(): JsonElement? =
+			transaction(db) {
 				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
 					trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
 						.onFailure {
@@ -66,7 +66,6 @@ object JsonStoreImpl : Loggable, Traceable {
 						.getOrNull()
 				}
 			}
-		}
 		
 		override fun set(value: JsonElement) {
 			val namespace = namespace

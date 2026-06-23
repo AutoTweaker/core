@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.onEach
 import java.util.*
 
 object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
+	const val ASTERISK = '*'
 	
 	override suspend fun send(
 		request: ChatRequest,
@@ -51,13 +52,23 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 			"request",
 			"request=$request, apiKey=${maskKey(apiKey)}, baseUrl=$baseUrl, providerType=$providerType, timeout=$timeout, chatId=$chatId"
 		)
-		return LlmClientLoader.load(providerType).chat(request, apiKey, baseUrl, timeout).onEach { result ->
-			trace.add("response", "result=$result, chatId=$chatId")
-		}
+		return LlmClientLoader.load(providerType)
+			.chat(request, apiKey, baseUrl, timeout)
+			.onEach { result ->
+				trace.add("response", "result=$result, chatId=$chatId")
+			}
 	}
 	
 	private fun maskKey(key: String): String {
-		if (key.length <= 8) return "***"
-		return "${key.take(4)}***${key.takeLast(4)}"
+		if (key.length <= 15) return buildString {
+			repeat(key.length) { append(ASTERISK) }
+		}
+		return key.mapIndexed { index, char ->
+			when {
+				index <= 4 -> char
+				index >= key.lastIndex - 3 -> char
+				else -> ASTERISK
+			}
+		}.joinToString("")
 	}
 }

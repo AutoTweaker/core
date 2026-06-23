@@ -37,7 +37,6 @@ class LlmService(
 	private val agentId: UUID,
 	private val onOutput: suspend (AgentOutput) -> Unit,
 ) : Loggable, Traceable {
-	
 	suspend fun execute(
 		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,

@@ -28,7 +28,7 @@ import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
-import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -67,7 +67,7 @@ class Tools(
 		toolName: String,
 		callId: String,
 		arguments: ToolArgs,
-		provider: SimpleContainer,
+		provider: DependencyProvider,
 		onToolOutput: suspend (AgentOutput) -> Unit,
 	): AgentContext.Message.Tool.Result {
 		val tool = tools.first { it.name == toolName }
@@ -97,16 +97,21 @@ class Tools(
 			}
 			outputChannel.close()
 			drainJob.join()
-			result
+			return@supervisorScope result
 		}
-		
-		log.debug("Completed tool execution  agentId={}  tool={}  success={}", agentId, toolName, output.success)
 		
 		return AgentContext.Message.Tool.Result(
 			content = output.result,
 			timestamp = Clock.System.now(),
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,
-		)
+		).andLog(log) {
+			debug(
+				"Completed tool execution  agentId={}  tool={}  success={}",
+				agentId,
+				toolName,
+				output.success
+			)
+		}
 	}
 	
 	//工具解析
@@ -119,11 +124,14 @@ class Tools(
 			val meta = ToolMeta.build(tool)
 			val message = setting.get(AgentToolSettings.ActiveMessage()).value
 				.format(meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name)
-			log.debug(
-				"Resolved tool activation  agentId={}  callId={}  tool={}",
-				agentId, call.id, call.name
-			)
+			
 			return ToolCallResolveResult.Activation(message)
+				.andLog(log) {
+					debug(
+						"Resolved tool activation  agentId={}  callId={}  tool={}",
+						agentId, call.id, call.name
+					)
+				}
 		}
 		
 		val activeTools = tools.filter { tool ->
@@ -133,18 +141,25 @@ class Tools(
 		}
 		
 		when (val result = validator.validate(call.name, call.arguments, call.id, activeTools)) {
-			is ToolCallValidator.ValidationResult.Success -> {
-				log.debug(
-					"Resolved tool call  agentId={}  callId={}  tool={}",
-					agentId, call.id, call.name
-				)
+			is ToolCallValidator.ValidationResult.Success ->
 				return ToolCallResolveResult.NeedsApproval(result)
-			}
+					.andLog(log) {
+						debug(
+							"Resolved tool call  agentId={}  callId={}  tool={}",
+							agentId, call.id, call.name
+						)
+					}
 			
-			is ToolCallValidator.ValidationResult.Failure -> {
-				log.debug("Failed to resolve tool call  agentId={}  callId={}  tool={}", agentId, call.id, call.name)
+			is ToolCallValidator.ValidationResult.Failure ->
 				return ToolCallResolveResult.ParseFailure(result.errorMessage)
-			}
+					.andLog(log) {
+						debug(
+							"Failed to resolve tool call  agentId={}  callId={}  tool={}",
+							agentId,
+							call.id,
+							call.name
+						)
+					}
 		}
 	}
 	

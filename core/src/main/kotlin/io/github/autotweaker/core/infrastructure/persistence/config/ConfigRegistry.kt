@@ -33,7 +33,7 @@ object ConfigRegistry {
 			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
 			map[id] = def
 		}
-		map
+		return@run map
 	}
 	
 	fun get(id: String): SettingDef<*>? = _defs[id]

@@ -99,7 +99,6 @@ interface CoreAPI {
 		fun setProviderDisplayName(id: UUID, displayName: String)
 		
 		fun listModels(): List<CoreConfig.ProviderConfig.Model>
-		fun listModelIds(): List<UUID>
 		fun getModelMeta(id: UUID): ModelData.ModelInfo?
 		fun addModel(model: CoreConfig.ProviderConfig.Model)
 		fun removeModel(id: UUID)
@@ -109,7 +108,7 @@ interface CoreAPI {
 		fun setDefaultModel(id: UUID)
 		
 		suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
-		fun removeApiKey(name: String)
+		suspend fun removeApiKey(name: String)
 		fun listApiKeyNames(): List<String>
 	}
 	

@@ -70,7 +70,7 @@ object Settings : SettingService, Loggable, Traceable {
 		ConfigTable.selectAll().forEach { row ->
 			getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }
 		}
-		map
+		return@transaction map
 	}
 	
 	override fun <V : SettingValue> get(def: SettingDef<V>): V {

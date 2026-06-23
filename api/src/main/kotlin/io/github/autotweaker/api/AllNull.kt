@@ -16,17 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.dev
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.types.dev.*
-
-interface DbDebugAPI {
-	val setting: DbAPI<SettingEntry>
-	val jsonStore: DbAPI<JsonStoreEntry>
-	val sessionData: DbAPI<SessionDataEntry>
-	val sessionMessage: DbAPI<SessionMessageEntry>
-	val agentData: DbAPI<AgentDataEntry>
-	val secrets: DbAPI<SecretEntry>
-	
-	suspend fun tables(): Map<String, Map<String, Long>>
-}
+fun allNull(vararg items: Any?): Boolean = items.all { it == null }

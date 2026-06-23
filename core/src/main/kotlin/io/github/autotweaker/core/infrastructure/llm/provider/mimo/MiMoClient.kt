@@ -289,11 +289,10 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		}
 	)
 	
-	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? {
-		return chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
+	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? =
+		chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
 			ChatResult.ChunkToolCall(
 				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
 			)
 		}
-	}
 }

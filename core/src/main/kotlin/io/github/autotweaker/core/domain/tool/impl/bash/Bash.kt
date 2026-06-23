@@ -25,7 +25,7 @@ import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.tool.args.BashArgs
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
-import io.github.autotweaker.core.domain.tool.SimpleContainer
+import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
@@ -33,6 +33,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 @AutoService(CoreTool::class)
 class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
@@ -58,20 +59,22 @@ class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
 	}
 	
 	override suspend fun coreExec(
-		container: SimpleContainer,
+		container: DependencyProvider,
 		args: BashArgs,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput {
 		val command = args.command
-		if (command.isBlank()) {
-			log.debug("Rejected blank bash command  tool=bash")
-			return Tool.ToolOutput(setting.get(BashSettings.InvalidCommandMessage()).value, false)
-		}
+		if (command.isBlank()) return Tool.ToolOutput(
+			setting.get(BashSettings.InvalidCommandMessage()).value, false
+		).andLog(log) { debug("Rejected blank bash command  tool=bash") }
+		
 		val timeoutSeconds = args.timeoutSeconds
-		if (timeoutSeconds <= 0) {
-			log.debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
-			return Tool.ToolOutput(setting.get(BashSettings.InvalidTimeoutMessage()).value, false)
+		if (timeoutSeconds <= 0) return Tool.ToolOutput(
+			setting.get(BashSettings.InvalidTimeoutMessage()).value, false
+		).andLog(log) {
+			debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
 		}
+		
 		val selectedEnv = args.envIds.mapNotNull { id -> getEnv(id)?.let { id to it } }.toMap()
 		
 		log.debug(
@@ -101,7 +104,7 @@ class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
 		val r = result ?: return Tool.ToolOutput("No result", false)
 		val stdoutStr = stdout.toString().trimEnd().ifBlank { "[empty]" }
 		val stderrStr = stderr.toString().trimEnd().ifBlank { "[empty]" }
-		val duration = String.format("%.3f", r.result.duration.inWholeMicroseconds / 1_000_000.0)
+		val duration = String.format("%.3f", r.result.duration.toDouble(DurationUnit.SECONDS))
 		
 		log.debug(
 			"Completed bash  tool=bash  exitCode={}  duration={}s  timeout={}",
@@ -110,8 +113,8 @@ class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
 			r.result.timeout
 		)
 		
-		val output =
-			setting.get(BashSettings.ResultTemplate()).value.format(r.result.exitCode, duration, stdoutStr, stderrStr)
+		val output = setting.get(BashSettings.ResultTemplate()).value
+			.format(r.result.exitCode, duration, stdoutStr, stderrStr)
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	

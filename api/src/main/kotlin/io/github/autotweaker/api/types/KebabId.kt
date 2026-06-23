@@ -18,18 +18,21 @@
 
 package io.github.autotweaker.api.types
 
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.trace.catching
 import kotlinx.serialization.Serializable
 
 @JvmInline
 @Serializable
 value class KebabId private constructor(val value: String) {
-	companion object {
+	companion object : Traceable {
 		fun String.toKebabId(): KebabId {
 			require(!isEmpty())
 			require(all { it.isLowerCase() || it == '-' })
 			return KebabId(this)
 		}
 		
-		fun String.toKebabIdOrNull(): KebabId? = runCatching { toKebabId() }.getOrNull()
+		fun String.toKebabIdOrNull(): KebabId? = trace.catching { toKebabId() }.getOrNull()
 	}
 }

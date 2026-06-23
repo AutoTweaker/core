@@ -34,11 +34,11 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object DbDebugAPIImpl : DbDebugAPI {
-	private lateinit var appDb: Database
+	private lateinit var configDb: Database
 	private lateinit var sessionDb: Database
 	
 	fun init(databaseStore: DatabaseStore) {
-		appDb = databaseStore.connect("AppConfig")
+		configDb = databaseStore.connect("AppConfig")
 		sessionDb = databaseStore.connect("Sessions")
 	}
 	
@@ -49,8 +49,8 @@ object DbDebugAPIImpl : DbDebugAPI {
 	override val sessionMessage: DbAPI<SessionMessageEntry> get() = SessionMessageDbApi
 	override val secrets: DbAPI<SecretEntry> get() = SecretDbApi
 	
-	override fun tables(): Map<String, Map<String, Long>> = mapOf(
-		"AppConfig" to transaction(appDb) {
+	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
+		"AppConfig" to transaction(configDb) {
 			mapOf(
 				"core_settings" to ConfigTable.selectAll().count(),
 				"json_store" to JsonStoreTable.selectAll().count(),

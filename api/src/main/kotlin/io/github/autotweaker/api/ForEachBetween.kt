@@ -16,20 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool
+package io.github.autotweaker.api
 
-import kotlin.reflect.KClass
-
-class SimpleContainer : DependencyProvider {
-	private val services = mutableMapOf<KClass<*>, Any>()
+inline fun <T> Iterable<T>.forEachBetween(
+	action: (T) -> Unit,
+	between: () -> Unit,
+) {
+	val iterator = this.iterator()
+	if (!iterator.hasNext()) return
 	
-	fun <T : Any> register(serviceClass: KClass<T>, instance: T) {
-		services[serviceClass] = instance
-	}
+	action(iterator.next())
 	
-	@Suppress("UNCHECKED_CAST")
-	override fun <T : Any> get(serviceClass: KClass<T>): T {
-		return services[serviceClass] as? T
-			?: throw NoSuchElementException("Service ${serviceClass.simpleName} not found.")
+	while (iterator.hasNext()) {
+		between()
+		action(iterator.next())
 	}
 }

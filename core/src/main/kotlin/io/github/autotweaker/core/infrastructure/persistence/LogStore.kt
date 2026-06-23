@@ -58,8 +58,8 @@ object LogStore : Loggable, Traceable {
 		return result
 	}
 	
-	private fun parseLine(line: String): LogEvent<ExceptionInfo.Stored>? {
-		return trace.catching {
+	private fun parseLine(line: String): LogEvent<ExceptionInfo.Stored>? =
+		trace.catching {
 			val obj = json.decodeFromString<JsonObject>(line)
 			LogEvent(
 				timestamp = obj["@timestamp"]?.jsonPrimitive?.content?.let { parseInstant(it) }
@@ -72,7 +72,6 @@ object LogStore : Loggable, Traceable {
 			)
 		}.onFailure { log.debug("Failed JSONL line parsing  length={}  reason={}", line.length, it.message) }
 			.getOrNull()
-	}
 	
 	private fun parseInstant(value: String): Instant? =
 		trace.catching { Instant.parse(value) }.getOrNull()

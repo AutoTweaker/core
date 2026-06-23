@@ -16,23 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.serializer
+package io.github.autotweaker.core.domain.tool
 
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import java.nio.file.Path
+import kotlin.reflect.KClass
 
-object PathSerializer : KSerializer<Path> {
-	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
+class ServiceContainer : DependencyProvider {
+	private val services = mutableMapOf<KClass<*>, Any>()
 	
-	override fun serialize(encoder: Encoder, value: Path) {
-		encoder.encodeString(value.toString())
+	fun <T : Any> register(serviceClass: KClass<T>, instance: T) = also {
+		services[serviceClass] = instance
 	}
 	
-	override fun deserialize(decoder: Decoder): Path =
-		Path.of(decoder.decodeString())
+	@Suppress("UNCHECKED_CAST")
+	override fun <T : Any> get(serviceClass: KClass<T>): T =
+		services[serviceClass] as? T
+			?: throw NoSuchElementException("Service ${serviceClass.simpleName} not found.")
 }

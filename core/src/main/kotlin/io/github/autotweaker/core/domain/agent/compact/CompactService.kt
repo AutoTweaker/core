@@ -43,7 +43,6 @@ class CompactService(
 	private val agentId: UUID,
 	private val onOutput: suspend (AgentOutput) -> Unit,
 ) : Loggable, Traceable, Settable {
-	
 	suspend fun execute(
 		model: AgentModel,
 		ctx: AgentContextManager,
@@ -177,9 +176,16 @@ class CompactService(
 		val minSummaryLength = setting.get(CompactSettings.MinSummaryLength()).value
 		val valid = extracted.length >= minSummaryLength
 		
-		if (valid) {
-			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FINISHED, rawContent, lastSnapshot?.usage)))
-		} else {
+		if (valid) onOutput(
+			AgentOutput.Compact(
+				CompactOutput(
+					CompactOutput.Status.FINISHED,
+					rawContent,
+					lastSnapshot?.usage
+				)
+			)
+		)
+		else {
 			log.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted.length)
 			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastSnapshot?.usage)))
 		}
@@ -245,16 +251,6 @@ class CompactService(
 		return PreprocessResult(messages, snapshots)
 	}
 	
-	private suspend fun maybeSummarize(
-		content: String,
-		maxChars: Int,
-		prompt: String,
-		model: AgentModel,
-		thinking: Boolean,
-	): Pair<String, UsageSnapshot?> =
-		if (content.length > maxChars) summarizeMessage(content, prompt, model, thinking)
-		else content to null
-	
 	private suspend fun convertUserMessage(
 		msg: AgentContext.Message.User,
 		maxChars: Int,
@@ -296,6 +292,18 @@ class CompactService(
 			toolCallId = msg.callId
 		) to snapshot
 	}
+	
+	
+	private suspend fun maybeSummarize(
+		content: String,
+		maxChars: Int,
+		prompt: String,
+		model: AgentModel,
+		thinking: Boolean,
+	): Pair<String, UsageSnapshot?> =
+		if (content.length > maxChars)
+			summarizeMessage(content, prompt, model, thinking)
+		else content to null
 	
 	private fun String.extractSummary(): String =
 		substringAfter("<summary>").substringBefore("</summary>").trim()

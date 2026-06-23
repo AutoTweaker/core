@@ -27,11 +27,11 @@ import kotlin.test.assertTrue
 
 private interface AnotherService
 
-class SimpleContainerTest {
+class ServiceContainerTest {
 	
 	@Test
 	fun `register and get roundtrip`() {
-		val container = SimpleContainer()
+		val container = ServiceContainer()
 		val service = mockk<BashService>()
 		container.register(BashService::class, service)
 		
@@ -41,7 +41,7 @@ class SimpleContainerTest {
 	
 	@Test
 	fun `get throws NoSuchElementException when not registered`() {
-		val container = SimpleContainer()
+		val container = ServiceContainer()
 		val ex = assertFailsWith<NoSuchElementException> {
 			container.get(BashService::class)
 		}
@@ -50,7 +50,7 @@ class SimpleContainerTest {
 	
 	@Test
 	fun `register overwrites existing service`() {
-		val container = SimpleContainer()
+		val container = ServiceContainer()
 		val oldService = mockk<BashService>()
 		val newService = mockk<BashService>()
 		
@@ -63,7 +63,7 @@ class SimpleContainerTest {
 	
 	@Test
 	fun `multiple different services coexist`() {
-		val container = SimpleContainer()
+		val container = ServiceContainer()
 		val bashService = mockk<BashService>()
 		val anotherService = mockk<AnotherService>()
 		
@@ -76,7 +76,7 @@ class SimpleContainerTest {
 	
 	@Test
 	fun `get with inline extension roundtrip`() {
-		val container = SimpleContainer()
+		val container = ServiceContainer()
 		val service = mockk<BashService>()
 		container.register(BashService::class, service)
 		

@@ -160,9 +160,8 @@ class Config : Command, Settable, I18nable, Traceable {
 			printConfig(listOf(config), full = true)
 			val result = prompt(i18n.get(CfgI18n.SureReset()) + " ", true).trim()
 			result == "y" || result == "yes"
-		} else {
-			true
-		}
+		} else true
+		
 		
 		if (sure) {
 			val default = setting.getDefault(config.id) ?: run { emitDone(1); return@flow }
@@ -178,24 +177,22 @@ class Config : Command, Settable, I18nable, Traceable {
 		setting.getAll().find { it.id == key } ?: run {
 			emitI18n(CfgI18n.ShowSetting(), key, error = true)
 			emitDone(1)
-			null
-		}
+		}.discard(null)
 	
-	private suspend fun FlowCollector<CmdOutput>.printConfig(settings: List<SettingEntry>, full: Boolean) {
-		if (full) {
-			settings.forEachIndexed { index, setting ->
-				emitI18n(CfgI18n.OutKey(), setting.id)
-				emitI18n(CfgI18n.OutDesc(), setting.description)
-				emitI18n(CfgI18n.OutValue(), setting.value.value.toString())
-				if (index != settings.lastIndex) emit(CmdOutput.Data("-".repeat(10)))
-			}
-		} else {
-			settings.forEach { emit(CmdOutput.Data(it.id)) }
-		}
-	}
+	private suspend fun FlowCollector<CmdOutput>.printConfig(
+		settings: List<SettingEntry>, full: Boolean
+	) = if (full) settings.forEachBetween(
+		{
+			emitI18n(CfgI18n.OutKey(), it.id)
+			emitI18n(CfgI18n.OutDesc(), it.description)
+			emitI18n(CfgI18n.OutValue(), it.value.value.toString())
+		},
+		between = { emit(CmdOutput.Data("-".repeat(10))) })
+	else settings.forEach { emit(CmdOutput.Data(it.id)) }
+	
 	
 	private fun match(text: String, query: String): Boolean {
-		val keywords = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+		val keywords = query.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
 		
 		if (keywords.isEmpty()) return false
 		

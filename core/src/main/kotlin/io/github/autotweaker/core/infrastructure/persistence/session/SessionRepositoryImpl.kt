@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.session
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.session.SessionData
@@ -30,8 +32,6 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object SessionRepositoryImpl : SessionRepository, Loggable {
 	private lateinit var db: Database
@@ -61,21 +61,19 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	override suspend fun loadSessions(ids: List<UUID>): List<SessionData> {
-		return transaction(db) {
+	override suspend fun loadSessions(ids: List<UUID>): List<SessionData> =
+		transaction(db) {
 			val idStrings = ids.map { it.toString() }
 			SessionDataTable.selectAll()
 				.where { SessionDataTable.id inList idStrings }
 				.map { it.toSessionData() }
 		}
-	}
 	
-	override suspend fun loadAllSessions(): List<SessionData> {
-		return transaction(db) {
+	override suspend fun loadAllSessions(): List<SessionData> =
+		transaction(db) {
 			SessionDataTable.selectAll()
 				.map { it.toSessionData() }
 		}
-	}
 	
 	override suspend fun deleteSessions(id: List<UUID>) {
 		val idStrings = id.map { it.toString() }
@@ -84,8 +82,8 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	private fun ResultRow.toSessionData(): SessionData {
-		return SessionData(
+	private fun ResultRow.toSessionData(): SessionData =
+		SessionData(
 			id = UUID.fromString(this[SessionDataTable.id]),
 			title = this[SessionDataTable.title],
 			overview = this[SessionDataTable.overview],
@@ -93,7 +91,6 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 			workspaceId = UUID.fromString(this[SessionDataTable.workspaceId]),
 			agentIndex = SessionDataTable.readAgentIndex(this),
 		)
-	}
 	
 	// endregion
 	
@@ -111,14 +108,13 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	override suspend fun loadAgent(agentId: UUID): AgentData? {
-		return transaction(db) {
+	override suspend fun loadAgent(agentId: UUID): AgentData? =
+		transaction(db) {
 			AgentDataTable.selectAll()
 				.where { AgentDataTable.id eq agentId.toString() }
 				.singleOrNull()
 				?.toAgentData()
 		}
-	}
 	
 	override suspend fun deleteAgent(agentId: UUID) {
 		transaction(db) {
@@ -126,15 +122,14 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	private fun ResultRow.toAgentData(): AgentData {
-		return AgentData(
+	private fun ResultRow.toAgentData(): AgentData =
+		AgentData(
 			id = UUID.fromString(this[AgentDataTable.id]),
 			name = this[AgentDataTable.name].toKebabId(),
 			model = AgentDataTable.readModel(this),
 			context = AgentDataTable.readContext(this),
 			activeTools = AgentDataTable.readActiveTools(this),
 		)
-	}
 	
 	// endregion
 	
@@ -153,14 +148,13 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage> {
-		return transaction(db) {
+	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage> =
+		transaction(db) {
 			val idStrings = ids.map { it.toString() }
 			SessionMessageTable.selectAll()
 				.where { SessionMessageTable.id inList idStrings }
 				.map { it.toSessionMessage() }
 		}
-	}
 	
 	override suspend fun deleteMessages(ids: List<UUID>) {
 		val idStrings = ids.map { it.toString() }
@@ -169,9 +163,8 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	private fun ResultRow.toSessionMessage(): SessionMessage {
-		return SessionMessageTable.readContent(this)
-	}
+	private fun ResultRow.toSessionMessage(): SessionMessage =
+		SessionMessageTable.readContent(this)
 	
 	// endregion
 }

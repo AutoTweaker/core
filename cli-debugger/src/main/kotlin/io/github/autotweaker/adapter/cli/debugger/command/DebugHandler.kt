@@ -93,8 +93,8 @@ class DebugHandler(
 	@Suppress("UNCHECKED_CAST")
 	private fun entryApi(table: String) = api(table) as DbAPI<DbEntry>
 	
-	private suspend fun promptEntry(table: String, key: String): DbEntry {
-		return when (table) {
+	private suspend fun promptEntry(table: String, key: String): DbEntry =
+		when (table) {
 			"setting" -> SettingEntry(
 				key,
 				prompt("value: ", true),
@@ -137,5 +137,4 @@ class DebugHandler(
 			
 			else -> error("Unknown table: $table")
 		}
-	}
 }
