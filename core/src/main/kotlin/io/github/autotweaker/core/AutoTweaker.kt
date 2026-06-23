@@ -18,13 +18,10 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.StartupHook
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -51,15 +48,13 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	private val registry: MutableMap<String, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	private val adapterMutex = Mutex()
 	
-	private val lockFile: Path = Path.of(
-		System.getProperty("user.home"), ".config", "autotweaker", "autotweaker.lock"
-	)
+	private val lockFile: Path = CONFIG_PATH.resolve("$APP_NAME_LOWERCASE.lock")
 	private var lockChannel: FileChannel? = null
 	private var fileLock: FileLock? = null
 	
 	suspend fun start() {
 		withContext(Dispatchers.IO) {
-			Files.createDirectories(Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins"))
+			Files.createDirectories(CONFIG_PATH.resolve("plugins"))
 		}
 		acquireLock()
 		

@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
@@ -31,24 +28,30 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.time.Instant
 
 object LogStore : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true }
-	private val logDir = File(System.getProperty("user.home"), ".config/autotweaker/logs")
+	private val logDir: Path = CONFIG_PATH.resolve("logs")
 	
 	fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> {
-		val files = logDir.listFiles { f -> f.extension == "jsonl" }
-			?.sortedByDescending { it.name }
-			?: return emptyList()
+		val files = trace.catching {
+			Files.list(logDir).use { stream ->
+				stream.filter { it.fileName.toString().endsWith(".jsonl") }.toList()
+			}
+		}.getOrNull()?.sortedByDescending { it.fileName.toString() }.orEmpty()
 		
 		val startDate = start.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 		val result = mutableListOf<LogEvent<ExceptionInfo.Stored>>()
 		
 		for (file in files) {
-			if (file.nameWithoutExtension < "autotweaker.$startDate") break
-			file.readLines().asReversed().forEach { line ->
+			val fileName = file.fileName.toString()
+			if (fileName.substringBeforeLast('.') < "$APP_NAME_LOWERCASE.$startDate") break
+			trace.catching {
+				Files.readAllLines(file)
+			}.getOrNull()?.asReversed()?.forEach { line ->
 				val event = parseLine(line) ?: return@forEach
 				if (event.timestamp > end) return@forEach
 				if (event.timestamp < start) return@forEach

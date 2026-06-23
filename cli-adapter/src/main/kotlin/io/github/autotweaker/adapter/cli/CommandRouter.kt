@@ -66,7 +66,7 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 		//无参at
 		if (cmd.isEmpty()) {
 			return flowOf(
-				CmdOutput.Data("AutoTweaker  Copyright (C) 2026  WhiteElephant-abc"), CmdOutput.Done()
+				CmdOutput.Data("$APP_NAME  Copyright (C) 2026  WhiteElephant-abc"), CmdOutput.Done()
 			)
 		}
 		//找子命令

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.application
 
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.dev.DbAPI
 import io.github.autotweaker.api.dev.DbDebugAPI
 import io.github.autotweaker.api.types.dev.*
@@ -63,7 +64,7 @@ object DbDebugAPIImpl : DbDebugAPI {
 				"session_message" to SessionMessageTable.selectAll().count(),
 			)
 		},
-		"~/.config/autotweaker/secret" to mapOf(
+		"~/.config/$APP_NAME_LOWERCASE/secret" to mapOf(
 			"secrets" to SecretManager.list().size.toLong(),
 		),
 	)

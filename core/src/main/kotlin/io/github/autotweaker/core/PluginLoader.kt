@@ -18,14 +18,10 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import java.net.URLClassLoader
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
 
 object PluginLoader : Loggable, Traceable {
@@ -38,7 +34,7 @@ object PluginLoader : Loggable, Traceable {
 		sharedClassLoader?.let { return it }
 		synchronized(this) {
 			sharedClassLoader?.let { return it }
-			val dir = Path.of(System.getProperty("user.home"), ".config", "autotweaker", "plugins")
+			val dir = CONFIG_PATH.resolve("plugins")
 			if (!Files.isDirectory(dir)) return URLClassLoader(emptyArray(), apiClassLoader)
 			
 			val jars = Files.list(dir).use { it.filter { p -> p.toString().endsWith(".jar") }.toList() }

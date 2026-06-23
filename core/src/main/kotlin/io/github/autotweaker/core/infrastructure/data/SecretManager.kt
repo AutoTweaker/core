@@ -33,14 +33,12 @@ import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
 
 object SecretManager : SecretStore, Loggable, Traceable, Settable {
-	private val rootDir = Path.of(
-		System.getProperty("user.home"), ".config", "autotweaker", "secret"
-	)
+	private val rootDir = CONFIG_PATH.resolve("secret")
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")
 	private val markerFile = rootDir.resolve(".verify")
 	
-	private const val KEY_UID = "AutoTweaker(core.infrastructure.data)@autogen.local"
+	private const val KEY_UID = "$APP_NAME(core.infrastructure.data)@autogen.local"
 	
 	private val mutex = Mutex()
 	

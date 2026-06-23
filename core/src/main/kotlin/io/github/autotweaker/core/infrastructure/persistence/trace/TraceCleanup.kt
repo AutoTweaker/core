@@ -18,18 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Settable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.setting
+import io.github.autotweaker.api.*
 import java.nio.file.Files
-import java.nio.file.Path
 
 object TraceCleanup : Loggable, Settable {
 	private const val BYTES_PER_MB = 1024 * 1024
-	private val dbFilePath = Path.of(
-		System.getProperty("user.home"), ".config", "autotweaker", "database", "Traces.mv.db"
-	)
+	private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
 	
 	fun cleanup() {
 		val maxAgeDays = setting.get(TraceSettings.MaxAgeDays()).value

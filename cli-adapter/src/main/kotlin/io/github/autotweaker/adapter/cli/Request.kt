@@ -18,10 +18,12 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
+
 data class Request(
 	val values: Map<String, String>,
 	val positional: List<String>,
-	val prog: String = "autotweaker",
+	val prog: String = APP_NAME_LOWERCASE,
 	private val aliasToCanonical: Map<String, String> = emptyMap(),
 ) {
 	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }

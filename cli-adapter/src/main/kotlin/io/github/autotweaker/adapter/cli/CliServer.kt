@@ -56,13 +56,10 @@ object CliServer : Loggable, Settable, Traceable {
 	private lateinit var channel: ServerSocketChannel
 	private const val MAX_RESPONSE_CHUNK = 256 * 1024
 	
-	private fun socketPath(): Path = Path.of(
-		System.getProperty("user.home"),
-		".config", "autotweaker", "cli.sock",
-	)
+	private val socketPath: Path = CONFIG_PATH.resolve("cli.sock")
 	
 	fun start(router: CommandRouter) {
-		val path = socketPath()
+		val path = socketPath
 		Files.createDirectories(path.parent)
 		path.deleteIfExists()
 		
@@ -78,12 +75,12 @@ object CliServer : Loggable, Settable, Traceable {
 					.onFailure {
 						log.warn(
 							"Failed connection acceptance  socketPath={}  reason={}",
-							socketPath(),
+							socketPath,
 							it.message
 						)
 					}
 					.getOrNull() ?: break
-				log.info("Client connected  socketPath={}", socketPath())
+				log.info("Client connected  socketPath={}", socketPath)
 				connectionLimit.acquire()
 				activeClients.add(client)
 				scope.launch {
@@ -103,8 +100,8 @@ object CliServer : Loggable, Settable, Traceable {
 		activeClients.clear()
 		trace.catching { channel.close() }
 		scope.cancel()
-		trace.catching { socketPath().deleteIfExists() }
-		log.info("Stopped CliServer  socketPath={}", socketPath())
+		trace.catching { socketPath.deleteIfExists() }
+		log.info("Stopped CliServer  socketPath={}", socketPath)
 	}
 	
 	private suspend fun handle(client: SocketChannel, router: CommandRouter) {

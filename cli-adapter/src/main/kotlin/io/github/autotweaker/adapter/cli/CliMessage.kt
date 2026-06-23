@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -27,7 +28,7 @@ sealed class CliMessage {
 	@SerialName("cmd")
 	data class Command(
 		val args: List<String> = emptyList(),
-		val prog: String = "autotweaker",
+		val prog: String = APP_NAME_LOWERCASE,
 	) : CliMessage() {
 		fun command(): String = args.firstOrNull() ?: ""
 		

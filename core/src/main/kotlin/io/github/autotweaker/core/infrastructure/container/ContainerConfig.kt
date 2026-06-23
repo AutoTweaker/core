@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
+import io.github.autotweaker.api.CONFIG_PATH
 import java.nio.file.Path
 
 data class ContainerConfig(
-	val name: String = "autotweaker-workspace",
+	val name: String = "$APP_NAME_LOWERCASE-workspace",
 	val env: Map<String, String> = emptyMap(),
 	val workDir: Path = Path.of("/workspace"),
-	val workspaceHostPath: Path = Path.of(
-		System.getProperty("user.home"), ".config", "autotweaker", "container", "workspace"
-	),
+	val workspaceHostPath: Path = CONFIG_PATH.resolve("container", "workspace"),
 )

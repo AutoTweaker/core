@@ -27,7 +27,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
 
 object WorkspaceManager : Loggable, JsonStorable {
@@ -63,9 +62,7 @@ object WorkspaceManager : Loggable, JsonStorable {
 	
 	suspend fun getDefault(): WorkspaceData = mutex.withLock {
 		lookup(defaultWorkspaceId) ?: run {
-			val defaultPath = Path.of(
-				System.getProperty("user.home"), ".config", "autotweaker", "workspace"
-			)
+			val defaultPath = CONFIG_PATH.resolve("workspace")
 			Files.createDirectories(defaultPath)
 			val meta = WorkspaceMeta(
 				id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath

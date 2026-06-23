@@ -16,20 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.version
+package io.github.autotweaker.api
 
-import com.google.auto.service.AutoService
-import io.github.autotweaker.api.APP_NAME
-import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
-import java.util.*
+import java.nio.file.Path
 
-object VersionI18n {
-	@AutoService(I18nDef::class)
-	class Desc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Show $APP_NAME version"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "显示应用版本号"),
-		)
-	}
-}
+val CONFIG_PATH: Path = Path.of(
+	System.getProperty("user.home"), ".config", APP_NAME_LOWERCASE
+)
+val TMP_PATH: Path = Path.of(
+	System.getProperty("java.io.tmpdir"), APP_NAME_LOWERCASE
+)
