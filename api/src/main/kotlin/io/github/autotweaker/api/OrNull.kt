@@ -18,6 +18,12 @@
 
 package io.github.autotweaker.api
 
+/**
+ * `ifEmpty { null }`
+ */
 fun <T> List<T>.orNull() = ifEmpty { null }
 
+/**
+ * `ifEmpty { null }`
+ */
 fun String.orNull() = ifEmpty { null }
