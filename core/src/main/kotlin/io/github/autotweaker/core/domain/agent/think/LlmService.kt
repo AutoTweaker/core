@@ -32,7 +32,6 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
-import kotlinx.coroutines.CancellationException
 import java.util.*
 
 class LlmService(
@@ -52,7 +51,7 @@ class LlmService(
 		
 		return trace.catching {
 			runStream(request)
-		}.rethrow<CancellationException> {
+		}.rethrowCancellation {
 			log.debug("Cancelled LLM call  agentId={}", agentId)
 		}.getOrElse { e ->
 			log.error("Failed LLM call  agentId={}", agentId, e)

@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.trace.recoverException
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
@@ -163,9 +164,14 @@ object CliServer : Loggable, Settable, Traceable {
 						}
 					}
 				}
-			}.rethrow<CancellationException>()
-				.onException<IOException> { log.warn("Disconnected client during command  command={}", cmdName) }
-				.onExceptionExcept<IOException> { e ->
+			}.rethrowCancellation()
+				.recoverException { e: IOException ->
+					log.warn(
+						"Disconnected client during command  command={}  reason={}",
+						cmdName, e.message
+					)
+				}
+				.onFailure { e ->
 					log.error("Failed command  command={}", cmdName, e)
 					trace.catching {
 						write(

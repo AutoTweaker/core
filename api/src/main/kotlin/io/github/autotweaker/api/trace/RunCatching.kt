@@ -19,7 +19,7 @@
 package io.github.autotweaker.api.trace
 
 inline fun <T> TraceRecorder.catching(block: () -> T): CatchingResult<T> =
-	CatchingResult(kotlin.runCatching { block() }.onFailure { exception(it) })
+	CatchingResult(runCatching { block() }.onFailure { exception(it) })
 
 inline fun <T, R> T.catching(recorder: TraceRecorder, block: T.() -> R): CatchingResult<R> =
-	CatchingResult(this.runCatching { this.block() }.onFailure { recorder.exception(it) })
+	CatchingResult(runCatching { block() }.onFailure { recorder.exception(it) })

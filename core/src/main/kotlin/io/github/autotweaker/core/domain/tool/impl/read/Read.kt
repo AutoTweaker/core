@@ -33,7 +33,6 @@ import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import java.nio.file.Path
 import kotlin.reflect.KClass
@@ -160,7 +159,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				truncateMessage = setting.get(ReadSettings.FileMessageTruncateSetting()).value,
 				lineNumber = args.lineNumber
 			)
-		}.rethrow<CancellationException>()
+		}.rethrowCancellation()
 			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		val sha256 = trace.catching { fs.sha256(normalizedPath) }
 			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
@@ -202,7 +201,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				truncateMessage = setting.get(ReadSettings.SummarizeMessageInputTruncateSetting()).value,
 				lineNumber = false
 			)
-		}.rethrow<CancellationException>()
+		}.rethrowCancellation()
 			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
 		val summarizeMinChars = setting.get(ReadSettings.SummarizeMinCharsSetting()).value
 		if (content.length < summarizeMinChars) {

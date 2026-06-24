@@ -75,7 +75,7 @@ object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nabl
 		scope.launch {
 			trace.catching {
 				TranslationEngine.run(modelId, target, modelRepo)
-			}.rethrow<CancellationException>()
+			}.rethrowCancellation()
 				.onFailure { log.error("Failed translation  target={}", target.toLanguageTag(), it) }
 				.also { _status.value = TranslationStatus.IDLE }
 				.getOrThrow()

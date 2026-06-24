@@ -37,7 +37,6 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
@@ -217,7 +216,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 				val openAiResponse = response.body<Response>(responseTypeInfo)
 				emit(mapToChatResult(openAiResponse))
 			}
-		}.rethrow<CancellationException> {
+		}.rethrowCancellation {
 			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
 		}.getOrElse { e ->
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)

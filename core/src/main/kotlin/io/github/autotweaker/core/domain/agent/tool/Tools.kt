@@ -32,7 +32,6 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ToolMeta
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,7 +88,7 @@ class Tools(
 					is CoreTool -> tool.coreExec(provider, arguments, outputChannel)
 					else -> tool.execute(arguments, outputChannel)
 				}
-			}.rethrow<CancellationException>()
+			}.rethrowCancellation()
 				.getOrElse { e ->
 					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
 					Tool.ToolOutput(e.message ?: "Unknown error", false)

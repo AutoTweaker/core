@@ -35,7 +35,6 @@ import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.findModelInfo
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.util.*
@@ -163,7 +162,7 @@ class CompactService(
 					}
 				}
 			}
-		}.rethrow<CancellationException> {
+		}.rethrowCancellation {
 			log.debug("Cancelled compact  agentId={}", agentId)
 		}.getOrElse { e ->
 			log.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)

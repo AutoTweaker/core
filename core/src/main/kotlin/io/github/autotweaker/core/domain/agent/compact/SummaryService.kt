@@ -28,7 +28,6 @@ import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
 import java.util.*
 import kotlin.time.Clock
@@ -47,7 +46,7 @@ object SummaryService : Traceable {
 				messages = listOf(ChatMessage.UserMessage(prompt.format(content), Clock.System.now())),
 				thinking = thinkingEnabled,
 			).toList()
-		}.rethrow<CancellationException>()
+		}.rethrowCancellation()
 			.getOrElse { return content to null }
 		
 		val success = results

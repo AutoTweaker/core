@@ -30,6 +30,8 @@ import com.sun.security.auth.module.UnixSystem
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.trace.getOrDefault
+import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.trace.recoverException
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
@@ -82,7 +84,9 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 		log.info("Pulled image  image={}", image)
 	}
 	
-	override suspend fun start(image: String, config: ContainerConfig): String = withContext(Dispatchers.IO) {
+	override suspend fun start(
+		image: String, config: ContainerConfig
+	): String = withContext(Dispatchers.IO) {
 		trace.catching {
 			val hostPath = config.workspaceHostPath
 			this@DockerJavaService.workspaceHostPath = hostPath
@@ -118,14 +122,14 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			
 			log.info("Started container  containerId={}", createResponse.id)
 			createResponse.id
-		}.rethrow<CancellationException>()
-			.onException<NotFoundException> {
+		}.rethrowCancellation()
+			.recoverException { e: NotFoundException ->
 				log.warn("Failed image pull  image={}", image)
-				throw ContainerOperationException("Image '$image' not found", it)
-			}.onExceptionExcept<NotFoundException> { e ->
+				throw ContainerOperationException("Image '$image' not found", e)
+			}.getOrElse { e ->
 				log.error("Failed container start  image={}  name={}", image, config.name, e)
 				throw ContainerOperationException("Failed to start container: ${e.message}", e)
-			}.getOrThrow()
+			} as String
 	}
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
@@ -134,9 +138,14 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			log.info("Stopped container  containerId={}", containerId)
-		}.rethrow<CancellationException>()
-			.onException<NotFoundException> { log.warn("Did not find container  containerId={}", containerId) }
-			.onExceptionExcept<NotFoundException> { e ->
+		}.rethrowCancellation()
+			.recoverException { _: NotFoundException ->
+				log.warn(
+					"Did not find container  containerId={}",
+					containerId
+				)
+			}
+			.onFailure { e ->
 				log.error("Failed container stop  containerId={}", containerId, e)
 				throw ContainerOperationException("Failed to stop container: ${e.message}", e)
 			}.discard()
@@ -209,11 +218,11 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 						)
 					)
 				)
-			}.rethrow<CancellationException>()
-				.onException<NotFoundException> {
-					log.warn("Failed container lookup  containerId={}", containerId)
-					throw ContainerOperationException("Container not found: $containerId", it)
-				}.onExceptionExcept<NotFoundException> { e ->
+			}.rethrowCancellation()
+				.recoverException { e: NotFoundException ->
+					log.warn("Failed container lookup  containerId={}  reason={}", containerId, e.message)
+					throw ContainerOperationException("Container not found: $containerId", e)
+				}.onFailure { e ->
 					log.error("Failed command execution  containerId={}", containerId, e)
 					throw ContainerOperationException("Failed to exec command: ${e.message}", e)
 				}.getOrThrow()
