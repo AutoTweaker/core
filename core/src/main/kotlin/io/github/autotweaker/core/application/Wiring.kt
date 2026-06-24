@@ -24,8 +24,8 @@ import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
+import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
-import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
@@ -38,16 +38,16 @@ import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 object Wiring : Loggable {
 	val pathResolver = PathResolverImpl(ContainerConfig())
 	
-	suspend fun init() {
+	fun init() {
 		ModelRepositoryImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
-		EnvConfigAPI.init(SecretManager)
 		ContainerManager.init(SecretManager)
+		Bash.init(SecretManager)
 		ResilientChat.init(LlmGatewayImpl)
 		ChatService.init(
 			ModelRepositoryImpl, SessionRepositoryImpl
 		)
-		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl, SecretManager)
+		SessionManager.init(SessionRepositoryImpl, ModelRepositoryImpl)
 		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver)
 		
 		log.info("Completed wiring")

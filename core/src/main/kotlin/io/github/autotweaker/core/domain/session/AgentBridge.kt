@@ -34,7 +34,6 @@ import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.agent.*
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
@@ -51,7 +50,6 @@ class AgentBridge(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
-	private val secretStore: SecretStore,
 	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI, Loggable, Settable {
 	/* 初始化 */
@@ -116,9 +114,8 @@ class AgentBridge(
 		log.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
 	}
 	
-	private suspend fun initTools() {
+	private fun initTools() {
 		val coreTools = ServiceLoader.load(CoreTool::class.java).toList()
-		coreTools.forEach { it.init(secretStore) }
 		val duplicates = coreTools.map { it.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
 		check(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
 		

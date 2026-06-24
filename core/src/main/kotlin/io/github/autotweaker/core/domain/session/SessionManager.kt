@@ -30,7 +30,6 @@ import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelRepository
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
@@ -48,12 +47,13 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	private lateinit var store: SessionRepository
 	private lateinit var modelRepo: ModelRepository
-	private lateinit var secretStore: SecretStore
 	
-	fun init(store: SessionRepository, modelRepo: ModelRepository, secretStore: SecretStore) {
+	fun init(
+		store: SessionRepository,
+		modelRepo: ModelRepository,
+	) {
 		this.store = store
 		this.modelRepo = modelRepo
-		this.secretStore = secretStore
 	}
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -120,8 +120,7 @@ object SessionManager : Loggable, Traceable, Settable {
 			data = data,
 			store = store,
 			resolveModel = ::resolveModel,
-			workspace = workspaceData.meta,
-			secretStore = secretStore,
+			workspace = workspaceData.meta
 		).init(
 			systemPrompt = systemPrompt,
 			activeTools = emptyList()
@@ -146,8 +145,7 @@ object SessionManager : Loggable, Traceable, Settable {
 			data = data,
 			store = store,
 			resolveModel = ::resolveModel,
-			workspace = workspaceMeta,
-			secretStore = secretStore,
+			workspace = workspaceMeta
 		).init(
 			systemPrompt = systemPrompt,
 			activeTools = emptyList()

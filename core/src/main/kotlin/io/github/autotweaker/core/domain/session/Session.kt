@@ -34,7 +34,6 @@ import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +49,6 @@ class Session(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
-	private val secretStore: SecretStore,
 ) : Loggable, Settable {
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
@@ -137,8 +135,7 @@ class Session(
 		host = getHost(data.id),
 		store = store,
 		resolveModel = resolveModel,
-		workspace = workspace,
-		secretStore = secretStore
+		workspace = workspace
 	).init(data).also { bridges[data.id] = it }
 	
 	companion object {

@@ -36,9 +36,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
 @AutoService(CoreTool::class)
-class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
-	private lateinit var envStorage: EnvStorage
-	
+class Bash : CoreTool<BashArgs>, Loggable, Settable {
 	override val argsSerializer = BashArgs.serializer()
 	override val name = "bash"
 	override val description get() = setting.get(BashSettings.Description()).value
@@ -52,10 +50,6 @@ class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
 			),
 			BashArgs::envIds to setting.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
 		)
-	}
-	
-	override suspend fun init(secretStore: SecretStore) {
-		envStorage = EnvStorage(this::class, store, secretStore)
 	}
 	
 	override suspend fun coreExec(
@@ -118,8 +112,16 @@ class Bash : CoreTool<BashArgs>, Loggable, JsonStorable, Settable {
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	
-	suspend fun listEnv(): List<String> = envStorage.listEnv()
-	suspend fun getEnv(id: String): String? = envStorage.getEnv(id)
-	suspend fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
-	suspend fun removeEnv(id: String) = envStorage.removeEnv(id)
+	companion object : JsonStorable {
+		private lateinit var envStorage: EnvStorage
+		
+		fun init(secretStore: SecretStore) {
+			envStorage = EnvStorage(this::class, store, secretStore)
+		}
+		
+		suspend fun listEnv(): List<String> = envStorage.listEnv()
+		suspend fun getEnv(id: String): String? = envStorage.getEnv(id)
+		suspend fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
+		suspend fun removeEnv(id: String) = envStorage.removeEnv(id)
+	}
 }

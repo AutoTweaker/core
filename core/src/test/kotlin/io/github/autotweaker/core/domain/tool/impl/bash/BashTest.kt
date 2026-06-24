@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.args.BashArgs
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
+
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.port.BashService
@@ -71,8 +72,9 @@ class BashTest {
 			}
 		}
 		
+
 		bash = Bash()
-		runBlocking { bash.init(secretStore) }
+		Bash.init(secretStore)
 	}
 	
 	@AfterTest
@@ -179,7 +181,7 @@ class BashTest {
 	@Test
 	fun `blank command returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("   ")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -190,7 +192,7 @@ class BashTest {
 	@Test
 	fun `empty command returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -205,7 +207,7 @@ class BashTest {
 	@Test
 	fun `timeout zero returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("echo hello", timeoutSeconds = 0)
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -216,7 +218,7 @@ class BashTest {
 	@Test
 	fun `negative timeout returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("echo hello", timeoutSeconds = -5)
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -234,7 +236,7 @@ class BashTest {
 		coEvery { bashService.run("echo hello", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello", durationSeconds = 0.123
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("echo hello")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -250,7 +252,7 @@ class BashTest {
 		coEvery { bashService.run("false", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 1, stdout = "", stderr = "error msg", durationSeconds = 0.05
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("false")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -264,7 +266,7 @@ class BashTest {
 		coEvery { bashService.run("sleep 100", 1.seconds, emptyMap()) } returns mockResult(
 			exitCode = -1, stdout = "", timeout = true, durationSeconds = 1.0
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("sleep 100", timeoutSeconds = 1)
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -277,7 +279,7 @@ class BashTest {
 		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hi"
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("echo hi", timeoutSeconds = 60)
 		bash.coreExec(container(bashService), args, null)
 		
@@ -290,7 +292,7 @@ class BashTest {
 		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hi"
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("echo hi")
 		bash.coreExec(container(bashService), args, null)
 		
@@ -307,7 +309,7 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "", stderr = "some error", durationSeconds = 0.1
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -321,7 +323,7 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", stderr = "", durationSeconds = 0.1
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -335,7 +337,7 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", durationSeconds = 2.5
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -348,7 +350,7 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", stderr = "err", durationSeconds = 0.001
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -363,13 +365,13 @@ class BashTest {
 	
 	@Test
 	fun `env_ids are passed to BashService`() = runTest {
-		bash.setEnv("MY_VAR", "my_value")
+		Bash.setEnv("MY_VAR", "my_value")
 		
 		val bashService = mockk<BashService>()
 		coEvery { bashService.run($$"echo $MY_VAR", 60.seconds, mapOf("MY_VAR" to "my_value")) } returns mockResult(
 			exitCode = 0, stdout = "my_value"
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs($$"echo $MY_VAR", envIds = listOf("MY_VAR"))
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -379,12 +381,12 @@ class BashTest {
 	
 	@Test
 	fun `multiple env_ids are passed to BashService`() = runTest {
-		bash.setEnv("A", "1")
-		bash.setEnv("B", "2")
+		Bash.setEnv("A", "1")
+		Bash.setEnv("B", "2")
 		
 		val bashService = mockk<BashService>()
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(exitCode = 0, stdout = "")
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("cmd", envIds = listOf("A", "B"))
 		bash.coreExec(container(bashService), args, null)
 		
@@ -393,14 +395,14 @@ class BashTest {
 	
 	@Test
 	fun `non-existent env_ids are ignored`() = runTest {
-		bash.setEnv("EXISTING", "val")
+		Bash.setEnv("EXISTING", "val")
 		
 		val bashService = mockk<BashService>()
 		coEvery { bashService.run("cmd", 60.seconds, mapOf("EXISTING" to "val")) } returns mockResult(
 			exitCode = 0,
 			stdout = ""
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("cmd", envIds = listOf("EXISTING", "MISSING"))
 		bash.coreExec(container(bashService), args, null)
 		
@@ -417,7 +419,7 @@ class BashTest {
 		coEvery { bashService.run("echo \"hello world\"", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello world"
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs("echo \"hello world\"")
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -431,7 +433,7 @@ class BashTest {
 		coEvery { bashService.run(longCmd, 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "x".repeat(1000)
 		)
-		bash.init(secretStore)
+		Bash.init(secretStore)
 		val args = toolArgs(longCmd)
 		val result = bash.coreExec(container(bashService), args, null)
 		
@@ -444,57 +446,57 @@ class BashTest {
 	
 	@Test
 	fun `getEnv returns null for non-existent id`() = runBlocking {
-		assertNull(bash.getEnv("NONEXISTENT"))
+		assertNull(Bash.getEnv("NONEXISTENT"))
 	}
 	
 	@Test
 	fun `setEnv and getEnv roundtrip`() = runBlocking {
-		bash.setEnv("MY_KEY", "my_value")
-		assertEquals("my_value", bash.getEnv("MY_KEY"))
+		Bash.setEnv("MY_KEY", "my_value")
+		assertEquals("my_value", Bash.getEnv("MY_KEY"))
 	}
 	
 	@Test
 	fun `setEnv overwrites existing value`() = runBlocking {
-		bash.setEnv("KEY", "old")
-		bash.setEnv("KEY", "new")
-		assertEquals("new", bash.getEnv("KEY"))
+		Bash.setEnv("KEY", "old")
+		Bash.setEnv("KEY", "new")
+		assertEquals("new", Bash.getEnv("KEY"))
 	}
 	
 	@Test
 	fun `removeEnv deletes existing entry`() = runBlocking {
-		bash.setEnv("KEY", "value")
-		bash.removeEnv("KEY")
-		assertNull(bash.getEnv("KEY"))
+		Bash.setEnv("KEY", "value")
+		Bash.removeEnv("KEY")
+		assertNull(Bash.getEnv("KEY"))
 	}
 	
 	@Test
 	fun `removeEnv is no-op for non-existent entry`() = runBlocking {
-		assertNull(bash.getEnv("NONEXISTENT"))
-		bash.removeEnv("NONEXISTENT")
-		assertNull(bash.getEnv("NONEXISTENT"))
+		assertNull(Bash.getEnv("NONEXISTENT"))
+		Bash.removeEnv("NONEXISTENT")
+		assertNull(Bash.getEnv("NONEXISTENT"))
 	}
 	
 	@Test
 	fun `setEnv with special characters`() = runBlocking {
-		bash.setEnv("KEY", "value with spaces and \"quotes\"")
-		assertEquals("value with spaces and \"quotes\"", bash.getEnv("KEY"))
+		Bash.setEnv("KEY", "value with spaces and \"quotes\"")
+		assertEquals("value with spaces and \"quotes\"", Bash.getEnv("KEY"))
 	}
 	
 	@Test
 	fun `multiple env entries coexist`() = runBlocking {
-		bash.setEnv("A", "1")
-		bash.setEnv("B", "2")
-		bash.setEnv("C", "3")
-		assertEquals("1", bash.getEnv("A"))
-		assertEquals("2", bash.getEnv("B"))
-		assertEquals("3", bash.getEnv("C"))
+		Bash.setEnv("A", "1")
+		Bash.setEnv("B", "2")
+		Bash.setEnv("C", "3")
+		assertEquals("1", Bash.getEnv("A"))
+		assertEquals("2", Bash.getEnv("B"))
+		assertEquals("3", Bash.getEnv("C"))
 	}
 	
 	@Test
 	fun `meta env_ids shows available env IDs`() = runTest {
-		bash.setEnv("DB_URL", "jdbc:...")
-		bash.setEnv("API_KEY", "secret")
-		bash.init(secretStore)
+		Bash.setEnv("DB_URL", "jdbc:...")
+		Bash.setEnv("API_KEY", "secret")
+		Bash.init(secretStore)
 		
 		@Suppress("UNCHECKED_CAST")
 		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
@@ -505,8 +507,8 @@ class BashTest {
 	
 	@Test
 	fun `meta env_ids with quotes in name are escaped`() = runTest {
-		bash.setEnv("KEY_WITH\"QUOTE", "val")
-		bash.init(secretStore)
+		Bash.setEnv("KEY_WITH\"QUOTE", "val")
+		Bash.init(secretStore)
 		
 		@Suppress("UNCHECKED_CAST")
 		val meta = ToolMeta.build(bash as Tool<ToolArgs>)

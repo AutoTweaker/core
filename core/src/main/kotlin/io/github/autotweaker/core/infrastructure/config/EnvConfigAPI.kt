@@ -18,48 +18,39 @@
 
 package io.github.autotweaker.core.infrastructure.config
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.config.CoreConfig.JsonConfig.Env.Type
 import io.github.autotweaker.core.domain.port.EnvRepository
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object EnvConfigAPI : EnvRepository, Loggable {
-	private lateinit var secret: SecretStore
-	private val bash = Bash()
 	private val con = ContainerManager
 	
-	suspend fun init(secretStore: SecretStore) {
-		secret = secretStore
-		bash.init(secret)
-	}
-	
-	
 	override suspend fun list(type: Type): List<String> = when (type) {
-		Type.BASH_ENV -> bash.listEnv()
+		Type.BASH_ENV -> Bash.listEnv()
 		Type.CONTAINER_ENV -> con.listEnv()
 	}
 	
 	override suspend fun set(env: List<CoreConfig.JsonConfig.Env>) {
 		val bashEnv = env.filter { it.type == Type.BASH_ENV }
 		val conEnv = env.filter { it.type == Type.CONTAINER_ENV }
-		bashEnv.forEach { bash.setEnv(it.id, it.value) }
+		bashEnv.forEach { Bash.setEnv(it.id, it.value) }
 		conEnv.forEach { con.setEnv(it.id, it.value) }
 		log.info("Set environment variables  bashCount={}  containerCount={}", bashEnv.size, conEnv.size)
 	}
 	
 	override suspend fun get(type: Type, id: String): String? = when (type) {
 		Type.CONTAINER_ENV -> con.getEnv(id)[id]
-		Type.BASH_ENV -> bash.getEnv(id)
+		Type.BASH_ENV -> Bash.getEnv(id)
 	}
 	
 	override suspend fun remove(type: Type, id: String) {
 		when (type) {
 			Type.CONTAINER_ENV -> con.removeEnv(id)
-			Type.BASH_ENV -> bash.removeEnv(id)
+			Type.BASH_ENV -> Bash.removeEnv(id)
 		}
 		log.info("Removed environment variable  type={}  id={}", type, id)
 	}
