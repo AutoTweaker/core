@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.api
 
+/**
+ * 遍历对象并调用 [action]，在每两次遍历中间调用 [between]
+ */
 inline fun <T> Iterable<T>.forEachBetween(
 	action: (T) -> Unit,
 	between: () -> Unit,

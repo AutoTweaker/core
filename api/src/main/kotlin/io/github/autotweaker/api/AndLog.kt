@@ -20,5 +20,12 @@ package io.github.autotweaker.api
 
 import org.slf4j.Logger
 
+/**
+ * 用于在链式调用中插入日志，示例：
+ *
+ * ```kotlin
+ * null.andLog(log) { info("Hello World") }
+ * ```
+ */
 inline fun <T> T.andLog(logger: Logger, crossinline log: Logger.(T) -> Unit): T =
 	also { logger.log(this) }

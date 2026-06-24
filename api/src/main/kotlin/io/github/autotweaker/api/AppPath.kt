@@ -20,9 +20,16 @@ package io.github.autotweaker.api
 
 import java.nio.file.Path
 
+/**
+ * 存储配置及其他数据的目录，使用提供的持久化 API 而不是直接在此路径下存放文件
+ */
 val CONFIG_PATH: Path = Path.of(
 	System.getProperty("user.home"), ".config", APP_NAME_LOWERCASE
 )
+
+/**
+ * 存放临时文件的目录，通常为 `/tmp/autotweaker`
+ */
 val TMP_PATH: Path = Path.of(
 	System.getProperty("java.io.tmpdir"), APP_NAME_LOWERCASE
 )
