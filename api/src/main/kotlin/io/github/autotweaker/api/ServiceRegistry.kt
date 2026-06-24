@@ -24,6 +24,9 @@ import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.trace.TraceRecorder
 import kotlin.reflect.KClass
 
+/**
+ * 请不要构造此类或访问此类的伴生对象。
+ */
 class ServiceRegistry(
 	val trace: (KClass<*>) -> TraceRecorder,
 	val store: (KClass<*>) -> JsonStore,
@@ -36,7 +39,9 @@ class ServiceRegistry(
 	}
 }
 
-
+/**
+ * 请不要调用此方法。
+ */
 fun initServices(services: ServiceRegistry) {
 	check(ServiceRegistry.services == null) { "Services already initialized" }
 	ServiceRegistry.services = services
