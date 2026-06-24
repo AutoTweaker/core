@@ -18,8 +18,18 @@
 
 package io.github.autotweaker.api.trace
 
+/**
+ * [runCatching] 的封装，[onFailure] 自动记录异常到 [TraceRecorder]，需要调用方实现 [io.github.autotweaker.api.Traceable]。
+ *
+ * [CatchingResult] 的错误处理 API 已经足够强大，请尽量使用 `trace.catching` 来代替 [runCatching] 以及 `try-catch-finally`，`try-finally` 也可以由 `CatchingResult.also.getOrThrow`替代。
+ */
 inline fun <T> TraceRecorder.catching(block: () -> T): CatchingResult<T> =
 	CatchingResult(runCatching { block() }.onFailure { exception(it) })
 
+/**
+ * [runCatching] 的封装，[onFailure] 自动记录异常到 [TraceRecorder]，需要调用方实现 [io.github.autotweaker.api.Traceable]。
+ *
+ * [CatchingResult] 的错误处理 API 已经足够强大，请尽量使用 `trace.catching` 来代替 [runCatching] 以及 `try-catch-finally`，`try-finally` 也可以由 `CatchingResult.also.getOrThrow`替代。
+ */
 inline fun <T, R> T.catching(recorder: TraceRecorder, block: T.() -> R): CatchingResult<R> =
 	CatchingResult(runCatching { block() }.onFailure { recorder.exception(it) })
