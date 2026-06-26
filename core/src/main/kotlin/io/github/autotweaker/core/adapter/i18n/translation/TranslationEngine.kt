@@ -27,7 +27,7 @@ import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.core.adapter.i18n.I18nRegistry
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.ModelResolver
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -57,9 +57,9 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 	
 	suspend fun run(
 		modelId: UUID, target: Locale,
-		modelRepo: ModelRepository,
+		modelRepo: ModelResolver,
 	) {
-		val model = modelRepo.resolve(modelId) ?: throw IllegalStateException("Model not found: $modelId")
+		val model = modelRepo.resolve(modelId) ?: error("Model not found: $modelId")
 		val systemPrompt =
 			setting.get(TranslateSettings.SystemPrompt()).value.replace("{{target_language}}", target.displayName)
 		val userPromptTemplate = setting.get(TranslateSettings.UserPrompt()).value
@@ -128,9 +128,10 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 				)
 		if (finalResult.message is ChatMessage.ErrorMessage) return BatchResult(emptyMap(), job.batch, job.target)
 		
-		val text = (finalResult.message as? ChatMessage.AssistantMessage)?.content ?: return BatchResult(
-			emptyMap(), job.batch, job.target
-		)
+		val text = (finalResult.message as? ChatMessage.AssistantMessage)?.content
+			?: return BatchResult(
+				emptyMap(), job.batch, job.target
+			)
 		return BatchResult(parseResponse(text), job.batch, job.target)
 	}
 	

@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -82,7 +83,8 @@ class ToolCallingStage(
 					}
 				}
 			}
-		}.getOrElse { e ->
+		}.rethrow<SecretStoreLockedException>()
+			.getOrElse { e ->
 			when (e) {
 				is TimeoutCancellationException -> {
 					val elapsed = startTime.elapsedNow().inWholeSeconds

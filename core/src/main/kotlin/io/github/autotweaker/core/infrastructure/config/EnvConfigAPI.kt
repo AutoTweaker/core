@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.config.CoreConfig.JsonConfig.Env.Type
@@ -47,11 +48,10 @@ object EnvConfigAPI : EnvRepository, Loggable {
 		Type.BASH_ENV -> Bash.getEnv(id)
 	}
 	
-	override suspend fun remove(type: Type, id: String) {
+	override suspend fun remove(type: Type, id: String) =
 		when (type) {
 			Type.CONTAINER_ENV -> con.removeEnv(id)
 			Type.BASH_ENV -> Bash.removeEnv(id)
-		}
-		log.info("Removed environment variable  type={}  id={}", type, id)
-	}
+		}.andLog(log)
+		{ info("Removed environment variable  type={}  id={}", type, id) }
 }

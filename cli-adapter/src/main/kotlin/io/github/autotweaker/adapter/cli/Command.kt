@@ -19,7 +19,6 @@
 package io.github.autotweaker.adapter.cli
 
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 
 interface Command {
@@ -27,6 +26,6 @@ interface Command {
 	val description: String
 	val syntax: Syntax
 	
-	fun init(core: CoreAPI, coreVersion: SemVer) {}
+	fun init(core: CoreAPI) {}
 	fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput>
 }

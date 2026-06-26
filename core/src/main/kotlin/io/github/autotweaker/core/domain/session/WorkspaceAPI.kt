@@ -18,15 +18,15 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object WorkspaceAPI : Loggable {
 	private val wsm = WorkspaceManager
@@ -54,7 +54,7 @@ object WorkspaceAPI : Loggable {
 	}
 	
 	suspend fun delete(id: UUID): Boolean {
-		val data = wsm.getData(id) ?: error("Workspace not found: $id")
+		val data = wsm.getData(id) ?: return false
 		data.sessionIds?.forEach { SessionManager.delete(it) }
 		
 		return wsm.delete(id).andLog(log)

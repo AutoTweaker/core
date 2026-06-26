@@ -23,41 +23,35 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 
 @AutoService(Adapter::class)
 class CliAdapter : Adapter, Loggable {
-	private val adapterVersion = SemVer.parse("0.1.0")
-	private lateinit var coreVersion: SemVer
-	private lateinit var adapterName: String
+	private val info by lazy {
+		AdapterInfo(
+			name = "cli-adapter".toKebabId(),
+			description = "AutoTweaker CLI Adapter",
+			version = SemVer.parse("0.1.0"),
+			source = "https://github.com/AutoTweaker/core".toUrl(),
+		)
+	}
+	private lateinit var core: CoreAPI
 	
 	override val isRunning: Boolean get() = CliServer.isRunning
 	
-	override suspend fun load(coreVersion: SemVer): AdapterInfo {
-		this.coreVersion = coreVersion
-		val info = AdapterInfo(
-			name = "cli-adapter",
-			description = "CLI adapter — Unix domain socket based command interface",
-			version = adapterVersion,
-			source = "https://github.com/AutoTweaker/core".toUrl(),
-		)
-		adapterName = info.name
-		log.info(
-			"Loaded CliAdapter  adapter={}  version={}  coreVersion={}", adapterName, adapterVersion, coreVersion
-		)
-		return info
-	}
+	override suspend fun init(core: CoreAPI) = info.also { this.core = core }
 	
-	override suspend fun start(core: CoreAPI) {
-		val router = CommandRouter.fromServiceLoader(core, coreVersion)
+	override suspend fun start() {
+		val router = CommandRouter.fromServiceLoader(core)
 		CliServer.start(router)
-		log.info("Started CliAdapter  adapter={}  version={}", adapterName, adapterVersion)
+		log.info("Started CliAdapter  version={}", info.version)
 	}
 	
 	override suspend fun stop() {
 		CliServer.stop()
-		log.info("Stopped CliAdapter  adapter={}", adapterName)
+		log.info("Stopped CliAdapter")
 	}
 }

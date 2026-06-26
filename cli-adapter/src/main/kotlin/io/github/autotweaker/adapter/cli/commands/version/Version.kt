@@ -36,19 +36,18 @@ class Version : Command, I18nable {
 	override val description get() = i18n.get(VersionI18n.Desc())
 	override val syntax = Syntax.none()
 	private var coreVersion: SemVer = SemVer.parse("0.0.0")
-	private lateinit var core: CoreAPI
 	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
-		this.core = core
-		this.coreVersion = coreVersion
+	override fun init(core: CoreAPI) {
+		coreVersion = core.appVersion
 	}
 	
 	override fun handle(
 		request: Request,
 		prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<CmdOutput> =
-		flowOf(
-			CmdOutput.Data(coreVersion.toString()),
-			CmdOutput.Done(),
-		)
+	): Flow<CmdOutput> = flowOf(
+		CmdOutput.Data(
+			coreVersion.toString()
+		),
+		CmdOutput.Done(),
+	)
 }

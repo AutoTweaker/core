@@ -29,7 +29,8 @@ import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.ModelResolver
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
@@ -46,14 +47,13 @@ object SessionManager : Loggable, Traceable, Settable {
 	private val wsm = WorkspaceManager
 	
 	private lateinit var store: SessionRepository
-	private lateinit var modelRepo: ModelRepository
+	private lateinit var modelRepo: ModelResolver
+	private lateinit var secretStore: SecretStore
 	
-	fun init(
-		store: SessionRepository,
-		modelRepo: ModelRepository,
-	) {
+	fun init(store: SessionRepository, modelRepo: ModelResolver, secretStore: SecretStore) {
 		this.store = store
 		this.modelRepo = modelRepo
+		this.secretStore = secretStore
 	}
 	
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -104,7 +104,10 @@ object SessionManager : Loggable, Traceable, Settable {
 	suspend fun loadAgent(id: UUID) = store.loadAgent(id)
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID {
-		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
+		secretStore.requireUnlocked()
+		val workspaceData =
+			if (workspaceId == wsm.defaultWorkspaceId) wsm.getDefault()
+			else wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
 		if (!Files.isDirectory(workspaceData.meta.path)) {
 			error("Workspace directory does not exist: ${workspaceData.meta.path}")
 		}
@@ -112,7 +115,6 @@ object SessionManager : Loggable, Traceable, Settable {
 			id = UUID.randomUUID(),
 			title = null,
 			overview = null,
-			model = model,
 			workspaceId = workspaceId,
 			agentIndex = AgentIndex.emptyIndex()
 		)
@@ -122,6 +124,7 @@ object SessionManager : Loggable, Traceable, Settable {
 			resolveModel = ::resolveModel,
 			workspace = workspaceData.meta
 		).init(
+			model = model,
 			systemPrompt = systemPrompt,
 			activeTools = emptyList()
 		).listen().andSave()
@@ -135,12 +138,15 @@ object SessionManager : Loggable, Traceable, Settable {
 	private suspend fun getOrRestore(id: UUID): Session = sessions[id] ?: restore(id)
 	
 	private suspend fun restore(id: UUID): Session {
+		secretStore.requireUnlocked()
 		val data = store.loadSessions(listOf(id)).firstOrNull() ?: error("Session not found: $id")
 		val workspaceId = data.workspaceId
 		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
 		if (!Files.isDirectory(workspaceMeta.path)) {
 			error("Workspace directory does not exist: ${workspaceMeta.path}")
 		}
+		val model = store.loadAgent(data.agentIndex.main.id)?.model
+			?: error("Main agent not found: ${data.agentIndex.main.id}")
 		return Session(
 			data = data,
 			store = store,
@@ -148,7 +154,8 @@ object SessionManager : Loggable, Traceable, Settable {
 			workspace = workspaceMeta
 		).init(
 			systemPrompt = systemPrompt,
-			activeTools = emptyList()
+			activeTools = emptyList(),
+			model = model
 		)
 			.listen()
 			.also { sessions[data.id] = it }

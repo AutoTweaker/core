@@ -25,7 +25,6 @@ data class SessionData(
 	val id: UUID,
 	val title: String?,
 	val overview: String?,
-	val model: ModelConfig,
 	val workspaceId: UUID,
 	val agentIndex: AgentIndex
 )

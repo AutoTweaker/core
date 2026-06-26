@@ -18,6 +18,12 @@
 
 package io.github.autotweaker.api.types
 
+/**
+ * 表示一个符合 SemVer 规范的版本号。
+ * AutoTweaker 遵循 SemVer 规范，同时要求适配器遵循 SemVer 规范。
+ *
+ * 参见 [Semantic Versioning 2.0.0](https://semver.org/) / [语义化版本 2.0.0](https://semver.org/lang/zh-CN/)
+ */
 data class SemVer(
 	val major: Int,
 	val minor: Int,

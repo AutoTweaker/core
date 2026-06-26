@@ -36,7 +36,7 @@ sealed class CoreConfig {
 	
 	sealed class ProviderConfig {
 		data class Provider(
-			val id: UUID,
+			val id: UUID = UUID.randomUUID(),
 			val type: String,
 			val keyId: String,
 			val baseUrl: Url?,
@@ -53,8 +53,4 @@ sealed class CoreConfig {
 			val key: String,
 		)
 	}
-	
-	data class AppConfig(
-		val setting: SettingEntry,
-	)
 }

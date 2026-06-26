@@ -54,7 +54,6 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 					it[title] = data.title
 					it[overview] = data.overview
 					it[workspaceId] = data.workspaceId.toString()
-					SessionDataTable.fillModel(it, data.model)
 					SessionDataTable.fillAgentIndex(it, data.agentIndex)
 				}
 			}
@@ -87,7 +86,6 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 			id = UUID.fromString(this[SessionDataTable.id]),
 			title = this[SessionDataTable.title],
 			overview = this[SessionDataTable.overview],
-			model = SessionDataTable.readModel(this),
 			workspaceId = UUID.fromString(this[SessionDataTable.workspaceId]),
 			agentIndex = SessionDataTable.readAgentIndex(this),
 		)

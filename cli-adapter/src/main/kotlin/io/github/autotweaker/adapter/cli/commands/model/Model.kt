@@ -26,7 +26,6 @@ import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emitAll
@@ -59,7 +58,7 @@ class Model : Command, I18nable, Traceable {
 			)
 		)
 	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
+	override fun init(core: CoreAPI) {
 		this.core = core
 	}
 	

@@ -44,6 +44,7 @@ dependencies {
 	implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.0")
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+	implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
 	
 	
 	testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")

@@ -112,7 +112,6 @@ class DebugHandler(
 				prompt("overview: ", true),
 				prompt("model: ", true),
 				prompt("workspaceId: ", true),
-				prompt("agentIndex: ", true)
 			)
 			
 			"agentData" -> AgentDataEntry(

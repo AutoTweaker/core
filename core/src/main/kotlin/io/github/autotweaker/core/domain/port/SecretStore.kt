@@ -21,8 +21,10 @@ package io.github.autotweaker.core.domain.port
 import java.util.*
 
 interface SecretStore {
-	suspend fun add(secret: String, id: UUID = UUID.randomUUID()): UUID
+	suspend fun set(secret: String, id: UUID = UUID.randomUUID()): UUID
+	suspend fun remove(id: UUID): Boolean
 	suspend fun get(id: UUID): String
 	suspend fun list(): List<UUID>
-	suspend fun remove(id: UUID)
+	
+	fun requireUnlocked()
 }

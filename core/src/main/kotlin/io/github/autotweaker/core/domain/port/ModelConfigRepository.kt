@@ -18,12 +18,12 @@
 
 package io.github.autotweaker.core.domain.port
 
-import io.github.autotweaker.api.types.config.CoreConfig
 import java.util.*
+import io.github.autotweaker.api.types.config.CoreConfig.ProviderConfig.Model as ModelConfig
 
 interface ModelConfigRepository {
-	fun add(model: CoreConfig.ProviderConfig.Model)
-	fun list(): List<CoreConfig.ProviderConfig.Model>
-	fun remove(id: UUID)
-	fun update(id: UUID, model: CoreConfig.ProviderConfig.Model)
+	suspend fun set(model: ModelConfig)
+	suspend fun remove(id: UUID): Boolean
+	suspend fun get(id: UUID): ModelConfig?
+	suspend fun list(): List<ModelConfig>
 }

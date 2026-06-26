@@ -21,6 +21,6 @@ package io.github.autotweaker.core.domain.port
 import io.github.autotweaker.core.domain.model.Model
 import java.util.*
 
-interface ModelRepository {
+interface ModelResolver {
 	suspend fun resolve(id: UUID): Model?
 }

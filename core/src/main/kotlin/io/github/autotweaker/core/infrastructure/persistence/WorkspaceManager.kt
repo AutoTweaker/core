@@ -30,7 +30,6 @@ import java.nio.file.Files
 import java.util.*
 
 object WorkspaceManager : Loggable, JsonStorable {
-	
 	private val workspaces: MutableList<WorkspaceData> = mutableListOf()
 	
 	private val mutex = Mutex()
@@ -44,19 +43,19 @@ object WorkspaceManager : Loggable, JsonStorable {
 	}
 	
 	suspend fun updateMeta(meta: WorkspaceMeta) = mutex.withLock {
-		require(meta.id in workspaces.map { it.meta.id })
+		check(meta.id in workspaces.map { it.meta.id })
 		update(meta.id) { copy(meta = meta) }
 		log.debug("Updated workspace meta  id={}", meta.id)
 	}
 	
 	suspend fun updateSessions(id: UUID, sessionIds: List<UUID>?) = mutex.withLock {
-		require(id in workspaces.map { it.meta.id })
+		check(id in workspaces.map { it.meta.id })
 		update(id) { copy(sessionIds = sessionIds) }
 		log.debug("Updated workspace data  id={}", id)
 	}
 	
 	suspend fun delete(id: UUID): Boolean = mutex.withLock {
-		if (id == defaultWorkspaceId) error("Cannot delete default workspace")
+		require(id != defaultWorkspaceId) { "Cannot delete default workspace" }
 		return remove(id).andLog(log) { info("Deleted workspace  id={}", id) }
 	}
 	

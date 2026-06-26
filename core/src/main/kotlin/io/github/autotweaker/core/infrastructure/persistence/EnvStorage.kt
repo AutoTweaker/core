@@ -18,58 +18,66 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.config.JsonStore
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.reflect.KClass
 
 class EnvStorage(
 	private val kClass: KClass<*>, private val store: JsonStore, private val secretStore: SecretStore
 ) : Loggable, Traceable {
+	private val serializer = MapSerializer(
+		String.serializer(), UuidSerializer
+	)
+	private val envs = mutableMapOf<String, UUID>()
 	private val mutex = Mutex()
 	
-	suspend fun listEnv(): List<String> = mutex.withLock { getEnvUuidMap().keys.toList() }
+	init {
+		store.get()?.let {
+			envs.putAll(
+				Json.decodeFromJsonElement(serializer, it)
+			)
+		}
+	}
+	
+	suspend fun listEnv(): List<String> = mutex.withLock { envs.keys.toList() }
 	
 	suspend fun getEnv(id: String): String? = mutex.withLock {
-		val uuid = getEnvUuidMap()[id] ?: return@withLock null
+		val uuid = envs[id] ?: return@withLock null
 		trace.catching { secretStore.get(uuid) }
+			.rethrow<SecretStoreLockedException>()
 			.onFailure { log.warn("Failed env retrieval  id={}  class={}", id, kClass.java.name) }
 			.getOrNull()
 	}
 	
 	suspend fun setEnv(id: String, value: String) = mutex.withLock {
-		val current = getEnvUuidMap()
-		current[id]?.let { secretStore.remove(it) }
-		val uuid = secretStore.add(value)
-		val updated =
-			JsonObject(current.mapValues { (_, v) -> JsonPrimitive(v.toString()) } + (id to JsonPrimitive(uuid.toString())))
-		store.set(updated)
-		log.debug("Set env  id={}  class={}", id, kClass.java.name)
+		envs[id]?.let { secretStore.remove(it) }
+		envs[id] = secretStore.set(value)
+		andSave().andLog(log) { debug("Set env  id={}  class={}", id, kClass.java.name) }
 	}
 	
-	suspend fun removeEnv(id: String) = mutex.withLock {
-		val current = getEnvUuidMap()
-		current[id]?.let { secretStore.remove(it) }
-		val updated = JsonObject(current.filterKeys { it != id }.mapValues { (_, v) -> JsonPrimitive(v.toString()) })
-		store.set(updated)
-		log.debug("Removed env  id={}  class={}", id, kClass.java.name)
+	suspend fun removeEnv(id: String): Boolean = mutex.withLock {
+		envs[id]?.let { secretStore.remove(it) }
+		return@withLock envs.remove(id).andLog(log) {
+			debug("Removed env  id={}  class={}", id, kClass.java.name)
+		} != null
 	}
 	
-	private fun getEnvUuidMap(): Map<String, UUID> {
-		val obj = store.get() as? JsonObject ?: return emptyMap()
-		return obj.mapNotNull { (k, v) ->
-			v.jsonPrimitive.contentOrNull?.let { UUID.fromString(it) }?.let { k to it }
-		}.toMap()
+	private fun <T> T.andSave() = also {
+		store.set(
+			Json.encodeToJsonElement(
+				serializer,
+				envs
+			)
+		)
 	}
 }

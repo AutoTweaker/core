@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.UsageStore
 import kotlinx.coroutines.flow.*
@@ -34,10 +34,10 @@ import java.util.*
 import kotlin.time.Clock
 
 object ChatService : Loggable {
-	private lateinit var modelRepo: ModelRepository
+	private lateinit var modelRepo: ModelResolver
 	private lateinit var sessionRepository: SessionRepository
 	
-	fun init(modelRepo: ModelRepository, sessionRepository: SessionRepository) {
+	fun init(modelRepo: ModelResolver, sessionRepository: SessionRepository) {
 		this.modelRepo = modelRepo
 		this.sessionRepository = sessionRepository
 	}
@@ -68,6 +68,7 @@ object ChatService : Loggable {
 				responseFormat = request.responseFormat,
 				stream = request.stream,
 				thinking = request.thinking,
+				timeout = request.timeout
 			).onEach { result ->
 				result.result.usage?.let { lastUsage = it }
 				lastModelId = result.model

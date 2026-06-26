@@ -18,35 +18,33 @@
 
 package io.github.autotweaker.core.infrastructure.config
 
-import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.log
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
-import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.ModelStore
 import java.util.*
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.config.CoreConfig.ProviderConfig.Model as ModelConfig
 
 object ModelConfigAPI : ModelConfigRepository, Loggable {
 	private val store = ModelStore
 	
-	override fun add(model: CoreConfig.ProviderConfig.Model) {
-		require(!store.get().any { it.displayName == model.data.displayName && it.providerId == model.data.providerId })
-		store.add(model.data)
+	override suspend fun set(model: ModelConfig) {
+		require(store.getAll().values.all {
+			it.displayName != model.data.displayName
+					&& it.providerId == model.data.providerId
+		})
+		store.set(model.data)
 		log.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
 	}
 	
-	override fun list() = store.get().map { CoreConfig.ProviderConfig.Model(data = it) }
+	override suspend fun list() = store.getAll().values.map { ModelConfig(it) }
 	
-	override fun remove(id: UUID) {
-		if (ModelRepositoryImpl.getDefaultModel() == id) error("Cannot remove default model: $id")
-		store.delete(id)
-		log.info("Removed model  id={}", id)
-	}
+	override suspend fun get(id: UUID) = store.get(id)?.let { ModelConfig(it) }
 	
-	override fun update(id: UUID, model: CoreConfig.ProviderConfig.Model) {
-		require(!store.get().filter { it.id != id }
-			.any { it.displayName == model.data.displayName && it.providerId == model.data.providerId })
-		store.override(model.data.copy(id = id))
-		log.info("Updated model  id={}  modelId={}", id, model.data.modelInfo.modelId)
+	override suspend fun remove(id: UUID): Boolean {
+		check(ModelResolverImpl.getDefaultModel() != id) { "Cannot remove default model: $id" }
+		return store.delete(id).andLog(log) { info("Removed model  id={}", id) }
 	}
 }

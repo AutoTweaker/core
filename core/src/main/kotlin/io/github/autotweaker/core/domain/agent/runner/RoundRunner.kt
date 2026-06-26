@@ -24,6 +24,7 @@ import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
@@ -179,7 +180,8 @@ class RoundRunner(
 			
 			val result = trace.catching {
 				deferred.await()
-			}.getOrElse { ThinkingStage.Result.Failed }
+			}.rethrow<SecretStoreLockedException>()
+				.getOrElse { ThinkingStage.Result.Failed }
 			thinkJob = null
 			
 			if (shouldBreak.value || result is ThinkingStage.Result.Failed) break

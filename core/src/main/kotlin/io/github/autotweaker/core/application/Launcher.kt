@@ -23,6 +23,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.Debugger
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
@@ -37,7 +38,7 @@ import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
-import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
@@ -58,9 +59,8 @@ object Launcher : Loggable, Traceable {
 	private val databaseStore: DatabaseStore = H2DatabaseStore
 	
 	suspend fun start(
-		version: SemVer,
-		registry: MutableMap<String, Pair<Adapter, AdapterInfo>>,
-		adapterAPI: CoreAPI.AdapterAPI,
+		registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>>,
+		core: CoreAPI
 	) {
 		initServices(
 			ServiceRegistry(
@@ -92,10 +92,10 @@ object Launcher : Loggable, Traceable {
 		
 		Wiring.init()
 		
-		TranslationManager.init(ModelRepositoryImpl)
+		TranslationManager.init(ModelResolverImpl)
 		TranslationManager.startTranslation()
 		
-		val all = PluginLoader.load<Adapter>().map { it to it.load(version) }
+		val all = PluginLoader.load<Adapter>().map { it to it.init(core) }
 		val adapters = all.groupBy { (_, info) -> info.name }
 			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
@@ -106,22 +106,23 @@ object Launcher : Loggable, Traceable {
 				log.info(
 					"Loaded adapter  name={}  version={}  description={}", info.name, info.version, info.description
 				)
-				adapter.start(createCoreAPI(adapterAPI))
+				adapter.start()
 				log.info("Started adapter  name={}", info.name)
 			}
 		}
 	}
 	
-	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) = CoreAPIImpl(
-		adapterAPI,
-		EnvConfigAPI,
-		ProviderConfigAPI,
-		ModelConfigAPI,
-		ApiKeyConfigAPI,
-		Wiring.pathResolver
+	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI, version: SemVer) = CoreAPIImpl(
+		envRepo = EnvConfigAPI,
+		providerRepo = ProviderConfigAPI,
+		modelRepo = ModelConfigAPI,
+		apiKeyRepo = ApiKeyConfigAPI,
+		adapter = adapterAPI,
+		pathResolver = Wiring.pathResolver,
+		appVersion = version
 	)
 	
-	suspend fun shutdown(registry: List<Pair<Adapter, AdapterInfo>>) {
+	suspend fun shutdown(registry: PairList<Adapter, AdapterInfo>) {
 		coroutineScope {
 			registry.forEach { (adapter, info) ->
 				launch {

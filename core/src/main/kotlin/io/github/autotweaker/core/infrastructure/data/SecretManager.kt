@@ -21,6 +21,8 @@ package io.github.autotweaker.core.infrastructure.data
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.trace.getOrDefault
+import io.github.autotweaker.api.types.exception.PasswordInvalidException
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -133,7 +135,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 			"rsa4096",
 			"encrypt",
 			"never",
-			passphrase = String(requireUnlocked())
+			passphrase = String(getPassword())
 		).discard()
 	
 	
@@ -144,15 +146,15 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	private suspend fun verifyPassword(password: String) {
 		val result =
 			gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
-		check(result == "ok") { "Invalid password" }
+		if (result != "ok") throw PasswordInvalidException()
 	}
 	
 	//更改密码
 	suspend fun changePassword(
 		oldPassword: String, newPassword: String
 	) = mutex.withLock {
-		val current = String(requireUnlocked())
-		if (oldPassword != current) error("Invalid password")
+		val current = String(getPassword())
+		if (oldPassword != current) throw PasswordInvalidException()
 		if (newPassword == current) return@withLock
 		val cache = list().associateWith { get(it) }
 		log.info("Started password change  secretCount={}", cache.size)
@@ -223,13 +225,16 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		_isUnlocked.value = passphrase != null
 	}
 	
-	//确保unlocked，否则异常抛到上游
-	private fun requireUnlocked() = checkNotNull(password)
-	{ "SecretManager is locked. Call unlock() first." }
+	private fun getPassword(): CharArray {
+		val passphrase = password
+		if (passphrase == null) throw SecretStoreLockedException()
+		else return passphrase
+	}
+	
 	
 	// region 实现接口
-	override suspend fun add(secret: String, id: UUID): UUID = mutex.withLock {
-		requireUnlocked()
+	override suspend fun set(secret: String, id: UUID): UUID = mutex.withLock {
+		getPassword()
 		val file = secretsDir.resolve("$id.gpg")
 		encryptTo(secret, file)
 		log.debug("Added secret  id={}", id)
@@ -247,12 +252,12 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 			"loopback",
 			"-d",
 			file.toString(),
-			passphrase = String(requireUnlocked())
+			passphrase = String(getPassword())
 		)
 	}
 	
 	override suspend fun list(): List<UUID> = mutex.withLock {
-		requireUnlocked()
+		getPassword()
 		return Files.list(secretsDir).use { stream ->
 			stream.filter { it.fileName.toString().endsWith(".gpg") }
 				.map { UUID.fromString(it.fileName.toString().removeSuffix(".gpg")) }.toList()
@@ -260,9 +265,15 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	}
 	
 	override suspend fun remove(id: UUID) = mutex.withLock {
-		requireUnlocked()
+		getPassword()
 		Files.deleteIfExists(secretsDir.resolve("$id.gpg"))
-		log.debug("Removed secret  id={}", id)
+			.andLog(log) {
+				if (it) debug("Removed secret  id={}", id)
+			}
+	}
+	
+	override fun requireUnlocked() {
+		if (password == null) throw SecretStoreLockedException()
 	}
 	// endregion
 }

@@ -23,6 +23,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolOutput
@@ -88,7 +89,8 @@ class Tools(
 					is CoreTool -> tool.coreExec(provider, arguments, outputChannel)
 					else -> tool.execute(arguments, outputChannel)
 				}
-			}.rethrowCancellation()
+			}.rethrow<SecretStoreLockedException>()
+				.rethrowCancellation()
 				.getOrElse { e ->
 					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
 					Tool.ToolOutput(e.message ?: "Unknown error", false)

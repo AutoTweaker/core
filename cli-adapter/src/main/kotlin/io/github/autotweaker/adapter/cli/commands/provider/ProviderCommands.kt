@@ -49,7 +49,7 @@ class ProviderCommands(
 		
 		val key = key ?: promptOrNull(ProvCommandsI18n.PromptKey(), ProvCommandsI18n.MissingKey()) ?: return@flow
 		
-		if (core.config.listApiKeyNames().find { it == key } == null) {
+		if (core.config.listApiKey().find { it == key } == null) {
 			emitI18n(ProvCommandsI18n.InvalidKey(), error = true)
 			emitDone(1)
 			return@flow
@@ -60,7 +60,7 @@ class ProviderCommands(
 			promptOrNull(ProvCommandsI18n.PromptUrl())?.toUrlOrNull()
 		} ?: core.config.getProviderMeta(type).baseUrl
 		
-		core.config.addProvider(
+		core.config.setProvider(
 			CoreConfig.ProviderConfig.Provider(
 				id = UUID.randomUUID(),
 				type = type,
@@ -108,7 +108,9 @@ class ProviderCommands(
 			return@flow
 		}
 		
-		core.config.setProviderDisplayName(provider.id, new)
+		core.config.setProvider(
+			provider.copy(displayName = new)
+		)
 		emitDone()
 	}
 	

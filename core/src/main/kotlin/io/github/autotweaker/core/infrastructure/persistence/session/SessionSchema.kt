@@ -57,14 +57,11 @@ object SessionDataTable : Table("session_data") {
 	val id = varchar("id", 36)
 	val title = varchar("title", 512).nullable()
 	val overview = varchar("overview", 512).nullable()
-	val modelJson = text("model_json")
 	val workspaceId = varchar("workspace_id", 36)
 	val agentIndexJson = text("agent_index_json")
 	
 	override val primaryKey = PrimaryKey(id)
 	
-	fun fillModel(it: UpdateBuilder<*>, model: ModelConfig) = fillJson(it, modelJson, model)
-	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
 	fun fillAgentIndex(it: UpdateBuilder<*>, index: AgentIndex) = fillJson(it, agentIndexJson, index)
 	fun readAgentIndex(row: ResultRow): AgentIndex = readJson(row, agentIndexJson)
 }

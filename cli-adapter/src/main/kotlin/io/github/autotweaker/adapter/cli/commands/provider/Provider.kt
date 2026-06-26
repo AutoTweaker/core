@@ -24,7 +24,6 @@ import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -71,7 +70,7 @@ class Provider : Command, I18nable {
 			),
 		)
 	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
+	override fun init(core: CoreAPI) {
 		this.core = core
 	}
 	

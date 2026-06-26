@@ -27,7 +27,6 @@ object LogBus {
 	private val _flow = MutableSharedFlow<LogEvent<ExceptionInfo.Live>>(replay = 1000)
 	val flow: SharedFlow<LogEvent<ExceptionInfo.Live>> = _flow
 	
-	fun emit(event: LogEvent<ExceptionInfo.Live>) {
+	fun emit(event: LogEvent<ExceptionInfo.Live>) =
 		_flow.tryEmit(event)
-	}
 }

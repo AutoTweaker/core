@@ -22,7 +22,6 @@ data class SessionDataEntry(
 	override val key: String,
 	val title: String?,
 	val overview: String?,
-	val model: String,
 	val workspaceId: String,
 	val agentIndex: String
 ) : DbEntry()

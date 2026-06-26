@@ -19,13 +19,16 @@
 package io.github.autotweaker.core.infrastructure.persistence
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
 import java.util.*
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 
 class IdListStore<T : Any>(
@@ -36,45 +39,40 @@ class IdListStore<T : Any>(
 ) : Loggable {
 	private val className = kClass.qualifiedName
 	
-	private val listSerializer = ListSerializer(serializer)
-	private val items = AtomicReference<List<T>>(emptyList())
+	private val mapSerializer = MapSerializer(UuidSerializer, serializer)
+	private val items = mutableMapOf<UUID, T>()
+	
+	private val mutex = Mutex()
 	
 	init {
-		val jsonArray = store.get()
-		items.set(
-			if (jsonArray == null) emptyList()
-			else Json.decodeFromJsonElement(listSerializer, jsonArray)
-		)
-		log.info("Initialized IdListStore  count={}  class={}", items.get().size, className)
+		store.get()?.let {
+			items.putAll(Json.decodeFromJsonElement(mapSerializer, it))
+		}
+		log.info("Initialized IdListStore  count={}  class={}", items.size, className)
 	}
 	
-	@Synchronized
-	fun add(data: T) {
+	suspend fun set(data: T) = mutex.withLock {
 		val id = idOf(data)
-		if (items.get().any { idOf(it) == id }) error("Already exists  id=$id")
-		update(items.get() + data)
+		items[id] = data
+		andSave()
 		log.debug("Added item  id={}  class={}", id, className)
 	}
 	
-	fun get(): List<T> = items.get()
+	suspend fun getAll(): Map<UUID, T> = mutex.withLock { items.toMap() }
 	
-	fun get(id: UUID): T? = items.get().find { idOf(it) == id }
+	suspend fun get(id: UUID): T? = mutex.withLock { items[id] }
 	
-	@Synchronized
-	fun delete(id: UUID) {
-		update(items.get().filterNot { idOf(it) == id })
-		log.debug("Deleted item  id={}  class={}", id, className)
+	suspend fun delete(id: UUID): Boolean = mutex.withLock {
+		(items.remove(id) != null).andSave().andLog(log)
+		{ debug("Deleted item  id={}  class={}", id, className) }
 	}
 	
-	@Synchronized
-	fun override(data: T) {
-		val id = idOf(data)
-		update(items.get().map { if (idOf(it) == id) data else it })
-		log.debug("Overridden item  id={}  class={}", id, className)
-	}
-	
-	private fun update(new: List<T>) {
-		items.set(new)
-		store.set(Json.encodeToJsonElement(listSerializer, new))
+	private fun <T> T.andSave() = also {
+		store.set(
+			Json.encodeToJsonElement(
+				mapSerializer,
+				items
+			)
+		)
 	}
 }

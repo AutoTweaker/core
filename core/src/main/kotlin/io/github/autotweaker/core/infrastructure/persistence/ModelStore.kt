@@ -24,11 +24,11 @@ import io.github.autotweaker.api.types.llm.ModelData
 import java.util.*
 
 object ModelStore : JsonStorable {
-	private val listStore = IdListStore(this::class, store, ModelData.serializer()) { it.id }
+	private val listStore =
+		IdListStore(this::class, store, ModelData.serializer()) { it.id }
 	
-	fun add(data: ModelData) = listStore.add(data)
-	fun get(): List<ModelData> = listStore.get()
-	fun get(id: UUID): ModelData? = listStore.get(id)
-	fun delete(id: UUID) = listStore.delete(id)
-	fun override(data: ModelData) = listStore.override(data)
+	suspend fun set(data: ModelData) = listStore.set(data)
+	suspend fun get(id: UUID) = listStore.get(id)
+	suspend fun getAll() = listStore.getAll()
+	suspend fun delete(id: UUID) = listStore.delete(id)
 }

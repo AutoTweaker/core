@@ -22,7 +22,7 @@ import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
-import io.github.autotweaker.api.types.SemVer
+
 import io.github.autotweaker.api.types.config.SettingValue
 import io.mockk.every
 import io.mockk.mockk
@@ -63,9 +63,9 @@ class CommandRouterTest {
 		val secret = mockk<CoreAPI.SecretAPI>()
 		every { core.secret } returns secret
 		every { secret.isUnlocked } returns MutableStateFlow(true)
-		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
+		router = CommandRouter(core, commands)
 	}
-	
+
 	private fun registerCommand(
 		name: String,
 		syntax: Syntax,
@@ -75,13 +75,13 @@ class CommandRouterTest {
 		every { cmd.name } returns name
 		every { cmd.description } returns ""
 		every { cmd.syntax } returns syntax
-		every { cmd.init(any(), any()) } returns Unit
+		every { cmd.init(any<CoreAPI>()) } returns Unit
 		every { cmd.handle(any(), any()) } answers {
 			val request = firstArg<Request>()
 			flowOf(*(handle(request).toTypedArray()))
 		}
 		commands.add(cmd)
-		router = CommandRouter(core, SemVer.parse("1.0.0"), commands)
+		router = CommandRouter(core, commands)
 		return cmd
 	}
 	

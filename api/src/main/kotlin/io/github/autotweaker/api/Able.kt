@@ -26,7 +26,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
- * 允许对象通过 [log] 获取 [Logger]
+ * 允许对象通过 [log] 获取 [Logger]，AutoTweaker 使用 logback 作为实现，插件仅需依赖 slf4j
  *
  * 实现此接口即可直接 `log.info("Hello World")` 而无需 [LoggerFactory.getLogger]
  */
@@ -34,24 +34,42 @@ interface Loggable
 
 /**
  * 允许对象通过 [trace] 获取 [TraceRecorder]
+ *
+ * @see TraceRecorder
  */
 interface Traceable
 
 /**
  * 允许对象通过 [store] 获取 [JsonStore]
+ *
+ * @see JsonStore
  */
 interface JsonStorable
 
 /**
  * 允许对象通过 [setting] 获取 [SettingService]
+ *
+ * @see SettingService
  */
 interface Settable
 
 /**
  * 允许对象通过 [i18n] 获取 [I18nService]
+ *
+ * @see I18nService
  */
 interface I18nable
 
+/**
+ * 获取 [Logger]，请遵循日志规范，不要污染程序日志。
+ *
+ * 日志规范：
+ * - 用语：英语，过去时或现在完成时，不要使用中文以及中文标点，用词："initialized"、"started"、"failed to shutdown"，通常动词在前，如 "Created session" "Completed agent shutdown"
+ * - 格式：首字母大写，不加句号。正文仅使用字母、数字、空格、短横线，不要使用点，字母之间使用一个空格
+ * - 变量：正文 + 双空格 + 变量，`key=value`，键值中间无空格，变量名使用 kotlin 风格，空格分隔多个字段，无逗号，使用 `{}` 而非字符串模板，不要把大段数据输出到日志，请使用 [TraceRecorder]
+ * - 标识：应当包含必要的实例标识和足够的上下文，但类名会由框架自动记录，可以省略自我介绍
+ * - 异常：通常不使用 INFO 级别记录异常，ERROR 级别异常传异常对象，WARN 级别不应当传递异常对象，但可尽量传递 `e.message`
+ */
 inline val Loggable.log: Logger get() = LoggerFactory.getLogger(this::class.java)
 
 /**

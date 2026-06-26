@@ -19,7 +19,6 @@
 package io.github.autotweaker.api.types.llm
 
 import java.util.*
-import kotlin.time.Duration
 
 data class CoreLlmRequest(
 	val model: UUID,
@@ -29,5 +28,5 @@ data class CoreLlmRequest(
 	val responseFormat: ChatRequest.ResponseFormat? = null,
 	val stream: Boolean = false,
 	val thinking: Boolean? = null,
-	val timeout: Duration? = null,
+	val timeout: ChatTimeout? = null,
 )

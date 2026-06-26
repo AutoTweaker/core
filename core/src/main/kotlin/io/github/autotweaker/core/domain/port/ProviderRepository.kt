@@ -19,20 +19,14 @@
 package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.llm.ProviderData
 import java.util.*
 
 interface ProviderRepository {
-	fun listAvailable(): List<String>
 	fun getMeta(type: String): LlmClient.ProviderInfo
-	fun list(): List<CoreConfig.ProviderConfig.Provider>
-	fun delete(id: UUID)
-	fun create(provider: CoreConfig.ProviderConfig.Provider)
-	fun updateType(id: UUID, new: String)
-	fun updateKey(id: UUID, keyName: String)
-	fun updateUrl(id: UUID, url: Url)
-	fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>)
-	fun updateDisplayName(id: UUID, displayName: String)
+	fun listAvailable(): List<String>
+	suspend fun set(provider: CoreConfig.ProviderConfig.Provider)
+	suspend fun remove(id: UUID): Boolean
+	suspend fun get(id: UUID): CoreConfig.ProviderConfig.Provider?
+	suspend fun list(): List<CoreConfig.ProviderConfig.Provider>
 }

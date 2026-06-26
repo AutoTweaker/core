@@ -25,14 +25,13 @@ import io.github.autotweaker.adapter.cli.commands.help.Help
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.*
 
-class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: List<Command>) : Loggable, Settable,
+class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, Settable,
 	I18nable {
 	private val handlers: Map<String, Command>
 	
@@ -46,15 +45,15 @@ class CommandRouter(private val core: CoreAPI, coreVersion: SemVer, commands: Li
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {
-		commands.forEach { it.init(core, coreVersion) }
+		commands.forEach { it.init(core) }
 		val help = Help(commands)
 		handlers = (commands + help).associateBy { it.name }
 		log.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
 	companion object {
-		fun fromServiceLoader(core: CoreAPI, coreVersion: SemVer): CommandRouter = CommandRouter(
-			core, coreVersion, ServiceLoader.load(Command::class.java, CliAdapter::class.java.classLoader).toList()
+		fun fromServiceLoader(core: CoreAPI): CommandRouter = CommandRouter(
+			core, ServiceLoader.load(Command::class.java, CliAdapter::class.java.classLoader).toList()
 		)
 	}
 	

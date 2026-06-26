@@ -38,7 +38,7 @@ object SecretDbApi : DbAPI<SecretEntry> {
 	}
 	
 	override suspend fun put(content: SecretEntry) {
-		SecretManager.add(content.content, UUID.fromString(content.key))
+		SecretManager.set(content.content, UUID.fromString(content.key))
 	}
 	
 	override suspend fun delete(key: String) {

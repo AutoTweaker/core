@@ -37,11 +37,11 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -67,7 +67,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			install(HttpTimeout)
 		}
 		
-		private val closed = AtomicBoolean(false)
+		private val closed = atomic(false)
 		
 		fun close() {
 			if (closed.compareAndSet(false, true)) {

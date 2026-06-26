@@ -20,18 +20,17 @@ package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrDefault
-import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
-import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.*
 
 object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
@@ -39,35 +38,30 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	private val modelConfig: ModelConfigRepository = ModelConfigAPI
 	private val store = ProviderStore
 	
+	private val mutex = Mutex()
+	
 	override fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
 	override fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo
-	override fun list() = store.get().map {
-		CoreConfig.ProviderConfig.Provider(
-			id = it.id,
-			type = it.providerType,
-			keyId = trace.catching {
-				apiKeyConfig.getName(it.apiKey)
-			}.rethrowNot<IllegalStateException>()
-				.getOrDefault("unknown"),
-			baseUrl = it.baseUrl,
-			displayName = it.displayName,
-			errorHandlingRules = it.errorHandlingRules,
-		)
-	}
 	
-	override fun delete(id: UUID) {
+	override suspend fun list() = store.getAll().values.map { it.toCoreConfig() }
+	
+	override suspend fun get(id: UUID): CoreConfig.ProviderConfig.Provider? =
+		store.get(id)?.toCoreConfig()
+	
+	override suspend fun remove(id: UUID) = mutex.withLock {
 		val modelIds = modelConfig.list().filter { it.data.providerId == id }.map { it.data.id }
-		val defaultModel = ModelRepositoryImpl.getDefaultModel()
-		if (defaultModel != null && defaultModel in modelIds) error("Cannot delete provider: contains default model $defaultModel")
+		val defaultModel = ModelResolverImpl.getDefaultModel()
+		require(defaultModel !in modelIds) { "Cannot delete provider: contains default model $defaultModel" }
 		modelIds.forEach { modelConfig.remove(it) }
-		store.delete(id)
-		log.info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
+		return@withLock store.delete(id).andLog(log) {
+			info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
+		}
 	}
 	
-	override fun create(provider: CoreConfig.ProviderConfig.Provider) {
-		require(!store.get().any { it.displayName == provider.displayName })
+	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) {
+		check(store.getAll().values.all { it.displayName != provider.displayName })
 		val meta = LlmClientLoader.load(provider.type).providerInfo
-		store.add(
+		store.set(
 			ProviderData(
 				id = provider.id,
 				displayName = provider.displayName,
@@ -76,35 +70,17 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 				baseUrl = provider.baseUrl ?: meta.baseUrl,
 				errorHandlingRules = provider.errorHandlingRules ?: meta.errorHandlingRules,
 			)
-		)
-		log.info("Created provider  id={}  type={}  name={}", provider.id, provider.type, provider.displayName)
+		).andLog(log) {
+			info("Created provider  id={}  type={}  name={}", provider.id, provider.type, provider.displayName)
+		}
 	}
 	
-	override fun updateType(id: UUID, new: String) {
-		store.override(get(id).copy(providerType = new))
-		log.info("Updated provider type  id={}  type={}", id, new)
-	}
-	
-	override fun updateKey(id: UUID, keyName: String) {
-		store.override(get(id).copy(apiKey = apiKeyConfig.getId(keyName)))
-		log.info("Updated provider key  id={}  keyName={}", id, keyName)
-	}
-	
-	override fun updateUrl(id: UUID, url: Url) {
-		store.override(get(id).copy(baseUrl = url))
-		log.info("Updated provider url  id={}  url={}", id, url)
-	}
-	
-	override fun updateRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) {
-		store.override(get(id).copy(errorHandlingRules = rules))
-		log.info("Updated provider error rules  id={}  ruleCount={}", id, rules.size)
-	}
-	
-	override fun updateDisplayName(id: UUID, displayName: String) {
-		require(!store.get().any { it.displayName == displayName })
-		store.override(get(id).copy(displayName = displayName))
-		log.info("Updated provider display name  id={}  name={}", id, displayName)
-	}
-	
-	fun get(id: UUID) = store.get(id) ?: error("ProviderData $id not found")
+	private suspend fun ProviderData.toCoreConfig() = CoreConfig.ProviderConfig.Provider(
+		id = id,
+		type = providerType,
+		keyId = apiKeyConfig.getName(apiKey) ?: "unknown",
+		baseUrl = baseUrl,
+		displayName = displayName,
+		errorHandlingRules = errorHandlingRules,
+	)
 }

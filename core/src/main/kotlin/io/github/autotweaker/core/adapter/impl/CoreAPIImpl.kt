@@ -21,16 +21,13 @@ package io.github.autotweaker.core.adapter.impl
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.path.PathResolver
-import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.ProviderData
-import io.github.autotweaker.api.types.log.ExceptionInfo
-import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
@@ -48,31 +45,23 @@ import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persistence.LogStore
-import io.github.autotweaker.core.infrastructure.persistence.ModelRepositoryImpl
-import io.github.autotweaker.core.infrastructure.persistence.ModelStore
+import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.trace.TraceStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 import kotlin.time.Instant
 
 class CoreAPIImpl(
-	private val adapterAPI: CoreAPI.AdapterAPI,
 	private val envRepo: EnvRepository,
 	private val providerRepo: ProviderRepository,
 	private val modelRepo: ModelConfigRepository,
 	private val apiKeyRepo: ApiKeyRepository,
+	override val adapter: CoreAPI.AdapterAPI,
 	override val pathResolver: PathResolver,
+	override val appVersion: SemVer
 ) : CoreAPI {
-	override val adapter = object : CoreAPI.AdapterAPI {
-		override suspend fun list(): List<AdapterInfo> = adapterAPI.list()
-		override suspend fun start(name: String) = adapterAPI.start(name)
-		override suspend fun alive(name: String): Boolean = adapterAPI.alive(name)
-		override suspend fun stop(name: String) = adapterAPI.stop(name)
-	}
-	
 	override val session = object : CoreAPI.SessionAPI {
 		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
 		override suspend fun create(model: ModelConfig) = SessionManager.create(model)
@@ -101,30 +90,24 @@ class CoreAPIImpl(
 		override suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
 		override suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
 		override suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
-		override fun listProviders() = providerRepo.list()
+		override suspend fun listProviders() = providerRepo.list()
 		override fun listAvailableProviderTypes() = providerRepo.listAvailable()
 		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = providerRepo.getMeta(type)
-		override fun addProvider(provider: CoreConfig.ProviderConfig.Provider) = providerRepo.create(provider)
-		override fun removeProvider(id: UUID) = providerRepo.delete(id)
-		override fun setProviderDisplayName(id: UUID, displayName: String) =
-			providerRepo.updateDisplayName(id, displayName)
+		override suspend fun setProvider(provider: CoreConfig.ProviderConfig.Provider) = providerRepo.set(provider)
+		override suspend fun removeProvider(id: UUID) = providerRepo.remove(id)
+		override suspend fun getProvider(id: UUID) = providerRepo.get(id)
+		override suspend fun setModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.set(model)
+		override suspend fun getModel(id: UUID) = modelRepo.get(id)
+		override suspend fun listModels() = modelRepo.list()
+		override suspend fun removeModel(id: UUID) {
+			modelRepo.remove(id)
+		}
 		
-		override fun setProviderType(id: UUID, type: String) = providerRepo.updateType(id, type)
-		override fun setProviderKey(id: UUID, keyName: String) = providerRepo.updateKey(id, keyName)
-		override fun setProviderUrl(id: UUID, url: Url) = providerRepo.updateUrl(id, url)
-		override fun setProviderRule(id: UUID, rules: List<ProviderData.ErrorHandlingRule>) =
-			providerRepo.updateRule(id, rules)
-		
-		override fun listModels() = modelRepo.list()
-		override fun getModelMeta(id: UUID): ModelData.ModelInfo? = ModelStore.get(id)?.modelInfo
-		override fun addModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.add(model)
-		override fun removeModel(id: UUID) = modelRepo.remove(id)
-		override fun updateModelData(id: UUID, model: CoreConfig.ProviderConfig.Model) = modelRepo.update(id, model)
-		override fun getDefaultModel(): UUID? = ModelRepositoryImpl.getDefaultModel()
-		override fun setDefaultModel(id: UUID) = ModelRepositoryImpl.setDefaultModel(id)
+		override fun getDefaultModel(): UUID? = ModelResolverImpl.getDefaultModel()
+		override suspend fun setDefaultModel(id: UUID) = ModelResolverImpl.setDefaultModel(id)
 		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
-		override fun listApiKeyNames() = apiKeyRepo.list()
-		override suspend fun removeApiKey(name: String) = apiKeyRepo.delete(name)
+		override suspend fun listApiKey() = apiKeyRepo.list()
+		override suspend fun removeApiKey(name: String) = apiKeyRepo.remove(name)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {
@@ -144,21 +127,21 @@ class CoreAPIImpl(
 	
 	override val trace = object : CoreAPI.TraceAPI {
 		override suspend fun origins() = TraceStore.selectOrigins()
-		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin)
-		override suspend fun count(origin: String, namespace: String) = TraceStore.count(origin, namespace)
-		override suspend fun entries(origin: String, namespace: String, range: UIntRange) =
-			TraceStore.selectEntries(origin, namespace, range)
+		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin).map { it.toKebabId() }
+		override suspend fun count(origin: String, namespace: KebabId) = TraceStore.count(origin, namespace.value)
+		override suspend fun entries(origin: String, namespace: KebabId, range: UIntRange) =
+			TraceStore.selectEntries(origin, namespace.value, range)
 		
-		override suspend fun get(origin: String, namespace: String, timestamp: Instant) =
-			TraceStore.select(origin, namespace, timestamp)
+		override suspend fun get(origin: String, namespace: KebabId, timestamp: Instant) =
+			TraceStore.select(origin, namespace.value, timestamp)
 		
-		override suspend fun delete(origin: String, namespace: String, timestamp: Instant) =
-			TraceStore.delete(origin, namespace, timestamp)
+		override suspend fun remove(origin: String, namespace: KebabId, timestamp: Instant) =
+			TraceStore.delete(origin, namespace.value, timestamp)
 	}
 	
 	override val log = object : CoreAPI.LogAPI {
-		override val flow: SharedFlow<LogEvent<ExceptionInfo.Live>> = LogBus.flow
-		override fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> =
+		override val flow = LogBus.flow
+		override fun readLogs(start: Instant, end: Instant) =
 			LogStore.readLogs(start, end)
 	}
 	

@@ -33,7 +33,6 @@ object SessionDataDbApi : AbstractDbApi<SessionDataEntry>() {
 		key = this[SessionDataTable.id],
 		title = this[SessionDataTable.title],
 		overview = this[SessionDataTable.overview],
-		model = this[SessionDataTable.modelJson],
 		workspaceId = this[SessionDataTable.workspaceId],
 		agentIndex = this[SessionDataTable.agentIndexJson],
 	)
@@ -42,7 +41,6 @@ object SessionDataDbApi : AbstractDbApi<SessionDataEntry>() {
 		this[SessionDataTable.id] = content.key
 		this[SessionDataTable.title] = content.title
 		this[SessionDataTable.overview] = content.overview
-		this[SessionDataTable.modelJson] = content.model
 		this[SessionDataTable.workspaceId] = content.workspaceId
 		this[SessionDataTable.agentIndexJson] = content.agentIndex
 	}

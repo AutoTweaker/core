@@ -26,7 +26,6 @@ import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -60,7 +59,7 @@ class Debug : Command, I18nable {
 	private lateinit var core: CoreAPI
 	private val debug get() = CliDebugger.instance
 	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
+	override fun init(core: CoreAPI) {
 		this.core = core
 	}
 	

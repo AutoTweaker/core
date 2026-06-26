@@ -26,7 +26,6 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.trace.getOrElse
-import io.github.autotweaker.api.types.SemVer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -67,7 +66,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 			),
 		)
 	
-	override fun init(core: CoreAPI, coreVersion: SemVer) {
+	override fun init(core: CoreAPI) {
 		this.core = core
 	}
 	

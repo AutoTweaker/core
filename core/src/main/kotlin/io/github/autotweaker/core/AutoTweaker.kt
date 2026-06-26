@@ -23,6 +23,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.StartupHook
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
@@ -45,8 +46,10 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		SemVer.parse(props.getProperty("version"))
 	}
 	
-	private val registry: MutableMap<String, Pair<Adapter, AdapterInfo>> = mutableMapOf()
-	private val adapterMutex = Mutex()
+	private val registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>> = mutableMapOf()
+	private val mutex = Mutex()
+	
+	private val core = Launcher.createCoreAPI(this, version)
 	
 	private val lockFile: Path = CONFIG_PATH.resolve("$APP_NAME_LOWERCASE.lock")
 	private var lockChannel: FileChannel? = null
@@ -65,7 +68,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		
 		log.info("Started AutoTweaker  version={}", version)
 		
-		Launcher.start(version, registry, this)
+		Launcher.start(registry, core)
 		Runtime.getRuntime().addShutdownHook(Thread {
 			log.info("Initiated AutoTweaker shutdown")
 			runBlocking { Launcher.shutdown(registry.values.toList()) }
@@ -91,28 +94,33 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		log.debug("Acquired lock  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
-	override suspend fun list(): List<AdapterInfo> = registry.values.map { it.second }
-	
-	override suspend fun start(name: String) = adapterMutex.withLock {
-		val (adapter, info) = requireAdapter(name)
-		if (adapter.isRunning) error("Adapter already running: ${info.name}")
-		adapter.start(Launcher.createCoreAPI(this))
-		log.info("Started adapter  name={}", info.name)
+	override suspend fun list() = mutex.withLock {
+		registry.values.map { it.second to it.first.isRunning }
 	}
 	
-	override suspend fun alive(name: String): Boolean {
+	override suspend fun start(name: KebabId) = mutex.withLock {
+		val (adapter, info) = requireAdapter(name)
+		if (adapter.isRunning) return@withLock false
+		adapter.start()
+		log.info("Started adapter  name={}", info.name)
+		return@withLock true
+	}
+	
+	override suspend fun alive(name: KebabId): Boolean = mutex.withLock {
 		val (adapter, _) = requireAdapter(name)
 		return adapter.isRunning
 	}
 	
-	override suspend fun stop(name: String) = adapterMutex.withLock {
+	override suspend fun stop(name: KebabId) = mutex.withLock {
 		val (adapter, info) = requireAdapter(name)
+		if (!adapter.isRunning) return@withLock false
 		adapter.stop()
 		log.info("Stopped adapter  name={}", info.name)
+		return@withLock true
 	}
 	
-	private fun requireAdapter(name: String): Pair<Adapter, AdapterInfo> =
-		registry[name] ?: error("Unknown adapter: $name")
+	private fun requireAdapter(name: KebabId): Pair<Adapter, AdapterInfo> =
+		requireNotNull(registry[name]) { "Unknown adapter: $name" }
 	
 	private fun releaseLock() {
 		trace.catching {

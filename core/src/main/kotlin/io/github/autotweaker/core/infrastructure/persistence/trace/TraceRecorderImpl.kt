@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.persistence.trace
 import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.trace.TraceRecorder
+import io.github.autotweaker.api.types.KebabId
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import java.util.concurrent.ConcurrentHashMap
@@ -52,8 +53,8 @@ object TraceRecorderImpl : Settable {
 		cache.computeIfAbsent(kClass) { Recorder(it.java.name) }
 	
 	private class Recorder(private val origin: String) : TraceRecorder {
-		override fun add(namespace: String, content: String) {
-			queue.trySend(TraceEntry(origin, namespace, content))
+		override fun add(namespace: KebabId, content: String) {
+			queue.trySend(TraceEntry(origin, namespace.value, content))
 		}
 	}
 	

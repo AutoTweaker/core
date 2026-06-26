@@ -52,7 +52,7 @@ class ModelAdd(
 			core.config.listModels().filter { it.data.providerId == provider.id }.map { it.data.displayName }
 		
 		providerMeta.models.map { it }.forEach {
-			if (it.modelId !in modelList) core.config.addModel(
+			if (it.modelId !in modelList) core.config.setModel(
 				CoreConfig.ProviderConfig.Model(
 					data = ModelData(
 						id = UUID.randomUUID(), displayName = it.modelId, modelInfo = it, providerId = provider.id
@@ -135,7 +135,7 @@ class ModelAdd(
 			)
 		}
 		
-		core.config.addModel(
+		core.config.setModel(
 			CoreConfig.ProviderConfig.Model(
 				ModelData(
 					id = UUID.randomUUID(),

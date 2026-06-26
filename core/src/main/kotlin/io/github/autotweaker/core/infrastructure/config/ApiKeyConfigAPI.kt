@@ -27,6 +27,8 @@ import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.domain.port.SecretStore
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -37,44 +39,55 @@ import java.util.concurrent.ConcurrentHashMap
 object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 	private lateinit var secret: SecretStore
 	private val provCfg: ProviderRepository = ProviderConfigAPI
-	private val keyMap = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
+	private val apiKeys = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
 	
-	fun init(secretStore: SecretStore) {
-		secret = secretStore
-	}
-	
-	
-	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) {
-		if (keyMap[key.name] != null) error("Key ${key.name} already exists")
-		keyMap[key.name] = secret.add(key.key)
-		saveMap()
-		log.info("Added API key  name={}", key.name)
-	}
-	
-	override fun list(): List<String> = keyMap.keys.toList()
-	override suspend fun get(name: String): String =
-		keyMap[name]?.let { secret.get(it) } ?: error("Key $name not found")
-	
-	override suspend fun delete(name: String) {
-		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
-		val id = keyMap.remove(name) ?: error("Key $name not found")
-		secret.remove(id)
-		saveMap()
-		log.info("Deleted API key  name={}", name)
-	}
-	
-	fun getId(name: String): UUID = keyMap[name] ?: error("Key $name not found")
-	fun getName(id: UUID): String =
-		keyMap.filter { it.value == id }.keys.firstOrNull() ?: error("Key $id not found")
+	private val mutex = Mutex()
 	
 	init {
 		store.get()?.let {
-			keyMap.putAll(
+			apiKeys.putAll(
 				Json.decodeFromJsonElement(MapSerializer(String.serializer(), UuidSerializer), it)
 			)
 		}
 	}
 	
-	private fun saveMap() =
-		store.set(Json.encodeToJsonElement(MapSerializer(String.serializer(), UuidSerializer), keyMap))
+	fun init(secretStore: SecretStore) {
+		secret = secretStore
+	}
+	
+	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) = mutex.withLock {
+		require(apiKeys[key.name] == null) { "Key ${key.name} already exists" }
+		apiKeys[key.name] = secret.set(key.key)
+		save()
+		log.info("Added API key  name={}", key.name)
+	}
+	
+	override suspend fun list(): List<String> = mutex.withLock {
+		apiKeys.keys.toList()
+	}
+	
+	override suspend fun get(name: String): String = mutex.withLock {
+		apiKeys[name]?.let { secret.get(it) } ?: error("Key $name not found")
+	}
+	
+	override suspend fun remove(name: String) = mutex.withLock {
+		if (apiKeys[name] == null) return@withLock false
+		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
+		val id = apiKeys.remove(name) ?: return@withLock false
+		save()
+		secret.remove(id)
+		log.info("Deleted API key  name={}", name)
+		return@withLock true
+	}
+	
+	suspend fun getId(name: String): UUID = mutex.withLock {
+		apiKeys[name] ?: error("Key $name not found")
+	}
+	
+	suspend fun getName(id: UUID): String? = mutex.withLock {
+		apiKeys.filter { it.value == id }.keys.firstOrNull()
+	}
+	
+	private fun save() =
+		store.set(Json.encodeToJsonElement(MapSerializer(String.serializer(), UuidSerializer), apiKeys))
 }

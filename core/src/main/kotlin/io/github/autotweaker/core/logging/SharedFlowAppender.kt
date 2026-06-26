@@ -22,6 +22,7 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.ThrowableProxy
 import ch.qos.logback.core.UnsynchronizedAppenderBase
+import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
@@ -29,10 +30,8 @@ import io.github.autotweaker.core.application.LogBus
 import kotlin.time.Instant
 
 class SharedFlowAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
-	
-	override fun append(event: ILoggingEvent) {
-		LogBus.emit(event.toLogEvent())
-	}
+	override fun append(event: ILoggingEvent) =
+		LogBus.emit(event.toLogEvent()).discard()
 	
 	private fun ILoggingEvent.toLogEvent(): LogEvent<ExceptionInfo.Live> {
 		val ex = (throwableProxy as? ThrowableProxy)?.throwable

@@ -58,13 +58,13 @@ class Session(
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
 	val agents: Map<UUID, AgentAPI> = bridges.toMap()
 	
-	suspend fun init(systemPrompt: String, activeTools: List<String>) = also {
+	suspend fun init(model: ModelConfig, systemPrompt: String, activeTools: List<String>) = also {
 		val mainId = index.main.id
 		restoreOrNull(mainId) ?: createAgent(
 			AgentData(
 				id = mainId,
 				name = MAIN_AGENT_NAME.toKebabId(),
-				model = _data.value.model,
+				model = model,
 				context = SessionContext.emptyContext(systemPrompt),
 				activeTools = activeTools
 			)

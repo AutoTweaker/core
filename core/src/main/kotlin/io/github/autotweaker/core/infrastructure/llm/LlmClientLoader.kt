@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.llm
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.log
 import io.github.autotweaker.core.PluginLoader
@@ -42,12 +43,11 @@ object LlmClientLoader : Loggable {
 		return@lazy result
 	}
 	
-	fun load(name: String): LlmClient {
-		val client = all.firstOrNull { it.providerInfo.name == name }
-			?: throw IllegalArgumentException("Unknown LLM provider: $name")
-		log.debug("Loaded LLM provider  name={}", name)
-		return client
-	}
+	fun load(name: String): LlmClient =
+		requireNotNull(all.firstOrNull { it.providerInfo.name == name })
+		{ "Unknown LLM provider: $name" }
+			.andLog(log) { debug("Loaded LLM provider  name={}", name) }
+	
 	
 	fun availableProviders(): List<String> =
 		all.map { it.providerInfo.name }

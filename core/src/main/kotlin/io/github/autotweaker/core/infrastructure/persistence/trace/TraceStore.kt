@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persistence.trace
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
@@ -25,8 +27,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 object TraceStore : Loggable {
 	private lateinit var db: Database
@@ -82,12 +82,12 @@ object TraceStore : Loggable {
 			.map { it[TraceTable.timestamp] }
 	}
 	
-	fun delete(origin: String, namespace: String, timestamp: Instant): Unit = transaction(db) {
+	fun delete(origin: String, namespace: String, timestamp: Instant): Boolean = transaction(db) {
 		TraceTable.deleteWhere {
 			(TraceTable.origin eq origin) and
 					(TraceTable.namespace eq namespace) and
 					(TraceTable.timestamp eq timestamp)
-		}
+		} >= 1
 	}
 	
 	fun deleteByAge(maxAgeDays: Int): Int = transaction(db) {

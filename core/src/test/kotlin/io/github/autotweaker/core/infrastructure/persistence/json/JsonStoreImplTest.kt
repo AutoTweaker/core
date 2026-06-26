@@ -22,12 +22,12 @@ import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persistence.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.atomicfu.atomic
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertNotNull
@@ -38,7 +38,7 @@ class JsonStoreImplTest {
 	private val dbUrl = "jdbc:h2:mem:js_${counter.getAndIncrement()};DB_CLOSE_DELAY=-1"
 	
 	companion object {
-		private val counter = AtomicInteger(0)
+		private val counter = atomic(0)
 		
 		init {
 			TestServices.init()

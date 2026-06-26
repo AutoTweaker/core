@@ -18,10 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.llm
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.*
+import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -32,8 +30,6 @@ import kotlinx.coroutines.flow.onEach
 import java.util.*
 
 object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
-	const val ASTERISK = '*'
-	
 	override suspend fun send(
 		request: ChatRequest,
 		apiKey: String,
@@ -49,26 +45,13 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 			request.stream, chatId
 		)
 		trace.add(
-			"request",
-			"request=$request, apiKey=${maskKey(apiKey)}, baseUrl=$baseUrl, providerType=$providerType, timeout=$timeout, chatId=$chatId"
+			"request".toKebabId(),
+			"request=$request, apiKey=${apiKey.toMasked()}, baseUrl=$baseUrl, providerType=$providerType, timeout=$timeout, chatId=$chatId"
 		)
 		return LlmClientLoader.load(providerType)
 			.chat(request, apiKey, baseUrl, timeout)
 			.onEach { result ->
-				trace.add("response", "result=$result, chatId=$chatId")
+				trace.add("response".toKebabId(), "result=$result, chatId=$chatId")
 			}
-	}
-	
-	private fun maskKey(key: String): String {
-		if (key.length <= 15) return buildString {
-			repeat(key.length) { append(ASTERISK) }
-		}
-		return key.mapIndexed { index, char ->
-			when {
-				index <= 4 -> char
-				index >= key.lastIndex - 3 -> char
-				else -> ASTERISK
-			}
-		}.joinToString("")
 	}
 }

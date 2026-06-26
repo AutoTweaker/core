@@ -32,7 +32,7 @@ class KeyManager(
 	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
 ) : I18nable {
 	fun list(): Flow<CmdOutput> = flow {
-		core.config.listApiKeyNames().forEach { emit(CmdOutput.Data(it)) }
+		core.config.listApiKey().forEach { emit(CmdOutput.Data(it)) }
 		emitDone()
 	}
 	
@@ -50,7 +50,7 @@ class KeyManager(
 			emitDone(1)
 			return@flow
 		}
-		if (core.config.listApiKeyNames().any { it == name }) {
+		if (core.config.listApiKey().any { it == name }) {
 			emitI18n(SecretI18n.KeyExistsError(), name, error = true)
 			emitDone(1)
 			return@flow
@@ -65,7 +65,7 @@ class KeyManager(
 	}
 	
 	fun remove(name: String): Flow<CmdOutput> = flow {
-		if (core.config.listApiKeyNames().any { it == name }) {
+		if (core.config.listApiKey().any { it == name }) {
 			core.config.removeApiKey(name)
 			emitDone()
 		} else {

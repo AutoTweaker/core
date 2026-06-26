@@ -16,13 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.port
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.types.config.CoreConfig
-
-interface ApiKeyRepository {
-	suspend fun add(key: CoreConfig.ProviderConfig.ApiKey)
-	suspend fun remove(name: String): Boolean
-	suspend fun get(name: String): String
-	suspend fun list(): List<String>
+fun String.toMasked(): String {
+	if (length <= 15) return "*".repeat(length)
+	return buildString(length) {
+		this@toMasked.forEachIndexed { index, char ->
+			if (index <= 4 || index >= lastIndex - 3)
+				append(char)
+			else
+				append('*')
+			
+		}
+	}
 }

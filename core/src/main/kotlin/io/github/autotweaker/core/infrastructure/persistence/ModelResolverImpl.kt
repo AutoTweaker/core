@@ -18,41 +18,35 @@
 
 package io.github.autotweaker.core.infrastructure.persistence
 
-import io.github.autotweaker.api.JsonStorable
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.store
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
-import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
 
-object ModelRepositoryImpl : ModelRepository, Loggable, JsonStorable {
-	
+object ModelResolverImpl : ModelResolver, Loggable, JsonStorable {
 	private lateinit var secretStore: SecretStore
 	
 	fun init(secretStore: SecretStore) {
 		this.secretStore = secretStore
 	}
 	
-	fun getDefaultModel(): UUID? {
-		val element = store.get() ?: return null
-		return Json.decodeFromJsonElement(UuidSerializer.nullable, element)
-	}
+	fun getDefaultModel(): UUID? =
+		store.get()?.let { Json.decodeFromJsonElement(UuidSerializer.nullable, it) }
 	
-	fun setDefaultModel(id: UUID) {
-		if (ModelStore.get(id) == null) error("Model not found: $id")
+	suspend fun setDefaultModel(id: UUID) {
+		requireNotNull(ModelStore.get(id)) { "Model not found: $id" }
 		store.set(Json.encodeToJsonElement(UuidSerializer.nullable, id))
 		log.info("Set default model  modelId={}", id)
 	}
 	
 	override suspend fun resolve(id: UUID): Model? {
-		val actualId = resolveModelId(id)
-		val model = ModelStore.get(actualId) ?: return null
+		val resolvedId = resolveModelId(id)
+		val model = ModelStore.get(resolvedId) ?: return null
 		val provider = ProviderStore.get(model.providerId) ?: return null
 		return Model(
 			id = model.id,
@@ -68,18 +62,25 @@ object ModelRepositoryImpl : ModelRepository, Loggable, JsonStorable {
 		)
 	}
 	
-	private fun resolveModelId(id: UUID): UUID {
-		if (ModelStore.get(id) != null) return id
+	private suspend fun resolveModelId(id: UUID): UUID {
+		if (id.available()) return id
 		val defaultId = getDefaultModel()
-		if (defaultId != null && ModelStore.get(defaultId) != null) {
+		if (defaultId?.available() == true) {
 			log.warn("Resolved model via default  requestedId={}  defaultId={}", id, defaultId)
 			return defaultId
 		}
-		val first = ModelStore.get().firstOrNull()
-		if (first != null) {
-			log.warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, first.id)
-			return first.id
-		}
+		for (model in ModelStore.getAll())
+			if (ProviderStore.get(model.value.providerId) != null)
+				return model.key.andLog(log) {
+					warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, model.key)
+				}
+		
 		return id
+	}
+	
+	private suspend fun UUID.available(): Boolean {
+		val model = ModelStore.get(this) ?: return false
+		ProviderStore.get(model.providerId) ?: return false
+		return true
 	}
 }

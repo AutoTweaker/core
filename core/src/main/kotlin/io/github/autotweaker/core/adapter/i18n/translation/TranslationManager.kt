@@ -22,7 +22,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.core.domain.port.ModelRepository
+import io.github.autotweaker.core.domain.port.ModelResolver
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,18 +31,18 @@ import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.json.Json
 import java.util.*
 
-object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nable {
+object TranslationManager : Loggable, Traceable, JsonStorable, I18nable {
 	
-	private lateinit var modelRepo: ModelRepository
+	private lateinit var modelRepo: ModelResolver
 	
 	fun init(
-		modelRepo: ModelRepository,
+		modelRepo: ModelResolver,
 	) {
 		this.modelRepo = modelRepo
 	}
 	
-	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
 	private val _status = MutableStateFlow(TranslationStatus.IDLE)
+	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
 	fun getModel(): UUID? = loadModelId()
@@ -52,27 +52,32 @@ object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nabl
 		log.debug("Updated translation model  modelId={}", modelId)
 	}
 	
-	fun startTranslation() {
+	fun startTranslation(): Boolean {
+		val logSkipped: (reason: String) -> Unit = {
+			log.debug("Skipped translation  reason={}", it)
+		}
+		
 		if (!_status.compareAndSet(TranslationStatus.IDLE, TranslationStatus.TRANSLATING)) {
-			log.debug("Skipped translation  reason=already_in_progress")
-			return
+			logSkipped("already-in-progress")
+			return false
 		}
 		
 		val modelId = loadModelId()
 		if (modelId == null) {
-			log.info("Skipped translation  reason=model_not_configured")
+			logSkipped("model-not-configured")
 			_status.value = TranslationStatus.IDLE
-			return
+			return false
 		}
 		
 		val target = i18n.getLanguage()
 		if (TranslationEngine.isLanguageCovered(target)) {
-			log.info("Skipped translation  reason=already_complete  target={}  action=skip", target.toLanguageTag())
+			logSkipped("already-complete")
 			_status.value = TranslationStatus.IDLE
-			return
+			return false
 		}
 		
 		scope.launch {
+			log.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
 			trace.catching {
 				TranslationEngine.run(modelId, target, modelRepo)
 			}.rethrowCancellation()
@@ -80,19 +85,18 @@ object TranslationManager : Loggable, Traceable, JsonStorable, Settable, I18nabl
 				.also { _status.value = TranslationStatus.IDLE }
 				.getOrThrow()
 		}
-		log.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
+		
+		return true
 	}
 	
 	fun shutdown() {
 		scope.cancel()
 	}
 	
-	private fun loadModelId(): UUID? {
-		val element = store.get() ?: return null
-		return Json.decodeFromJsonElement(UuidSerializer.nullable, element)
-	}
+	private fun loadModelId(): UUID? =
+		store.get()?.let { Json.decodeFromJsonElement(UuidSerializer.nullable, it) }
 	
-	private fun saveModelId(modelId: UUID?) {
+	
+	private fun saveModelId(modelId: UUID?) =
 		store.set(Json.encodeToJsonElement(UuidSerializer.nullable, modelId))
-	}
 }
