@@ -27,7 +27,7 @@ dependencies {
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-	implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
+	implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0-0.6.x-compat")
 	
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 	kapt("com.google.auto.service:auto-service:1.1.1")
