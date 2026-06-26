@@ -65,7 +65,7 @@ dependencies {
 	implementation("com.h2database:h2:2.4.240")
 	
 	implementation("org.slf4j:slf4j-api:2.0.18")
-	implementation("ch.qos.logback:logback-classic:1.5.32")
+	implementation("ch.qos.logback:logback-classic:1.5.37")
 	implementation("com.dgkncgty:logback-journal:0.5.1")
 	implementation("org.codehaus.janino:janino:3.1.12")
 	implementation("net.logstash.logback:logstash-logback-encoder:9.0")
