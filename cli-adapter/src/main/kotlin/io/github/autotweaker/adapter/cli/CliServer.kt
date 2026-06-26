@@ -24,16 +24,16 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.trace.recoverException
 import io.github.autotweaker.api.types.config.SettingValue
+import io.ktor.network.selector.*
+import io.ktor.network.sockets.*
+import io.ktor.utils.io.*
+import io.ktor.utils.io.charsets.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import java.io.IOException
-import java.net.StandardProtocolFamily
-import java.net.UnixDomainSocketAddress
-import java.nio.ByteBuffer
-import java.nio.channels.ServerSocketChannel
-import java.nio.channels.SocketChannel
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
 
 object CliServer : Loggable, Settable, Traceable {
-	val isRunning get() = ::channel.isInitialized && channel.isOpen
+	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
 	
 	@AutoService(SettingDef::class)
 	class MaxLineLength : SettingDef<SettingValue.ValInt> {
@@ -50,29 +50,40 @@ object CliServer : Loggable, Settable, Traceable {
 	}
 	
 	private val maxLineLength = setting.get(MaxLineLength()).value
+	
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-	private val activeClients = ConcurrentHashMap.newKeySet<SocketChannel>()
+	
+	private val activeClients = ConcurrentHashMap.newKeySet<Socket>()
 	private val connectionLimit = Semaphore(64)
-	private lateinit var channel: ServerSocketChannel
+	
+	private lateinit var serverSocket: ServerSocket
+	private lateinit var selectorManager: SelectorManager
+	
 	private const val MAX_RESPONSE_CHUNK = 256 * 1024
 	
 	private val socketPath: Path = CONFIG_PATH.resolve("cli.sock")
 	
-	fun start(router: CommandRouter) {
-		val path = socketPath
-		Files.createDirectories(path.parent)
-		path.deleteIfExists()
-		
-		channel = ServerSocketChannel.open(StandardProtocolFamily.UNIX).apply {
-			bind(UnixDomainSocketAddress.of(path))
+	private val mutex = Mutex()
+	
+	
+	suspend fun start(router: CommandRouter) = mutex.withLock {
+		withContext(Dispatchers.IO) {
+			Files.createDirectories(socketPath.parent)
 		}
-		Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
-		log.info("Started CliServer  socketPath={}", path)
+		socketPath.deleteIfExists()
+		
+		selectorManager = SelectorManager(Dispatchers.IO)
+		serverSocket = aSocket(selectorManager).tcp().bind(UnixSocketAddress(socketPath.toString()))
+		
+		withContext(Dispatchers.IO) {
+			Files.setPosixFilePermissions(socketPath, PosixFilePermissions.fromString("rwx------"))
+		}
+		log.info("Started CliServer  socketPath={}", socketPath)
 		
 		scope.launch {
-			while (channel.isOpen) {
-				val client = trace.catching { channel.accept() }
+			while (!serverSocket.isClosed) {
+				val client = trace.catching { serverSocket.accept() }
 					.onFailure {
 						log.warn(
 							"Failed connection acceptance  socketPath={}  reason={}",
@@ -96,33 +107,33 @@ object CliServer : Loggable, Settable, Traceable {
 		}
 	}
 	
-	fun stop() {
+	suspend fun stop() = mutex.withLock {
 		activeClients.forEach { trace.catching { it.close() } }
 		activeClients.clear()
-		trace.catching { channel.close() }
+		trace.catching { serverSocket.close() }
+		trace.catching { selectorManager.close() }
 		scope.cancel()
 		trace.catching { socketPath.deleteIfExists() }
 		log.info("Stopped CliServer  socketPath={}", socketPath)
 	}
 	
-	private suspend fun handle(client: SocketChannel, router: CommandRouter) {
-		client.use {
-			val line = readLine(client) ?: run {
-				log.debug("Client sent no data")
-				return
+	private suspend fun handle(socket: Socket, router: CommandRouter) =
+		socket.use {
+			val receiveChannel = socket.openReadChannel()
+			val sendChannel = socket.openWriteChannel(autoFlush = true)
+			
+			val line = receiveChannel.readCliLine() ?: run {
+				log.debug("Client sent no data"); return@use
 			}
-			val command = (json.decodeFromString<CliMessage>(line) as? CliMessage.Command) ?: run {
-				log.warn("Failed CLI message parsing")
-				return
-			}
+			val command = json.decodeFromString<CliMessage.Command>(line)
+			
 			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
 			
 			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
-				write(client, json.encodeToString<CliResponse>(CliResponse.Prompt(text, echo)))
-				val line = readLine(client) ?: throw CancellationException("Client disconnected")
-				val reply = json.decodeFromString<CliMessage>(line)
-				(reply as? CliMessage.PromptResponse)?.text
-					?: throw IllegalStateException("Expected PromptResponse, got ${reply::class.simpleName}")
+				sendChannel.writeResponse(CliResponse.Prompt(text, echo))
+				val line = receiveChannel.readCliLine()
+					?: throw CancellationException("Client disconnected", null)
+				json.decodeFromString<CliMessage.PromptResponse>(line).text
 			}
 			
 			var sawDone = false
@@ -132,34 +143,14 @@ object CliServer : Loggable, Settable, Traceable {
 					when (chunk) {
 						is CmdOutput.Data -> {
 							val channel = chunk.channel.name.lowercase()
-							val text = chunk.text
-							if (text.length <= MAX_RESPONSE_CHUNK) {
-								write(
-									client,
-									json.encodeToString<CliResponse>(CliResponse.Data(text, channel, chunk.newline))
-								)
-							} else {
-								var offset = 0
-								while (offset < text.length) {
-									val end = minOf(offset + MAX_RESPONSE_CHUNK, text.length)
-									write(
-										client,
-										json.encodeToString<CliResponse>(
-											CliResponse.Data(
-												text.substring(offset, end),
-												channel,
-												chunk.newline
-											)
-										)
-									)
-									offset = end
-								}
+							chunk.text.chunked(MAX_RESPONSE_CHUNK).forEach { part ->
+								sendChannel.writeResponse(CliResponse.Data(part, channel, chunk.newline))
 							}
 						}
 						
 						is CmdOutput.Done -> {
 							sawDone = true
-							write(client, json.encodeToString<CliResponse>(CliResponse.Done(chunk.exitCode)))
+							sendChannel.writeResponse(CliResponse.Done(chunk.exitCode))
 							return@collect
 						}
 					}
@@ -174,10 +165,8 @@ object CliServer : Loggable, Settable, Traceable {
 				.onFailure { e ->
 					log.error("Failed command  command={}", cmdName, e)
 					trace.catching {
-						write(
-							client, json.encodeToString<CliResponse>(
-								CliResponse.Data(e.message ?: "Internal error", "stderr", true)
-							)
+						sendChannel.writeResponse(
+							CliResponse.Data(e.message ?: "Internal error", "stderr", true)
 						)
 					}
 				}
@@ -185,61 +174,18 @@ object CliServer : Loggable, Settable, Traceable {
 			if (!sawDone) {
 				log.warn("Command did not emit Done  command={}", cmdName)
 				trace.catching {
-					write(client, json.encodeToString<CliResponse>(CliResponse.Done(1)))
+					sendChannel.writeResponse(CliResponse.Done(1))
 				}
 			}
 		}
-	}
 	
-	private fun readLine(channel: SocketChannel): String? {
-		val buf = ByteBuffer.allocate(4096)
-		var remainder = ByteArray(0)
-		val sb = StringBuilder()
-		while (true) {
-			buf.clear()
-			if (remainder.isNotEmpty()) buf.put(remainder)
-			val n = channel.read(buf)
-			if (n == -1) return sb.toString().ifEmpty { null }
-			buf.flip()
-			val bytes = ByteArray(buf.remaining())
-			buf.get(bytes)
-			val validEnd = findValidUtf8End(bytes)
-			remainder = bytes.copyOfRange(validEnd, bytes.size)
-			val chunk = String(bytes, 0, validEnd, StandardCharsets.UTF_8)
-			val nl = chunk.indexOf('\n')
-			if (nl >= 0) {
-				sb.append(chunk, 0, nl)
-				return sb.toString()
-			}
-			if (sb.length + chunk.length > maxLineLength) {
-				log.warn("Exceeded line max length  length={}", sb.length)
-				return null
-			}
-			sb.append(chunk)
-		}
-	}
 	
-	private fun findValidUtf8End(bytes: ByteArray): Int {
-		var i = bytes.size
-		while (i > 0) {
-			val b = bytes[i - 1].toInt() and 0xFF
-			if (b < 0x80) break
-			if (b and 0xC0 == 0xC0) {
-				i--; break
-			}
-			i--
-		}
-		return i
-	}
+	private suspend fun ByteReadChannel.readCliLine(): String? =
+		trace.catching { readLineStrict(limit = maxLineLength.toLong()) }
+			.onException<TooLongLineException> {
+				log.warn("Exceeded line max length  limit={}", maxLineLength)
+			}.getOrNull()
 	
-	private fun write(channel: SocketChannel, text: String) {
-		if (text.isEmpty()) return
-		val bytes = (text + "\n").toByteArray(StandardCharsets.UTF_8)
-		var pos = 0
-		while (pos < bytes.size) {
-			val written = channel.write(ByteBuffer.wrap(bytes, pos, bytes.size - pos))
-			if (written < 0) throw IOException("Channel not writable")
-			pos += written
-		}
-	}
+	private suspend fun ByteWriteChannel.writeResponse(response: CliResponse) =
+		writeStringUtf8(json.encodeToString(response) + "\n")
 }
