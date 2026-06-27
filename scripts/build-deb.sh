@@ -39,7 +39,7 @@ cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
 
 install -m 644 "$CLI_ADAPTER_JAR" "$PKG_ROOT/usr/share/autotweaker/cli-adapter.jar"
 
-install -m 755 -D "$PROJECT_DIR/cli-client/build/autotweaker" "$PKG_ROOT/usr/bin/autotweaker"
+install -m 755 -D "$PROJECT_DIR/cli-client/build/bin/linuxX64/releaseExecutable/autotweaker.kexe" "$PKG_ROOT/usr/bin/autotweaker"
 #ln -sf autotweaker "$PKG_ROOT/usr/bin/at"
 install -m 755 -D "$SCRIPT_DIR/autotweakerd" "$PKG_ROOT/usr/libexec/autotweaker/autotweakerd"
 install -m 755 -D "$SCRIPT_DIR/update/autoupdate.sh" "$PKG_ROOT/usr/libexec/autotweaker/autoupdate.sh"

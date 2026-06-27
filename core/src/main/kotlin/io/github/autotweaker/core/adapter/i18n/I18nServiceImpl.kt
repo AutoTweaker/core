@@ -39,14 +39,15 @@ object I18nServiceImpl : I18nService, Loggable, JsonStorable {
 	private val cache = atomic(emptyList<I18nEntry>())
 	
 	@Volatile
-	private lateinit var language: Locale
+	private var language: Locale
 	
 	init {
-		store.get()?.let {
-			val data = Json.decodeFromJsonElement<Store>(it)
+		val entry = store.get()
+		language = if (entry != null) {
+			val data = Json.decodeFromJsonElement<Store>(entry)
 			cache.update { cache -> cache + data.entries }
-			language = data.language
-		}
+			data.language
+		} else Locale.getDefault()
 	}
 	
 	override fun setLanguage(locale: Locale) {

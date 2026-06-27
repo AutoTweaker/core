@@ -27,6 +27,7 @@ import io.github.autotweaker.api.types.KebabId
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
+import io.github.autotweaker.core.application.Wiring
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -49,7 +50,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	private val registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	private val mutex = Mutex()
 	
-	private val core = Launcher.createCoreAPI(this, version)
+	private val core by lazy { Wiring.createCoreAPI(this, version) }
 	
 	private val lockFile: Path = CONFIG_PATH.resolve("$APP_NAME_LOWERCASE.lock")
 	private var lockChannel: FileChannel? = null
@@ -68,7 +69,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		
 		log.info("Started AutoTweaker  version={}", version)
 		
-		Launcher.start(registry, core)
+		Launcher.start(registry) { core }
 		Runtime.getRuntime().addShutdownHook(Thread {
 			log.info("Initiated AutoTweaker shutdown")
 			runBlocking { Launcher.shutdown(registry.values.toList()) }

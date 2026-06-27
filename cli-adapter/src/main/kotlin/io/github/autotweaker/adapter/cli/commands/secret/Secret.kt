@@ -168,26 +168,26 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
 		if (core.secret.isPasswordEmpty()) {
-			this@Secret.log.debug("Skipped unlock  command=secret  reason=no_password_set")
+			log.debug("Skipped unlock  command=secret  reason=no_password_set")
 			emitI18n(SecretI18n.UnlockNoPassword())
 			emitDone(0)
 			return@flow
 		}
 		
 		if (core.secret.isUnlocked.value) {
-			this@Secret.log.debug("Skipped unlock  command=secret  reason=already_unlocked")
+			log.debug("Skipped unlock  command=secret  reason=already_unlocked")
 			emitI18n(SecretI18n.UnlockAlready())
 			emitDone(0)
 			return@flow
 		}
 		
-		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false).also { emit(CmdOutput.Data("")) }
+		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()) + " ", false)
 		
 		trace.catching {
 			core.secret.unlock(password)
-			this@Secret.log.info("Unlocked keystore  command=secret")
+			log.info("Unlocked keystore  command=secret")
 		}.getOrElse {
-			this@Secret.log.warn("Failed keystore unlock  command=secret")
+			log.warn("Failed keystore unlock  command=secret")
 			emitI18n(SecretI18n.UnlockFailed(), error = true)
 			emitDone(1)
 			return@flow
@@ -196,16 +196,16 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	}
 	
 	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
-		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
+		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()) + " ", false)
 		emit(CmdOutput.Data(""))
 		trace.catching {
 			if (!core.secret.isUnlocked.value) {
 				core.secret.unlock(password)
 			}
 			core.secret.changePassword(password, "")
-			this@Secret.log.info("Removed password  command=secret")
+			log.info("Removed password  command=secret")
 		}.getOrElse {
-			this@Secret.log.warn("Failed password removal  command=secret")
+			log.warn("Failed password removal  command=secret")
 			emitI18n(SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
 			return@flow
@@ -213,17 +213,19 @@ class Secret : Command, Loggable, I18nable, Traceable {
 		emitDone()
 	}
 	
-	private fun handleChange(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
+	private fun handleChange(
+		prompt: suspend (text: String, echo: Boolean) -> String
+	): Flow<CmdOutput> = flow {
 		val oldPassword = if (core.secret.isPasswordEmpty()) ""
-		else prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
+		else prompt(i18n.get(SecretI18n.UnlockPrompt()) + " ", false)
 		
+		val newPassword = prompt(i18n.get(PasswdI18n.PromptNew()) + " ", false)
 		
-		val newPassword = prompt(i18n.get(PasswdI18n.PromptNew()), false)
-		val confirm = prompt(i18n.get(PasswdI18n.PromptConfirm()), false)
+		val confirm = prompt(i18n.get(PasswdI18n.PromptConfirm()) + " ", false)
 		
 		if (newPassword != confirm) {
-			this@Secret.log.debug("Aborted password change  command=secret  reason=confirmation_mismatch")
 			emitI18n(PasswdI18n.Mismatch(), error = true)
+			log.debug("Aborted password change, confirmation mismatch  command=secret")
 			emitDone(1)
 			return@flow
 		}
@@ -233,9 +235,9 @@ class Secret : Command, Loggable, I18nable, Traceable {
 				core.secret.unlock(oldPassword)
 			}
 			core.secret.changePassword(oldPassword, newPassword)
-			this@Secret.log.info("Changed password  command=secret")
+			log.info("Changed password  command=secret")
 		}.getOrElse {
-			this@Secret.log.warn("Failed password change  command=secret")
+			log.warn("Failed password change  command=secret")
 			emitI18n(SecretI18n.InvalidPasswd(), error = true)
 			emitDone(1)
 			return@flow

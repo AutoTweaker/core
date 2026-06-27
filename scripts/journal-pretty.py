@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Usage:
+
 journalctl -u autotweaker --user -f -o json -n 200 -p info | grep '"LOGGER_NAME":"io.github.autotweaker' | python3 scripts/journal-pretty
 """
 import json
@@ -86,7 +87,7 @@ def main():
                 continue
             result = format_entry(entry)
             if result:
-                print(result)
+                print(result, flush=True)
     except (BrokenPipeError, KeyboardInterrupt):
         pass
 

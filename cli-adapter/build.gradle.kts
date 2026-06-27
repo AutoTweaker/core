@@ -58,3 +58,10 @@ if (inDocker) {
 } else {
 	tasks.test { enabled = false }
 }
+
+evaluationDependsOn(":cli-protocol")
+
+tasks.jar {
+	dependsOn(project(":cli-protocol").tasks.named("jvmJar"))
+	from(zipTree(project(":cli-protocol").tasks.named("jvmJar").get().outputs.files.singleFile))
+}

@@ -58,6 +58,7 @@ object Protocol {
 				}
 			}
 		}
+		printErr("Error: server disconnected.")
 		return 1
 	}
 }

@@ -70,7 +70,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		private val closed = atomic(false)
 		
 		fun close() {
-			if (closed.compareAndSet(false, true)) {
+			if (closed.compareAndSet(false, update = true)) {
 				sharedHttpClient.close()
 			}
 		}
@@ -101,7 +101,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		timeout: ChatTimeout?
 	): Flow<ChatResult> = flow {
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
-		this@AbstractOpenAiClient.trace.catching {
+		trace.catching {
 			if (request.stream) {
 				val body = createRequestBody(request)
 				

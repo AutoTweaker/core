@@ -87,17 +87,14 @@ subprojects {
 
 // endregion
 
-tasks.register<Exec>("compileAutotweakerCli") {
-	description = "编译 C 编写的 autotweaker CLI 客户端"
-	workingDir = file("$projectDir/cli-client")
-	commandLine("make")
-	inputs.dir(workingDir).withPropertyName("cliSourceDir").withPathSensitivity(PathSensitivity.RELATIVE)
-	outputs.file("${workingDir}/build/autotweaker")
-}
-
 tasks.register<Exec>("buildDeb") {
 	description = "构建 .deb 包"
-	dependsOn(":core:installDist", ":cli-adapter:jar", "compileAutotweakerCli", ":generateVersionProperties")
+	dependsOn(
+		":core:installDist",
+		":cli-adapter:jar",
+		":cli-client:linkReleaseExecutableLinuxX64",
+		":generateVersionProperties"
+	)
 	workingDir = projectDir
 	val cliAdapterJar = project(":cli-adapter").tasks.named("jar").get().outputs.files.singleFile.absolutePath
 	val versionFile = generatedVersionFile

@@ -58,7 +58,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 		}
 	}
 	
-	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) {
+	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) = mutex.withLock {
 		check(store.getAll().values.all { it.displayName != provider.displayName })
 		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.set(

@@ -36,12 +36,12 @@ import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
 	if (
-		args.count() == 3 &&
-		args.getOrNull(1) in setOf("-d", "--daemon") &&
-		args.getOrNull(2) in KNOWN_DAEMON_ACTIONS
+		args.count() == 2 &&
+		args.getOrNull(0) in setOf("-d", "--daemon") &&
+		args.getOrNull(1) in KNOWN_DAEMON_ACTIONS
 	) {
 		systemctl("--user", "daemon-reload")
-		val result = systemctl("--user", args[2], APP_NAME_LOWERCASE)
+		val result = systemctl("--user", args[1], APP_NAME_LOWERCASE)
 		printErr(result.output)
 		exitProcess(result.exitCode)
 	}
@@ -53,8 +53,8 @@ fun main(args: Array<String>) {
 	syncPlugins(); writeProxyEnv()
 	
 	fun buildRequest(): String {
-		val prog = args.firstOrNull()?.substringAfterLast('/') ?: APP_NAME_LOWERCASE
-		val cmdArgs = args.drop(1).toList()
+		val prog = APP_NAME_LOWERCASE
+		val cmdArgs = args.toList()
 		return Json.encodeToString(CliMessage.Command(args = cmdArgs, prog = prog))
 	}
 	

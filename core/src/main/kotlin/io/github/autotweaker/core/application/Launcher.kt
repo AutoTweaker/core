@@ -24,17 +24,11 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.Debugger
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.KebabId
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
-import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.domain.session.SessionManager
-import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
-import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
-import io.github.autotweaker.core.infrastructure.config.ModelConfigAPI
-import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
@@ -60,14 +54,14 @@ object Launcher : Loggable, Traceable {
 	
 	suspend fun start(
 		registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>>,
-		core: CoreAPI
+		lazyCore: () -> CoreAPI
 	) {
 		initServices(
 			ServiceRegistry(
 				trace = TraceRecorderImpl::recorder,
 				store = JsonStoreImpl::namespace,
-				setting = Settings,
-				i18n = I18nServiceImpl,
+				lazySetting = { Settings },
+				lazyI18n = { I18nServiceImpl },
 			)
 		)
 		
@@ -95,7 +89,7 @@ object Launcher : Loggable, Traceable {
 		TranslationManager.init(ModelResolverImpl)
 		TranslationManager.startTranslation()
 		
-		val all = PluginLoader.load<Adapter>().map { it to it.init(core) }
+		val all = PluginLoader.load<Adapter>().map { it to it.init(lazyCore()) }
 		val adapters = all.groupBy { (_, info) -> info.name }
 			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
@@ -104,23 +98,16 @@ object Launcher : Loggable, Traceable {
 			adapters.forEach { (adapter, info) ->
 				registry[info.name] = adapter to info
 				log.info(
-					"Loaded adapter  name={}  version={}  description={}", info.name, info.version, info.description
+					"Loaded adapter  name={}  version={}  description={}",
+					info.name,
+					info.version,
+					info.description
 				)
 				adapter.start()
 				log.info("Started adapter  name={}", info.name)
 			}
 		}
 	}
-	
-	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI, version: SemVer) = CoreAPIImpl(
-		envRepo = EnvConfigAPI,
-		providerRepo = ProviderConfigAPI,
-		modelRepo = ModelConfigAPI,
-		apiKeyRepo = ApiKeyConfigAPI,
-		adapter = adapterAPI,
-		pathResolver = Wiring.pathResolver,
-		appVersion = version
-	)
 	
 	suspend fun shutdown(registry: PairList<Adapter, AdapterInfo>) {
 		coroutineScope {

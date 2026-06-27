@@ -45,7 +45,7 @@ object DaemonManager {
 			val sub = daemonSubstate()
 			if (sub == "failed" || sub == "dead") {
 				showJournalLogs(30)
-				printErr("\n\nDaemon failed to start.")
+				printErr("Daemon failed to start.\n")
 				exitProcess(1)
 			}
 		}
@@ -58,13 +58,13 @@ object DaemonManager {
 			val sub = daemonSubstate()
 			if (!daemonIsActive() || sub == "failed" || sub == "auto-restart") {
 				showJournalLogs(30)
-				printErr("\n\nDaemon failed to start.")
+				printErr("Daemon failed to start.\n")
 				exitProcess(1)
 			}
 			waited++
 			if (waited >= 600) {
 				showJournalLogs(15)
-				printErr("\n\nDaemon is taking too long.")
+				printErr("Daemon is taking too long.\n")
 				waited = 0
 			}
 			delay(100.milliseconds)

@@ -16,25 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
-import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 
-@JvmInline
-@Serializable
-value class KebabId private constructor(val value: String) {
-	override fun toString(): String = value
-	
-	companion object : Traceable {
-		fun String.toKebabId(): KebabId {
-			require(!isEmpty())
-			require(all { it.isLowerCase() || it == '-' })
-			return KebabId(this)
-		}
-		
-		fun String.toKebabIdOrNull(): KebabId? = trace.catching { toKebabId() }.getOrNull()
-	}
-}
+@Deprecated("DO NOT COMMIT THIS", level = DeprecationLevel.WARNING)
+@Suppress("FunctionName")
+fun Loggable._LOG_TRACE_(content: String) = LoggerFactory.getLogger(this::class.java).error(content)

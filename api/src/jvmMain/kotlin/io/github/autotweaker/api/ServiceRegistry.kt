@@ -30,9 +30,12 @@ import kotlin.reflect.KClass
 class ServiceRegistry(
 	val trace: (KClass<*>) -> TraceRecorder,
 	val store: (KClass<*>) -> JsonStore,
-	val setting: SettingService,
-	val i18n: I18nService,
+	lazySetting: () -> SettingService,
+	lazyI18n: () -> I18nService,
 ) {
+	val setting: SettingService by lazy { lazySetting() }
+	val i18n: I18nService by lazy { lazyI18n() }
+	
 	internal companion object {
 		var services: ServiceRegistry? = null
 		fun servicesOrError() = services ?: error("Services not initialized")
