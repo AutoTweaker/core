@@ -60,9 +60,9 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		unlock("")
 	}.onFailure { e ->
 		if (hasSecretKey()) {
-			log.info("Skipped SecretManager auto-unlock  reason=password_required")
+			log.info("Skipped SecretManager auto-unlock  reason=password-required")
 		} else throw e
-	}.getOrThrow()
+	}.discard()
 	
 	suspend fun unlock(passphrase: String) = lock.withLock {
 		//确保目录存在

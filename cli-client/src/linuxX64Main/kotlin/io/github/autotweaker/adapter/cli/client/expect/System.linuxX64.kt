@@ -85,7 +85,9 @@ actual fun promptOrStdin(prompt: String, echo: Boolean): String {
 	fflush(null)
 	
 	if (echo) {
-		return readlnOrNull() ?: ""
+		val input = readlnOrNull() ?: ""
+		if (isatty(STDIN_FILENO) != 1) println(input)
+		return input
 	}
 	
 	return memScoped {
@@ -138,9 +140,9 @@ actual fun promptOrStdin(prompt: String, echo: Boolean): String {
 		} finally {
 			if (isAtty) {
 				tcsetattr(stdinFd, TCSANOW, oldTty.ptr)
-				println()
-				fflush(null)
 			}
+			println()
+			fflush(null)
 		}
 	}
 }
