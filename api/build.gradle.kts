@@ -17,18 +17,30 @@
  */
 
 plugins {
-	kotlin("jvm")
-	id("org.jetbrains.kotlin.plugin.serialization")
+	kotlin("multiplatform")
+	kotlin("plugin.serialization")
 	`maven-publish`
 }
 
-dependencies {
-	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-	implementation("org.slf4j:slf4j-api:2.0.18")
+kotlin {
+	jvm()
+	linuxX64()
+	
+	sourceSets {
+		commonMain.dependencies {
+			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+		}
+		jvmMain.dependencies {
+			implementation("org.slf4j:slf4j-api:2.0.18")
+		}
+	}
 }
 
-// region Maven 发布到 GitHub Packages
+// region Maven publish to GitHub Packages
+
+group = "io.github.autotweaker"
+version = rootProject.ext["generatedVersion"] as String
 
 publishing {
 	repositories {
@@ -39,14 +51,6 @@ publishing {
 				username = System.getenv("GITHUB_ACTOR") ?: ""
 				password = System.getenv("GITHUB_TOKEN") ?: ""
 			}
-		}
-	}
-	publications {
-		create<MavenPublication>("maven") {
-			from(components["java"])
-			groupId = "io.github.autotweaker"
-			artifactId = "api"
-			version = rootProject.ext["generatedVersion"] as String
 		}
 	}
 }

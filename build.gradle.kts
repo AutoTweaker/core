@@ -74,7 +74,7 @@ generatedVersionFile.get().asFile.apply {
 
 ext["generatedVersion"] = generatedVersion
 
-val generateVersionProperties by tasks.registering {
+val generateVersionProperties = tasks.register("generateVersionProperties") {
 	description = "生成 version.properties（含 git hash 和构建时间戳）"
 	outputs.file(generatedVersionFile)
 }
@@ -130,7 +130,11 @@ tasks.register<Exec>("releaseTag") {
 }
 
 tasks.register<Exec>("testInDocker") {
-	dependsOn(subprojects.map { "${it.path}:compileKotlin" })
+	dependsOn(
+		subprojects.map {
+			"${it.path}:" + if (it.tasks.findByName("compileKotlinJvm") != null) "compileKotlinJvm" else "compileKotlin"
+		}
+	)
 	group = "verification"
 	description = "在 Docker 容器中运行单元测试"
 	workingDir = projectDir
