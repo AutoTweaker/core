@@ -16,21 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
-}
+package io.github.autotweaker.adapter.cli.client
 
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")
+data class CommandResult(
+	val exitCode: Int,
+	val output: String,
+)

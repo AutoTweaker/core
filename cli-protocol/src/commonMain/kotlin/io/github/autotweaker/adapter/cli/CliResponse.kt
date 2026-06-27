@@ -16,21 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
+package io.github.autotweaker.adapter.cli
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+sealed class CliResponse {
+	@Serializable
+	data class Prompt(val text: String, val echo: Boolean = true) : CliResponse()
+	
+	@Serializable
+	data class Data(val text: String, val channel: OutputChannel, val newline: Boolean) : CliResponse()
+	
+	@Serializable
+	data class Done(val exitCode: Int) : CliResponse()
 }
-
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")

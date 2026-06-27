@@ -43,8 +43,6 @@ class EnvManager(
 	
 	fun add(type: EnvType, name: String): Flow<CmdOutput> = flow {
 		val value = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
-		emit(CmdOutput.Data(" " + i18n.get(PasswdI18n.Length()).format(value.length)))
-		
 		core.config.setEnv(listOf(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig())))
 		emitDone()
 	}

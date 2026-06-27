@@ -18,30 +18,7 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.api.APP_NAME_LOWERCASE
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class CliMessage {
-	@Serializable
-	@SerialName("cmd")
-	data class Command(
-		val args: List<String> = emptyList(),
-		val prog: String = APP_NAME_LOWERCASE,
-	) : CliMessage() {
-		fun command(): String = args.firstOrNull() ?: ""
-		
-		@Suppress("unused")
-		fun arg(index: Int): String? = args.getOrNull(index)
-		
-		fun option(long: String, short: String): String? {
-			val idx = args.indexOf(long).let { if (it >= 0) it else args.indexOf(short) }
-			return if (idx >= 0) args.getOrNull(idx + 1) else null
-		}
-	}
-	
-	@Serializable
-	@SerialName("reply")
-	data class PromptResponse(val text: String) : CliMessage()
-}
+enum class OutputChannel { STDOUT, STDERR }

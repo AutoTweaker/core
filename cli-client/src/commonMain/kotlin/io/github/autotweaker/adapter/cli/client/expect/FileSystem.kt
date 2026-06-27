@@ -16,21 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
-}
+package io.github.autotweaker.adapter.cli.client.expect
 
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
+import kotlinx.io.files.Path
 
-rootProject.name = "AutoTweaker"
+expect fun createSymbolicLink(link: Path, source: Path)
 
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")
+expect fun Path.isSocket(): Boolean

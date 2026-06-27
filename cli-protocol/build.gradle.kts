@@ -16,21 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
+plugins {
+	kotlin("multiplatform")
+	kotlin("plugin.serialization")
+}
+
+kotlin {
+	jvm()
+	linuxX64()
+	
+	sourceSets {
+		commonMain.dependencies {
+			implementation(project(":api"))
+			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+		}
 	}
 }
-
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")

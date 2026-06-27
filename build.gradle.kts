@@ -131,8 +131,14 @@ tasks.register<Exec>("releaseTag") {
 
 tasks.register<Exec>("testInDocker") {
 	dependsOn(
-		subprojects.map {
-			"${it.path}:" + if (it.tasks.findByName("compileKotlinJvm") != null) "compileKotlinJvm" else "compileKotlin"
+		subprojects.map { subproject ->
+			val taskName = when {
+				subproject.tasks.findByName("compileKotlinJvm") != null -> "compileKotlinJvm"
+				subproject.tasks.findByName("compileKotlin") != null -> "compileKotlin"
+				else -> subproject.tasks.names.firstOrNull { it.startsWith("compileKotlin") && !it.contains("Test") }
+					?: "compileKotlin"
+			}
+			"${subproject.path}:$taskName"
 		}
 	)
 	group = "verification"

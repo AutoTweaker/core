@@ -16,22 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
+package io.github.autotweaker.adapter.cli.client.expect
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import io.github.autotweaker.adapter.cli.client.CommandResult
 
-@Serializable
-sealed class CliResponse {
-	@Serializable
-	@SerialName("prompt")
-	data class Prompt(val text: String, val echo: Boolean = true) : CliResponse()
-	
-	@Serializable
-	@SerialName("data")
-	data class Data(val text: String, val channel: String, val newline: Boolean) : CliResponse()
-	
-	@Serializable
-	@SerialName("done")
-	data class Done(val exitCode: Int) : CliResponse()
-}
+expect fun exec(vararg args: String): CommandResult
+
+expect fun promptOrStdin(prompt: String, echo: Boolean): String
+
+expect fun env(name: String): String
+
+expect fun printErr(content: String)

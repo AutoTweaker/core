@@ -18,28 +18,27 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.api.I18nable
-import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.i18n.I18nDef
-import kotlinx.coroutines.flow.FlowCollector
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
+import kotlinx.serialization.Serializable
 
-sealed class CmdOutput {
-	data class Data(
-		val text: String, val channel: OutputChannel = OutputChannel.STDOUT, val newline: Boolean = true
-	) : CmdOutput()
-	
-	data class Done(val exitCode: Int = 0) : CmdOutput()
-	
-	companion object : I18nable {
-		suspend fun FlowCollector<CmdOutput>.emitI18n(
-			def: I18nDef, vararg args: Any, error: Boolean = false
-		) = emit(
-			Data(
-				i18n.get(def).format(*args),
-				if (error) OutputChannel.STDERR else OutputChannel.STDOUT
-			)
-		)
+@Serializable
+sealed class CliMessage {
+	@Serializable
+	data class Command(
+		val args: List<String> = emptyList(),
+		val prog: String = APP_NAME_LOWERCASE,
+	) : CliMessage() {
+		fun command(): String = args.firstOrNull() ?: ""
 		
-		suspend fun FlowCollector<CmdOutput>.emitDone(exitCode: Int = 0) = emit(Done(exitCode))
+		@Suppress("unused")
+		fun arg(index: Int): String? = args.getOrNull(index)
+		
+		fun option(long: String, short: String): String? {
+			val idx = args.indexOf(long).let { if (it >= 0) it else args.indexOf(short) }
+			return if (idx >= 0) args.getOrNull(idx + 1) else null
+		}
 	}
+	
+	@Serializable
+	data class PromptResponse(val text: String) : CliMessage()
 }

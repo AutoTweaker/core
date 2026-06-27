@@ -65,7 +65,7 @@ class CommandRouterTest {
 		every { secret.isUnlocked } returns MutableStateFlow(true)
 		router = CommandRouter(core, commands)
 	}
-
+	
 	private fun registerCommand(
 		name: String,
 		syntax: Syntax,
@@ -91,7 +91,7 @@ class CommandRouterTest {
 	
 	private fun List<CmdOutput>.done(): CmdOutput.Done = last() as CmdOutput.Done
 	private fun List<CmdOutput>.stderr(): List<String> =
-		filterIsInstance<CmdOutput.Data>().filter { it.channel == CmdOutput.Channel.STDERR }.map { it.text }
+		filterIsInstance<CmdOutput.Data>().filter { it.channel == OutputChannel.STDERR }.map { it.text }
 	
 	// ── routing ───────────────────────────────────────────────────
 	

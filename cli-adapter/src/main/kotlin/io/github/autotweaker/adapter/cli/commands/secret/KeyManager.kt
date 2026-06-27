@@ -43,7 +43,6 @@ class KeyManager(
 			return@flow
 		}
 		val key = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
-		emit(CmdOutput.Data(" " + i18n.get(PasswdI18n.Length()).format(key.length)))
 		
 		if (key.isBlank()) {
 			emitI18n(SecretI18n.EmptyKeyError(), error = true)

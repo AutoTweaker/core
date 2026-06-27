@@ -50,14 +50,6 @@ object PasswdI18n {
 	}
 	
 	@AutoService(I18nDef::class)
-	class Length : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "length: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "长度: %s"),
-		)
-	}
-	
-	@AutoService(I18nDef::class)
 	class Mismatch : I18nDef {
 		override val localizations = listOf(
 			LocalizedString(Locale.ENGLISH, "Passwords do not match"),

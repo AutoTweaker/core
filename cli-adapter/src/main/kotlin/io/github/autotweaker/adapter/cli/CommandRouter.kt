@@ -81,7 +81,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		if (conflicts.isNotEmpty()) {
 			log.warn("Detected param name conflict in command  command={}  conflicts={}", cmd, conflicts)
 			return flowOf(
-				*conflicts.map { CmdOutput.Data(it, CmdOutput.Channel.STDERR) }.toTypedArray(),
+				*conflicts.map { CmdOutput.Data(it, OutputChannel.STDERR) }.toTypedArray(),
 				CmdOutput.Done(1),
 			)
 		}

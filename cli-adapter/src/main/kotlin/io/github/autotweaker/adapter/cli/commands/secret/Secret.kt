@@ -214,16 +214,12 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	}
 	
 	private fun handleChange(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
-		val oldPassword = if (core.secret.isPasswordEmpty()) {
-			""
-		} else {
-			prompt(i18n.get(SecretI18n.UnlockPrompt()), false).also { emit(CmdOutput.Data("")) }
-		}
+		val oldPassword = if (core.secret.isPasswordEmpty()) ""
+		else prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
+		
 		
 		val newPassword = prompt(i18n.get(PasswdI18n.PromptNew()), false)
-		emit(CmdOutput.Data(" " + i18n.get(PasswdI18n.Length()).format(newPassword.length)))
 		val confirm = prompt(i18n.get(PasswdI18n.PromptConfirm()), false)
-		emit(CmdOutput.Data(""))
 		
 		if (newPassword != confirm) {
 			this@Secret.log.debug("Aborted password change  command=secret  reason=confirmation_mismatch")

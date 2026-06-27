@@ -142,9 +142,8 @@ object CliServer : Loggable, Settable, Traceable {
 				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
 						is CmdOutput.Data -> {
-							val channel = chunk.channel.name.lowercase()
 							chunk.text.chunked(MAX_RESPONSE_CHUNK).forEach { part ->
-								sendChannel.writeResponse(CliResponse.Data(part, channel, chunk.newline))
+								sendChannel.writeResponse(CliResponse.Data(part, chunk.channel, chunk.newline))
 							}
 						}
 						
@@ -166,7 +165,7 @@ object CliServer : Loggable, Settable, Traceable {
 					log.error("Failed command  command={}", cmdName, e)
 					trace.catching {
 						sendChannel.writeResponse(
-							CliResponse.Data(e.message ?: "Internal error", "stderr", true)
+							CliResponse.Data(e.message ?: "Internal error", OutputChannel.STDERR, true)
 						)
 					}
 				}
