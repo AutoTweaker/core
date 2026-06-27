@@ -30,18 +30,18 @@ import io.mockk.mockk
 
 object TestServices {
 	private val settingService = mockk<SettingService>(relaxed = true)
-
+	
 	init {
 		every { settingService.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
 	}
-
+	
 	fun init() {
 		try {
 			initServices(
 				ServiceRegistry(
 					TraceRecorderImpl::recorder,
 					JsonStoreImpl::namespace,
-					settingService,
+					{ settingService },
 					mockk(relaxed = true)
 				)
 			)

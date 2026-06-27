@@ -18,28 +18,27 @@
 
 package io.github.autotweaker.core.domain.agent
 
+import io.github.autotweaker.api.serialLock
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool as ToolMessage
 
 class AgentContextManager(initial: AgentContext, private val cancelledMessage: String) {
 	private val _context = MutableStateFlow(initial)
-	private val mutex = Mutex()
+	private val lock = serialLock()
 	
 	val context: StateFlow<AgentContext> = _context.asStateFlow()
 	
 	private val pendingToolResults = mutableListOf<ToolMessage>()
 	
-	suspend fun get(): AgentContext = mutex.withLock { _context.value }
+	suspend fun get(): AgentContext = lock.withLock { _context.value }
 	
-	suspend fun beginRound(userMessage: AgentContext.Message.User) = mutex.withLock {
+	suspend fun beginRound(userMessage: AgentContext.Message.User) = lock.withLock {
 		check(_context.value.currentRound == null)
 		check(pendingToolResults.isEmpty())
 		val round = AgentContext.CurrentRound(userMessage = userMessage, turns = null)
@@ -50,7 +49,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		assistant: AgentContext.Message.Assistant,
 		pendingCalls: List<AgentContext.CurrentRound.PendingToolCall>,
 		immediateResults: List<ToolMessage>,
-	) = mutex.withLock {
+	) = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
 		check(current.assistantMessage == null)
 		check(current.pendingToolCalls == null)
@@ -63,7 +62,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		}
 	}
 	
-	suspend fun recordToolResult(tool: ToolMessage) = mutex.withLock {
+	suspend fun recordToolResult(tool: ToolMessage) = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
 		check(current.assistantMessage != null)
 		check(current.pendingToolCalls != null)
@@ -71,7 +70,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		pendingToolResults.add(tool)
 	}
 	
-	suspend fun finalizeToolTurn() = mutex.withLock {
+	suspend fun finalizeToolTurn() = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
 		val assistant = requireNotNull(current.assistantMessage)
 		val turn = AgentContext.Turn(assistantMessage = assistant, tools = pendingToolResults.toList())
@@ -87,7 +86,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		}
 	}
 	
-	suspend fun archiveCurrentRound() = mutex.withLock {
+	suspend fun archiveCurrentRound() = lock.withLock {
 		val round = _context.value.currentRound ?: return@withLock
 		
 		
@@ -153,7 +152,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 	suspend fun applyCompact(
 		summarizedMessage: AgentContext.SummarizedMessage,
 		rounds: List<AgentContext.CompletedRound>,
-	) = mutex.withLock {
+	) = lock.withLock {
 		val currentHistory = requireNotNull(_context.value.historyRounds)
 		check(rounds.all { it in currentHistory })
 		val remaining = currentHistory.filter { it !in rounds }
@@ -166,7 +165,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		}
 	}
 	
-	suspend fun updateInjections(injections: List<ContextInjection>?) = mutex.withLock {
+	suspend fun updateInjections(injections: List<ContextInjection>?) = lock.withLock {
 		_context.update {
 			it.copy(
 				injections = injections

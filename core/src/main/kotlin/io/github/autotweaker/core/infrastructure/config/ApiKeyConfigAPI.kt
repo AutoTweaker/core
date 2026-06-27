@@ -18,17 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.config
 
-import io.github.autotweaker.api.JsonStorable
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.store
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.domain.port.SecretStore
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -41,7 +36,7 @@ object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 	private val provCfg: ProviderRepository = ProviderConfigAPI
 	private val apiKeys = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
 	
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	init {
 		store.get()?.let {
@@ -55,22 +50,22 @@ object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 		secret = secretStore
 	}
 	
-	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) = mutex.withLock {
+	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) = lock.withLock {
 		require(apiKeys[key.name] == null) { "Key ${key.name} already exists" }
 		apiKeys[key.name] = secret.set(key.key)
 		save()
 		log.info("Added API key  name={}", key.name)
 	}
 	
-	override suspend fun list(): List<String> = mutex.withLock {
+	override suspend fun list(): List<String> = lock.withLock {
 		apiKeys.keys.toList()
 	}
 	
-	override suspend fun get(name: String): String = mutex.withLock {
+	override suspend fun get(name: String): String = lock.withLock {
 		apiKeys[name]?.let { secret.get(it) } ?: error("Key $name not found")
 	}
 	
-	override suspend fun remove(name: String) = mutex.withLock {
+	override suspend fun remove(name: String) = lock.withLock {
 		if (apiKeys[name] == null) return@withLock false
 		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
 		val id = apiKeys.remove(name) ?: return@withLock false
@@ -80,11 +75,11 @@ object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 		return@withLock true
 	}
 	
-	suspend fun getId(name: String): UUID = mutex.withLock {
+	suspend fun getId(name: String): UUID = lock.withLock {
 		apiKeys[name] ?: error("Key $name not found")
 	}
 	
-	suspend fun getName(id: UUID): String? = mutex.withLock {
+	suspend fun getName(id: UUID): String? = lock.withLock {
 		apiKeys.filter { it.value == id }.keys.firstOrNull()
 	}
 	

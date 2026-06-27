@@ -30,8 +30,6 @@ import io.github.autotweaker.core.application.Launcher
 import io.github.autotweaker.core.application.Wiring
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
@@ -48,7 +46,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	}
 	
 	private val registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>> = mutableMapOf()
-	private val mutex = Mutex()
+	private val lock = serialLock()
 	
 	private val core by lazy { Wiring.createCoreAPI(this, version) }
 	
@@ -95,11 +93,11 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		log.debug("Acquired lock  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}
 	
-	override suspend fun list() = mutex.withLock {
+	override suspend fun list() = lock.withLock {
 		registry.values.map { it.second to it.first.isRunning }
 	}
 	
-	override suspend fun start(name: KebabId) = mutex.withLock {
+	override suspend fun start(name: KebabId) = lock.withLock {
 		val (adapter, info) = requireAdapter(name)
 		if (adapter.isRunning) return@withLock false
 		adapter.start()
@@ -107,12 +105,12 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		return@withLock true
 	}
 	
-	override suspend fun alive(name: KebabId): Boolean = mutex.withLock {
+	override suspend fun alive(name: KebabId): Boolean = lock.withLock {
 		val (adapter, _) = requireAdapter(name)
-		return adapter.isRunning
+		return@withLock adapter.isRunning
 	}
 	
-	override suspend fun stop(name: KebabId) = mutex.withLock {
+	override suspend fun stop(name: KebabId) = lock.withLock {
 		val (adapter, info) = requireAdapter(name)
 		if (!adapter.isRunning) return@withLock false
 		adapter.stop()

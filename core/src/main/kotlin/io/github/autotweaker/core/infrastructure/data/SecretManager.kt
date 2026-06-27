@@ -27,8 +27,6 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.nio.file.Files
 import java.nio.file.Path
@@ -43,7 +41,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	
 	private const val KEY_UID = "$APP_NAME(core.infrastructure.data)@autogen.local"
 	
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	@Volatile
 	private var password: CharArray? = null
@@ -66,7 +64,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		} else throw e
 	}.getOrThrow()
 	
-	suspend fun unlock(passphrase: String) = mutex.withLock {
+	suspend fun unlock(passphrase: String) = lock.withLock {
 		//确保目录存在
 		Files.createDirectories(secretsDir)
 		Files.createDirectories(gpgHome)
@@ -152,7 +150,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	//更改密码
 	suspend fun changePassword(
 		oldPassword: String, newPassword: String
-	) = mutex.withLock {
+	) = lock.withLock {
 		val current = String(getPassword())
 		if (oldPassword != current) throw PasswordInvalidException()
 		if (newPassword == current) return@withLock
@@ -233,19 +231,19 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	
 	
 	// region 实现接口
-	override suspend fun set(secret: String, id: UUID): UUID = mutex.withLock {
+	override suspend fun set(secret: String, id: UUID): UUID = lock.withLock {
 		getPassword()
 		val file = secretsDir.resolve("$id.gpg")
 		encryptTo(secret, file)
 		log.debug("Added secret  id={}", id)
-		return id
+		return@withLock id
 	}
 	
-	override suspend fun get(id: UUID): String = mutex.withLock {
+	override suspend fun get(id: UUID): String = lock.withLock {
 		val file = secretsDir.resolve("$id.gpg")
 		check(Files.exists(file)) { "Secret not found: $id" }
 		log.debug("Retrieved secret  id={}", id)
-		return gpg(
+		return@withLock gpg(
 			"--batch",
 			"--yes",
 			"--pinentry-mode",
@@ -256,15 +254,15 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		)
 	}
 	
-	override suspend fun list(): List<UUID> = mutex.withLock {
+	override suspend fun list(): List<UUID> = lock.withLock {
 		getPassword()
-		return Files.list(secretsDir).use { stream ->
+		Files.list(secretsDir).use { stream ->
 			stream.filter { it.fileName.toString().endsWith(".gpg") }
 				.map { UUID.fromString(it.fileName.toString().removeSuffix(".gpg")) }.toList()
 		}
 	}
 	
-	override suspend fun remove(id: UUID) = mutex.withLock {
+	override suspend fun remove(id: UUID) = lock.withLock {
 		getPassword()
 		Files.deleteIfExists(secretsDir.resolve("$id.gpg"))
 			.andLog(log) {

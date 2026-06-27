@@ -29,9 +29,7 @@ import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.charsets.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.nio.file.Files
@@ -64,10 +62,10 @@ object CliServer : Loggable, Settable, Traceable {
 	
 	private val socketPath: Path = CONFIG_PATH.resolve("cli.sock")
 	
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	
-	suspend fun start(router: CommandRouter) = mutex.withLock {
+	suspend fun start(router: CommandRouter) = lock.withLock {
 		withContext(Dispatchers.IO) {
 			Files.createDirectories(socketPath.parent)
 		}
@@ -107,7 +105,7 @@ object CliServer : Loggable, Settable, Traceable {
 		}
 	}
 	
-	suspend fun stop() = mutex.withLock {
+	suspend fun stop() = lock.withLock {
 		activeClients.forEach { trace.catching { it.close() } }
 		activeClients.clear()
 		trace.catching { serverSocket.close() }

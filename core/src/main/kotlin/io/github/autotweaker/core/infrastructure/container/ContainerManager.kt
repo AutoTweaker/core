@@ -29,14 +29,12 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
 object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
 	private var imagePullJob: Deferred<Unit>? = null
@@ -66,7 +64,7 @@ object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
 	}
 	
 	@OptIn(ExperimentalCoroutinesApi::class)
-	private suspend fun ensureRunning() = mutex.withLock {
+	private suspend fun ensureRunning() = lock.withLock {
 		if (isRunning) return@withLock
 		val image = setting.get(ContainerSettings.DockerImage()).value
 		val job = imagePullJob
@@ -81,7 +79,7 @@ object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
 			.andLog(log) { info("Started container  containerId={}", it) }
 	}
 	
-	suspend fun stop() = mutex.withLock {
+	suspend fun stop() = lock.withLock {
 		val id = containerId ?: return@withLock
 		trace.catching {
 			log.debug("Initiated container stop  containerId={}", id)

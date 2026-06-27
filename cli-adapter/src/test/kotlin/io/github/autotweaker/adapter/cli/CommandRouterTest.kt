@@ -46,8 +46,8 @@ class CommandRouterTest {
 				ServiceRegistry(
 					mockk(relaxed = true),
 					mockk(relaxed = true),
-					settingService,
-					mockk(relaxed = true)
+					{ settingService },
+					{ mockk(relaxed = true) }
 				)
 			)
 		}

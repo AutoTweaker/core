@@ -24,8 +24,6 @@ import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.SecretStore
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -39,7 +37,7 @@ class EnvStorage(
 		String.serializer(), UuidSerializer
 	)
 	private val envs = mutableMapOf<String, UUID>()
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	init {
 		store.get()?.let {
@@ -49,9 +47,9 @@ class EnvStorage(
 		}
 	}
 	
-	suspend fun listEnv(): List<String> = mutex.withLock { envs.keys.toList() }
+	suspend fun listEnv(): List<String> = lock.withLock { envs.keys.toList() }
 	
-	suspend fun getEnv(id: String): String? = mutex.withLock {
+	suspend fun getEnv(id: String): String? = lock.withLock {
 		val uuid = envs[id] ?: return@withLock null
 		trace.catching { secretStore.get(uuid) }
 			.rethrow<SecretStoreLockedException>()
@@ -59,13 +57,13 @@ class EnvStorage(
 			.getOrNull()
 	}
 	
-	suspend fun setEnv(id: String, value: String) = mutex.withLock {
+	suspend fun setEnv(id: String, value: String) = lock.withLock {
 		envs[id]?.let { secretStore.remove(it) }
 		envs[id] = secretStore.set(value)
 		andSave().andLog(log) { debug("Set env  id={}  class={}", id, kClass.java.name) }
 	}
 	
-	suspend fun removeEnv(id: String): Boolean = mutex.withLock {
+	suspend fun removeEnv(id: String): Boolean = lock.withLock {
 		envs[id]?.let { secretStore.remove(it) }
 		return@withLock envs.remove(id).andLog(log) {
 			debug("Removed env  id={}  class={}", id, kClass.java.name)

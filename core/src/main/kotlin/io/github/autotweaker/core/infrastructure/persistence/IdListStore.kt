@@ -22,9 +22,8 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.serialLock
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
@@ -42,7 +41,7 @@ class IdListStore<T : Any>(
 	private val mapSerializer = MapSerializer(UuidSerializer, serializer)
 	private val items = mutableMapOf<UUID, T>()
 	
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	init {
 		store.get()?.let {
@@ -51,18 +50,18 @@ class IdListStore<T : Any>(
 		log.info("Initialized IdListStore  count={}  class={}", items.size, className)
 	}
 	
-	suspend fun set(data: T) = mutex.withLock {
+	suspend fun set(data: T) = lock.withLock {
 		val id = idOf(data)
 		items[id] = data
 		andSave()
 		log.debug("Added item  id={}  class={}", id, className)
 	}
 	
-	suspend fun getAll(): Map<UUID, T> = mutex.withLock { items.toMap() }
+	suspend fun getAll(): Map<UUID, T> = lock.withLock { items.toMap() }
 	
-	suspend fun get(id: UUID): T? = mutex.withLock { items[id] }
+	suspend fun get(id: UUID): T? = lock.withLock { items[id] }
 	
-	suspend fun delete(id: UUID): Boolean = mutex.withLock {
+	suspend fun delete(id: UUID): Boolean = lock.withLock {
 		(items.remove(id) != null).andSave().andLog(log)
 		{ debug("Deleted item  id={}  class={}", id, className) }
 	}

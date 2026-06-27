@@ -18,22 +18,17 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.JsonStorable
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.store
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionMessage
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
 object UsageStore : Loggable, JsonStorable {
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	private val mapSerializer = MapSerializer(UuidSerializer, UsageSnapshot.serializer())
 	
@@ -46,7 +41,7 @@ object UsageStore : Loggable, JsonStorable {
 		store.set(Json.encodeToJsonElement(data))
 	}
 	
-	suspend fun collect(messages: List<SessionMessage>) = mutex.withLock {
+	suspend fun collect(messages: List<SessionMessage>) = lock.withLock {
 		val data = load().toMutableMap()
 		var count = 0
 		
@@ -83,5 +78,5 @@ object UsageStore : Loggable, JsonStorable {
 		}
 	}
 	
-	suspend fun getSnapshots(): Map<UUID, UsageSnapshot> = mutex.withLock { load() }
+	suspend fun getSnapshots(): Map<UUID, UsageSnapshot> = lock.withLock { load() }
 }

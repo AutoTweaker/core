@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.config
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
@@ -29,8 +26,6 @@ import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.*
 
 object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
@@ -38,7 +33,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	private val modelConfig: ModelConfigRepository = ModelConfigAPI
 	private val store = ProviderStore
 	
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
 	override fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
 	override fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo
@@ -48,7 +43,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	override suspend fun get(id: UUID): CoreConfig.ProviderConfig.Provider? =
 		store.get(id)?.toCoreConfig()
 	
-	override suspend fun remove(id: UUID) = mutex.withLock {
+	override suspend fun remove(id: UUID) = lock.withLock {
 		val modelIds = modelConfig.list().filter { it.data.providerId == id }.map { it.data.id }
 		val defaultModel = ModelResolverImpl.getDefaultModel()
 		require(defaultModel !in modelIds) { "Cannot delete provider: contains default model $defaultModel" }
@@ -58,7 +53,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 		}
 	}
 	
-	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) = mutex.withLock {
+	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) = lock.withLock {
 		check(store.getAll().values.all { it.displayName != provider.displayName })
 		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.set(

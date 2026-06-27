@@ -39,8 +39,6 @@ import io.github.autotweaker.core.domain.agent.tool.Tools
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -55,8 +53,8 @@ class RoundRunner(
 	private val agentId: UUID,
 ) : Loggable, Traceable, Settable {
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-	private val cmdMutex = Mutex()
-	private val compactMutex = Mutex()
+	private val cmdLock = serialLock()
+	private val compactLock = serialLock()
 	
 	@Volatile
 	private var thinkJob: Job? = null
@@ -107,7 +105,7 @@ class RoundRunner(
 	}
 	
 	suspend fun execute(command: AgentCommand) = also {
-		cmdMutex.withLock {
+		cmdLock.withLock {
 			if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
 			when (command) {
 				is AgentCommand.Stop -> {
@@ -279,7 +277,7 @@ class RoundRunner(
 	private fun activeAll(activations: List<ToolActivation>) =
 		activations.forEach { tools.activate(it.toolCall.name, true) }
 	
-	private suspend fun launchCompact() = compactMutex.withLock {
+	private suspend fun launchCompact() = compactLock.withLock {
 		if (compactJob?.isActive == true) return@withLock
 		compactJob = scope.launch {
 			compactService.execute(currentModel, ctx)

@@ -22,8 +22,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class SerialLock(private val dispatcher: CoroutineDispatcher) {
-	suspend fun <T> withLock(block: suspend () -> T): T =
+class SerialLock(@PublishedApi internal val dispatcher: CoroutineDispatcher) {
+	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T =
 		withContext(dispatcher) { block() }
 }
 

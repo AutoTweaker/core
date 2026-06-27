@@ -40,8 +40,6 @@ import io.github.autotweaker.core.domain.session.converter.SessionContextConvert
 import io.github.autotweaker.core.domain.tool.CoreTool
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -53,8 +51,8 @@ class AgentBridge(
 	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI, Loggable, Settable {
 	/* 初始化 */
-	private val contextMutex = Mutex()
-	private val injectMutex = Mutex()
+	private val contextLock = serialLock(io = true)
+	private val injectLock = serialLock()
 	
 	private lateinit var initialData: AgentData
 	private lateinit var tools: List<Tool<ToolArgs>>
@@ -133,7 +131,7 @@ class AgentBridge(
 		{ info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length) }
 	
 	override suspend fun inject(injection: ContextInjection) = also {
-		injectMutex.withLock {
+		injectLock.withLock {
 			val oldInjections = agentData.context.injections.orEmpty()
 			val new = (oldInjections.filterNot { it.id == injection.id } + injection).orNull()
 			_agent.updateInjections(new)
@@ -141,7 +139,7 @@ class AgentBridge(
 	}
 	
 	override suspend fun removeInjection(id: UUID) = also {
-		injectMutex.withLock {
+		injectLock.withLock {
 			val oldInjections = agentData.context.injections.orEmpty()
 			val new = oldInjections.filterNot { it.id == id }.orNull()
 			_agent.updateInjections(new)
@@ -193,7 +191,7 @@ class AgentBridge(
 				snapshot = UsageSnapshot(usage, modelInfo),
 			)
 			let { messages[record.id] = record }.andSave()
-			contextMutex.withLock {
+			contextLock.withLock {
 				val ctx = _context.value
 				updateContext(
 					ctx.copy(droppedMessages = ctx.droppedMessages.orEmpty() + record.id)
@@ -222,7 +220,7 @@ class AgentBridge(
 		)
 	
 	
-	private suspend fun AgentContext.save() = contextMutex.withLock {
+	private suspend fun AgentContext.save() = contextLock.withLock {
 		val oldCtx = _context.value
 		val result = AgentContextConverter.sync(this, oldCtx)
 		result.messages.save()

@@ -21,8 +21,6 @@ package io.github.autotweaker.core.infrastructure.persistence
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
@@ -32,9 +30,9 @@ import java.util.*
 object WorkspaceManager : Loggable, JsonStorable {
 	private val workspaces: MutableList<WorkspaceData> = mutableListOf()
 	
-	private val mutex = Mutex()
+	private val lock = serialLock(io = true)
 	
-	suspend fun init() = mutex.withLock {
+	suspend fun init() = lock.withLock {
 		store.get()?.let {
 			workspaces.addAll(
 				Json.decodeFromJsonElement<List<WorkspaceData>>(it)
@@ -42,44 +40,44 @@ object WorkspaceManager : Loggable, JsonStorable {
 		}.andLog(log) { info("Initialized WorkspaceManager  count={}", workspaces.size) }
 	}
 	
-	suspend fun updateMeta(meta: WorkspaceMeta) = mutex.withLock {
+	suspend fun updateMeta(meta: WorkspaceMeta) = lock.withLock {
 		check(meta.id in workspaces.map { it.meta.id })
 		update(meta.id) { copy(meta = meta) }
 		log.debug("Updated workspace meta  id={}", meta.id)
 	}
 	
-	suspend fun updateSessions(id: UUID, sessionIds: List<UUID>?) = mutex.withLock {
+	suspend fun updateSessions(id: UUID, sessionIds: List<UUID>?) = lock.withLock {
 		check(id in workspaces.map { it.meta.id })
 		update(id) { copy(sessionIds = sessionIds) }
 		log.debug("Updated workspace data  id={}", id)
 	}
 	
-	suspend fun delete(id: UUID): Boolean = mutex.withLock {
+	suspend fun delete(id: UUID): Boolean = lock.withLock {
 		require(id != defaultWorkspaceId) { "Cannot delete default workspace" }
-		return remove(id).andLog(log) { info("Deleted workspace  id={}", id) }
+		remove(id).andLog(log) { info("Deleted workspace  id={}", id) }
 	}
 	
-	suspend fun getDefault(): WorkspaceData = mutex.withLock {
+	suspend fun getDefault(): WorkspaceData = lock.withLock {
 		lookup(defaultWorkspaceId) ?: run {
 			val defaultPath = CONFIG_PATH.resolve("workspace")
 			Files.createDirectories(defaultPath)
 			val meta = WorkspaceMeta(
 				id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
 			)
-			return WorkspaceData(meta = meta).add()
+			WorkspaceData(meta = meta).add()
 				.andLog(log) { info("Created default workspace  id={}  path={}", it.meta.id, it.meta.path) }
 		}
 	}
 	
-	suspend fun create(meta: WorkspaceMeta): WorkspaceData = mutex.withLock {
+	suspend fun create(meta: WorkspaceMeta): WorkspaceData = lock.withLock {
 		if (workspaces.any { it.meta.id == meta.id }) error("Workspace ${meta.id} already exists")
-		return WorkspaceData(meta = meta).add()
+		WorkspaceData(meta = meta).add()
 			.andLog(log) { info("Created workspace  id={}  name={}", it.meta.id, it.meta.displayName) }
 	}
 	
-	suspend fun getData(id: UUID): WorkspaceData? = mutex.withLock { lookup(id) }
+	suspend fun getData(id: UUID): WorkspaceData? = lock.withLock { lookup(id) }
 	
-	suspend fun getAll(): List<WorkspaceData> = mutex.withLock { workspaces.toList() }
+	suspend fun getAll(): List<WorkspaceData> = lock.withLock { workspaces.toList() }
 	
 	private fun lookup(id: UUID): WorkspaceData? = workspaces.find { it.meta.id == id }
 	
