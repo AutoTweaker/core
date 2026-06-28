@@ -18,15 +18,26 @@
 
 package io.github.autotweaker.api
 
-fun String.toMasked(): String {
-	if (length <= 15) return MASK_CHAR * length
+/**
+ * 给敏感信息打码，例如 api key。
+ *
+ * 前 [prefixKeep] 字符和后 [suffixKeep] 字符将被保留，中间部分将替换为等长 [MASK_CHAR]。
+ *
+ * @param minLength 小于或等于此长度的 [this] 将直接输出等长 [MASK_CHAR]
+ */
+fun String.toMasked(
+	minLength: Int = 15,
+	prefixKeep: Int = 5,
+	suffixKeep: Int = 4,
+): String {
+	if (length <= minLength) return MASK_CHAR * length
+	
 	return buildString(length) {
 		this@toMasked.forEachIndexed { index, char ->
-			if (index <= 4 || index >= lastIndex - 3)
+			if (index < prefixKeep || index > lastIndex - suffixKeep)
 				append(char)
 			else
 				append(MASK_CHAR)
-			
 		}
 	}
 }

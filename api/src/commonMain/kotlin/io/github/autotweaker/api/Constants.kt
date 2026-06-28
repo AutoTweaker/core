@@ -25,4 +25,9 @@ const val SPACE = ' '
 val INDENT = SPACE * 4
 
 const val MASK_CHAR = '*'
+
+
+/**
+ * `----------`
+ */
 val LINE = line(10)

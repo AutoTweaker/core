@@ -25,7 +25,7 @@ inline fun <T> Iterable<T>.forEachBetween(
 	action: (T) -> Unit,
 	between: () -> Unit,
 ) {
-	val iterator = this.iterator()
+	val iterator = iterator()
 	if (!iterator.hasNext()) return
 	
 	action(iterator.next())

@@ -18,4 +18,9 @@
 
 package io.github.autotweaker.api
 
+/**
+ * `-` * n
+ *
+ * @see LINE
+ */
 fun line(length: Int) = '-' * length

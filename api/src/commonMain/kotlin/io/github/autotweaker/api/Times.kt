@@ -18,6 +18,12 @@
 
 package io.github.autotweaker.api
 
+/**
+ * 为 [String] 添加 `*` 操作符的支持
+ */
 operator fun String.times(n: Int): String = repeat(n)
 
+/**
+ * 为 [Char] 添加 `*` 操作符的支持
+ */
 operator fun Char.times(n: Int): String = toString().repeat(n)

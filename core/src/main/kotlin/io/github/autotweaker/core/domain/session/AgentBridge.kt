@@ -127,8 +127,10 @@ class AgentBridge(
 	/* API */
 	
 	override fun send(content: MessageContent) =
-		_agent.sendMessage(content).andLog(log)
-		{ info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length) }
+		_agent.sendMessage(content)
+			.andLog(log) {
+				info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
+			}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
 		injectLock.withLock {
@@ -146,11 +148,25 @@ class AgentBridge(
 		}
 	}
 	
-	override suspend fun pause() = also { _agent.execute(AgentCommand.Pause) }
-	override suspend fun compact() = also { _agent.execute(AgentCommand.Compact) }
-	override suspend fun cancelCompact() = also { _agent.execute(AgentCommand.CancelCompact) }
-	override suspend fun cancelTool() = also { _agent.execute(AgentCommand.CancelTool) }
-	override suspend fun approve(approval: ToolApprove) = also { _agent.execute(AgentCommand.ApproveTool(approval)) }
+	override suspend fun pause() = also {
+		_agent.execute(AgentCommand.Pause)
+	}
+	
+	override suspend fun compact() = also {
+		_agent.execute(AgentCommand.Compact)
+	}
+	
+	override suspend fun cancelCompact() = also {
+		_agent.execute(AgentCommand.CancelCompact)
+	}
+	
+	override suspend fun cancelTool() = also {
+		_agent.execute(AgentCommand.CancelTool)
+	}
+	
+	override suspend fun approve(approval: ToolApprove) = also {
+		_agent.execute(AgentCommand.ApproveTool(approval))
+	}
 	
 	override suspend fun setModel(config: ModelConfig) = also {
 		_agent.execute(
@@ -203,6 +219,7 @@ class AgentBridge(
 	
 	private suspend fun createAgent() {
 		_agent = Agent(
+			agentId = id,
 			context = buildAgentContext(),
 			workspace = workspace,
 			tools = tools,

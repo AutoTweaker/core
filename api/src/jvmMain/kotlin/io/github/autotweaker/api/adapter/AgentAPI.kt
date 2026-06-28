@@ -32,6 +32,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
+/**
+ * 用于管理单个 agent 实例的 api。
+ *
+ * 大部分方法都重新返回自身（[AgentAPI]）以支持链式调用。
+ */
 interface AgentAPI {
 	val id: UUID
 	val name: KebabId

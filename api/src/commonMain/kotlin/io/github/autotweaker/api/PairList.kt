@@ -18,4 +18,7 @@
 
 package io.github.autotweaker.api
 
+/**
+ * [List] 套 [Pair]
+ */
 typealias PairList<A, B> = List<Pair<A, B>>
