@@ -123,11 +123,15 @@ data class SemVer(
 					"(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
 		)
 		
+		/**
+		 * 从字符串解析一个符合  SemVer 规范的版本号。
+		 *
+		 * @throws IllegalArgumentException 版本号不符合 SemVer 规范。
+		 */
 		fun parse(text: String): SemVer {
-			val m = regex.matchEntire(text)
-				?: error("Invalid SemVer: $text")
+			val match = requireNotNull(regex.matchEntire(text)) { "Invalid SemVer: $text" }
 			
-			val (maj, min, pat, pre, build) = m.destructured
+			val (maj, min, pat, pre, build) = match.destructured
 			return SemVer(
 				maj.toInt(),
 				min.toInt(),

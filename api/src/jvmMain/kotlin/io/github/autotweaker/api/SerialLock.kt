@@ -22,13 +22,16 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class SerialLock(@PublishedApi internal val dispatcher: CoroutineDispatcher) {
+@Deprecated(
+	"limitedParallelism limits how many threads can execute some code in parallel, but does not limit how many coroutines execute concurrently!",
+	level = DeprecationLevel.ERROR
+)
+class SerialLock(io: Boolean = false) {
+	@PublishedApi
+	internal val dispatcher: CoroutineDispatcher =
+		if (io) Dispatchers.IO.limitedParallelism(1)
+		else Dispatchers.Default.limitedParallelism(1)
+	
 	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T =
 		withContext(dispatcher) { block() }
 }
-
-
-fun serialLock(io: Boolean = false) = SerialLock(
-	if (io) Dispatchers.IO.limitedParallelism(1)
-	else Dispatchers.Default.limitedParallelism(1)
-)

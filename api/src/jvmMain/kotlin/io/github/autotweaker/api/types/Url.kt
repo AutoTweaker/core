@@ -21,13 +21,22 @@ package io.github.autotweaker.api.types
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.types.Url.Companion.toUrl
 import kotlinx.serialization.Serializable
 import java.net.URI
 
+/**
+ * 表示一个不以 `/` 结尾的 url，协议为 http / https。
+ */
 @JvmInline
 @Serializable
 value class Url private constructor(val value: String) {
 	companion object : Traceable {
+		/**
+		 * 从 [String] 构造 url，自动 [trim] 并移除尾部 `/`。
+		 *
+		 * @throws IllegalArgumentException url 为空、url 无效、url 的协议既不是 http 也不是 https。
+		 */
 		fun String.toUrl(): Url {
 			val trimmed = trim().trimEnd('/')
 			require(trimmed.isNotBlank()) { "URL must not be blank" }
@@ -37,6 +46,10 @@ value class Url private constructor(val value: String) {
 			return Url(trimmed)
 		}
 		
+		/**
+		 * @return 如果格式合法，返回 [Url]，否则返回 null。
+		 * @see toUrl
+		 */
 		fun String.toUrlOrNull(): Url? = trace.catching { toUrl() }.getOrNull()
 	}
 }

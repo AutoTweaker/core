@@ -41,7 +41,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	
 	private const val KEY_UID = "$APP_NAME(core.infrastructure.data)@autogen.local"
 	
-	private val lock = serialLock(io = true)
+	private val lock = SerialLock(io = true)
 	
 	@Volatile
 	private var password: CharArray? = null

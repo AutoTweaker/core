@@ -33,7 +33,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	private val modelConfig: ModelConfigRepository = ModelConfigAPI
 	private val store = ProviderStore
 	
-	private val lock = serialLock(io = true)
+	private val lock = SerialLock(io = true)
 	
 	override fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
 	override fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.serialLock
+import io.github.autotweaker.api.SerialLock
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +30,7 @@ import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool as Tool
 
 class AgentContextManager(initial: AgentContext, private val cancelledMessage: String) {
 	private val _context = MutableStateFlow(initial)
-	private val lock = serialLock()
+	private val lock = SerialLock()
 	
 	val context: StateFlow<AgentContext> = _context.asStateFlow()
 	

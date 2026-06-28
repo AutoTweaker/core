@@ -20,6 +20,9 @@ package io.github.autotweaker.api
 
 import org.slf4j.LoggerFactory
 
+/**
+ * 打印一条用于临时调试的 error 级别日志，特殊的命名便于通过自动化脚本扫描。
+ */
 @Deprecated("DO NOT COMMIT THIS", level = DeprecationLevel.WARNING)
 @Suppress("FunctionName")
 fun Loggable._LOG_TRACE_(content: String) = LoggerFactory.getLogger(this::class.java).error(content)
