@@ -181,7 +181,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 			return@flow
 		}
 		
-		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()) + " ", false)
+		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		
 		trace.catching {
 			core.secret.unlock(password)
@@ -196,7 +196,7 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	}
 	
 	private fun handleRemove(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
-		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()) + " ", false)
+		val password = prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		emit(CmdOutput.Data(""))
 		trace.catching {
 			if (!core.secret.isUnlocked.value) {
@@ -217,11 +217,11 @@ class Secret : Command, Loggable, I18nable, Traceable {
 		prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		val oldPassword = if (core.secret.isPasswordEmpty()) ""
-		else prompt(i18n.get(SecretI18n.UnlockPrompt()) + " ", false)
+		else prompt(i18n.get(SecretI18n.UnlockPrompt()), false)
 		
-		val newPassword = prompt(i18n.get(PasswdI18n.PromptNew()) + " ", false)
+		val newPassword = prompt(i18n.get(PasswdI18n.PromptNew()), false)
 		
-		val confirm = prompt(i18n.get(PasswdI18n.PromptConfirm()) + " ", false)
+		val confirm = prompt(i18n.get(PasswdI18n.PromptConfirm()), false)
 		
 		if (newPassword != confirm) {
 			emitI18n(PasswdI18n.Mismatch(), error = true)

@@ -118,7 +118,7 @@ class ProviderCommands(
 	private suspend fun FlowCollector<CmdOutput>.promptOrNull(
 		def: I18nDef, defOnEmpty: I18nDef? = null
 	): String? {
-		val result = prompt(i18n.get(def) + " ", true)
+		val result = prompt(i18n.get(def), true)
 		if (result.isBlank()) {
 			defOnEmpty?.let {
 				emitI18n(it, error = true)

@@ -66,17 +66,13 @@ object CliServer : Loggable, Settable, Traceable {
 	
 	
 	suspend fun start(router: CommandRouter) = lock.withLock {
-		withContext(Dispatchers.IO) {
-			Files.createDirectories(socketPath.parent)
-		}
+		Files.createDirectories(socketPath.parent)
 		socketPath.deleteIfExists()
 		
 		selectorManager = SelectorManager(Dispatchers.IO)
 		serverSocket = aSocket(selectorManager).tcp().bind(UnixSocketAddress(socketPath.toString()))
 		
-		withContext(Dispatchers.IO) {
-			Files.setPosixFilePermissions(socketPath, PosixFilePermissions.fromString("rwx------"))
-		}
+		Files.setPosixFilePermissions(socketPath, PosixFilePermissions.fromString("rwx------"))
 		log.info("Started CliServer  socketPath={}", socketPath)
 		
 		scope.launch {
@@ -128,7 +124,7 @@ object CliServer : Loggable, Settable, Traceable {
 			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
 			
 			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
-				sendChannel.writeResponse(CliResponse.Prompt(text, echo))
+				sendChannel.writeResponse(CliResponse.Prompt(text + SPACE, echo))
 				val line = receiveChannel.readCliLine()
 					?: throw CancellationException("Client disconnected", null)
 				json.decodeFromString<CliMessage.PromptResponse>(line).text

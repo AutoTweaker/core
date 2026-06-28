@@ -18,15 +18,6 @@
 
 package io.github.autotweaker.api
 
-fun String.toMasked(): String {
-	if (length <= 15) return MASK_CHAR * length
-	return buildString(length) {
-		this@toMasked.forEachIndexed { index, char ->
-			if (index <= 4 || index >= lastIndex - 3)
-				append(char)
-			else
-				append(MASK_CHAR)
-			
-		}
-	}
-}
+operator fun String.times(n: Int): String = repeat(n)
+
+operator fun Char.times(n: Int): String = toString().repeat(n)

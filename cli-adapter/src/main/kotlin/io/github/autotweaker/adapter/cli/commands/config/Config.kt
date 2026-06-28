@@ -159,7 +159,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		val sure: Boolean = if (!yes) {
 			emitI18n(CfgI18n.ShowSetting())
 			printConfig(listOf(config), full = true)
-			val result = prompt(i18n.get(CfgI18n.SureReset()) + " ", true).trim()
+			val result = prompt(i18n.get(CfgI18n.SureReset()), true).trim()
 			result == "y" || result == "yes"
 		} else true
 		
@@ -188,7 +188,7 @@ class Config : Command, Settable, I18nable, Traceable {
 			emitI18n(CfgI18n.OutDesc(), it.description)
 			emitI18n(CfgI18n.OutValue(), it.value.value.toString())
 		},
-		between = { emit(CmdOutput.Data("-".repeat(10))) })
+		between = { emit(CmdOutput.Data(LINE)) })
 	else settings.forEach { emit(CmdOutput.Data(it.id)) }
 	
 	

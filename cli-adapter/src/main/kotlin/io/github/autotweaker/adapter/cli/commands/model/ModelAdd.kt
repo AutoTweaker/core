@@ -205,12 +205,12 @@ class ModelAdd(
 	}
 	
 	private suspend fun promptI18n(key: I18nDef, vararg args: Any): String =
-		prompt(i18n.get(key).format(*args) + SPACE, true)
+		prompt(i18n.get(key).format(*args), true)
 	
 	
 	private suspend fun promptYesOrNo(key: I18nDef, vararg args: Any): Boolean? {
 		val result = prompt(
-			i18n.get(key).format(*args) + SPACE, true
+			i18n.get(key).format(*args), true
 		)
 		return when (result) {
 			"y", "yes" -> true
@@ -220,8 +220,4 @@ class ModelAdd(
 	}
 	
 	//endregion
-	
-	companion object {
-		const val SPACE = " "
-	}
 }

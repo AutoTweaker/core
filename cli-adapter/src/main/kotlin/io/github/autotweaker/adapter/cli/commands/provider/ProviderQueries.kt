@@ -22,10 +22,8 @@ import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.ModelFeature
-import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.forEachBetween
-import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
@@ -52,7 +50,7 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 		provider.errorHandlingRules?.let {
 			emit(i18n.get(ProvQueriesI18n.Rule()))
 			emitAll(printRules(it))
-		} ?: emit(i18n.get(ProvQueriesI18n.Rule()) + " " + i18n.get(ProvQueriesI18n.Default()))
+		} ?: emit(i18n.get(ProvQueriesI18n.Rule()) + SPACE + i18n.get(ProvQueriesI18n.Default()))
 	}
 	
 	fun types(): Flow<String> = core.config.listAvailableProviderTypes().asFlow()
@@ -79,7 +77,7 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {
 		rules.forEach {
 			emit(
-				SPACE + i18n.get(ProvQueriesI18n.StatusCode()).format(it.statusCode) + " | " + i18n.get(
+				INDENT + i18n.get(ProvQueriesI18n.StatusCode()).format(it.statusCode) + " | " + i18n.get(
 					ProvQueriesI18n.Strategy()
 				).format(it.strategy)
 			)
@@ -93,7 +91,7 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 			if (info.supportsReasoning) add(i18n.get(ModelFeature.ReasoningFeature()))
 			if (info.supportsImage) add(i18n.get(ModelFeature.ImageFeature()))
 			if (info.supportsJsonOutput) add(i18n.get(ModelFeature.JsonOutputFeature()))
-		}.joinToString(separator = " ") { "[${it}]" }
+		}.joinToString(separator = SPACE.toString()) { "[${it}]" }
 		
 		emit(i18n.get(ProvQueriesI18n.ModelId()).format(info.modelId))
 		emit(i18n.get(ProvQueriesI18n.ContextWindow()).format(processUnit(info.contextWindow)))
@@ -109,14 +107,14 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 				val to = it.toTokens
 				emit(
 					when {
-						from == 0 && to == null -> SPACE + buildPrice(it.price, it.cachedPrice)
-						to == null -> SPACE + "[${processUnit(from)}+] ${
+						from == 0 && to == null -> INDENT + buildPrice(it.price, it.cachedPrice)
+						to == null -> INDENT + "[${processUnit(from)}+] ${
 							buildPrice(
 								it.price, it.cachedPrice
 							)
 						}"
 						
-						else -> SPACE + "[${processUnit(from)} - ${processUnit(to)}] ${
+						else -> INDENT + "[${processUnit(from)} - ${processUnit(to)}] ${
 							buildPrice(
 								it.price, it.cachedPrice
 							)
@@ -149,10 +147,5 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 		number % 1_000_000 == 0 -> "${number / 1_000_000}m"
 		number % 1_000 == 0 -> "${number / 1_000}k"
 		else -> number.toString()
-	}
-	
-	companion object {
-		const val SPACE = "    "
-		val LINE = "-".repeat(10)
 	}
 }

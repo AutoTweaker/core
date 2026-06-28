@@ -18,5 +18,4 @@
 
 package io.github.autotweaker.api
 
-const val APP_NAME = "AutoTweaker"
-val APP_NAME_LOWERCASE = APP_NAME.lowercase()
+fun line(length: Int) = '-' * length

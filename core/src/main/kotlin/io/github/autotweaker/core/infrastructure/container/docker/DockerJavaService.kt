@@ -185,7 +185,8 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 		containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 	): Flow<ShellEvent> = callbackFlow {
 		log.debug(
-			"Started streaming exec  containerId={}  cmd={}", containerId, command.joinToString(" ")
+			"Started streaming exec  containerId={}  cmd={}", containerId,
+			command.joinToString(SPACE.toString())
 		)
 		withContext(Dispatchers.IO) {
 			trace.catching {

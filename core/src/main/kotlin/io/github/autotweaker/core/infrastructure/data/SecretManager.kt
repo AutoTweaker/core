@@ -214,7 +214,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		val stdout = proc.inputStream.bufferedReader().readText()
 		val stderr = proc.errorStream.bufferedReader().readText()
 		check(proc.waitFor() == 0)
-		{ "GPG command failed (${cmd.joinToString(" ")}): $stderr" }
+		{ "GPG command failed (${cmd.joinToString(SPACE.toString())}): $stderr" }
 		return@withContext stdout
 	}
 	

@@ -61,8 +61,8 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		acquireLock()
 		
 		PluginLoader.load<StartupHook>().forEach { hook ->
-			log.info("Executed startup hook  class={}", hook::class.java.name)
 			hook.execute(version)
+			log.info("Executed startup hook  class={}", hook::class.java.name)
 		}
 		
 		log.info("Started AutoTweaker  version={}", version)
@@ -84,7 +84,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		val lock = channel.tryLock()
 		if (lock == null) {
 			channel.close()
-			throw IllegalStateException("Another instance is already running")
+			error("Another instance is already running")
 		}
 		fileLock = lock
 		channel.truncate(0)
