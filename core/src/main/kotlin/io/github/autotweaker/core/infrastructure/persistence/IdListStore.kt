@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persistence
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.SerialLock
+import io.github.autotweaker.api.ReentrantMutex
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
@@ -41,7 +41,7 @@ class IdListStore<T : Any>(
 	private val mapSerializer = MapSerializer(UuidSerializer, serializer)
 	private val items = mutableMapOf<UUID, T>()
 	
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	
 	init {
 		store.get()?.let {

@@ -62,7 +62,7 @@ object CliServer : Loggable, Settable, Traceable {
 	
 	private val socketPath: Path = CONFIG_PATH.resolve("cli.sock")
 	
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	
 	
 	suspend fun start(router: CommandRouter) = lock.withLock {

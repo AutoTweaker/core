@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.tool
 
 import io.github.autotweaker.api.types.Unicode
+import io.github.autotweaker.api.types.Unicode.Companion.toUnicode
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,11 +34,12 @@ object RawFileSystemImpl : RawFileSystem {
 	
 	override suspend fun readString(path: Path): String = withContext(Dispatchers.IO) { Files.readString(path) }
 	
-	override suspend fun readAllLines(path: Path): List<String> =
-		withContext(Dispatchers.IO) { Files.readAllLines(path) }
+	override suspend fun readAllLines(path: Path): List<String> = withContext(Dispatchers.IO) {
+		Files.readAllLines(path)
+	}
 	
 	override suspend fun readUnicode(path: Path): List<Unicode> = withContext(Dispatchers.IO) {
-		Files.readString(path).map { Unicode.fromChar(it) }
+		Files.readString(path).map { it.toUnicode() }
 	}
 	
 	override suspend fun sha256(path: Path): String = withContext(Dispatchers.IO) {

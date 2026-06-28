@@ -51,8 +51,8 @@ class AgentBridge(
 	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI, Loggable, Settable {
 	/* 初始化 */
-	private val contextLock = SerialLock(io = true)
-	private val injectLock = SerialLock()
+	private val contextLock = ReentrantMutex()
+	private val injectLock = ReentrantMutex()
 	
 	private lateinit var initialData: AgentData
 	private lateinit var tools: List<Tool<ToolArgs>>

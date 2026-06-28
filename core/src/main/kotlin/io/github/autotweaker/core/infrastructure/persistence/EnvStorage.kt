@@ -37,7 +37,7 @@ class EnvStorage(
 		String.serializer(), UuidSerializer
 	)
 	private val envs = mutableMapOf<String, UUID>()
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	
 	init {
 		store.get()?.let {

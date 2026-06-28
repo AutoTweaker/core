@@ -36,7 +36,7 @@ object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 	private val provCfg: ProviderRepository = ProviderConfigAPI
 	private val apiKeys = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
 	
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	
 	init {
 		store.get()?.let {

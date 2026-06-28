@@ -46,7 +46,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	}
 	
 	private val registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>> = mutableMapOf()
-	private val lock = SerialLock()
+	private val lock = ReentrantMutex()
 	
 	private val core by lazy { Wiring.createCoreAPI(this, version) }
 	

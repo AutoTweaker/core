@@ -53,8 +53,8 @@ class RoundRunner(
 	private val agentId: UUID,
 ) : Loggable, Traceable, Settable {
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-	private val cmdLock = SerialLock()
-	private val compactLock = SerialLock()
+	private val cmdLock = ReentrantMutex()
+	private val compactLock = ReentrantMutex()
 	
 	@Volatile
 	private var thinkJob: Job? = null

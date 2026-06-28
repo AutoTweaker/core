@@ -30,7 +30,7 @@ import java.util.*
 object WorkspaceManager : Loggable, JsonStorable {
 	private val workspaces: MutableList<WorkspaceData> = mutableListOf()
 	
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	
 	suspend fun init() = lock.withLock {
 		store.get()?.let {

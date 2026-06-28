@@ -34,7 +34,7 @@ import java.nio.file.Path
 import kotlin.time.Duration
 
 object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	private lateinit var envStorage: EnvStorage
 	private var imagePullJob: Deferred<Unit>? = null

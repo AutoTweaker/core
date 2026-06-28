@@ -18,20 +18,29 @@
 
 package io.github.autotweaker.api
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import io.github.autotweaker.api.trace.catching
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.sync.Mutex
 
-@Deprecated(
-	"limitedParallelism limits how many threads can execute some code in parallel, but does not limit how many coroutines execute concurrently!",
-	level = DeprecationLevel.ERROR
-)
-class SerialLock(io: Boolean = false) {
+class ReentrantMutex : Traceable {
 	@PublishedApi
-	internal val dispatcher: CoroutineDispatcher =
-		if (io) Dispatchers.IO.limitedParallelism(1)
-		else Dispatchers.Default.limitedParallelism(1)
+	internal val mutex = Mutex()
 	
-	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T =
-		withContext(dispatcher) { block() }
+	@PublishedApi
+	@Volatile
+	internal var owner: Job? = null
+	
+	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T {
+		val job = currentCoroutineContext()[Job]
+		if (owner === job) return block()
+		mutex.lock()
+		owner = job
+		return trace.catching { block() }
+			.also {
+				owner = null
+				mutex.unlock()
+			}
+			.getOrThrow()
+	}
 }

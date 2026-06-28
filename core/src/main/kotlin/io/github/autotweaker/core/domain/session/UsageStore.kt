@@ -28,7 +28,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
 object UsageStore : Loggable, JsonStorable {
-	private val lock = SerialLock(io = true)
+	private val lock = ReentrantMutex()
 	
 	private val mapSerializer = MapSerializer(UuidSerializer, UsageSnapshot.serializer())
 	
