@@ -19,28 +19,28 @@
 package io.github.autotweaker.api
 
 import io.github.autotweaker.api.trace.catching
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.CoroutineContext
 
 class ReentrantMutex : Traceable {
 	@PublishedApi
 	internal val mutex = Mutex()
 	
 	@PublishedApi
-	@Volatile
-	internal var owner: Job? = null
+	internal val lockKey = object : CoroutineContext.Key<CoroutineContext.Element> {}
+	
+	@PublishedApi
+	internal val key = object : CoroutineContext.Element {
+		override val key get() = lockKey
+	}
 	
 	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T {
-		val job = currentCoroutineContext()[Job]
-		if (owner === job) return block()
+		if (currentCoroutineContext()[lockKey] === key) return block()
 		mutex.lock()
-		owner = job
-		return trace.catching { block() }
-			.also {
-				owner = null
-				mutex.unlock()
-			}
+		return trace.catching { withContext(key) { block() } }
+			.also { mutex.unlock() }
 			.getOrThrow()
 	}
 }
