@@ -26,10 +26,10 @@ import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.args.BashArgs
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
-
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.port.BashService
+import io.github.autotweaker.core.infrastructure.persistence.EnvStore
 import io.github.autotweaker.core.infrastructure.persistence.json.JsonStoreImpl
 import io.mockk.*
 import kotlinx.coroutines.flow.flowOf
@@ -37,7 +37,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
 import java.util.*
-import io.github.autotweaker.core.infrastructure.persistence.EnvStore
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
