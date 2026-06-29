@@ -24,27 +24,23 @@ import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.domain.port.SecretStore
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
+
 
 object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 	private lateinit var secret: SecretStore
 	private val provCfg: ProviderRepository = ProviderConfigAPI
-	private val apiKeys = ConcurrentHashMap<String, @Serializable(with = UuidSerializer::class) UUID>()
+	private val serializer = MapSerializer(String.serializer(), UuidSerializer)
+	private val apiKeys: MutableMap<String, UUID> by lazy {
+		store.get()?.let {
+			Json.decodeFromJsonElement(serializer, it)
+		}.orEmpty().toMutableMap()
+	}
 	
 	private val lock = ReentrantMutex()
-	
-	init {
-		store.get()?.let {
-			apiKeys.putAll(
-				Json.decodeFromJsonElement(MapSerializer(String.serializer(), UuidSerializer), it)
-			)
-		}
-	}
 	
 	fun init(secretStore: SecretStore) {
 		secret = secretStore
@@ -83,6 +79,5 @@ object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
 		apiKeys.filter { it.value == id }.keys.firstOrNull()
 	}
 	
-	private fun save() =
-		store.set(Json.encodeToJsonElement(MapSerializer(String.serializer(), UuidSerializer), apiKeys))
+	private fun save() = store.set(Json.encodeToJsonElement(serializer, apiKeys))
 }
