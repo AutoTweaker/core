@@ -147,7 +147,7 @@ jobs:
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
 
       - name: Clone pages repository
-        run: git clone git@github.com:autotweaker/autotweaker.github.io.git .temp/pages
+        run: git clone git@github.com:AutoTweaker/autotweaker.github.io.git .temp/pages
         env:
           GIT_SSH_COMMAND: ssh -i ~/.ssh/deploy_key
 
