@@ -23,7 +23,7 @@ import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
-import io.github.autotweaker.core.infrastructure.persist.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll

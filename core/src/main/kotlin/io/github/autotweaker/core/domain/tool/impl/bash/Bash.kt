@@ -27,7 +27,7 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
-import io.github.autotweaker.core.infrastructure.persist.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import kotlin.reflect.KProperty1

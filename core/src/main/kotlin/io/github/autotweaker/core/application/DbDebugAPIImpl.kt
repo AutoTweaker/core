@@ -24,11 +24,11 @@ import io.github.autotweaker.api.dev.DbDebugAPI
 import io.github.autotweaker.api.types.dev.*
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.SecretManager
-import io.github.autotweaker.core.infrastructure.persist.config.ConfigTable
-import io.github.autotweaker.core.infrastructure.persist.config.SettingDbApi
-import io.github.autotweaker.core.infrastructure.persist.json.JsonStoreDbApi
-import io.github.autotweaker.core.infrastructure.persist.json.JsonStoreTable
-import io.github.autotweaker.core.infrastructure.persist.session.*
+import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable
+import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.session.*
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreTable
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll

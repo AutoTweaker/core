@@ -29,8 +29,8 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.port.BashService
-import io.github.autotweaker.core.infrastructure.persist.EnvStore
-import io.github.autotweaker.core.infrastructure.persist.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.*
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking

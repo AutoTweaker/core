@@ -45,9 +45,9 @@ import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.LogStore
-import io.github.autotweaker.core.infrastructure.persist.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.persist.WorkspaceManager
-import io.github.autotweaker.core.infrastructure.persist.trace.TraceStore
+import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
+import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
+import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*

@@ -36,9 +36,9 @@ import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
-import io.github.autotweaker.core.infrastructure.persist.EnvStore
-import io.github.autotweaker.core.infrastructure.persist.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.persist.session.SessionRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {

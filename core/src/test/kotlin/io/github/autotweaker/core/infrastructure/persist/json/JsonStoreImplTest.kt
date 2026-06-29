@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreTable
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk

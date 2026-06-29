@@ -23,8 +23,8 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.infrastructure.persist.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persist.trace.TraceRecorderImpl
+import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
 

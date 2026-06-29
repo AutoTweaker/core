@@ -21,7 +21,8 @@ package io.github.autotweaker.core.infrastructure.persist
 import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persist.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
