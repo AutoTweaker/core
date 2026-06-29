@@ -70,7 +70,7 @@ class Mutable<T> private constructor(
 		 * @param onChange 当数据被修改时执行的 lambda。
 		 * @throws IllegalArgumentException 对 [Mutable] 调用 [mutable]。但不包括对 [MutableList] 这类可变数据调用，请自行避免此类调用。
 		 */
-		fun <T> T.mutable(onChange: (old: T, new: T) -> Unit = { _, _ -> }): Mutable<T> {
+		fun <T> T.mutable(onChange: suspend (old: T, new: T) -> Unit = { _, _ -> }): Mutable<T> {
 			require(this !is Mutable<*>)
 			return Mutable(this, onChange)
 		}

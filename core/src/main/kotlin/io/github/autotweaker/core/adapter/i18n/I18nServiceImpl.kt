@@ -64,16 +64,17 @@ object I18nServiceImpl : I18nService, Loggable, JsonStorable {
 	
 	override fun getDefault(id: String): I18nDef? = I18nRegistry.get(id)
 	
-	@Synchronized
 	override fun set(id: String, text: String, languageCode: Locale) {
-		val mutable = cache.value.toMutableList()
-		val index = mutable.indexOfFirst { it.key == id }
-		if (index == -1) error("I18n not found: $id")
-		val entry = mutable[index]
-		mutable[index] = entry.copy(localizations = entry.localizations.filter {
-			it.languageCode != languageCode
-		} + LocalizedString(languageCode, text))
-		cache.update { mutable }
+		cache.update { entries ->
+			val index = entries.indexOfFirst { it.key == id }
+			if (index == -1) error("I18n not found: $id")
+			val entry = entries[index]
+			entries.toMutableList().also {
+				it[index] = entry.copy(localizations = entry.localizations.filter { localizedString ->
+					localizedString.languageCode != languageCode
+				} + LocalizedString(languageCode, text))
+			}
+		}
 		save()
 		log.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
 	}
@@ -96,7 +97,6 @@ object I18nServiceImpl : I18nService, Loggable, JsonStorable {
 		return key
 	}
 	
-	@Synchronized
 	private fun save() =
 		store.set(Json.encodeToJsonElement(Store(cache.value, language)))
 	
