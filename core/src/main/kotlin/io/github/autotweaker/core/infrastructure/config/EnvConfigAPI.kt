@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.config.CoreConfig.JsonConfig.Env.Type
 import io.github.autotweaker.core.domain.port.EnvRepository
 import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.github.autotweaker.core.infrastructure.persistence.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.EnvStore
 
 object EnvConfigAPI : EnvRepository, Loggable {
 	override suspend fun list(type: Type): List<String> = store(type).listEnv()

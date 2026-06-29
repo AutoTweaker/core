@@ -16,22 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.i18n.translation
+package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.infrastructure.persist.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.atomicfu.atomic
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
-import java.util.*
-import kotlin.test.*
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
-class TranslationManagerTest {
+class JsonStoreImplTest {
 	
-	private val dbUrl = "jdbc:h2:mem:tm_${counter.getAndIncrement()};DB_CLOSE_DELAY=-1"
+	private val dbUrl = "jdbc:h2:mem:js_${counter.getAndIncrement()};DB_CLOSE_DELAY=-1"
 	
 	companion object {
 		private val counter = atomic(0)
@@ -41,37 +45,40 @@ class TranslationManagerTest {
 		}
 	}
 	
+	private lateinit var databaseStore: DatabaseStore
+	
 	@BeforeTest
 	fun setUp() {
-		val databaseStore = mockk<DatabaseStore>()
+		databaseStore = mockk()
 		every { databaseStore.connect(any()) } answers {
 			Database.connect(dbUrl, "org.h2.Driver")
 		}
+	}
+	
+	@Test
+	fun `init then get returns null`() {
 		JsonStoreImpl.init(databaseStore)
-	}
-	
-	@AfterTest
-	fun tearDown() {
-		TranslationManager.setModel(null)
+		assertNull(JsonStoreImpl.namespace(String::class).get())
 	}
 	
 	@Test
-	fun `setModel and getModel roundtrip`() {
-		val id = UUID.randomUUID()
-		TranslationManager.setModel(id)
-		assertEquals(id, TranslationManager.getModel())
+	fun `namespace and set then get`() {
+		JsonStoreImpl.init(databaseStore)
+		val entry = JsonStoreImpl.namespace(Int::class)
+		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
+		entry.set(data)
+		assertNotNull(entry.get())
 	}
 	
 	@Test
-	fun `setModel null clears model`() {
-		TranslationManager.setModel(UUID.randomUUID())
-		TranslationManager.setModel(null)
-		assertNull(TranslationManager.getModel())
-	}
-	
-	@Test
-	fun `status is a StateFlow`() {
-		val status = TranslationManager.status.value
-		assertTrue(status == TranslationStatus.IDLE || status == TranslationStatus.TRANSLATING)
+	fun `get handles corrupted JSON`() {
+		JsonStoreImpl.init(databaseStore)
+		transaction {
+			JsonStoreTable.insert {
+				it[JsonStoreTable.namespace] = Boolean::class.java.name
+				it[JsonStoreTable.content] = "bad json"
+			}
+		}
+		assertNull(JsonStoreImpl.namespace(Boolean::class).get())
 	}
 }

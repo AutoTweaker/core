@@ -22,8 +22,8 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
-import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.persistence.ModelStore
+import io.github.autotweaker.core.infrastructure.persist.ModelResolverImpl
+import io.github.autotweaker.core.infrastructure.persist.ModelStore
 import java.util.*
 import io.github.autotweaker.api.types.config.CoreConfig.ProviderConfig.Model as ModelConfig
 

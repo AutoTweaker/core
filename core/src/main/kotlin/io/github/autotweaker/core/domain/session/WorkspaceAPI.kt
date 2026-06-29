@@ -23,7 +23,7 @@ import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
+import io.github.autotweaker.core.infrastructure.persist.WorkspaceManager
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*

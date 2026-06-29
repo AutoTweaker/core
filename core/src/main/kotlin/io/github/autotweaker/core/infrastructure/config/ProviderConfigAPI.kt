@@ -24,8 +24,8 @@ import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
-import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.persistence.ProviderStore
+import io.github.autotweaker.core.infrastructure.persist.ModelResolverImpl
+import io.github.autotweaker.core.infrastructure.persist.ProviderStore
 import java.util.*
 
 object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {

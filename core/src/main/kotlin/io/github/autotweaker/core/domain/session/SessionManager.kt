@@ -34,7 +34,7 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
-import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
+import io.github.autotweaker.core.infrastructure.persist.WorkspaceManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.nio.file.Files
