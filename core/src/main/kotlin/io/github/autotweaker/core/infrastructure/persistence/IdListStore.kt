@@ -39,16 +39,13 @@ class IdListStore<T : Any>(
 	private val className = kClass.qualifiedName
 	
 	private val mapSerializer = MapSerializer(UuidSerializer, serializer)
-	private val items = mutableMapOf<UUID, T>()
+	private val items: MutableMap<UUID, T> by lazy {
+		store.get()?.let {
+			Json.decodeFromJsonElement(mapSerializer, it)
+		}.orEmpty().toMutableMap()
+	}
 	
 	private val lock = ReentrantMutex()
-	
-	init {
-		store.get()?.let {
-			items.putAll(Json.decodeFromJsonElement(mapSerializer, it))
-		}
-		log.info("Initialized IdListStore  count={}  class={}", items.size, className)
-	}
 	
 	suspend fun set(data: T) = lock.withLock {
 		val id = idOf(data)

@@ -37,6 +37,8 @@ import java.util.*
  * 用于管理单个 agent 实例的 api。
  *
  * 大部分方法都重新返回自身（[AgentAPI]）以支持链式调用。
+ *
+ * 关于 agent 上下文的基本概念（如“轮次”）请参阅 [SessionContextIndex]
  */
 interface AgentAPI {
 	val id: UUID
@@ -93,14 +95,54 @@ interface AgentAPI {
 	 */
 	fun send(content: MessageContent): Delivery
 	
+	/**
+	 * 令 agent 在当前任务完成之后停下，并归档当前上下文。状态将变为 [AgentStatus.FREE]。
+	 *
+	 * “当前任务”包括 LLM 请求和工具调用（单个工具），未执行的工具调用将被取消。
+	 */
 	suspend fun pause(): AgentAPI
+	
+	/**
+	 * 立即停止 agent 的工具调用或 LLM 请求，并归档当前上下文，等待状态变为 [AgentStatus.FREE]（Stop 完成）。
+	 *
+	 * 未批准的工具调用将被取消，正在执行的 LLM 请求将被中断，响应将被丢弃，当前轮次若只有用户消息，当前轮次将被丢弃。
+	 *
+	 * 请注意，终止正在进行的 LLM 请求将导致 Usage 无法被记录。
+	 */
 	suspend fun stop(): AgentAPI
+	
+	/**
+	 * 触发 agent 的上下文压缩，如果上下文压缩正在进行，不会重复触发，上下文压缩在后台进行，此方法不会挂起等待上下文压缩完毕。
+	 *
+	 * 除此之外，agent 会在每次 LLM 请求、工具调用结束后自动根据配置的阈值检查当前 Usage 并自动触发上下文压缩。
+	 *
+	 * agent 的上下文压缩完全在后台进行，不会阻塞 agent 的主事件循环，上下文压缩完毕后将在下一次 LLM 请求立即生效。
+	 */
 	suspend fun compact(): AgentAPI
+	
+	/**
+	 * 取消正在进行的上下文压缩进程。请注意，只要达到阈值，上下文压缩仍然会继续自动触发。
+	 */
 	suspend fun cancelCompact(): AgentAPI
+	
+	/**
+	 * 取消正在进行的工具调用。请注意，只要被批准，剩余工具调用仍然会继续执行。
+	 */
 	suspend fun cancelTool(): AgentAPI
 	
+	/**
+	 * 更新 agent 使用的大模型，下次请求立即生效。
+	 */
 	suspend fun setModel(config: ModelConfig): AgentAPI
+	
+	/**
+	 * 批准一个工具调用请求。
+	 *
+	 * AutoTweaker 会根据 LLM 请求的顺序，逐一等待批准，并逐一执行，乱序的批准将被缓存。
+	 * 工具调用始终根据 LLM 请求的顺序执行。
+	 */
 	suspend fun approve(approval: ToolApprove): AgentAPI
+	
 	
 	suspend fun inject(injection: ContextInjection): AgentAPI
 	suspend fun removeInjection(id: UUID): AgentAPI

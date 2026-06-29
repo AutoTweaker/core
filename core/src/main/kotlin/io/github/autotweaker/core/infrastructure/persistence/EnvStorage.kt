@@ -36,16 +36,12 @@ class EnvStorage(
 	private val serializer = MapSerializer(
 		String.serializer(), UuidSerializer
 	)
-	private val envs = mutableMapOf<String, UUID>()
-	private val lock = ReentrantMutex()
-	
-	init {
+	private val envs: MutableMap<String, UUID> by lazy {
 		store.get()?.let {
-			envs.putAll(
-				Json.decodeFromJsonElement(serializer, it)
-			)
-		}
+			Json.decodeFromJsonElement(serializer, it)
+		}.orEmpty().toMutableMap()
 	}
+	private val lock = ReentrantMutex()
 	
 	suspend fun listEnv(): List<String> = lock.withLock { envs.keys.toList() }
 	
