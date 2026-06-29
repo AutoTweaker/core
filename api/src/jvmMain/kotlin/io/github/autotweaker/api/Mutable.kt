@@ -35,21 +35,25 @@ class Mutable<T> private constructor(@Volatile private var value: T) {
 	fun get(): T = value
 	
 	/**
-	 * 覆盖当前值，无锁。
+	 * 覆盖当前值，返回修改后的新值，无锁。
 	 */
-	fun set(new: T): Mutable<T> = also { value = new }
+	fun set(new: T): T {
+		value = new
+		return value
+	}
 	
 	/**
-	 * 使用 [transform] 的返回值来更新值，[transform] 内的表达式在锁内执行，并发安全。
+	 * 使用 [transform] 的返回值来更新值，返回更新后的值，[transform] 内的表达式在锁内执行，并发安全。
 	 *
 	 * 内部使用 [ReentrantMutex]，虽然应该不会有人在 [update] 里面 [update]，但这不会导致死锁。
 	 *
 	 * @see ReentrantMutex
 	 */
-	suspend fun update(transform: suspend (T) -> T): Mutable<T> = also {
+	suspend fun update(transform: suspend (T) -> T): T {
 		lock.withLock {
 			value = transform(value)
 		}
+		return value
 	}
 	
 	/**
