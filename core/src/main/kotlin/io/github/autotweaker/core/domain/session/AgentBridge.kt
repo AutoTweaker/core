@@ -135,14 +135,14 @@ class AgentBridge(
 	override suspend fun inject(injection: ContextInjection) = also {
 		injectLock.withLock {
 			val oldInjections = agentData.context.injections.orEmpty()
-			val new = (oldInjections.filterNot { it.id == injection.id } + injection).orNull()
+			val new = (oldInjections.filterNot { it.id == injection.id } + injection)
 			_agent.updateInjections(new)
 		}
 	}
 	
 	override suspend fun removeInjection(id: UUID) = also {
 		injectLock.withLock {
-			val oldInjections = agentData.context.injections.orEmpty()
+			val oldInjections = agentData.context.injections ?: return@withLock
 			val new = oldInjections.filterNot { it.id == id }.orNull()
 			_agent.updateInjections(new)
 		}

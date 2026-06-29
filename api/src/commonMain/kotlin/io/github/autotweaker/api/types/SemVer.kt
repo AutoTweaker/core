@@ -124,7 +124,7 @@ data class SemVer(
 		)
 		
 		/**
-		 * 从字符串解析一个符合  SemVer 规范的版本号。
+		 * 从字符串解析一个符合 SemVer 规范的版本号。
 		 *
 		 * @throws IllegalArgumentException 版本号不符合 SemVer 规范。
 		 */

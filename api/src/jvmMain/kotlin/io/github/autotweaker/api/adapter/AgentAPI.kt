@@ -92,6 +92,8 @@ interface AgentAPI {
 	 * 无论队列中有多少条消息，消费时都会将它们合并，这之中也可能包含由 AutoTweaker 自动发送的系统消息。
 	 *
 	 * 使用 `send(content).await()` 来挂起等待 agent 消费这条消息，并获取合并后的那条 [io.github.autotweaker.api.types.session.SessionMessage.User] 的 id 用于前端展示。
+	 *
+	 * @see MessageContent
 	 */
 	fun send(content: MessageContent): Delivery
 	
@@ -143,7 +145,15 @@ interface AgentAPI {
 	 */
 	suspend fun approve(approval: ToolApprove): AgentAPI
 	
-	
+	/**
+	 * 在 agent 的上下文中注入 XML 标签，相同 id 的标签会去重。
+	 *
+	 * XML 标签会被注入到当前上下文中的第一条用户消息中，此 api 用于注入不变的系统提示，如果要注入动态的实时信息，请使用 [send]。
+	 */
 	suspend fun inject(injection: ContextInjection): AgentAPI
+	
+	/**
+	 * 从 agent 的上下文中移除一条标签注入。
+	 */
 	suspend fun removeInjection(id: UUID): AgentAPI
 }

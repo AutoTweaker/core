@@ -16,10 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.net.URI
+
 plugins {
 	kotlin("multiplatform")
 	kotlin("plugin.serialization")
+	id("org.jetbrains.dokka")
 	`maven-publish`
+}
+
+dokka {
+	dokkaPublications.html {
+		moduleName.set("AutoTweaker API")
+		outputDirectory.set(layout.buildDirectory.dir("dokka/api"))
+	}
+	dokkaSourceSets.configureEach {
+		sourceLink {
+			localDirectory.set(file("src"))
+			remoteUrl.set(URI("https://github.com/AutoTweaker/core/blob/main/api/src"))
+			remoteLineSuffix.set("#L")
+		}
+	}
 }
 
 kotlin {
