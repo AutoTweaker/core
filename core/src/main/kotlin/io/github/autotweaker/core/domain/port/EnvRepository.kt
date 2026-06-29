@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.port
 import io.github.autotweaker.api.types.config.CoreConfig
 
 interface EnvRepository {
-	suspend fun set(env: List<CoreConfig.JsonConfig.Env>)
+	suspend fun set(env: CoreConfig.JsonConfig.Env)
 	suspend fun remove(type: CoreConfig.JsonConfig.Env.Type, id: String): Boolean
 	suspend fun get(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
 	suspend fun list(type: CoreConfig.JsonConfig.Env.Type): List<String>

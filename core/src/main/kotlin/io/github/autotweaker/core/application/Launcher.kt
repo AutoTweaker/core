@@ -32,7 +32,6 @@ import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
-import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persistence.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persistence.config.Settings
@@ -56,6 +55,7 @@ object Launcher : Loggable, Traceable {
 		registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>>,
 		lazyCore: () -> CoreAPI
 	) {
+		//依赖最广泛的able api
 		initServices(
 			ServiceRegistry(
 				trace = TraceRecorderImpl::recorder,
@@ -65,29 +65,41 @@ object Launcher : Loggable, Traceable {
 			)
 		)
 		
+		
+		//都是数据库IO，互不依赖
 		JsonStoreImpl.init(databaseStore)
 		Settings.init(databaseStore)
+		TraceStore.init(databaseStore)
 		SessionRepositoryImpl.init(databaseStore)
+		//DbApi
 		SettingDbApi.init(databaseStore)
 		JsonStoreDbApi.init(databaseStore)
 		SessionDataDbApi.init(databaseStore)
 		AgentDataDbApi.init(databaseStore)
 		SessionMessageDbApi.init(databaseStore)
+		
+		
+		//密钥库
 		SecretManager.init()
+		//依赖SecretManager
 		DbDebugAPIImpl.init(databaseStore)
-		TraceStore.init(databaseStore)
+		
+		//Trace服务，会启动协程
 		TraceRecorderImpl.init()
+		
+		//缓存初始化
 		WorkspaceManager.init()
+		
+		//创建目录、检查权限、开始拉镜像
+		ContainerManager.init()
+		
+		//都是纯赋值
+		Wiring.init()
 		
 		PluginLoader.load<Debugger>().forEach { debugger ->
 			log.info("Initialized debugger  class={}", debugger::class.java.name)
 			debugger.init(DbDebugAPIImpl)
 		}
-		
-		Wiring.init()
-		
-		TranslationManager.init(ModelResolverImpl)
-		TranslationManager.startTranslation()
 		
 		val all = PluginLoader.load<Adapter>().map { it to it.init(lazyCore()) }
 		val adapters = all.groupBy { (_, info) -> info.name }
@@ -107,6 +119,8 @@ object Launcher : Loggable, Traceable {
 				log.info("Started adapter  name={}", info.name)
 			}
 		}
+		
+		TranslationManager.startTranslation()
 	}
 	
 	suspend fun shutdown(registry: PairList<Adapter, AdapterInfo>) {

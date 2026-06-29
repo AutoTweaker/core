@@ -23,12 +23,11 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.tool.args.BashArgs
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
-import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
+import io.github.autotweaker.core.infrastructure.persistence.EnvStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import kotlin.reflect.KProperty1
@@ -112,16 +111,5 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	
-	companion object : JsonStorable {
-		private lateinit var envStorage: EnvStorage
-		
-		fun init(secretStore: SecretStore) {
-			envStorage = EnvStorage(this::class, store, secretStore)
-		}
-		
-		suspend fun listEnv(): List<String> = envStorage.listEnv()
-		suspend fun getEnv(id: String): String? = envStorage.getEnv(id)
-		suspend fun setEnv(id: String, value: String) = envStorage.setEnv(id, value)
-		suspend fun removeEnv(id: String) = envStorage.removeEnv(id)
-	}
+	companion object : EnvStore()
 }

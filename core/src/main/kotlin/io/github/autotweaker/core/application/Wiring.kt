@@ -22,21 +22,21 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
-import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
 import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
 import io.github.autotweaker.core.infrastructure.config.ModelConfigAPI
 import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
+import io.github.autotweaker.core.infrastructure.persistence.EnvStore
 import io.github.autotweaker.core.infrastructure.persistence.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persistence.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
@@ -44,11 +44,14 @@ import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 object Wiring : Loggable {
 	val pathResolver = PathResolverImpl(ContainerConfig())
 	
+	/**
+	 * 都是纯赋值
+	 */
 	fun init() {
+		TranslationManager.init(ModelResolverImpl)
+		EnvStore.init(SecretManager)
 		ModelResolverImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
-		ContainerManager.init(SecretManager)
-		Bash.init(SecretManager)
 		ResilientChat.init(LlmGatewayImpl)
 		ChatService.init(
 			ModelResolverImpl, SessionRepositoryImpl

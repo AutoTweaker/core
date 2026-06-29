@@ -18,7 +18,11 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.JsonStorable
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Mutable.Companion.mutable
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionMessage
@@ -28,21 +32,20 @@ import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
 object UsageStore : Loggable, JsonStorable {
-	private val lock = ReentrantMutex()
-	
-	private val mapSerializer = MapSerializer(UuidSerializer, UsageSnapshot.serializer())
-	
-	private fun load(): Map<UUID, UsageSnapshot> {
-		val raw = store.get() ?: return emptyMap()
-		return Json.decodeFromJsonElement(mapSerializer, raw)
+	private val cache by lazy {
+		store.get()?.let {
+			Json.decodeFromJsonElement(
+				deserializer = MapSerializer(
+					keySerializer = UuidSerializer, valueSerializer = UsageSnapshot.serializer()
+				), element = it
+			)
+		}.orEmpty().mutable { _, new ->
+			store.set(Json.encodeToJsonElement(new))
+		}
 	}
 	
-	private fun save(data: Map<UUID, UsageSnapshot>) {
-		store.set(Json.encodeToJsonElement(data))
-	}
-	
-	suspend fun collect(messages: List<SessionMessage>) = lock.withLock {
-		val data = load().toMutableMap()
+	suspend fun collect(messages: List<SessionMessage>) = cache.update {
+		val data = it.toMutableMap()
 		var count = 0
 		
 		fun add(key: UUID, snapshot: UsageSnapshot) {
@@ -73,10 +76,11 @@ object UsageStore : Loggable, JsonStorable {
 		}
 		
 		if (count > 0) {
-			save(data)
 			log.info("Collected usage entries  new={}  total={}", count, data.size)
 		}
+		
+		return@update data.toMap()
 	}
 	
-	suspend fun getSnapshots(): Map<UUID, UsageSnapshot> = lock.withLock { load() }
+	fun getSnapshots(): Map<UUID, UsageSnapshot> = cache.get()
 }

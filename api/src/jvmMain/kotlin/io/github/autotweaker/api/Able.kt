@@ -63,6 +63,8 @@ interface I18nable
 /**
  * 获取 [Logger]，请遵循日志规范，不要污染程序日志。
  *
+ * 直接在实现了 [Loggable] 的类 / 对象内部的任何地方使用 `log` 即可。
+ *
  * 日志规范：
  * - 用语：英语，过去时或现在完成时，不要使用中文以及中文标点，用词："initialized"、"started"、"failed to shutdown"，通常动词在前，如 "Created session" "Completed agent shutdown"
  * - 格式：首字母大写，不加句号。正文仅使用字母、数字、空格、短横线，不要使用点，字母之间使用一个空格
@@ -74,23 +76,31 @@ inline val Loggable.log: Logger get() = LoggerFactory.getLogger(this::class.java
 
 /**
  * 获取 AutoTweaker 提供的 [TraceRecorder]，自身作为 `origin`。
+ *
+ * 直接在实现了 [Traceable] 的类 / 对象内部的任何地方使用 `trace` 即可。
  */
 val Traceable.trace: TraceRecorder get() = services.trace(this::class)
 
 /**
  * 获取 AutoTweaker 提供的 [JsonStore]。
  * 同一类获取到的 [JsonStore] 始终相同，不同类获取到的 [JsonStore] 相互隔离。
+ *
+ * 直接在实现了 [JsonStorable] 的类 / 对象内部的任何地方使用 `store` 即可。
  */
 val JsonStorable.store: JsonStore get() = services.store(this::class)
 
 /**
- * 获取 AutoTweaker 提供的 [SettingService]
+ * 获取 AutoTweaker 提供的 [SettingService]。
+ *
+ * 直接在实现了 [Settable] 的类 / 对象内部的任何地方使用 `setting` 即可。
  */
 @Suppress("UnusedReceiverParameter")
 val Settable.setting: SettingService get() = services.setting
 
 /**
- * 获取 AutoTweaker 提供的 [I18nService]
+ * 获取 AutoTweaker 提供的 [I18nService]。
+ *
+ * 直接在实现了 [I18nable] 的类 / 对象内部的任何地方使用 `i18n` 即可。
  */
 @Suppress("UnusedReceiverParameter")
 val I18nable.i18n: I18nService get() = services.i18n

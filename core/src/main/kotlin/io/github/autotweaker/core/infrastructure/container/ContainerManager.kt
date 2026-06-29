@@ -22,9 +22,8 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
-import io.github.autotweaker.core.infrastructure.persistence.EnvStorage
+import io.github.autotweaker.core.infrastructure.persistence.EnvStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -33,10 +32,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
-object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
+object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 	private val lock = ReentrantMutex()
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-	private lateinit var envStorage: EnvStorage
+	
 	private var imagePullJob: Deferred<Unit>? = null
 	
 	private val service: ContainerService = DockerJavaService()
@@ -49,9 +48,7 @@ object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
 	
 	val isRunning: Boolean get() = containerId != null
 	
-	@Synchronized
-	fun init(secretStore: SecretStore) {
-		envStorage = EnvStorage(this::class, store, secretStore)
+	fun init() {
 		Files.createDirectories(ContainerConfig().workspaceHostPath)
 		
 		if (service.checkAccess()) containerAccess = true
@@ -75,8 +72,13 @@ object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
 		imagePullJob?.await()
 		
 		log.debug("Initiated container start  image={}", image)
-		containerId = service.start(image, ContainerConfig(env = getEnv()))
-			.andLog(log) { info("Started container  containerId={}", it) }
+		containerId = service.start(
+			image, ContainerConfig(
+				env = listEnv().mapNotNull {
+					it to (getEnv(it) ?: return@mapNotNull null)
+				}.toMap()
+			)
+		).andLog(log) { info("Started container  containerId={}", it) }
 	}
 	
 	suspend fun stop() = lock.withLock {
@@ -111,32 +113,5 @@ object ContainerManager : Loggable, Traceable, JsonStorable, Settable {
 			"timeout", "--signal=KILL", "${timeout.inWholeSeconds}", "bash", "-lc", command
 		)
 		emitAll(service.execStream(id, wrappedCommand, workDir = workDir, env = env))
-	}
-	
-	suspend fun listEnv(): List<String> = envStorage.listEnv()
-	
-	suspend fun setEnv(id: String, value: String) =
-		envStorage.setEnv(id, value).andLog(log)
-		{ debug("Set container env  key={}", id) }
-	
-	
-	suspend fun removeEnv(id: String) =
-		envStorage.removeEnv(id).andLog(log)
-		{ debug("Removed container env  key={}", id) }
-	
-	
-	suspend fun getEnv(id: String? = null): Map<String, String> {
-		val ids = if (id != null) {
-			if (id in envStorage.listEnv())
-				listOf(id)
-			else emptyList()
-		} else envStorage.listEnv()
-		
-		return ids.mapNotNull { key ->
-			val value = envStorage.getEnv(key)
-			if (value == null)
-				log.warn("Failed env value retrieval  key={}", key).discard(null)
-			else key to value
-		}.toMap()
 	}
 }

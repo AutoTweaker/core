@@ -24,9 +24,14 @@ import io.github.autotweaker.api.Mutable.Companion.mutable
 /**
  * 包装一个不可变数据，并提供并发安全的更新方式。
  *
+ * 支持在数据被修改时执行 lambda。
+ *
  * 请使用 [mutable] 来构造此类。
  */
-class Mutable<T> private constructor(@Volatile private var value: T) {
+class Mutable<T> private constructor(
+	@Volatile private var value: T,
+	private val onChange: suspend (old: T, new: T) -> Unit
+) {
 	private val lock = ReentrantMutex()
 	
 	/**
@@ -35,31 +40,26 @@ class Mutable<T> private constructor(@Volatile private var value: T) {
 	fun get(): T = value
 	
 	/**
-	 * 覆盖当前值，返回修改后的新值，无锁。
-	 */
-	fun set(new: T): T {
-		value = new
-		return value
-	}
-	
-	/**
 	 * 使用 [transform] 的返回值来更新值，返回更新后的值，[transform] 内的表达式在锁内执行，并发安全。
 	 *
 	 * 内部使用 [ReentrantMutex]，虽然应该不会有人在 [update] 里面 [update]，但这不会导致死锁。
 	 *
 	 * @see ReentrantMutex
 	 */
-	suspend fun update(transform: suspend (T) -> T): T {
-		lock.withLock {
-			value = transform(value)
-		}
-		return value
+	suspend fun update(transform: suspend (T) -> T): T = lock.withLock {
+		set(transform(value))
 	}
 	
+	
 	/**
-	 * 返回一个新的 [Mutable] 对象，但 `T` 变为 `T?`。
+	 * 覆盖当前值，返回修改后的新值。
 	 */
-	fun nullable(): Mutable<T?> = Mutable(value)
+	suspend fun set(new: T): T = lock.withLock {
+		val old = value
+		value = new
+		onChange(old, new)
+		return@withLock value
+	}
 	
 	companion object {
 		/**
@@ -67,11 +67,12 @@ class Mutable<T> private constructor(@Volatile private var value: T) {
 		 *
 		 * 请不要对 [MutableList] 这类本身可变的数据调用 [mutable]，这只会带来混乱。
 		 *
+		 * @param onChange 当数据被修改时执行的 lambda。
 		 * @throws IllegalArgumentException 对 [Mutable] 调用 [mutable]。但不包括对 [MutableList] 这类可变数据调用，请自行避免此类调用。
 		 */
-		fun <T> T.mutable(): Mutable<T> {
+		fun <T> T.mutable(onChange: (old: T, new: T) -> Unit = { _, _ -> }): Mutable<T> {
 			require(this !is Mutable<*>)
-			return Mutable(this)
+			return Mutable(this, onChange)
 		}
 		
 		/**

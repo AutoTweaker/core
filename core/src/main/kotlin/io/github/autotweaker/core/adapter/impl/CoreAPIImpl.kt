@@ -76,7 +76,7 @@ class CoreAPIImpl(
 		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
 		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
-		override suspend fun getUsageSnapshots() = UsageStore.getSnapshots()
+		override fun getUsageSnapshots() = UsageStore.getSnapshots()
 		
 		override suspend fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
@@ -88,7 +88,7 @@ class CoreAPIImpl(
 	override val config = object : CoreAPI.ConfigAPI {
 		override suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
 		override suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
-		override suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>) = envRepo.set(env)
+		override suspend fun setEnv(env: CoreConfig.JsonConfig.Env) = envRepo.set(env)
 		override suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
 		override suspend fun listProviders() = providerRepo.list()
 		override fun listAvailableProviderTypes() = providerRepo.listAvailable()

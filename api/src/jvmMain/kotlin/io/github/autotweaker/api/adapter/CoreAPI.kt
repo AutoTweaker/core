@@ -230,7 +230,7 @@ interface CoreAPI {
 		 * @return key 为消息 id，value 为 [UsageSnapshot]，可以通过 [loadMessages] 反查对应消息。
 		 * @see UsageSnapshot
 		 */
-		suspend fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
+		fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
 		
 		/**
 		 * 创建一个新的工作区。
@@ -282,7 +282,7 @@ interface CoreAPI {
 		 *
 		 * 环境变量加密存储。
 		 */
-		suspend fun setEnv(env: List<CoreConfig.JsonConfig.Env>)
+		suspend fun setEnv(env: CoreConfig.JsonConfig.Env)
 		
 		/**
 		 * 删除一个环境变量。

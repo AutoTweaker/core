@@ -32,7 +32,6 @@ import kotlinx.serialization.json.Json
 import java.util.*
 
 object TranslationManager : Loggable, Traceable, JsonStorable, I18nable {
-	
 	private lateinit var modelRepo: ModelResolver
 	
 	fun init(
