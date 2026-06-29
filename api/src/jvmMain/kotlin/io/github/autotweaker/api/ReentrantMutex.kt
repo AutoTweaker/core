@@ -24,6 +24,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * 基于 [Mutex] 的可重入锁，相同协程以及子协程都允许重入。
+ *
+ * 实际上只要上下文相同，就可重入，一般情况下子协程继承当前协程上下文，外部协程也不可能继承当前协程上下文。
+ *
+ * 如果手动修改子协程上下文，或使用当前协程上下文启动外部协程，重入行为可能发生改变。
+ */
 class ReentrantMutex : Traceable {
 	@PublishedApi
 	internal val mutex = Mutex()
@@ -36,6 +43,11 @@ class ReentrantMutex : Traceable {
 		override val key get() = lockKey
 	}
 	
+	/**
+	 * 请注意，[block] 内不可使用非局部返回（如 `return`）。
+	 *
+	 * @throws Throwable 当 [block] 抛出异常。
+	 */
 	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T {
 		if (currentCoroutineContext()[lockKey] === key) return block()
 		mutex.lock()
