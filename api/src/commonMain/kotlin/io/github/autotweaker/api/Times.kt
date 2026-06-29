@@ -19,11 +19,11 @@
 package io.github.autotweaker.api
 
 /**
- * 为 [String] 添加 `*` 操作符的支持
+ * 为 [String] 添加 `*` 操作符的支持，例如 `"**" * 10`，输出 20 个 `*`。
  */
 operator fun String.times(n: Int): String = repeat(n)
 
 /**
- * 为 [Char] 添加 `*` 操作符的支持
+ * 为 [Char] 添加 `*` 操作符的支持，例如 `'-' * 10` 输出 10 个 `-`
  */
 operator fun Char.times(n: Int): String = toString().repeat(n)

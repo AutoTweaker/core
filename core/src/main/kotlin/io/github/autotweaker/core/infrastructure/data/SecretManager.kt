@@ -48,7 +48,7 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 	
 	private val _isUnlocked = MutableStateFlow(false)
 	val isUnlocked = _isUnlocked.asStateFlow()
-	val isPasswordEmpty: Boolean get() = password?.isEmpty() == true
+	val isPasswordEmpty: Boolean get() = getPassword().isEmpty()
 	
 	fun killGpgAgent() = trace.catching {
 		val killPb = ProcessBuilder("gpgconf", "--kill", "gpg-agent")

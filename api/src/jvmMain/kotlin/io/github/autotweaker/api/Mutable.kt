@@ -22,20 +22,29 @@ import io.github.autotweaker.api.Mutable.Companion.mutable
 
 
 /**
- * 包装一个不可变属性，并提供并发安全的更新方式。
+ * 包装一个不可变数据，并提供并发安全的更新方式。
  *
  * 请使用 [mutable] 来构造此类。
  */
 class Mutable<T> private constructor(@Volatile private var value: T) {
 	private val lock = ReentrantMutex()
 	
+	/**
+	 * 获取当前值，无锁。
+	 */
 	fun get(): T = value
+	
+	/**
+	 * 覆盖当前值，无锁。
+	 */
 	fun set(new: T): Mutable<T> = also { value = new }
 	
 	/**
-	 * 更新值，[transform] 内的 lambda 在锁内执行，并发安全。
+	 * 使用 [transform] 的返回值来更新值，[transform] 内的表达式在锁内执行，并发安全。
 	 *
 	 * 内部使用 [ReentrantMutex]，虽然应该不会有人在 [update] 里面 [update]，但这不会导致死锁。
+	 *
+	 * @see ReentrantMutex
 	 */
 	suspend fun update(transform: suspend (T) -> T): Mutable<T> = also {
 		lock.withLock {
@@ -44,23 +53,26 @@ class Mutable<T> private constructor(@Volatile private var value: T) {
 	}
 	
 	/**
-	 * 返回一个可空类型的 [Mutable] 对象。
+	 * 返回一个新的 [Mutable] 对象，但 `T` 变为 `T?`。
 	 */
 	fun nullable(): Mutable<T?> = Mutable(value)
 	
 	companion object {
 		/**
-		 * 将一个不可变属性包装为可变属性。
+		 * 将一个不可变数据包装为可变数据，并提供并发安全的更新方式。
 		 *
-		 * 请不要对 [MutableList] 这类本身可变的属性调用 [mutable]，这只会带来混乱。
+		 * 请不要对 [MutableList] 这类本身可变的数据调用 [mutable]，这只会带来混乱。
 		 *
-		 * @throws IllegalArgumentException 对 [Mutable] 调用 [mutable]。
+		 * @throws IllegalArgumentException 对 [Mutable] 调用 [mutable]。但不包括对 [MutableList] 这类可变数据调用，请自行避免此类调用。
 		 */
 		fun <T> T.mutable(): Mutable<T> {
 			require(this !is Mutable<*>)
 			return Mutable(this)
 		}
 		
+		/**
+		 * 尽可能地在编译器拦截对 [Mutable] 的 [mutable] 调用，前提是匹配到此重载。
+		 */
 		@Deprecated("Already a Mutable object. Avoid nesting.", level = DeprecationLevel.ERROR)
 		@Suppress("UnusedReceiverParameter")
 		fun <T> Mutable<T>.mutable(): Nothing = throw UnsupportedOperationException()

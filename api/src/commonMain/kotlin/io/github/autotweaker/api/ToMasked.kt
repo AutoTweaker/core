@@ -19,7 +19,7 @@
 package io.github.autotweaker.api
 
 /**
- * 给敏感信息打码，例如 api key。
+ * 给敏感信息例如 api key 打码。
  *
  * 前 [prefixKeep] 字符和后 [suffixKeep] 字符将被保留，中间部分将替换为等长 [MASK_CHAR]。
  *

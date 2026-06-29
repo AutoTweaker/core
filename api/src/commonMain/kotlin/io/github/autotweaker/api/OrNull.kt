@@ -19,11 +19,13 @@
 package io.github.autotweaker.api
 
 /**
- * `ifEmpty { null }`
+ * 如果列表为空，返回 null，否则返回列表本身。
  */
 fun <T> List<T>.orNull() = ifEmpty { null }
 
 /**
- * `ifEmpty { null }`
+ * 如果字符串为空，返回 null，否则返回字符串本身。
+ *
+ * 判空使用 [ifEmpty]（不是 [ifBlank]）。
  */
 fun String.orNull() = ifEmpty { null }

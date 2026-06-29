@@ -44,9 +44,12 @@ class ReentrantMutex : Traceable {
 	}
 	
 	/**
+	 * 如果协程上下文相同，直接运行 [block]，否则先抢锁。
+	 *
 	 * 请注意，[block] 内不可使用非局部返回（如 `return`）。
 	 *
 	 * @throws Throwable 当 [block] 抛出异常。
+	 * @return [block] 的返回值。
 	 */
 	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T {
 		if (currentCoroutineContext()[lockKey] === key) return block()

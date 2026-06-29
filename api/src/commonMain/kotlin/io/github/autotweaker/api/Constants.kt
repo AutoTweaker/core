@@ -18,16 +18,33 @@
 
 package io.github.autotweaker.api
 
+/**
+ * 值为 `AutoTweaker`。
+ */
 const val APP_NAME = "AutoTweaker"
+
+/**
+ * 值为 `autotweaker`。
+ */
 val APP_NAME_LOWERCASE = APP_NAME.lowercase()
 
+/**
+ * 一个空格字符（`' '`）。
+ */
 const val SPACE = ' '
+
+/**
+ * 四个空格字符（`"    "`）
+ */
 val INDENT = SPACE * 4
 
+/**
+ * 星号，也就是 `*`。
+ */
 const val MASK_CHAR = '*'
 
 
 /**
- * `----------`
+ * 长度为 10 的 `-`，也就是 `----------`。
  */
 val LINE = line(10)

@@ -19,7 +19,9 @@
 package io.github.autotweaker.api
 
 /**
- * 遍历对象并调用 [action]，在每两次遍历中间调用 [between]
+ * 遍历一个 [Iterable] 对象并调用 [action]，在每两次遍历中间调用 [between]。
+ *
+ * 适用于在某种输出中插入分割线。
  */
 inline fun <T> Iterable<T>.forEachBetween(
 	action: (T) -> Unit,

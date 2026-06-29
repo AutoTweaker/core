@@ -19,6 +19,6 @@
 package io.github.autotweaker.api
 
 /**
- * `items.all { it == null }`
+ * [items] 全部为 null 返回 true
  */
 fun allNull(vararg items: Any?): Boolean = items.all { it == null }

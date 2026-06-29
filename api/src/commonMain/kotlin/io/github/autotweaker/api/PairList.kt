@@ -19,6 +19,6 @@
 package io.github.autotweaker.api
 
 /**
- * [List] 套 [Pair]
+ * [List] 套 [Pair]。适用于需要存两个字段且不符合键值对关系时。
  */
 typealias PairList<A, B> = List<Pair<A, B>>

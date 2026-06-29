@@ -19,7 +19,7 @@
 package io.github.autotweaker.api
 
 /**
- * `-` * n
+ * 输出 [length] 个 `-` 组成的字符串。
  *
  * @see LINE
  */
