@@ -76,7 +76,7 @@ class CoreAPIImpl(
 		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
 		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
-		override fun getUsageSnapshots() = UsageStore.getSnapshots()
+		override suspend fun getUsageSnapshots() = UsageStore.getSnapshots()
 		
 		override suspend fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)

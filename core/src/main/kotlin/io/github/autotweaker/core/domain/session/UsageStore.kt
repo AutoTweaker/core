@@ -18,69 +18,43 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.JsonStorable
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Mutable.Companion.mutable
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionMessage
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToJsonElement
+import io.github.autotweaker.core.infrastructure.persist.json.base.MutexStore
 import java.util.*
 
-object UsageStore : Loggable, JsonStorable {
-	private val cache by lazy {
-		store.get()?.let {
-			Json.decodeFromJsonElement(
-				deserializer = MapSerializer(
-					keySerializer = UuidSerializer, valueSerializer = UsageSnapshot.serializer()
-				), element = it
-			)
-		}.orEmpty().mutable { _, new ->
-			store.set(Json.encodeToJsonElement(new))
-		}
-	}
+object UsageStore : MutexStore<MutableMap<UUID, UsageSnapshot>>(), Loggable {
+	override val serializer = MutableMapSerializer(
+		UuidSerializer, UsageSnapshot.serializer()
+	)
 	
-	suspend fun collect(messages: List<SessionMessage>) = cache.update {
-		val data = it.toMutableMap()
+	override fun default() = mutableMapOf<UUID, UsageSnapshot>()
+	
+	suspend fun collect(messages: List<SessionMessage>) = transform {
 		var count = 0
 		
 		fun add(key: UUID, snapshot: UsageSnapshot) {
-			if (key !in data) {
-				data[key] = snapshot
+			if (key !in it) {
+				it[key] = snapshot
 				count++
 			}
 		}
 		
 		messages.forEach { message ->
 			when (message) {
-				is SessionMessage.Assistant -> message.usageSnapshot?.let {
-					add(message.id, it)
-				}
-				
-				is SessionMessage.Compact -> {
-					message.snapshots?.forEach { (id, snapshot) ->
-						add(id, snapshot)
-					}
-				}
-				
-				is SessionMessage.UsageRecord -> {
-					add(message.id, message.snapshot)
-				}
-				
+				is SessionMessage.Assistant -> message.usageSnapshot?.let { add(message.id, it) }
+				is SessionMessage.Compact -> message.snapshots?.forEach { (id, snapshot) -> add(id, snapshot) }
+				is SessionMessage.UsageRecord -> add(message.id, message.snapshot)
 				else -> {}
 			}
 		}
 		
-		if (count > 0) {
-			log.info("Collected usage entries  new={}  total={}", count, data.size)
-		}
-		
-		return@update data.toMap()
+		if (count > 0) log.info("Collected usage entries  new={}  total={}", count, it.size)
 	}
 	
-	fun getSnapshots(): Map<UUID, UsageSnapshot> = cache.get()
+	suspend fun getSnapshots(): Map<UUID, UsageSnapshot> = transform { it.toMap() }
 }

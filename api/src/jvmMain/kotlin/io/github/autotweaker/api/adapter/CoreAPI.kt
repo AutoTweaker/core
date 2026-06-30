@@ -230,7 +230,7 @@ interface CoreAPI {
 		 * @return key 为消息 id，value 为 [UsageSnapshot]，可以通过 [loadMessages] 反查对应消息。
 		 * @see UsageSnapshot
 		 */
-		fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
+		suspend fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
 		
 		/**
 		 * 创建一个新的工作区。
