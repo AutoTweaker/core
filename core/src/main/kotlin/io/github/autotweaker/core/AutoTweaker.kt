@@ -31,6 +31,7 @@ import io.github.autotweaker.core.application.Wiring
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.file.Files
@@ -57,8 +58,8 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	suspend fun start() {
 		withContext(Dispatchers.IO) {
 			Files.createDirectories(CONFIG_PATH.resolve("plugins"))
+			acquireLock()
 		}
-		acquireLock()
 		
 		PluginLoader.load<StartupHook>().forEach { hook ->
 			hook.execute(version)
@@ -68,13 +69,16 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		log.info("Started AutoTweaker  version={}", version)
 		
 		Launcher.start(registry) { core }
-		Runtime.getRuntime().addShutdownHook(Thread {
-			log.info("Initiated AutoTweaker shutdown")
-			runBlocking { Launcher.shutdown(registry.values.toList()) }
-			PluginLoader.closeClassLoaders()
-			releaseLock()
-			log.info("Completed AutoTweaker shutdown")
-		})
+		
+		Runtime.getRuntime().addShutdownHook(Thread(::shutdown))
+	}
+	
+	private fun shutdown() {
+		log.info("Initiated AutoTweaker shutdown")
+		runBlocking { Launcher.shutdown(registry.values.toList()) }
+		PluginLoader.closeClassLoaders()
+		releaseLock()
+		log.info("Completed AutoTweaker shutdown")
 	}
 	
 	private fun acquireLock() {
@@ -88,7 +92,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		}
 		fileLock = lock
 		channel.truncate(0)
-		channel.write(java.nio.ByteBuffer.wrap(ProcessHandle.current().pid().toString().toByteArray()))
+		channel.write(ByteBuffer.wrap(ProcessHandle.current().pid().toString().toByteArray()))
 		channel.force(true)
 		log.debug("Acquired lock  pid={}  lockFile={}", ProcessHandle.current().pid(), lockFile)
 	}

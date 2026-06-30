@@ -18,11 +18,18 @@
 
 package io.github.autotweaker.core
 
+import io.github.autotweaker.api.log
+import kotlinx.coroutines.runBlocking
+import kotlin.system.exitProcess
+
 fun main() {
-	kotlinx.coroutines.runBlocking {
-		AutoTweaker.start()
+	try {
+		runBlocking {
+			AutoTweaker.start()
+		}
+	} catch (e: Exception) {
+		AutoTweaker.log.error("Startup failed", e)
+		exitProcess(1)
 	}
-	val latch = java.util.concurrent.CountDownLatch(1)
-	Runtime.getRuntime().addShutdownHook(Thread { latch.countDown() })
-	latch.await()
+	Thread.currentThread().join()
 }
