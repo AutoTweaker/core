@@ -18,14 +18,25 @@
 
 package io.github.autotweaker.api
 
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-fun scope(io: IO? = null) =
-	if (io == null)
-		CoroutineScope(Dispatchers.Default + SupervisorJob())
+
+/**
+ * 快速创建一个协程作用域，并在崩溃时记录日志。
+ *
+ * 使用 `scope()` 等价于 `CoroutineScope(Dispatchers.Default + SupervisorJob())`。
+ *
+ * 使用 `scope(IO)` 等价于 `CoroutineScope(Dispatchers.IO + SupervisorJob())`。
+ */
+fun Loggable.scope(io: IO? = null): CoroutineScope {
+	val handler = CoroutineExceptionHandler { _, e -> log.error("Coroutine failed", e) }
+	return if (io == null)
+		CoroutineScope(Dispatchers.Default + SupervisorJob() + handler)
 	else
-		CoroutineScope(Dispatchers.IO + SupervisorJob())
+		CoroutineScope(Dispatchers.IO + SupervisorJob() + handler)
+}
 
 object IO

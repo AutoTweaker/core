@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
-import io.github.autotweaker.api.IO
-import io.github.autotweaker.api.Settable
-import io.github.autotweaker.api.scope
-import io.github.autotweaker.api.setting
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.KebabId
 import kotlinx.coroutines.channels.Channel
@@ -32,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.minutes
 
-object TraceRecorderImpl : Settable {
+object TraceRecorderImpl : Loggable, Settable {
 	private val scope = scope(IO)
 	private val queue = Channel<TraceEntry>(Channel.UNLIMITED)
 	private val cache = ConcurrentHashMap<KClass<*>, TraceRecorder>()
