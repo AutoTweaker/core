@@ -36,6 +36,7 @@ class ServiceRegistry(
 	val setting: SettingService by lazy { lazySetting() }
 	val i18n: I18nService by lazy { lazyI18n() }
 	
+	@PublishedApi
 	internal companion object {
 		var services: ServiceRegistry? = null
 		fun servicesOrError() = services ?: error("Services not initialized")

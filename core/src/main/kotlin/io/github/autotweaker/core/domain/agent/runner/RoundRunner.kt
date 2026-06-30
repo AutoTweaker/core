@@ -52,7 +52,7 @@ class RoundRunner(
 	private val statusFlow: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
 ) : Loggable, Traceable, Settable {
-	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+	private val scope = scope()
 	private val cmdLock = ReentrantMutex()
 	private val compactLock = ReentrantMutex()
 	

@@ -35,8 +35,11 @@ import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -56,7 +59,7 @@ object SessionManager : Loggable, Traceable, Settable {
 		this.secretStore = secretStore
 	}
 	
-	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+	private val scope = scope()
 	
 	private val sessions = ConcurrentHashMap<UUID, Session>()
 	private val listener = ConcurrentHashMap<UUID, Job>()

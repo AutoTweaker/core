@@ -24,10 +24,11 @@ import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.infrastructure.persist.json.base.MutableStore
-import kotlinx.coroutines.*
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.nullable
 import java.util.*
 
@@ -43,7 +44,7 @@ object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable, I18nable
 	
 	private val _status = MutableStateFlow(TranslationStatus.IDLE)
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
-	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+	private val scope = scope()
 	
 	fun getModel(): UUID? = cache.get()
 	

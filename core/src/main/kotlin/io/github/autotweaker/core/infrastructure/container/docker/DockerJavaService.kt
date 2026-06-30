@@ -61,7 +61,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	@Volatile
 	private var permissionFixJob: Job? = null
 	
-	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+	private val scope = scope(IO)
 	
 	private val client: DockerClient = run {
 		val config = DefaultDockerClientConfig.createDefaultConfigBuilder().build()

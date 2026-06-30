@@ -79,7 +79,7 @@ inline val Loggable.log: Logger get() = LoggerFactory.getLogger(this::class.java
  *
  * 直接在实现了 [Traceable] 的类 / 对象内部的任何地方使用 `trace` 即可。
  */
-val Traceable.trace: TraceRecorder get() = services.trace(this::class)
+inline val Traceable.trace: TraceRecorder get() = services.trace(this::class)
 
 /**
  * 获取 AutoTweaker 提供的 [JsonStore]。
@@ -87,7 +87,7 @@ val Traceable.trace: TraceRecorder get() = services.trace(this::class)
  *
  * 直接在实现了 [JsonStorable] 的类 / 对象内部的任何地方使用 `store` 即可。
  */
-val JsonStorable.store: JsonStore get() = services.store(this::class)
+inline val JsonStorable.store: JsonStore get() = services.store(this::class)
 
 /**
  * 获取 AutoTweaker 提供的 [SettingService]。
@@ -95,7 +95,7 @@ val JsonStorable.store: JsonStore get() = services.store(this::class)
  * 直接在实现了 [Settable] 的类 / 对象内部的任何地方使用 `setting` 即可。
  */
 @Suppress("UnusedReceiverParameter")
-val Settable.setting: SettingService get() = services.setting
+inline val Settable.setting: SettingService get() = services.setting
 
 /**
  * 获取 AutoTweaker 提供的 [I18nService]。
@@ -103,7 +103,7 @@ val Settable.setting: SettingService get() = services.setting
  * 直接在实现了 [I18nable] 的类 / 对象内部的任何地方使用 `i18n` 即可。
  */
 @Suppress("UnusedReceiverParameter")
-val I18nable.i18n: I18nService get() = services.i18n
+inline val I18nable.i18n: I18nService get() = services.i18n
 
-
+@PublishedApi
 internal inline val services get() = ServiceRegistry.servicesOrError()

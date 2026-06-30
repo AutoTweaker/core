@@ -38,8 +38,9 @@ import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
 import io.github.autotweaker.core.domain.tool.CoreTool
-import kotlinx.coroutines.*
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -87,7 +88,7 @@ class AgentBridge(
 			activeTools = toolInfo.value.filter { it.active }.map { it.name }
 		)
 	
-	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+	private val scope = scope()
 	
 	suspend fun init(data: AgentData) = also {
 		initialData = data

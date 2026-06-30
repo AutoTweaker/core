@@ -28,7 +28,10 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.charsets.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
 import java.io.IOException
@@ -50,7 +53,7 @@ object CliServer : Loggable, Settable, Traceable {
 	private val maxLineLength = setting.get(MaxLineLength()).value
 	
 	private val json = Json { ignoreUnknownKeys = true }
-	private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+	private val scope = scope(IO)
 	
 	private val activeClients = ConcurrentHashMap.newKeySet<Socket>()
 	private val connectionLimit = Semaphore(64)
