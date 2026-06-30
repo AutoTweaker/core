@@ -25,10 +25,13 @@ import kotlinx.serialization.json.Json
 class JsonStoreAccessor<V>(
 	private val store: JsonStore,
 	private val serializer: KSerializer<V>,
+	private val default: () -> V,
 ) {
-	fun load(): V? =
-		store.get()?.let { Json.decodeFromJsonElement(serializer, it) }
+	val initial: V by lazy { load() ?: default() }
 	
 	fun save(value: V) =
 		store.set(Json.encodeToJsonElement(serializer, value))
+	
+	private fun load(): V? =
+		store.get()?.let { Json.decodeFromJsonElement(serializer, it) }
 }

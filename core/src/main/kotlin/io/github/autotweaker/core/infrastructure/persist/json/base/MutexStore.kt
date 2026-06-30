@@ -18,18 +18,21 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
+import io.github.autotweaker.api.JsonStorable
 import io.github.autotweaker.api.ReentrantMutex
+import io.github.autotweaker.api.store
 import kotlinx.serialization.KSerializer
 
 abstract class MutexStore<V>(
 	serializer: KSerializer<V>,
-) : StoreBase<V>(serializer) {
+) : JsonStorable {
+	private val accessor = JsonStoreAccessor(store, serializer, ::default)
 	private val lock = ReentrantMutex()
+	private val cache: V by lazy { accessor.initial }
 	
-	protected val cached: V by lazy { initial() }
+	protected abstract fun default(): V
 	
-	protected suspend fun update(block: suspend (V) -> Unit) = lock.withLock {
-		block(cached)
-		save(cached)
+	protected suspend fun <R> transform(block: suspend (V) -> R): R = lock.withLock {
+		block(cache).also { accessor.save(cache) }
 	}
 }
