@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
-import io.github.autotweaker.api.path.PathResolver
+import io.github.autotweaker.api.adapter.PathResolver
 import java.nio.file.Path
 
 class PathResolverImpl(

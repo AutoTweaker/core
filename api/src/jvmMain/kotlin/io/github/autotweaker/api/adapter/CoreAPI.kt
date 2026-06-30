@@ -20,7 +20,6 @@ package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.PairList
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.path.PathResolver
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo

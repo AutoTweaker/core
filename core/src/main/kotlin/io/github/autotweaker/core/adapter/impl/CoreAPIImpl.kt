@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.adapter.impl
 
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.path.PathResolver
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer

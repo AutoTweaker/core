@@ -97,27 +97,56 @@ value class CatchingResult<T> @PublishedApi internal constructor(@PublishedApi i
 	
 	//region Result 的 API 转发
 	
+	/**
+	 * @see Result.isSuccess
+	 */
 	val isSuccess: Boolean get() = result.isSuccess
+	
+	/**
+	 * @see Result.isFailure
+	 */
 	val isFailure: Boolean get() = result.isFailure
 	
+	/**
+	 * @see Result.exceptionOrNull
+	 */
 	fun exceptionOrNull(): Throwable? = result.exceptionOrNull()
 	
+	/**
+	 * @see Result.fold
+	 */
 	inline fun <R> fold(
 		onSuccess: (T) -> R,
 		onFailure: (Throwable) -> R,
 	): R = result.fold(onSuccess, onFailure)
 	
+	/**
+	 * @see Result.getOrNull
+	 */
 	fun getOrNull(): T? = result.getOrNull()
+	
+	/**
+	 * @see Result.getOrThrow
+	 */
 	fun getOrThrow(): T = result.getOrThrow()
 	
+	/**
+	 * @see Result.onSuccess
+	 */
 	inline fun onSuccess(action: (T) -> Unit): CatchingResult<T> = also {
 		result.onSuccess(action)
 	}
 	
+	/**
+	 * @see Result.onFailure
+	 */
 	inline fun onFailure(action: (Throwable) -> Unit): CatchingResult<T> = also {
 		result.onFailure(action)
 	}
 	
+	/**
+	 * @see Result.map
+	 */
 	inline fun <R> map(transform: (T) -> R): CatchingResult<R> =
 		CatchingResult(result.map(transform))
 	
@@ -145,12 +174,21 @@ inline fun <reified E : Throwable, R, T : R> CatchingResult<T>.recoverException(
 
 //region Result 的 API 转发
 
+/**
+ * @see Result.getOrElse
+ */
 inline fun <R, T : R> CatchingResult<T>.getOrElse(onFailure: (Throwable) -> R): R =
 	result.getOrElse(onFailure)
 
+/**
+ * @see Result.getOrDefault
+ */
 fun <R, T : R> CatchingResult<T>.getOrDefault(defaultValue: R): R =
 	result.getOrDefault(defaultValue)
 
+/**
+ * @see Result.recover
+ */
 inline fun <R, T : R> CatchingResult<T>.recover(transform: (Throwable) -> R): CatchingResult<R> =
 	CatchingResult(result.recover(transform))
 

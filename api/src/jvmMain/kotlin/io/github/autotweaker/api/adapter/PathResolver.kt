@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.path
+package io.github.autotweaker.api.adapter
 
 import java.nio.file.Path
 

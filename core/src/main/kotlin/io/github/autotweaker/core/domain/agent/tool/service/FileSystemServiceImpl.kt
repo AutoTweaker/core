@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.api.path.PathResolver
+import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
