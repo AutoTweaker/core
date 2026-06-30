@@ -24,10 +24,10 @@ import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImp
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 
 class TranslationManagerTest {
@@ -35,7 +35,7 @@ class TranslationManagerTest {
 	private val dbUrl = "jdbc:h2:mem:tm_${counter.getAndIncrement()};DB_CLOSE_DELAY=-1"
 	
 	companion object {
-		private val counter = atomic(0)
+		private val counter = AtomicInteger(0)
 		
 		init {
 			TestServices.init()

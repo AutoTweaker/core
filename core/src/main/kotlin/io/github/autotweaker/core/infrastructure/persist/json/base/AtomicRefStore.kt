@@ -19,18 +19,16 @@
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
 import io.github.autotweaker.api.store
-import kotlinx.atomicfu.AtomicRef
-import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.update
+import java.util.concurrent.atomic.AtomicReference
 
 abstract class AtomicRefStore<V> : StoreBase<V>() {
 	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
-	private val cache: AtomicRef<V> by lazy { atomic(accessor.initial) }
+	private val cache: AtomicReference<V> by lazy { AtomicReference(accessor.initial) }
 	
-	protected fun get(): V = cache.value
+	protected fun get(): V = cache.get()
 	
 	protected fun update(transform: (V) -> V) {
-		cache.update(transform)
-		accessor.save(cache.value)
+		cache.updateAndGet(transform)
+		accessor.save(cache.get())
 	}
 }
