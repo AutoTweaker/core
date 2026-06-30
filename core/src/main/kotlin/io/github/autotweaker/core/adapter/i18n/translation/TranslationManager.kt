@@ -23,20 +23,21 @@ import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelResolver
+import io.github.autotweaker.core.infrastructure.persist.json.base.MutableStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.builtins.nullable
-import kotlinx.serialization.json.Json
 import java.util.*
 
-object TranslationManager : Loggable, Traceable, JsonStorable, I18nable {
+object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable, I18nable {
+	override val serializer = UuidSerializer.nullable
+	override fun default() = null
+	
 	private lateinit var modelRepo: ModelResolver
 	
-	fun init(
-		modelRepo: ModelResolver,
-	) {
+	fun init(modelRepo: ModelResolver) {
 		this.modelRepo = modelRepo
 	}
 	
@@ -44,10 +45,10 @@ object TranslationManager : Loggable, Traceable, JsonStorable, I18nable {
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
 	private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 	
-	fun getModel(): UUID? = loadModelId()
+	fun getModel(): UUID? = cache.get()
 	
-	fun setModel(modelId: UUID?) {
-		saveModelId(modelId)
+	suspend fun setModel(modelId: UUID?) {
+		cache.set(modelId)
 		log.debug("Updated translation model  modelId={}", modelId)
 	}
 	
@@ -61,7 +62,7 @@ object TranslationManager : Loggable, Traceable, JsonStorable, I18nable {
 			return false
 		}
 		
-		val modelId = loadModelId()
+		val modelId = cache.get()
 		if (modelId == null) {
 			logSkipped("model-not-configured")
 			_status.value = TranslationStatus.IDLE
@@ -91,11 +92,4 @@ object TranslationManager : Loggable, Traceable, JsonStorable, I18nable {
 	fun shutdown() {
 		scope.cancel()
 	}
-	
-	private fun loadModelId(): UUID? =
-		store.get()?.let { Json.decodeFromJsonElement(UuidSerializer.nullable, it) }
-	
-	
-	private fun saveModelId(modelId: UUID?) =
-		store.set(Json.encodeToJsonElement(UuidSerializer.nullable, modelId))
 }

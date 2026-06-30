@@ -479,7 +479,7 @@ interface CoreAPI {
 		 *
 		 * 设置无效的模型 id 不会抛出异常，但翻译触发时会 fallback 到默认模型，如果默认模型也无效，会 fallback 到模型列表中的第一个模型。
 		 */
-		fun setTranslationModel(modelId: UUID?)
+		suspend fun setTranslationModel(modelId: UUID?)
 		
 		/**
 		 * 获取用于 i18n 翻译的大模型，模型可能无效，请自行确认。

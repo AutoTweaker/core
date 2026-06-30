@@ -18,22 +18,16 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
-import io.github.autotweaker.api.JsonStorable
 import io.github.autotweaker.api.store
 import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
-import kotlinx.serialization.KSerializer
 
-abstract class AtomicRefStore<V>(
-	serializer: KSerializer<V>,
-) : JsonStorable {
+abstract class AtomicRefStore<V> : StoreBase<V>() {
 	private val accessor = JsonStoreAccessor(store, serializer, ::default)
 	private val cache: AtomicRef<V> by lazy { atomic(accessor.initial) }
 	
 	protected fun get(): V = cache.value
-	
-	protected abstract fun default(): V
 	
 	protected fun update(transform: (V) -> V) {
 		cache.update(transform)

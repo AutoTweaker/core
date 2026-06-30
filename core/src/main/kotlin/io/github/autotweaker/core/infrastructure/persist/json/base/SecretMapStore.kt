@@ -30,9 +30,8 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.serialization.builtins.serializer
 import java.util.*
 
-abstract class SecretMapStore : MutexStore<MutableMap<String, UUID>>(
-	MutableMapSerializer(String.serializer(), UuidSerializer)
-), Loggable, Traceable {
+abstract class SecretMapStore : MutexStore<MutableMap<String, UUID>>(), Loggable, Traceable {
+	override val serializer = MutableMapSerializer(String.serializer(), UuidSerializer)
 	override fun default() = mutableMapOf<String, UUID>()
 	
 	protected suspend fun putSecret(name: String, value: String) = transform {

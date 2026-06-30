@@ -119,7 +119,7 @@ class CoreAPIImpl(
 	}
 	
 	override val i18n = object : CoreAPI.I18nAPI {
-		override fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)
+		override suspend fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)
 		override fun getTranslationModel(): UUID? = TranslationManager.getModel()
 		override fun startTranslation() = TranslationManager.startTranslation()
 		override fun getTranslationStatus(): StateFlow<TranslationStatus> = TranslationManager.status

@@ -18,29 +18,32 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
+import io.github.autotweaker.core.infrastructure.persist.json.base.MutableStore
 import kotlinx.serialization.builtins.nullable
-import kotlinx.serialization.json.Json
 import java.util.*
 
-object ModelResolverImpl : ModelResolver, Loggable, JsonStorable {
-	private lateinit var secretStore: SecretStore
+object ModelResolverImpl : MutableStore<UUID?>(), ModelResolver, Loggable {
+	override val serializer = UuidSerializer.nullable
+	override fun default() = null
 	
+	private lateinit var secretStore: SecretStore
 	fun init(secretStore: SecretStore) {
 		this.secretStore = secretStore
 	}
 	
-	fun getDefaultModel(): UUID? =
-		store.get()?.let { Json.decodeFromJsonElement(UuidSerializer.nullable, it) }
+	fun getDefaultModel(): UUID? = cache.get()
 	
 	suspend fun setDefaultModel(id: UUID) {
 		requireNotNull(ModelStore.get(id)) { "Model not found: $id" }
-		store.set(Json.encodeToJsonElement(UuidSerializer.nullable, id))
+		cache.set(id)
 		log.info("Set default model  modelId={}", id)
 	}
 	

@@ -18,20 +18,14 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
-import io.github.autotweaker.api.JsonStorable
 import io.github.autotweaker.api.Mutable
 import io.github.autotweaker.api.Mutable.Companion.mutable
 import io.github.autotweaker.api.store
-import kotlinx.serialization.KSerializer
 
-abstract class MutableStore<V>(
-	serializer: KSerializer<V>,
-) : JsonStorable {
+abstract class MutableStore<V> : StoreBase<V>() {
 	private val accessor = JsonStoreAccessor(store, serializer, ::default)
 	
 	protected val cache: Mutable<V> by lazy {
 		accessor.initial.mutable { _, new -> accessor.save(new) }
 	}
-	
-	protected abstract fun default(): V
 }

@@ -39,6 +39,7 @@ import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
+import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
@@ -49,6 +50,7 @@ object Wiring : Loggable {
 	 */
 	fun init() {
 		TranslationManager.init(ModelResolverImpl)
+		SecretMapStore.init(SecretManager)
 		EnvStore.init(SecretManager)
 		ModelResolverImpl.init(SecretManager)
 		ApiKeyConfigAPI.init(SecretManager)
