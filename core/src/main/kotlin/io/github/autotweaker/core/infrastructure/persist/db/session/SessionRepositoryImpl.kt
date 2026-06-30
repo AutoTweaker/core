@@ -20,7 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.db.session
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionMessage
@@ -123,7 +123,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	private fun ResultRow.toAgentData(): AgentData =
 		AgentData(
 			id = UUID.fromString(this[AgentDataTable.id]),
-			name = this[AgentDataTable.name].toKebabId(),
+			name = this[AgentDataTable.name].toKebab(),
 			model = AgentDataTable.readModel(this),
 			context = AgentDataTable.readContext(this),
 			activeTools = AgentDataTable.readActiveTools(this),

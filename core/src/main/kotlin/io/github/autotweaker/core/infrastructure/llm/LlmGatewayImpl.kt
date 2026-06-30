@@ -19,7 +19,8 @@
 package io.github.autotweaker.core.infrastructure.llm
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
+import io.github.autotweaker.api.types.UpperSnakeCase.Companion.toUpperSnake
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -45,13 +46,26 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 			request.stream, chatId
 		)
 		trace.add(
-			"request".toKebabId(),
-			"request=$request, apiKey=${apiKey.toMasked()}, baseUrl=$baseUrl, providerType=$providerType, timeout=$timeout, chatId=$chatId"
+			"request".toKebab(),
+			mapOf(
+				"CHAT_ID".toUpperSnake() to chatId,
+				"REQUEST".toUpperSnake() to request,
+				"API_KEY".toUpperSnake() to apiKey.toMasked(),
+				"BASE_URL".toUpperSnake() to baseUrl,
+				"PROVIDER_TYPE".toUpperSnake() to providerType,
+				"TIMEOUT".toUpperSnake() to timeout,
+			)
+		
 		)
 		return LlmClientLoader.load(providerType)
 			.chat(request, apiKey, baseUrl, timeout)
 			.onEach { result ->
-				trace.add("response".toKebabId(), "result=$result, chatId=$chatId")
+				trace.add(
+					"response".toKebab(), mapOf(
+						"CHAT_ID".toUpperSnake() to chatId,
+						"RESULT".toUpperSnake() to result
+					)
+				)
 			}
 	}
 }

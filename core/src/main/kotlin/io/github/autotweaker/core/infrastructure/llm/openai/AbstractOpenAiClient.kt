@@ -37,8 +37,8 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
-import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
@@ -50,7 +50,6 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 	private val responseTypeInfo: TypeInfo,
 	private val chunkSerializer: KSerializer<Chunk>,
 ) : LlmClient, Loggable, Traceable {
-	
 	companion object {
 		private val json: Json = Json {
 			ignoreUnknownKeys = true
@@ -67,12 +66,8 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			install(HttpTimeout)
 		}
 		
-		private val closed = atomic(false)
-		
 		fun close() {
-			if (closed.compareAndSet(false, update = true)) {
-				sharedHttpClient.close()
-			}
+			sharedHttpClient.close()
 		}
 		
 		private fun buildToolCalls(
@@ -83,7 +78,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		}
 	}
 	
-	class PendingToolCall(
+	private class PendingToolCall(
 		var id: String = "", var name: String = "", val arguments: StringBuilder = StringBuilder()
 	) {
 		fun toToolCall() = ChatMessage.AssistantMessage.ToolCall(id, name, arguments.toString())
@@ -91,7 +86,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 	
 	protected abstract fun createRequestBody(request: ChatRequest): Request
 	protected abstract fun mapToChatResult(response: Response): ChatResult
-	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult
+	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult.Chunk
 	protected abstract fun extractToolCalls(chunk: Chunk): List<ChatResult.ChunkToolCall>?
 	
 	override suspend fun chat(
@@ -103,118 +98,9 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
 		trace.catching {
 			if (request.stream) {
-				val body = createRequestBody(request)
-				
-				sharedHttpClient.preparePost("${effectiveBaseUrl.value}/chat/completions") {
-					header(HttpHeaders.Authorization, "Bearer $apiKey")
-					contentType(ContentType.Application.Json)
-					setBody(body, requestTypeInfo)
-					timeout?.let {
-						timeout {
-							connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
-							requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
-							socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds
-						}
-					}
-				}.execute { response ->
-					if (!response.status.isSuccess()) {
-						throw IllegalStateException("LLM Stream Error: ${response.status}")
-					}
-					
-					val channel = response.bodyAsChannel()
-					val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
-					var accumulatedContent: String? = null
-					var accumulatedReasoning: String? = null
-					var lastFinishReason: ChatResult.FinishReason? = null
-					var lastUsage: Usage? = null
-					var lastCreatedAt: Instant? = null
-					var lastModel: String? = null
-					
-					while (!channel.isClosedForRead) {
-						val line = channel.readLine() ?: break
-						
-						if (line.startsWith("data: ")) {
-							val data = line.removePrefix("data: ").trim()
-							
-							if (data == "[DONE]") break
-							
-							if (data.isNotEmpty()) {
-								val chunk = json.decodeFromString(chunkSerializer, data)
-								
-								val fragments = extractToolCalls(chunk)
-								fragments?.forEach { fragment ->
-									val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
-									if (fragment.id != null) pending.id = fragment.id!!
-									if (fragment.name != null) pending.name = fragment.name!!
-									if (fragment.arguments != null) pending.arguments.append(fragment.arguments)
-								}
-								
-								val result = mapChunkToChatResult(chunk) as ChatResult.Chunk
-								val msg = result.message
-								
-								if (msg?.content != null) {
-									accumulatedContent = (accumulatedContent ?: "") + msg.content
-								}
-								if (msg?.reasoningContent != null) {
-									accumulatedReasoning = (accumulatedReasoning ?: "") + msg.reasoningContent
-								}
-								
-								result.finishReason?.let { lastFinishReason = it }
-								result.usage?.let { lastUsage = it }
-								msg?.createdAt?.let { lastCreatedAt = it }
-								msg?.model?.let { lastModel = it }
-								
-								emit(result.copy(toolCalls = fragments))
-							}
-						}
-					}
-					
-					val toolCalls = buildToolCalls(pendingToolCalls)
-					if (accumulatedContent != null || accumulatedReasoning != null || !toolCalls.isNullOrEmpty()) {
-						emit(
-							ChatResult.Assembled(
-								message = ChatMessage.AssistantMessage(
-									content = accumulatedContent,
-									reasoningContent = accumulatedReasoning,
-									toolCalls = toolCalls,
-									createdAt = lastCreatedAt ?: Clock.System.now(),
-									model = lastModel,
-								),
-								finishReason = lastFinishReason,
-								usage = lastUsage,
-							)
-						)
-					}
-				}
+				streamChat(request, apiKey, effectiveBaseUrl, timeout)
 			} else {
-				val response = sharedHttpClient.post("${effectiveBaseUrl.value}/chat/completions") {
-					header(HttpHeaders.Authorization, "Bearer $apiKey")
-					contentType(ContentType.Application.Json)
-					setBody(createRequestBody(request), requestTypeInfo)
-					timeout?.let {
-						timeout {
-							connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
-							requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
-						}
-					}
-				}
-				
-				if (!response.status.isSuccess()) {
-					val errorBody = response.bodyAsText()
-					emit(
-						ChatResult.Assembled(
-							message = ChatMessage.ErrorMessage(
-								content = "LLM API Error (${response.status}): $errorBody",
-								createdAt = Clock.System.now(),
-								statusCode = response.status.value
-							),
-						)
-					)
-					return@flow
-				}
-				
-				val openAiResponse = response.body<Response>(responseTypeInfo)
-				emit(mapToChatResult(openAiResponse))
+				nonStreamChat(request, apiKey, effectiveBaseUrl, timeout)
 			}
 		}.rethrowCancellation {
 			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
@@ -227,6 +113,127 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 					),
 				)
 			)
+		}
+	}
+	
+	private suspend fun FlowCollector<ChatResult>.streamChat(
+		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
+	) {
+		sharedHttpClient.preparePost {
+			configureRequest(request, apiKey, baseUrl, timeout)
+			timeout?.let {
+				timeout { socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds }
+			}
+		}.execute { response ->
+			if (!response.status.isSuccess())
+				error("LLM Stream Error: ${response.status}")
+			
+			
+			val channel = response.bodyAsChannel()
+			val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
+			var accumulatedContent: String? = null
+			var accumulatedReasoning: String? = null
+			var lastFinishReason: ChatResult.FinishReason? = null
+			var lastUsage: Usage? = null
+			var lastCreatedAt: Instant? = null
+			var lastModel: String? = null
+			
+			while (!channel.isClosedForRead) {
+				val line = channel.readLine() ?: break
+				
+				if (line.startsWith("data: ")) {
+					val data = line.removePrefix("data: ").trim()
+					
+					if (data == "[DONE]") break
+					
+					if (data.isNotEmpty()) {
+						val chunk = json.decodeFromString(chunkSerializer, data)
+						
+						val fragments = extractToolCalls(chunk)
+						fragments?.forEach { fragment ->
+							val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
+							fragment.id?.let { pending.id = it }
+							fragment.name?.let { pending.name = it }
+							fragment.arguments?.let { pending.arguments.append(it) }
+						}
+						
+						val result = mapChunkToChatResult(chunk)
+						val msg = result.message
+						
+						if (msg?.content != null)
+							accumulatedContent = accumulatedContent.orEmpty() + msg.content
+						
+						if (msg?.reasoningContent != null)
+							accumulatedReasoning = accumulatedReasoning.orEmpty() + msg.reasoningContent
+						
+						
+						result.finishReason?.let { lastFinishReason = it }
+						result.usage?.let { lastUsage = it }
+						msg?.createdAt?.let { lastCreatedAt = it }
+						msg?.model?.let { lastModel = it }
+						
+						emit(result.copy(toolCalls = fragments))
+					}
+				}
+			}
+			
+			val toolCalls = buildToolCalls(pendingToolCalls)
+			if (accumulatedContent != null || accumulatedReasoning != null || !toolCalls.isNullOrEmpty()) {
+				emit(
+					ChatResult.Assembled(
+						message = ChatMessage.AssistantMessage(
+							content = accumulatedContent,
+							reasoningContent = accumulatedReasoning,
+							toolCalls = toolCalls,
+							createdAt = lastCreatedAt ?: Clock.System.now(),
+							model = lastModel,
+						),
+						finishReason = lastFinishReason,
+						usage = lastUsage,
+					)
+				)
+			}
+		}
+	}
+	
+	private suspend fun FlowCollector<ChatResult>.nonStreamChat(
+		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
+	) {
+		val response = sharedHttpClient.post {
+			configureRequest(request, apiKey, baseUrl, timeout)
+		}
+		
+		if (!response.status.isSuccess()) {
+			val errorBody = response.bodyAsText()
+			emit(
+				ChatResult.Assembled(
+					message = ChatMessage.ErrorMessage(
+						content = "LLM API Error (${response.status}): $errorBody",
+						createdAt = Clock.System.now(),
+						statusCode = response.status.value
+					),
+				)
+			)
+			return
+		}
+		
+		val openAiResponse = response.body<Response>(responseTypeInfo)
+		emit(mapToChatResult(openAiResponse))
+	}
+	
+	
+	private fun HttpRequestBuilder.configureRequest(
+		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
+	) {
+		url("${baseUrl.value}/chat/completions")
+		header(HttpHeaders.Authorization, "Bearer $apiKey")
+		contentType(ContentType.Application.Json)
+		setBody(createRequestBody(request), requestTypeInfo)
+		timeout?.let {
+			timeout {
+				connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
+				requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
+			}
 		}
 	}
 }

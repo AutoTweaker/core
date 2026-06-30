@@ -21,7 +21,7 @@ package io.github.autotweaker.api.adapter
 import io.github.autotweaker.api.PairList
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.path.PathResolver
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
@@ -137,14 +137,14 @@ interface CoreAPI {
 		 * @throws IllegalArgumentException 找不到适配器。
 		 * @return 成功启动适配器返回 true，适配器正在运行返回 false。
 		 */
-		suspend fun start(name: KebabId): Boolean
+		suspend fun start(name: KebabCase): Boolean
 		
 		/**
 		 * 根据适配器的 name 获取适配器是否正在运行。
 		 *
 		 * @throws IllegalArgumentException 找不到适配器。
 		 */
-		suspend fun alive(name: KebabId): Boolean
+		suspend fun alive(name: KebabCase): Boolean
 		
 		/**
 		 * 根据适配器的 name 停止适配器，AutoTweaker 不会捕获适配器在此过程中抛出的异常，请自行处理。
@@ -152,7 +152,7 @@ interface CoreAPI {
 		 * @throws IllegalArgumentException 找不到适配器。
 		 * @return 成功停止适配器返回 true，适配器未在运行返回 false。
 		 */
-		suspend fun stop(name: KebabId): Boolean
+		suspend fun stop(name: KebabCase): Boolean
 	}
 	
 	/**
@@ -515,29 +515,29 @@ interface CoreAPI {
 		/**
 		 * 列出指定记录者的所有命名空间。
 		 */
-		suspend fun namespaces(origin: String): List<KebabId>
+		suspend fun namespaces(origin: String): List<KebabCase>
 		
 		/**
 		 * 列出指定记录者指定命名空间下的条目的时间戳。
 		 */
-		suspend fun entries(origin: String, namespace: KebabId, range: UIntRange): List<Instant>
+		suspend fun entries(origin: String, namespace: KebabCase, range: UIntRange): List<Instant>
 		
 		/**
 		 * 获取指定记录者指定命名空间下所有条目的总数。
 		 */
-		suspend fun count(origin: String, namespace: KebabId): Int
+		suspend fun count(origin: String, namespace: KebabCase): Int
 		
 		/**
 		 * 获取指定记录者指定命名空间下指定时间戳的条目。trace 条目可能较大，请妥善处理。
 		 */
-		suspend fun get(origin: String, namespace: KebabId, timestamp: Instant): String?
+		suspend fun get(origin: String, namespace: KebabCase, timestamp: Instant): String?
 		
 		/**
 		 * 删除指定记录者指定命名空间下指定时间戳的条目。
 		 *
 		 * @return 是否成功删除了大于或等于 1 条数据，正常情况下也只会删除一条。
 		 */
-		suspend fun remove(origin: String, namespace: KebabId, timestamp: Instant): Boolean
+		suspend fun remove(origin: String, namespace: KebabCase, timestamp: Instant): Boolean
 	}
 	
 	/**

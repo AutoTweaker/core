@@ -22,7 +22,7 @@ import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
@@ -45,7 +45,7 @@ import java.util.*
 class Agent(
 	context: AgentContext,
 	val agentId: UUID = UUID.randomUUID(),
-	val name: KebabId,
+	val name: KebabCase,
 	private val workspace: WorkspaceMeta,
 	private val tools: List<Tool<ToolArgs>>,
 	private val activeTools: List<String>,

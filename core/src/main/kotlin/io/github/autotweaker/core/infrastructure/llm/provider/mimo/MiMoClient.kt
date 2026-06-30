@@ -186,7 +186,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 						})
 				
 				is ChatMessage.AssistantMessage -> MiMoMessage.AssistantMessage(
-					content = if (msg.content != null) listOf(MiMoMessage.Content.TextPart(text = msg.content!!)) else null,
+					content = msg.content?.let { listOf(MiMoMessage.Content.TextPart(text = it)) },
 					reasoningContent = msg.reasoningContent,
 					toolCalls = msg.toolCalls?.map { tc ->
 						MiMoToolCall(
@@ -226,7 +226,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			frequencyPenalty = request.frequencyPenalty,
 			presencePenalty = request.presencePenalty,
 			responseFormat = request.responseFormat,
-			toolChoice = if (request.toolCallRequired == true) "auto" else null,
+			toolChoice = "auto", // 截止26.7.1，mimo仍然仅支持auto
 		)
 	}
 	
@@ -257,7 +257,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		)
 	}
 	
-	override fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult {
+	override fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult.Chunk {
 		val choice = chunk.choices.firstOrNull()
 		val delta = choice?.delta
 		

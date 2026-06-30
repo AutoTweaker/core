@@ -39,4 +39,9 @@ fun Loggable.scope(io: IO? = null): CoroutineScope {
 		CoroutineScope(Dispatchers.IO + SupervisorJob() + handler)
 }
 
+/**
+ * 用于告知 [scope] 提供 IO 作用域 `Dispatchers.IO`（使用 `scope(IO)`）。
+ *
+ * 只是为了让 [scope] 写起来更好看，不用 `scope(true)` 或者  `scope(io = true)`
+ */
 object IO

@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.api.trace
 
-import io.github.autotweaker.api.types.KebabId
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
+import io.github.autotweaker.api.types.UpperSnakeCase
 
 /**
  * 记录数据到 `Traces` 数据库，通常用于记录有调试价值的原始数据，不要当日志 API 用。
@@ -33,14 +34,25 @@ interface TraceRecorder {
 	 * 添加一条数据记录，AutoTweaker 会根据存入方、命名空间、时间戳来共同区分条目。
 	 *
 	 * @param namespace 命名空间，用于分类，必须符合 `kebab-case`，请不要一条数据一个命名空间。
-	 * @param content 数据内容，最好不要是像日志一样的自然语言，直接将原始数据 [toString] 即可。
 	 */
-	fun add(namespace: KebabId, content: String)
+	fun add(namespace: KebabCase, content: Any)
+	
+	/**
+	 * 此重载适用于存储多字段的数据，格式如下：
+	 *
+	 * ```
+	 * NAME=autotweaker
+	 * MESSAGE=Message(value=hello)
+	 * ```
+	 *
+	 * 关于 [add] 的更多信息请见另一重载（`fun add(namespace: KebabCase, content: Any)`）
+	 */
+	fun add(namespace: KebabCase, content: Map<UpperSnakeCase, Any>)
 	
 	/**
 	 * 记录一条异常的完整堆栈到命名空间 `e`，通常使用 [catching] 来自动处理。
 	 *
 	 * @param e 异常对象
 	 */
-	fun exception(e: Throwable) = add("e".toKebabId(), e.stackTraceToString())
+	fun exception(e: Throwable) = add("e".toKebab(), e.stackTraceToString())
 }

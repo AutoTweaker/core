@@ -29,7 +29,7 @@ import io.github.autotweaker.adapter.cli.Syntax
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -71,7 +71,7 @@ class Trace : Command, I18nable {
 			
 			if (request.has("show")) {
 				val origin = request.positional[0]
-				val namespace = request.positional[1].toKebabId()
+				val namespace = request.positional[1].toKebab()
 				val range = request.positional[2].split("-", limit = 2).map { it.trim() }
 				val from = range[0].toUIntOrNull() ?: run {
 					emitI18n(TraceI18n.InvalidValue())

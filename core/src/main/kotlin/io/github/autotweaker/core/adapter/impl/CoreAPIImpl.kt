@@ -21,8 +21,8 @@ package io.github.autotweaker.core.adapter.impl
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.path.PathResolver
-import io.github.autotweaker.api.types.KebabId
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.i18n.TranslationStatus
@@ -127,15 +127,15 @@ class CoreAPIImpl(
 	
 	override val trace = object : CoreAPI.TraceAPI {
 		override suspend fun origins() = TraceStore.selectOrigins()
-		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin).map { it.toKebabId() }
-		override suspend fun count(origin: String, namespace: KebabId) = TraceStore.count(origin, namespace.value)
-		override suspend fun entries(origin: String, namespace: KebabId, range: UIntRange) =
+		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin).map { it.toKebab() }
+		override suspend fun count(origin: String, namespace: KebabCase) = TraceStore.count(origin, namespace.value)
+		override suspend fun entries(origin: String, namespace: KebabCase, range: UIntRange) =
 			TraceStore.selectEntries(origin, namespace.value, range)
 		
-		override suspend fun get(origin: String, namespace: KebabId, timestamp: Instant) =
+		override suspend fun get(origin: String, namespace: KebabCase, timestamp: Instant) =
 			TraceStore.select(origin, namespace.value, timestamp)
 		
-		override suspend fun remove(origin: String, namespace: KebabId, timestamp: Instant) =
+		override suspend fun remove(origin: String, namespace: KebabCase, timestamp: Instant) =
 			TraceStore.delete(origin, namespace.value, timestamp)
 	}
 	

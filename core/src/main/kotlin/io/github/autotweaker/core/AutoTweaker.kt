@@ -23,7 +23,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.StartupHook
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
@@ -46,7 +46,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		SemVer.parse(props.getProperty("version"))
 	}
 	
-	private val registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>> = mutableMapOf()
+	private val registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	private val lock = ReentrantMutex()
 	
 	private val core by lazy { Wiring.createCoreAPI(this, version) }
@@ -101,7 +101,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		registry.values.map { it.second to it.first.isRunning }
 	}
 	
-	override suspend fun start(name: KebabId) = lock.withLock {
+	override suspend fun start(name: KebabCase) = lock.withLock {
 		val (adapter, info) = requireAdapter(name)
 		if (adapter.isRunning) return@withLock false
 		adapter.start()
@@ -109,12 +109,12 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		return@withLock true
 	}
 	
-	override suspend fun alive(name: KebabId): Boolean = lock.withLock {
+	override suspend fun alive(name: KebabCase): Boolean = lock.withLock {
 		val (adapter, _) = requireAdapter(name)
 		return@withLock adapter.isRunning
 	}
 	
-	override suspend fun stop(name: KebabId) = lock.withLock {
+	override suspend fun stop(name: KebabCase) = lock.withLock {
 		val (adapter, info) = requireAdapter(name)
 		if (!adapter.isRunning) return@withLock false
 		adapter.stop()
@@ -122,7 +122,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		return@withLock true
 	}
 	
-	private fun requireAdapter(name: KebabId): Pair<Adapter, AdapterInfo> =
+	private fun requireAdapter(name: KebabCase): Pair<Adapter, AdapterInfo> =
 		requireNotNull(registry[name]) { "Unknown adapter: $name" }
 	
 	private fun releaseLock() {

@@ -21,33 +21,35 @@ package io.github.autotweaker.api.types
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.UpperSnakeCase.Companion.toUpperSnake
 import kotlinx.serialization.Serializable
 
 /**
- * 表示一个 kebab-case 格式的 [String]。
+ * 表示一个 UPPER_SNAKE_CASE 格式的 [String]。
  */
 @JvmInline
 @Serializable
-value class KebabId private constructor(val value: String) {
+value class UpperSnakeCase private constructor(val value: String) {
 	override fun toString(): String = value
 	
 	companion object : Traceable {
 		/**
-		 * [this] 不能为空，只能包含小写字母和短横线（`-`）。
+		 * [this] 只能包含大写字母、数字和下划线（`_`），不能为空，不能以 `_` 开头或结尾，不能连续多个 `_`。
 		 *
 		 * @throws IllegalArgumentException [this] 不合法。
 		 */
-		fun String.toKebabId(): KebabId {
-			require(!isEmpty())
-			require(all { it.isLowerCase() || it == '-' })
-			return KebabId(this)
+		fun String.toUpperSnake(): UpperSnakeCase {
+			require(isNotEmpty())
+			require(first() != '_' && last() != '_')
+			require(all { it.isUpperCase() || it.isDigit() || it == '_' })
+			require(!contains("__"))
+			return UpperSnakeCase(this)
 		}
 		
 		/**
-		 * @return 如果格式合法，返回 [KebabId]，否则返回 null。
-		 * @see toKebabId
+		 * @return 如果格式合法，返回 [UpperSnakeCase]，否则返回 null。
+		 * @see toUpperSnake
 		 */
-		fun String.toKebabIdOrNull(): KebabId? = trace.catching { toKebabId() }.getOrNull()
+		fun String.toUpperSnakeOrNull(): UpperSnakeCase? = trace.catching { toUpperSnake() }.getOrNull()
 	}
 }

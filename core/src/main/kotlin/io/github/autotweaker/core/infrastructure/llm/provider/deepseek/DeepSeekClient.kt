@@ -225,7 +225,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		)
 	}
 	
-	override fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult {
+	override fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult.Chunk {
 		val choice = chunk.choices.firstOrNull()
 		val delta = choice?.delta
 		

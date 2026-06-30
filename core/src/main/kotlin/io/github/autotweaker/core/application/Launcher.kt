@@ -23,7 +23,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.dev.Debugger
 import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
@@ -52,7 +52,7 @@ object Launcher : Loggable, Traceable {
 	private val databaseStore: DatabaseStore = H2DatabaseStore
 	
 	suspend fun start(
-		registry: MutableMap<KebabId, Pair<Adapter, AdapterInfo>>,
+		registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>>,
 		lazyCore: () -> CoreAPI
 	) {
 		//依赖最广泛的able api

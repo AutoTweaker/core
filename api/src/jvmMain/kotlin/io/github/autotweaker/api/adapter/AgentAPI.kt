@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.adapter
 
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
@@ -49,9 +49,9 @@ interface AgentAPI {
 	/**
 	 * agent 的名称，用于多 agent 场景下的显示区分。
 	 *
-	 * @see KebabId
+	 * @see KebabCase
 	 */
-	val name: KebabId
+	val name: KebabCase
 	
 	/**
 	 * agent 的模型配置，每个 agent 可以拥有独立的模型配置。

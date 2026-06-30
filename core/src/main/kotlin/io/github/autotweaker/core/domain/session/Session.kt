@@ -23,8 +23,8 @@ import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.KebabId
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
@@ -63,7 +63,7 @@ class Session(
 		restoreOrNull(mainId) ?: createAgent(
 			AgentData(
 				id = mainId,
-				name = MAIN_AGENT_NAME.toKebabId(),
+				name = MAIN_AGENT_NAME.toKebab(),
 				model = model,
 				context = SessionContext.emptyContext(systemPrompt),
 				activeTools = activeTools
@@ -90,7 +90,7 @@ class Session(
 	}
 	
 	private fun getHost(agentId: UUID) = object : AgentHost {
-		override suspend fun create(name: KebabId, systemPrompt: String, model: ModelConfig): Agent {
+		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent {
 			val childId = UUID.randomUUID()
 			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
 			val bridge = createAgent(childId, name, systemPrompt, model)
@@ -116,7 +116,7 @@ class Session(
 	
 	private suspend fun createAgent(
 		id: UUID,
-		name: KebabId,
+		name: KebabCase,
 		systemPrompt: String,
 		model: ModelConfig,
 	): AgentBridge = createAgent(

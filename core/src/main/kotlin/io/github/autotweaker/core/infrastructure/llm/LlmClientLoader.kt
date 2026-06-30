@@ -44,11 +44,11 @@ object LlmClientLoader : Loggable {
 	}
 	
 	fun load(name: String): LlmClient =
-		requireNotNull(all.firstOrNull { it.providerInfo.name == name })
-		{ "Unknown LLM provider: $name" }
+		requireNotNull(
+			all.firstOrNull { it.providerInfo.name == name }
+		) { "Unknown LLM provider: $name" }
 			.andLog(log) { debug("Loaded LLM provider  name={}", name) }
 	
 	
-	fun availableProviders(): List<String> =
-		all.map { it.providerInfo.name }
+	fun availableProviders(): List<String> = all.map { it.providerInfo.name }
 }

@@ -23,7 +23,7 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.KebabId.Companion.toKebabId
+import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -32,7 +32,7 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 class CliAdapter : Adapter, Loggable {
 	private val info by lazy {
 		AdapterInfo(
-			name = "cli-adapter".toKebabId(),
+			name = "cli-adapter".toKebab(),
 			description = "AutoTweaker CLI Adapter",
 			version = SemVer.parse("0.1.0"),
 			source = "https://github.com/AutoTweaker/core".toUrl(),

@@ -113,14 +113,12 @@ sealed class ToolChoice {
 			
 			when (value) {
 				is Simple -> {
-					// 直接序列化内部枚举，输出结果为字符串，例如 "auto"
 					jsonEncoder.encodeJsonElement(
 						jsonEncoder.json.encodeToJsonElement(Simple.Mode.serializer(), value.mode)
 					)
 				}
 				
 				is Specific -> {
-					// 序列化整个对象结构
 					jsonEncoder.encodeJsonElement(
 						jsonEncoder.json.encodeToJsonElement(Specific.serializer(), value)
 					)
@@ -134,11 +132,9 @@ sealed class ToolChoice {
 			val element = jsonDecoder.decodeJsonElement()
 			
 			return if (element is JsonPrimitive) {
-				// 如果是字符串，解析为枚举并包装在 Simple 中
 				val mode = jsonDecoder.json.decodeFromJsonElement(Simple.Mode.serializer(), element)
 				Simple(mode)
 			} else {
-				// 如果是对象，解析为 Specific
 				jsonDecoder.json.decodeFromJsonElement(Specific.serializer(), element)
 			}
 		}

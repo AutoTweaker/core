@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.core.domain.agent.Agent
 import java.util.*
 
 interface AgentHost {
-	suspend fun create(name: KebabId, systemPrompt: String, model: ModelConfig): Agent
+	suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent
 	fun list(): List<UUID>
 	suspend fun get(id: UUID): Agent?
 }

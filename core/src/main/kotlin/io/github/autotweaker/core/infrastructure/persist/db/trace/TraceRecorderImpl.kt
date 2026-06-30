@@ -20,7 +20,8 @@ package io.github.autotweaker.core.infrastructure.persist.db.trace
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.TraceRecorder
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
+import io.github.autotweaker.api.types.UpperSnakeCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -54,9 +55,20 @@ object TraceRecorderImpl : Loggable, Settable {
 		cache.computeIfAbsent(kClass) { Recorder(it.java.name) }
 	
 	private class Recorder(private val origin: String) : TraceRecorder {
-		override fun add(namespace: KebabId, content: String) {
-			queue.trySend(TraceEntry(origin, namespace.value, content))
-		}
+		override fun add(namespace: KebabCase, content: Any) =
+			queue.trySend(TraceEntry(origin, namespace.value, content.toString())).discard()
+		
+		
+		override fun add(namespace: KebabCase, content: Map<UpperSnakeCase, Any>) =
+			queue.trySend(
+				TraceEntry(
+					origin, namespace.value,
+					content.entries
+						.joinToString("\n") { (k, v) ->
+							"$k=$v"
+						}
+				)
+			).discard()
 	}
 	
 	private data class TraceEntry(val origin: String, val namespace: String, val content: String)

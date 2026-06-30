@@ -22,7 +22,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.KebabId
+import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
@@ -72,7 +72,7 @@ class AgentBridge(
 	override val output: SharedFlow<SessionOutput> = _output.asSharedFlow()
 	
 	override val id: UUID get() = _agent.agentId
-	override val name: KebabId get() = _agent.name
+	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
 	override val toolInfo: StateFlow<List<ToolInfo>> get() = _agent.toolInfo
 	
