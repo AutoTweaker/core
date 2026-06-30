@@ -24,7 +24,7 @@ import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
 
 abstract class AtomicRefStore<V> : StoreBase<V>() {
-	private val accessor = JsonStoreAccessor(store, serializer, ::default)
+	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
 	private val cache: AtomicRef<V> by lazy { atomic(accessor.initial) }
 	
 	protected fun get(): V = cache.value

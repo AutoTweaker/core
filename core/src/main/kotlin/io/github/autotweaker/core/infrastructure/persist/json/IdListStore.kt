@@ -19,56 +19,29 @@
 package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.ReentrantMutex
 import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.serializer.UuidSerializer
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.json.Json
+import io.github.autotweaker.core.infrastructure.persist.json.base.MutexStore
 import java.util.*
-import kotlin.reflect.KClass
 
-class IdListStore<T : Any>(
-	kClass: KClass<*>,
-	private val store: JsonStore,
-	serializer: KSerializer<T>,
-	private val idOf: (T) -> UUID,
-) : Loggable {
-	private val className = kClass.qualifiedName
+abstract class IdListStore<T : Any> : MutexStore<MutableMap<UUID, T>>(), Loggable {
+	protected abstract fun idOf(data: T): UUID
 	
-	private val mapSerializer = MapSerializer(UuidSerializer, serializer)
-	private val items: MutableMap<UUID, T> by lazy {
-		store.get()?.let {
-			Json.decodeFromJsonElement(mapSerializer, it)
-		}.orEmpty().toMutableMap()
-	}
+	override fun default() = mutableMapOf<UUID, T>()
 	
-	private val lock = ReentrantMutex()
-	
-	suspend fun set(data: T) = lock.withLock {
+	suspend fun set(data: T) = transform {
 		val id = idOf(data)
-		items[id] = data
-		andSave()
-		log.debug("Added item  id={}  class={}", id, className)
+		it[id] = data
+		log.debug("Added item  id={}  class={}", id, this::class.qualifiedName)
 	}
 	
-	suspend fun getAll(): Map<UUID, T> = lock.withLock { items.toMap() }
+	suspend fun getAll(): Map<UUID, T> = transform { it.toMap() }
 	
-	suspend fun get(id: UUID): T? = lock.withLock { items[id] }
+	suspend fun get(id: UUID): T? = transform { it[id] }
 	
-	suspend fun delete(id: UUID): Boolean = lock.withLock {
-		(items.remove(id) != null).andSave().andLog(log)
-		{ debug("Deleted item  id={}  class={}", id, className) }
-	}
-	
-	private fun <T> T.andSave() = also {
-		store.set(
-			Json.encodeToJsonElement(
-				mapSerializer,
-				items
-			)
-		)
+	suspend fun delete(id: UUID): Boolean = transform {
+		(it.remove(id) != null).andLog(log) {
+			debug("Deleted item  id={}  class={}", id, this@IdListStore::class.qualifiedName)
+		}
 	}
 }

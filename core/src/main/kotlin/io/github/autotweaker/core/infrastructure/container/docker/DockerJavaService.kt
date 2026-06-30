@@ -52,9 +52,15 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 		"${unix.uid}:${unix.gid}"
 	}
 	
+	@Volatile
 	private var workspaceHostPath: Path? = null
+	
+	@Volatile
 	private var containerWorkDir: Path? = null
+	
+	@Volatile
 	private var permissionFixJob: Job? = null
+	
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	
 	private val client: DockerClient = run {
@@ -89,8 +95,8 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	): String = withContext(Dispatchers.IO) {
 		trace.catching {
 			val hostPath = config.workspaceHostPath
-			this@DockerJavaService.workspaceHostPath = hostPath
-			this@DockerJavaService.containerWorkDir = config.workDir
+			workspaceHostPath = hostPath
+			containerWorkDir = config.workDir
 			Files.createDirectories(hostPath)
 			
 			val existing = findContainerByName(config.name)

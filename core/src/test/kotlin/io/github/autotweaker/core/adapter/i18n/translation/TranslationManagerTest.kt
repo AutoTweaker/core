@@ -25,6 +25,7 @@ import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
 import kotlin.test.*
@@ -51,19 +52,19 @@ class TranslationManagerTest {
 	}
 	
 	@AfterTest
-	fun tearDown() {
+	fun tearDown() = runBlocking {
 		TranslationManager.setModel(null)
 	}
 	
 	@Test
-	fun `setModel and getModel roundtrip`() {
+	fun `setModel and getModel roundtrip`() = runBlocking {
 		val id = UUID.randomUUID()
 		TranslationManager.setModel(id)
 		assertEquals(id, TranslationManager.getModel())
 	}
 	
 	@Test
-	fun `setModel null clears model`() {
+	fun `setModel null clears model`() = runBlocking {
 		TranslationManager.setModel(UUID.randomUUID())
 		TranslationManager.setModel(null)
 		assertNull(TranslationManager.getModel())

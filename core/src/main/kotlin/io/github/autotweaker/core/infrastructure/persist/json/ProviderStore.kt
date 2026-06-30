@@ -18,17 +18,14 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.JsonStorable
-import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.llm.ProviderData
-import java.util.*
+import io.github.autotweaker.api.types.serializer.MutableMapSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 
-object ProviderStore : JsonStorable {
-	private val listStore =
-		IdListStore(this::class, store, ProviderData.serializer()) { it.id }
+object ProviderStore : IdListStore<ProviderData>() {
+	override val serializer = MutableMapSerializer(
+		UuidSerializer, ProviderData.serializer()
+	)
 	
-	suspend fun set(data: ProviderData) = listStore.set(data)
-	suspend fun get(id: UUID) = listStore.get(id)
-	suspend fun getAll() = listStore.getAll()
-	suspend fun delete(id: UUID) = listStore.delete(id)
+	override fun idOf(data: ProviderData) = data.id
 }

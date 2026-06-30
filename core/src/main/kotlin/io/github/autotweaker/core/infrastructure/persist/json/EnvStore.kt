@@ -18,62 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
-import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.core.domain.port.SecretStore
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
-import java.util.*
+import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 
-abstract class EnvStore : Loggable, Traceable, JsonStorable {
-	private val serializer = MapSerializer(
-		String.serializer(), UuidSerializer
-	)
-	private val envs: MutableMap<String, UUID> by lazy {
-		store.get()?.let {
-			Json.decodeFromJsonElement(serializer, it)
-		}.orEmpty().toMutableMap()
-	}
-	private val lock = ReentrantMutex()
-	
-	suspend fun listEnv(): List<String> = lock.withLock { envs.keys.toList() }
-	
-	suspend fun getEnv(id: String): String? = lock.withLock {
-		val uuid = envs[id] ?: return@withLock null
-		trace.catching { secretStore.get(uuid) }
-			.rethrow<SecretStoreLockedException>()
-			.onFailure { log.warn("Failed env retrieval  id={}  class={}", id, this::class.java.name) }
-			.getOrNull()
-	}
-	
-	suspend fun setEnv(id: String, value: String) = lock.withLock {
-		envs[id]?.let { secretStore.remove(it) }
-		envs[id] = secretStore.set(value)
-		save().andLog(log) { debug("Set env  id={}  class={}", id, this::class.java.name) }
-	}
-	
-	suspend fun removeEnv(id: String): Boolean = lock.withLock {
-		envs[id]?.let { secretStore.remove(it) }
-		return@withLock envs.remove(id).andLog(log) {
-			debug("Removed env  id={}  class={}", id, this::class.java.name)
-		} != null
-	}
-	
-	private fun save() = store.set(
-		Json.encodeToJsonElement(
-			serializer,
-			envs
-		)
-	)
-	
-	companion object {
-		private lateinit var secretStore: SecretStore
-		
-		fun init(secretStore: SecretStore) {
-			this.secretStore = secretStore
-		}
-	}
+abstract class EnvStore : SecretMapStore() {
+	suspend fun listEnv() = listSecrets()
+	suspend fun getEnv(id: String) = getSecret(id)
+	suspend fun setEnv(id: String, value: String) = putSecret(id, value)
+	suspend fun removeEnv(id: String) = removeSecret(id)
 }

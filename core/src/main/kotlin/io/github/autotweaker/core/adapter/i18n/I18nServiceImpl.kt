@@ -18,76 +18,58 @@
 
 package io.github.autotweaker.core.adapter.i18n
 
-import io.github.autotweaker.api.JsonStorable
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.store
 import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
-import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.update
+import io.github.autotweaker.core.infrastructure.persist.json.base.AtomicRefStore
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import java.util.*
 
-object I18nServiceImpl : I18nService, Loggable, JsonStorable {
-	private val cache = atomic(emptyList<I18nEntry>())
-	
-	@Volatile
-	private var language: Locale
-	
-	init {
-		val entry = store.get()
-		language = if (entry != null) {
-			val data = Json.decodeFromJsonElement<Store>(entry)
-			cache.update { cache -> cache + data.entries }
-			data.language
-		} else Locale.getDefault()
-	}
+object I18nServiceImpl : AtomicRefStore<I18nServiceImpl.Data>(), I18nService, Loggable {
+	override val serializer = Data.serializer()
+	override fun default() = Data()
 	
 	override fun setLanguage(locale: Locale) {
-		language = locale
-		save()
+		update { it.copy(language = locale) }
+		log.debug("Updated language  lang={}", locale.toLanguageTag())
 	}
 	
-	override fun getLanguage(): Locale = language
+	override fun getLanguage(): Locale = get().language
 	
 	override fun get(def: I18nDef): String {
 		val key = def::class.qualifiedName ?: error("Anonymous I18nDef not supported: ${def::class}")
-		return resolve(key, language)
+		return resolve(key, get().language)
 	}
 	
 	override fun getDefault(id: String): I18nDef? = I18nRegistry.get(id)
 	
 	override fun set(id: String, text: String, languageCode: Locale) {
-		cache.update { entries ->
-			val index = entries.indexOfFirst { it.key == id }
+		update { data ->
+			val index = data.entries.indexOfFirst { it.key == id }
 			if (index == -1) error("I18n not found: $id")
-			val entry = entries[index]
-			entries.toMutableList().also {
+			val entry = data.entries[index]
+			data.copy(entries = data.entries.toMutableList().also {
 				it[index] = entry.copy(localizations = entry.localizations.filter { localizedString ->
 					localizedString.languageCode != languageCode
 				} + LocalizedString(languageCode, text))
-			}
+			})
 		}
-		save()
 		log.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
 	}
 	
 	override fun getAll(): List<I18nEntry> {
-		val stored = cache.value.associateBy { it.key }
+		val stored = get().entries.associateBy { it.key }
 		return I18nRegistry.getAll().map { (key, def) ->
 			stored[key] ?: I18nEntry(key, def.localizations)
 		}
 	}
 	
 	private fun resolve(key: String, target: Locale): String {
-		val localizations = cache.value.find { it.key == key }?.localizations
+		val localizations = get().entries.find { it.key == key }?.localizations
 			?: I18nRegistry.get(key)?.localizations
 			?: return key
 		localizations.find { it.languageCode == target }?.let { return it.text }
@@ -97,14 +79,10 @@ object I18nServiceImpl : I18nService, Loggable, JsonStorable {
 		return key
 	}
 	
-	private fun save() =
-		store.set(Json.encodeToJsonElement(Store(cache.value, language)))
-	
-	
 	@Serializable
-	private data class Store(
-		val entries: List<I18nEntry>,
+	data class Data(
+		val entries: List<I18nEntry> = emptyList(),
 		@Serializable(with = LocaleSerializer::class)
-		val language: Locale
+		val language: Locale = Locale.getDefault(),
 	)
 }

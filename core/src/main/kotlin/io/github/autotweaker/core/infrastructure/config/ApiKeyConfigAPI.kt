@@ -18,66 +18,40 @@
 
 package io.github.autotweaker.core.infrastructure.config
 
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
-import io.github.autotweaker.core.domain.port.SecretStore
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
+import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import java.util.*
 
-
-object ApiKeyConfigAPI : ApiKeyRepository, Loggable, JsonStorable {
-	private lateinit var secret: SecretStore
+object ApiKeyConfigAPI : SecretMapStore(), ApiKeyRepository, Loggable {
 	private val provCfg: ProviderRepository = ProviderConfigAPI
-	private val serializer = MapSerializer(String.serializer(), UuidSerializer)
-	private val apiKeys: MutableMap<String, UUID> by lazy {
-		store.get()?.let {
-			Json.decodeFromJsonElement(serializer, it)
-		}.orEmpty().toMutableMap()
-	}
 	
-	private val lock = ReentrantMutex()
-	
-	fun init(secretStore: SecretStore) {
-		secret = secretStore
-	}
-	
-	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) = lock.withLock {
-		require(apiKeys[key.name] == null) { "Key ${key.name} already exists" }
-		apiKeys[key.name] = secret.set(key.key)
-		save()
+	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) = transform {
+		require(it[key.name] == null) { "Key ${key.name} already exists" }
+		putSecret(key.name, key.key)
 		log.info("Added API key  name={}", key.name)
 	}
 	
-	override suspend fun list(): List<String> = lock.withLock {
-		apiKeys.keys.toList()
-	}
+	override suspend fun list() = listSecrets()
 	
-	override suspend fun get(name: String): String = lock.withLock {
-		apiKeys[name]?.let { secret.get(it) } ?: error("Key $name not found")
-	}
+	override suspend fun get(name: String) = getSecret(name) ?: error("Key $name not found")
 	
-	override suspend fun remove(name: String) = lock.withLock {
-		if (apiKeys[name] == null) return@withLock false
-		if (provCfg.list().any { it.keyId == name }) error("Key $name is currently in use")
-		val id = apiKeys.remove(name) ?: return@withLock false
-		save()
-		secret.remove(id)
+	override suspend fun remove(name: String) = transform {
+		if (it[name] == null) return@transform false
+		if (provCfg.list().any { p -> p.keyId == name }) error("Key $name is currently in use")
+		removeSecret(name)
 		log.info("Deleted API key  name={}", name)
-		return@withLock true
+		return@transform true
 	}
 	
-	suspend fun getId(name: String): UUID = lock.withLock {
-		apiKeys[name] ?: error("Key $name not found")
+	suspend fun getId(name: String): UUID = transform {
+		it[name] ?: error("Key $name not found")
 	}
 	
-	suspend fun getName(id: UUID): String? = lock.withLock {
-		apiKeys.filter { it.value == id }.keys.firstOrNull()
+	suspend fun getName(id: UUID): String? = transform { map ->
+		map.entries.find { it.value == id }?.key
 	}
-	
-	private fun save() = store.set(Json.encodeToJsonElement(serializer, apiKeys))
 }

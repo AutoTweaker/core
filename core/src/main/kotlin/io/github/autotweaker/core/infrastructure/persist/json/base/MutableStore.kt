@@ -23,7 +23,7 @@ import io.github.autotweaker.api.Mutable.Companion.mutable
 import io.github.autotweaker.api.store
 
 abstract class MutableStore<V> : StoreBase<V>() {
-	private val accessor = JsonStoreAccessor(store, serializer, ::default)
+	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
 	
 	protected val cache: Mutable<V> by lazy {
 		accessor.initial.mutable { _, new -> accessor.save(new) }

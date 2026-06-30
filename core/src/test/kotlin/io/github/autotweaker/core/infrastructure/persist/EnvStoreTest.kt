@@ -22,6 +22,7 @@ import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
+import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
@@ -62,7 +63,7 @@ class EnvStoreTest {
 			override fun requireUnlocked() {}
 		}
 		
-		EnvStore.init(secretStore)
+		SecretMapStore.init(secretStore)
 		store = TestEnvStore()
 	}
 	

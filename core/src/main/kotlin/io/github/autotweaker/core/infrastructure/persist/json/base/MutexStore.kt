@@ -22,7 +22,7 @@ import io.github.autotweaker.api.ReentrantMutex
 import io.github.autotweaker.api.store
 
 abstract class MutexStore<V> : StoreBase<V>() {
-	private val accessor = JsonStoreAccessor(store, serializer, ::default)
+	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
 	private val lock = ReentrantMutex()
 	private val cache: V by lazy { accessor.initial }
 	
