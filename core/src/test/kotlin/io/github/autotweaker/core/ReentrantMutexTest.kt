@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.ReentrantMutex
+import io.github.autotweaker.api.base.ReentrantMutex
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn

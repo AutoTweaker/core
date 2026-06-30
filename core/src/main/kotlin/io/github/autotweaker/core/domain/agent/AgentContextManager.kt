@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.ReentrantMutex
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.coroutines.flow.MutableStateFlow

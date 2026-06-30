@@ -20,10 +20,11 @@ package io.github.autotweaker.core.domain.agent.think
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentContext
@@ -57,9 +58,9 @@ class LlmService(
 			log.error("Failed LLM call  agentId={}", agentId, e)
 			onOutput(
 				AgentOutput.Error(
-					io.github.autotweaker.api.types.agent.AgentError(
+					AgentError(
 						e.message ?: "LLM call failed",
-						io.github.autotweaker.api.types.agent.AgentError.Type.LLM,
+						AgentError.Type.LLM,
 					)
 				)
 			)

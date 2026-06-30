@@ -28,10 +28,10 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrDefault
-import io.github.autotweaker.api.trace.getOrElse
-import io.github.autotweaker.api.trace.recoverException
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrDefault
+import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig

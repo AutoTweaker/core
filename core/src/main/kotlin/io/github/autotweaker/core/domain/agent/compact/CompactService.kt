@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage

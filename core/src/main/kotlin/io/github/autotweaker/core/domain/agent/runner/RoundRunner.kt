@@ -19,8 +19,9 @@
 package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent

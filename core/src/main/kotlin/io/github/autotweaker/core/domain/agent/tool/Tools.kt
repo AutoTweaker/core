@@ -19,10 +19,10 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo

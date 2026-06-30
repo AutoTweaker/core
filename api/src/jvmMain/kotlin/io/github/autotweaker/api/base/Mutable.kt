@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.base
 
-import io.github.autotweaker.api.Mutable.Companion.mutable
+import io.github.autotweaker.api.base.Mutable.Companion.mutable
 
 
 /**

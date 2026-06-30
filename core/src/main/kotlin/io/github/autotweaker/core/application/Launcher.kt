@@ -21,8 +21,8 @@ package io.github.autotweaker.core.application
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.dev.Debugger
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader

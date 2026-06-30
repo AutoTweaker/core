@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persist.store.h2
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.jdbc.Database

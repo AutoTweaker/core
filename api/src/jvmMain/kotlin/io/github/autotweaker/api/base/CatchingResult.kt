@@ -18,7 +18,7 @@
 
 @file:Suppress("unused")
 
-package io.github.autotweaker.api.trace
+package io.github.autotweaker.api.base
 
 import kotlinx.coroutines.CancellationException
 

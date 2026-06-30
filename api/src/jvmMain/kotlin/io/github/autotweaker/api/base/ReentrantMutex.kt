@@ -16,9 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.base
 
-import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.trace
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext

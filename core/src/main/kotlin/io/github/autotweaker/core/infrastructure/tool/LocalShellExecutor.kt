@@ -20,9 +20,9 @@ package io.github.autotweaker.core.infrastructure.tool
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import kotlinx.coroutines.Dispatchers

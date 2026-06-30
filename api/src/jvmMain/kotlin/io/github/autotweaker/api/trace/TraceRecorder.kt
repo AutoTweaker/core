@@ -50,7 +50,7 @@ interface TraceRecorder {
 	fun add(namespace: KebabCase, content: Map<UpperSnakeCase, Any>)
 	
 	/**
-	 * 记录一条异常的完整堆栈到命名空间 `e`，通常使用 [catching] 来自动处理。
+	 * 记录一条异常的完整堆栈到命名空间 `e`，通常使用 [io.github.autotweaker.api.base.catching] 来自动处理。
 	 *
 	 * @param e 异常对象
 	 */

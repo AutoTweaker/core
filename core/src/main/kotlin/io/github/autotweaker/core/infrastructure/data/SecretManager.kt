@@ -19,8 +19,9 @@
 package io.github.autotweaker.core.infrastructure.data
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrDefault
+import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.types.exception.PasswordInvalidException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.core.domain.port.SecretStore

@@ -19,10 +19,10 @@
 package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.descriptors.*

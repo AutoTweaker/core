@@ -20,8 +20,8 @@ package io.github.autotweaker.core.domain.session
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
 import io.github.autotweaker.api.types.config.SettingValue

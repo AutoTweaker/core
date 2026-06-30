@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase

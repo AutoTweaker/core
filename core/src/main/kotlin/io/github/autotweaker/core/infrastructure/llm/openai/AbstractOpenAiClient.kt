@@ -20,11 +20,11 @@ package io.github.autotweaker.core.infrastructure.llm.openai
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrElse
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.ktor.client.*

@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persist
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel

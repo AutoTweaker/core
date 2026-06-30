@@ -20,9 +20,9 @@ package io.github.autotweaker.core.infrastructure.persist.json.base
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer

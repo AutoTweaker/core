@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
-import io.github.autotweaker.api.ReentrantMutex
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.store
 
 abstract class MutexStore<V> : StoreBase<V>() {

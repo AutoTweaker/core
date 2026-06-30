@@ -21,8 +21,9 @@ package io.github.autotweaker.core
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.dev.StartupHook
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo

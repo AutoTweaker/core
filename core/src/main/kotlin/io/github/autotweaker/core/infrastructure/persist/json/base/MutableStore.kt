@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
-import io.github.autotweaker.api.Mutable
-import io.github.autotweaker.api.Mutable.Companion.mutable
+import io.github.autotweaker.api.base.Mutable
+import io.github.autotweaker.api.base.Mutable.Companion.mutable
 import io.github.autotweaker.api.store
 
 abstract class MutableStore<V> : StoreBase<V>() {

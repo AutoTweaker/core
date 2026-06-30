@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrElse
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -85,31 +85,31 @@ class ToolCallingStage(
 			}
 		}.rethrow<SecretStoreLockedException>()
 			.getOrElse { e ->
-			when (e) {
-				is TimeoutCancellationException -> {
-					val elapsed = startTime.elapsedNow().inWholeSeconds
-					log.warn(
-						"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}s",
-						agentId, call.pendingCall.name, elapsed
-					)
-					buildToolResult(timeoutMessage.format(elapsed), ToolResultStatus.TIMEOUT)
+				when (e) {
+					is TimeoutCancellationException -> {
+						val elapsed = startTime.elapsedNow().inWholeSeconds
+						log.warn(
+							"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}s",
+							agentId, call.pendingCall.name, elapsed
+						)
+						buildToolResult(timeoutMessage.format(elapsed), ToolResultStatus.TIMEOUT)
+					}
+					
+					is CancellationException -> {
+						log.debug(
+							"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
+							agentId,
+							call.pendingCall.name
+						)
+						buildToolResult(cancelledMessage, ToolResultStatus.CANCELLED)
+					}
+					
+					else -> {
+						log.error("Failed tool execution  agentId={}  tool={}", agentId, call.pendingCall.name, e)
+						buildToolResult(e.message ?: "Tool execution failed", ToolResultStatus.FAILURE)
+					}
 				}
-				
-				is CancellationException -> {
-					log.debug(
-						"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
-						agentId,
-						call.pendingCall.name
-					)
-					buildToolResult(cancelledMessage, ToolResultStatus.CANCELLED)
-				}
-				
-				else -> {
-					log.error("Failed tool execution  agentId={}  tool={}", agentId, call.pendingCall.name, e)
-					buildToolResult(e.message ?: "Tool execution failed", ToolResultStatus.FAILURE)
-				}
-			}
-		}.also { toolJob = null }
+			}.also { toolJob = null }
 	}
 	
 	private fun buildToolResult(

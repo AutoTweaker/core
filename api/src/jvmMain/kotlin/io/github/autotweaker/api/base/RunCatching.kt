@@ -16,10 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.trace
+package io.github.autotweaker.api.base
+
+import io.github.autotweaker.api.trace.TraceRecorder
 
 /**
- * [runCatching] 的封装，[onFailure] 自动记录异常到 [TraceRecorder]，需要调用方实现 [io.github.autotweaker.api.Traceable]。
+ * [runCatching] 的封装，[onFailure] 自动记录异常到 [io.github.autotweaker.api.trace.TraceRecorder]，需要调用方实现 [io.github.autotweaker.api.Traceable]。
  *
  * [CatchingResult] 的错误处理 API 已经足够强大，请尽量使用 `trace.catching` 来代替 [runCatching] 以及 `try-catch-finally`，`try-finally` 也可以由 `CatchingResult.also.getOrThrow` 替代。
  */

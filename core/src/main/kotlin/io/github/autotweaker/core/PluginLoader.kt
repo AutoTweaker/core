@@ -19,7 +19,7 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.api.base.catching
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*

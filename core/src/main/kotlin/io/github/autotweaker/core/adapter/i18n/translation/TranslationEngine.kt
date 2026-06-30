@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.trace.catching
-import io.github.autotweaker.api.trace.getOrDefault
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.CoreLlmRequest

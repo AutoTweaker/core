@@ -19,8 +19,8 @@
 package io.github.autotweaker.api.types
 
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import kotlinx.serialization.Serializable
 import java.net.URI
