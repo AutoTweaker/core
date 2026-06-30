@@ -25,6 +25,7 @@ import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -59,13 +60,13 @@ class JsonStoreImplTest {
 	
 	@Test
 	fun `init then get returns null`() {
-		JsonStoreImpl.init(databaseStore)
+		runBlocking { JsonStoreImpl.init(databaseStore) }
 		assertNull(JsonStoreImpl.namespace(String::class).get())
 	}
 	
 	@Test
 	fun `namespace and set then get`() {
-		JsonStoreImpl.init(databaseStore)
+		runBlocking { JsonStoreImpl.init(databaseStore) }
 		val entry = JsonStoreImpl.namespace(Int::class)
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
 		entry.set(data)
@@ -74,7 +75,7 @@ class JsonStoreImplTest {
 	
 	@Test
 	fun `get handles corrupted JSON`() {
-		JsonStoreImpl.init(databaseStore)
+		runBlocking { JsonStoreImpl.init(databaseStore) }
 		transaction {
 			JsonStoreTable.insert {
 				it[JsonStoreTable.namespace] = Boolean::class.java.name

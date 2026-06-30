@@ -22,5 +22,5 @@ import org.jetbrains.exposed.v1.jdbc.Database
 
 interface DatabaseStore {
 	fun connect(dbName: String): Database
-	fun shutdown() {}
+	suspend fun shutdown() {}
 }

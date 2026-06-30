@@ -25,20 +25,20 @@ import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.*
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
 
 object SessionRepositoryImpl : SessionRepository, Loggable {
 	private lateinit var db: Database
 	
-	fun init(databaseStore: DatabaseStore) {
+	suspend fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("Sessions")
-		transaction(db) {
+		db.transaction {
 			SchemaUtils.create(SessionDataTable, AgentDataTable, SessionMessageTable)
 		}
 		log.info("Initialized SessionRepository")
@@ -47,7 +47,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	// region Sessions
 	
 	override suspend fun saveSessions(sessionData: List<SessionData>) {
-		transaction(db) {
+		db.transaction {
 			sessionData.forEach { data ->
 				SessionDataTable.upsert {
 					it[id] = data.id.toString()
@@ -61,7 +61,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	}
 	
 	override suspend fun loadSessions(ids: List<UUID>): List<SessionData> =
-		transaction(db) {
+		db.transaction {
 			val idStrings = ids.map { it.toString() }
 			SessionDataTable.selectAll()
 				.where { SessionDataTable.id inList idStrings }
@@ -69,14 +69,14 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	
 	override suspend fun loadAllSessions(): List<SessionData> =
-		transaction(db) {
+		db.transaction {
 			SessionDataTable.selectAll()
 				.map { it.toSessionData() }
 		}
 	
 	override suspend fun deleteSessions(id: List<UUID>) {
 		val idStrings = id.map { it.toString() }
-		transaction(db) {
+		db.transaction {
 			SessionDataTable.deleteWhere { SessionDataTable.id inList idStrings }
 		}
 	}
@@ -95,7 +95,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	// region Agent
 	
 	override suspend fun saveAgent(agentData: AgentData) {
-		transaction(db) {
+		db.transaction {
 			AgentDataTable.upsert {
 				it[id] = agentData.id.toString()
 				it[name] = agentData.name.value
@@ -107,7 +107,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	}
 	
 	override suspend fun loadAgent(agentId: UUID): AgentData? =
-		transaction(db) {
+		db.transaction {
 			AgentDataTable.selectAll()
 				.where { AgentDataTable.id eq agentId.toString() }
 				.singleOrNull()
@@ -115,7 +115,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	
 	override suspend fun deleteAgent(agentId: UUID) {
-		transaction(db) {
+		db.transaction {
 			AgentDataTable.deleteWhere { AgentDataTable.id eq agentId.toString() }
 		}
 	}
@@ -134,7 +134,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	// region Messages
 	
 	override suspend fun saveMessages(messages: List<SessionMessage>) {
-		transaction(db) {
+		db.transaction {
 			messages.forEach { msg ->
 				SessionMessageTable.upsert {
 					it[id] = msg.id.toString()
@@ -147,7 +147,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	}
 	
 	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage> =
-		transaction(db) {
+		db.transaction {
 			val idStrings = ids.map { it.toString() }
 			SessionMessageTable.selectAll()
 				.where { SessionMessageTable.id inList idStrings }
@@ -156,7 +156,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	
 	override suspend fun deleteMessages(ids: List<UUID>) {
 		val idStrings = ids.map { it.toString() }
-		transaction(db) {
+		db.transaction {
 			SessionMessageTable.deleteWhere { SessionMessageTable.id inList idStrings }
 		}
 	}

@@ -25,7 +25,7 @@ object TraceCleanup : Loggable, Settable {
 	private const val BYTES_PER_MB = 1024 * 1024
 	private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
 	
-	fun cleanup() {
+	suspend fun cleanup() {
 		val maxAgeDays = setting.get(TraceSettings.MaxAgeDays()).value
 		val maxEntriesPerNs = setting.get(TraceSettings.MaxEntriesPerNamespace()).value
 		val maxTotalEntries = setting.get(TraceSettings.MaxTotalEntries()).value

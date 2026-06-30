@@ -48,7 +48,7 @@ class TranslationManagerTest {
 		every { databaseStore.connect(any()) } answers {
 			Database.connect(dbUrl, "org.h2.Driver")
 		}
-		JsonStoreImpl.init(databaseStore)
+		runBlocking { JsonStoreImpl.init(databaseStore) }
 	}
 	
 	@AfterTest

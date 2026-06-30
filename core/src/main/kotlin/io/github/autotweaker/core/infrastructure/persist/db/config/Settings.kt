@@ -27,6 +27,7 @@ import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -56,9 +57,9 @@ object Settings : SettingService, Loggable, Traceable {
 			.getOrNull()
 	}
 	
-	fun init(databaseStore: DatabaseStore) {
+	suspend fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("AppConfig")
-		transaction(db) {
+		db.transaction {
 			SchemaUtils.create(ConfigTable)
 		}
 		cache.putAll(loadAllIntoCache())

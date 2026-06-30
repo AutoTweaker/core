@@ -20,10 +20,10 @@ package io.github.autotweaker.core.infrastructure.persist.db.trace
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
@@ -31,14 +31,14 @@ import kotlin.time.Instant
 object TraceStore : Loggable {
 	private lateinit var db: Database
 	
-	fun init(databaseStore: DatabaseStore) {
+	suspend fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("Traces")
-		transaction(db) { SchemaUtils.create(TraceTable) }
+		db.transaction { SchemaUtils.create(TraceTable) }
 		log.info("Initialized TraceStore  table=traces")
 	}
 	
-	fun insert(origin: String, namespace: String, content: String) {
-		transaction(db) {
+	suspend fun insert(origin: String, namespace: String, content: String) {
+		db.transaction {
 			TraceTable.insert {
 				it[TraceTable.origin] = origin
 				it[TraceTable.namespace] = namespace
@@ -48,7 +48,7 @@ object TraceStore : Loggable {
 		}
 	}
 	
-	fun select(origin: String, namespace: String, timestamp: Instant): String? = transaction(db) {
+	suspend fun select(origin: String, namespace: String, timestamp: Instant): String? = db.transaction {
 		TraceTable.selectAll().where {
 			(TraceTable.origin eq origin) and
 					(TraceTable.namespace eq namespace) and
@@ -56,24 +56,24 @@ object TraceStore : Loggable {
 		}.firstOrNull()?.get(TraceTable.content)
 	}
 	
-	fun selectOrigins(): List<String> = transaction(db) {
+	suspend fun selectOrigins(): List<String> = db.transaction {
 		TraceTable.select(TraceTable.origin).withDistinct().map { it[TraceTable.origin] }
 	}
 	
-	fun selectNamespaces(origin: String): List<String> = transaction(db) {
+	suspend fun selectNamespaces(origin: String): List<String> = db.transaction {
 		TraceTable.select(TraceTable.namespace)
 			.where { TraceTable.origin eq origin }
 			.withDistinct()
 			.map { it[TraceTable.namespace] }
 	}
 	
-	fun count(origin: String, namespace: String): Int = transaction(db) {
+	suspend fun count(origin: String, namespace: String): Int = db.transaction {
 		TraceTable.selectAll()
 			.where { (TraceTable.origin eq origin) and (TraceTable.namespace eq namespace) }
 			.count().toInt()
 	}
 	
-	fun selectEntries(origin: String, namespace: String, range: UIntRange): List<Instant> = transaction(db) {
+	suspend fun selectEntries(origin: String, namespace: String, range: UIntRange): List<Instant> = db.transaction {
 		val count = (range.last - range.first + 1u).toInt()
 		TraceTable.select(TraceTable.timestamp)
 			.where { (TraceTable.origin eq origin) and (TraceTable.namespace eq namespace) }
@@ -82,7 +82,7 @@ object TraceStore : Loggable {
 			.map { it[TraceTable.timestamp] }
 	}
 	
-	fun delete(origin: String, namespace: String, timestamp: Instant): Boolean = transaction(db) {
+	suspend fun delete(origin: String, namespace: String, timestamp: Instant): Boolean = db.transaction {
 		TraceTable.deleteWhere {
 			(TraceTable.origin eq origin) and
 					(TraceTable.namespace eq namespace) and
@@ -90,12 +90,12 @@ object TraceStore : Loggable {
 		} >= 1
 	}
 	
-	fun deleteByAge(maxAgeDays: Int): Int = transaction(db) {
+	suspend fun deleteByAge(maxAgeDays: Int): Int = db.transaction {
 		val cutoff = Clock.System.now() - maxAgeDays.days
 		TraceTable.deleteWhere { TraceTable.timestamp less cutoff }
 	}
 	
-	fun trimPerNamespace(maxEntries: Int): Int = transaction(db) {
+	suspend fun trimPerNamespace(maxEntries: Int): Int = db.transaction {
 		var totalDeleted = 0
 		val origins = TraceTable.select(TraceTable.origin, TraceTable.namespace)
 			.withDistinct()
@@ -124,13 +124,13 @@ object TraceStore : Loggable {
 		return@transaction totalDeleted
 	}
 	
-	fun trimGlobal(maxTotalEntries: Int): Int = transaction(db) {
+	suspend fun trimGlobal(maxTotalEntries: Int): Int = db.transaction {
 		val total = TraceTable.selectAll().count()
 		if (total <= maxTotalEntries.toLong()) return@transaction 0
 		deleteOldestBatch((total - maxTotalEntries).toInt())
 	}
 	
-	fun deleteOldestBatch(batchSize: Int): Int = transaction(db) {
+	suspend fun deleteOldestBatch(batchSize: Int): Int = db.transaction {
 		val cutoffTimestamp = TraceTable.select(TraceTable.timestamp)
 			.orderBy(TraceTable.timestamp, SortOrder.ASC)
 			.limit(1).offset(batchSize.toLong() - 1)

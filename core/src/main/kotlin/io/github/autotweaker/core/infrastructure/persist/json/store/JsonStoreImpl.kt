@@ -24,6 +24,7 @@ import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -41,9 +42,9 @@ object JsonStoreImpl : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
-	fun init(databaseStore: DatabaseStore) {
+	suspend fun init(databaseStore: DatabaseStore) {
 		db = databaseStore.connect("AppConfig")
-		transaction(db) { SchemaUtils.create(JsonStoreTable) }
+		db.transaction { SchemaUtils.create(JsonStoreTable) }
 		log.info("Initialized json store  table=json_store")
 	}
 	

@@ -27,12 +27,12 @@ import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.*
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreTable
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object DbDebugAPIImpl : DbDebugAPI {
 	private lateinit var configDb: Database
@@ -51,13 +51,13 @@ object DbDebugAPIImpl : DbDebugAPI {
 	override val secrets: DbAPI<SecretEntry> get() = SecretDbApi
 	
 	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
-		"AppConfig" to transaction(configDb) {
+		"AppConfig" to configDb.transaction {
 			mapOf(
 				"core_settings" to ConfigTable.selectAll().count(),
 				"json_store" to JsonStoreTable.selectAll().count(),
 			)
 		},
-		"Sessions" to transaction(sessionDb) {
+		"Sessions" to sessionDb.transaction {
 			mapOf(
 				"session_data" to SessionDataTable.selectAll().count(),
 				"agent_data" to AgentDataTable.selectAll().count(),

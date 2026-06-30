@@ -20,9 +20,9 @@ package io.github.autotweaker.core.infrastructure.persist.store.h2
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.catching
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 
@@ -37,9 +37,9 @@ object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 		Database.connect(url, "org.h2.Driver")
 	}
 	
-	override fun shutdown() {
+	override suspend fun shutdown() {
 		databases.values.forEach { db ->
-			trace.catching { transaction(db) { exec("SHUTDOWN") } }
+			trace.catching { db.transaction { exec("SHUTDOWN") } }
 		}
 		databases.clear()
 	}

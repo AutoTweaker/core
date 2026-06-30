@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.store
 
 import io.github.autotweaker.api.dev.DbAPI
 import io.github.autotweaker.api.types.dev.DbEntry
+import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
@@ -28,7 +29,6 @@ import org.jetbrains.exposed.v1.core.statements.UpsertStatement
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 
 abstract class AbstractDbApi<Entry : DbEntry> : DbAPI<Entry> {
@@ -45,20 +45,20 @@ abstract class AbstractDbApi<Entry : DbEntry> : DbAPI<Entry> {
 	abstract fun ResultRow.toEntry(): Entry
 	abstract fun UpsertStatement<Long>.fill(content: Entry)
 	
-	override suspend fun put(content: Entry): Unit = transaction(db) {
+	override suspend fun put(content: Entry): Unit = db.transaction {
 		table.upsert { it.fill(content) }
 	}
 	
-	override suspend fun list(range: UIntRange): List<Entry> = transaction(db) {
+	override suspend fun list(range: UIntRange): List<Entry> = db.transaction {
 		val count = (range.last - range.first + 1u).toInt()
 		table.selectAll().limit(count).offset(range.first.toLong()).map { it.toEntry() }
 	}
 	
-	override suspend fun get(key: String): Entry? = transaction(db) {
+	override suspend fun get(key: String): Entry? = db.transaction {
 		table.selectAll().where { pkColumn eq key }.firstOrNull()?.toEntry()
 	}
 	
-	override suspend fun delete(key: String): Unit = transaction(db) {
+	override suspend fun delete(key: String): Unit = db.transaction {
 		table.deleteWhere { pkColumn eq key }
 	}
 }
