@@ -39,7 +39,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	
 	private val lock = ReentrantMutex()
 	
-	override fun listAvailable(): List<String> = LlmClientLoader.availableProviders()
+	override fun listAvailable(): List<String> = LlmClientLoader.available()
 	override fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo
 	
 	override suspend fun list() = store.getAll().values.map { it.toCoreConfig() }

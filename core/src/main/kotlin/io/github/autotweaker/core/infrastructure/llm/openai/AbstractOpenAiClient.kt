@@ -66,10 +66,6 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			install(HttpTimeout)
 		}
 		
-		fun close() {
-			sharedHttpClient.close()
-		}
-		
 		private fun buildToolCalls(
 			pendingToolCalls: Map<Int, PendingToolCall>
 		): List<ChatMessage.AssistantMessage.ToolCall>? {
@@ -77,6 +73,8 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			return pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
 		}
 	}
+	
+	override suspend fun shutdown() = sharedHttpClient.close()
 	
 	private class PendingToolCall(
 		var id: String = "", var name: String = "", val arguments: StringBuilder = StringBuilder()

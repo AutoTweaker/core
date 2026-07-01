@@ -38,4 +38,6 @@ interface LlmClient {
 		baseUrl: Url? = null,
 		timeout: ChatTimeout? = null
 	): Flow<ChatResult>
+	
+	suspend fun shutdown()
 }

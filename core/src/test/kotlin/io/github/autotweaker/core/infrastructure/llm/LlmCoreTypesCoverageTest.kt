@@ -223,7 +223,7 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `LlmClientLoader availableProviders returns registered providers`() {
-		val providers = LlmClientLoader.availableProviders()
+		val providers = LlmClientLoader.available()
 		assert(providers.contains("deepseek"))
 		assert(providers.contains("mimo"))
 		assert(providers.size >= 2)

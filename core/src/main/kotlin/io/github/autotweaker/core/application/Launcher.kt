@@ -32,7 +32,7 @@ import io.github.autotweaker.core.application.Wiring.databaseStore
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
-import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
+import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
 import io.github.autotweaker.core.infrastructure.persist.db.session.AgentDataDbApi
@@ -140,8 +140,8 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed ContainerManager stop") }
 		trace.catching { TranslationManager.shutdown() }
 			.onFailure { log.warn("Failed TranslationManager shutdown") }
-		trace.catching { AbstractOpenAiClient.close() }
-			.onFailure { log.warn("Failed LLM client close") }
+		trace.catching { LlmClientLoader.shutdown() }
+			.onFailure { log.warn("Failed LLM client shutdown") }
 		trace.catching { SecretManager.killGpgAgent() }
 			.onFailure { log.warn("Failed GPG agent kill") }
 		trace.catching { TraceRecorderImpl.shutdown() }

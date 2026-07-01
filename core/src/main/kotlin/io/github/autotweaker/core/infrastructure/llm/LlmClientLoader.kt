@@ -50,5 +50,7 @@ object LlmClientLoader : Loggable {
 			.andLog(log) { debug("Loaded LLM provider  name={}", name) }
 	
 	
-	fun availableProviders(): List<String> = all.map { it.providerInfo.name }
+	fun available(): List<String> = all.map { it.providerInfo.name }
+	
+	suspend fun shutdown() = all.forEach { it.shutdown() }
 }
