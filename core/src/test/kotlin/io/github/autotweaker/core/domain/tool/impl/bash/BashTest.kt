@@ -29,6 +29,7 @@ import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.port.BashService
+import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.*
@@ -52,6 +53,9 @@ class BashTest {
 	private lateinit var bash: Bash
 	private lateinit var secretStore: SecretStore
 	private var storedJson: JsonElement? = null
+	private val truncation = mockk<TruncationService>().also {
+		every { it.invoke(any(), any(), any()) } answers { firstArg() }
+	}
 	
 	@BeforeTest
 	fun setUp() {
@@ -96,6 +100,7 @@ class BashTest {
 	private fun container(bashService: BashService): ServiceContainer {
 		val c = ServiceContainer()
 		c.register(BashService::class, bashService)
+		c.register(TruncationService::class, truncation)
 		return c
 	}
 	

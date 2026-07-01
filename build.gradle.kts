@@ -84,6 +84,10 @@ subprojects {
 	tasks.withType<ProcessResources>().configureEach {
 		dependsOn(":generateVersionProperties")
 	}
+
+	tasks.withType<JavaCompile>().configureEach {
+		options.compilerArgs.add("-Xlint:-rawtypes")
+	}
 }
 
 // endregion
