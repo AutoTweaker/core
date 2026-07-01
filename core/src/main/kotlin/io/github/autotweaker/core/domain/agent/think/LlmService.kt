@@ -37,7 +37,7 @@ import java.util.*
 
 class LlmService(
 	private val agentId: UUID,
-	private val onOutput: suspend (AgentOutput) -> Unit,
+	private val onOutput: (AgentOutput) -> Unit,
 ) : Loggable, Traceable {
 	suspend fun execute(
 		model: AgentModel,

@@ -79,6 +79,7 @@ class AgentBridge(
 	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
 	override val toolInfo: StateFlow<List<ToolInfo>> get() = _agent.toolInfo
+	override val toolCalling: StateFlow<String?> get() = _agent.toolCalling
 	
 	override val model: ModelConfig
 		get() = _agent.model

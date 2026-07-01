@@ -47,7 +47,7 @@ class RoundRunner(
 	private val ctx: AgentContextManager,
 	private val tools: Tools,
 	private val thinkingStage: ThinkingStage,
-	toolCalling: ToolCallingStage,
+	private val toolCalling: ToolCallingStage,
 	private val compactService: CompactService,
 	agentModel: AgentModel,
 	private val statusFlow: MutableStateFlow<AgentStatus>,
@@ -113,7 +113,7 @@ class RoundRunner(
 					if (statusFlow.value == AgentStatus.FREE) return@withLock
 					markBreak()
 					thinkJob?.cancel()
-					approval.cancelToolJob()
+					toolCalling.cancelToolJob()
 					statusFlow.first { it == AgentStatus.FREE }
 				}
 				
@@ -124,7 +124,7 @@ class RoundRunner(
 				}
 				
 				is AgentCommand.CancelTool -> {
-					approval.cancelToolJob()
+					toolCalling.cancelToolJob()
 				}
 				
 				is AgentCommand.CancelCompact -> {

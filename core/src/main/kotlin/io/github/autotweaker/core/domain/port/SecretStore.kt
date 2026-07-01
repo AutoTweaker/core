@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.port
 
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import java.util.*
 
 interface SecretStore {
@@ -26,5 +27,8 @@ interface SecretStore {
 	suspend fun get(id: UUID): String
 	suspend fun list(): List<UUID>
 	
+	/**
+	 * @throws SecretStoreLockedException
+	 */
 	fun requireUnlocked()
 }

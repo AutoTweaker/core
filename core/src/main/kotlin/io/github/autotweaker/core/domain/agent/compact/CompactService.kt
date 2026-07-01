@@ -42,7 +42,7 @@ import kotlin.time.Clock
 
 class CompactService(
 	private val agentId: UUID,
-	private val onOutput: suspend (AgentOutput) -> Unit,
+	private val onOutput: (AgentOutput) -> Unit,
 ) : Loggable, Traceable, Settable {
 	suspend fun execute(
 		model: AgentModel,

@@ -44,6 +44,7 @@ import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
+
 object Launcher : Loggable, Traceable {
 	suspend fun start(
 		registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>>,
@@ -85,7 +86,7 @@ object Launcher : Loggable, Traceable {
 		WorkspaceManager.init()
 		
 		//创建目录、检查权限、开始拉镜像
-		ContainerManager.init()
+		ContainerManager.init(SecretManager)
 		
 		//都是纯赋值
 		Wiring.init()

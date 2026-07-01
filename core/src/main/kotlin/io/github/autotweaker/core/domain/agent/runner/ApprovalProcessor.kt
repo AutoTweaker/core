@@ -46,10 +46,6 @@ class ApprovalProcessor(
 ) : Traceable {
 	val approvalChannel = Channel<ToolApprove>(Channel.UNLIMITED)
 	
-	fun cancelToolJob() {
-		tool.cancelToolJob()
-	}
-	
 	suspend fun process(
 		needsApproval: List<ThinkingStage.ResolvedToolCall>,
 		assistantMessageId: UUID,

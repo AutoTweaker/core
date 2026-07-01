@@ -89,6 +89,13 @@ interface AgentAPI {
 	val context: StateFlow<SessionContext>
 	
 	/**
+	 * agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.session.SessionMessage.Tool.Call.callId]。
+	 *
+	 * 当没有正在进行的工具调用时，此属性为 null。
+	 */
+	val toolCalling: StateFlow<String?>
+	
+	/**
 	 * 实时的工具列表，列表中只有各值的 `active` 属性会变化，列表本身不会变化。
 	 *
 	 * 关于工具相关的机制，请见 [io.github.autotweaker.api.tool.Tool]。

@@ -38,7 +38,8 @@ class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
 	private val workspace: WorkspaceMeta,
-	private val onOutput: suspend (AgentOutput) -> Unit,
+	private val onOutput: (AgentOutput) -> Unit,
+	private val onToolCall: (String?) -> Unit
 ) : Loggable, Traceable, Settable {
 	@Volatile
 	private var toolJob: Job? = null
@@ -61,6 +62,7 @@ class ToolCallingStage(
 		return trace.catching {
 			coroutineScope {
 				toolJob = coroutineContext[Job]
+				onToolCall(call.pendingCall.callId)
 				withTimeout(timeoutSeconds.seconds) {
 					val provider = ToolProvider.buildToolProvider(
 						workspace = workspace,
@@ -83,6 +85,9 @@ class ToolCallingStage(
 					}
 				}
 			}
+		}.also {
+			toolJob = null
+			onToolCall(null)
 		}.rethrow<SecretStoreLockedException>()
 			.getOrElse { e ->
 				when (e) {
@@ -109,7 +114,7 @@ class ToolCallingStage(
 						buildToolResult(e.message ?: "Tool execution failed", ToolResultStatus.FAILURE)
 					}
 				}
-			}.also { toolJob = null }
+			}
 	}
 	
 	private fun buildToolResult(

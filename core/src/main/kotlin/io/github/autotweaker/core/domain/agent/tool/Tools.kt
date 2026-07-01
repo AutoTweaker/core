@@ -70,7 +70,7 @@ class Tools(
 		callId: String,
 		arguments: ToolArgs,
 		provider: DependencyProvider,
-		onToolOutput: suspend (AgentOutput) -> Unit,
+		onToolOutput: (AgentOutput) -> Unit,
 	): AgentContext.Message.Tool.Result {
 		val tool = tools.first { it.name == toolName }
 		check(_toolInfo.value.first { it.name == tool.name }.active)

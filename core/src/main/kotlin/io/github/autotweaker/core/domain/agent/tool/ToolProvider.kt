@@ -56,7 +56,7 @@ object ToolProvider {
 		workspace: WorkspaceMeta,
 		model: AgentModel,
 		context: AgentContext,
-		onOutput: suspend (AgentOutput) -> Unit,
+		onOutput: (AgentOutput) -> Unit,
 	): DependencyProvider = ServiceContainer()
 		.register(
 			FileSystemService::class, FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)

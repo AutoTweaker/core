@@ -26,7 +26,7 @@ import kotlin.time.Clock
 
 class SummarizeServiceImpl(
 	private val model: AgentModel,
-	private val onOutput: suspend (AgentOutput) -> Unit,
+	private val onOutput: (AgentOutput) -> Unit,
 ) : SummarizeService {
 	override suspend fun summarize(content: String, prompt: String): String {
 		val (result, snapshot) = SummaryService.summarizeMessage(

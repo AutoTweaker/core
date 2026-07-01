@@ -23,6 +23,7 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import kotlinx.coroutines.Deferred
@@ -51,7 +52,11 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 	
 	val isRunning: Boolean get() = containerId != null
 	
-	fun init() {
+	private lateinit var secretStore: SecretStore
+	
+	fun init(secretStore: SecretStore) {
+		this.secretStore = secretStore
+		
 		Files.createDirectories(ContainerConfig().workspaceHostPath)
 		
 		if (service.checkAccess()) containerAccess = true
@@ -66,6 +71,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ensureRunning() = lock.withLock {
 		if (isRunning) return@withLock
+		secretStore.requireUnlocked()
 		val image = setting.get(ContainerSettings.DockerImage()).value
 		val job = imagePullJob
 		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null)

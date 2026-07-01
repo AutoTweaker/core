@@ -59,6 +59,9 @@ class Agent(
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
 	
+	private val _toolCalling = MutableStateFlow<String?>(null)
+	val toolCalling = _toolCalling.asStateFlow()
+	
 	private val _output = MutableSharedFlow<AgentOutput>()
 	val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
@@ -70,7 +73,14 @@ class Agent(
 	
 	private val llmService = LlmService(agentId) { _output.tryEmit(it) }
 	private val thinkingStage by lazy { ThinkingStage(llmService, toolManager) }
-	private val toolCalling by lazy { ToolCallingStage(agentId, toolManager, workspace) { _output.tryEmit(it) } }
+	private val toolCallingStage by lazy {
+		ToolCallingStage(
+			agentId = agentId,
+			tools = toolManager,
+			workspace = workspace,
+			onOutput = { _output.tryEmit(it) },
+			onToolCall = { _toolCalling.update { it } })
+	}
 	private val compact = CompactService(agentId) { _output.tryEmit(it) }
 	
 	private lateinit var runner: RoundRunner
@@ -86,7 +96,7 @@ class Agent(
 			ctx = ctx,
 			tools = toolManager,
 			thinkingStage = thinkingStage,
-			toolCalling = toolCalling,
+			toolCalling = toolCallingStage,
 			compactService = compact,
 			agentModel = model,
 			statusFlow = _status,
