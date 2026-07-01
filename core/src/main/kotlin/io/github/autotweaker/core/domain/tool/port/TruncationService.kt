@@ -19,5 +19,5 @@
 package io.github.autotweaker.core.domain.tool.port
 
 interface TruncationService {
-	operator fun invoke(content: String, threshold: Int, keepTail: Boolean): String
+	operator fun invoke(content: String, threshold: Int, keepTail: Boolean = false): String
 }

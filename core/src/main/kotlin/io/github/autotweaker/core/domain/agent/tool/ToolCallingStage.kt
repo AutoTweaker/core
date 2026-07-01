@@ -41,6 +41,8 @@ class ToolCallingStage(
 	private val onOutput: (AgentOutput) -> Unit,
 	private val onToolCall: (String?) -> Unit
 ) : Loggable, Traceable, Settable {
+	private val truncation = TruncationImpl(workspace)
+	
 	@Volatile
 	private var toolJob: Job? = null
 	
@@ -68,7 +70,8 @@ class ToolCallingStage(
 						workspace = workspace,
 						onOutput = onOutput,
 						model = model,
-						context = context
+						context = context,
+						truncation = truncation,
 					)
 					
 					tools.executeTool(
@@ -76,7 +79,8 @@ class ToolCallingStage(
 						callId = call.pendingCall.callId,
 						arguments = call.validated.args,
 						provider = provider,
-						onToolOutput = onOutput
+						onToolOutput = onOutput,
+						truncation = truncation,
 					).andLog(log) {
 						info(
 							"Called tool  agentId={}  tool={}  status={}",

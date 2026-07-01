@@ -29,9 +29,7 @@ import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 
 class TruncationImpl(
-	private val pathResolver: PathResolver,
 	private val workspace: WorkspaceMeta,
-	private val temporaryStorage: TemporaryStorage,
 ) : TruncationService, Settable {
 	override fun invoke(content: String, threshold: Int, keepTail: Boolean): String {
 		if (content.length <= threshold) return content
@@ -47,4 +45,17 @@ class TruncationImpl(
 		"[===输出过长（%s 字符），完整内容保存至 `%s`，可以总结、分段读取，或在其中搜索===]",
 		"工具输出被截断并保存时的提示"
 	)
+	
+	companion object {
+		private lateinit var pathResolver: PathResolver
+		private lateinit var temporaryStorage: TemporaryStorage
+		
+		fun init(
+			pathResolver: PathResolver,
+			temporaryStorage: TemporaryStorage,
+		) {
+			this.pathResolver = pathResolver
+			this.temporaryStorage = temporaryStorage
+		}
+	}
 }

@@ -25,6 +25,7 @@ import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
+import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
@@ -35,6 +36,7 @@ import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.data.SecretManager
+import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
@@ -59,6 +61,7 @@ object Wiring : Loggable {
 			ModelResolverImpl, SessionRepositoryImpl
 		)
 		SessionManager.init(SessionRepositoryImpl, ModelResolverImpl, SecretManager)
+		TruncationImpl.init(pathResolver, TemporaryStorageImpl)
 		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver)
 		
 		log.info("Completed wiring")

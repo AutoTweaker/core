@@ -31,10 +31,7 @@ import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ServiceContainer
-import io.github.autotweaker.core.domain.tool.port.BashService
-import io.github.autotweaker.core.domain.tool.port.FileSystemService
-import io.github.autotweaker.core.domain.tool.port.SummarizeService
-import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
+import io.github.autotweaker.core.domain.tool.port.*
 
 object ToolProvider {
 	private lateinit var shellExecutor: ShellExecutor
@@ -52,21 +49,22 @@ object ToolProvider {
 		model: AgentModel,
 		context: AgentContext,
 		onOutput: (AgentOutput) -> Unit,
+		truncation: TruncationService,
 	): DependencyProvider = ServiceContainer()
 		.register(
 			FileSystemService::class,
 			FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
-		)
-		.register(
+		).register(
 			SummarizeService::class,
 			SummarizeServiceImpl(model, onOutput)
-		)
-		.register(
+		).register(
 			BashService::class,
 			BashServiceImpl(shellExecutor, pathResolver, workspace)
-		)
-		.register(
+		).register(
 			ToolCallHistory::class,
 			ToolCallHistoryImpl(context)
+		).register(
+			TruncationService::class,
+			truncation
 		)
 }

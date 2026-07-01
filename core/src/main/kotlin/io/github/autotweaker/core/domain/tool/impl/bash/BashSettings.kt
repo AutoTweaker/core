@@ -83,4 +83,10 @@ object BashSettings {
 	class DefaultTimeoutSeconds : IntSetting(
 		120, "bash_run工具默认超时时间（秒）"
 	)
+	
+	@AutoService(SettingDef::class)
+	class MaxOutput : IntSetting(
+		100_000,
+		"bash_run工具的最长输出长度，超出将保留输出末尾阈值内部分，并将完整内容存入文件，此值分别对stdout和stderr应用，理论上输出最大达到此值的两倍"
+	)
 }

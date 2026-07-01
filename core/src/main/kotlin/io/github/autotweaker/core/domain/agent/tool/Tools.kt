@@ -33,6 +33,7 @@ import io.github.autotweaker.core.domain.agent.AgentOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ToolMeta
+import io.github.autotweaker.core.domain.tool.port.TruncationService
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +71,7 @@ class Tools(
 		callId: String,
 		arguments: ToolArgs,
 		provider: DependencyProvider,
+		truncation: TruncationService,
 		onToolOutput: (AgentOutput) -> Unit,
 	): AgentContext.Message.Tool.Result {
 		val tool = tools.first { it.name == toolName }
@@ -89,19 +91,19 @@ class Tools(
 					is CoreTool -> tool.coreExec(provider, arguments, outputChannel)
 					else -> tool.execute(arguments, outputChannel)
 				}
-			}.rethrow<SecretStoreLockedException>()
+			}.also { outputChannel.close() }
+				.rethrow<SecretStoreLockedException>()
 				.rethrowCancellation()
 				.getOrElse { e ->
 					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
 					Tool.ToolOutput(e.message ?: "Unknown error", false)
 				}
-			outputChannel.close()
 			drainJob.join()
 			return@supervisorScope result
 		}
 		
 		return AgentContext.Message.Tool.Result(
-			content = output.result,
+			content = truncation(output.result, setting(AgentToolSettings.MaxOutput())),
 			timestamp = Clock.System.now(),
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,
 		).andLog(log) {

@@ -27,6 +27,7 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.port.BashService
+import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
@@ -94,9 +95,14 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 			}
 		}
 		
+		fun processOutput(content: StringBuilder) =
+			container.get<TruncationService>()(
+				content = content.toString().trimEnd().ifBlank { "[empty]" },
+				threshold = setting(BashSettings.MaxOutput()),
+				keepTail = true
+			)
+		
 		val r = result ?: return Tool.ToolOutput("No result", false)
-		val stdoutStr = stdout.toString().trimEnd().ifBlank { "[empty]" }
-		val stderrStr = stderr.toString().trimEnd().ifBlank { "[empty]" }
 		val duration = String.format("%.3f", r.result.duration.toDouble(DurationUnit.SECONDS))
 		
 		log.debug(
@@ -107,7 +113,7 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 		)
 		
 		val output = setting(BashSettings.ResultTemplate())
-			.format(r.result.exitCode, duration, stdoutStr, stderrStr)
+			.format(r.result.exitCode, duration, processOutput(stdout), processOutput(stderr))
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}
 	
