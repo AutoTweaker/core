@@ -32,7 +32,7 @@ object BashSettings {
 	
 	@AutoService(SettingDef::class)
 	class RunFuncDescription : SettingDef<SettingValue.ValString> {
-		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("bash_run")) }
+		override val default by lazy { SettingValue(ResourcesLoader.loadPrompt("bash_run")) }
 		override val description = "bash_run工具的描述"
 	}
 	

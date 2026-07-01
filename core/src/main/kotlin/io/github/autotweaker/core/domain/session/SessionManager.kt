@@ -188,7 +188,7 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	@AutoService(SettingDef::class)
 	class SystemPrompt : SettingDef<SettingValue.ValString> {
-		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("system")) }
+		override val default by lazy { SettingValue(ResourcesLoader.loadPrompt("system")) }
 		override val description = "系统提示词，作用于整个项目"
 	}
 }

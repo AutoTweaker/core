@@ -22,7 +22,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 sealed class SettingValue {
-	abstract val value: Any?
+	abstract val value: Any
 	abstract fun parse(raw: String): SettingValue
 	
 	@Serializable

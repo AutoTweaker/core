@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package io.github.autotweaker.api.base
 
 import io.github.autotweaker.api.config.SettingDef

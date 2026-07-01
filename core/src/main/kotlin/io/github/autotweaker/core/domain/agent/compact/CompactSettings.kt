@@ -26,7 +26,7 @@ import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 object CompactSettings {
 	@AutoService(SettingDef::class)
 	class Prompt : SettingDef<SettingValue.ValString> {
-		override val default by lazy { SettingValue.ValString(ResourcesLoader.loadPrompt("compact")) }
+		override val default by lazy { SettingValue(ResourcesLoader.loadPrompt("compact")) }
 		override val description = "用于上下文压缩的提示词"
 	}
 	
