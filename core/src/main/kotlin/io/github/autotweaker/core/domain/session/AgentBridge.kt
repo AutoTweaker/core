@@ -39,7 +39,10 @@ import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
 import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
 import io.github.autotweaker.core.domain.tool.CoreTool
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
@@ -91,6 +94,9 @@ class AgentBridge(
 	
 	private val scope = scope()
 	
+	private val saveChannel = Channel<Unit>(Channel.CONFLATED)
+	private var collectJob: Job? = null
+	
 	suspend fun init(data: AgentData) = also {
 		initialData = data
 		
@@ -101,8 +107,11 @@ class AgentBridge(
 		
 		initTools()
 		createAgent()
+		collectJob = scope.launch {
+			_agent.context.collect { saveChannel.send(Unit) }
+		}
 		scope.launch {
-			_agent.context.collectLatest { it.save() }
+			saveChannel.consumeEach { _agent.context.value.save() }
 		}
 		scope.launch {
 			_agent.output.collect {
@@ -186,8 +195,11 @@ class AgentBridge(
 	}
 	
 	suspend fun shutdown() = also {
+		collectJob?.cancel()
+		saveChannel.close()
 		_agent.shutdown()
 		scope.cancel()
+		_agent.context.value.save()
 		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
 	}
 	

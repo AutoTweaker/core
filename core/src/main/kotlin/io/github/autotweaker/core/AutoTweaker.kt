@@ -70,11 +70,9 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		log.info("Started AutoTweaker  version={}", version)
 		
 		Launcher.start(registry) { core }
-		
-		Runtime.getRuntime().addShutdownHook(Thread(::shutdown))
 	}
 	
-	private fun shutdown() {
+	fun shutdown() {
 		log.info("Initiated AutoTweaker shutdown")
 		runBlocking { Launcher.shutdown(registry.values.toList()) }
 		PluginLoader.closeClassLoaders()

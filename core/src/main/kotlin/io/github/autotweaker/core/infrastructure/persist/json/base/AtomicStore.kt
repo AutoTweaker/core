@@ -18,17 +18,48 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
+import io.github.autotweaker.api.IO
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.scope
 import io.github.autotweaker.api.store
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
 
-abstract class AtomicRefStore<V> : StoreBase<V>() {
+abstract class AtomicStore<V> : StoreBase<V>(), Loggable {
 	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
 	private val cache: AtomicReference<V> by lazy { AtomicReference(accessor.initial) }
+	private val dirty = AtomicBoolean(false)
+	private val scope = scope(IO)
+	
+	init {
+		scope.launch {
+			while (true) {
+				delay(500.milliseconds)
+				if (dirty.compareAndSet(true, false)) {
+					accessor.save(cache.get())
+				}
+			}
+		}
+	}
+	
+	fun shutdown() {
+		scope.cancel()
+		if (dirty.get()) accessor.save(cache.get())
+	}
 	
 	protected fun get(): V = cache.get()
 	
+	protected fun set(value: V) {
+		cache.set(value)
+		dirty.set(true)
+	}
+	
 	protected fun update(transform: (V) -> V) {
 		cache.updateAndGet(transform)
-		accessor.save(cache.get())
+		dirty.set(true)
 	}
 }

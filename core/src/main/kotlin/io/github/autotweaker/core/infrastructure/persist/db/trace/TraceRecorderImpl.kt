@@ -22,6 +22,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.UpperSnakeCase
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -50,6 +51,8 @@ object TraceRecorderImpl : Loggable, Settable {
 			}
 		}
 	}
+	
+	fun shutdown() = scope.cancel()
 	
 	fun recorder(kClass: KClass<*>): TraceRecorder =
 		cache.computeIfAbsent(kClass) { Recorder(it.java.name) }

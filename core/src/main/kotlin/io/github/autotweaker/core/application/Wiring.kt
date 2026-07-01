@@ -39,10 +39,13 @@ import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
+import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
-	val pathResolver = PathResolverImpl(ContainerConfig())
+	private val pathResolver = PathResolverImpl(ContainerConfig())
+	val databaseStore: DatabaseStore = H2DatabaseStore
 	
 	/**
 	 * 都是纯赋值

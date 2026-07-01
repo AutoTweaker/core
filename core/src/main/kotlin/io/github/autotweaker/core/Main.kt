@@ -19,10 +19,12 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.api.log
+import io.github.autotweaker.core.AutoTweaker.shutdown
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 fun main() {
+	Runtime.getRuntime().addShutdownHook(Thread(::shutdown))
 	try {
 		runBlocking {
 			AutoTweaker.start()

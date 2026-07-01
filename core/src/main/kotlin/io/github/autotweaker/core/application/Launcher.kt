@@ -28,6 +28,7 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
+import io.github.autotweaker.core.application.Wiring.databaseStore
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
@@ -43,14 +44,10 @@ import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.store.h2.H2DatabaseStore
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 object Launcher : Loggable, Traceable {
-	private val databaseStore: DatabaseStore = H2DatabaseStore
-	
 	suspend fun start(
 		registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>>,
 		lazyCore: () -> CoreAPI
@@ -135,6 +132,8 @@ object Launcher : Loggable, Traceable {
 			}
 		}
 		
+		trace.catching { I18nServiceImpl.shutdown() }
+			.onFailure { log.warn("Failed I18nServiceImpl shutdown") }
 		trace.catching { SessionManager.shutdown() }
 			.onFailure { log.warn("Failed SessionManager shutdown") }
 		trace.catching { ContainerManager.stop() }
@@ -145,6 +144,8 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed LLM client close") }
 		trace.catching { SecretManager.killGpgAgent() }
 			.onFailure { log.warn("Failed GPG agent kill") }
+		trace.catching { TraceRecorderImpl.shutdown() }
+			.onFailure { log.warn("Failed TraceRecorderImpl shutdown") }
 		trace.catching { databaseStore.shutdown() }
 			.onFailure { log.warn("Failed DatabaseStore shutdown") }
 		

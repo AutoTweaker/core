@@ -25,11 +25,11 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.LocalizedString
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
-import io.github.autotweaker.core.infrastructure.persist.json.base.AtomicRefStore
+import io.github.autotweaker.core.infrastructure.persist.json.base.AtomicStore
 import kotlinx.serialization.Serializable
 import java.util.*
 
-object I18nServiceImpl : AtomicRefStore<I18nServiceImpl.Data>(), I18nService, Loggable {
+object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Loggable {
 	override val serializer = Data.serializer()
 	override fun default() = Data()
 	
