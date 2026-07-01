@@ -18,18 +18,19 @@
 
 package io.github.autotweaker.core.infrastructure.llm
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.log
 import io.github.autotweaker.core.PluginLoader
 import java.util.*
 
-object LlmClientLoader : Loggable {
+object LlmClientLoader : Loggable, Traceable {
 	private val builtIn: List<LlmClient> by lazy {
 		ServiceLoader.load(LlmClient::class.java).toList()
 	}
 	
+	@Volatile
+	private var initialized = false
 	private val all: List<LlmClient> by lazy {
 		val external = PluginLoader.load<LlmClient>()
 		val externalNames = external.map { it.providerInfo.name }.toSet()
@@ -40,6 +41,7 @@ object LlmClientLoader : Loggable {
 			external.size,
 			result.size
 		)
+		initialized = true
 		return@lazy result
 	}
 	
@@ -52,5 +54,11 @@ object LlmClientLoader : Loggable {
 	
 	fun available(): List<String> = all.map { it.providerInfo.name }
 	
-	suspend fun shutdown() = all.forEach { it.shutdown() }
+	suspend fun shutdown() {
+		if (!initialized) return
+		all.forEachParallel {
+			trace.catching { it.shutdown() }
+				.onFailure { _ -> log.warn("Failed LlmClient shutdown  name={}", it.providerInfo.name) }
+		}
+	}
 }

@@ -38,7 +38,7 @@ object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 	}
 	
 	override suspend fun shutdown() {
-		databases.values.forEach { db ->
+		databases.values.forEachParallel { db ->
 			trace.catching { db.transaction { exec("SHUTDOWN") } }
 		}
 		databases.clear()

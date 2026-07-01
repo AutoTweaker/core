@@ -18,11 +18,9 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
-import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
@@ -35,12 +33,10 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -55,25 +51,28 @@ class Session(
 	
 	private val index get() = _data.value.agentIndex
 	
+	private val lock = ReentrantMutex()
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
 	val agents: Map<UUID, AgentAPI> = bridges.toMap()
 	
 	suspend fun init(model: ModelConfig, systemPrompt: String, activeTools: List<String>) = also {
-		val mainId = index.main.id
-		restoreOrNull(mainId) ?: createAgent(
-			AgentData(
-				id = mainId,
-				name = MAIN_AGENT_NAME.toKebab(),
-				model = model,
-				context = SessionContext.emptyContext(systemPrompt),
-				activeTools = activeTools
-			)
-		).andLog(log) {
-			info(
-				"Initialized session  sessionId={}  workspace={}",
-				it.id,
-				workspace.displayName
-			)
+		lock.withLock {
+			val mainId = index.main.id
+			restoreOrNull(mainId) ?: createAgent(
+				AgentData(
+					id = mainId,
+					name = MAIN_AGENT_NAME.toKebab(),
+					model = model,
+					context = SessionContext.emptyContext(systemPrompt),
+					activeTools = activeTools
+				)
+			).andLog(log) {
+				info(
+					"Initialized session  sessionId={}  workspace={}",
+					it.id,
+					workspace.displayName
+				)
+			}
 		}
 	}
 	
@@ -81,21 +80,17 @@ class Session(
 		_data.update { it.copy(title = title) }
 	}
 	
-	suspend fun shutdown() = also {
-		coroutineScope {
-			bridges.values.forEach { bridge ->
-				launch { bridge.shutdown() }
-			}
-		}
+	suspend fun shutdown() = lock.withLock {
+		bridges.values.forEachParallel { it.shutdown() }
 	}
 	
 	private fun getHost(agentId: UUID) = object : AgentHost {
-		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent {
+		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent = lock.withLock {
 			val childId = UUID.randomUUID()
 			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
 			val bridge = createAgent(childId, name, systemPrompt, model)
 			log.info("Created child agent  parentId={}  childId={}", agentId, childId)
-			return bridge.agent
+			return@withLock bridge.agent
 		}
 		
 		override fun list(): List<UUID> {
@@ -106,12 +101,13 @@ class Session(
 		override suspend fun get(id: UUID): Agent? = getOrRestore(id)?.agent
 	}
 	
-	private suspend fun getOrRestore(id: UUID): AgentBridge? =
+	private suspend fun getOrRestore(id: UUID): AgentBridge? = lock.withLock {
 		bridges[id] ?: restoreOrNull(id)
+	}
 	
-	private suspend fun restoreOrNull(id: UUID): AgentBridge? {
-		val data: AgentData = store.loadAgent(id) ?: return null
-		return createAgent(data)
+	private suspend fun restoreOrNull(id: UUID): AgentBridge? = lock.withLock {
+		val data: AgentData = store.loadAgent(id) ?: return@withLock null
+		return@withLock createAgent(data)
 	}
 	
 	private suspend fun createAgent(

@@ -44,9 +44,6 @@ import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-
 object Launcher : Loggable, Traceable {
 	suspend fun start(
 		registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>>,
@@ -121,15 +118,11 @@ object Launcher : Loggable, Traceable {
 	}
 	
 	suspend fun shutdown(registry: PairList<Adapter, AdapterInfo>) {
-		coroutineScope {
-			registry.forEach { (adapter, info) ->
-				launch {
-					trace.catching {
-						adapter.stop()
-						log.info("Stopped adapter  name={}", info.name)
-					}.onFailure { log.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
-				}
-			}
+		registry.forEachParallel { (adapter, info) ->
+			trace.catching {
+				adapter.stop()
+				log.info("Stopped adapter  name={}", info.name)
+			}.onFailure { log.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
 		}
 		
 		trace.catching { I18nServiceImpl.shutdown() }
@@ -140,8 +133,9 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed ContainerManager stop") }
 		trace.catching { TranslationManager.shutdown() }
 			.onFailure { log.warn("Failed TranslationManager shutdown") }
-		trace.catching { LlmClientLoader.shutdown() }
-			.onFailure { log.warn("Failed LLM client shutdown") }
+		
+		LlmClientLoader.shutdown()
+		
 		trace.catching { SecretManager.killGpgAgent() }
 			.onFailure { log.warn("Failed GPG agent kill") }
 		trace.catching { TraceRecorderImpl.shutdown() }

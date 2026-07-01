@@ -205,6 +205,8 @@ interface CoreAPI {
 		/**
 		 * 从数据库加载会话数据，找不到不会炸。
 		 *
+		 * [getHandle] 可能会触发会话的实例化，如果只是查数据，请使用此 api。
+		 *
 		 * @return 找不到会话返回 [emptyList]。
 		 */
 		suspend fun loadData(ids: List<UUID>): List<SessionData>

@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.session
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
@@ -37,7 +38,6 @@ import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.nio.file.Files
@@ -61,19 +61,16 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	private val scope = scope()
 	
+	private val lock = ReentrantMutex()
 	private val sessions = ConcurrentHashMap<UUID, Session>()
 	private val listener = ConcurrentHashMap<UUID, Job>()
 	
 	
-	suspend fun shutdown() {
+	suspend fun shutdown() = lock.withLock {
 		log.info("Initiated SessionManager shutdown  activeSessions={}", sessions.size)
-		coroutineScope {
-			sessions.forEach { (id, session) ->
-				launch {
-					trace.catching { session.shutdown() }.onFailure { e ->
-						log.warn("Failed to shutdown session  sessionId={}  reason={}", id, e.message)
-					}
-				}
+		sessions.entries.forEachParallel { (id, session) ->
+			trace.catching { session.shutdown() }.onFailure { e ->
+				log.warn("Failed session shutdown  sessionId={}  reason={}", id, e.message)
 			}
 		}
 		scope.cancel()
@@ -84,15 +81,15 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	suspend fun get(id: UUID): SessionHandle = getOrRestore(id).toHandle()
 	
-	suspend fun delete(id: UUID): Boolean {
-		val data = store.loadSessions(listOf(id)).firstOrNull() ?: return false
+	suspend fun delete(id: UUID): Boolean = lock.withLock {
+		val data = store.loadSessions(listOf(id)).firstOrNull() ?: return@withLock false
 		sessions[id]?.shutdown()
 		listener[id]?.cancel()
 		sessions.remove(id)
 		store.deleteSessions(listOf(id))
 		data.agentIndex.getAll().forEach { store.deleteAgent(it) }
 		log.info("Deleted session  id={}", id)
-		return true
+		return@withLock true
 	}
 	
 	suspend fun updateTitle(session: UUID, title: String) =
@@ -106,7 +103,7 @@ object SessionManager : Loggable, Traceable, Settable {
 	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
 	suspend fun loadAgent(id: UUID) = store.loadAgent(id)
 	
-	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID {
+	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
 		val workspaceData =
 			if (workspaceId == wsm.defaultWorkspaceId) wsm.getDefault()
@@ -135,12 +132,14 @@ object SessionManager : Loggable, Traceable, Settable {
 			workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + data.id
 		)
 		log.info("Created session  sessionId={}  workspaceId={}", data.id, workspaceData.meta.id)
-		return data.id
+		return@withLock data.id
 	}
 	
-	private suspend fun getOrRestore(id: UUID): Session = sessions[id] ?: restore(id)
+	private suspend fun getOrRestore(id: UUID): Session = lock.withLock {
+		sessions[id] ?: restore(id)
+	}
 	
-	private suspend fun restore(id: UUID): Session {
+	private suspend fun restore(id: UUID): Session = lock.withLock {
 		secretStore.requireUnlocked()
 		val data = store.loadSessions(listOf(id)).firstOrNull() ?: error("Session not found: $id")
 		val workspaceId = data.workspaceId
@@ -150,7 +149,7 @@ object SessionManager : Loggable, Traceable, Settable {
 		}
 		val model = store.loadAgent(data.agentIndex.main.id)?.model
 			?: error("Main agent not found: ${data.agentIndex.main.id}")
-		return Session(
+		return@withLock Session(
 			data = data,
 			store = store,
 			resolveModel = ::resolveModel,

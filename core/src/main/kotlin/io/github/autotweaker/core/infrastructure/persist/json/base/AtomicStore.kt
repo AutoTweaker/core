@@ -30,7 +30,9 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.milliseconds
 
 abstract class AtomicStore<V> : StoreBase<V>(), Loggable {
-	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
+	@Volatile
+	private var initialized = false
+	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default).also { initialized = true } }
 	private val cache: AtomicReference<V> by lazy { AtomicReference(accessor.initial) }
 	private val dirty = AtomicBoolean(false)
 	private val scope = scope(IO)
@@ -48,7 +50,7 @@ abstract class AtomicStore<V> : StoreBase<V>(), Loggable {
 	
 	fun shutdown() {
 		scope.cancel()
-		if (dirty.get()) accessor.save(cache.get())
+		if (initialized && dirty.get()) accessor.save(cache.get())
 	}
 	
 	protected fun get(): V = cache.get()
