@@ -76,6 +76,11 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-core:2.22.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.0")
 }
+afterEvaluate {
+	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {
+		option("-Xlint:", "-processing")
+	}
+}
 
 val inDocker = System.getenv("DOCKER_TEST") == "true"
 

@@ -30,3 +30,9 @@ dependencies {
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	kapt("com.google.auto.service:auto-service:1.1.1")
 }
+afterEvaluate {
+	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {
+		option("-Xlint:", "-processing")
+	}
+}
+

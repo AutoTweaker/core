@@ -43,6 +43,12 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+afterEvaluate {
+	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {
+		option("-Xlint:", "-processing")
+	}
+}
+
 val inDocker = System.getenv("DOCKER_TEST") == "true"
 
 if (inDocker) {
