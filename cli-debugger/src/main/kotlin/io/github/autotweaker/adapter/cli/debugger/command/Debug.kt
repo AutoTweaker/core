@@ -25,12 +25,12 @@ import io.github.autotweaker.adapter.cli.debugger.CliDebugger
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import java.util.*
 
 @AutoService(Command::class)
 class Debug : Command, I18nable {
@@ -81,39 +81,25 @@ class Debug : Command, I18nable {
 	}
 	
 	@AutoService(I18nDef::class)
-	class Description : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "读写应用数据库",
-	)
+	class Description : I18nBase(zh("读写应用数据库"))
 	
 	@AutoService(I18nDef::class)
-	class ParamListDb : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "列出连接到的数据库和表",
-	)
+	class ParamListDb : I18nBase(zh("列出连接到的数据库和表"))
 	
 	@AutoService(I18nDef::class)
-	class ParamList : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "列出指定区间所有条目",
-	)
+	class ParamList : I18nBase(zh("列出指定区间所有条目"))
 	
 	@AutoService(I18nDef::class)
-	class ParamGet : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "获取指定key的条目",
-	)
+	class ParamGet : I18nBase(zh("获取指定key的条目"))
 	
 	@AutoService(I18nDef::class)
-	class ParamPut : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "更新指定key的条目",
-	)
+	class ParamPut : I18nBase(zh("更新指定key的条目"))
 	
 	@AutoService(I18nDef::class)
-	class ParamDelete : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "删除指定key的条目",
-	)
+	class ParamDelete : I18nBase(zh("删除指定key的条目"))
 	
 	@AutoService(I18nDef::class)
-	class Table : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "指定此表",
-	)
+	class Table : I18nBase(zh("指定此表"))
 	
 	companion object {
 		const val SPACE = "    "

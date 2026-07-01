@@ -20,109 +20,110 @@ package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object ProvQueriesI18n {
 	@AutoService(I18nDef::class)
 	class Name : I18nBase(
-		Locale.ENGLISH to "Name: %s",
-		Locale.SIMPLIFIED_CHINESE to "名称: %s",
+		en("Name: %s"),
+		zh("名称: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Type : I18nBase(
-		Locale.ENGLISH to "Type: %s",
-		Locale.SIMPLIFIED_CHINESE to "类型: %s",
+		en("Type: %s"),
+		zh("类型: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Model : I18nBase(
-		Locale.ENGLISH to "Models: %s",
-		Locale.SIMPLIFIED_CHINESE to "模型: %s",
+		en("Models: %s"),
+		zh("模型: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Key : I18nBase(
-		Locale.ENGLISH to "Key: %s",
-		Locale.SIMPLIFIED_CHINESE to "密钥: %s",
+		en("Key: %s"),
+		zh("密钥: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Url : I18nBase(
-		Locale.ENGLISH to "API endpoint: %s",
-		Locale.SIMPLIFIED_CHINESE to "API端点: %s",
+		en("API endpoint: %s"),
+		zh("API端点: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Rule : I18nBase(
-		Locale.ENGLISH to "Error handling rules:",
-		Locale.SIMPLIFIED_CHINESE to "错误处理规则:",
+		en("Error handling rules:"),
+		zh("错误处理规则:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Default : I18nBase(
-		Locale.ENGLISH to "[default]",
-		Locale.SIMPLIFIED_CHINESE to "[默认]",
+		en("[default]"),
+		zh("[默认]"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class StatusCode : I18nBase(
-		Locale.ENGLISH to "Status code: %s",
-		Locale.SIMPLIFIED_CHINESE to "状态码: %s",
+		en("Status code: %s"),
+		zh("状态码: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Strategy : I18nBase(
-		Locale.ENGLISH to "Strategy: %s",
-		Locale.SIMPLIFIED_CHINESE to "策略: %s",
+		en("Strategy: %s"),
+		zh("策略: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ModelId : I18nBase(
-		Locale.ENGLISH to "Model ID: %s",
-		Locale.SIMPLIFIED_CHINESE to "模型ID: %s",
+		en("Model ID: %s"),
+		zh("模型ID: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ContextWindow : I18nBase(
-		Locale.ENGLISH to "Context window: %s",
-		Locale.SIMPLIFIED_CHINESE to "上下文窗口: %s",
+		en("Context window: %s"),
+		zh("上下文窗口: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class MaxOutput : I18nBase(
-		Locale.ENGLISH to "Max output: %s",
-		Locale.SIMPLIFIED_CHINESE to "最大输出长度: %s",
+		en("Max output: %s"),
+		zh("最大输出长度: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ModelFeature : I18nBase(
-		Locale.ENGLISH to "Features: %s",
-		Locale.SIMPLIFIED_CHINESE to "能力: %s",
+		en("Features: %s"),
+		zh("能力: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class InputPrice : I18nBase(
-		Locale.ENGLISH to "Input price:",
-		Locale.SIMPLIFIED_CHINESE to "输入价格:",
+		en("Input price:"),
+		zh("输入价格:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class CachedPrice : I18nBase(
-		Locale.ENGLISH to "(cached)",
-		Locale.SIMPLIFIED_CHINESE to "(命中缓存)",
+		en("(cached)"),
+		zh("(命中缓存)"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class OutputPrice : I18nBase(
-		Locale.ENGLISH to "Output price:",
-		Locale.SIMPLIFIED_CHINESE to "输出价格:",
+		en("Output price:"),
+		zh("输出价格:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Or : I18nBase(
-		Locale.ENGLISH to "or",
-		Locale.SIMPLIFIED_CHINESE to "或",
+		en("or"),
+		zh("或"),
 	)
 }

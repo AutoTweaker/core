@@ -20,32 +20,32 @@ package io.github.autotweaker.adapter.cli.commands.secret
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object PasswdI18n {
 	@AutoService(I18nDef::class)
 	class ParamRemove : I18nBase(
-		Locale.ENGLISH to "Remove password",
-		Locale.SIMPLIFIED_CHINESE to "移除密码",
+		en("Remove password"),
+		zh("移除密码"),
 	)
-	
 	
 	@AutoService(I18nDef::class)
 	class PromptNew : I18nBase(
-		Locale.ENGLISH to "New password:",
-		Locale.SIMPLIFIED_CHINESE to "新密码:",
+		en("New password:"),
+		zh("新密码:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class PromptConfirm : I18nBase(
-		Locale.ENGLISH to "Confirm new password:",
-		Locale.SIMPLIFIED_CHINESE to "确认新密码:",
+		en("Confirm new password:"),
+		zh("确认新密码:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Mismatch : I18nBase(
-		Locale.ENGLISH to "Passwords do not match",
-		Locale.SIMPLIFIED_CHINESE to "两次密码不一致",
+		en("Passwords do not match"),
+		zh("两次密码不一致"),
 	)
 }

@@ -20,84 +20,85 @@ package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object ProvCommandsI18n {
 	@AutoService(I18nDef::class)
 	class MissingName : I18nBase(
-		Locale.ENGLISH to "Please provide the provider name",
-		Locale.SIMPLIFIED_CHINESE to "请提供提供商名称",
+		en("Please provide the provider name"),
+		zh("请提供提供商名称"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class MissingType : I18nBase(
-		Locale.ENGLISH to "Please provide the provider type",
-		Locale.SIMPLIFIED_CHINESE to "请提供提供商类型",
+		en("Please provide the provider type"),
+		zh("请提供提供商类型"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class MissingKey : I18nBase(
-		Locale.ENGLISH to "Please provide the key",
-		Locale.SIMPLIFIED_CHINESE to "请提供密钥",
+		en("Please provide the key"),
+		zh("请提供密钥"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class InvalidType : I18nBase(
-		Locale.ENGLISH to "Invalid provider type",
-		Locale.SIMPLIFIED_CHINESE to "无效的提供商类型",
+		en("Invalid provider type"),
+		zh("无效的提供商类型"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class InvalidKey : I18nBase(
-		Locale.ENGLISH to "The provided key does not exist",
-		Locale.SIMPLIFIED_CHINESE to "提供的密钥不存在",
+		en("The provided key does not exist"),
+		zh("提供的密钥不存在"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class InvalidUrl : I18nBase(
-		Locale.ENGLISH to "URL parse failed: %s",
-		Locale.SIMPLIFIED_CHINESE to "URL解析失败: %s",
+		en("URL parse failed: %s"),
+		zh("URL解析失败: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class PromptName : I18nBase(
-		Locale.ENGLISH to "Provider name:",
-		Locale.SIMPLIFIED_CHINESE to "提供商名称:",
+		en("Provider name:"),
+		zh("提供商名称:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class PromptType : I18nBase(
-		Locale.ENGLISH to "Provider type:",
-		Locale.SIMPLIFIED_CHINESE to "提供商类型:",
+		en("Provider type:"),
+		zh("提供商类型:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class PromptKey : I18nBase(
-		Locale.ENGLISH to "Key name:",
-		Locale.SIMPLIFIED_CHINESE to "密钥名称:",
+		en("Key name:"),
+		zh("密钥名称:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class PromptUrl : I18nBase(
-		Locale.ENGLISH to "API URL (leave blank for default):",
-		Locale.SIMPLIFIED_CHINESE to "API端点 (留空默认):",
+		en("API URL (leave blank for default):"),
+		zh("API端点 (留空默认):"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class RemoveListCount : I18nBase(
-		Locale.ENGLISH to "About to delete %s providers:",
-		Locale.SIMPLIFIED_CHINESE to "即将删除 %s 个提供商:",
+		en("About to delete %s providers:"),
+		zh("即将删除 %s 个提供商:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class RemoveConfirm : I18nBase(
-		Locale.ENGLISH to "Enter (y/yes) to confirm:",
-		Locale.SIMPLIFIED_CHINESE to "输入 (y/yes) 确认删除:",
+		en("Enter (y/yes) to confirm:"),
+		zh("输入 (y/yes) 确认删除:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ProviderExistsError : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "名为 %s 的提供商已存在",
+		zh("名为 %s 的提供商已存在"),
 	)
 }

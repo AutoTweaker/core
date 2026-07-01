@@ -20,27 +20,19 @@ package io.github.autotweaker.adapter.cli.commands.translate
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object TranslateI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "管理国际化服务，未指定参数时触发自动翻译",
-	)
+	class Desc : I18nBase(zh("管理国际化服务，未指定参数时触发自动翻译"))
 	
 	@AutoService(I18nDef::class)
-	class SetModelDesc : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "指定用于国际化翻译的模型",
-	)
+	class SetModelDesc : I18nBase(zh("指定用于国际化翻译的模型"))
 	
 	@AutoService(I18nDef::class)
-	class RemoveModelDesc : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "移除用于国际化翻译的模型",
-	)
+	class RemoveModelDesc : I18nBase(zh("移除用于国际化翻译的模型"))
 	
 	@AutoService(I18nDef::class)
-	class SetLanguageDesc : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "指定国际化的目标语言，必须为 BCP 47 格式",
-	)
+	class SetLanguageDesc : I18nBase(zh("指定国际化的目标语言，必须为 BCP 47 格式"))
 }

@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.adapter.i18n
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.log
@@ -74,7 +75,7 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 			?: return key
 		localizations.find { it.languageCode == target }?.let { return it.text }
 		localizations.find { it.languageCode.language == target.language }?.let { return it.text }
-		localizations.find { it.languageCode == Locale.ENGLISH }?.let { return it.text }
+		localizations.find { it.languageCode == en }?.let { return it.text }
 		localizations.firstOrNull()?.let { return it.text }
 		return key
 	}

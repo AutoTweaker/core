@@ -20,55 +20,56 @@ package io.github.autotweaker.adapter.cli.commands.help
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object HelpI18n {
 	@AutoService(I18nDef::class)
 	class HelpDesc : I18nBase(
-		Locale.ENGLISH to "Show available commands and their usage",
-		Locale.SIMPLIFIED_CHINESE to "列出可用命令",
+		en("Show available commands and their usage"),
+		zh("列出可用命令"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class HelpParamCommand : I18nBase(
-		Locale.ENGLISH to "Show help for a specific command",
-		Locale.SIMPLIFIED_CHINESE to "查看指定命令的用法",
+		en("Show help for a specific command"),
+		zh("查看指定命令的用法"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Unknown : I18nBase(
-		Locale.ENGLISH to "Unknown command: '%s'",
-		Locale.SIMPLIFIED_CHINESE to "未知的命令: %s",
+		en("Unknown command: '%s'"),
+		zh("未知的命令: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Available : I18nBase(
-		Locale.ENGLISH to "Available commands:",
-		Locale.SIMPLIFIED_CHINESE to "可用命令:",
+		en("Available commands:"),
+		zh("可用命令:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class HelpHint : I18nBase(
-		Locale.ENGLISH to "Run '%s help <command>' for detailed usage.",
-		Locale.SIMPLIFIED_CHINESE to "运行 %s help <command> 查看用法",
+		en("Run '%s help <command>' for detailed usage."),
+		zh("运行 %s help <command> 查看用法"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class Params : I18nBase(
-		Locale.ENGLISH to "Parameters:",
-		Locale.SIMPLIFIED_CHINESE to "参数:",
+		en("Parameters:"),
+		zh("参数:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ParamOptional : I18nBase(
-		Locale.ENGLISH to "(optional)",
-		Locale.SIMPLIFIED_CHINESE to "(可选)",
+		en("(optional)"),
+		zh("(可选)"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class SyntaxXorLabel : I18nBase(
-		Locale.ENGLISH to "[choose one]",
-		Locale.SIMPLIFIED_CHINESE to "[任选其一]",
+		en("[choose one]"),
+		zh("[任选其一]"),
 	)
 }

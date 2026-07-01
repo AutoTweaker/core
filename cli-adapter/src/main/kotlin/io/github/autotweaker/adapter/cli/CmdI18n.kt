@@ -20,24 +20,25 @@ package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object CmdI18n {
 	@AutoService(I18nDef::class)
 	class UnknownHint : I18nBase(
-		Locale.ENGLISH to $$"Unknown command: '%1$s'. Run '%2$s help'.",
-		Locale.SIMPLIFIED_CHINESE to $$"未知的命令: %1$s。运行 %2$s help 查看可用命令",
+		en($$"Unknown command: '%1$s'. Run '%2$s help'."),
+		zh($$"未知的命令: %1$s。运行 %2$s help 查看可用命令"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class InvalidArgs : I18nBase(
-		Locale.ENGLISH to $$"Invalid arguments. Run '%2$s help %1$s' for usage.",
-		Locale.SIMPLIFIED_CHINESE to $$"无效的参数。运行 %2$s help %1$s 查看用法",
+		en($$"Invalid arguments. Run '%2$s help %1$s' for usage."),
+		zh($$"无效的参数。运行 %2$s help %1$s 查看用法"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class KeystoreLocked : I18nBase(
-		Locale.SIMPLIFIED_CHINESE to "密钥库已锁定。运行 %s help 查看帮助",
+		zh("密钥库已锁定。运行 %s help 查看帮助"),
 	)
 }

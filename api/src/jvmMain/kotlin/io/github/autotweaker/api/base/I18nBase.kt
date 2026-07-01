@@ -29,5 +29,5 @@ abstract class I18nBase(vararg pairs: Pair<Locale, String>) : I18nDef {
 fun zh(text: String): Pair<Locale, String> = zh to text
 fun en(text: String): Pair<Locale, String> = en to text
 
-val zh: Locale = Locale.SIMPLIFIED_CHINESE
+val zh: Locale = Locale.CHINA
 val en: Locale = Locale.ENGLISH

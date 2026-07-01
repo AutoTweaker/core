@@ -20,37 +20,38 @@ package io.github.autotweaker.adapter.cli.commands
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object ModelFeature {
 	@AutoService(I18nDef::class)
 	class StreamingFeature : I18nBase(
-		Locale.ENGLISH to "Streaming",
-		Locale.SIMPLIFIED_CHINESE to "流式输出",
+		en("Streaming"),
+		zh("流式输出"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ToolCallFeature : I18nBase(
-		Locale.ENGLISH to "Tool calling",
-		Locale.SIMPLIFIED_CHINESE to "工具调用",
+		en("Tool calling"),
+		zh("工具调用"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ReasoningFeature : I18nBase(
-		Locale.ENGLISH to "Reasoning",
-		Locale.SIMPLIFIED_CHINESE to "深度思考",
+		en("Reasoning"),
+		zh("深度思考"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ImageFeature : I18nBase(
-		Locale.ENGLISH to "Image understanding",
-		Locale.SIMPLIFIED_CHINESE to "图像理解",
+		en("Image understanding"),
+		zh("图像理解"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class JsonOutputFeature : I18nBase(
-		Locale.ENGLISH to "JSON output",
-		Locale.SIMPLIFIED_CHINESE to "格式化输出",
+		en("JSON output"),
+		zh("格式化输出"),
 	)
 }

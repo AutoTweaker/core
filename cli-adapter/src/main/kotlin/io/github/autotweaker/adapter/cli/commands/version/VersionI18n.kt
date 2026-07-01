@@ -21,13 +21,14 @@ package io.github.autotweaker.adapter.cli.commands.version
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.APP_NAME
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
-import java.util.*
 
 object VersionI18n {
 	@AutoService(I18nDef::class)
 	class Desc : I18nBase(
-		Locale.ENGLISH to "Show $APP_NAME version",
-		Locale.SIMPLIFIED_CHINESE to "显示应用版本号",
+		en("Show $APP_NAME version"),
+		zh("显示应用版本号"),
 	)
 }
