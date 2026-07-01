@@ -136,17 +136,17 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class FileMessageTruncateSetting : StringSetting(
-		"<字符数过多，后续内容已被截断（共%s字符），请尝试使用read_summarize工具>", "read_file工具截断位置的描述"
+		"[字符数过多，后续内容已被截断（共%s字符），请尝试使用read_summarize工具]", "read_file工具截断位置的描述"
 	)
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMessageOutputTruncateSetting : StringSetting(
-		"<总结器输出内容过多，后续内容已被截断（共%s字符），请尝试修改总结器提示词>", "read_summarize工具截断位置的描述"
+		"[总结器输出内容过多，后续内容已被截断（共%s字符），请尝试修改总结器提示词]", "read_summarize工具截断位置的描述"
 	)
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMessageInputTruncateSetting : StringSetting(
-		"<字符数过多，后续内容已被截断（共%s字符）>", "read_summarize工具总结器输入内容截断位置的描述"
+		"[字符数过多，后续内容已被截断（共%s字符）]", "read_summarize工具总结器输入内容截断位置的描述"
 	)
 	
 	@AutoService(SettingDef::class)
