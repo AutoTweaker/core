@@ -25,3 +25,9 @@ import java.util.*
 abstract class I18nBase(vararg pairs: Pair<Locale, String>) : I18nDef {
 	override val localizations = pairs.map { LocalizedString(it.first, it.second) }
 }
+
+fun zh(text: String): Pair<Locale, String> = zh to text
+fun en(text: String): Pair<Locale, String> = en to text
+
+val zh: Locale = Locale.SIMPLIFIED_CHINESE
+val en: Locale = Locale.ENGLISH
