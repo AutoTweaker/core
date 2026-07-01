@@ -19,43 +19,38 @@
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.LongSetting
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.config.SettingValue
 
 object TraceSettings {
 	@AutoService(SettingDef::class)
-	class MaxEntriesPerNamespace : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(1_000_000)
-		override val description = "Traces数据库每个命名空间最多保留的条目数，设为0忽略命名空间条目计数"
-	}
+	class MaxEntriesPerNamespace : IntSetting(
+		1_000_000, "Traces数据库每个命名空间最多保留的条目数，设为0忽略命名空间条目计数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MaxTotalEntries : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(5_000_000)
-		override val description = "Traces数据库总条目上限，设为0忽略总数"
-	}
+	class MaxTotalEntries : IntSetting(
+		5_000_000, "Traces数据库总条目上限，设为0忽略总数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MaxAgeDays : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(120)
-		override val description = "Traces数据库条目保留天数，设为0忽略天数"
-	}
+	class MaxAgeDays : IntSetting(
+		120, "Traces数据库条目保留天数，设为0忽略天数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MaxDbSizeMB : SettingDef<SettingValue.ValLong> {
-		override val default = SettingValue.ValLong(5120)
-		override val description = "Traces数据库文件大小上限，单位MB，设为0忽略大小"
-	}
+	class MaxDbSizeMB : LongSetting(
+		5120, "Traces数据库文件大小上限，单位MB，设为0忽略大小"
+	)
 	
 	@AutoService(SettingDef::class)
-	class CleanupBatchSize : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(500)
-		override val description = "Traces数据库文件大小超限时每轮删除的条目数"
-	}
+	class CleanupBatchSize : IntSetting(
+		500, "Traces数据库文件大小超限时每轮删除的条目数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class CleanupIntervalMinutes : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(60)
-		override val description = "Traces数据库自动清理间隔，单位分钟，设为0禁用自动清理"
-	}
+	class CleanupIntervalMinutes : IntSetting(
+		60, "Traces数据库自动清理间隔，单位分钟，设为0禁用自动清理"
+	)
 }

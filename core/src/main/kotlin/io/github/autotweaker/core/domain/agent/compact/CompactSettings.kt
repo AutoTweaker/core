@@ -19,57 +19,52 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.BooleanSetting
+import io.github.autotweaker.api.base.DoubleSetting
+import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
+import io.github.autotweaker.core.infrastructure.data.PromptSetting
 
 object CompactSettings {
 	@AutoService(SettingDef::class)
-	class Prompt : SettingDef<SettingValue.ValString> {
-		override val default by lazy { SettingValue(ResourcesLoader.loadPrompt("compact")) }
-		override val description = "用于上下文压缩的提示词"
-	}
+	class Prompt : PromptSetting(
+		"compact", "用于上下文压缩的提示词"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MaxMessageChars : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(10000)
-		override val description = "上下文压缩前对字符数大于此值的消息进行单独总结"
-	}
+	class MaxMessageChars : IntSetting(
+		10000, "上下文压缩前对字符数大于此值的消息进行单独总结"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessageSummarizePrompt : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("请对以下消息内容进行概括，输出不要太长\n\n<message>\n%s\n</message>")
-		override val description = "上下文压缩前对字符数过多的消息进行单独总结时的提示词"
-	}
+	class MessageSummarizePrompt : StringSetting(
+		"请对以下消息内容进行概括，输出不要太长\n\n<message>\n%s\n</message>",
+		"上下文压缩前对字符数过多的消息进行单独总结时的提示词"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MaxCompactRetries : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(5)
-		override val description = "上下文压缩的最大重试次数"
-	}
+	class MaxCompactRetries : IntSetting(
+		5, "上下文压缩的最大重试次数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MinSummaryLength : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(50)
-		override val description = "上下文压缩输出的最小字符数，小于此值的总结会视为无效"
-	}
+	class MinSummaryLength : IntSetting(
+		50, "上下文压缩输出的最小字符数，小于此值的总结会视为无效"
+	)
 	
 	@AutoService(SettingDef::class)
-	class Thinking : SettingDef<SettingValue.ValBoolean> {
-		override val default = SettingValue.ValBoolean(false)
-		override val description = "上下文压缩时是否启用思考"
-	}
+	class Thinking : BooleanSetting(
+		false, "上下文压缩时是否启用思考"
+	)
 	
 	@AutoService(SettingDef::class)
-	class DefaultCompactContextUsage : SettingDef<SettingValue.ValDouble> {
-		override val default = SettingValue.ValDouble(0.85)
-		override val description = "自动上下文压缩的默认百分比阈值（根据上下文窗口）"
-	}
+	class DefaultCompactContextUsage : DoubleSetting(
+		0.85, "自动上下文压缩的默认百分比阈值（根据上下文窗口）"
+	)
 	
 	@AutoService(SettingDef::class)
-	class DefaultCompactTotalTokens : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(500_000)
-		override val description = "自动上下文压缩的默认 tokens 阈值"
-	}
+	class DefaultCompactTotalTokens : IntSetting(
+		500_000, "自动上下文压缩的默认 tokens 阈值"
+	)
 }

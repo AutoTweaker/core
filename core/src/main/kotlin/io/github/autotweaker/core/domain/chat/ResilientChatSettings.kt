@@ -19,55 +19,48 @@
 package io.github.autotweaker.core.domain.chat
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.BooleanSetting
+import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.config.SettingValue
 
 object ResilientChatSettings {
 	@AutoService(SettingDef::class)
-	class MaxRetries : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(5)
-		override val description = "单轮大模型请求的最大重试次数"
-	}
+	class MaxRetries : IntSetting(
+		5, "单轮大模型请求的最大重试次数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class LlmChatRetries : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(3)
-		override val description = "大模型请求的重试/回退策略耗尽后重头开始的最大次数"
-	}
+	class LlmChatRetries : IntSetting(
+		3, "大模型请求的重试/回退策略耗尽后重头开始的最大次数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class RetryBaseDelaySeconds : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(1)
-		override val description = "大模型请求重试前的基础等待时间（秒），多次重试会在此基础上累加（指数退避）"
-	}
+	class RetryBaseDelaySeconds : IntSetting(
+		1, "大模型请求重试前的基础等待时间（秒），多次重试会在此基础上累加（指数退避）"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MaxRetryDelaySeconds : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(60)
-		override val description = "大模型请求重试前的最大等待时间（秒），指数退避的上限"
-	}
+	class MaxRetryDelaySeconds : IntSetting(
+		60, "大模型请求重试前的最大等待时间（秒），指数退避的上限"
+	)
 	
 	@AutoService(SettingDef::class)
-	class RetryJitterEnabled : SettingDef<SettingValue.ValBoolean> {
-		override val default = SettingValue.ValBoolean(true)
-		override val description = "大模型请求重试的等待时间是否加入随机抖动"
-	}
+	class RetryJitterEnabled : BooleanSetting(
+		true, "大模型请求重试的等待时间是否加入随机抖动"
+	)
 	
 	@AutoService(SettingDef::class)
-	class ChatRequestTimeout : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(300)
-		override val description = "大模型请求的默认总超时秒数"
-	}
+	class ChatRequestTimeout : IntSetting(
+		300, "大模型请求的默认总超时秒数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class ChatConnectTimeout : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(20)
-		override val description = "默认大模型请求建立连接的超时秒数"
-	}
+	class ChatConnectTimeout : IntSetting(
+		20, "默认大模型请求建立连接的超时秒数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class ChatStreamChunkTimeout : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(30)
-		override val description = "大模型流式请求，两个数据块之间的默认最大等待秒数"
-	}
+	class ChatStreamChunkTimeout : IntSetting(
+		30, "大模型流式请求，两个数据块之间的默认最大等待秒数"
+	)
 }

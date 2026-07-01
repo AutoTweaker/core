@@ -19,200 +19,168 @@
 package io.github.autotweaker.core.domain.tool.impl.read
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.config.SettingValue
 
 object ReadSettings {
 	@AutoService(SettingDef::class)
-	class SummarizePromptSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("你是文件总结助手，请根据用户输入和以下指令生成关于文件内容的摘要")
-		override val description = "summarize功能使用的系统提示词，这段文本被安置在llm自定义指令之前"
-	}
+	class SummarizePromptSetting : StringSetting(
+		"你是文件总结助手，请根据用户输入和以下指令生成关于文件内容的摘要",
+		"summarize功能使用的系统提示词，这段文本被安置在llm自定义指令之前"
+	)
 	
 	@AutoService(SettingDef::class)
-	class DescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取一个文件，支持获取摘要以及Unicode代码")
-		override val description = "read工具的描述，在read工具未激活时展示给llm"
-	}
+	class DescriptionSetting : StringSetting(
+		"读取一个文件，支持获取摘要以及Unicode代码", "read工具的描述，在read工具未激活时展示给llm"
+	)
 	
 	@AutoService(SettingDef::class)
-	class FileFuncDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("读取一个文件，最大字符数%s，最大行数%s，返回内容的第一行为文件内容的SHA256，第二行开始是文件内容，注意区分。\n请注意：始终使用此工具而不是bash来获取文件内容")
-		override val description = "read_file工具的描述"
-	}
+	class FileFuncDescriptionSetting : StringSetting(
+		"读取一个文件，最大字符数%s，最大行数%s，返回内容的第一行为文件内容的SHA256，第二行开始是文件内容，注意区分。\n请注意：始终使用此工具而不是bash来获取文件内容",
+		"read_file工具的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeFuncDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("获取一个文件的摘要，最大字符数%s，最小字符数%s，最大行数%s，在文件较大时使用此工具很合适")
-		override val description = "read_summarize工具的描述"
-	}
+	class SummarizeFuncDescriptionSetting : StringSetting(
+		"获取一个文件的摘要，最大字符数%s，最小字符数%s，最大行数%s，在文件较大时使用此工具很合适",
+		"read_summarize工具的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class UnicodeFuncDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("读取一个文件但是返回每个字符的Unicode编码，在普通读取看起来没有返回有效内容时使用")
-		override val description = "read_unicode工具的描述"
-	}
+	class UnicodeFuncDescriptionSetting : StringSetting(
+		"读取一个文件但是返回每个字符的Unicode编码，在普通读取看起来没有返回有效内容时使用", "read_unicode工具的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class FilePathPropDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("文件的路径，支持绝对路径或相对路径")
-		override val description = "read工具file_path参数的描述"
-	}
+	class FilePathPropDescriptionSetting : StringSetting(
+		"文件的路径，支持绝对路径或相对路径", "read工具file_path参数的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class StartLinePropDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取文件的开始行号，从1开始")
-		override val description = "read工具start_line参数的描述"
-	}
+	class StartLinePropDescriptionSetting : StringSetting(
+		"读取文件的开始行号，从1开始", "read工具start_line参数的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class EndLinePropDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取文件的结束行号，不能小于开始行号，可以大于文件总行数")
-		override val description = "read工具end_line参数的描述"
-	}
+	class EndLinePropDescriptionSetting : StringSetting(
+		"读取文件的结束行号，不能小于开始行号，可以大于文件总行数", "read工具end_line参数的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class LineNumberPropDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("是否启用行号，默认为true，启用行号后会在每行的开头添加[行号][制表符]作为前缀，注意区分")
-		override val description = "read_summarize工具line_number参数的描述"
-	}
+	class LineNumberPropDescriptionSetting : StringSetting(
+		"是否启用行号，默认为true，启用行号后会在每行的开头添加[行号][制表符]作为前缀，注意区分",
+		"read_summarize工具line_number参数的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizePromptPropDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("用于总结文件的提示词，调整此字段来要求总结器关注不同细节")
-		override val description = "read_summarize工具prompt参数的描述"
-	}
+	class SummarizePromptPropDescriptionSetting : StringSetting(
+		"用于总结文件的提示词，调整此字段来要求总结器关注不同细节", "read_summarize工具prompt参数的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class UnicodeMaxCharsPropDescriptionSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取文件的前n个字符，这将包括换行符等特殊字符，最多%s个字符")
-		override val description = "read_unicode工具max_chars参数的描述"
-	}
+	class UnicodeMaxCharsPropDescriptionSetting : StringSetting(
+		"读取文件的前n个字符，这将包括换行符等特殊字符，最多%s个字符", "read_unicode工具max_chars参数的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessageTooManyLinesSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取的行数过多，上限为%s")
-		override val description = "read工具读取过多内容时的描述"
-	}
+	class MessageTooManyLinesSetting : StringSetting(
+		"读取的行数过多，上限为%s", "read工具读取过多内容时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessageFileNotFoundSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("文件不存在或访问被拒绝")
-		override val description = "read工具读取不存在的文件时的描述"
-	}
+	class MessageFileNotFoundSetting : StringSetting(
+		"文件不存在或访问被拒绝", "read工具读取不存在的文件时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessageFileCannotReadSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("请求路径是一个目录、文件是一个二进制文件、文件所使用的编码不支持或文件已损坏")
-		override val description = "read工具读取的文件无法解析时的描述"
-	}
+	class MessageFileCannotReadSetting : StringSetting(
+		"请求路径是一个目录、文件是一个二进制文件、文件所使用的编码不支持或文件已损坏",
+		"read工具读取的文件无法解析时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessagePathOutsideWorkspaceSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("请求的文件路径在工作目录外部")
-		override val description = "read工具在容器内读取工作目录外的文件时的描述"
-	}
+	class MessagePathOutsideWorkspaceSetting : StringSetting(
+		"请求的文件路径在工作目录外部", "read工具在容器内读取工作目录外的文件时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessageStartLineErrorSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("start_line必须大于或等于1")
-		override val description = "read工具start_line不合法的描述"
-	}
+	class MessageStartLineErrorSetting : StringSetting(
+		"start_line必须大于或等于1", "read工具start_line不合法的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class MessageStartLineBiggerThanEndSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("start_line不能大于end_line")
-		override val description = "read工具start_line大于end_line的描述"
-	}
+	class MessageStartLineBiggerThanEndSetting : StringSetting(
+		"start_line不能大于end_line", "read工具start_line大于end_line的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class FileMessageDuplicateSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取的文件内容与文件哈希%s时的读取相同")
-		override val description = "read_file工具读取重复内容时的描述"
-	}
+	class FileMessageDuplicateSetting : StringSetting(
+		"读取的文件内容与文件哈希%s时的读取相同", "read_file工具读取重复内容时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class UnicodeMessageTooManyCharsSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("读取的字符数过多，上限为%s")
-		override val description = "read_unicode工具读取过多内容时的描述"
-	}
+	class UnicodeMessageTooManyCharsSetting : StringSetting(
+		"读取的字符数过多，上限为%s", "read_unicode工具读取过多内容时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMessageTooFewSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("用于总结的字符数过少（%s），必须大于%s")
-		override val description = "read_summarize工具总结内容过少时的描述"
-	}
+	class SummarizeMessageTooFewSetting : StringSetting(
+		"用于总结的字符数过少（%s），必须大于%s", "read_summarize工具总结内容过少时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMessageFailedSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("总结器出错，请及时告知用户：%s")
-		override val description = "read_summarize总结llm出错时的描述"
-	}
+	class SummarizeMessageFailedSetting : StringSetting(
+		"总结器出错，请及时告知用户：%s", "read_summarize总结llm出错时的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class FileMessageTruncateSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("<字符数过多，后续内容已被截断（共%s字符），请尝试使用read_summarize工具>")
-		override val description = "read_file工具截断位置的描述"
-	}
+	class FileMessageTruncateSetting : StringSetting(
+		"<字符数过多，后续内容已被截断（共%s字符），请尝试使用read_summarize工具>", "read_file工具截断位置的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMessageOutputTruncateSetting : SettingDef<SettingValue.ValString> {
-		override val default =
-			SettingValue.ValString("<总结器输出内容过多，后续内容已被截断（共%s字符），请尝试修改总结器提示词>")
-		override val description = "read_summarize工具截断位置的描述"
-	}
+	class SummarizeMessageOutputTruncateSetting : StringSetting(
+		"<总结器输出内容过多，后续内容已被截断（共%s字符），请尝试修改总结器提示词>", "read_summarize工具截断位置的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMessageInputTruncateSetting : SettingDef<SettingValue.ValString> {
-		override val default = SettingValue.ValString("<字符数过多，后续内容已被截断（共%s字符）>")
-		override val description = "read_summarize工具总结器输入内容截断位置的描述"
-	}
+	class SummarizeMessageInputTruncateSetting : StringSetting(
+		"<字符数过多，后续内容已被截断（共%s字符）>", "read_summarize工具总结器输入内容截断位置的描述"
+	)
 	
 	@AutoService(SettingDef::class)
-	class FileMaxLinesSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(500)
-		override val description = "read_file工具最大允许行数"
-	}
+	class FileMaxLinesSetting : IntSetting(
+		500, "read_file工具最大允许行数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class FileMaxCharsSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(20000)
-		override val description = "read_file工具最大允许字符数，超出会截断"
-	}
+	class FileMaxCharsSetting : IntSetting(
+		20000, "read_file工具最大允许字符数，超出会截断"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMaxLinesSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(5000)
-		override val description = "read_summarize工具最大允许行数"
-	}
+	class SummarizeMaxLinesSetting : IntSetting(
+		5000, "read_summarize工具最大允许行数"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMaxInputCharsSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(200000)
-		override val description = "read_summarize工具最大输入字符数，超出会截断"
-	}
+	class SummarizeMaxInputCharsSetting : IntSetting(
+		200000, "read_summarize工具最大输入字符数，超出会截断"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMinCharsSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(500)
-		override val description = "read_summarize工具最小允许字符数，小于此会返回错误消息"
-	}
+	class SummarizeMinCharsSetting : IntSetting(
+		500, "read_summarize工具最小允许字符数，小于此会返回错误消息"
+	)
 	
 	@AutoService(SettingDef::class)
-	class SummarizeMaxOutputCharsSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(5000)
-		override val description = "read_summarize工具最大输出字符数，超出会截断"
-	}
+	class SummarizeMaxOutputCharsSetting : IntSetting(
+		5000, "read_summarize工具最大输出字符数，超出会截断"
+	)
 	
 	@AutoService(SettingDef::class)
-	class UnicodeMaxCharsSetting : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(500)
-		override val description = "read_unicode工具最大允许字符数，超出会返回错误消息"
-	}
+	class UnicodeMaxCharsSetting : IntSetting(
+		500, "read_unicode工具最大允许字符数，超出会返回错误消息"
+	)
 }

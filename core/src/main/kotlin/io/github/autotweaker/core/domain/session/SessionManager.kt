@@ -25,7 +25,6 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
@@ -34,7 +33,7 @@ import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
+import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -187,8 +186,7 @@ object SessionManager : Loggable, Traceable, Settable {
 		modelRepo.resolve(id) ?: error("Unknown model: $id")
 	
 	@AutoService(SettingDef::class)
-	class SystemPrompt : SettingDef<SettingValue.ValString> {
-		override val default by lazy { SettingValue(ResourcesLoader.loadPrompt("system")) }
-		override val description = "系统提示词，作用于整个项目"
-	}
+	class SystemPrompt : PromptSetting(
+		"system", "系统提示词，作用于整个项目"
+	)
 }

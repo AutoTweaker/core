@@ -20,11 +20,11 @@ package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.config.SettingValue
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -46,10 +46,9 @@ object CliServer : Loggable, Settable, Traceable {
 	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
 	
 	@AutoService(SettingDef::class)
-	class MaxLineLength : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(10_485_760)
-		override val description = "CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
-	}
+	class MaxLineLength : IntSetting(
+		10_485_760, "CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
+	)
 	
 	private val maxLineLength = setting.get(MaxLineLength()).value
 	

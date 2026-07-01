@@ -23,11 +23,11 @@ import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.config.SettingEntry
-import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emitAll
@@ -36,10 +36,9 @@ import kotlinx.coroutines.flow.flow
 @AutoService(Command::class)
 class Config : Command, Settable, I18nable, Traceable {
 	@AutoService(SettingDef::class)
-	class DefaultLimit : SettingDef<SettingValue.ValInt> {
-		override val default = SettingValue.ValInt(1000)
-		override val description = "cfg命令的默认limit参数值"
-	}
+	class DefaultLimit : IntSetting(
+		1000, "cfg命令的默认limit参数值"
+	)
 	
 	override val name: String = "cfg"
 	override val description: String
