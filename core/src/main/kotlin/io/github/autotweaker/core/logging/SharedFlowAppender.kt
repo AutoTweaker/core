@@ -26,7 +26,7 @@ import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
-import io.github.autotweaker.core.application.LogBus
+import io.github.autotweaker.core.application.impl.LogBus
 import kotlin.time.Instant
 
 class SharedFlowAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {

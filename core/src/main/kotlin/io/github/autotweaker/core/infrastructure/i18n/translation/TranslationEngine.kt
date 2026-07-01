@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.i18n.translation
+package io.github.autotweaker.core.infrastructure.i18n.translation
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
@@ -24,10 +24,10 @@ import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
-import io.github.autotweaker.core.adapter.i18n.I18nRegistry
-import io.github.autotweaker.core.application.chat.ChatService
+import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelResolver
+import io.github.autotweaker.core.infrastructure.i18n.I18nRegistry
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope

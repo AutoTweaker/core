@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.application
+package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.dev.DbAPI

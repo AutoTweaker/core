@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.i18n.translation
+package io.github.autotweaker.core.infrastructure.i18n.translation
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.BooleanSetting

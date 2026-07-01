@@ -20,6 +20,7 @@ package io.github.autotweaker.core.adapter.i18n.translation
 
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.mockk.every

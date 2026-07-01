@@ -26,12 +26,13 @@ import io.github.autotweaker.api.dev.Debugger
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
-import io.github.autotweaker.core.adapter.i18n.I18nServiceImpl
-import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.application.Wiring.databaseStore
+import io.github.autotweaker.core.application.impl.DbDebugAPIImpl
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
+import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
+import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.config.Settings

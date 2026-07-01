@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.adapter.i18n.translation
 
+import io.github.autotweaker.core.infrastructure.i18n.translation.PlaceholderValidator
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

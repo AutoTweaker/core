@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.impl
+package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.adapter.PathResolver
@@ -32,10 +32,6 @@ import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
-import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
-import io.github.autotweaker.core.application.LogBus
-import io.github.autotweaker.core.application.ShellRouter
-import io.github.autotweaker.core.application.chat.ChatService
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.EnvRepository
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
@@ -44,6 +40,7 @@ import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
+import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.persist.LogStore
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl

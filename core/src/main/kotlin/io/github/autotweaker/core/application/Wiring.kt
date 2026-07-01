@@ -21,9 +21,9 @@ package io.github.autotweaker.core.application
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.log
-import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
-import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
-import io.github.autotweaker.core.application.chat.ChatService
+import io.github.autotweaker.core.application.impl.ChatService
+import io.github.autotweaker.core.application.impl.CoreAPIImpl
+import io.github.autotweaker.core.application.impl.ShellRouter
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -37,6 +37,7 @@ import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
+import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl

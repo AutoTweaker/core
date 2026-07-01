@@ -16,17 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.application
+package io.github.autotweaker.core.infrastructure.i18n.translation
 
-import io.github.autotweaker.api.types.log.ExceptionInfo
-import io.github.autotweaker.api.types.log.LogEvent
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-
-object LogBus {
-	private val _flow = MutableSharedFlow<LogEvent<ExceptionInfo.Live>>(replay = 1000)
-	val flow: SharedFlow<LogEvent<ExceptionInfo.Live>> = _flow
+object PlaceholderValidator {
+	private val positionalRegex = Regex("""%\d+\$[a-zA-Z]""")
+	private val nonPositionalRegex = Regex("""%[-#+ 0,(]*\d*(\.\d+)?[a-zA-Z]""")
 	
-	fun emit(event: LogEvent<ExceptionInfo.Live>) =
-		_flow.tryEmit(event)
+	fun validate(source: String, translated: String): Boolean {
+		if (translated.isBlank()) return false
+		
+		val srcPos = positionalRegex.findAll(source).map { it.value }.toSet()
+		val tgtPos = positionalRegex.findAll(translated).map { it.value }.toSet()
+		if (srcPos != tgtPos) return false
+		
+		val srcNonPosCount = nonPositionalRegex.findAll(source).count()
+		val tgtNonPosCount = nonPositionalRegex.findAll(translated).count()
+		return srcNonPosCount == tgtNonPosCount
+	}
 }

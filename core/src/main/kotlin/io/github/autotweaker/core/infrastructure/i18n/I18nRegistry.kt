@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.adapter.i18n
+package io.github.autotweaker.core.infrastructure.i18n
 
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.core.PluginLoader
