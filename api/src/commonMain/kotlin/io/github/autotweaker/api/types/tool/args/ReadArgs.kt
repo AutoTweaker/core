@@ -42,6 +42,7 @@ sealed class ReadArgs : ToolArgs {
 	@Serializable
 	data class Unicode(
 		val filePath: String,
+		val startChar: Int = 0,
 		val maxChars: Int,
 	) : ReadArgs()
 }

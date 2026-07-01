@@ -80,7 +80,14 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class UnicodeMaxCharsPropDescriptionSetting : StringSetting(
-		"读取文件的前n个字符，这将包括换行符等特殊字符，最多%s个字符", "read_unicode工具max_chars参数的描述"
+		"读取文件的前n个字符，这将包括换行符等特殊字符，最多%s个字符",
+		"read_unicode工具max_chars参数的描述"
+	)
+	
+	@AutoService(SettingDef::class)
+	class UnicodeStartCharPropDescriptionSetting : StringSetting(
+		"从文件的第n个字符开始读取，默认为0从头开始",
+		"read_unicode工具start_char参数的描述"
 	)
 	
 	@AutoService(SettingDef::class)
@@ -117,6 +124,11 @@ object ReadSettings {
 	@AutoService(SettingDef::class)
 	class FileMessageDuplicateSetting : StringSetting(
 		"读取的文件内容与文件哈希%s时的读取相同", "read_file工具读取重复内容时的描述"
+	)
+	
+	@AutoService(SettingDef::class)
+	class MessageStartCharErrorSetting : StringSetting(
+		"start_char必须大于或等于0", "read_unicode工具start_char不合法的描述"
 	)
 	
 	@AutoService(SettingDef::class)

@@ -55,6 +55,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		ReadArgs.Summarize::endLine to setting.get(ReadSettings.EndLinePropDescriptionSetting()).value,
 		ReadArgs.Summarize::prompt to setting.get(ReadSettings.SummarizePromptPropDescriptionSetting()).value,
 		ReadArgs.Unicode::filePath to setting.get(ReadSettings.FilePathPropDescriptionSetting()).value,
+		ReadArgs.Unicode::startChar to setting.get(ReadSettings.UnicodeStartCharPropDescriptionSetting()).value,
 		ReadArgs.Unicode::maxChars to setting.get(ReadSettings.UnicodeMaxCharsPropDescriptionSetting())
 			.value.format(setting.get(ReadSettings.UnicodeMaxCharsSetting()).value),
 	)
@@ -125,6 +126,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 			}
 			
 			is ReadArgs.Unicode -> {
+				if (args.startChar < 0) return Tool.ToolOutput(
+					setting.get(ReadSettings.MessageStartCharErrorSetting()).value, false
+				)
 				val unicodeMaxChars = setting.get(ReadSettings.UnicodeMaxCharsSetting()).value
 				if (args.maxChars > unicodeMaxChars) {
 					return Tool.ToolOutput(
@@ -132,7 +136,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 						false
 					)
 				}
-				executeUnicode(fs, normalizedPath, args.maxChars)
+				executeUnicode(fs, normalizedPath, args.startChar, args.maxChars)
 			}
 		}
 	}
@@ -237,11 +241,12 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 	private suspend fun executeUnicode(
 		fs: FileSystemService,
 		normalizedPath: Path,
+		startChar: Int,
 		maxChars: Int,
 	): Tool.ToolOutput {
 		val allUnicode: List<Unicode> = trace.catching { fs.readUnicode(normalizedPath) }
 			.getOrElse { return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false) }
-		return Tool.ToolOutput(allUnicode.take(maxChars).joinToString("") { it.value }, true)
+		return Tool.ToolOutput(allUnicode.drop(startChar).take(maxChars).joinToString("") { it.value }, true)
 	}
 	
 	private suspend fun readFileContent(
