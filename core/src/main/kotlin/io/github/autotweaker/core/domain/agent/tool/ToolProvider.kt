@@ -37,13 +37,8 @@ import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 
 object ToolProvider {
-	@Volatile
 	private lateinit var shellExecutor: ShellExecutor
-	
-	@Volatile
 	private lateinit var rawFileSystem: RawFileSystem
-	
-	@Volatile
 	private lateinit var pathResolver: PathResolver
 	
 	fun init(shellExecutor: ShellExecutor, rawFileSystem: RawFileSystem, pathResolver: PathResolver) {
@@ -59,15 +54,19 @@ object ToolProvider {
 		onOutput: (AgentOutput) -> Unit,
 	): DependencyProvider = ServiceContainer()
 		.register(
-			FileSystemService::class, FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
+			FileSystemService::class,
+			FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
 		)
 		.register(
-			SummarizeService::class, SummarizeServiceImpl(model, onOutput)
+			SummarizeService::class,
+			SummarizeServiceImpl(model, onOutput)
 		)
 		.register(
-			BashService::class, BashServiceImpl(shellExecutor, pathResolver, workspace)
+			BashService::class,
+			BashServiceImpl(shellExecutor, pathResolver, workspace)
 		)
 		.register(
-			ToolCallHistory::class, ToolCallHistoryImpl(context)
+			ToolCallHistory::class,
+			ToolCallHistoryImpl(context)
 		)
 }

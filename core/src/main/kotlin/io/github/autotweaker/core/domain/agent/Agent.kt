@@ -44,12 +44,12 @@ import java.util.*
 
 class Agent(
 	context: AgentContext,
-	val agentId: UUID = UUID.randomUUID(),
+	val agentId: UUID,
 	val name: KebabCase,
 	private val workspace: WorkspaceMeta,
 	private val tools: List<Tool<ToolArgs>>,
 	private val activeTools: List<String>,
-	private val host: AgentHost,
+	@Suppress("unused") private val host: AgentHost,
 ) : Settable {
 	init {
 		check(context.currentRound == null)

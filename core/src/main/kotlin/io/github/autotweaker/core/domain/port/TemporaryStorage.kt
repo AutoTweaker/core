@@ -22,7 +22,7 @@ import java.nio.file.Path
 import java.util.*
 
 interface TemporaryStorage {
-	fun save(content: String): Pair<UUID, Path>
-	fun list(): Map<UUID, Path>
-	fun read(id: UUID): String?
+	fun save(content: String, container: Boolean): Pair<UUID, Path>
+	fun list(container: Boolean): Map<UUID, Path>
+	fun read(id: UUID, container: Boolean): String?
 }

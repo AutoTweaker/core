@@ -100,6 +100,11 @@ class ContainerConfigTest {
 			Path.of(System.getProperty("user.home"), ".config", "autotweaker", "container", "workspace"),
 			config.workspaceHostPath
 		)
+		assertEquals(
+			Path.of(System.getProperty("java.io.tmpdir"), "autotweaker", "container"),
+			config.tmpHostPath
+		)
+		assertEquals(Path.of("/tmp", "autotweaker"), config.containerTmpPath)
 	}
 	
 	@Test

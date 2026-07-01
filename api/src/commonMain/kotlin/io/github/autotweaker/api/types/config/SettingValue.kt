@@ -70,3 +70,13 @@ sealed class SettingValue {
 		override fun parse(raw: String) = ValString(raw)
 	}
 }
+
+fun SettingValue(value: Byte) = SettingValue.ValByte(value)
+fun SettingValue(value: Short) = SettingValue.ValShort(value)
+fun SettingValue(value: Int) = SettingValue.ValInt(value)
+fun SettingValue(value: Long) = SettingValue.ValLong(value)
+fun SettingValue(value: Float) = SettingValue.ValFloat(value)
+fun SettingValue(value: Double) = SettingValue.ValDouble(value)
+fun SettingValue(value: Boolean) = SettingValue.ValBoolean(value)
+fun SettingValue(value: Char) = SettingValue.ValChar(value)
+fun SettingValue(value: String) = SettingValue.ValString(value)

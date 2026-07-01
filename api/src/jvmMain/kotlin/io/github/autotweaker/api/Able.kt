@@ -78,12 +78,16 @@ inline val Loggable.log: Logger get() = LoggerFactory.getLogger(this::class.java
  * 获取 AutoTweaker 提供的 [TraceRecorder]，自身作为 `origin`。
  *
  * 直接在实现了 [Traceable] 的类 / 对象内部的任何地方使用 `trace` 即可。
+ *
+ * AutoTweaker 内部会缓存已创建的 TraceRecorder 对象。
  */
 inline val Traceable.trace: TraceRecorder get() = services.trace(this::class)
 
 /**
  * 获取 AutoTweaker 提供的 [JsonStore]。
  * 同一类获取到的 [JsonStore] 始终相同，不同类获取到的 [JsonStore] 相互隔离。
+ *
+ * AutoTweaker 内部会缓存已创建的 JsonStore 对象。
  *
  * 直接在实现了 [JsonStorable] 的类 / 对象内部的任何地方使用 `store` 即可。
  */

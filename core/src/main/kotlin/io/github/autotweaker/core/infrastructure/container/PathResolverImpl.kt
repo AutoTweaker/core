@@ -19,24 +19,39 @@
 package io.github.autotweaker.core.infrastructure.container
 
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import java.nio.file.Path
 
 class PathResolverImpl(
-	private val containerConfig: ContainerConfig
+	containerConfig: ContainerConfig
 ) : PathResolver {
+	private val hostWorkspace = containerConfig.workspaceHostPath.normalize()
+	private val hostTmp = containerConfig.tmpHostPath.normalize()
+	private val containerWork = containerConfig.workDir.normalize()
+	private val containerTmp = containerConfig.containerTmpPath.normalize()
 	override fun inContainer(workspace: Path): Boolean =
-		workspace.normalize().startsWith(containerConfig.workspaceHostPath.normalize())
+		workspace.normalize().startsWith(hostWorkspace)
 	
 	override fun toAbsolutePath(workspace: Path, path: Path): Path {
 		val base = if (inContainer(workspace)) toContainerPath(workspace) else workspace
 		return base.resolve(path).normalize()
 	}
 	
-	override fun toContainerPath(path: Path): Path =
-		containerConfig.workDir.normalize()
-			.resolve(containerConfig.workspaceHostPath.normalize().relativize(path.normalize()))
+	override fun toContainerPath(path: Path): Path {
+		val normalized = path.normalize()
+		if (normalized.startsWith(hostWorkspace))
+			return containerWork.resolve(hostWorkspace.relativize(normalized))
+		if (normalized.startsWith(hostTmp))
+			return containerTmp.resolve(hostTmp.relativize(normalized))
+		throw PathOutsideWorkspaceException(path)
+	}
 	
-	override fun toHostPath(path: Path): Path =
-		containerConfig.workspaceHostPath.normalize()
-			.resolve(containerConfig.workDir.normalize().relativize(path.normalize()))
+	override fun toHostPath(path: Path): Path {
+		val normalized = path.normalize()
+		if (normalized.startsWith(containerWork))
+			return hostWorkspace.resolve(containerWork.relativize(normalized))
+		if (normalized.startsWith(containerTmp))
+			return hostTmp.resolve(containerTmp.relativize(normalized))
+		throw PathOutsideWorkspaceException(path)
+	}
 }

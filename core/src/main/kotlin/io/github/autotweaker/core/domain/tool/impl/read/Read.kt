@@ -25,6 +25,7 @@ import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Unicode
+import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.args.ReadArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
@@ -92,7 +93,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 			if (!fs.isRegularFile(normalizedPath)) {
 				return Tool.ToolOutput(setting.get(ReadSettings.MessageFileCannotReadSetting()).value, false)
 			}
-		}.rethrowNot<FileSystemService.PathOutsideWorkspaceException>()
+		}.rethrowNot<PathOutsideWorkspaceException>()
 			.getOrElse {
 				return Tool.ToolOutput(
 					setting.get(ReadSettings.MessagePathOutsideWorkspaceSetting()).value,
@@ -213,8 +214,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		}
 		val summarizePrompt = setting.get(ReadSettings.SummarizePromptSetting()).value
 		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
-		val summarizeService = container.get<SummarizeService>()
-		val output = trace.catching { summarizeService.summarize(content, prompt) }
+		val summarize = container.get<SummarizeService>()
+		val output = trace.catching { summarize(content, prompt) }
 			.getOrElse { e ->
 				return Tool.ToolOutput(
 					setting.get(ReadSettings.SummarizeMessageFailedSetting()).value.format(e.message),

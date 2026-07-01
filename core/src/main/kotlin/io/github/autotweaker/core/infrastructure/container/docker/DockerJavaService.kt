@@ -98,7 +98,8 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			workspaceHostPath = hostPath
 			containerWorkDir = config.workDir
 			Files.createDirectories(hostPath)
-			
+			Files.createDirectories(config.tmpHostPath)
+
 			val existing = findContainerByName(config.name)
 			if (existing != null) {
 				if (existing.state != "running") {
@@ -111,9 +112,8 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			}
 			
 			val hostConfig = HostConfig().withBinds(
-				Bind(
-					hostPath.toString(), Volume(config.workDir.toString())
-				)
+				Bind(hostPath.toString(), Volume(config.workDir.toString())),
+				Bind(config.tmpHostPath.toString(), Volume(config.containerTmpPath.toString()))
 			).withExtraHosts("host.docker.internal:host-gateway").withInit(true)
 			
 			val createResponse = client.createContainerCmd(image)

@@ -23,7 +23,6 @@ import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import java.nio.file.Path
 
 class FileSystemServiceImpl(
@@ -31,9 +30,6 @@ class FileSystemServiceImpl(
 	private val pathResolver: PathResolver,
 	private val workspace: WorkspaceMeta,
 ) : FileSystemService {
-	private val containerConfig = ContainerConfig()
-	private val containerMount = containerConfig.workDir.normalize()
-	
 	override fun normalize(filePath: String): Path =
 		pathResolver.toAbsolutePath(
 			workspace.path,
@@ -57,7 +53,6 @@ class FileSystemServiceImpl(
 	
 	private fun resolve(path: Path): Path {
 		if (!pathResolver.inContainer(workspace.path)) return path
-		if (!path.startsWith(containerMount)) throw FileSystemService.PathOutsideWorkspaceException(path)
 		return pathResolver.toHostPath(path)
 	}
 }

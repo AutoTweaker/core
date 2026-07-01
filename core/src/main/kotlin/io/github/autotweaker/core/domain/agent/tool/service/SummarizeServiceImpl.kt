@@ -28,7 +28,7 @@ class SummarizeServiceImpl(
 	private val model: AgentModel,
 	private val onOutput: (AgentOutput) -> Unit,
 ) : SummarizeService {
-	override suspend fun summarize(content: String, prompt: String): String {
+	override suspend fun invoke(content: String, prompt: String): String {
 		val (result, snapshot) = SummaryService.summarizeMessage(
 			content = content,
 			prompt = prompt,

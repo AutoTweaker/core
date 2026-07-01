@@ -18,14 +18,6 @@
 
 package io.github.autotweaker.core.domain.tool.port
 
-import io.github.autotweaker.api.types.Unicode
-import java.nio.file.Path
-
-interface FileSystemService {
-	fun normalize(filePath: String): Path
-	suspend fun exists(path: Path): Boolean
-	suspend fun isRegularFile(path: Path): Boolean
-	suspend fun readUnicode(path: Path): List<Unicode>
-	suspend fun readAllLines(path: Path): List<String>
-	suspend fun sha256(path: Path): String
+interface TruncationService {
+	operator fun invoke(content: String, threshold: Int, keepTail: Boolean): String
 }

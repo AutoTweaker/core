@@ -19,5 +19,5 @@
 package io.github.autotweaker.core.domain.tool.port
 
 interface SummarizeService {
-	suspend fun summarize(content: String, prompt: String): String
+	suspend operator fun invoke(content: String, prompt: String): String
 }
