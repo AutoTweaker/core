@@ -21,7 +21,6 @@ package io.github.autotweaker.core.application
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.core.adapter.i18n.translation.TranslationManager
 import io.github.autotweaker.core.adapter.impl.CoreAPIImpl
 import io.github.autotweaker.core.application.chat.ChatService
@@ -34,6 +33,7 @@ import io.github.autotweaker.core.infrastructure.config.ModelConfigAPI
 import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
+import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
@@ -64,13 +64,13 @@ object Wiring : Loggable {
 		log.info("Completed wiring")
 	}
 	
-	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI, version: SemVer) = CoreAPIImpl(
+	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) = CoreAPIImpl(
 		envRepo = EnvConfigAPI,
 		providerRepo = ProviderConfigAPI,
 		modelRepo = ModelConfigAPI,
 		apiKeyRepo = ApiKeyConfigAPI,
 		adapter = adapterAPI,
 		pathResolver = pathResolver,
-		appVersion = version
+		appVersion = ResourcesLoader.version
 	)
 }

@@ -25,10 +25,10 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.dev.StartupHook
 import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
 import io.github.autotweaker.core.application.Wiring
+import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -38,19 +38,12 @@ import java.nio.channels.FileLock
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import java.util.*
 
 object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
-	val version: SemVer by lazy {
-		val props = Properties()
-		this::class.java.getResourceAsStream("/version.properties")?.use { props.load(it) }
-		SemVer.parse(props.getProperty("version"))
-	}
-	
 	private val registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	private val lock = ReentrantMutex()
 	
-	private val core by lazy { Wiring.createCoreAPI(this, version) }
+	private val core by lazy { Wiring.createCoreAPI(this) }
 	
 	private val lockFile: Path = CONFIG_PATH.resolve("$APP_NAME_LOWERCASE.lock")
 	private var lockChannel: FileChannel? = null
@@ -63,11 +56,11 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		}
 		
 		PluginLoader.load<StartupHook>().forEach { hook ->
-			hook.execute(version)
+			hook.execute(ResourcesLoader.version)
 			log.info("Executed startup hook  class={}", hook::class.java.name)
 		}
 		
-		log.info("Started AutoTweaker  version={}", version)
+		log.info("Started AutoTweaker  version={}", ResourcesLoader.version)
 		
 		Launcher.start(registry) { core }
 	}

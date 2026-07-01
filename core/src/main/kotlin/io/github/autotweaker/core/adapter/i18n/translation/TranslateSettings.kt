@@ -21,9 +21,8 @@ package io.github.autotweaker.core.adapter.i18n.translation
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.BooleanSetting
 import io.github.autotweaker.api.base.IntSetting
-import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
+import io.github.autotweaker.core.infrastructure.data.PromptSetting
 
 object TranslateSettings {
 	@AutoService(SettingDef::class)
@@ -32,13 +31,13 @@ object TranslateSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class SystemPrompt : StringSetting(
-		ResourcesLoader.loadPrompt("translate_system"), "用于翻译请求的系统提示模板，需要 {{target_language}} 变量"
+	class SystemPrompt : PromptSetting(
+		"translate_system", "用于翻译请求的系统提示模板，需要 {{target_language}} 变量"
 	)
 	
 	@AutoService(SettingDef::class)
-	class UserPrompt : StringSetting(
-		ResourcesLoader.loadPrompt("translate_user"),
+	class UserPrompt : PromptSetting(
+		"translate_user",
 		"用于翻译的用户请求模板，需要 {{target_language}} 和 {{content_to_translate}} 变量"
 	)
 	
