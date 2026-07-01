@@ -19,57 +19,43 @@
 package io.github.autotweaker.adapter.cli.commands.trace
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object TraceI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "查看程序的数据记录"),
-		)
-	}
+	class Desc : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "查看程序的数据记录",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ListDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出所有记录来源及命名空间及条目数量"),
-		)
-	}
+	class ListDesc : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "列出所有记录来源及命名空间及条目数量",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Show : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "读取记录"),
-		)
-	}
+	class Show : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "读取记录",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Origin : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "记录来源"),
-		)
-	}
+	class Origin : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "记录来源",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Namespace : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "命名空间"),
-		)
-	}
+	class Namespace : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "命名空间",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Range : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "范围，例如 '0-20'，或者'20'表示'20-20'"),
-		)
-	}
+	class Range : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "范围，例如 '0-20'，或者'20'表示'20-20'",
+	)
 	
 	@AutoService(I18nDef::class)
-	class InvalidValue : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "无效的值，请检查命令参数"),
-		)
-	}
+	class InvalidValue : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "无效的值，请检查命令参数",
+	)
 }

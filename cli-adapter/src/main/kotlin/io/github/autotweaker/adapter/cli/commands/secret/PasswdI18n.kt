@@ -19,41 +19,33 @@
 package io.github.autotweaker.adapter.cli.commands.secret
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object PasswdI18n {
 	@AutoService(I18nDef::class)
-	class ParamRemove : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Remove password"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "移除密码"),
-		)
-	}
+	class ParamRemove : I18nBase(
+		Locale.ENGLISH to "Remove password",
+		Locale.SIMPLIFIED_CHINESE to "移除密码",
+	)
 	
 	
 	@AutoService(I18nDef::class)
-	class PromptNew : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "New password:"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新密码:"),
-		)
-	}
+	class PromptNew : I18nBase(
+		Locale.ENGLISH to "New password:",
+		Locale.SIMPLIFIED_CHINESE to "新密码:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptConfirm : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Confirm new password:"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "确认新密码:"),
-		)
-	}
+	class PromptConfirm : I18nBase(
+		Locale.ENGLISH to "Confirm new password:",
+		Locale.SIMPLIFIED_CHINESE to "确认新密码:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Mismatch : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Passwords do not match"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "两次密码不一致"),
-		)
-	}
+	class Mismatch : I18nBase(
+		Locale.ENGLISH to "Passwords do not match",
+		Locale.SIMPLIFIED_CHINESE to "两次密码不一致",
+	)
 }

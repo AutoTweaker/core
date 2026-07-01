@@ -19,135 +19,103 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object ProvI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Query and manage LLM providers"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "查询和管理模型提供商"),
-		)
-	}
+	class Desc : I18nBase(
+		Locale.ENGLISH to "Query and manage LLM providers",
+		Locale.SIMPLIFIED_CHINESE to "查询和管理模型提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class List : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "List configured providers"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出已配置的提供商"),
-		)
-	}
+	class List : I18nBase(
+		Locale.ENGLISH to "List configured providers",
+		Locale.SIMPLIFIED_CHINESE to "列出已配置的提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Show : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Show detailed info of specified provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "显示指定提供商的详细信息"),
-		)
-	}
+	class Show : I18nBase(
+		Locale.ENGLISH to "Show detailed info of specified provider",
+		Locale.SIMPLIFIED_CHINESE to "显示指定提供商的详细信息",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Types : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "List available provider types"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出可用的提供商类型"),
-		)
-	}
+	class Types : I18nBase(
+		Locale.ENGLISH to "List available provider types",
+		Locale.SIMPLIFIED_CHINESE to "列出可用的提供商类型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Info : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Show metadata for a provider type"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "查看指定提供商类型的元数据"),
-		)
-	}
+	class Info : I18nBase(
+		Locale.ENGLISH to "Show metadata for a provider type",
+		Locale.SIMPLIFIED_CHINESE to "查看指定提供商类型的元数据",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Add : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Add a provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加提供商"),
-		)
-	}
+	class Add : I18nBase(
+		Locale.ENGLISH to "Add a provider",
+		Locale.SIMPLIFIED_CHINESE to "添加提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class AddName : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Name for the new provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新提供商的名称"),
-		)
-	}
+	class AddName : I18nBase(
+		Locale.ENGLISH to "Name for the new provider",
+		Locale.SIMPLIFIED_CHINESE to "新提供商的名称",
+	)
 	
 	@AutoService(I18nDef::class)
-	class AddType : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Type of the new provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新提供商的类型"),
-		)
-	}
+	class AddType : I18nBase(
+		Locale.ENGLISH to "Type of the new provider",
+		Locale.SIMPLIFIED_CHINESE to "新提供商的类型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class AddKey : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Key name for the new provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新提供商的密钥名称"),
-		)
-	}
+	class AddKey : I18nBase(
+		Locale.ENGLISH to "Key name for the new provider",
+		Locale.SIMPLIFIED_CHINESE to "新提供商的密钥名称",
+	)
 	
 	@AutoService(I18nDef::class)
-	class AddUrl : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "API URL for the new provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新提供商的API端点"),
-		)
-	}
+	class AddUrl : I18nBase(
+		Locale.ENGLISH to "API URL for the new provider",
+		Locale.SIMPLIFIED_CHINESE to "新提供商的API端点",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Remove : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Remove specified provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "删除指定提供商"),
-		)
-	}
+	class Remove : I18nBase(
+		Locale.ENGLISH to "Remove specified provider",
+		Locale.SIMPLIFIED_CHINESE to "删除指定提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Yes : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Skip interactive delete confirmation"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "跳过交互式的删除确认"),
-		)
-	}
+	class Yes : I18nBase(
+		Locale.ENGLISH to "Skip interactive delete confirmation",
+		Locale.SIMPLIFIED_CHINESE to "跳过交互式的删除确认",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Rename : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Rename a provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "重命名指定提供商"),
-		)
-	}
+	class Rename : I18nBase(
+		Locale.ENGLISH to "Rename a provider",
+		Locale.SIMPLIFIED_CHINESE to "重命名指定提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class NewName : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "新的提供商名称"),
-		)
-	}
+	class NewName : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "新的提供商名称",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Update : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Edit a provider"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "编辑指定提供商"),
-		)
-	}
+	class Update : I18nBase(
+		Locale.ENGLISH to "Edit a provider",
+		Locale.SIMPLIFIED_CHINESE to "编辑指定提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ProviderNotFound : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Provider not found: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到提供商: %s"),
-		)
-	}
+	class ProviderNotFound : I18nBase(
+		Locale.ENGLISH to "Provider not found: %s",
+		Locale.SIMPLIFIED_CHINESE to "未找到提供商: %s",
+	)
 }

@@ -19,164 +19,124 @@
 package io.github.autotweaker.adapter.cli.commands.config
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object CfgI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Query and manage settings"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "查询和管理应用设置"),
-		)
-	}
+	class Desc : I18nBase(
+		Locale.ENGLISH to "Query and manage settings",
+		Locale.SIMPLIFIED_CHINESE to "查询和管理应用设置",
+	)
 	
 	@AutoService(I18nDef::class)
-	class List : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "List all settings"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出所有设置条目"),
-		)
-	}
+	class List : I18nBase(
+		Locale.ENGLISH to "List all settings",
+		Locale.SIMPLIFIED_CHINESE to "列出所有设置条目",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Full : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Show full setting details"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "显示设置条目的完整信息"),
-		)
-	}
+	class Full : I18nBase(
+		Locale.ENGLISH to "Show full setting details",
+		Locale.SIMPLIFIED_CHINESE to "显示设置条目的完整信息",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Limit : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Limit number of entries"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "仅显示指定数量的条目"),
-		)
-	}
+	class Limit : I18nBase(
+		Locale.ENGLISH to "Limit number of entries",
+		Locale.SIMPLIFIED_CHINESE to "仅显示指定数量的条目",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Set : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Modify a setting by key"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "根据键修改指定设置项"),
-		)
-	}
+	class Set : I18nBase(
+		Locale.ENGLISH to "Modify a setting by key",
+		Locale.SIMPLIFIED_CHINESE to "根据键修改指定设置项",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SetValue : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "New value for the setting"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "设置项的新值"),
-		)
-	}
+	class SetValue : I18nBase(
+		Locale.ENGLISH to "New value for the setting",
+		Locale.SIMPLIFIED_CHINESE to "设置项的新值",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Search : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Search settings"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "搜索设置条目"),
-		)
-	}
+	class Search : I18nBase(
+		Locale.ENGLISH to "Search settings",
+		Locale.SIMPLIFIED_CHINESE to "搜索设置条目",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SearchKey : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Search in setting keys"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "在设置键中搜索"),
-		)
-	}
+	class SearchKey : I18nBase(
+		Locale.ENGLISH to "Search in setting keys",
+		Locale.SIMPLIFIED_CHINESE to "在设置键中搜索",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SearchValue : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Search in setting values"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "在设置值中搜索"),
-		)
-	}
+	class SearchValue : I18nBase(
+		Locale.ENGLISH to "Search in setting values",
+		Locale.SIMPLIFIED_CHINESE to "在设置值中搜索",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SearchDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Search in setting descriptions"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "在设置描述中搜索"),
-		)
-	}
+	class SearchDesc : I18nBase(
+		Locale.ENGLISH to "Search in setting descriptions",
+		Locale.SIMPLIFIED_CHINESE to "在设置描述中搜索",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Reset : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "重置指定的设置项"),
-		)
-	}
+	class Reset : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "重置指定的设置项",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Yes : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "跳过重置确认"),
-		)
-	}
+	class Yes : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "跳过重置确认",
+	)
 	
 	@AutoService(I18nDef::class)
-	class OutKey : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Key: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "键名: %s"),
-		)
-	}
+	class OutKey : I18nBase(
+		Locale.ENGLISH to "Key: %s",
+		Locale.SIMPLIFIED_CHINESE to "键名: %s",
+	)
 	
 	@AutoService(I18nDef::class)
-	class OutDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Description: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "描述: %s"),
-		)
-	}
+	class OutDesc : I18nBase(
+		Locale.ENGLISH to "Description: %s",
+		Locale.SIMPLIFIED_CHINESE to "描述: %s",
+	)
 	
 	@AutoService(I18nDef::class)
-	class OutType : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Type: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "格式: %s"),
-		)
-	}
+	class OutType : I18nBase(
+		Locale.ENGLISH to "Type: %s",
+		Locale.SIMPLIFIED_CHINESE to "格式: %s",
+	)
 	
 	@AutoService(I18nDef::class)
-	class OutValue : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Value: %s"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "内容: %s"),
-		)
-	}
+	class OutValue : I18nBase(
+		Locale.ENGLISH to "Value: %s",
+		Locale.SIMPLIFIED_CHINESE to "内容: %s",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SettingNotFound : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Setting %s not found, please verify the key"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到设置项 %s，请确认键正确"),
-		)
-	}
+	class SettingNotFound : I18nBase(
+		Locale.ENGLISH to "Setting %s not found, please verify the key",
+		Locale.SIMPLIFIED_CHINESE to "未找到设置项 %s，请确认键正确",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ShowSetting : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "以下内容将被重置为默认:"),
-		)
-	}
+	class ShowSetting : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "以下内容将被重置为默认:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SureReset : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "输入 (y/yes) 确认:"),
-		)
-	}
+	class SureReset : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "输入 (y/yes) 确认:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SetTypeError : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Type mismatch, please verify the entry type"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "类型与原值不匹配，请确认条目类型"),
-		)
-	}
+	class SetTypeError : I18nBase(
+		Locale.ENGLISH to "Type mismatch, please verify the entry type",
+		Locale.SIMPLIFIED_CHINESE to "类型与原值不匹配，请确认条目类型",
+	)
 }

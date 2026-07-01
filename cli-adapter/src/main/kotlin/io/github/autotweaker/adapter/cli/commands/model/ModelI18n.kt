@@ -19,214 +19,145 @@
 package io.github.autotweaker.adapter.cli.commands.model
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object ModelI18n {
 	@AutoService(I18nDef::class)
-	class Description : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "管理模型配置"),
-		)
-	}
+	class Description : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "管理模型配置",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamList : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "列出所有模型"),
-		)
-	}
+	class ParamList : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "列出所有模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamAdd : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加模型"),
-		)
-	}
+	class ParamAdd : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "添加模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamName : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的显示名称"),
-		)
-	}
+	class ParamName : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "模型的显示名称",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamProvider : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型的提供商名称"),
-		)
-	}
+	class ParamProvider : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "模型的提供商名称",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamAddInfo : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "使用指定模型ID的默认元数据"),
-		)
-	}
+	class ParamAddInfo : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "使用指定模型ID的默认元数据",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamAddAll : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "添加指定提供商下的所有模型"),
-		)
-	}
+	class ParamAddAll : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "添加指定提供商下的所有模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamRemove : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "删除指定模型"),
-		)
-	}
+	class ParamRemove : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "删除指定模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamDefault : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "设置指定模型为一些模型无法解析时的回退模型"),
-		)
-	}
+	class ParamDefault : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "设置指定模型为一些模型无法解析时的回退模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ProviderNotFound : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的提供商"),
-		)
-	}
+	class ProviderNotFound : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "未找到名为 %s 的提供商",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ModelNotFound : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "未找到名为 %s 的模型"),
-		)
-	}
+	class ModelNotFound : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "未找到名为 %s 的模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ModelDuplicateError : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "相同提供商下已经存在名称为 %s 的模型了"),
-		)
-	}
+	class ModelDuplicateError : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "相同提供商下已经存在名称为 %s 的模型了",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptId : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入模型ID (如deepseek-v4-pro):"),
-		)
-	}
+	class PromptId : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "请输入模型ID (如deepseek-v4-pro):",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptContextWindow : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入模型的上下文窗口 $TOKENS:"),
-		)
-	}
+	class PromptContextWindow : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "请输入模型的上下文窗口 $TOKENS:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptMaxOutputTokens : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "请输入模型的最大输出长度 $TOKENS:"),
-		)
-	}
+	class PromptMaxOutputTokens : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "请输入模型的最大输出长度 $TOKENS:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptSetInputPrice : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否开始设置模型输入价格 $YON:"),
-		)
-	}
+	class PromptSetInputPrice : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "是否开始设置模型输入价格 $YON:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptSetOutputPrice : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否开始设置模型输出价格 $YON:"),
-		)
-	}
+	class PromptSetOutputPrice : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "是否开始设置模型输出价格 $YON:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptTieredPrice : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否为阶梯计费 $YON:"),
-		)
-	}
+	class PromptTieredPrice : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "是否为阶梯计费 $YON:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptSetCachedPrice : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否设置命中缓存的价格 $YON:"),
-		)
-	}
+	class PromptSetCachedPrice : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "是否设置命中缓存的价格 $YON:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptSetPrice : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "是否要继续添加一个价格区间 $YON:"),
-		)
-	}
+	class PromptSetPrice : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "是否要继续添加一个价格区间 $YON:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptSetFeature : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "模型是否支持[%s] $YON:"),
-		)
-	}
+	class PromptSetFeature : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "模型是否支持[%s] $YON:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class InvalidValue : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "无效的值"),
-		)
-	}
+	class InvalidValue : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "无效的值",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptPriceRange : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(
-				Locale.SIMPLIFIED_CHINESE,
-				"输入价格区间，格式为 [起始 $TOKENS + '-' + 结束 $TOKENS]，仅输入一个数将视为最后一个区间的开始值\n区间:"
-			),
-		)
-	}
+	class PromptPriceRange : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "输入价格区间，格式为 [起始 $TOKENS + '-' + 结束 $TOKENS]，仅输入一个数将视为最后一个区间的开始值\n区间:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptTokenUnit : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(
-				Locale.SIMPLIFIED_CHINESE,
-				"价格单位 (每多少 tokens)，例：每百万 tokens 10 美元，单位为 '1,000,000'\n单位:"
-			),
-		)
-	}
+	class PromptTokenUnit : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "价格单位 (每多少 tokens)，例：每百万 tokens 10 美元，单位为 '1,000,000'\n单位:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptPriceCurrency : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(
-				Locale.SIMPLIFIED_CHINESE,
-				"货币代码，必须为三位英文字母:"
-			),
-		)
-	}
+	class PromptPriceCurrency : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "货币代码，必须为三位英文字母:",
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptPrice : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(
-				Locale.SIMPLIFIED_CHINESE,
-				"输入价格 (%s):"
-			),
-		)
-	}
+	class PromptPrice : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "输入价格 (%s):",
+	)
 	
 	@AutoService(I18nDef::class)
-	class Unknown : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(
-				Locale.SIMPLIFIED_CHINESE,
-				"未知"
-			),
-		)
-	}
+	class Unknown : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "未知",
+	)
 	
 	const val TOKENS = "(tokens)"
 	const val YON = "(y/n)"

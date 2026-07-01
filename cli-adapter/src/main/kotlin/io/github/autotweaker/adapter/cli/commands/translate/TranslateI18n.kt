@@ -19,36 +19,28 @@
 package io.github.autotweaker.adapter.cli.commands.translate
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object TranslateI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "管理国际化服务，未指定参数时触发自动翻译"),
-		)
-	}
+	class Desc : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "管理国际化服务，未指定参数时触发自动翻译",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SetModelDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "指定用于国际化翻译的模型"),
-		)
-	}
+	class SetModelDesc : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "指定用于国际化翻译的模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class RemoveModelDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "移除用于国际化翻译的模型"),
-		)
-	}
+	class RemoveModelDesc : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "移除用于国际化翻译的模型",
+	)
 	
 	@AutoService(I18nDef::class)
-	class SetLanguageDesc : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "指定国际化的目标语言，必须为 BCP 47 格式"),
-		)
-	}
+	class SetLanguageDesc : I18nBase(
+		Locale.SIMPLIFIED_CHINESE to "指定国际化的目标语言，必须为 BCP 47 格式",
+	)
 }

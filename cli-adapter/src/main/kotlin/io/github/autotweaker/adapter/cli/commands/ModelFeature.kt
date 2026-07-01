@@ -19,48 +19,38 @@
 package io.github.autotweaker.adapter.cli.commands
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 object ModelFeature {
 	@AutoService(I18nDef::class)
-	class StreamingFeature : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Streaming"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "流式输出"),
-		)
-	}
+	class StreamingFeature : I18nBase(
+		Locale.ENGLISH to "Streaming",
+		Locale.SIMPLIFIED_CHINESE to "流式输出",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ToolCallFeature : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Tool calling"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "工具调用"),
-		)
-	}
+	class ToolCallFeature : I18nBase(
+		Locale.ENGLISH to "Tool calling",
+		Locale.SIMPLIFIED_CHINESE to "工具调用",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ReasoningFeature : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Reasoning"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "深度思考"),
-		)
-	}
+	class ReasoningFeature : I18nBase(
+		Locale.ENGLISH to "Reasoning",
+		Locale.SIMPLIFIED_CHINESE to "深度思考",
+	)
 	
 	@AutoService(I18nDef::class)
-	class ImageFeature : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "Image understanding"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "图像理解"),
-		)
-	}
+	class ImageFeature : I18nBase(
+		Locale.ENGLISH to "Image understanding",
+		Locale.SIMPLIFIED_CHINESE to "图像理解",
+	)
 	
 	@AutoService(I18nDef::class)
-	class JsonOutputFeature : I18nDef {
-		override val localizations = listOf(
-			LocalizedString(Locale.ENGLISH, "JSON output"),
-			LocalizedString(Locale.SIMPLIFIED_CHINESE, "格式化输出"),
-		)
-	}
+	class JsonOutputFeature : I18nBase(
+		Locale.ENGLISH to "JSON output",
+		Locale.SIMPLIFIED_CHINESE to "格式化输出",
+	)
 }
