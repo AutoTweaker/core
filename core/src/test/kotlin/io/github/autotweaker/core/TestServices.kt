@@ -22,17 +22,27 @@ import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
+import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
-import io.mockk.every
 import io.mockk.mockk
 
 object TestServices {
-	private val settingService = mockk<SettingService>(relaxed = true)
-	
-	init {
-		every { settingService.get<SettingValue>(any()) } answers { firstArg<SettingDef<*>>().default }
+	private val settingService = object : SettingService {
+		@Suppress("UNCHECKED_CAST")
+		override operator fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T =
+			def.default.value
+		
+		override fun getDef(id: String): SettingDef<*>? = null
+		
+		override fun <V : SettingValue<*>> set(def: SettingDef<V>, value: V) {}
+		
+		override fun set(id: String, value: SettingValue<*>) {}
+		
+		override fun setDescription(id: String, description: String) {}
+		
+		override fun getAll(): List<SettingEntry> = emptyList()
 	}
 	
 	fun init() {

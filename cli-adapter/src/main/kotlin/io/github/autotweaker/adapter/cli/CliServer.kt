@@ -50,7 +50,7 @@ object CliServer : Loggable, Settable, Traceable {
 		10_485_760, "CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
 	)
 	
-	private val maxLineLength = setting.get(MaxLineLength()).value
+	private val maxLineLength = setting(MaxLineLength())
 	
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = scope(IO)

@@ -61,9 +61,9 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 	) {
 		val model = modelRepo.resolve(modelId) ?: error("Model not found: $modelId")
 		val systemPrompt =
-			setting.get(TranslateSettings.SystemPrompt()).value.replace("{{target_language}}", target.displayName)
-		val userPromptTemplate = setting.get(TranslateSettings.UserPrompt()).value
-		val batchSize = setting.get(TranslateSettings.BatchSize()).value
+			setting(TranslateSettings.SystemPrompt()).replace("{{target_language}}", target.displayName)
+		val userPromptTemplate = setting(TranslateSettings.UserPrompt())
+		val batchSize = setting(TranslateSettings.BatchSize())
 		
 		val units = collectUnits(target)
 		if (units.isEmpty()) return
@@ -71,7 +71,7 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 		val jobs = units.chunked(batchSize).map {
 			BatchJob(model, systemPrompt, userPromptTemplate, target, it)
 		}
-		val semaphore = Semaphore(setting.get(TranslateSettings.MaxConcurrent()).value)
+		val semaphore = Semaphore(setting(TranslateSettings.MaxConcurrent()))
 		
 		coroutineScope {
 			jobs.map { job ->
@@ -116,7 +116,7 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 				ChatMessage.UserMessage(userPrompt, Clock.System.now()),
 			),
 			stream = false,
-			thinking = setting.get(TranslateSettings.Thinking()).value,
+			thinking = setting(TranslateSettings.Thinking()),
 			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		)
 		val results = ChatService.chat(request).toList()

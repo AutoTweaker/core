@@ -38,16 +38,16 @@ import kotlin.time.DurationUnit
 class Bash : CoreTool<BashArgs>, Loggable, Settable {
 	override val argsSerializer = BashArgs.serializer()
 	override val name = "bash"
-	override val description get() = setting.get(BashSettings.Description()).value
+	override val description get() = setting(BashSettings.Description())
 	
 	override suspend fun describe(): Map<KProperty1<*, *>, String> {
 		val envIds = listEnv().sorted().let { if (it.isEmpty()) "[none]" else Json.encodeToString(it) }
 		return mapOf(
-			BashArgs::command to setting.get(BashSettings.CommandPropDescription()).value,
-			BashArgs::timeoutSeconds to setting.get(BashSettings.TimeoutPropDescription()).value.format(
-				setting.get(BashSettings.DefaultTimeoutSeconds()).value
+			BashArgs::command to setting(BashSettings.CommandPropDescription()),
+			BashArgs::timeoutSeconds to setting(BashSettings.TimeoutPropDescription()).format(
+				setting(BashSettings.DefaultTimeoutSeconds())
 			),
-			BashArgs::envIds to setting.get(BashSettings.EnvIdsPropDescription()).value.format(envIds),
+			BashArgs::envIds to setting(BashSettings.EnvIdsPropDescription()).format(envIds),
 		)
 	}
 	
@@ -58,12 +58,12 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 	): Tool.ToolOutput {
 		val command = args.command
 		if (command.isBlank()) return Tool.ToolOutput(
-			setting.get(BashSettings.InvalidCommandMessage()).value, false
+			setting(BashSettings.InvalidCommandMessage()), false
 		).andLog(log) { debug("Rejected blank bash command  tool=bash") }
 		
 		val timeoutSeconds = args.timeoutSeconds
 		if (timeoutSeconds <= 0) return Tool.ToolOutput(
-			setting.get(BashSettings.InvalidTimeoutMessage()).value, false
+			setting(BashSettings.InvalidTimeoutMessage()), false
 		).andLog(log) {
 			debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
 		}
@@ -106,7 +106,7 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 			r.result.timeout
 		)
 		
-		val output = setting.get(BashSettings.ResultTemplate()).value
+		val output = setting(BashSettings.ResultTemplate())
 			.format(r.result.exitCode, duration, stdoutStr, stderrStr)
 		return Tool.ToolOutput(output, r.result.exitCode == 0 && !r.result.timeout)
 	}

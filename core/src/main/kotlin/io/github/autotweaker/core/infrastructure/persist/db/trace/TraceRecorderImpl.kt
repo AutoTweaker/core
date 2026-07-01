@@ -43,7 +43,7 @@ object TraceRecorderImpl : Loggable, Settable {
 			}
 		}
 		
-		val interval = setting.get(TraceSettings.CleanupIntervalMinutes()).value
+		val interval = setting(TraceSettings.CleanupIntervalMinutes())
 		if (interval > 0) scope.launch {
 			while (isActive) {
 				delay(interval.minutes)

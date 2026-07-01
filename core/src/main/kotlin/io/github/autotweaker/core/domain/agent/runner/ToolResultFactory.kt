@@ -56,8 +56,8 @@ class ToolResultFactory : Settable {
 	) = buildToolMessage(
 		assistantMessageId,
 		call, ToolResult(
-			content = if (reason != null) setting.get(AgentToolSettings.RejectedWithFeedback()).value.format(reason) else
-				setting.get(AgentToolSettings.Rejected()).value,
+			content = if (reason != null) setting(AgentToolSettings.RejectedWithFeedback()).format(reason) else
+				setting(AgentToolSettings.Rejected()),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.REJECTED,
 		)

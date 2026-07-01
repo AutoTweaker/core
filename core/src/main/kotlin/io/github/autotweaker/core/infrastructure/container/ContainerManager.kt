@@ -63,7 +63,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 		else log.warn("Denied container access, features disabled").also { return }
 		
 		imagePullJob = scope.async {
-			val image = setting.get(ContainerSettings.DockerImage()).value
+			val image = setting(ContainerSettings.DockerImage())
 			service.pullImage(image)
 		}
 	}
@@ -72,7 +72,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 	private suspend fun ensureRunning() = lock.withLock {
 		if (isRunning) return@withLock
 		secretStore.requireUnlocked()
-		val image = setting.get(ContainerSettings.DockerImage()).value
+		val image = setting(ContainerSettings.DockerImage())
 		val job = imagePullJob
 		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null)
 			imagePullJob = scope.async { service.pullImage(image) }
@@ -107,7 +107,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
 	): Flow<ShellEvent> = flow {
 		if (!containerAccess) {
-			val msg = setting.get(ContainerSettings.AccessDeniedMessage()).value
+			val msg = setting(ContainerSettings.AccessDeniedMessage())
 			emit(ShellEvent.Stderr("$msg\n"))
 			emit(
 				ShellEvent.Exit(

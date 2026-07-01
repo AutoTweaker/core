@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
 import io.github.autotweaker.api.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.nio.file.Files
 
 object TraceCleanup : Loggable, Settable {
@@ -26,11 +28,11 @@ object TraceCleanup : Loggable, Settable {
 	private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
 	
 	suspend fun cleanup() {
-		val maxAgeDays = setting.get(TraceSettings.MaxAgeDays()).value
-		val maxEntriesPerNs = setting.get(TraceSettings.MaxEntriesPerNamespace()).value
-		val maxTotalEntries = setting.get(TraceSettings.MaxTotalEntries()).value
-		val maxDbSizeMB = setting.get(TraceSettings.MaxDbSizeMB()).value
-		val batchSize = setting.get(TraceSettings.CleanupBatchSize()).value
+		val maxAgeDays = setting(TraceSettings.MaxAgeDays())
+		val maxEntriesPerNs = setting(TraceSettings.MaxEntriesPerNamespace())
+		val maxTotalEntries = setting(TraceSettings.MaxTotalEntries())
+		val maxDbSizeMB = setting(TraceSettings.MaxDbSizeMB())
+		val batchSize = setting(TraceSettings.CleanupBatchSize())
 		
 		var cleanupCount = 0
 		
@@ -39,7 +41,9 @@ object TraceCleanup : Loggable, Settable {
 		cleanupCount += if (maxTotalEntries > 0) TraceStore.trimGlobal(maxTotalEntries) else 0
 		cleanupCount += if (maxDbSizeMB > 0 && batchSize > 0) {
 			val maxSizeBytes = maxDbSizeMB * BYTES_PER_MB
-			if (Files.size(dbFilePath) > maxSizeBytes) {
+			if (withContext(Dispatchers.IO) {
+					Files.size(dbFilePath)
+				} > maxSizeBytes) {
 				TraceStore.deleteOldestBatch(batchSize)
 			} else 0
 		} else 0

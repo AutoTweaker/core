@@ -65,7 +65,7 @@ class Agent(
 	private val _output = MutableSharedFlow<AgentOutput>()
 	val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
-	private val ctx = AgentContextManager(context, setting.get(AgentToolSettings.Cancelled()).value)
+	private val ctx = AgentContextManager(context, setting(AgentToolSettings.Cancelled()))
 	val context: StateFlow<AgentContext> = ctx.context
 	
 	private lateinit var toolManager: Tools

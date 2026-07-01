@@ -20,7 +20,7 @@ package io.github.autotweaker.api.config
 
 import io.github.autotweaker.api.types.config.SettingValue
 
-interface SettingDef<V : SettingValue> {
+interface SettingDef<out V : SettingValue<*>> {
 	val default: V
 	val description: String
 }

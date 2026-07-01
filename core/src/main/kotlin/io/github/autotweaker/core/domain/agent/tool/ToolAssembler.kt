@@ -35,8 +35,8 @@ object ToolAssembler : Loggable, Settable {
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription = setting.get(AgentToolSettings.ReasonEmptyError()).value
-		val enableDesc = setting.get(AgentToolSettings.EnableDescription()).value
+		val reasonDescription = setting(AgentToolSettings.ReasonEmptyError())
+		val enableDesc = setting(AgentToolSettings.EnableDescription())
 		
 		val activeNames = toolInfo.filter { it.active }.map { it.name }.toSet()
 		val activeMetas = tools.filter { it.name in activeNames }.map { ToolMeta.build(it) }

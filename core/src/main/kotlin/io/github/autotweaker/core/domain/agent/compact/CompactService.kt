@@ -56,11 +56,11 @@ class CompactService(
 			agentId, rounds.size, model.summarize.id
 		)
 		
-		val compactPrompt = setting.get(CompactSettings.Prompt()).value
-		val maxMessageChars = setting.get(CompactSettings.MaxMessageChars()).value
-		val messageSummarizePrompt = setting.get(CompactSettings.MessageSummarizePrompt()).value
-		val thinkingEnabled = setting.get(CompactSettings.Thinking()).value
-		val maxRetries = setting.get(CompactSettings.MaxCompactRetries()).value
+		val compactPrompt = setting(CompactSettings.Prompt())
+		val maxMessageChars = setting(CompactSettings.MaxMessageChars())
+		val messageSummarizePrompt = setting(CompactSettings.MessageSummarizePrompt())
+		val thinkingEnabled = setting(CompactSettings.Thinking())
+		val maxRetries = setting(CompactSettings.MaxCompactRetries())
 		
 		val (preprocessedMessages, preprocessSnapshots) = preprocessMessages(
 			rounds, model, maxMessageChars, messageSummarizePrompt, thinkingEnabled
@@ -171,7 +171,7 @@ class CompactService(
 		}
 		
 		val extracted = rawContent.extractSummary()
-		val minSummaryLength = setting.get(CompactSettings.MinSummaryLength()).value
+		val minSummaryLength = setting(CompactSettings.MinSummaryLength())
 		val valid = extracted.length >= minSummaryLength
 		
 		if (valid) onOutput(

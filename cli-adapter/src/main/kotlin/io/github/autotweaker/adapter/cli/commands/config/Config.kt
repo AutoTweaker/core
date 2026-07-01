@@ -75,7 +75,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		val full: Boolean = request.get("full").toBoolean()
-		val limit: Int = request.get("limit")?.toIntOrNull() ?: setting.get(DefaultLimit()).value
+		val limit: Int = request.get("limit")?.toIntOrNull() ?: setting(DefaultLimit())
 		
 		if (request.has("list")) {
 			emitAll(list(limit, full))
@@ -164,7 +164,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		
 		
 		if (sure) {
-			val default = setting.getDefault(config.id) ?: run { emitDone(1); return@flow }
+			val default = setting.getDef(config.id) ?: run { emitDone(1); return@flow }
 			setting.set(id = config.id, value = default.default)
 			setting.setDescription(id = config.id, description = default.description)
 			emitDone()

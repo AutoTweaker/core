@@ -38,7 +38,7 @@ class TruncationImpl(
 		val inContainer = pathResolver.inContainer(workspace.path)
 		val (_, hostPath) = temporaryStorage.save(content, inContainer)
 		val filePath = if (inContainer) pathResolver.toContainerPath(hostPath) else hostPath
-		val prompt = setting.get(TruncatedPrompt()).value.format(content.length, filePath)
+		val prompt = setting(TruncatedPrompt()).format(content.length, filePath)
 		return if (keepTail) prompt + content.takeLast(threshold) else content.take(threshold) + prompt
 	}
 	

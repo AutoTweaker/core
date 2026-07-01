@@ -39,9 +39,9 @@ class CommandRouterTest {
 	
 	companion object {
 		private val settingService = mockk<SettingService>(relaxed = true)
-		
+
 		init {
-			every { settingService.get<SettingValue.ValInt>(any()) } returns SettingValue.ValInt(100_000)
+			every { settingService.invoke<SettingValue.ValInt, Int>(any()) } returns 100_000
 			initServices(
 				ServiceRegistry(
 					mockk(relaxed = true),

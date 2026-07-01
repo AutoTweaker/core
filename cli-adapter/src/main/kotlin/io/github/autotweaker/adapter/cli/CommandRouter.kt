@@ -40,7 +40,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		100_000, "CLI命令的最大参数数量，超出会报错"
 	)
 	
-	private val maxArgsCount = setting.get(MaxArgsCount()).value
+	private val maxArgsCount = setting(MaxArgsCount())
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {

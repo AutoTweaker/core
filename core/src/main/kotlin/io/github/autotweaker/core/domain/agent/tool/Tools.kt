@@ -122,7 +122,7 @@ class Tools(
 		if (_toolInfo.value.any { !it.active && it.name == call.name }) {
 			val tool = tools.first { it.name == call.name }
 			val meta = ToolMeta.build(tool)
-			val message = setting.get(AgentToolSettings.ActiveMessage()).value
+			val message = setting(AgentToolSettings.ActiveMessage())
 				.format(meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name)
 			
 			return ToolCallResolveResult.Activation(message)

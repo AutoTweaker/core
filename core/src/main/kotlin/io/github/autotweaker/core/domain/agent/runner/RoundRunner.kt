@@ -223,7 +223,7 @@ class RoundRunner(
 	}
 	
 	private suspend fun autoDeactivate() {
-		val threshold = setting.get(AgentToolSettings.DeactivationThreshold()).value
+		val threshold = setting(AgentToolSettings.DeactivationThreshold())
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
 			context.historyRounds.orEmpty() + context.compactedRounds?.flatMap { it.rounds }.orEmpty()
@@ -254,10 +254,10 @@ class RoundRunner(
 		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
 		
 		val contextUsageThreshold = config?.compactContextUsage
-			?: setting.get(CompactSettings.DefaultCompactContextUsage()).value
+			?: setting(CompactSettings.DefaultCompactContextUsage())
 				.takeIf { it > 0.0 && it <= 1.0 }
 		val totalTokensThreshold = config?.compactTotalTokens
-			?: setting.get(CompactSettings.DefaultCompactTotalTokens()).value
+			?: setting(CompactSettings.DefaultCompactTotalTokens())
 				.takeIf { it > 0 }
 		
 		val exceedContextUsage = contextUsageThreshold != null &&

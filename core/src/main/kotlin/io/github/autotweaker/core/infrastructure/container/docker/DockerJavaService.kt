@@ -178,7 +178,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	}
 	
 	private fun schedulePermissionFix(containerId: String) {
-		val delaySeconds = setting.get(DockerSettings.PermissionFixDelaySeconds()).value
+		val delaySeconds = setting(DockerSettings.PermissionFixDelaySeconds())
 		if (delaySeconds <= 0) return
 		permissionFixJob?.cancel()
 		permissionFixJob = scope.launch {

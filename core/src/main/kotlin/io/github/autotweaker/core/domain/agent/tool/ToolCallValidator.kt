@@ -59,12 +59,12 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				setting.get(AgentToolSettings.JsonError()).value.format(e.message ?: "Unknown error")
+				setting(AgentToolSettings.JsonError()).format(e.message ?: "Unknown error")
 			).andLog(log) {
 				debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
 			}
 		} ?: return ValidationResult.Failure(
-			setting.get(AgentToolSettings.JsonError()).value.format("Invalid JSON object")
+			setting(AgentToolSettings.JsonError()).format("Invalid JSON object")
 		).andLog(log) {
 			debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
@@ -72,7 +72,7 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 		val parts = toolCallName.split("-", limit = 2)
 		if (parts.size != 2) {
 			return ValidationResult.Failure(
-				setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+				setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
 			).andLog(log) {
 				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
 			}
@@ -82,7 +82,7 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 		val functionName = parts[1]
 		
 		val tool = tools.find { it.name == toolName } ?: return ValidationResult.Failure(
-			setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+			setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
 		).andLog(log) {
 			debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName)
 		}
@@ -90,7 +90,7 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
-				setting.get(AgentToolSettings.PropertyMissing()).value.format(toolCallName, "reason")
+				setting(AgentToolSettings.PropertyMissing()).format(toolCallName, "reason")
 			).andLog(log) {
 				debug(
 					"Failed tool call validation reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
@@ -98,7 +98,7 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 			}
 		}
 		val reason = reasonElement.content
-		if (reason.isBlank()) return ValidationResult.Failure(setting.get(AgentToolSettings.ReasonEmptyError()).value)
+		if (reason.isBlank()) return ValidationResult.Failure(setting(AgentToolSettings.ReasonEmptyError()))
 		
 		val otherArguments = JsonObject(arguments.filterKeys { it != "reason" })
 		val deserializationJson = if (tool.argsSerializer.descriptor.kind == PolymorphicKind.SEALED) {
@@ -107,7 +107,7 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 				.map { sealedDesc.getElementName(it) }
 				.find { it.substringAfterLast('.').toSnakeCase() == functionName }
 				?: return ValidationResult.Failure(
-					setting.get(AgentToolSettings.FunctionNameError()).value.format(toolCallName)
+					setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
 				).andLog(log) {
 					debug(
 						"Failed sealed subclass lookup  callId={}  name={}  function={}",
@@ -135,7 +135,7 @@ class ToolCallValidator : Loggable, Traceable, Settable {
 			json.decodeFromJsonElement(tool.argsSerializer, finalJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				setting.get(AgentToolSettings.DeserializationError()).value.format(toolCallName, e.message)
+				setting(AgentToolSettings.DeserializationError()).format(toolCallName, e.message)
 			).andLog(log) {
 				debug(
 					"Failed tool call arg deserialization  callId={}  name={}  tool={}  error={}",

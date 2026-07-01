@@ -44,13 +44,13 @@ object Settings : SettingService, Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
-	private val cache = ConcurrentHashMap<String, SettingValue>()
+	private val cache = ConcurrentHashMap<String, SettingValue<*>>()
 	
-	private fun fillColumn(it: UpdateBuilder<*>, value: SettingValue) {
+	private fun fillColumn(it: UpdateBuilder<*>, value: SettingValue<*>) {
 		it[ConfigTable.valJson] = json.encodeToString(SettingValue.serializer(), value)
 	}
 	
-	private fun getValueFromRow(row: ResultRow): SettingValue? {
+	private fun getValueFromRow(row: ResultRow): SettingValue<*>? {
 		val jsonStr = row[ConfigTable.valJson]
 		return trace.catching { json.decodeFromString(SettingValue.serializer(), jsonStr) }
 			.onFailure { log.warn("Failed config value deserialization  key={}", row[ConfigTable.keyName]) }
@@ -66,28 +66,30 @@ object Settings : SettingService, Loggable, Traceable {
 		log.info("Initialized settings  count={}", cache.size)
 	}
 	
-	private fun loadAllIntoCache(): Map<String, SettingValue> = transaction(db) {
-		val map = mutableMapOf<String, SettingValue>()
+	private fun loadAllIntoCache(): Map<String, SettingValue<*>> = transaction(db) {
+		val map = mutableMapOf<String, SettingValue<*>>()
 		ConfigTable.selectAll().forEach { row ->
 			getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }
 		}
 		return@transaction map
 	}
 	
-	override fun <V : SettingValue> get(def: SettingDef<V>): V {
+	override fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T {
 		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		val stored = cache[id]
-		@Suppress("UNCHECKED_CAST") return if (stored != null && stored::class == def.default::class) stored as V else def.default
+		@Suppress("UNCHECKED_CAST") val result =
+			if (stored != null && stored::class == def.default::class) stored as V else def.default
+		return result.value
 	}
 	
-	override fun <V : SettingValue> set(def: SettingDef<V>, value: V) {
+	override fun <V : SettingValue<*>> set(def: SettingDef<V>, value: V) {
 		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
 		upsertValue(id, value, def.description)
 		cache[id] = value
 		log.debug("Updated setting by def  id={}  value={}", id, value)
 	}
 	
-	override fun set(id: String, value: SettingValue) {
+	override fun set(id: String, value: SettingValue<*>) {
 		val def = ConfigRegistry.get(id) ?: throw IllegalArgumentException("Unknown setting: $id")
 		if (value::class != def.default::class) {
 			throw IllegalArgumentException(
@@ -99,7 +101,7 @@ object Settings : SettingService, Loggable, Traceable {
 		log.debug("Updated setting by id  id={}  value={}", id, value)
 	}
 	
-	private fun upsertValue(id: String, value: SettingValue, description: String) {
+	private fun upsertValue(id: String, value: SettingValue<*>, description: String) {
 		transaction(db) {
 			val exists =
 				cache.containsKey(id) || ConfigTable.selectAll().where { ConfigTable.keyName eq id }.empty().not()
@@ -142,5 +144,5 @@ object Settings : SettingService, Loggable, Traceable {
 		}
 	}
 	
-	override fun getDefault(id: String): SettingDef<*>? = ConfigRegistry.get(id)
+	override fun getDef(id: String): SettingDef<*>? = ConfigRegistry.get(id)
 }

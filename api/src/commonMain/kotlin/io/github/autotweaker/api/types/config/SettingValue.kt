@@ -18,56 +18,78 @@
 
 package io.github.autotweaker.api.types.config
 
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SealedClassSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class SettingValue {
-	abstract val value: Any
-	abstract fun parse(raw: String): SettingValue
+sealed class SettingValue<out T> {
+	abstract val value: T
+	abstract fun parse(raw: String): SettingValue<T>
 	
 	@Serializable
-	data class ValByte(override val value: Byte) : SettingValue() {
+	data class ValByte(override val value: Byte) : SettingValue<Byte>() {
 		override fun parse(raw: String) = ValByte(raw.toByte())
 	}
 	
 	@Serializable
-	data class ValShort(override val value: Short) : SettingValue() {
+	data class ValShort(override val value: Short) : SettingValue<Short>() {
 		override fun parse(raw: String) = ValShort(raw.toShort())
 	}
 	
 	@Serializable
-	data class ValInt(override val value: Int) : SettingValue() {
+	data class ValInt(override val value: Int) : SettingValue<Int>() {
 		override fun parse(raw: String) = ValInt(raw.toInt())
 	}
 	
 	@Serializable
-	data class ValLong(override val value: Long) : SettingValue() {
+	data class ValLong(override val value: Long) : SettingValue<Long>() {
 		override fun parse(raw: String) = ValLong(raw.toLong())
 	}
 	
 	@Serializable
-	data class ValFloat(override val value: Float) : SettingValue() {
+	data class ValFloat(override val value: Float) : SettingValue<Float>() {
 		override fun parse(raw: String) = ValFloat(raw.toFloat())
 	}
 	
 	@Serializable
-	data class ValDouble(override val value: Double) : SettingValue() {
+	data class ValDouble(override val value: Double) : SettingValue<Double>() {
 		override fun parse(raw: String) = ValDouble(raw.toDouble())
 	}
 	
 	@Serializable
-	data class ValBoolean(override val value: Boolean) : SettingValue() {
+	data class ValBoolean(override val value: Boolean) : SettingValue<Boolean>() {
 		override fun parse(raw: String) = ValBoolean(raw.toBooleanStrict())
 	}
 	
 	@Serializable
-	data class ValChar(override val value: Char) : SettingValue() {
+	data class ValChar(override val value: Char) : SettingValue<Char>() {
 		override fun parse(raw: String) = ValChar(raw.single())
 	}
 	
 	@Serializable
-	data class ValString(override val value: String) : SettingValue() {
+	data class ValString(override val value: String) : SettingValue<String>() {
 		override fun parse(raw: String) = ValString(raw)
+	}
+	
+	@OptIn(InternalSerializationApi::class)
+	companion object {
+		@Suppress("UNCHECKED_CAST")
+		fun serializer(): KSerializer<SettingValue<*>> = SealedClassSerializer(
+			"io.github.autotweaker.api.types.config.SettingValue",
+			SettingValue::class,
+			arrayOf(
+				ValByte::class, ValShort::class, ValInt::class,
+				ValLong::class, ValFloat::class, ValDouble::class,
+				ValBoolean::class, ValChar::class, ValString::class,
+			) as Array<kotlin.reflect.KClass<out SettingValue<*>>>,
+			arrayOf(
+				ValByte.serializer(), ValShort.serializer(), ValInt.serializer(),
+				ValLong.serializer(), ValFloat.serializer(), ValDouble.serializer(),
+				ValBoolean.serializer(), ValChar.serializer(), ValString.serializer(),
+			) as Array<KSerializer<out SettingValue<*>>>
+		)
 	}
 }
 

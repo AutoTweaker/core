@@ -54,9 +54,9 @@ class ToolCallingStage(
 		model: AgentModel,
 		context: AgentContext,
 	): AgentContext.Message.Tool.Result {
-		val timeoutSeconds = setting.get(AgentToolSettings.TimeoutSeconds()).value
-		val timeoutMessage = setting.get(AgentToolSettings.TimeoutMessage()).value
-		val cancelledMessage = setting.get(AgentToolSettings.Cancelled()).value
+		val timeoutSeconds = setting(AgentToolSettings.TimeoutSeconds())
+		val timeoutMessage = setting(AgentToolSettings.TimeoutMessage())
+		val cancelledMessage = setting(AgentToolSettings.Cancelled())
 		
 		val startTime = TimeSource.Monotonic.markNow()
 		return trace.catching {
