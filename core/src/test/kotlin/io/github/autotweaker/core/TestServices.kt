@@ -22,7 +22,6 @@ import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
-import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
@@ -34,15 +33,7 @@ object TestServices {
 		override operator fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T =
 			def.default.value
 		
-		override fun getDef(id: String): SettingDef<*>? = null
-		
-		override fun <V : SettingValue<*>> set(def: SettingDef<V>, value: V) {}
-		
-		override fun set(id: String, value: SettingValue<*>) {}
-		
-		override fun setDescription(id: String, description: String) {}
-		
-		override fun getAll(): List<SettingEntry> = emptyList()
+		override fun <V : SettingValue<T>, T> set(def: SettingDef<V>, value: T) {}
 	}
 	
 	fun init() {

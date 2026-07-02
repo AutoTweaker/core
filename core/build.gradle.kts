@@ -80,7 +80,7 @@ dependencies {
 }
 afterEvaluate {
 	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {
-		option("-Xlint:", "-processing")
+		option("-nowarn")
 	}
 }
 
