@@ -46,7 +46,7 @@ dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	
 	
-	testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
+	testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 	testImplementation(kotlin("test"))
 	testImplementation("io.mockk:mockk:1.14.11")
