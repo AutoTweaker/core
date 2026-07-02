@@ -36,7 +36,7 @@ dependencies {
 	implementation("io.ktor:ktor-network:3.5.0")
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	
-	testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
+	testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 	testImplementation(kotlin("test"))
 	testImplementation("io.mockk:mockk:1.14.11")
