@@ -75,6 +75,8 @@ dependencies {
 	implementation("org.bouncycastle:bcprov-jdk18on:1.84")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.22.0")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.0")
+	implementation("tools.jackson.core:jackson-core:3.1.1")
+	implementation("tools.jackson.core:jackson-databind:3.1.1")
 }
 afterEvaluate {
 	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {

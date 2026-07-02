@@ -18,16 +18,9 @@
 
 package io.github.autotweaker.api.config
 
-import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 
 interface SettingService {
 	operator fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T
-	
-	fun getAll(): List<SettingEntry>
-	fun getDef(id: String): SettingDef<*>?
-	
-	fun <V : SettingValue<*>> set(def: SettingDef<V>, value: V)
-	fun set(id: String, value: SettingValue<*>)
-	fun setDescription(id: String, description: String)
+	fun <V : SettingValue<T>, T> set(def: SettingDef<V>, value: T)
 }

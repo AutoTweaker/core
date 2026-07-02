@@ -28,6 +28,7 @@ import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.infrastructure.i18n.I18nRegistry
+import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -88,7 +89,7 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 	}
 	
 	private fun collectUnits(target: Locale): List<TranslationUnit> {
-		val persisted = i18n.getAll().associateBy { it.key }
+		val persisted = I18nServiceImpl.getAllEntries().associateBy { it.key }
 		return I18nRegistry.getAll().mapNotNull { (key, def) ->
 			val alreadyHas = persisted[key]?.localizations?.any { it.languageCode == target } == true
 			if (alreadyHas) null
@@ -97,7 +98,7 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 	}
 	
 	fun isLanguageCovered(target: Locale): Boolean {
-		val persisted = i18n.getAll().associateBy { it.key }
+		val persisted = I18nServiceImpl.getAllEntries().associateBy { it.key }
 		return I18nRegistry.getAll().keys.all { key ->
 			persisted[key]?.localizations?.any { it.languageCode == target } == true
 		}
@@ -140,7 +141,7 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 			if (value.isBlank()) continue
 			val sourceText = r.batch.find { it.key == key }?.localizations?.firstOrNull() ?: ""
 			if (PlaceholderValidator.validate(sourceText, value)) {
-				trace.catching { i18n.set(key, value, r.target) }
+				trace.catching { I18nServiceImpl.set(key, value, r.target) }
 					.onFailure { log.warn("Failed translation persistence  key={}  reason={}", key, it.message) }
 			} else {
 				log.warn(

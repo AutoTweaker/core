@@ -19,14 +19,19 @@
 package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.PairList
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.SettingEntry
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.exception.PasswordInvalidException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.i18n.I18nEntry
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
@@ -278,6 +283,10 @@ interface CoreAPI {
 	 * @see io.github.autotweaker.api.Settable
 	 */
 	interface ConfigAPI {
+		fun getAllSettings(): List<SettingEntry>
+		fun getSettingDef(id: String): SettingDef<*>?
+		suspend fun setSetting(id: String, value: SettingValue<*>)
+		
 		/**
 		 * 添加一个环境变量，允许覆盖。
 		 *
@@ -475,6 +484,11 @@ interface CoreAPI {
 	 * @see setTranslationModel
 	 */
 	interface I18nAPI {
+		fun getDefault(id: String): I18nDef?
+		fun set(id: String, text: String, languageCode: Locale)
+		fun getAll(): List<I18nEntry>
+		fun setLanguage(locale: Locale)
+		
 		/**
 		 * 设置用于 i18n 自动翻译的大模型，请自行确认模型有效。
 		 *

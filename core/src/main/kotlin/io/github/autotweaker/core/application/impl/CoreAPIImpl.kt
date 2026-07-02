@@ -25,6 +25,7 @@ import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
@@ -40,8 +41,10 @@ import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
+import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.persist.LogStore
+import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
@@ -105,6 +108,9 @@ class CoreAPIImpl(
 		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
 		override suspend fun listApiKey() = apiKeyRepo.list()
 		override suspend fun removeApiKey(name: String) = apiKeyRepo.remove(name)
+		override fun getAllSettings() = Settings.getAllEntries()
+		override fun getSettingDef(id: String) = Settings.getDef(id)
+		override suspend fun setSetting(id: String, value: SettingValue<*>) = Settings.setById(id, value)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {
@@ -116,6 +122,10 @@ class CoreAPIImpl(
 	}
 	
 	override val i18n = object : CoreAPI.I18nAPI {
+		override fun getDefault(id: String) = I18nServiceImpl.getDefault(id)
+		override fun set(id: String, text: String, languageCode: Locale) = I18nServiceImpl.set(id, text, languageCode)
+		override fun getAll() = I18nServiceImpl.getAllEntries()
+		override fun setLanguage(locale: Locale) = I18nServiceImpl.setLanguage(locale)
 		override suspend fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)
 		override fun getTranslationModel(): UUID? = TranslationManager.getModel()
 		override fun startTranslation() = TranslationManager.startTranslation()

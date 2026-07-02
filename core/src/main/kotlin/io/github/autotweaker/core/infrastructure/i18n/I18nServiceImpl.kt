@@ -34,7 +34,7 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 	override val serializer = Data.serializer()
 	override fun default() = Data()
 	
-	override fun setLanguage(locale: Locale) {
+	fun setLanguage(locale: Locale) {
 		update { it.copy(language = locale) }
 		log.debug("Updated language  lang={}", locale.toLanguageTag())
 	}
@@ -46,9 +46,9 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 		return resolve(key, get().language)
 	}
 	
-	override fun getDefault(id: String): I18nDef? = I18nRegistry.get(id)
+	fun getDefault(id: String): I18nDef? = I18nRegistry.get(id)
 	
-	override fun set(id: String, text: String, languageCode: Locale) {
+	fun set(id: String, text: String, languageCode: Locale) {
 		update { data ->
 			val index = data.entries.indexOfFirst { it.key == id }
 			if (index == -1) error("I18n not found: $id")
@@ -62,7 +62,7 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 		log.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
 	}
 	
-	override fun getAll(): List<I18nEntry> {
+	fun getAllEntries(): List<I18nEntry> {
 		val stored = get().entries.associateBy { it.key }
 		return I18nRegistry.getAll().map { (key, def) ->
 			stored[key] ?: I18nEntry(key, def.localizations)

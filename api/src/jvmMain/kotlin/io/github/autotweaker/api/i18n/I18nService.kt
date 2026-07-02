@@ -18,14 +18,9 @@
 
 package io.github.autotweaker.api.i18n
 
-import io.github.autotweaker.api.types.i18n.I18nEntry
 import java.util.*
 
 interface I18nService {
 	fun get(def: I18nDef): String
-	fun getDefault(id: String): I18nDef?
-	fun set(id: String, text: String, languageCode: Locale)
-	fun getAll(): List<I18nEntry>
-	fun setLanguage(locale: Locale)
 	fun getLanguage(): Locale
 }

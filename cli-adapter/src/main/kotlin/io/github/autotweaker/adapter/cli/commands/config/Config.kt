@@ -23,6 +23,7 @@ import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
@@ -35,10 +36,16 @@ import kotlinx.coroutines.flow.flow
 
 @AutoService(Command::class)
 class Config : Command, Settable, I18nable, Traceable {
+	private lateinit var core: CoreAPI
+	
 	@AutoService(SettingDef::class)
 	class DefaultLimit : IntSetting(
 		1000, "cfg命令的默认limit参数值"
 	)
+	
+	override fun init(core: CoreAPI) {
+		this.core = core
+	}
 	
 	override val name: String = "cfg"
 	override val description: String
@@ -115,14 +122,14 @@ class Config : Command, Settable, I18nable, Traceable {
 	}
 	
 	private fun list(limit: Int, full: Boolean = false): Flow<CmdOutput> = flow {
-		val settings = setting.getAll().take(limit)
+		val settings = core.config.getAllSettings().take(limit)
 		printConfig(settings, full)
 	}
 	
 	private fun search(
 		limit: Int, full: Boolean = false, query: String, mode: SearchMode?
 	): Flow<CmdOutput> = flow {
-		val settings = setting.getAll()
+		val settings = core.config.getAllSettings()
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.value.value.toString(), query) }
@@ -144,7 +151,7 @@ class Config : Command, Settable, I18nable, Traceable {
 				emitDone(1)
 				return@flow
 			}
-		setting.set(key, newValue)
+		core.config.setSetting(key, newValue)
 		emitDone()
 	}
 	
@@ -164,9 +171,8 @@ class Config : Command, Settable, I18nable, Traceable {
 		
 		
 		if (sure) {
-			val default = setting.getDef(config.id) ?: run { emitDone(1); return@flow }
-			setting.set(id = config.id, value = default.default)
-			setting.setDescription(id = config.id, description = default.description)
+			val default = core.config.getSettingDef(config.id) ?: run { emitDone(1); return@flow }
+			core.config.setSetting(config.id, default.default)
 			emitDone()
 		} else {
 			emitDone(1)
@@ -174,7 +180,7 @@ class Config : Command, Settable, I18nable, Traceable {
 	}
 	
 	private suspend fun FlowCollector<CmdOutput>.settingOrEmit(key: String): SettingEntry? =
-		setting.getAll().find { it.id == key } ?: run {
+		core.config.getAllSettings().find { it.id == key } ?: run {
 			emitI18n(CfgI18n.ShowSetting(), key, error = true)
 			emitDone(1)
 		}.discard(null)

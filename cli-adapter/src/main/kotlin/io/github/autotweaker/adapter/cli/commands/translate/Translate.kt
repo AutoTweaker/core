@@ -73,7 +73,7 @@ class Translate : Command, I18nable {
 					emitDone(1)
 					return@flow
 				}
-				i18n.setLanguage(locale)
+				core.i18n.setLanguage(locale)
 				emitDone()
 				return@flow
 			}

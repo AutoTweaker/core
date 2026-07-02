@@ -31,7 +31,6 @@ import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -75,74 +74,66 @@ object Settings : SettingService, Loggable, Traceable {
 	}
 	
 	override fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T {
-		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
+		val id = requireDef(def)
 		val stored = cache[id]
-		@Suppress("UNCHECKED_CAST") val result =
+		
+		@Suppress("UNCHECKED_CAST")
+		val result =
 			if (stored != null && stored::class == def.default::class) stored as V else def.default
 		return result.value
 	}
 	
-	override fun <V : SettingValue<*>> set(def: SettingDef<V>, value: V) {
-		val id = def::class.qualifiedName ?: error("Anonymous SettingDef not supported: ${def::class}")
-		upsertValue(id, value, def.description)
-		cache[id] = value
-		log.debug("Updated setting by def  id={}  value={}", id, value)
+	@Suppress("UNCHECKED_CAST")
+	override fun <V : SettingValue<T>, T> set(def: SettingDef<V>, value: T) {
+		val id = requireDef(def)
+		val wrapped = when (def.default) {
+			is SettingValue.ValByte -> SettingValue(value as Byte)
+			is SettingValue.ValShort -> SettingValue(value as Short)
+			is SettingValue.ValInt -> SettingValue(value as Int)
+			is SettingValue.ValLong -> SettingValue(value as Long)
+			is SettingValue.ValFloat -> SettingValue(value as Float)
+			is SettingValue.ValDouble -> SettingValue(value as Double)
+			is SettingValue.ValBoolean -> SettingValue(value as Boolean)
+			is SettingValue.ValChar -> SettingValue(value as Char)
+			is SettingValue.ValString -> SettingValue(value as String)
+		} as V
+		upsertValue(id, wrapped)
+		cache[id] = wrapped
+		log.debug("Updated setting by def  id={}  value={}", id, wrapped)
 	}
 	
-	override fun set(id: String, value: SettingValue<*>) {
+	private fun <V : SettingValue<T>, T> requireDef(def: SettingDef<V>) =
+		requireNotNull(def::class.qualifiedName) { "Anonymous SettingDef not supported: ${def::class}" }
+	
+	fun setById(id: String, value: SettingValue<*>) {
 		val def = ConfigRegistry.get(id) ?: throw IllegalArgumentException("Unknown setting: $id")
-		if (value::class != def.default::class) {
-			throw IllegalArgumentException(
-				"Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}"
-			)
-		}
-		upsertValue(id, value, def.description)
+		require(value::class == def.default::class) { "Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}" }
+		upsertValue(id, value)
 		cache[id] = value
 		log.debug("Updated setting by id  id={}  value={}", id, value)
 	}
 	
-	private fun upsertValue(id: String, value: SettingValue<*>, description: String) {
+	private fun upsertValue(id: String, value: SettingValue<*>) {
 		transaction(db) {
-			val exists =
-				cache.containsKey(id) || ConfigTable.selectAll().where { ConfigTable.keyName eq id }.empty().not()
 			ConfigTable.upsert {
 				it[keyName] = id
-				if (!exists) {
-					it[ConfigTable.description] = description
-				}
 				fillColumn(it, value)
 			}
 		}
 	}
 	
-	override fun setDescription(id: String, description: String) {
-		val def = ConfigRegistry.get(id) ?: throw IllegalArgumentException("Unknown setting: $id")
-		transaction(db) {
-			ConfigTable.upsert {
-				it[keyName] = id
-				it[ConfigTable.description] = description
-				fillColumn(it, def.default)
-			}
-		}
-		if (!cache.containsKey(id)) {
-			cache[id] = def.default
-		}
-		log.debug("Updated setting description  id={}", id)
-	}
-	
-	override fun getAll(): List<SettingEntry> = transaction(db) {
+	fun getAllEntries(): List<SettingEntry> = transaction(db) {
 		val stored = ConfigTable.selectAll().associate {
-			it[ConfigTable.keyName] to (getValueFromRow(it) to it[ConfigTable.description])
+			it[ConfigTable.keyName] to getValueFromRow(it)
 		}
 		ConfigRegistry.getAll().map { (id, def) ->
-			val (storedValue, storedDesc) = stored[id] ?: (null to null)
 			SettingEntry(
 				id = id,
-				value = storedValue ?: def.default,
-				description = storedDesc ?: def.description,
+				value = stored[id] ?: def.default,
+				description = def.description,
 			)
 		}
 	}
 	
-	override fun getDef(id: String): SettingDef<*>? = ConfigRegistry.get(id)
+	fun getDef(id: String): SettingDef<*>? = ConfigRegistry.get(id)
 }
