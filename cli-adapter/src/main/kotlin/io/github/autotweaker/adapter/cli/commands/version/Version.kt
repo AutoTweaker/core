@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.flowOf
 @AutoService(Command::class)
 class Version : Command, I18nable {
 	override val name = "version"
-	override val description get() = i18n.get(VersionI18n.Desc())
+	override val description get() = i18n(VersionI18n.Desc())
 	override val syntax = Syntax.none()
 	private var coreVersion: SemVer = SemVer.parse("0.0.0")
 	

@@ -21,33 +21,44 @@ package io.github.autotweaker.core.infrastructure.i18n.translation
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.BooleanSetting
 import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
+
 
 object TranslateSettings {
 	@AutoService(SettingDef::class)
 	class BatchSize : IntSetting(
-		40, "每批次翻译的条目数"
+		40, zh(
+			"每批次翻译的条目数"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class SystemPrompt : PromptSetting(
-		"translate_system", "用于翻译请求的系统提示模板，需要 {{target_language}} 变量"
+		"translate_system", zh(
+			"用于翻译请求的系统提示模板，需要 {{target_language}} 变量"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class UserPrompt : PromptSetting(
-		"translate_user",
-		"用于翻译的用户请求模板，需要 {{target_language}} 和 {{content_to_translate}} 变量"
+		"translate_user", zh(
+			"用于翻译的用户请求模板，需要 {{target_language}} 和 {{content_to_translate}} 变量"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxConcurrent : IntSetting(
-		3, "同时翻译的最多批次数量"
+		5, zh(
+			"同时翻译的最多批次数量"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class Thinking : BooleanSetting(
-		false, "翻译请求是否启用思考"
+		false, zh(
+			"翻译请求是否启用思考"
+		)
 	)
 }

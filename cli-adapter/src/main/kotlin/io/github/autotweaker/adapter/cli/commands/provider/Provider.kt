@@ -34,7 +34,7 @@ class Provider : Command, I18nable {
 	lateinit var core: CoreAPI
 	
 	override val name = "prov"
-	override val description get() = i18n.get(ProvI18n.Desc())
+	override val description get() = i18n(ProvI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.leaf(Param.Type.FLAG, "list", ProvI18n.List()),

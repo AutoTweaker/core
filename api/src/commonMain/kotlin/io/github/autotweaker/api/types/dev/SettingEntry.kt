@@ -21,5 +21,4 @@ package io.github.autotweaker.api.types.dev
 data class SettingEntry(
 	override val key: String,
 	val value: String,
-	val description: String
 ) : DbEntry()

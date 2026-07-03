@@ -23,6 +23,7 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelResolver
+import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.persist.json.base.MutableStore
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.nullable
 import java.util.*
 
-object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable, I18nable {
+object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable {
 	override val serializer = UuidSerializer.nullable
 	override fun default() = null
 	
@@ -70,8 +71,8 @@ object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable, I18nable
 			return false
 		}
 		
-		val target = i18n.getLanguage()
-		if (TranslationEngine.isLanguageCovered(target)) {
+		val target = I18nServiceImpl.getLanguage()
+		if (TranslationEngine.isCompleted(target)) {
 			logSkipped("already-complete")
 			_status.value = TranslationStatus.IDLE
 			return false
@@ -81,16 +82,13 @@ object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable, I18nable
 			log.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
 			trace.catching {
 				TranslationEngine.run(modelId, target, modelRepo)
-			}.rethrowCancellation()
+			}.also { _status.value = TranslationStatus.IDLE }
+				.rethrowCancellation()
 				.onFailure { log.error("Failed translation  target={}", target.toLanguageTag(), it) }
-				.also { _status.value = TranslationStatus.IDLE }
-				.getOrThrow()
 		}
 		
 		return true
 	}
 	
-	fun shutdown() {
-		scope.cancel()
-	}
+	fun shutdown() = scope.cancel()
 }

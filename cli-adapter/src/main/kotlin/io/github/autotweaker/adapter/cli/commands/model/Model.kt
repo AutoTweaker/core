@@ -37,7 +37,7 @@ class Model : Command, I18nable, Traceable {
 	lateinit var core: CoreAPI
 	
 	override val name = "model"
-	override val description get() = i18n.get(ModelI18n.Description())
+	override val description get() = i18n(ModelI18n.Description())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.leaf(Param.Type.FLAG, "list", ModelI18n.ParamList()),
@@ -103,7 +103,7 @@ class Model : Command, I18nable, Traceable {
 		val provider = core.config.listProviders()
 		core.config.listModels().forEach { model ->
 			val providerName =
-				provider.find { it.id == model.data.providerId }?.displayName ?: i18n.get(ModelI18n.Unknown())
+				provider.find { it.id == model.data.providerId }?.displayName ?: i18n(ModelI18n.Unknown())
 			emit(CmdOutput.Data("[$providerName] ${model.data.displayName}"))
 		}
 		emitDone()

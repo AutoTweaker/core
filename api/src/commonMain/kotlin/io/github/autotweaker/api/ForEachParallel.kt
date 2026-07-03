@@ -16,13 +16,48 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package io.github.autotweaker.api
 
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
-suspend fun <T> Iterable<T>.forEachParallel(
-	action: suspend (T) -> Unit
+suspend inline fun <T> Iterable<T>.forEachParallel(
+	crossinline action: suspend (T) -> Unit
 ) = coroutineScope {
-	forEach { launch { action(it) } }
+	forEach {
+		launch {
+			action(it)
+		}
+	}
 }
+
+suspend inline fun <T> Iterable<T>.forEachParallel(
+	limit: Int, crossinline action: suspend (T) -> Unit
+) {
+	val semaphore = Semaphore(limit)
+	forEachParallel {
+		semaphore.withPermit {
+			action(it)
+		}
+	}
+}
+
+suspend inline fun <K, V> Map<K, V>.forEachParallel(
+	crossinline action: suspend (Map.Entry<K, V>) -> Unit
+) = entries.forEachParallel(action)
+
+suspend inline fun <K, V> Map<K, V>.forEachParallel(
+	limit: Int, crossinline action: suspend (Map.Entry<K, V>) -> Unit
+) = entries.forEachParallel(limit, action)
+
+suspend inline fun <T> Array<T>.forEachParallel(
+	crossinline action: suspend (T) -> Unit
+) = asIterable().forEachParallel(action)
+
+suspend inline fun <T> Array<T>.forEachParallel(
+	limit: Int, crossinline action: suspend (T) -> Unit
+) = asIterable().forEachParallel(limit, action)

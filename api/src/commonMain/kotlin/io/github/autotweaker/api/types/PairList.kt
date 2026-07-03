@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.i18n.translation
+package io.github.autotweaker.api.types
 
-data class TranslationUnit(
-	val key: String,
-	val localizations: List<String>,
-)
+/**
+ * [List] 套 [Pair]。适用于需要存两个字段且不符合键值对关系时。
+ */
+typealias PairList<A, B> = List<Pair<A, B>>

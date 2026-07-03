@@ -84,20 +84,17 @@ class ConfigSchemaTest {
 	fun `SettingEntry create with all fields`() {
 		val item = SettingEntry(
 			id = "core.test",
-			value = SettingValue.ValInt(10),
-			description = "test desc"
+			value = SettingValue.ValInt(10)
 		)
 		assertEquals("core.test", item.id)
 		assertIs<SettingValue.ValInt>(item.value)
-		assertEquals("test desc", item.description)
 	}
 	
 	@Test
 	fun `SettingEntry find by id`() {
 		val item = SettingEntry(
 			id = "core.flag",
-			value = SettingValue.ValBoolean(false),
-			description = "desc"
+			value = SettingValue.ValBoolean(false)
 		)
 		val items = listOf(item)
 		val found = items.find { it.id == "core.flag" }

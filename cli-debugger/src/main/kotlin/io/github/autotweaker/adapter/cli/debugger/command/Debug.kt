@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.flow
 @AutoService(Command::class)
 class Debug : Command, I18nable {
 	override val name = "debug"
-	override val description get() = i18n.get(Description())
+	override val description get() = i18n(Description())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.leaf(Param.Type.FLAG, "list-db", ParamListDb(), aliases = emptyList()),

@@ -18,18 +18,18 @@
 
 package io.github.autotweaker.adapter.cli.commands.help
 
-import io.github.autotweaker.api.I18nable
-import io.github.autotweaker.api.i18n
 import io.github.autotweaker.adapter.cli.*
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.i18n
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
 class Help(private val loaded: List<Command>) : Command, I18nable {
 	override val name = "help"
-	override val description get() = i18n.get(HelpI18n.HelpDesc())
+	override val description get() = i18n(HelpI18n.HelpDesc())
 	override val syntax
 		get() = Syntax.leaf(Param.Type.POSITIONAL, "command", HelpI18n.HelpParamCommand(), required = false)
 	
@@ -79,20 +79,20 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 		val isOptional = ancestorOptional || !required
 		return when (this) {
 			is Syntax.Leaf -> {
-				val opt = if (isOptional) " ${i18n.get(HelpI18n.ParamOptional())}" else ""
+				val opt = if (isOptional) " ${i18n(HelpI18n.ParamOptional())}" else ""
 				listOf(ContentNode("${param.format()}  —  ${param.description}$opt"))
 			}
 			
 			is Syntax.Xor -> {
-				val opt = if (isOptional) " ${i18n.get(HelpI18n.ParamOptional())}" else ""
-				val labelText = i18n.get(HelpI18n.SyntaxXorLabel()) + opt
+				val opt = if (isOptional) " ${i18n(HelpI18n.ParamOptional())}" else ""
+				val labelText = i18n(HelpI18n.SyntaxXorLabel()) + opt
 				listOf(ContentNode(labelText, children = children.flatMap { it.toContent(isOptional) }))
 			}
 			
 			is Syntax.All -> {
 				val childNodes = children.flatMap { it.toContent(isOptional) }
 				if (childNodes.isEmpty()) return emptyList()
-
+				
 				listOf(ContentNode("◉", children = childNodes))
 			}
 		}

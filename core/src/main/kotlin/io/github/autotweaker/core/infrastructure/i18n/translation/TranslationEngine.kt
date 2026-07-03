@@ -20,26 +20,21 @@ package io.github.autotweaker.core.infrastructure.i18n.translation
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrDefault
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelResolver
-import io.github.autotweaker.core.infrastructure.i18n.I18nRegistry
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.time.Clock
 
-object TranslationEngine : Loggable, Traceable, Settable, I18nable {
+object TranslationEngine : Loggable, Traceable, Settable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(
@@ -47,12 +42,12 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 		val systemPrompt: String,
 		val userPromptTemplate: String,
 		val target: Locale,
-		val batch: List<TranslationUnit>,
+		val batch: Map<String, List<String>>,
 	)
 	
 	private data class BatchResult(
 		val translated: Map<String, String>,
-		val batch: List<TranslationUnit>,
+		val batch: Map<String, List<String>>,
 		val target: Locale,
 	)
 	
@@ -61,53 +56,47 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 		modelRepo: ModelResolver,
 	) {
 		val model = modelRepo.resolve(modelId) ?: error("Model not found: $modelId")
-		val systemPrompt =
-			setting(TranslateSettings.SystemPrompt()).replace("{{target_language}}", target.displayName)
+		val systemPrompt = setting(TranslateSettings.SystemPrompt())
+			.replace("{{target_language}}", target.displayName)
 		val userPromptTemplate = setting(TranslateSettings.UserPrompt())
 		val batchSize = setting(TranslateSettings.BatchSize())
+		val limit = setting(TranslateSettings.MaxConcurrent())
 		
-		val units = collectUnits(target)
-		if (units.isEmpty()) return
-		
-		val jobs = units.chunked(batchSize).map {
-			BatchJob(model, systemPrompt, userPromptTemplate, target, it)
-		}
-		val semaphore = Semaphore(setting(TranslateSettings.MaxConcurrent()))
-		
-		coroutineScope {
-			jobs.map { job ->
-				async {
-					semaphore.withPermit {
-						val result = translateBatch(job)
-						persistResults(result)
-					}
-				}
-			}.awaitAll()
+		val baths = collectBaths(target).ifEmpty { return }
+		val jobs = baths.toList().chunked(batchSize) {
+			BatchJob(model, systemPrompt, userPromptTemplate, target, it.toMap())
 		}
 		
-		log.info("Completed translation  target={}  keys={}", target.toLanguageTag(), units.size)
+		jobs.forEachParallel(limit) { job ->
+			translateBatch(job)?.let { persistResults(it) } ?: log.warn(
+				"Failed translation  keys={}  firstKey={}",
+				job.batch.keys.size, job.batch.keys.firstOrNull()
+			)
+		}
+		
+		log.info("Completed translation  target={}  keys={}", target.toLanguageTag(), baths.size)
 	}
 	
-	private fun collectUnits(target: Locale): List<TranslationUnit> {
-		val persisted = I18nServiceImpl.getAllEntries().associateBy { it.key }
-		return I18nRegistry.getAll().mapNotNull { (key, def) ->
-			val alreadyHas = persisted[key]?.localizations?.any { it.languageCode == target } == true
-			if (alreadyHas) null
-			else TranslationUnit(key, def.localizations.map { it.text })
+	private fun collectBaths(target: Locale): Map<String, List<String>> {
+		val result = mutableMapOf<String, List<String>>()
+		val all = I18nServiceImpl.getAllEntries()
+		all.forEach { (key, localizations) ->
+			if (localizations[target] == null) result[key] = localizations.values.toList()
 		}
+		return result
 	}
 	
-	fun isLanguageCovered(target: Locale): Boolean {
-		val persisted = I18nServiceImpl.getAllEntries().associateBy { it.key }
-		return I18nRegistry.getAll().keys.all { key ->
-			persisted[key]?.localizations?.any { it.languageCode == target } == true
+	fun isCompleted(target: Locale): Boolean =
+		I18nServiceImpl.getAllEntries().all {
+			it.value[target] != null
 		}
-	}
 	
-	private suspend fun translateBatch(job: BatchJob): BatchResult {
-		val contentJson = buildContentJson(job.batch)
-		val userPrompt = job.userPromptTemplate.replace("{{target_language}}", job.target.displayName)
-			.replace("{{content_to_translate}}", contentJson)
+	
+	private suspend fun translateBatch(job: BatchJob): BatchResult? {
+		val contentJson = json.encodeToString(job.batch)
+		val userPrompt = job.userPromptTemplate.replace(
+			"{{target_language}}", job.target.displayName
+		).replace("{{content_to_translate}}", contentJson)
 		
 		val request = CoreLlmRequest(
 			model = job.model.id,
@@ -120,54 +109,39 @@ object TranslationEngine : Loggable, Traceable, Settable, I18nable {
 			thinking = setting(TranslateSettings.Thinking()),
 			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		)
-		val results = ChatService.chat(request).toList()
+		val results = trace.catching { ChatService.chat(request).toList() }
+			.rethrowCancellation().getOrElse { return null }
 		
-		val finalResult =
-			results.filter { it.result.message !is ChatMessage.ErrorMessage }.map { it.result }.lastOrNull()
-				?: return BatchResult(
-					emptyMap(), job.batch, job.target
-				)
-		if (finalResult.message is ChatMessage.ErrorMessage) return BatchResult(emptyMap(), job.batch, job.target)
+		val finalResult = results.asSequence().filterNot {
+			it.result.message is ChatMessage.ErrorMessage
+		}.map { it.result }.lastOrNull() as? ChatResult.Assembled ?: return null
 		
-		val text = (finalResult.message as? ChatMessage.AssistantMessage)?.content
-			?: return BatchResult(
-				emptyMap(), job.batch, job.target
-			)
-		return BatchResult(parseResponse(text), job.batch, job.target)
+		val text = (finalResult.message as ChatMessage.AssistantMessage).content ?: return null
+		return parseResponse(text)?.let { BatchResult(it, job.batch, job.target) }
 	}
 	
-	private fun persistResults(r: BatchResult) {
-		for ((key, value) in r.translated) {
-			if (value.isBlank()) continue
-			val sourceText = r.batch.find { it.key == key }?.localizations?.firstOrNull() ?: ""
-			if (PlaceholderValidator.validate(sourceText, value)) {
-				trace.catching { I18nServiceImpl.set(key, value, r.target) }
+	private suspend fun persistResults(result: BatchResult) {
+		result.translated.forEachParallel { (key, value) ->
+			val sourceText = result.batch[key]?.firstOrNull() ?: return@forEachParallel
+			if (PlaceholderValidator.validate(sourceText, value))
+				trace.catching { I18nServiceImpl.set(key, value, result.target) }
+					.rethrowCancellation()
 					.onFailure { log.warn("Failed translation persistence  key={}  reason={}", key, it.message) }
-			} else {
-				log.warn(
-					"Placeholder validation failed  key={}  source={}  translated={}", key, sourceText, value
-				)
-			}
+			else log.warn(
+				"Placeholder validation failed  key={}  source={}  translated={}", key, sourceText, value
+			)
 		}
 	}
 	
-	private fun buildContentJson(units: List<TranslationUnit>): String {
-		val map = units.associate { unit ->
-			unit.key to Json.encodeToJsonElement(unit.localizations)
-		}
-		return json.encodeToString(JsonObject.serializer(), JsonObject(map))
-	}
 	
-	private fun parseResponse(responseText: String): Map<String, String> {
-		val start = responseText.indexOf('{')
-		val end = responseText.lastIndexOf('}')
-		if (start == -1 || end == -1 || start >= end) return emptyMap()
+	private fun parseResponse(responseText: String): Map<String, String>? {
+		val jsonText = responseText
+			.substringAfter('{', missingDelimiterValue = "")
+			.substringBeforeLast('}', missingDelimiterValue = "").ifEmpty { return null }
 		
-		val jsonText = responseText.substring(start, end + 1)
 		return trace.catching {
-			val obj = json.parseToJsonElement(jsonText).jsonObject
-			obj.mapNotNull { (k, v) -> v.jsonPrimitive.content.let { k to it } }.toMap()
+			json.decodeFromString<Map<String, String>>(jsonText).orNull()
 		}.onFailure { log.warn("Failed translation response parsing  length={}", responseText.length) }
-			.getOrDefault(emptyMap())
+			.getOrNull()
 	}
 }

@@ -16,9 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.core.infrastructure.persist.db.config
 
-/**
- * [List] 套 [Pair]。适用于需要存两个字段且不符合键值对关系时。
- */
-typealias PairList<A, B> = List<Pair<A, B>>
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.core.infrastructure.loadClass
+
+object SettingRegistry {
+	private val defs: Map<String, SettingDef<*>> by lazy {
+		loadClass<SettingDef<*>>().mapNotNull { (it::class.qualifiedName ?: return@mapNotNull null) to it }.toMap()
+	}
+	
+	fun get(id: String): SettingDef<*>? = defs[id]
+	fun getAll(): Map<String, SettingDef<*>> = defs
+}

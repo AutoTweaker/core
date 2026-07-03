@@ -24,6 +24,7 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.dev.Debugger
 import io.github.autotweaker.api.types.KebabCase
+import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.application.Wiring.databaseStore
@@ -92,9 +93,9 @@ object Launcher : Loggable, Traceable {
 		//都是纯赋值
 		Wiring.init()
 		
-		PluginLoader.load<Debugger>().forEach { debugger ->
-			log.info("Initialized debugger  class={}", debugger::class.java.name)
+		PluginLoader.load<Debugger>().forEachParallel { debugger ->
 			debugger.init(DbDebugAPIImpl)
+			log.info("Initialized debugger  class={}", debugger::class.java.name)
 		}
 		
 		val all = PluginLoader.load<Adapter>().map { it to it.init(lazyCore()) }

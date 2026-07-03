@@ -19,13 +19,23 @@
 package io.github.autotweaker.api
 
 /**
- * 如果列表为空，返回 null，否则返回列表本身。
+ * 如果 [Collection] 为空，返回 null，否则返回 [Collection] 本身。
  */
-fun <T> List<T>.orNull() = ifEmpty { null }
+fun <T, C : Collection<T>> C.orNull() = ifEmpty { null }
 
 /**
- * 如果字符串为空，返回 null，否则返回字符串本身。
+ * 如果 [CharSequence] 为空，返回 null，否则返回 [CharSequence] 本身。
  *
  * 判空使用 [ifEmpty]（不是 [ifBlank]）。
  */
-fun String.orNull() = ifEmpty { null }
+fun <C : CharSequence> C.orNull() = ifEmpty { null }
+
+/**
+ * 如果 [Map] 为空，返回 null，否则返回 [Map] 本身。
+ */
+fun <K, V> Map<K, V>.orNull() = ifEmpty { null }
+
+/**
+ * 如果 [Array] 为空，返回 null，否则返回 [Array] 本身。
+ */
+fun <T> Array<T>.orNull() = ifEmpty { null }

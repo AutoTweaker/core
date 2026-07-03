@@ -42,7 +42,7 @@ class KeyManager(
 			emitDone(1)
 			return@flow
 		}
-		val key = prompt(i18n.get(SecretI18n.PromptInputApiKey()), false)
+		val key = prompt(i18n(SecretI18n.PromptInputApiKey()), false)
 		
 		if (key.isBlank()) {
 			emitI18n(SecretI18n.EmptyKeyError(), error = true)

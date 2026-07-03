@@ -18,9 +18,6 @@
 
 package io.github.autotweaker.api.i18n
 
-import java.util.*
-
 interface I18nService {
-	fun get(def: I18nDef): String
-	fun getLanguage(): Locale
+	operator fun invoke(def: I18nDef): String
 }

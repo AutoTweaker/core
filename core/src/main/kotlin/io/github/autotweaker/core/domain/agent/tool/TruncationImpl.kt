@@ -22,11 +22,13 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.base.StringSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+
 
 class TruncationImpl(
 	private val workspace: WorkspaceMeta,
@@ -42,8 +44,9 @@ class TruncationImpl(
 	
 	@AutoService(SettingDef::class)
 	class TruncatedPrompt : StringSetting(
-		"[===输出过长（%s 字符），完整内容保存至 `%s`，可以总结、分段读取，或在其中搜索===]",
-		"工具输出被截断并保存时的提示"
+		"[===输出过长（%s 字符），完整内容保存至 `%s`，可以总结、分段读取，或在其中搜索===]", zh(
+			"工具输出被截断并保存时的提示"
+		)
 	)
 	
 	companion object {

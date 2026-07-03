@@ -35,7 +35,7 @@ class Translate : Command, I18nable {
 	lateinit var core: CoreAPI
 	
 	override val name = "translate"
-	override val description get() = i18n.get(TranslateI18n.Desc())
+	override val description get() = i18n(TranslateI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.all(

@@ -104,7 +104,7 @@ class ModelAdd(
 					?: run { invalidValue(); return@flow }
 			
 			suspend fun promptFeature(featureI18n: I18nDef) =
-				promptYesOrNo(ModelI18n.PromptSetFeature(), i18n.get(featureI18n))
+				promptYesOrNo(ModelI18n.PromptSetFeature(), i18n(featureI18n))
 			
 			val supportsStreaming =
 				promptFeature(ModelFeature.StreamingFeature())
@@ -198,19 +198,19 @@ class ModelAdd(
 				?: return null
 		val price = trace.catching {
 			BigDecimal(
-				promptI18n(ModelI18n.PromptPrice(), currency.getDisplayName(i18n.getLanguage()))
+				promptI18n(ModelI18n.PromptPrice(), currency.getDisplayName(core.i18n.getLanguage()))
 			)
 		}.getOrNull() ?: return null
 		return Price(price, currency, tokenUnit)
 	}
 	
 	private suspend fun promptI18n(key: I18nDef, vararg args: Any): String =
-		prompt(i18n.get(key).format(*args), true)
+		prompt(i18n(key).format(*args), true)
 	
 	
 	private suspend fun promptYesOrNo(key: I18nDef, vararg args: Any): Boolean? {
 		val result = prompt(
-			i18n.get(key).format(*args), true
+			i18n(key).format(*args), true
 		)
 		return when (result) {
 			"y", "yes" -> true

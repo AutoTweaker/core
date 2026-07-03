@@ -16,27 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.db.config
+package io.github.autotweaker.core.infrastructure
 
-import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.core.PluginLoader
 import java.util.*
 
-object ConfigRegistry {
-	private val _defs: Map<String, SettingDef<*>> = run {
-		val map = mutableMapOf<String, SettingDef<*>>()
-		for (def in ServiceLoader.load(SettingDef::class.java)) {
-			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
-			map[id] = def
-		}
-		for (def in PluginLoader.load<SettingDef<*>>()) {
-			val id = def::class.qualifiedName ?: throw IllegalStateException("Anonymous SettingDef not allowed: $def")
-			map[id] = def
-		}
-		return@run map
-	}
-	
-	fun get(id: String): SettingDef<*>? = _defs[id]
-	
-	fun getAll(): Map<String, SettingDef<*>> = _defs
-}
+inline fun <reified T : Any> loadClass() =
+	ServiceLoader.load(T::class.java).asSequence() + PluginLoader.load<T>().asSequence()

@@ -32,12 +32,10 @@ object SettingDbApi : AbstractDbApi<SettingEntry>() {
 	override fun ResultRow.toEntry() = SettingEntry(
 		key = this[ConfigTable.keyName],
 		value = this[ConfigTable.valJson],
-		description = this[ConfigTable.description],
 	)
 	
 	override fun UpsertStatement<Long>.fill(content: SettingEntry) {
 		this[ConfigTable.keyName] = content.key
 		this[ConfigTable.valJson] = content.value
-		this[ConfigTable.description] = content.description
 	}
 }

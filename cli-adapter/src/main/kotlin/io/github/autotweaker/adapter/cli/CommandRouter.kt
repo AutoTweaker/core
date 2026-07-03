@@ -25,19 +25,22 @@ import io.github.autotweaker.adapter.cli.commands.help.Help
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.*
 
-class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, Settable,
-	I18nable {
+
+class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, Settable {
 	private val handlers: Map<String, Command>
 	
 	@AutoService(SettingDef::class)
 	class MaxArgsCount : IntSetting(
-		100_000, "CLI命令的最大参数数量，超出会报错"
+		100_000, zh(
+			"CLI命令的最大参数数量，超出会报错"
+		)
 	)
 	
 	private val maxArgsCount = setting(MaxArgsCount())

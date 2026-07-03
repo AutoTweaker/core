@@ -98,7 +98,6 @@ class DebugHandler(
 			"setting" -> SettingEntry(
 				key,
 				prompt("value: ", true),
-				prompt("description: ", true)
 			)
 			
 			"jsonStore" -> JsonStoreEntry(

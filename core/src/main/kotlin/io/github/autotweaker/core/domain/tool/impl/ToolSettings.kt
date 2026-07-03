@@ -20,11 +20,15 @@ package io.github.autotweaker.core.domain.tool.impl
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.StringSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
+
 
 object ToolSettings {
 	@AutoService(SettingDef::class)
 	class PathErrorMessage : StringSetting(
-		"提供的路径不合法，请检查提供的路径参数", "路径解析失败时的描述"
+		"提供的路径不合法，请检查提供的路径参数", zh(
+			"路径解析失败时的描述"
+		)
 	)
 }

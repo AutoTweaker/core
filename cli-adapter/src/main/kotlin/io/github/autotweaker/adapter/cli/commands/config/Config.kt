@@ -27,6 +27,7 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.config.SettingEntry
 import kotlinx.coroutines.flow.Flow
@@ -34,13 +35,16 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
+
 @AutoService(Command::class)
 class Config : Command, Settable, I18nable, Traceable {
 	private lateinit var core: CoreAPI
 	
 	@AutoService(SettingDef::class)
 	class DefaultLimit : IntSetting(
-		1000, "cfg命令的默认limit参数值"
+		1000, zh(
+			"cfg命令的默认limit参数值"
+		)
 	)
 	
 	override fun init(core: CoreAPI) {
@@ -49,7 +53,7 @@ class Config : Command, Settable, I18nable, Traceable {
 	
 	override val name: String = "cfg"
 	override val description: String
-		get() = i18n.get(CfgI18n.Desc())
+		get() = i18n(CfgI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.all(
@@ -133,11 +137,11 @@ class Config : Command, Settable, I18nable, Traceable {
 		val result = when (mode) {
 			SearchMode.KEY -> settings.filter { match(it.id, query) }
 			SearchMode.VALUE -> settings.filter { match(it.value.value.toString(), query) }
-			SearchMode.DESC -> settings.filter { match(it.description, query) }
+			SearchMode.DESC -> settings.filter { match(core.i18n.getString(it.id), query) }
 			null -> settings.filter {
 				match(it.id, query) || match(
 					it.value.value.toString(), query
-				) || match(it.description, query)
+				)
 			}
 		}
 		printConfig(result.take(limit), full)
@@ -165,7 +169,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		val sure: Boolean = if (!yes) {
 			emitI18n(CfgI18n.ShowSetting())
 			printConfig(listOf(config), full = true)
-			val result = prompt(i18n.get(CfgI18n.SureReset()), true).trim()
+			val result = prompt(i18n(CfgI18n.SureReset()), true).trim()
 			result == "y" || result == "yes"
 		} else true
 		
@@ -190,7 +194,7 @@ class Config : Command, Settable, I18nable, Traceable {
 	) = if (full) settings.forEachBetween(
 		{
 			emitI18n(CfgI18n.OutKey(), it.id)
-			emitI18n(CfgI18n.OutDesc(), it.description)
+			emitI18n(CfgI18n.OutDesc(), core.i18n.getString(it.id))
 			emitI18n(CfgI18n.OutValue(), it.value.value.toString())
 		},
 		between = { emit(CmdOutput.Data(LINE)) })

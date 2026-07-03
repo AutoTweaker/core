@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
@@ -42,6 +43,7 @@ import kotlinx.coroutines.launch
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+
 
 object SessionManager : Loggable, Traceable, Settable {
 	private val systemPrompt = setting(SystemPrompt())
@@ -187,6 +189,8 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	@AutoService(SettingDef::class)
 	class SystemPrompt : PromptSetting(
-		"system", "系统提示词，作用于整个项目"
+		"system", zh(
+			"系统提示词，作用于整个项目"
+		)
 	)
 }

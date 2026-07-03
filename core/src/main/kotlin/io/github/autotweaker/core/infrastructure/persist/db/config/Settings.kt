@@ -106,8 +106,9 @@ object Settings : SettingService, Loggable, Traceable {
 		requireNotNull(def::class.qualifiedName) { "Anonymous SettingDef not supported: ${def::class}" }
 	
 	fun setById(id: String, value: SettingValue<*>) {
-		val def = ConfigRegistry.get(id) ?: throw IllegalArgumentException("Unknown setting: $id")
-		require(value::class == def.default::class) { "Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}" }
+		val def = requireNotNull(SettingRegistry.get(id)) { "Unknown setting: $id" }
+		require(value::class == def.default::class)
+		{ "Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}" }
 		upsertValue(id, value)
 		cache[id] = value
 		log.debug("Updated setting by id  id={}  value={}", id, value)
@@ -126,14 +127,13 @@ object Settings : SettingService, Loggable, Traceable {
 		val stored = ConfigTable.selectAll().associate {
 			it[ConfigTable.keyName] to getValueFromRow(it)
 		}
-		ConfigRegistry.getAll().map { (id, def) ->
+		SettingRegistry.getAll().map { (id, def) ->
 			SettingEntry(
 				id = id,
 				value = stored[id] ?: def.default,
-				description = def.description,
 			)
 		}
 	}
 	
-	fun getDef(id: String): SettingDef<*>? = ConfigRegistry.get(id)
+	fun getDef(id: String): SettingDef<*>? = SettingRegistry.get(id)
 }

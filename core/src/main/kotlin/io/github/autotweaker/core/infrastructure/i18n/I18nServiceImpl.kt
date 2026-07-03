@@ -19,12 +19,14 @@
 package io.github.autotweaker.core.infrastructure.i18n
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.i18n.I18nEntry
-import io.github.autotweaker.api.types.i18n.LocalizedString
+import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.types.I18nEntries
+import io.github.autotweaker.api.types.Localizations
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
 import io.github.autotweaker.core.infrastructure.persist.json.base.AtomicStore
 import kotlinx.serialization.Serializable
@@ -34,55 +36,65 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 	override val serializer = Data.serializer()
 	override fun default() = Data()
 	
-	fun setLanguage(locale: Locale) {
-		update { it.copy(language = locale) }
-		log.debug("Updated language  lang={}", locale.toLanguageTag())
-	}
+	fun setLanguage(locale: Locale) =
+		update {
+			it.copy(language = locale)
+		}.andLog(log) {
+			debug("Updated language  lang={}", locale.toLanguageTag())
+		}
 	
-	override fun getLanguage(): Locale = get().language
 	
-	override fun get(def: I18nDef): String {
-		val key = def::class.qualifiedName ?: error("Anonymous I18nDef not supported: ${def::class}")
+	fun getLanguage(): Locale = get().language
+	
+	override fun invoke(def: I18nDef): String {
+		val key = requireNotNull(def::class.qualifiedName)
+		{ "Anonymous I18nDef not supported: ${def::class}" }
 		return resolve(key, get().language)
 	}
 	
-	fun getDefault(id: String): I18nDef? = I18nRegistry.get(id)
+	fun getDefault(id: String): Localizations? = I18nRegistry.get(id)
 	
 	fun set(id: String, text: String, languageCode: Locale) {
+		if (I18nRegistry.get(id) == null) error("I18n not found: $id")
 		update { data ->
-			val index = data.entries.indexOfFirst { it.key == id }
-			if (index == -1) error("I18n not found: $id")
-			val entry = data.entries[index]
-			data.copy(entries = data.entries.toMutableList().also {
-				it[index] = entry.copy(localizations = entry.localizations.filter { localizedString ->
-					localizedString.languageCode != languageCode
-				} + LocalizedString(languageCode, text))
-			})
+			val entries = data.entries.toMutableMap()
+			val localizations = entries[id].orEmpty().toMutableMap()
+			localizations[languageCode] = text
+			entries[id] = localizations
+			data.copy(entries = entries)
 		}
 		log.debug("Set I18n text  key={}  lang={}", id, languageCode.toLanguageTag())
 	}
 	
-	fun getAllEntries(): List<I18nEntry> {
-		val stored = get().entries.associateBy { it.key }
-		return I18nRegistry.getAll().map { (key, def) ->
-			stored[key] ?: I18nEntry(key, def.localizations)
-		}
-	}
+	fun getAllEntries(): I18nEntries = mergeAll()
+	
+	fun resolveByKey(id: String): String = resolve(id, getLanguage())
 	
 	private fun resolve(key: String, target: Locale): String {
-		val localizations = get().entries.find { it.key == key }?.localizations
-			?: I18nRegistry.get(key)?.localizations
-			?: return key
-		localizations.find { it.languageCode == target }?.let { return it.text }
-		localizations.find { it.languageCode.language == target.language }?.let { return it.text }
-		localizations.find { it.languageCode == en }?.let { return it.text }
-		localizations.firstOrNull()?.let { return it.text }
+		val loc = getLocalizations(key) ?: return key
+		loc[target]?.let { return it }
+		loc.entries.find { it.key.language == target.language }?.let { return it.value }
+		loc.entries.find { it.key.language == en.language }?.let { return it.value }
+		loc.values.firstOrNull()?.let { return it }
 		return key
 	}
 	
+	private fun getLocalizations(key: String): Localizations? =
+		(I18nRegistry.get(key).orEmpty() + get().entries[key].orEmpty()).orNull()
+	
+	private fun mergeAll(): I18nEntries {
+		val cache = get().entries
+		return I18nRegistry.getAll().mapValues { (key, localizations) ->
+			val cached = cache[key]
+			if (cached == null) localizations
+			else localizations + cached
+		}
+	}
+	
+	
 	@Serializable
 	data class Data(
-		val entries: List<I18nEntry> = emptyList(),
+		val entries: Map<String, Map<@Serializable(with = LocaleSerializer::class) Locale, String>> = mapOf(),
 		@Serializable(with = LocaleSerializer::class)
 		val language: Locale = Locale.getDefault(),
 	)

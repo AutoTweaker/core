@@ -76,16 +76,16 @@ sealed class Param {
 	companion object : I18nable {
 		fun fromI18n(type: Type, name: String, desc: I18nDef, aliases: List<String>): Param =
 			when (type) {
-				Type.FLAG -> Flag(name, i18n.get(desc), aliases)
-				Type.VALUE -> Value(name, i18n.get(desc), aliases)
-				Type.POSITIONAL -> Positional(name, i18n.get(desc))
+				Type.FLAG -> Flag(name, i18n(desc), aliases)
+				Type.VALUE -> Value(name, i18n(desc), aliases)
+				Type.POSITIONAL -> Positional(name, i18n(desc))
 			}
 		
 		fun fromI18n(type: Type, name: String, desc: I18nDef): Param =
 			when (type) {
-				Type.FLAG -> Flag(name, i18n.get(desc))
-				Type.VALUE -> Value(name, i18n.get(desc))
-				Type.POSITIONAL -> Positional(name, i18n.get(desc))
+				Type.FLAG -> Flag(name, i18n(desc))
+				Type.VALUE -> Value(name, i18n(desc))
+				Type.POSITIONAL -> Positional(name, i18n(desc))
 			}
 	}
 }

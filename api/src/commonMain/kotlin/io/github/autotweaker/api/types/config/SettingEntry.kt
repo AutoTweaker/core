@@ -23,6 +23,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SettingEntry(
 	val id: String,
-	val value: SettingValue<*>,
-	val description: String
+	val value: SettingValue<*>
 )

@@ -63,14 +63,13 @@ object CfgI18n {
 	
 	@AutoService(I18nDef::class)
 	class Search : I18nBase(
-		en("Search settings"),
-		zh("搜索设置条目"),
+		zh("搜索设置条目，默认在 id 和值搜索"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class SearchKey : I18nBase(
 		en("Search in setting keys"),
-		zh("在设置键中搜索"),
+		zh("在设置 id 中搜索"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -81,8 +80,7 @@ object CfgI18n {
 	
 	@AutoService(I18nDef::class)
 	class SearchDesc : I18nBase(
-		en("Search in setting descriptions"),
-		zh("在设置描述中搜索"),
+		zh("在当前语言对应的设置描述中搜索"),
 	)
 	
 	@AutoService(I18nDef::class)

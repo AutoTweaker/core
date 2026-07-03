@@ -38,7 +38,7 @@ class Trace : Command, I18nable {
 	lateinit var core: CoreAPI
 	
 	override val name = "trace"
-	override val description get() = i18n.get(TraceI18n.Desc())
+	override val description get() = i18n(TraceI18n.Desc())
 	override val syntax
 		get() = Syntax.xor(
 			Syntax.leaf(Type.FLAG, "list", TraceI18n.ListDesc()),

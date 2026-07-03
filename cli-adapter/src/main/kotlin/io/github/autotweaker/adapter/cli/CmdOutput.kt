@@ -35,7 +35,7 @@ sealed class CmdOutput {
 			def: I18nDef, vararg args: Any, error: Boolean = false
 		) = emit(
 			Data(
-				i18n.get(def).format(*args),
+				i18n(def).format(*args),
 				if (error) OutputChannel.STDERR else OutputChannel.STDOUT
 			)
 		)

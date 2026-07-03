@@ -16,15 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.i18n
+package io.github.autotweaker.api.config
 
-import io.github.autotweaker.api.types.serializer.LocaleSerializer
-import kotlinx.serialization.Serializable
-import java.util.*
+import io.github.autotweaker.api.types.Localizations
+import io.github.autotweaker.api.types.config.SettingValue
 
-@Serializable
-data class LocalizedString(
-	@Serializable(with = LocaleSerializer::class)
-	val languageCode: Locale,
-	val text: String
-)
+interface SettingDef<out V : SettingValue<*>> {
+	val default: V
+	val description: Localizations
+}

@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.api.i18n
 
-import io.github.autotweaker.api.types.i18n.LocalizedString
+import io.github.autotweaker.api.types.Localizations
 
 interface I18nDef {
-	val localizations: List<LocalizedString>
+	val localizations: Localizations
 }

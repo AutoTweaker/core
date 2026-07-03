@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.config
+package io.github.autotweaker.api.types
 
-import io.github.autotweaker.api.types.config.SettingValue
+import java.util.*
 
-interface SettingDef<out V : SettingValue<*>> {
-	val default: V
-	val description: String
-}
+
+typealias I18nEntries = Map<String, Localizations>
+
+typealias Localizations = Map<Locale, String>

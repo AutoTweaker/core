@@ -19,11 +19,10 @@
 package io.github.autotweaker.api.base
 
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.i18n.LocalizedString
 import java.util.*
 
 abstract class I18nBase(vararg pairs: Pair<Locale, String>) : I18nDef {
-	override val localizations = pairs.map { LocalizedString(it.first, it.second) }
+	override val localizations = pairs.toMap()
 }
 
 fun zh(text: String): Pair<Locale, String> = zh to text

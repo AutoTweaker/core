@@ -161,7 +161,9 @@ object SecretManager : SecretStore, Loggable, Traceable, Settable {
 		Files.deleteIfExists(markerFile)
 		setPassword(newPassword)
 		generateKey()
-		cache.forEach { (id, secret) -> encryptTo(secret, secretsDir.resolve("$id.gpg")) }
+		cache.forEachParallel(4) { (id, secret) ->
+			encryptTo(secret, secretsDir.resolve("$id.gpg"))
+		}
 		createMarker()
 		log.info("Changed password  secretCount={}", cache.size)
 	}

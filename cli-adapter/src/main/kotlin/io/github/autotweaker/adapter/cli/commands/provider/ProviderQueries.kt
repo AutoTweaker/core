@@ -33,24 +33,24 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 	fun list(): Flow<String> = flow {
 		core.config.listProviders().forEachBetween({ provider ->
 			val modelCount = core.config.listModels().count { it.data.providerId == provider.id }
-			emit(i18n.get(ProvQueriesI18n.Name()).format(provider.displayName))
-			emit(i18n.get(ProvQueriesI18n.Type()).format(provider.type))
-			emit(i18n.get(ProvQueriesI18n.Model()).format(modelCount))
+			emit(i18n(ProvQueriesI18n.Name()).format(provider.displayName))
+			emit(i18n(ProvQueriesI18n.Type()).format(provider.type))
+			emit(i18n(ProvQueriesI18n.Model()).format(modelCount))
 		}, between = { emit(LINE) })
 	}
 	
 	fun show(name: String): Flow<String> = flow {
 		val provider = core.config.listProviders().firstOrNull { it.displayName == name } ?: return@flow
-		emit(i18n.get(ProvQueriesI18n.Name()).format(provider.displayName))
-		emit(i18n.get(ProvQueriesI18n.Type()).format(provider.type))
-		emit(i18n.get(ProvQueriesI18n.Key()).format(provider.keyId))
+		emit(i18n(ProvQueriesI18n.Name()).format(provider.displayName))
+		emit(i18n(ProvQueriesI18n.Type()).format(provider.type))
+		emit(i18n(ProvQueriesI18n.Key()).format(provider.keyId))
 		emit(
-			i18n.get(ProvQueriesI18n.Url()).format(provider.baseUrl?.value ?: i18n.get(ProvQueriesI18n.Default()))
+			i18n(ProvQueriesI18n.Url()).format(provider.baseUrl?.value ?: i18n(ProvQueriesI18n.Default()))
 		)
 		provider.errorHandlingRules?.let {
-			emit(i18n.get(ProvQueriesI18n.Rule()))
+			emit(i18n(ProvQueriesI18n.Rule()))
 			emitAll(printRules(it))
-		} ?: emit(i18n.get(ProvQueriesI18n.Rule()) + SPACE + i18n.get(ProvQueriesI18n.Default()))
+		} ?: emit(i18n(ProvQueriesI18n.Rule()) + SPACE + i18n(ProvQueriesI18n.Default()))
 	}
 	
 	fun types(): Flow<String> = core.config.listAvailableProviderTypes().asFlow()
@@ -77,7 +77,7 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 	private fun printRules(rules: List<ProviderData.ErrorHandlingRule>): Flow<String> = flow {
 		rules.forEach {
 			emit(
-				INDENT + i18n.get(ProvQueriesI18n.StatusCode()).format(it.statusCode) + " | " + i18n.get(
+				INDENT + i18n(ProvQueriesI18n.StatusCode()).format(it.statusCode) + " | " + i18n(
 					ProvQueriesI18n.Strategy()
 				).format(it.strategy)
 			)
@@ -86,17 +86,17 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 	
 	private fun printModelInfo(info: ModelData.ModelInfo): Flow<String> = flow {
 		val feature = buildList {
-			if (info.supportsStreaming) add(i18n.get(ModelFeature.StreamingFeature()))
-			if (info.supportsToolCalls) add(i18n.get(ModelFeature.ToolCallFeature()))
-			if (info.supportsReasoning) add(i18n.get(ModelFeature.ReasoningFeature()))
-			if (info.supportsImage) add(i18n.get(ModelFeature.ImageFeature()))
-			if (info.supportsJsonOutput) add(i18n.get(ModelFeature.JsonOutputFeature()))
+			if (info.supportsStreaming) add(i18n(ModelFeature.StreamingFeature()))
+			if (info.supportsToolCalls) add(i18n(ModelFeature.ToolCallFeature()))
+			if (info.supportsReasoning) add(i18n(ModelFeature.ReasoningFeature()))
+			if (info.supportsImage) add(i18n(ModelFeature.ImageFeature()))
+			if (info.supportsJsonOutput) add(i18n(ModelFeature.JsonOutputFeature()))
 		}.joinToString(separator = SPACE.toString()) { "[${it}]" }
 		
-		emit(i18n.get(ProvQueriesI18n.ModelId()).format(info.modelId))
-		emit(i18n.get(ProvQueriesI18n.ContextWindow()).format(processUnit(info.contextWindow)))
-		emit(i18n.get(ProvQueriesI18n.MaxOutput()).format(processUnit(info.maxOutputTokens)))
-		emit(i18n.get(ProvQueriesI18n.ModelFeature()).format(feature))
+		emit(i18n(ProvQueriesI18n.ModelId()).format(info.modelId))
+		emit(i18n(ProvQueriesI18n.ContextWindow()).format(processUnit(info.contextWindow)))
+		emit(i18n(ProvQueriesI18n.MaxOutput()).format(processUnit(info.maxOutputTokens)))
+		emit(i18n(ProvQueriesI18n.ModelFeature()).format(feature))
 		emitAll(printTokenPrice(info.price))
 	}
 	
@@ -123,9 +123,9 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 				)
 			}
 		}
-		emit(i18n.get(ProvQueriesI18n.InputPrice()))
+		emit(i18n(ProvQueriesI18n.InputPrice()))
 		emitAll(processPrice(price.inputPrice))
-		emit(i18n.get(ProvQueriesI18n.OutputPrice()))
+		emit(i18n(ProvQueriesI18n.OutputPrice()))
 		emitAll(processPrice(price.outputPrice))
 	}
 	
@@ -135,8 +135,8 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 			"${price.amount.toPlainString()} ${price.currency} / ${processUnit(price.tokenUnit)} tokens"
 		
 		if (cached == null) return processPrice(price)
-		return "${processPrice(price)} ${i18n.get(ProvQueriesI18n.Or())} ${processPrice(cached)} ${
-			i18n.get(
+		return "${processPrice(price)} ${i18n(ProvQueriesI18n.Or())} ${processPrice(cached)} ${
+			i18n(
 				ProvQueriesI18n.CachedPrice()
 			)
 		}"

@@ -18,11 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
-import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.base.SettingBase
 import io.github.autotweaker.api.types.config.SettingValue
+import java.util.*
 
 abstract class PromptSetting(
-	prompt: String, override val description: String
-) : SettingDef<SettingValue.ValString> {
+	prompt: String, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValString>(*desc) {
 	override val default by lazy { SettingValue(ResourcesLoader.loadPrompt(prompt)) }
 }

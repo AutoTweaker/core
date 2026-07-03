@@ -20,11 +20,15 @@ package io.github.autotweaker.core.infrastructure.container.docker
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
+
 
 object DockerSettings {
 	@AutoService(SettingDef::class)
 	class PermissionFixDelaySeconds : IntSetting(
-		300, "指定秒数内未运行容器内命令自动修复工作区目录权限，设为0仅在应用退出前修复"
+		300, zh(
+			"指定秒数内未运行容器内命令自动修复工作区目录权限，设为0仅在应用退出前修复"
+		)
 	)
 }

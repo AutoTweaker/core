@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -134,7 +135,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		val allTurns = buildList {
 			round.turns?.let { addAll(it) }
 			archivedTurn?.let { add(it) }
-		}.ifEmpty { null }
+		}.orNull()
 		
 		val completed = AgentContext.CompletedRound(
 			userMessage = round.userMessage,
@@ -160,7 +161,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		_context.update {
 			it.copy(
 				compactedRounds = it.compactedRounds.orEmpty() + compacted,
-				historyRounds = remaining.ifEmpty { null },
+				historyRounds = remaining.orNull(),
 			)
 		}
 	}

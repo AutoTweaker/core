@@ -19,25 +19,20 @@
 package io.github.autotweaker.core.infrastructure.i18n
 
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.core.PluginLoader
-import java.util.*
+import io.github.autotweaker.api.types.I18nEntries
+import io.github.autotweaker.api.types.Localizations
+import io.github.autotweaker.core.infrastructure.loadClass
+import io.github.autotweaker.core.infrastructure.persist.db.config.SettingRegistry
 
 object I18nRegistry {
-	private val _defs: Map<String, I18nDef> = run {
-		val map = mutableMapOf<String, I18nDef>()
-		for (def in ServiceLoader.load(I18nDef::class.java)) {
-			val key = def::class.qualifiedName
-				?: throw IllegalStateException("Anonymous I18nDef not allowed: $def")
-			map[key] = def
-		}
-		for (def in PluginLoader.load<I18nDef>()) {
-			val key = def::class.qualifiedName
-				?: throw IllegalStateException("Anonymous I18nDef not allowed: $def")
-			map[key] = def
-		}
-		return@run map
+	private val defs: I18nEntries by lazy {
+		val setting = SettingRegistry.getAll().mapValues { it.value.description }
+		val i18n = loadClass<I18nDef>().mapNotNull {
+			(it::class.qualifiedName ?: return@mapNotNull null) to it.localizations
+		}.toMap()
+		return@lazy setting + i18n
 	}
 	
-	fun get(key: String): I18nDef? = _defs[key]
-	fun getAll(): Map<String, I18nDef> = _defs.toMap()
+	fun get(key: String): Localizations? = defs[key]
+	fun getAll(): I18nEntries = defs
 }

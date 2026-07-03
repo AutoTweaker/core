@@ -21,46 +21,64 @@ package io.github.autotweaker.core.domain.chat
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.BooleanSetting
 import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
+
 
 object ResilientChatSettings {
 	@AutoService(SettingDef::class)
 	class MaxRetries : IntSetting(
-		5, "单轮大模型请求的最大重试次数"
+		5, zh(
+			"单轮大模型请求的最大重试次数"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class LlmChatRetries : IntSetting(
-		3, "大模型请求的重试/回退策略耗尽后重头开始的最大次数"
+		3, zh(
+			"大模型请求的重试/回退策略耗尽后重头开始的最大次数"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class RetryBaseDelaySeconds : IntSetting(
-		1, "大模型请求重试前的基础等待时间（秒），多次重试会在此基础上累加（指数退避）"
+		1, zh(
+			"大模型请求重试前的基础等待时间（秒），多次重试会在此基础上累加（指数退避）"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxRetryDelaySeconds : IntSetting(
-		60, "大模型请求重试前的最大等待时间（秒），指数退避的上限"
+		60, zh(
+			"大模型请求重试前的最大等待时间（秒），指数退避的上限"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class RetryJitterEnabled : BooleanSetting(
-		true, "大模型请求重试的等待时间是否加入随机抖动"
+		true, zh(
+			"大模型请求重试的等待时间是否加入随机抖动"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class ChatRequestTimeout : IntSetting(
-		300, "大模型请求的默认总超时秒数"
+		300, zh(
+			"大模型请求的默认总超时秒数"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class ChatConnectTimeout : IntSetting(
-		20, "默认大模型请求建立连接的超时秒数"
+		20, zh(
+			"默认大模型请求建立连接的超时秒数"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class ChatStreamChunkTimeout : IntSetting(
-		30, "大模型流式请求，两个数据块之间的默认最大等待秒数"
+		30, zh(
+			"大模型流式请求，两个数据块之间的默认最大等待秒数"
+		)
 	)
 }

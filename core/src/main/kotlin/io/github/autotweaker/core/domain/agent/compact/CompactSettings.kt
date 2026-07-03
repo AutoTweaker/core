@@ -19,52 +19,65 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.base.BooleanSetting
-import io.github.autotweaker.api.base.DoubleSetting
-import io.github.autotweaker.api.base.IntSetting
-import io.github.autotweaker.api.base.StringSetting
+import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
+
 
 object CompactSettings {
 	@AutoService(SettingDef::class)
 	class Prompt : PromptSetting(
-		"compact", "用于上下文压缩的提示词"
+		"compact", zh(
+			"用于上下文压缩的提示词"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxMessageChars : IntSetting(
-		10000, "上下文压缩前对字符数大于此值的消息进行单独总结"
+		10000, zh(
+			"上下文压缩前对字符数大于此值的消息进行单独总结"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MessageSummarizePrompt : StringSetting(
-		"请对以下消息内容进行概括，输出不要太长\n\n<message>\n%s\n</message>",
-		"上下文压缩前对字符数过多的消息进行单独总结时的提示词"
+		"请对以下消息内容进行概括，输出不要太长\n\n<message>\n%s\n</message>", zh(
+			"上下文压缩前对字符数过多的消息进行单独总结时的提示词"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxCompactRetries : IntSetting(
-		5, "上下文压缩的最大重试次数"
+		5, zh(
+			"上下文压缩的最大重试次数"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MinSummaryLength : IntSetting(
-		50, "上下文压缩输出的最小字符数，小于此值的总结会视为无效"
+		50, zh(
+			"上下文压缩输出的最小字符数，小于此值的总结会视为无效"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class Thinking : BooleanSetting(
-		false, "上下文压缩时是否启用思考"
+		false, zh(
+			"上下文压缩时是否启用思考"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class DefaultCompactContextUsage : DoubleSetting(
-		0.85, "自动上下文压缩的默认百分比阈值（根据上下文窗口）"
+		0.85, zh(
+			"自动上下文压缩的默认百分比阈值（根据上下文窗口）"
+		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class DefaultCompactTotalTokens : IntSetting(
-		500_000, "自动上下文压缩的默认 tokens 阈值"
+		500_000, zh(
+			"自动上下文压缩的默认 tokens 阈值"
+		)
 	)
 }

@@ -22,58 +22,65 @@ package io.github.autotweaker.api.base
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.config.SettingValue
+import java.util.*
 
 abstract class ByteSetting(
-	default: Byte, override val description: String
-) : SettingDef<SettingValue.ValByte> {
+	default: Byte, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValByte>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class ShortSetting(
-	default: Short, override val description: String
-) : SettingDef<SettingValue.ValShort> {
+	default: Short, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValShort>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class IntSetting(
-	default: Int, override val description: String
-) : SettingDef<SettingValue.ValInt> {
+	default: Int, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValInt>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class LongSetting(
-	default: Long, override val description: String
-) : SettingDef<SettingValue.ValLong> {
+	default: Long, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValLong>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class FloatSetting(
-	default: Float, override val description: String
-) : SettingDef<SettingValue.ValFloat> {
+	default: Float, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValFloat>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class DoubleSetting(
-	default: Double, override val description: String
-) : SettingDef<SettingValue.ValDouble> {
+	default: Double, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValDouble>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class BooleanSetting(
-	default: Boolean, override val description: String
-) :
-	SettingDef<SettingValue.ValBoolean> {
+	default: Boolean, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValBoolean>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class CharSetting(
-	default: Char, override val description: String
-) : SettingDef<SettingValue.ValChar> {
+	default: Char, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValChar>(*desc) {
 	override val default = SettingValue(default)
 }
 
 abstract class StringSetting(
-	default: String, override val description: String
-) : SettingDef<SettingValue.ValString> {
+	default: String, vararg desc: Pair<Locale, String>
+) : SettingBase<SettingValue.ValString>(*desc) {
 	override val default = SettingValue(default)
+}
+
+
+abstract class SettingBase<out V : SettingValue<*>>(
+	vararg desc: Pair<Locale, String>
+) : SettingDef<V> {
+	override val description = desc.toMap()
 }
