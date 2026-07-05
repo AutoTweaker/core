@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -177,8 +178,9 @@ class MiMoDataClassCoverageTest {
 		val text = MiMoMessage.Content.TextPart("hello")
 		assertEquals("hello", text.text)
 		
-		val image = MiMoMessage.Content.ImagePart(MiMoMessage.Content.ImagePart.Url("https://example.com/img.png"))
-		assertEquals("https://example.com/img.png", image.imageUrl.url)
+		val image =
+			MiMoMessage.Content.ImagePart(MiMoMessage.Content.ImagePart.Url("https://example.com/img.png".toByteArray()))
+		assertContentEquals("https://example.com/img.png".toByteArray(), image.imageUrl.url)
 		
 		val audio = MiMoMessage.Content.AudioPart(MiMoMessage.Content.AudioPart.Data("base64data"))
 		assertEquals("base64data", audio.inputAudio.data)

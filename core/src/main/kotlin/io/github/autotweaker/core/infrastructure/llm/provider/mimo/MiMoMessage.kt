@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
+import io.github.autotweaker.api.types.serializer.ByteArraySerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
@@ -46,8 +47,17 @@ sealed class MiMoMessage {
 		) : Content() {
 			@Serializable
 			data class Url(
-				val url: String
-			)
+				@Serializable(with = ByteArraySerializer::class)
+				val url: ByteArray
+			) {
+				override fun equals(other: Any?): Boolean {
+					if (this === other) return true
+					if (other !is Url) return false
+					return url.contentEquals(other.url)
+				}
+				
+				override fun hashCode(): Int = url.contentHashCode()
+			}
 		}
 		
 		@Serializable

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.types.Base64
+import io.github.autotweaker.api.types.serializer.ByteArrayListSerializer
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -35,7 +35,8 @@ sealed class ChatMessage {
 	data class UserMessage(
 		override val content: String,
 		override val createdAt: Instant,
-		val pictures: List<Base64>? = null
+		@Serializable(with = ByteArrayListSerializer::class)
+		val pictures: List<ByteArray>? = null
 	) : ChatMessage()
 	
 	data class AssistantMessage(

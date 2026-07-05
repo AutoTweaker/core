@@ -16,15 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.types.serializer
 
-import io.github.autotweaker.api.types.serializer.ByteArrayListSerializer
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
-@Serializable
-data class MessageContent(
-	val injections: List<ContextInjection>? = null,
-	val content: String? = null,
-	@Serializable(with = ByteArrayListSerializer::class)
-	val images: List<ByteArray>? = null,
-)
+object ByteArrayListSerializer : KSerializer<List<ByteArray>> {
+	private val delegate = ListSerializer(ByteArraySerializer)
+	
+	override val descriptor: SerialDescriptor = delegate.descriptor
+	
+	override fun serialize(encoder: Encoder, value: List<ByteArray>) {
+		delegate.serialize(encoder, value)
+	}
+	
+	override fun deserialize(decoder: Decoder): List<ByteArray> =
+		delegate.deserialize(decoder)
+}

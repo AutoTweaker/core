@@ -179,9 +179,9 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				
 				is ChatMessage.UserMessage -> MiMoMessage.UserMessage(
 					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)) + msg.pictures.orEmpty()
-						.map { base64 ->
+						.map { bytes ->
 							MiMoMessage.Content.ImagePart(
-								imageUrl = MiMoMessage.Content.ImagePart.Url(base64.value)
+								imageUrl = MiMoMessage.Content.ImagePart.Url(bytes)
 							)
 						})
 				

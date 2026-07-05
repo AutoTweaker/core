@@ -18,14 +18,15 @@
 
 package io.github.autotweaker.core.infrastructure.llm
 
-import io.github.autotweaker.api.types.Base64
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlin.io.encoding.Base64
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.time.Clock
@@ -43,11 +44,11 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatMessage UserMessage with pictures`() {
-		val pic = Base64("dGVzdA==")
+		val pic = Base64.decode("dGVzdA==")
 		val msg = ChatMessage.UserMessage("hi", now, pictures = listOf(pic))
 		assertEquals("hi", msg.content)
 		assertEquals(1, msg.pictures?.size)
-		assertEquals("dGVzdA==", msg.pictures!![0].value)
+		assertContentEquals("test".toByteArray(), msg.pictures!![0])
 	}
 	
 	@Test
