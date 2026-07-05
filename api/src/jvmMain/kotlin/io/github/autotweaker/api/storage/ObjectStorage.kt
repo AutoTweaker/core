@@ -16,23 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.serializer
+package io.github.autotweaker.api.storage
 
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
+import io.github.autotweaker.api.types.Sha256
 
-object ByteArrayListSerializer : KSerializer<List<ByteArray>> {
-	private val delegate = ListSerializer(ByteArraySerializer)
+/**
+ * 基于 H2 数据库，内容寻址的对象存储服务，适用于存储二进制数据。
+ *
+ * 所有数据都会被存储到 `Objects` 数据库的 `objects` 表，并通过 SHA-256 去重。
+ */
+interface ObjectStorage {
+	/**
+	 * 保存一个二进制数据到数据库。
+	 *
+	 * @return [bytes] 的 SHA-256，作为数据的标识符。
+	 */
+	suspend fun put(bytes: ByteArray): Sha256
 	
-	override val descriptor: SerialDescriptor = delegate.descriptor
-	
-	override fun serialize(encoder: Encoder, value: List<ByteArray>) {
-		delegate.serialize(encoder, value)
-	}
-	
-	override fun deserialize(decoder: Decoder): List<ByteArray> =
-		delegate.deserialize(decoder)
+	/**
+	 * 通过数据的 SHA-256 获取二进制内容。
+	 *
+	 * @return 找不到数据返回 null。
+	 */
+	suspend fun get(sha256: Sha256): ByteArray?
 }

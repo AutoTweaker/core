@@ -22,7 +22,6 @@ import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
-
 import io.github.autotweaker.api.types.config.SettingValue
 import io.mockk.every
 import io.mockk.mockk
@@ -39,13 +38,14 @@ class CommandRouterTest {
 	
 	companion object {
 		private val settingService = mockk<SettingService>(relaxed = true)
-
+		
 		init {
 			every { settingService.invoke<SettingValue.ValInt, Int>(any()) } returns 100_000
 			initServices(
 				ServiceRegistry(
 					mockk(relaxed = true),
 					mockk(relaxed = true),
+					{ mockk(relaxed = true) },
 					{ settingService },
 					{ mockk(relaxed = true) }
 				)

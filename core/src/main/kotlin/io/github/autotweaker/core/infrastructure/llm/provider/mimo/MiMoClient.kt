@@ -19,7 +19,9 @@
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.ObjectStorable
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.objects
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
@@ -34,7 +36,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 	requestTypeInfo = typeInfo<MiMoRequest>(),
 	responseTypeInfo = typeInfo<MiMoResponse>(),
 	chunkSerializer = serializer<MiMoStreamChunk>(),
-) {
+), ObjectStorable {
 	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
 		name = "mimo",
 		baseUrl = "https://api.xiaomimimo.com/v1".toUrl(),
@@ -170,7 +172,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		),
 	)
 	
-	override fun createRequestBody(request: ChatRequest): MiMoRequest {
+	override suspend fun createRequestBody(request: ChatRequest): MiMoRequest {
 		val mappedMessages = request.messages.mapNotNull { msg ->
 			when (msg) {
 				is ChatMessage.SystemMessage -> MiMoMessage.DeveloperMessage(
@@ -179,9 +181,11 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				
 				is ChatMessage.UserMessage -> MiMoMessage.UserMessage(
 					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)) + msg.pictures.orEmpty()
-						.map { bytes ->
+						.mapNotNull { sha256 ->
 							MiMoMessage.Content.ImagePart(
-								imageUrl = MiMoMessage.Content.ImagePart.Url(bytes)
+								imageUrl = MiMoMessage.Content.ImagePart.Url(
+									objects.get(sha256) ?: return@mapNotNull null
+								)
 							)
 						})
 				

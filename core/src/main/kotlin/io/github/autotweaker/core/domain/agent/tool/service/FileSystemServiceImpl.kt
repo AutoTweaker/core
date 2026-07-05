@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -48,7 +49,7 @@ class FileSystemServiceImpl(
 	override suspend fun readAllLines(path: Path): List<String> =
 		fs.readAllLines(resolve(path))
 	
-	override suspend fun sha256(path: Path): String =
+	override suspend fun sha256(path: Path): Sha256 =
 		fs.sha256(resolve(path))
 	
 	private fun resolve(path: Path): Path {

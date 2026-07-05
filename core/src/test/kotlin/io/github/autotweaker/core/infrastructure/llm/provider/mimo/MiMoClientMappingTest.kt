@@ -32,10 +32,11 @@ class MiMoClientMappingTest {
 	
 	private fun <T> invokeProtected(name: String, vararg args: Any?): T {
 		val method = MiMoClient::class.java.declaredMethods
-			.first { it.name == name && it.parameterTypes.size == args.size }
+			.first { it.name == name && (it.parameterTypes.size == args.size || it.parameterTypes.size == args.size + 1) }
 		method.isAccessible = true
+		val invokeArgs = if (method.parameterTypes.size == args.size) args else arrayOf(*args, null)
 		@Suppress("UNCHECKED_CAST")
-		return method.invoke(client, *args) as T
+		return method.invoke(client, *invokeArgs) as T
 	}
 	
 	private fun createRequestBody(request: ChatRequest): MiMoRequest =

@@ -136,7 +136,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		)
 	)
 	
-	override fun createRequestBody(request: ChatRequest): DeepSeekRequest {
+	override suspend fun createRequestBody(request: ChatRequest): DeepSeekRequest {
 		val mappedMessages = request.messages.mapNotNull { msg ->
 			when (msg) {
 				is ChatMessage.SystemMessage -> DeepSeekMessage.SystemMessage(

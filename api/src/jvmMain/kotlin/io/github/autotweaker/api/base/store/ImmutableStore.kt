@@ -23,7 +23,7 @@ import io.github.autotweaker.api.base.Mutable.Companion.mutable
 import io.github.autotweaker.api.store
 
 /**
- * 使用 [Mutable] 为缓存，[io.github.autotweaker.api.config.JsonStore] 为持久化服务的存储基类。
+ * 使用 [Mutable] 为缓存，[io.github.autotweaker.api.storage.JsonStore] 为持久化服务的存储基类。
  *
  * 通过 [cache] 即可调用 [Mutable] 的 api，数据通过 [Mutable] 的 `onChange` 回调自动保存。
  *

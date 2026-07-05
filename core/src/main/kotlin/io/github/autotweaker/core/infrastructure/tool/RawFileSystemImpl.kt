@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.tool
 
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.Unicode.Companion.toUnicode
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -25,7 +26,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 
 object RawFileSystemImpl : RawFileSystem {
 	override suspend fun exists(path: Path): Boolean = withContext(Dispatchers.IO) { Files.exists(path) }
@@ -42,15 +42,7 @@ object RawFileSystemImpl : RawFileSystem {
 		Files.readString(path).map { it.toUnicode() }
 	}
 	
-	override suspend fun sha256(path: Path): String = withContext(Dispatchers.IO) {
-		val digest = MessageDigest.getInstance("SHA-256")
-		Files.newInputStream(path).use { input ->
-			val buffer = ByteArray(8192)
-			var bytesRead: Int
-			while (input.read(buffer).also { bytesRead = it } != -1) {
-				digest.update(buffer, 0, bytesRead)
-			}
-		}
-		digest.digest().joinToString("") { "%02x".format(it) }
+	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
+		Sha256.hash(Files.readAllBytes(path))
 	}
 }

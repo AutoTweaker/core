@@ -42,6 +42,7 @@ object TestServices {
 				ServiceRegistry(
 					TraceRecorderImpl::recorder,
 					JsonStoreImpl::namespace,
+					{ mockk(relaxed = true) },
 					{ settingService },
 					mockk(relaxed = true)
 				)

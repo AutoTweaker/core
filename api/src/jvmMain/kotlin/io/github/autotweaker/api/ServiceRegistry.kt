@@ -18,9 +18,10 @@
 
 package io.github.autotweaker.api
 
-import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.storage.ObjectStorage
 import io.github.autotweaker.api.trace.TraceRecorder
 import kotlin.reflect.KClass
 
@@ -30,9 +31,11 @@ import kotlin.reflect.KClass
 class ServiceRegistry(
 	val trace: (KClass<*>) -> TraceRecorder,
 	val store: (KClass<*>) -> JsonStore,
+	lazyObjects: () -> ObjectStorage,
 	lazySetting: () -> SettingService,
 	lazyI18n: () -> I18nService,
 ) {
+	val objects: ObjectStorage by lazy { lazyObjects() }
 	val setting: SettingService by lazy { lazySetting() }
 	val i18n: I18nService by lazy { lazyI18n() }
 	

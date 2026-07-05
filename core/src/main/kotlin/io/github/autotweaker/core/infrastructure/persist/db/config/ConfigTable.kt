@@ -20,7 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.db.config
 
 import org.jetbrains.exposed.v1.core.Table
 
-object ConfigTable : Table("core_settings") {
+object ConfigTable : Table("settings") {
 	val keyName = varchar("key_name", 255)
 	val valJson = text("val_json")
 	

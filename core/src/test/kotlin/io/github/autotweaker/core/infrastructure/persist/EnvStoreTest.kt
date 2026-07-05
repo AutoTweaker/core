@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist
 
-import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore

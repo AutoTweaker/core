@@ -16,14 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.core.infrastructure.persist.db.objectstore
 
-import io.github.autotweaker.api.types.Sha256
-import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.v1.core.Table
 
-@Serializable
-data class MessageContent(
-	val injections: List<ContextInjection>? = null,
-	val content: String? = null,
-	val images: List<Sha256>? = null,
-)
+object ObjectStoreTable : Table("objects") {
+	val hash = binary("hash", 32)
+	val content = blob("content")
+	
+	override val primaryKey = PrimaryKey(hash)
+}

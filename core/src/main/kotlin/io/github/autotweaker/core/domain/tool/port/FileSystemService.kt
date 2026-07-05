@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.tool.port
 
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Unicode
 import java.nio.file.Path
 
@@ -27,5 +28,5 @@ interface FileSystemService {
 	suspend fun isRegularFile(path: Path): Boolean
 	suspend fun readUnicode(path: Path): List<Unicode>
 	suspend fun readAllLines(path: Path): List<String>
-	suspend fun sha256(path: Path): String
+	suspend fun sha256(path: Path): Sha256
 }

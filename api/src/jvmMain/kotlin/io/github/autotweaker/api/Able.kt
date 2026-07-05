@@ -18,9 +18,10 @@
 
 package io.github.autotweaker.api
 
-import io.github.autotweaker.api.config.JsonStore
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.storage.ObjectStorage
 import io.github.autotweaker.api.trace.TraceRecorder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -45,6 +46,13 @@ interface Traceable
  * @see JsonStore
  */
 interface JsonStorable
+
+/**
+ * 允许对象通过 [objects] 获取 [ObjectStorage]
+ *
+ * @see ObjectStorage
+ */
+interface ObjectStorable
 
 /**
  * 允许对象通过 [setting] 获取 [SettingService]
@@ -92,6 +100,14 @@ inline val Traceable.trace: TraceRecorder get() = services.trace(this::class)
  * 直接在实现了 [JsonStorable] 的类 / 对象内部的任何地方使用 `store` 即可。
  */
 inline val JsonStorable.store: JsonStore get() = services.store(this::class)
+
+/**
+ * 获取 AutoTweaker 提供的 [ObjectStorage]。
+ *
+ * 直接在实现了 [ObjectStorable] 的类 / 对象内部的任何地方使用 `objects` 即可。
+ */
+@Suppress("UnusedReceiverParameter")
+inline val ObjectStorable.objects: ObjectStorage get() = services.objects
 
 /**
  * 获取 AutoTweaker 提供的 [SettingService]。

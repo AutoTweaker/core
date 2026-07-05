@@ -38,6 +38,7 @@ import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationMan
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
+import io.github.autotweaker.core.infrastructure.persist.db.objectstore.ObjectStorageImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.AgentDataDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionDataDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionMessageDbApi
@@ -57,6 +58,7 @@ object Launcher : Loggable, Traceable {
 			ServiceRegistry(
 				trace = TraceRecorderImpl::recorder,
 				store = JsonStoreImpl::namespace,
+				lazyObjects = { ObjectStorageImpl },
 				lazySetting = { Settings },
 				lazyI18n = { I18nServiceImpl },
 			)
@@ -68,6 +70,7 @@ object Launcher : Loggable, Traceable {
 		Settings.init(databaseStore)
 		TraceStore.init(databaseStore)
 		SessionRepositoryImpl.init(databaseStore)
+		ObjectStorageImpl.init(databaseStore)
 		//DbApi
 		SettingDbApi.init(databaseStore)
 		JsonStoreDbApi.init(databaseStore)

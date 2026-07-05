@@ -82,7 +82,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		fun toToolCall() = ChatMessage.AssistantMessage.ToolCall(id, name, arguments.toString())
 	}
 	
-	protected abstract fun createRequestBody(request: ChatRequest): Request
+	protected abstract suspend fun createRequestBody(request: ChatRequest): Request
 	protected abstract fun mapToChatResult(response: Response): ChatResult
 	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult.Chunk
 	protected abstract fun extractToolCalls(chunk: Chunk): List<ChatResult.ChunkToolCall>?
@@ -220,7 +220,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 	}
 	
 	
-	private fun HttpRequestBuilder.configureRequest(
+	private suspend fun HttpRequestBuilder.configureRequest(
 		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
 		url("${baseUrl.value}/chat/completions")

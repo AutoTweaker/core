@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -193,7 +194,7 @@ class AgentChatRequestExtTest {
 	
 	@Test
 	fun `images in user message`() {
-		val img = "AAAA".toByteArray()
+		val img = Sha256(ByteArray(32) { it.toByte() })
 		val user = AgentContext.Message.User(
 			content = MessageContent(content = "look at this", images = listOf(img)),
 			timestamp = Clock.System.now()
@@ -205,7 +206,7 @@ class AgentChatRequestExtTest {
 		
 		val msg = messages[0] as ChatMessage.UserMessage
 		assertEquals(1, msg.pictures?.size)
-		assertContentEquals(img, msg.pictures!![0])
+		assertContentEquals(img.bytes, msg.pictures!![0].bytes)
 	}
 	
 	@Test

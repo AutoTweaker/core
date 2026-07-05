@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.tool.impl.bash
 
-import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.shell.ShellEvent

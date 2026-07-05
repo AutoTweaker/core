@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
@@ -43,13 +44,13 @@ class AgentContextTest {
 	
 	@Test
 	fun `User message with images`() {
-		val img = "aaaa".toByteArray()
+		val img = Sha256(ByteArray(32) { it.toByte() })
 		val msg = AgentContext.Message.User(
 			content = MessageContent(content = "hello", images = listOf(img)),
 			timestamp = now
 		)
 		assertEquals(1, msg.content.images?.size)
-		assertContentEquals(img, msg.content.images!![0])
+		assertContentEquals(img.bytes, msg.content.images!![0].bytes)
 	}
 	
 	@Test

@@ -22,7 +22,7 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.store
 
 /**
- * 使用 [V] 为缓存，[io.github.autotweaker.api.config.JsonStore] 为持久化服务的存储基类。
+ * 使用 [V] 为缓存，[io.github.autotweaker.api.storage.JsonStore] 为持久化服务的存储基类。
  *
  * [MutableStore] 有锁（基于 [ReentrantMutex]），但缓存的对象不能被整个替换，[transform] 块中可以在锁内干任何事情，也有协程上下文，适合更新值的相关逻辑拥有一些复杂逻辑的场景。
  *

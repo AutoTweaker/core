@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.base.store
 
-import io.github.autotweaker.api.config.JsonStore
+import io.github.autotweaker.api.storage.JsonStore
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 

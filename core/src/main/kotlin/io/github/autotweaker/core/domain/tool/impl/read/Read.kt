@@ -176,7 +176,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		if (previousReads.any { (entry, fileArgs) ->
 				trace.catching {
 					val prevNormalized = fs.normalize(fileArgs.filePath)
-					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256 && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
+					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256.toString() && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
 				}.getOrDefault(false)
 			}) {
 			return Tool.ToolOutput(setting(ReadSettings.FileMessageDuplicateSetting()).format(sha256), true)
