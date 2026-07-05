@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.i18n
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.store.AtomicStore
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.log
@@ -28,7 +29,6 @@ import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.I18nEntries
 import io.github.autotweaker.api.types.Localizations
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
-import io.github.autotweaker.core.infrastructure.persist.json.base.AtomicStore
 import kotlinx.serialization.Serializable
 import java.util.*
 

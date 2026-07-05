@@ -16,11 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.dev
+package io.github.autotweaker.api.hook
 
-data class SessionMessageEntry(
-	override val key: String,
-	val type: String,
-	val timestamp: Long,
-	val content: String
-) : DbEntry()
+import io.github.autotweaker.api.types.SemVer
+
+/**
+ * 程序刚刚启动，拿到锁（`~/.config/autotweaker/autotweaker.lock`）后立即调用，此时一切服务都未初始化。
+ *
+ * 需要打上 `@AutoService(StartupHook::class)` 来让 AutoTweaker 发现。
+ */
+interface StartupHook {
+	suspend fun execute(coreVersion: SemVer)
+}

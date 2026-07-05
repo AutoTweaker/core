@@ -19,9 +19,9 @@
 package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
-import io.github.autotweaker.api.dev.DbAPI
-import io.github.autotweaker.api.dev.DbDebugAPI
-import io.github.autotweaker.api.types.dev.*
+import io.github.autotweaker.api.debug.DbAPI
+import io.github.autotweaker.api.debug.DbDebugAPI
+import io.github.autotweaker.api.types.debug.*
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable

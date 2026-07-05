@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.dev
+package io.github.autotweaker.api.types.debug
 
-data class AgentDataEntry(
+data class SessionMessageEntry(
 	override val key: String,
-	val name: String,
-	val model: String,
-	val context: String,
-	val activeTools: String
+	val type: String,
+	val timestamp: Long,
+	val content: String
 ) : DbEntry()

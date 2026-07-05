@@ -279,8 +279,21 @@ interface CoreAPI {
 	 * @see io.github.autotweaker.api.Settable
 	 */
 	interface ConfigAPI {
+		/**
+		 * 获取所有设置，此 api 通常用于向用户展示，要获取自己注册的设置项请使用 [io.github.autotweaker.api.config.SettingService.invoke]。
+		 *
+		 * 所有设置项都拥有描述，但 [SettingEntry] 不会包含，请使用 [I18nAPI.getString] 获取国际化的描述。
+		 */
 		fun getAllSettings(): List<SettingEntry>
+		
+		/**
+		 * 获取设置条目硬编码的默认值和默认描述，可用于向用户展示或快速重置。
+		 */
 		fun getSettingDef(id: String): SettingDef<*>?
+		
+		/**
+		 * 更新一个设置项的值，要更新自己注册的设置项请使用 [io.github.autotweaker.api.config.SettingService.set]。
+		 */
 		suspend fun setSetting(id: String, value: SettingValue<*>)
 		
 		/**
@@ -471,7 +484,9 @@ interface CoreAPI {
 	}
 	
 	/**
-	 * 管理 i18n 自动翻译的 API。
+	 * 管理 i18n 服务和 i18n 自动翻译服务的 API。
+	 *
+	 * AutoTweaker 会合并设置项描述和 i18n 条目。
 	 *
 	 * AutoTweaker 会在后台对已注册的 i18n 条目进行自动翻译。
 	 *
@@ -480,13 +495,46 @@ interface CoreAPI {
 	 * @see setTranslationModel
 	 */
 	interface I18nAPI {
+		/**
+		 * 获取某个 id 硬编码在声明中的 i18n 文案。
+		 *
+		 * 找不到返回 null。
+		 */
 		fun getDefault(id: String): Localizations?
+		
+		/**
+		 * 通过 id 获取国际化的文本，通常用于获取设置项的描述。
+		 *
+		 * 不会抛出异常，条目不存在会返回 id 本身。
+		 *
+		 * 要获取自己注册的 i18n 请使用 [io.github.autotweaker.api.i18n.I18nService]。
+		 *
+		 * @param id 可以是 [SettingEntry.id]，也可以是 i18n 条目的 id。
+		 */
 		fun getString(id: String): String
+		
+		/**
+		 * 获取所有 i18n 条目以及所有语言的文本，包括自动翻译后的文本。
+		 *
+		 * @see I18nEntries
+		 */
 		fun getAll(): I18nEntries
+		
+		/**
+		 * 更新一个 i18n 条目某个语言的文本，或添加一个语言的文本。
+		 *
+		 * @throws IllegalStateException 通过 [id] 找不到条目。
+		 */
 		fun set(id: String, text: String, languageCode: Locale)
 		
-		
+		/**
+		 * 获取程序使用的语言，请不要使用 [Locale.getDefault]，通过此 api 获取到的语言可能经过用户配置。
+		 */
 		fun getLanguage(): Locale
+		
+		/**
+		 * 设置程序在国际化等场景下使用的语言。
+		 */
 		fun setLanguage(locale: Locale)
 		
 		

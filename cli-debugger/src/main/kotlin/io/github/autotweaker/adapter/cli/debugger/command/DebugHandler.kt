@@ -21,9 +21,9 @@ package io.github.autotweaker.adapter.cli.debugger.command
 import io.github.autotweaker.adapter.cli.CmdOutput
 import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.Request
-import io.github.autotweaker.api.dev.DbAPI
-import io.github.autotweaker.api.dev.DbDebugAPI
-import io.github.autotweaker.api.types.dev.*
+import io.github.autotweaker.api.debug.DbAPI
+import io.github.autotweaker.api.debug.DbDebugAPI
+import io.github.autotweaker.api.types.debug.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow

@@ -25,6 +25,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
+/**
+ * [forEach] 并行版，会为每个条目启动一个协程来执行 [action]。
+ *
+ * 用法与 [forEach] 近似，但 lambda 内部不允许非局部返回，因为 lambda 要用来启动协程。
+ */
 suspend inline fun <T> Iterable<T>.forEachParallel(
 	crossinline action: suspend (T) -> Unit
 ) = coroutineScope {
@@ -35,6 +40,11 @@ suspend inline fun <T> Iterable<T>.forEachParallel(
 	}
 }
 
+/**
+ * [forEach] 并行版，会为每个条目启动一个协程来执行 [action]，同时限制并发数为 [limit]。
+ *
+ * 用法与 [forEach] 近似，但 lambda 内部不允许非局部返回，因为 lambda 要用来启动协程。
+ */
 suspend inline fun <T> Iterable<T>.forEachParallel(
 	limit: Int, crossinline action: suspend (T) -> Unit
 ) {
@@ -46,18 +56,38 @@ suspend inline fun <T> Iterable<T>.forEachParallel(
 	}
 }
 
+/**
+ * [forEach] 并行版，会为每个条目启动一个协程来执行 [action]。
+ *
+ * 用法与 [forEach] 近似，但 lambda 内部不允许非局部返回，因为 lambda 要用来启动协程。
+ */
 suspend inline fun <K, V> Map<K, V>.forEachParallel(
 	crossinline action: suspend (Map.Entry<K, V>) -> Unit
 ) = entries.forEachParallel(action)
 
+/**
+ * [forEach] 并行版，会为每个条目启动一个协程来执行 [action]，同时限制并发数为 [limit]。
+ *
+ * 用法与 [forEach] 近似，但 lambda 内部不允许非局部返回，因为 lambda 要用来启动协程。
+ */
 suspend inline fun <K, V> Map<K, V>.forEachParallel(
 	limit: Int, crossinline action: suspend (Map.Entry<K, V>) -> Unit
 ) = entries.forEachParallel(limit, action)
 
+/**
+ * [forEach] 并行版，会为每个条目启动一个协程来执行 [action]。
+ *
+ * 用法与 [forEach] 近似，但 lambda 内部不允许非局部返回，因为 lambda 要用来启动协程。
+ */
 suspend inline fun <T> Array<T>.forEachParallel(
 	crossinline action: suspend (T) -> Unit
 ) = asIterable().forEachParallel(action)
 
+/**
+ * [forEach] 并行版，会为每个条目启动一个协程来执行 [action]，同时限制并发数为 [limit]。
+ *
+ * 用法与 [forEach] 近似，但 lambda 内部不允许非局部返回，因为 lambda 要用来启动协程。
+ */
 suspend inline fun <T> Array<T>.forEachParallel(
 	limit: Int, crossinline action: suspend (T) -> Unit
 ) = asIterable().forEachParallel(limit, action)

@@ -20,9 +20,11 @@ package io.github.autotweaker.core
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
+import org.objectweb.asm.ClassReader
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
+import java.util.jar.JarFile
 
 object PluginLoader : Loggable, Traceable {
 	private val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
@@ -30,17 +32,33 @@ object PluginLoader : Loggable, Traceable {
 	@Volatile
 	var sharedClassLoader: URLClassLoader? = null
 	
-	fun getOrCreateClassLoader(apiClassLoader: ClassLoader): URLClassLoader {
+	fun getOrCreateClassLoader(apiClassLoader: ClassLoader): URLClassLoader? {
 		sharedClassLoader?.let { return it }
 		synchronized(this) {
 			sharedClassLoader?.let { return it }
-			val dir = CONFIG_PATH.resolve("plugins")
-			if (!Files.isDirectory(dir)) return URLClassLoader(emptyArray(), apiClassLoader)
+			if (!Files.isDirectory(PLUGIN_PATH)) return URLClassLoader(emptyArray(), apiClassLoader)
 			
-			val jars = Files.list(dir).use { it.filter { p -> p.toString().endsWith(".jar") }.toList() }
-			if (jars.isEmpty()) return URLClassLoader(emptyArray(), apiClassLoader)
+			val jars = Files.list(PLUGIN_PATH).use {
+				it.filter { path -> path.toString().endsWith(".jar") }.toList()
+			}
+			if (jars.isEmpty()) return null
 			
-			val urls = jars.map { it.toUri().toURL() }.toTypedArray()
+			val urls = jars.mapNotNull { path ->
+				trace.catching {
+					JarFile(path.toFile()).use { jar ->
+						jar.entries().asSequence()
+							.filter { it.name.endsWith(".class") }
+							.forEach { entry ->
+								jar.getInputStream(entry).use { stream ->
+									ClassReader(stream.readAllBytes())
+								}
+							}
+					}
+					path.toUri().toURL()
+				}
+					.onFailure { log.warn("Skipping bad plugin jar  path={}  reason={}", path, it.message) }
+					.getOrNull()
+			}.toTypedArray()
 			val classLoader = URLClassLoader(urls, apiClassLoader)
 			classLoaders.add(classLoader)
 			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
@@ -50,7 +68,7 @@ object PluginLoader : Loggable, Traceable {
 	}
 	
 	inline fun <reified T : Any> load(): List<T> {
-		val classLoader = getOrCreateClassLoader(T::class.java.classLoader)
+		val classLoader = getOrCreateClassLoader(T::class.java.classLoader) ?: return emptyList()
 		val plugins = ServiceLoader.load(T::class.java, classLoader).toList()
 		log.info("Loaded plugins  type={}  pluginCount={}", T::class.simpleName, plugins.size)
 		return plugins

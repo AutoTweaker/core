@@ -98,7 +98,7 @@ object SessionManager : Loggable, Traceable, Settable {
 		{ debug("Updated session title  session={}  title={}", session, title) }.discard()
 	
 	
-	suspend fun create(model: ModelConfig) = create(wsm.getDefault().meta.id, model)
+	suspend fun create(model: ModelConfig) = create(wsm.defaultWorkspaceId, model)
 	
 	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids)
 	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
@@ -106,9 +106,7 @@ object SessionManager : Loggable, Traceable, Settable {
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
-		val workspaceData =
-			if (workspaceId == wsm.defaultWorkspaceId) wsm.getDefault()
-			else wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
+		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
 		if (!Files.isDirectory(workspaceData.meta.path)) {
 			error("Workspace directory does not exist: ${workspaceData.meta.path}")
 		}

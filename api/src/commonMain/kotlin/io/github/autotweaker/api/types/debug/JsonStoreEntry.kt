@@ -16,12 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.dev
+package io.github.autotweaker.api.types.debug
 
-data class SessionDataEntry(
+data class JsonStoreEntry(
 	override val key: String,
-	val title: String?,
-	val overview: String?,
-	val workspaceId: String,
-	val agentIndex: String
+	val content: String
 ) : DbEntry()

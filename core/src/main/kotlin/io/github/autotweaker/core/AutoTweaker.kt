@@ -23,7 +23,7 @@ import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.dev.StartupHook
+import io.github.autotweaker.api.hook.StartupHook
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.application.Launcher
@@ -51,7 +51,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	
 	suspend fun start() {
 		withContext(Dispatchers.IO) {
-			Files.createDirectories(CONFIG_PATH.resolve("plugins"))
+			Files.createDirectories(PLUGIN_PATH)
 			acquireLock()
 		}
 		

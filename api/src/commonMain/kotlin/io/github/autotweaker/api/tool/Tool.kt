@@ -23,29 +23,101 @@ import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
+/**
+ * 实现此接口并打上 `@AutoService(Tool::class)` 来注册成为 agent 的一个工具。
+ *
+ * AutoTweaker 的一个插件内部，或插件直接可以互相访问，故工具可以拿到来自适配器以及其他插件的能力。
+ *
+ * AutoTweaker 会为每个 agent 实例构造不同的 [Tool] 实例，在这个 agent 的生命周期中，始终使用同一个 [Tool] 实例。
+ *
+ * [ToolArgs] 是工具的调用参数，AutoTweaker 使用 kotlin 的序列化器处理 LLM 的工具调用参数来代替手动 Json 解析，同时提供类型安全的参数读取。
+ *
+ * @see ToolArgs
+ */
 interface Tool<Args : ToolArgs> {
+	/**
+	 * 提供用于 [Args] 的序列化器，AutoTweaker 使用这个序列化器来反序列化 LLM 的调用请求。
+	 */
 	val argsSerializer: KSerializer<Args>
+	
+	/**
+	 * 工具名称，不能包含 `-`，否则异常从 agent 的初始化流程一路传播到 `CoreAPI`。
+	 *
+	 * 会覆盖同名内置工具。
+	 */
 	val name: String
+	
+	/**
+	 * 给 LLM 看的工具描述，建议使其可配置。
+	 *
+	 * 此描述仅在工具未激活时对 LLM 可见，可用于介绍工具的整体用途。
+	 */
 	val description: String
 	
-	suspend fun describe(): Map<KProperty1<*, *>, String> = emptyMap()
+	/**
+	 * 描述所有参数，给 LLM 看，包括 [Args] 的所有形参，[Args] 子类的所有形参，[Args] 及其子类形参引用的任何类型的所有形参，这些类型引用的类型的所有形参，这些类型引用的类型引用的类型的……的所有形参。少一个就会阻止所有 agent 的初始化，异常从 agent 的初始化流程一路传播到 `CoreAPI`。
+	 */
+	suspend fun describe(): Map<KProperty1<*, *>, String>
+	
+	/**
+	 * 描述 [Args] 的所有子类，不包含 [Args] 的内部类，或 [Args] 形参引用的类型，LLM 不能同时看到这些 function 描述和 [description]，这些描述都是对应 function 的工具描述。
+	 */
 	suspend fun describeFunctions(): Map<KClass<*>, String> = emptyMap()
 	
+	/**
+	 * 调用工具，已经经过用户或审批系统确认，不必考虑安全问题，但不保证 [Args] 的参数（如文件路径）一定可用。
+	 *
+	 * @param outputChannel 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。
+	 * @return 不同于 [outputChannel]，这些内容直接返回给 LLM。
+	 */
 	suspend fun execute(args: Args, outputChannel: Channel<RuntimeOutput>? = null): ToolOutput
 	
+	/**
+	 * 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。
+	 */
 	data class RuntimeOutput(
+		/**
+		 * 给用户看的实时信息，不会传递给 LLM。
+		 *
+		 * 如果涉及，建议不要累加输出。
+		 */
 		val content: String,
+		/**
+		 * 输出的类型，不同类型的输出会以不同形式呈现给用户。
+		 */
 		val type: OutputType
 	) {
 		enum class OutputType {
+			/**
+			 * 普通输出，累加给用户看。
+			 */
 			INFO,
+			
+			/**
+			 * 错误输出，通常以红色给用户看。
+			 */
 			ERROR,
+			
+			/**
+			 * 状态输出，新状态覆盖旧状态，用户持续看到最新的状态，不会看到旧的。
+			 */
 			STATUS
 		}
 	}
 	
+	/**
+	 * 工具响应，[result] 给 LLM 看，[success] 给用户看。
+	 */
 	data class ToolOutput(
+		/**
+		 * 返回给 LLM 的内容，超出阈值部分会被截断，完整内容存入文件。
+		 *
+		 * 阈值由用户配置，默认 50 万字符，“字符”的语义是 [String.length]。
+		 */
 		val result: String,
+		/**
+		 * 工具执行是否成功。给用户看。
+		 */
 		val success: Boolean,
 	)
 }

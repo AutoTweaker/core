@@ -16,22 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.json.base
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.config.JsonStore
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
-
-class JsonStoreAccessor<V>(
-	private val store: JsonStore,
-	private val serializer: KSerializer<V>,
-	private val default: () -> V,
-) {
-	val initial: V by lazy { load() ?: default() }
-	
-	fun save(value: V) =
-		store.set(Json.encodeToJsonElement(serializer, value))
-	
-	private fun load(): V? =
-		store.get()?.let { Json.decodeFromJsonElement(serializer, it) }
-}
+data class SecretEntry(
+	override val key: String,
+	val content: String
+) : DbEntry()

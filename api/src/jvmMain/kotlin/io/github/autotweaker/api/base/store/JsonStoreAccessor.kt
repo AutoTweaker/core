@@ -16,9 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.dev
+package io.github.autotweaker.api.base.store
 
-data class JsonStoreEntry(
-	override val key: String,
-	val content: String
-) : DbEntry()
+import io.github.autotweaker.api.config.JsonStore
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
+
+/**
+ * internal 所以没有 KDoc。
+ */
+internal class JsonStoreAccessor<V>(
+	private val store: JsonStore,
+	private val serializer: KSerializer<V>,
+	private val default: () -> V,
+) {
+	val initial: V by lazy { load() ?: default() }
+	
+	fun save(value: V) =
+		store.set(Json.encodeToJsonElement(serializer, value))
+	
+	private fun load(): V? =
+		store.get()?.let { Json.decodeFromJsonElement(serializer, it) }
+}

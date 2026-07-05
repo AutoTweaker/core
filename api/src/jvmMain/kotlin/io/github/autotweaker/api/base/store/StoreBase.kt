@@ -16,9 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.dev
+package io.github.autotweaker.api.base.store
 
-data class SecretEntry(
-	override val key: String,
-	val content: String
-) : DbEntry()
+import io.github.autotweaker.api.JsonStorable
+import kotlinx.serialization.KSerializer
+
+/**
+ * 此类的子类无需显式实现 [JsonStorable]，需要实现 [serializer] / [default]。
+ *
+ * 很简单的抽象类，只为让 [AtomicStore] / [ImmutableStore] / [MutableStore] 省几行重复代码。
+ */
+abstract class StoreBase<V> : JsonStorable {
+	/**
+	 * 提供用于 [V] 的序列化器。
+	 */
+	protected abstract val serializer: KSerializer<V>
+	
+	/**
+	 * 数据库中无已有数据时的默认值，也就是初始值。
+	 */
+	protected abstract fun default(): V
+}

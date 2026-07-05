@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.types.dev.SessionMessageEntry
+import io.github.autotweaker.api.types.debug.SessionMessageEntry
 import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow

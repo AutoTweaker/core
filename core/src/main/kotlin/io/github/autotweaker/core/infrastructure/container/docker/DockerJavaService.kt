@@ -42,8 +42,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTimedValue
 import java.time.Duration as JavaDuration
 
 class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
@@ -99,7 +99,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 			containerWorkDir = config.workDir
 			Files.createDirectories(hostPath)
 			Files.createDirectories(config.tmpHostPath)
-
+			
 			val existing = findContainerByName(config.name)
 			if (existing != null) {
 				if (existing.state != "running") {
@@ -204,24 +204,25 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 				}
 				val execId = execCmd.exec().id
 				
-				client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
-					override fun onNext(frame: Frame) {
-						val text = String(frame.payload, Charsets.UTF_8)
-						when (frame.streamType) {
-							StreamType.STDOUT -> trySend(ShellEvent.Stdout(text))
-							StreamType.STDERR -> trySend(ShellEvent.Stderr(text))
-							else -> {}
+				val execDuration = measureTimedValue {
+					client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
+						override fun onNext(frame: Frame) {
+							val text = String(frame.payload, Charsets.UTF_8)
+							when (frame.streamType) {
+								StreamType.STDOUT -> trySend(ShellEvent.Stdout(text))
+								StreamType.STDERR -> trySend(ShellEvent.Stderr(text))
+								else -> {}
+							}
 						}
-					}
-				}).awaitCompletion()
-				
-				val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
+					}).awaitCompletion()
+					client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
+				}
 				trySend(
 					ShellEvent.Exit(
 						ShellResult(
-							exitCode = exitCode,
-							timeout = exitCode == 124,
-							duration = Duration.ZERO,
+							exitCode = execDuration.value,
+							timeout = execDuration.value == 124,
+							duration = execDuration.duration,
 						)
 					)
 				)

@@ -18,8 +18,22 @@
 
 package io.github.autotweaker.api.i18n
 
+
 import io.github.autotweaker.api.types.Localizations
 
+/**
+ * 实现此接口并打上 `@AutoService(I18nDef::class)` 注释即可注册一个 i18n 条目。
+ *
+ * 继承 [io.github.autotweaker.api.base.I18nBase] 可以省去一些声明 i18n 的重复代码。
+ *
+ * 实现 [io.github.autotweaker.api.I18nable] 接口即可通过 [I18nService] 获取设置的当前值。
+ *
+ * 通过 [io.github.autotweaker.api.adapter.CoreAPI.I18nAPI] 可管理所有 i18n 条目。
+ *
+ * AutoTweaker 通过 SPI 和 [I18nService] 来实现分布式的 i18n 声明以及安全的取值。
+ *
+ * AutoTweaker 会自动翻译 i18n 条目，所以不必注册很多语言的条目。
+ */
 interface I18nDef {
 	val localizations: Localizations
 }

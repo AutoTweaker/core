@@ -16,10 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.dev
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.types.SemVer
-
-interface StartupHook {
-	suspend fun execute(coreVersion: SemVer)
-}
+data class AgentDataEntry(
+	override val key: String,
+	val name: String,
+	val model: String,
+	val context: String,
+	val activeTools: String
+) : DbEntry()

@@ -20,7 +20,12 @@ package io.github.autotweaker.api.types
 
 import java.util.*
 
-
+/**
+ * 表示所有 i18n 条目，也包括设置项的描述。
+ */
 typealias I18nEntries = Map<String, Localizations>
 
+/**
+ * 表示一个 i18n 条目的所有语言。
+ */
 typealias Localizations = Map<Locale, String>

@@ -21,7 +21,27 @@ package io.github.autotweaker.api.config
 import io.github.autotweaker.api.types.Localizations
 import io.github.autotweaker.api.types.config.SettingValue
 
+/**
+ * 实现此接口并打上 `@AutoService(SettingDef::class)` 注释即可注册一个设置。
+ *
+ * 使用 [io.github.autotweaker.api.base.IntSetting] 等基类可以省去一些声明设置的重复代码。
+ *
+ * 实现 [io.github.autotweaker.api.Settable] 接口即可通过 [SettingService] 获取设置的当前值。
+ *
+ * 通过 [io.github.autotweaker.api.adapter.CoreAPI.ConfigAPI] 可管理所有设置。
+ *
+ * AutoTweaker 通过 SPI 和 [SettingService] 来实现分布式的设置声明以及安全的取值。
+ */
 interface SettingDef<out V : SettingValue<*>> {
+	/**
+	 * 设置的默认值。
+	 */
 	val default: V
+	
+	/**
+	 * 设置的多语言描述，由 i18n 服务管理，也同样支持自动翻译。
+	 *
+	 * @see io.github.autotweaker.api.i18n.I18nDef
+	 */
 	val description: Localizations
 }

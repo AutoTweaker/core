@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
-import io.github.autotweaker.api.dev.DbAPI
-import io.github.autotweaker.api.types.dev.SecretEntry
+import io.github.autotweaker.api.debug.DbAPI
+import io.github.autotweaker.api.types.debug.SecretEntry
 import java.util.*
 
 object SecretDbApi : DbAPI<SecretEntry> {

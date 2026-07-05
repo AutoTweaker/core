@@ -16,13 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.dev
+package io.github.autotweaker.api.debug
 
-import io.github.autotweaker.api.types.dev.DbEntry
-
-interface DbAPI<Entry : DbEntry> {
-	suspend fun list(range: UIntRange): List<Entry>
-	suspend fun get(key: String): Entry?
-	suspend fun put(content: Entry)
-	suspend fun delete(key: String)
+/**
+ * 实现此接口来获取项目 H2 数据库的底层读写能力，不经过任何校验。
+ *
+ * 除非用于开发的调试需要，否则不应实现此接口，也不应将 [DbDebugAPI] 的能力暴露给普通用户。
+ *
+ * [io.github.autotweaker.api.debug]、[io.github.autotweaker.api.types.debug] 下的接口和数据类随时变更而不一定通过版本号或更新日志反映。
+ *
+ * 需要打上 `@AutoService(Debugger::class)` 来让 AutoTweaker 发现。
+ */
+interface Debugger {
+	suspend fun init(api: DbDebugAPI)
 }

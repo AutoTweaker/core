@@ -16,17 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.json.base
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.base.ReentrantMutex
-import io.github.autotweaker.api.store
-
-abstract class MutexStore<V> : StoreBase<V>() {
-	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default) }
-	private val lock = ReentrantMutex()
-	private val cache: V by lazy { accessor.initial }
-	
-	protected suspend fun <R> transform(block: suspend (V) -> R): R = lock.withLock {
-		block(cache).also { accessor.save(cache) }
-	}
-}
+data class SettingEntry(
+	override val key: String,
+	val value: String,
+) : DbEntry()

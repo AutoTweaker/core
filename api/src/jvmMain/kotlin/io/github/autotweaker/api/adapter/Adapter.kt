@@ -23,6 +23,8 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 /**
  * AutoTweaker 的适配器，允许访问 [CoreAPI] 来将 AutoTweaker 的能力接入任何地方。
  *
+ * 需要打上 `@AutoService(Adapter::class)` 来让 AutoTweaker 发现。
+ *
  * 插件（包括适配器）的 jar 将被 AutoTweaker 使用同一个 `URLClassLoader` 加载，无论实现什么接口。
  * 这意味着插件内部即使实现了不同接口也可以互相访问，插件之间也可以互相访问。
  *

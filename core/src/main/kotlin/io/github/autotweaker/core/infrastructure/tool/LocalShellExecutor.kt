@@ -33,47 +33,50 @@ import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTimedValue
 
 class LocalShellExecutor : Loggable, Traceable {
 	fun exec(
 		command: String, workDir: Path, env: Map<String, String>, timeout: Duration
-	): Flow<ShellEvent> =
-		channelFlow {
-			val startNs = System.nanoTime()
-			log.debug(
-				"Started shell command  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds
-			)
-			val process = withContext(Dispatchers.IO) {
-				ProcessBuilder("bash", "-lc", command).directory(workDir.toFile()).redirectErrorStream(false)
-					.apply { environment().putAll(env) }.start()
+	): Flow<ShellEvent> = channelFlow {
+		log.debug(
+			"Started shell command  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds
+		)
+		val process = withContext(Dispatchers.IO) {
+			ProcessBuilder("bash", "-lc", command)
+				.directory(workDir.toFile())
+				.redirectErrorStream(false)
+				.apply { environment().putAll(env) }.start()
+		}
+		trace.catching {
+			val stdoutJob = launch(Dispatchers.IO) {
+				process.inputStream.bufferedReader().use { reader ->
+					var line = reader.readLine()
+					while (line != null) {
+						send(ShellEvent.Stdout(line))
+						line = reader.readLine()
+					}
+				}
 			}
-			trace.catching {
-				val stdoutJob = launch(Dispatchers.IO) {
-					process.inputStream.bufferedReader().use { reader ->
-						var line = reader.readLine()
-						while (line != null) {
-							send(ShellEvent.Stdout(line))
-							line = reader.readLine()
-						}
+			
+			val stderrJob = launch(Dispatchers.IO) {
+				process.errorStream.bufferedReader().use { reader ->
+					var line = reader.readLine()
+					while (line != null) {
+						send(ShellEvent.Stderr(line))
+						line = reader.readLine()
 					}
 				}
-				
-				val stderrJob = launch(Dispatchers.IO) {
-					process.errorStream.bufferedReader().use { reader ->
-						var line = reader.readLine()
-						while (line != null) {
-							send(ShellEvent.Stderr(line))
-							line = reader.readLine()
-						}
-					}
-				}
-				
+			}
+			
+			val execDuration = measureTimedValue {
 				val finished = withContext(Dispatchers.IO) {
 					process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
 				}
 				if (!finished) {
+					//杀进程
 					process.destroyForcibly()
+					//确保彻底停
 					withContext(Dispatchers.IO) { process.waitFor(2, TimeUnit.SECONDS) }
 					log.warn("Timed out shell command  command={}  timeout={}s", command, timeout.inWholeSeconds)
 				}
@@ -81,25 +84,26 @@ class LocalShellExecutor : Loggable, Traceable {
 				stdoutJob.join()
 				stderrJob.join()
 				
-				val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
-				val exitCode = if (finished) process.exitValue() else -1
-				log.debug(
-					"Completed shell command  command={}  exitCode={}  duration={}s",
-					command,
-					exitCode,
-					duration.inWholeSeconds
-				)
-				send(
-					ShellEvent.Exit(
-						ShellResult(
-							exitCode = exitCode,
-							timeout = !finished,
-							duration = duration,
-						)
+				finished to if (finished) process.exitValue() else -1
+			}
+			val (finished, exitCode) = execDuration.value
+			log.debug(
+				"Completed shell command  command={}  exitCode={}  duration={}s",
+				command,
+				exitCode,
+				execDuration.duration.inWholeSeconds
+			)
+			send(
+				ShellEvent.Exit(
+					ShellResult(
+						exitCode = exitCode,
+						timeout = !finished,
+						duration = execDuration.duration,
 					)
 				)
-			}.also {
-				process.destroyForcibly()
-			}.getOrThrow()
-		}
+			)
+		}.also {
+			process.destroyForcibly()
+		}.getOrThrow()
+	}
 }

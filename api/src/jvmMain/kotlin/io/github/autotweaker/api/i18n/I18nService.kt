@@ -18,6 +18,15 @@
 
 package io.github.autotweaker.api.i18n
 
+
+/**
+ * 此接口提供安全的 i18n 读取服务，使用 [I18nDef] 来读取国际化的文本，而不必手动输入 i18n 条目的 key。
+ *
+ * 通过 [io.github.autotweaker.api.I18nable] 接口，可以在任何地方获取 [I18nService] 来取值。
+ */
 interface I18nService {
+	/**
+	 * 用法：`override val description get() = i18n(Description())`。
+	 */
 	operator fun invoke(def: I18nDef): String
 }

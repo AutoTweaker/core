@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.json.base
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.JsonStorable
-import kotlinx.serialization.KSerializer
-
-abstract class StoreBase<V> : JsonStorable {
-	protected abstract val serializer: KSerializer<V>
-	protected abstract fun default(): V
-}
+data class SessionDataEntry(
+	override val key: String,
+	val title: String?,
+	val overview: String?,
+	val workspaceId: String,
+	val agentIndex: String
+) : DbEntry()

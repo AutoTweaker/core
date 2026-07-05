@@ -70,7 +70,7 @@ object JsonStoreImpl : Loggable, Traceable {
 		
 		override fun set(value: JsonElement) {
 			val namespace = namespace
-			val content = json.encodeToString(JsonElement.serializer(), value)
+			val content = json.encodeToString(value)
 			transaction(db) {
 				JsonStoreTable.upsert {
 					it[JsonStoreTable.namespace] = namespace

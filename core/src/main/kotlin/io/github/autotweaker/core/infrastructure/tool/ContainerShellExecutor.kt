@@ -18,20 +18,17 @@
 
 package io.github.autotweaker.core.infrastructure.tool
 
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.shell.ShellEvent
-import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.nio.file.Path
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 
 class ContainerShellExecutor : Loggable {
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> = flow {
-		val startNs = System.nanoTime()
 		log.debug(
 			"Started container shell command  command={}  workDir={}  timeout={}s",
 			command,
@@ -39,20 +36,15 @@ class ContainerShellExecutor : Loggable {
 			timeout.inWholeSeconds
 		)
 		ContainerManager.execShellStream(command, workDir, timeout, env).collect { event ->
-			when (event) {
-				is ShellEvent.Exit -> {
-					val duration = ((System.nanoTime() - startNs) / 1_000_000_000.0).seconds
-					log.debug(
-						"Completed container shell command  command={}  exitCode={}  duration={}s",
-						command,
-						event.result.exitCode,
-						duration.inWholeSeconds
-					)
-					emit(ShellEvent.Exit(ShellResult(event.result.exitCode, event.result.timeout, duration)))
-				}
-				
-				else -> emit(event)
+			if (event is ShellEvent.Exit) {
+				log.debug(
+					"Completed container shell command  command={}  exitCode={}  duration={}s",
+					command,
+					event.result.exitCode,
+					event.result.duration.inWholeSeconds
+				)
 			}
+			emit(event)
 		}
 	}
 }

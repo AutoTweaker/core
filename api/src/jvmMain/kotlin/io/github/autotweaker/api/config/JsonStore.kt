@@ -20,7 +20,21 @@ package io.github.autotweaker.api.config
 
 import kotlinx.serialization.json.JsonElement
 
+/**
+ * 基于 H2 数据库的 Json 读写服务，可通过 [io.github.autotweaker.api.JsonStorable] 接口获取。
+ *
+ * 每个类都拥有自己的独立命名空间，读写 `AppConfig` 数据库 `json_store` 表中以自身 [Class.name] 为键的一行。
+ *
+ * 此接口直接读写数据库，建议继承 [io.github.autotweaker.api.base.store.ImmutableStore] / [io.github.autotweaker.api.base.store.MutableStore] / [io.github.autotweaker.api.base.store.AtomicStore]，这些基类会处理序列化、反序列化、缓存、懒加载、缓存落盘，关于如何选用请参见基类文档。
+ */
 interface JsonStore {
+	/**
+	 * 读取 Json，从未保存或数据损坏返回 null。
+	 */
 	fun get(): JsonElement?
+	
+	/**
+	 * 保存 Json，覆盖旧值。
+	 */
 	fun set(value: JsonElement)
 }

@@ -20,11 +20,11 @@ package io.github.autotweaker.core.infrastructure.i18n.translation
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.store.ImmutableStore
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
-import io.github.autotweaker.core.infrastructure.persist.json.base.MutableStore
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.nullable
 import java.util.*
 
-object TranslationManager : MutableStore<UUID?>(), Loggable, Traceable {
+object TranslationManager : ImmutableStore<UUID?>(), Loggable, Traceable {
 	override val serializer = UuidSerializer.nullable
 	override fun default() = null
 	

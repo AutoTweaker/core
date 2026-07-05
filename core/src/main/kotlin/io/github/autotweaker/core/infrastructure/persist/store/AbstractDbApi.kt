@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persist.store
 
-import io.github.autotweaker.api.dev.DbAPI
-import io.github.autotweaker.api.types.dev.DbEntry
+import io.github.autotweaker.api.debug.DbAPI
+import io.github.autotweaker.api.types.debug.DbEntry
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ResultRow

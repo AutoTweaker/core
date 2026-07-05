@@ -28,6 +28,13 @@ val CONFIG_PATH: Path = Path.of(
 )
 
 /**
+ * 用于加载插件 jar 的目录，此目录中只有以 `.jar` 结尾的文件会被加载，jar 或 class 损坏的文件不会被加载。
+ *
+ * 被 AutoTweaker 加载的插件实现可以通过 `ServiceLoader.load(T::class.java, this::class.java.classLoader)` 加载其他插件的类，不要直接从目录加载 jar。
+ */
+val PLUGIN_PATH: Path = CONFIG_PATH.resolve("plugins")
+
+/**
  * 存放临时文件的目录，通常为 `/tmp/autotweaker`
  */
 val TMP_PATH: Path = Path.of(

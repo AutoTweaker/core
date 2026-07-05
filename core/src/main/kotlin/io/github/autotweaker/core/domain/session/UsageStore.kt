@@ -19,15 +19,15 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.base.store.MutableStore
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.SessionMessage
-import io.github.autotweaker.core.infrastructure.persist.json.base.MutexStore
 import java.util.*
 
-object UsageStore : MutexStore<MutableMap<UUID, UsageSnapshot>>(), Loggable {
+object UsageStore : MutableStore<MutableMap<UUID, UsageSnapshot>>(), Loggable {
 	override val serializer = MutableMapSerializer(
 		UuidSerializer, UsageSnapshot.serializer()
 	)

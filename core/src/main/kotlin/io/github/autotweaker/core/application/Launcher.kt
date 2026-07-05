@@ -22,7 +22,8 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.dev.Debugger
+import io.github.autotweaker.api.debug.Debugger
+import io.github.autotweaker.api.hook.ShutdownHook
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.adapter.AdapterInfo
@@ -43,7 +44,6 @@ import io.github.autotweaker.core.infrastructure.persist.db.session.SessionMessa
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
-import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 
@@ -84,9 +84,6 @@ object Launcher : Loggable, Traceable {
 		//Trace服务，会启动协程
 		TraceRecorderImpl.init()
 		
-		//缓存初始化
-		WorkspaceManager.init()
-		
 		//创建目录、检查权限、开始拉镜像
 		ContainerManager.init(SecretManager)
 		
@@ -126,6 +123,10 @@ object Launcher : Loggable, Traceable {
 				adapter.stop()
 				log.info("Stopped adapter  name={}", info.name)
 			}.onFailure { log.warn("Failed adapter stop  name={}  reason={}", info.name, it.message) }
+		}
+		
+		PluginLoader.load<ShutdownHook>().forEachParallel {
+			trace.catching { it.shutdown() }
 		}
 		
 		trace.catching { I18nServiceImpl.shutdown() }

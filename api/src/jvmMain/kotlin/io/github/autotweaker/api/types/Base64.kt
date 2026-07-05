@@ -21,6 +21,7 @@ package io.github.autotweaker.api.types
 import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64 as KBase64
 
+@Deprecated("不应该在内存中把一段base64字符串传来传去")
 @Serializable
 @JvmInline
 value class Base64(val value: String) {

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.config
 
-import io.github.autotweaker.api.types.dev.SettingEntry
+import io.github.autotweaker.api.types.debug.SettingEntry
 import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow

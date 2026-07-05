@@ -21,12 +21,41 @@ package io.github.autotweaker.api.base
 import io.github.autotweaker.api.i18n.I18nDef
 import java.util.*
 
+/**
+ * 能够让 [I18nDef] 实现省几行代码的基类，示例：
+ *
+ * ```kotlin
+ * @AutoService(I18nDef::class)
+ * class Example : I18nBase(
+ *     en("Hello Word"),
+ *     zh("你好，世界"),
+ *     Locale.FRENCH to "Bonjour le monde",
+ *     Locale.of("es", "ES") to "¡Hola mundo!",
+ * )
+ * ```
+ *
+ * @see I18nDef
+ */
 abstract class I18nBase(vararg pairs: Pair<Locale, String>) : I18nDef {
 	override val localizations = pairs.toMap()
 }
 
+/**
+ * 使用 [text] 构造一个语言为 [zh] 的 `Pair<Locale, String>`。
+ */
 fun zh(text: String): Pair<Locale, String> = zh to text
+
+/**
+ * 使用 [text] 构造一个语言为 [en] 的 `Pair<Locale, String>`。
+ */
 fun en(text: String): Pair<Locale, String> = en to text
 
+/**
+ * 语言代码 `zh_CN`。
+ */
 val zh: Locale = Locale.CHINA
+
+/**
+ * 语言代码 `en`。
+ */
 val en: Locale = Locale.ENGLISH

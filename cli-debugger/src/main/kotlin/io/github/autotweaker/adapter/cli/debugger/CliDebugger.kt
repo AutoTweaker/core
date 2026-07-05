@@ -19,8 +19,8 @@
 package io.github.autotweaker.adapter.cli.debugger
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.dev.DbDebugAPI
-import io.github.autotweaker.api.dev.Debugger
+import io.github.autotweaker.api.debug.DbDebugAPI
+import io.github.autotweaker.api.debug.Debugger
 
 @AutoService(Debugger::class)
 class CliDebugger : Debugger {

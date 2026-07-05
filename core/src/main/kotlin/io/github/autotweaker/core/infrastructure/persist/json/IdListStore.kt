@@ -20,11 +20,11 @@ package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.base.store.MutableStore
 import io.github.autotweaker.api.log
-import io.github.autotweaker.core.infrastructure.persist.json.base.MutexStore
 import java.util.*
 
-abstract class IdListStore<T : Any> : MutexStore<MutableMap<UUID, T>>(), Loggable {
+abstract class IdListStore<T : Any> : MutableStore<MutableMap<UUID, T>>(), Loggable {
 	protected abstract fun idOf(data: T): UUID
 	
 	override fun default() = mutableMapOf<UUID, T>()
