@@ -19,17 +19,17 @@
 package io.github.autotweaker.api
 
 /**
- * 丢弃对象并返回 [Unit]
+ * 丢弃对象并返回 [Unit]。
  *
- * 常用于链式调用末尾吞掉表达式返回值
+ * 常用于链式调用末尾吞掉表达式返回值。
  */
 @Suppress("UnusedReceiverParameter")
 fun <T> T.discard(): Unit = Unit
 
 /**
- * 丢弃对象并返回 [result]
+ * 丢弃对象并返回 [result]。
  *
- * 常用于链式调用末尾吞掉返回值并返回 `null`
+ * 常用于链式调用末尾吞掉返回值并返回 `null`。
  */
 @Suppress("UnusedReceiverParameter")
 fun <T, R> T.discard(result: R?): R? = result

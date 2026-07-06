@@ -27,42 +27,42 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
- * 允许对象通过 [log] 获取 [Logger]，AutoTweaker 使用 logback 作为实现，插件仅需依赖 slf4j
+ * 允许对象通过 [log] 获取 [Logger]，AutoTweaker 使用 logback 作为实现，插件仅需依赖 slf4j。
  *
- * 实现此接口即可直接 `log.info("Hello World")` 而无需 [LoggerFactory.getLogger]
+ * 实现此接口即可直接 `log.info("Hello World")` 而无需 [LoggerFactory.getLogger]。
  */
 interface Loggable
 
 /**
- * 允许对象通过 [trace] 获取 [TraceRecorder]
+ * 允许对象通过 [trace] 获取 [TraceRecorder]。
  *
  * @see TraceRecorder
  */
 interface Traceable
 
 /**
- * 允许对象通过 [store] 获取 [JsonStore]
+ * 允许对象通过 [store] 获取 [JsonStore]。
  *
  * @see JsonStore
  */
 interface JsonStorable
 
 /**
- * 允许对象通过 [objects] 获取 [ObjectStorage]
+ * 允许对象通过 [objects] 获取 [ObjectStorage]。
  *
  * @see ObjectStorage
  */
 interface ObjectStorable
 
 /**
- * 允许对象通过 [setting] 获取 [SettingService]
+ * 允许对象通过 [setting] 获取 [SettingService]。
  *
  * @see SettingService
  */
 interface Settable
 
 /**
- * 允许对象通过 [i18n] 获取 [I18nService]
+ * 允许对象通过 [i18n] 获取 [I18nService]。
  *
  * @see I18nService
  */

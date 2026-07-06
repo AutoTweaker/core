@@ -26,5 +26,10 @@ import io.github.autotweaker.api.types.SemVer
  * 需要打上 `@AutoService(StartupHook::class)` 来让 AutoTweaker 发现。
  */
 interface StartupHook {
+	/**
+	 * 程序刚刚启动，拿到锁后立即调用。
+	 *
+	 * @param coreVersion AutoTweaker 版本号
+	 */
 	suspend fun execute(coreVersion: SemVer)
 }

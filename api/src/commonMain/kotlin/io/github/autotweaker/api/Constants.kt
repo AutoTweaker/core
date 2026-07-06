@@ -34,7 +34,7 @@ val APP_NAME_LOWERCASE = APP_NAME.lowercase()
 const val SPACE = ' '
 
 /**
- * 四个空格字符（`"    "`）
+ * 四个空格字符（`"    "`）。
  */
 val INDENT = SPACE * 4
 
