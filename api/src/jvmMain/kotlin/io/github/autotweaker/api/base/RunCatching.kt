@@ -23,6 +23,8 @@ import io.github.autotweaker.api.trace.TraceRecorder
 /**
  * [runCatching] 的封装，[onFailure] 自动记录异常到 [TraceRecorder]，需要调用方实现 [io.github.autotweaker.api.Traceable]。
  *
+ * [block] 虽然看起来不是 suspend，但 [catching] 是 inline fun，只要调用点有 suspend 上下文，[block] 就是 suspend 的。
+ *
  * [CatchingResult] 的错误处理 API 已经足够完善，可以使用 `trace.catching` 来代替 [runCatching] 以及 `try-catch-finally`，`try-finally` 也可以由 `CatchingResult.also.getOrThrow` 替代。
  */
 inline fun <T> TraceRecorder.catching(block: () -> T): CatchingResult<T> =
@@ -30,6 +32,8 @@ inline fun <T> TraceRecorder.catching(block: () -> T): CatchingResult<T> =
 
 /**
  * [runCatching] 的封装，[onFailure] 自动记录异常到 [TraceRecorder]，需要调用方实现 [io.github.autotweaker.api.Traceable]。
+ *
+ * [block] 虽然看起来不是 suspend，但 [catching] 是 inline fun，只要调用点有 suspend 上下文，[block] 就是 suspend 的。
  *
  * [CatchingResult] 的错误处理 API 已经足够完善，可以使用 `trace.catching` 来代替 [runCatching] 以及 `try-catch-finally`，`try-finally` 也可以由 `CatchingResult.also.getOrThrow` 替代。
  */
