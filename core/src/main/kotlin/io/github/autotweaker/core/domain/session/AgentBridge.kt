@@ -191,7 +191,7 @@ class AgentBridge(
 		log.info("Stopped agent  agentId={}", _agent.agentId)
 	}
 	
-	suspend fun shutdown() = also {
+	suspend fun shutdown() {
 		collectJob?.cancel()
 		saveChannel.close()
 		_agent.shutdown()

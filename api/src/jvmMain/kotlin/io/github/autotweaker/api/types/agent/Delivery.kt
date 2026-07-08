@@ -20,6 +20,14 @@ package io.github.autotweaker.api.types.agent
 
 import java.util.*
 
+/**
+ * 用于追踪消息何时被 agent 消费。
+ */
 interface Delivery {
-	suspend fun await(): UUID
+	/**
+	 * 等待消息被消费，并得到消息的 id。
+	 *
+	 * @return 如果消息为空而被丢弃，返回 null。
+	 */
+	suspend fun await(): UUID?
 }

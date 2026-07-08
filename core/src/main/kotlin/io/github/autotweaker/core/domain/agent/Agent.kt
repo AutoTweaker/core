@@ -113,7 +113,7 @@ class Agent(
 		ctx.updateInjections(injections)
 	}
 	
-	suspend fun shutdown() = also {
+	suspend fun shutdown() {
 		runner.shutdown()
 	}
 }

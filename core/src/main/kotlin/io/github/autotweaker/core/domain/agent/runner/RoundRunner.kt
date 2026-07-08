@@ -37,11 +37,13 @@ import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 class RoundRunner(
 	private val ctx: AgentContextManager,
@@ -73,7 +75,6 @@ class RoundRunner(
 	val model = currentModel
 	
 	private val messages = MessageQueue(agentId)
-	private val pendingDeliveries = ConcurrentHashMap<UUID, CompletableDeferred<UUID>>()
 	
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
@@ -82,27 +83,16 @@ class RoundRunner(
 	)
 	private val roundCtx = RoundContext(ctx, ToolResultFactory())
 	
-	fun send(content: MessageContent): Delivery {
-		val token = UUID.randomUUID()
-		val deferred = CompletableDeferred<UUID>()
-		pendingDeliveries[token] = deferred
-		messages.send(content)
-		return object : Delivery {
-			override suspend fun await() = deferred.await()
-		}
-	}
-	
 	fun start() = also {
 		scope.launch { workLoop() }
 	}
 	
-	suspend fun shutdown() = also {
+	suspend fun shutdown() {
 		shutdownStarted = true
 		compactJob?.cancel()
 		execute(AgentCommand.Stop)
 		scope.cancel()
-		pendingDeliveries.values.forEach { it.cancel() }
-		pendingDeliveries.clear()
+		messages.shutdown()
 	}
 	
 	suspend fun execute(command: AgentCommand) = also {
@@ -123,21 +113,21 @@ class RoundRunner(
 					statusFlow.first { it == AgentStatus.FREE }
 				}
 				
-				is AgentCommand.CancelTool -> {
+				is AgentCommand.CancelTool ->
 					toolCalling.cancelToolJob()
-				}
 				
-				is AgentCommand.CancelCompact -> {
+				
+				is AgentCommand.CancelCompact ->
 					compactJob?.cancel()
-				}
 				
-				is AgentCommand.Compact -> {
+				
+				is AgentCommand.Compact ->
 					launchCompact()
-				}
 				
-				is AgentCommand.UpdateModel -> {
+				
+				is AgentCommand.UpdateModel ->
 					currentModel = command.model
-				}
+				
 				
 				is AgentCommand.ApproveTool -> {
 					check(statusFlow.value == AgentStatus.WAITING)
@@ -149,11 +139,12 @@ class RoundRunner(
 		}
 	}
 	
+	fun send(content: MessageContent): Delivery = messages.send(content)
+	
 	private suspend fun workLoop() {
 		log.info("Started workLoop  agentId={}", agentId)
 		while (true) {
 			val msg = messages.receive()
-			signalDeliveries(msg.id)
 			shouldBreak.value = false
 			
 			ctx.beginRound(msg)
@@ -200,7 +191,7 @@ class RoundRunner(
 					currentModel,
 					statusFlow,
 				)
-				messages.sendReasons(reasons)
+				messages.send(reasons)
 			}
 			
 			ctx.finalizeToolTurn()
@@ -213,7 +204,6 @@ class RoundRunner(
 			if (shouldBreak.value) break
 			
 			messages.drain()?.let {
-				signalDeliveries(it.id)
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it)
 			}
@@ -244,15 +234,15 @@ class RoundRunner(
 		}
 	}
 	
-	private suspend fun autoCompact() {
-		if (compactJob?.isActive == true) return
+	private suspend fun autoCompact() = compactLock.withLock {
+		if (compactJob?.isActive == true) return@withLock
 		
 		val assistantMessage = ctx.get().let { context ->
 			context.currentRound?.assistantMessage
 				?: context.currentRound?.turns?.lastOrNull()?.assistantMessage
 				?: context.historyRounds?.lastOrNull()?.finalAssistantMessage
-		} ?: return
-		val usage = assistantMessage.usageSnapshot?.usage ?: return
+		} ?: return@withLock
+		val usage = assistantMessage.usageSnapshot?.usage ?: return@withLock
 		val contextWindow = assistantMessage.usageSnapshot.model.contextWindow
 		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
 		
@@ -285,13 +275,6 @@ class RoundRunner(
 		if (compactJob?.isActive == true) return@withLock
 		compactJob = scope.launch {
 			compactService.execute(currentModel, ctx)
-		}
-	}
-	
-	private fun signalDeliveries(messageId: UUID) {
-		if (pendingDeliveries.isEmpty()) return
-		pendingDeliveries.keys.toList().forEach { token ->
-			pendingDeliveries.remove(token)?.complete(messageId)
 		}
 	}
 	

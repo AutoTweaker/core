@@ -20,22 +20,31 @@ package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 
 class MessageQueue(private val agentId: UUID) : Loggable {
-	private val channel = Channel<MessageContent>(Channel.UNLIMITED)
+	private val channel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
+	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<UUID?>>()
+	
+	fun shutdown() {
+		channel.close()
+		deliveries.values.forEach { it.cancel() }
+	}
 	
 	suspend fun receive(): RuntimeContext.Message.User {
 		while (true) {
-			val all = mutableListOf<MessageContent>()
+			val all = mutableMapOf<UUID, MessageContent>()
 			//等一个
-			all.add(channel.receive())
+			all += channel.receive()
 			//全拿完
-			while (true) all.add(channel.tryReceive().getOrNull() ?: break)
+			while (true) all += channel.tryReceive().getOrNull() ?: break
 			
 			merge(all)?.let {
 				return it.andLog(log) { message ->
@@ -52,31 +61,40 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	}
 	
 	fun drain(): RuntimeContext.Message.User? {
-		val all = mutableListOf<MessageContent>()
-		while (true) all.add(channel.tryReceive().getOrNull() ?: break)
+		val all = mutableMapOf<UUID, MessageContent>()
+		while (true) all += channel.tryReceive().getOrNull() ?: break
 		return merge(all)
 	}
 	
-	fun merge(all: List<MessageContent>): RuntimeContext.Message.User? {
+	fun merge(all: Map<UUID, MessageContent>): RuntimeContext.Message.User? {
 		if (all.isEmpty()) return null
-		val injections = all.flatMap { it.injections.orEmpty() }.orNull()
-		val images = all.flatMap { it.images.orEmpty() }.orNull()
+		val injections = all.values.flatMap { it.injections.orEmpty() }.orNull()
+		val images = all.values.flatMap { it.images.orEmpty() }.orNull()
 		val content = buildString {
-			val filtered = all.filterNot { it.content.isNullOrBlank() }
+			val filtered = all.values.filterNot { it.content.isNullOrBlank() }
 			filtered.forEachBetween(
 				action = { append(it.content) },
 				between = { append("\n\n---\n\n") })
 		}.orNull()
-		if (allNull(injections, images, content)) return null
+		if (allNull(injections, images, content)) {
+			all.keys.forEach {
+				deliveries.remove(it)?.complete(null)
+			}
+			return null
+		}
 		return RuntimeContext.Message.User(
 			content = MessageContent(
 				injections, content, images
 			),
 			timestamp = Clock.System.now()
-		).andLog(log) { info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
+		).also { message ->
+			all.keys.forEach {
+				deliveries.remove(it)?.complete(message.id)
+			}
+		}.andLog(log) { info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
 	}
 	
-	fun sendReasons(reasons: List<String>) = reasons.forEach {
+	fun send(content: List<String>) = content.map {
 		send(it)
 	}
 	
@@ -88,5 +106,13 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		MessageContent(injections = listOf(injection))
 	)
 	
-	fun send(msg: MessageContent) = channel.trySend(msg).discard()
+	fun send(msg: MessageContent): Delivery {
+		val token = UUID.randomUUID()
+		val deferred = CompletableDeferred<UUID?>()
+		deliveries[token] = deferred
+		channel.trySend(token to msg)
+		return object : Delivery {
+			override suspend fun await() = deferred.await()
+		}
+	}
 }
