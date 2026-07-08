@@ -18,11 +18,12 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.ReentrantMutex
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.*
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
@@ -156,6 +157,7 @@ class RoundRunner(
 	}
 	
 	private suspend fun executeRound() {
+		var emptyResponseRetries = 0
 		while (true) {
 			statusFlow.value = AgentStatus.THINKING
 			
@@ -178,7 +180,32 @@ class RoundRunner(
 			
 			if (result is ThinkingStage.Result.Done) {
 				roundCtx.applyDone(result)
-				if (result.activations.isEmpty() && result.parseFailures.isEmpty()) break
+				
+				if (result.activations.isEmpty() && result.parseFailures.isEmpty()) {
+					messages.drain()?.let {
+						ctx.archiveCurrentRound()
+						ctx.beginRound(it)
+						continue
+					}
+					
+					if (result.assistantMessage.content.isNullOrBlank()
+						&& setting(EmptyResponseFeedback())
+						&& emptyResponseRetries <= setting(EmptyResponseFeedbackRetries())
+					) {
+						messages.send(
+							ContextInjection(
+								tag = "system_reminder",
+								content = setting(EmptyResponseFeedbackPrompt())
+							)
+						)
+						ctx.archiveCurrentRound()
+						ctx.beginRound(messages.receive())
+						emptyResponseRetries++
+						continue
+					}
+					
+					break
+				}
 				activeAll(result.activations)
 			}
 			
@@ -281,4 +308,20 @@ class RoundRunner(
 	private fun markBreak() {
 		shouldBreak.value = true
 	}
+	
+	@AutoService(SettingDef::class)
+	class EmptyResponseFeedback : BooleanSetting(
+		true, zh("是否在模型输出为空时自动发送提示")
+	)
+	
+	@AutoService(SettingDef::class)
+	class EmptyResponseFeedbackRetries : IntSetting(
+		10, zh("同一轮次内模型输出为空时自动发送提示的最大次数")
+	)
+	
+	@AutoService(SettingDef::class)
+	class EmptyResponseFeedbackPrompt : StringSetting(
+		"你并没有输出任何有效内容，如果任务仍未完成，请继续工作，否则请输出有效的正文",
+		zh("模型输出为空时自动发送的提示词")
+	)
 }
