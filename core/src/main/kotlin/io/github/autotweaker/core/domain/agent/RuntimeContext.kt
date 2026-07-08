@@ -26,12 +26,11 @@ import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Instant
 
-data class AgentContext(
-	val compactedRounds: List<CompactedRound>?,
+data class RuntimeContext(
 	val systemPrompt: String?,
 	val injections: List<ContextInjection>?,
+	val compactedRounds: CompactedRounds?,
 	val historyRounds: List<CompletedRound>?,
-	val summarizedMessage: SummarizedMessage?,
 	val currentRound: CurrentRound?,
 ) {
 	data class SummarizedMessage(
@@ -65,7 +64,6 @@ data class AgentContext(
 		) : Message() {
 			data class Call(
 				val id: UUID = UUID.randomUUID(),
-				val assistantMessageId: UUID,
 				val arguments: String,
 				val reason: String? = null,
 				val timestamp: Instant,
@@ -81,10 +79,18 @@ data class AgentContext(
 		}
 	}
 	
-	data class CompactedRound(
+	data class CompactedRounds(
+		val compactedRounds: CompactedRounds?,
 		val rounds: List<CompletedRound>,
 		val summarizedMessage: SummarizedMessage
-	)
+	) {
+		fun completedRounds(): List<CompletedRound> = compactedRounds?.completedRounds().orEmpty() + rounds
+		
+		fun forEach(block: (CompactedRounds) -> Unit) {
+			compactedRounds?.forEach(block)
+			block(this)
+		}
+	}
 	
 	data class CompletedRound(
 		val userMessage: Message.User,

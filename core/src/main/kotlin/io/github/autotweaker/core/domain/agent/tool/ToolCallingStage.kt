@@ -24,9 +24,9 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
-import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import kotlinx.coroutines.*
 import java.util.*
@@ -38,7 +38,7 @@ class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
 	private val workspace: WorkspaceMeta,
-	private val onOutput: (AgentOutput) -> Unit,
+	private val onOutput: (RuntimeOutput) -> Unit,
 	private val onToolCall: (String?) -> Unit
 ) : Loggable, Traceable, Settable {
 	private val truncation = TruncationImpl(workspace)
@@ -54,8 +54,8 @@ class ToolCallingStage(
 	suspend fun execute(
 		call: ThinkingStage.ResolvedToolCall,
 		model: AgentModel,
-		context: AgentContext,
-	): AgentContext.Message.Tool.Result {
+		context: RuntimeContext,
+	): RuntimeContext.Message.Tool.Result {
 		val timeoutSeconds = setting(AgentToolSettings.TimeoutSeconds())
 		val timeoutMessage = setting(AgentToolSettings.TimeoutMessage())
 		val cancelledMessage = setting(AgentToolSettings.Cancelled())
@@ -124,7 +124,7 @@ class ToolCallingStage(
 	private fun buildToolResult(
 		content: String,
 		status: ToolResultStatus,
-	): AgentContext.Message.Tool.Result = AgentContext.Message.Tool.Result(
+	): RuntimeContext.Message.Tool.Result = RuntimeContext.Message.Tool.Result(
 		content = content,
 		timestamp = Clock.System.now(),
 		status = status

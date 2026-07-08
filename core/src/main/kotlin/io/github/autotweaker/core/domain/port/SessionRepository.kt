@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.types.agent.AgentData
+import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.SessionMessage
 import java.util.*
 
 interface SessionRepository {
@@ -33,7 +33,7 @@ interface SessionRepository {
 	suspend fun loadAgent(agentId: UUID): AgentData?
 	suspend fun deleteAgent(agentId: UUID)
 	
-	suspend fun saveMessages(messages: List<SessionMessage>)
-	suspend fun loadMessages(ids: List<UUID>): List<SessionMessage>
+	suspend fun saveMessages(messages: List<AgentMessage>)
+	suspend fun loadMessages(ids: List<UUID>): List<AgentMessage>
 	suspend fun deleteMessages(ids: List<UUID>)
 }

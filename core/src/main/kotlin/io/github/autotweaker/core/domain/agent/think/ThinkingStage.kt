@@ -21,8 +21,8 @@ package io.github.autotweaker.core.domain.agent.think
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentModel
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
@@ -35,7 +35,7 @@ class ThinkingStage(
 	suspend fun execute(
 		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
-		context: AgentContext,
+		context: RuntimeContext,
 	): Result = when (val callResult = llmService.execute(model, assembledTools, context)) {
 		is LlmService.CallResult.Failed -> Result.Failed
 		is LlmService.CallResult.Success -> {
@@ -63,7 +63,7 @@ class ThinkingStage(
 					is ToolCallResolveResult.NeedsApproval -> {
 						val validatedArgs =
 							tools.serializeValidatedArgs(result.result.toolName, result.result.args)
-						val pendingCall = AgentContext.CurrentRound.PendingToolCall(
+						val pendingCall = RuntimeContext.CurrentRound.PendingToolCall(
 							callId = rawCall.id,
 							name = rawCall.name,
 							arguments = rawCall.arguments,
@@ -93,13 +93,13 @@ class ThinkingStage(
 	
 	sealed class Result {
 		data class Done(
-			val assistantMessage: AgentContext.Message.Assistant,
+			val assistantMessage: RuntimeContext.Message.Assistant,
 			val activations: List<ToolActivation>,
 			val parseFailures: List<ParseFailure>,
 		) : Result()
 		
 		data class HasPending(
-			val assistantMessage: AgentContext.Message.Assistant,
+			val assistantMessage: RuntimeContext.Message.Assistant,
 			val activations: List<ToolActivation>,
 			val parseFailures: List<ParseFailure>,
 			val needsApproval: List<ResolvedToolCall>,
@@ -114,7 +114,7 @@ class ThinkingStage(
 	)
 	
 	class ResolvedToolCall(
-		val pendingCall: AgentContext.CurrentRound.PendingToolCall,
+		val pendingCall: RuntimeContext.CurrentRound.PendingToolCall,
 		val validated: ToolCallValidator.ValidationResult.Success<out ToolArgs>,
 	)
 }

@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
+import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentIndex
-import io.github.autotweaker.api.types.session.ModelConfig
-import io.github.autotweaker.api.types.session.SessionContext
-import io.github.autotweaker.api.types.session.SessionMessage
+import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.agent.ModelConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -35,13 +35,13 @@ import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 private val sessionJson = Json {
 	ignoreUnknownKeys = true
 	serializersModule = SerializersModule {
-		polymorphic(SessionMessage::class) {
-			subclass(SessionMessage.User::class)
-			subclass(SessionMessage.Assistant::class)
-			subclass(SessionMessage.Tool.Call::class)
-			subclass(SessionMessage.Tool.Result::class)
-			subclass(SessionMessage.Compact::class)
-			subclass(SessionMessage.UsageRecord::class)
+		polymorphic(AgentMessage::class) {
+			subclass(AgentMessage.User::class)
+			subclass(AgentMessage.Assistant::class)
+			subclass(AgentMessage.Tool.Call::class)
+			subclass(AgentMessage.Tool.Result::class)
+			subclass(AgentMessage.Compact::class)
+			subclass(AgentMessage.UsageRecord::class)
 		}
 	}
 }
@@ -77,8 +77,8 @@ object AgentDataTable : Table("agent_data") {
 	
 	fun fillModel(it: UpdateBuilder<*>, model: ModelConfig) = fillJson(it, modelJson, model)
 	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
-	fun fillContext(it: UpdateBuilder<*>, context: SessionContext) = fillJson(it, contextJson, context)
-	fun readContext(row: ResultRow): SessionContext = readJson(row, contextJson)
+	fun fillContext(it: UpdateBuilder<*>, context: AgentContext) = fillJson(it, contextJson, context)
+	fun readContext(row: ResultRow): AgentContext = readJson(row, contextJson)
 	fun fillActiveTools(it: UpdateBuilder<*>, tools: List<String>) = fillJson(it, activeToolsJson, tools)
 	
 	fun readActiveTools(row: ResultRow): List<String> {
@@ -96,15 +96,15 @@ object SessionMessageTable : Table("session_message") {
 	
 	override val primaryKey = PrimaryKey(id)
 	
-	fun fillContent(it: UpdateBuilder<*>, msg: SessionMessage) = fillJson(it, contentJson, msg)
-	fun readContent(row: ResultRow): SessionMessage = readJson(row, contentJson)
+	fun fillContent(it: UpdateBuilder<*>, msg: AgentMessage) = fillJson(it, contentJson, msg)
+	fun readContent(row: ResultRow): AgentMessage = readJson(row, contentJson)
 	
-	fun typeOf(msg: SessionMessage): String = when (msg) {
-		is SessionMessage.User -> "USER"
-		is SessionMessage.Assistant -> "ASSISTANT"
-		is SessionMessage.Tool.Call -> "TOOL_CALL"
-		is SessionMessage.Tool.Result -> "TOOL_RESULT"
-		is SessionMessage.Compact -> "COMPACT"
-		is SessionMessage.UsageRecord -> "USAGE_RECORD"
+	fun typeOf(msg: AgentMessage): String = when (msg) {
+		is AgentMessage.User -> "USER"
+		is AgentMessage.Assistant -> "ASSISTANT"
+		is AgentMessage.Tool.Call -> "TOOL_CALL"
+		is AgentMessage.Tool.Result -> "TOOL_RESULT"
+		is AgentMessage.Compact -> "COMPACT"
+		is AgentMessage.UsageRecord -> "USAGE_RECORD"
 	}
 }

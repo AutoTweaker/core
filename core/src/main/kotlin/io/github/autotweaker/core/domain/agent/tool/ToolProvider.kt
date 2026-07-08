@@ -20,9 +20,9 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.session.WorkspaceMeta
-import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.tool.service.BashServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.FileSystemServiceImpl
 import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
@@ -47,8 +47,8 @@ object ToolProvider {
 	fun buildToolProvider(
 		workspace: WorkspaceMeta,
 		model: AgentModel,
-		context: AgentContext,
-		onOutput: (AgentOutput) -> Unit,
+		context: RuntimeContext,
+		onOutput: (RuntimeOutput) -> Unit,
 		truncation: TruncationService,
 	): DependencyProvider = ServiceContainer()
 		.register(

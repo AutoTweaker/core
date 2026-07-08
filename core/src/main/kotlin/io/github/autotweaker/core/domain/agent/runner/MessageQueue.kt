@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.coroutines.channels.Channel
 import java.util.*
 import kotlin.time.Clock
@@ -29,7 +29,7 @@ import kotlin.time.Clock
 class MessageQueue(private val agentId: UUID) : Loggable {
 	private val channel = Channel<MessageContent>(Channel.UNLIMITED)
 	
-	suspend fun receive(): AgentContext.Message.User {
+	suspend fun receive(): RuntimeContext.Message.User {
 		while (true) {
 			val all = mutableListOf<MessageContent>()
 			//等一个
@@ -51,13 +51,13 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		}
 	}
 	
-	fun drain(): AgentContext.Message.User? {
+	fun drain(): RuntimeContext.Message.User? {
 		val all = mutableListOf<MessageContent>()
 		while (true) all.add(channel.tryReceive().getOrNull() ?: break)
 		return merge(all)
 	}
 	
-	fun merge(all: List<MessageContent>): AgentContext.Message.User? {
+	fun merge(all: List<MessageContent>): RuntimeContext.Message.User? {
 		if (all.isEmpty()) return null
 		val injections = all.flatMap { it.injections.orEmpty() }.orNull()
 		val images = all.flatMap { it.images.orEmpty() }.orNull()
@@ -68,7 +68,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 				between = { append("\n\n---\n\n") })
 		}.orNull()
 		if (allNull(injections, images, content)) return null
-		return AgentContext.Message.User(
+		return RuntimeContext.Message.User(
 			content = MessageContent(
 				injections, content, images
 			),

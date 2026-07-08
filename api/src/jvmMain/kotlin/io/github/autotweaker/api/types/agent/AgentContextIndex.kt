@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.serializer.UuidListSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
@@ -24,30 +24,48 @@ import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
-data class SessionContextIndex(
-	val compactedRounds: List<CompactedRound>?,
-	val historyRounds: List<CompactedRound.CompletedRound>?,
+data class AgentContextIndex(
+	val compactedRounds: CompactedRounds?,
+	val historyRounds: List<CompletedRound>?,
 	val currentRound: CurrentRound?,
+) : UuidIndex {
+	override fun ids(): Set<UUID> =
+		compactedRounds?.ids().orEmpty() +
+				historyRounds?.flatMap { it.ids() }.orEmpty() +
+				currentRound?.ids().orEmpty()
 	
-	@Serializable(with = UuidSerializer::class)
-	val summarizedMessage: UUID?,
-) {
 	@Serializable
-	data class CompactedRound(
+	data class CompactedRounds(
+		val compactedRounds: CompactedRounds?,
 		val rounds: List<CompletedRound>,
 		
 		@Serializable(with = UuidSerializer::class)
 		val summarizedMessage: UUID,
-	) {
-		@Serializable
-		data class CompletedRound(
-			@Serializable(with = UuidSerializer::class)
-			val userMessage: UUID,
-			val turns: List<Turn>?,
-			
-			@Serializable(with = UuidSerializer::class)
-			val finalAssistantMessage: UUID?,
-		)
+	) : UuidIndex {
+		override fun ids(): Set<UUID> =
+			compactedRounds?.ids().orEmpty() +
+					rounds.flatMap { it.ids() } +
+					setOf(summarizedMessage)
+		
+		fun forEach(block: (CompactedRounds) -> Unit) {
+			compactedRounds?.forEach(block)
+			block(this)
+		}
+	}
+	
+	@Serializable
+	data class CompletedRound(
+		@Serializable(with = UuidSerializer::class)
+		val userMessage: UUID,
+		val turns: List<Turn>?,
+		
+		@Serializable(with = UuidSerializer::class)
+		val finalAssistantMessage: UUID?,
+	) : UuidIndex {
+		override fun ids(): Set<UUID> =
+			setOf(userMessage) +
+					turns?.flatMap { it.ids() }.orEmpty() +
+					setOfNotNull(finalAssistantMessage)
 	}
 	
 	@Serializable
@@ -61,14 +79,24 @@ data class SessionContextIndex(
 		
 		@Serializable(with = UuidListSerializer::class)
 		val pendingToolCalls: List<UUID>?,
-	)
+	) : UuidIndex {
+		override fun ids(): Set<UUID> =
+			setOf(userMessage) +
+					turns?.flatMap { it.ids() }.orEmpty() +
+					setOfNotNull(assistantMessage) +
+					pendingToolCalls.orEmpty()
+	}
 	
 	@Serializable
 	data class Turn(
 		@Serializable(with = UuidSerializer::class)
 		val assistantMessage: UUID,
 		val tools: List<Tool>,
-	) {
+	) : UuidIndex {
+		override fun ids(): Set<UUID> =
+			setOf(assistantMessage) +
+					tools.flatMap { it.ids() }
+		
 		@Serializable
 		data class Tool(
 			@Serializable(with = UuidSerializer::class)
@@ -76,31 +104,8 @@ data class SessionContextIndex(
 			
 			@Serializable(with = UuidSerializer::class)
 			val result: UUID,
-		)
-	}
-	
-	companion object {
-		fun collectCompletedRoundIds(round: CompactedRound.CompletedRound, ids: MutableSet<UUID>) {
-			ids.add(round.userMessage)
-			round.finalAssistantMessage?.let { ids.add(it) }
-			collectTurnIds(round.turns, ids)
-		}
-		
-		fun collectCurrentRoundIds(round: CurrentRound, ids: MutableSet<UUID>) {
-			ids.add(round.userMessage)
-			round.assistantMessage?.let { ids.add(it) }
-			round.pendingToolCalls?.forEach { ids.add(it) }
-			collectTurnIds(round.turns, ids)
-		}
-		
-		private fun collectTurnIds(turns: List<Turn>?, ids: MutableSet<UUID>) {
-			turns?.forEach { turn ->
-				ids.add(turn.assistantMessage)
-				turn.tools.forEach { tool ->
-					ids.add(tool.call)
-					ids.add(tool.result)
-				}
-			}
+		) : UuidIndex {
+			override fun ids(): Set<UUID> = setOf(call, result)
 		}
 	}
 }

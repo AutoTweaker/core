@@ -16,33 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.agent.AgentError
-import io.github.autotweaker.api.types.agent.CompactOutput
-import io.github.autotweaker.api.types.agent.StreamDelta
-import io.github.autotweaker.api.types.tool.ToolOutput
 import java.util.*
-import kotlin.time.Instant
 
-sealed class SessionOutput {
-	data class LlmDelta(val delta: StreamDelta) : SessionOutput()
-	data class LlmError(
-		val content: String?,
-		val statusCode: Int?,
-		val model: UUID,
-		val timestamp: Instant,
-	) : SessionOutput()
-	
-	data class Compact(
-		val output: CompactOutput
-	) : SessionOutput()
-	
-	data class Tool(
-		val output: ToolOutput
-	) : SessionOutput()
-	
-	data class Error(
-		val error: AgentError
-	) : SessionOutput()
+/**
+ * 一个通过 [UUID] 索引某些数据的数据类。
+ */
+interface UuidIndex {
+	/**
+	 * 整个索引结构中引用的全部 [UUID]。
+	 */
+	fun ids(): Set<UUID>
 }

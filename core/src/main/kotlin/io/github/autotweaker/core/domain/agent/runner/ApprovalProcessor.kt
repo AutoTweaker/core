@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.*
 
 class ApprovalProcessor(
 	private val ctx: AgentContextManager,
@@ -48,7 +47,6 @@ class ApprovalProcessor(
 	
 	suspend fun process(
 		needsApproval: List<ThinkingStage.ResolvedToolCall>,
-		assistantMessageId: UUID,
 		model: AgentModel,
 		statusFlow: MutableStateFlow<AgentStatus>,
 	): List<String> {
@@ -86,9 +84,9 @@ class ApprovalProcessor(
 					tool.execute(call, model, ctx.get())
 				}
 				val toolResult = deferred.await()
-				ctx.recordToolResult(factory.buildToolMessage(assistantMessageId, call.pendingCall, toolResult))
+				ctx.recordToolResult(factory.buildToolMessage(call.pendingCall, toolResult))
 			} else {
-				ctx.recordToolResult(factory.buildRejected(assistantMessageId, call.pendingCall, approval.reason))
+				ctx.recordToolResult(factory.buildRejected(call.pendingCall, approval.reason))
 			}
 		}
 		return reasons

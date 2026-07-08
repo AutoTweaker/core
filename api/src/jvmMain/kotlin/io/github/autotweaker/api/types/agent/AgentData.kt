@@ -20,8 +20,6 @@ package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.api.types.session.ModelConfig
-import io.github.autotweaker.api.types.session.SessionContext
 import kotlinx.serialization.Serializable
 import java.util.*
 
@@ -31,6 +29,6 @@ data class AgentData(
 	val id: UUID,
 	val name: KebabCase,
 	val model: ModelConfig,
-	val context: SessionContext,
+	val context: AgentContext,
 	val activeTools: List<String>,
 )

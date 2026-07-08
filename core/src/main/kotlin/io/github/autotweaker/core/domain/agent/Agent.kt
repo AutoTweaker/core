@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.*
 import java.util.*
 
 class Agent(
-	context: AgentContext,
+	context: RuntimeContext,
 	val agentId: UUID,
 	val name: KebabCase,
 	private val workspace: WorkspaceMeta,
@@ -51,22 +51,20 @@ class Agent(
 	private val activeTools: List<String>,
 	@Suppress("unused") private val host: AgentHost,
 ) : Settable {
-	init {
-		check(context.currentRound == null)
-		check(activeTools.all { it in tools.map { tool -> tool.name } })
-	}
-	
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
 	
 	private val _toolCalling = MutableStateFlow<String?>(null)
 	val toolCalling = _toolCalling.asStateFlow()
 	
-	private val _output = MutableSharedFlow<AgentOutput>()
-	val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
+	private val _output = MutableSharedFlow<RuntimeOutput>()
+	val output: SharedFlow<RuntimeOutput> = _output.asSharedFlow()
 	
-	private val ctx = AgentContextManager(context, setting(AgentToolSettings.Cancelled()))
-	val context: StateFlow<AgentContext> = ctx.context
+	private val ctx = AgentContextManager(
+		context.copy(currentRound = null),
+		setting(AgentToolSettings.Cancelled())
+	)
+	val context: StateFlow<RuntimeContext> = ctx.context
 	
 	private lateinit var toolManager: Tools
 	val toolInfo: StateFlow<List<ToolInfo>> get() = toolManager.toolInfo

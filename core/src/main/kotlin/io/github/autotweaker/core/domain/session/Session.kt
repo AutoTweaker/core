@@ -23,11 +23,11 @@ import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
+import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
-import io.github.autotweaker.api.types.session.ModelConfig
-import io.github.autotweaker.api.types.session.SessionContext
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.Agent
@@ -63,7 +63,7 @@ class Session(
 					id = mainId,
 					name = MAIN_AGENT_NAME.toKebab(),
 					model = model,
-					context = SessionContext.emptyContext(systemPrompt),
+					context = AgentContext.emptyContext(systemPrompt),
 					activeTools = activeTools
 				)
 			).andLog(log) {
@@ -120,7 +120,7 @@ class Session(
 			id = id,
 			name = name,
 			model = model,
-			context = SessionContext.emptyContext(systemPrompt),
+			context = AgentContext.emptyContext(systemPrompt),
 			activeTools = emptyList()
 		)
 	)

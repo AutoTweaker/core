@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlin.time.Clock
 
 fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
@@ -35,7 +36,7 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		else -> null
 	}
 	
-	check(lastMessage !is AgentContext.Message.Assistant)
+	check(lastMessage !is RuntimeContext.Message.Assistant)
 	{ "Last message is an assistant message, cannot send request" }
 	check(current.pendingToolCalls == null)
 	{ "Pending tool calls exist, cannot send request" }
@@ -54,32 +55,30 @@ fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 		//当前轮次
 		add(current.userMessage.toChatMessage())
 		current.turns?.forEach { addTurn(it) }
-	}.inject(context.injections, context.summarizedMessage?.content)
+	}.inject(context.injections, context.compactedRounds?.summarizedMessage?.content)
 }
 
-fun AgentContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
+fun RuntimeContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
 	add(userMessage.toChatMessage())
 	turns?.forEach { addTurn(it) }
 	finalAssistantMessage?.let { add(it.toChatMessage()) }
 }
 
-private fun MutableList<ChatMessage>.addTurn(turn: AgentContext.Turn) {
-	val toolCalls = turn.tools.map { tool ->
+private fun MutableList<ChatMessage>.addTurn(turn: RuntimeContext.Turn) {
+	val toolCalls = turn.tools.orNull()?.map { tool ->
 		ChatMessage.AssistantMessage.ToolCall(
 			id = tool.callId,
 			name = tool.name,
 			arguments = tool.call.arguments,
 		)
 	}
-	if (toolCalls.isNotEmpty())
-		add(turn.assistantMessage.toChatMessage(toolCalls))
-	else
-		add(turn.assistantMessage.toChatMessage())
+	
+	add(turn.assistantMessage.toChatMessage(toolCalls))
 	
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
 
-private fun AgentContext.Message.User.toChatMessage() = content
+private fun RuntimeContext.Message.User.toChatMessage() = content
 	.injectTimestamp(timestamp)
 	.inject()
 	.let { text ->
@@ -90,7 +89,7 @@ private fun AgentContext.Message.User.toChatMessage() = content
 		)
 	}
 
-private fun AgentContext.Message.Assistant.toChatMessage(
+private fun RuntimeContext.Message.Assistant.toChatMessage(
 	toolCalls: List<ChatMessage.AssistantMessage.ToolCall>? = null,
 ) = ChatMessage.AssistantMessage(
 	content = content,
@@ -99,7 +98,7 @@ private fun AgentContext.Message.Assistant.toChatMessage(
 	toolCalls = toolCalls,
 )
 
-private fun AgentContext.Message.Tool.toChatMessage() = ChatMessage.ToolMessage(
+private fun RuntimeContext.Message.Tool.toChatMessage() = ChatMessage.ToolMessage(
 	content = result.content,
 	createdAt = result.timestamp,
 	toolCallId = callId,

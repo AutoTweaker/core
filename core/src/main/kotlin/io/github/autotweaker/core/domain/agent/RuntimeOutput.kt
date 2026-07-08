@@ -27,25 +27,25 @@ import io.github.autotweaker.api.types.tool.ToolOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 import kotlin.time.Instant
 
-sealed class AgentOutput {
-	data class LlmDelta(val delta: StreamDelta) : AgentOutput()
-	data class LlmError(val error: AgentChatStreamResult.Failing.Error) : AgentOutput()
+sealed class RuntimeOutput {
+	data class LlmDelta(val delta: StreamDelta) : RuntimeOutput()
+	data class LlmError(val error: AgentChatStreamResult.Failing.Error) : RuntimeOutput()
 	
 	data class Compact(
 		val output: CompactOutput
-	) : AgentOutput()
+	) : RuntimeOutput()
 	
 	data class Tool(
 		val output: ToolOutput
-	) : AgentOutput()
+	) : RuntimeOutput()
 	
 	data class Error(
 		val error: AgentError
-	) : AgentOutput()
+	) : RuntimeOutput()
 	
 	data class UsageConsumed(
 		val timestamp: Instant,
 		val usage: Usage,
 		val modelInfo: ModelData.ModelInfo,
-	) : AgentOutput()
+	) : RuntimeOutput()
 }

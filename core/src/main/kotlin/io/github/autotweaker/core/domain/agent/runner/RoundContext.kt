@@ -30,7 +30,7 @@ class RoundContext(
 			assistant = result.assistantMessage,
 			pendingCalls = emptyList(),
 			immediateResults = factory.buildImmediateResults(
-				result.assistantMessage.id, result.assistantMessage.timestamp,
+				result.assistantMessage.timestamp,
 				result.activations, result.parseFailures,
 			),
 		)
@@ -41,7 +41,7 @@ class RoundContext(
 			assistant = result.assistantMessage,
 			pendingCalls = result.needsApproval.map { it.pendingCall },
 			immediateResults = factory.buildImmediateResults(
-				result.assistantMessage.id, result.assistantMessage.timestamp,
+				result.assistantMessage.timestamp,
 				result.activations, result.parseFailures,
 			),
 		)

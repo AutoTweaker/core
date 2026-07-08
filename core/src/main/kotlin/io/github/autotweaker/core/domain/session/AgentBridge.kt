@@ -24,20 +24,17 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.agent.AgentData
-import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.api.types.session.*
+import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.agent.*
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.session.converter.AgentContextConverter
-import io.github.autotweaker.core.domain.session.converter.SessionContextConverter
+import io.github.autotweaker.core.domain.session.converter.AgentContextBuilder
+import io.github.autotweaker.core.domain.session.converter.RuntimeContextBuilder
 import io.github.autotweaker.core.domain.tool.CoreTool
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -53,7 +50,6 @@ class AgentBridge(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
-	private val maxCompactedRounds: Int = 0,
 ) : AgentAPI, Loggable, Settable {
 	/* 初始化 */
 	private val contextLock = ReentrantMutex()
@@ -63,17 +59,17 @@ class AgentBridge(
 	private lateinit var tools: List<Tool<ToolArgs>>
 	
 	private val _context = MutableStateFlow(initialData.context)
-	override val context: StateFlow<SessionContext> = _context.asStateFlow()
+	override val context: StateFlow<AgentContext> = _context.asStateFlow()
 	
-	private val messages = ConcurrentHashMap<UUID, SessionMessage>()
+	private val messages = ConcurrentHashMap<UUID, AgentMessage>()
 	
 	private lateinit var _agent: Agent
 	val agent get() = _agent
 	
-	private val _output = MutableSharedFlow<SessionOutput>(
+	private val _output = MutableSharedFlow<AgentOutput>(
 		extraBufferCapacity = 64
 	)
-	override val output: SharedFlow<SessionOutput> = _output.asSharedFlow()
+	override val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
 	override val id: UUID get() = _agent.agentId
 	override val name: KebabCase get() = _agent.name
@@ -101,8 +97,8 @@ class AgentBridge(
 	suspend fun init(data: AgentData) = also {
 		initialData = data
 		
-		val ids = collectMessageIds(_context.value, maxCompactedRounds).toList().orNull()
-		val loaded = ids?.let { store.loadMessages(it) }?.orNull()
+		val ids = _context.value.index.ids().orNull()
+		val loaded = ids?.let { store.loadMessages(it.toList()) }?.orNull()
 		loaded?.forEach { messages[it.id] = it }
 		loaded?.let { UsageStore.collect(it) }
 		
@@ -206,17 +202,17 @@ class AgentBridge(
 	
 	/* 内部工具 */
 	
-	private suspend fun AgentOutput.toSessionOutput(): SessionOutput? = when (this) {
-		is AgentOutput.LlmDelta -> SessionOutput.LlmDelta(delta)
-		is AgentOutput.LlmError -> SessionOutput.LlmError(
+	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
+		is RuntimeOutput.LlmDelta -> AgentOutput.LlmDelta(delta)
+		is RuntimeOutput.LlmError -> AgentOutput.LlmError(
 			error.content, error.statusCode, error.model, error.timestamp
 		)
 		
-		is AgentOutput.Compact -> SessionOutput.Compact(output)
-		is AgentOutput.Error -> SessionOutput.Error(error)
-		is AgentOutput.Tool -> SessionOutput.Tool(output)
-		is AgentOutput.UsageConsumed -> {
-			val record = SessionMessage.UsageRecord(
+		is RuntimeOutput.Compact -> AgentOutput.Compact(output)
+		is RuntimeOutput.Error -> AgentOutput.Error(error)
+		is RuntimeOutput.Tool -> AgentOutput.Tool(output)
+		is RuntimeOutput.UsageConsumed -> {
+			val record = AgentMessage.UsageRecord(
 				id = UUID.randomUUID(),
 				timestamp = timestamp,
 				snapshot = UsageSnapshot(usage, modelInfo),
@@ -235,7 +231,7 @@ class AgentBridge(
 	private suspend fun createAgent() {
 		_agent = Agent(
 			agentId = id,
-			context = buildAgentContext(),
+			context = RuntimeContextBuilder(_context.value, messages)(),
 			workspace = workspace,
 			tools = tools,
 			activeTools = initialData.activeTools,
@@ -246,31 +242,19 @@ class AgentBridge(
 		)
 	}
 	
-	private fun buildAgentContext(): AgentContext =
-		SessionContextConverter.buildAgentContext(
-			context = _context.value, messages = messages.values.toList(), maxCompactedRounds = maxCompactedRounds
-		)
-	
-	
-	private suspend fun AgentContext.save() = contextLock.withLock {
-		val oldCtx = _context.value
-		val result = AgentContextConverter.sync(this, oldCtx)
-		result.messages.save()
-		updateContext(
-			SessionContext(
-				systemPrompt = oldCtx.systemPrompt,
-				index = result.index,
-				droppedMessages = result.droppedMessageIds,
-				injections = oldCtx.injections
-			)
-		)
+	private suspend fun RuntimeContext.save() = contextLock.withLock {
+		val builder = AgentContextBuilder(_context.value, this)
+		val (context, messages) = builder()
+		
+		updateContext(context)
+		messages.save()
 	}
 	
-	private suspend fun updateContext(context: SessionContext) =
+	private suspend fun updateContext(context: AgentContext) =
 		_context.update { context }.andSave()
 	
 	
-	private suspend fun List<SessionMessage>.save() {
+	private suspend fun List<AgentMessage>.save() {
 		forEach { messages[it.id] = it }.andSave()
 		UsageStore.collect(this)
 	}
@@ -280,23 +264,6 @@ class AgentBridge(
 		if (messages.isNotEmpty()) {
 			store.saveMessages(messages.values.toList())
 		}
-	}
-	
-	private fun collectMessageIds(ctx: SessionContext, maxCompactedRounds: Int): Set<UUID> {
-		val ids = mutableSetOf<UUID>()
-		val index = ctx.index
-		
-		index.compactedRounds?.takeLast(maxCompactedRounds)?.forEach { compacted ->
-			ids.add(compacted.summarizedMessage)
-			compacted.rounds.forEach { round ->
-				SessionContextIndex.collectCompletedRoundIds(round, ids)
-			}
-		}
-		index.historyRounds?.forEach { SessionContextIndex.collectCompletedRoundIds(it, ids) }
-		index.currentRound?.let { SessionContextIndex.collectCurrentRoundIds(it, ids) }
-		index.summarizedMessage?.let { ids.add(it) }
-		
-		return ids
 	}
 	
 	private suspend fun ModelConfig.toAgentModel() = AgentModel(

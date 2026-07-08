@@ -27,9 +27,9 @@ import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.core.domain.agent.AgentContext
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
@@ -37,12 +37,12 @@ import java.util.*
 
 class LlmService(
 	private val agentId: UUID,
-	private val onOutput: (AgentOutput) -> Unit,
+	private val onOutput: (RuntimeOutput) -> Unit,
 ) : Loggable, Traceable {
 	suspend fun execute(
 		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
-		context: AgentContext,
+		context: RuntimeContext,
 	): CallResult {
 		val request = AgentChatRequest(
 			model = model,
@@ -57,7 +57,7 @@ class LlmService(
 		}.getOrElse { e ->
 			log.error("Failed LLM call  agentId={}", agentId, e)
 			onOutput(
-				AgentOutput.Error(
+				RuntimeOutput.Error(
 					AgentError(
 						e.message ?: "LLM call failed",
 						AgentError.Type.LLM,
@@ -74,13 +74,13 @@ class LlmService(
 		AgentChat.execute(request, agentId).collect { result ->
 			when (result) {
 				is AgentChatStreamResult.Delta -> {
-					onOutput(AgentOutput.LlmDelta(result.delta))
+					onOutput(RuntimeOutput.LlmDelta(result.delta))
 				}
 				
 				is AgentChatStreamResult.Failing -> {
 					val lastError = result.errors.lastOrNull()
 						?: error("Failing event with empty error list")
-					onOutput(AgentOutput.LlmError(lastError))
+					onOutput(RuntimeOutput.LlmError(lastError))
 				}
 				
 				is AgentChatStreamResult.Assembled -> {
@@ -105,7 +105,7 @@ class LlmService(
 	
 	sealed class CallResult {
 		data class Success(
-			val assistantMessage: AgentContext.Message.Assistant,
+			val assistantMessage: RuntimeContext.Message.Assistant,
 			val toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
 		) : CallResult()
 		

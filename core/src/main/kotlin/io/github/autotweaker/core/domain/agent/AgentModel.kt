@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.types.session.ModelConfig
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.core.domain.model.Model
 
 data class AgentModel(

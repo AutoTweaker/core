@@ -26,7 +26,7 @@ import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
-import io.github.autotweaker.api.types.session.ModelConfig
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.model.Model

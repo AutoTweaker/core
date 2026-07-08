@@ -19,14 +19,7 @@
 package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.agent.Delivery
-import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.session.ModelConfig
-import io.github.autotweaker.api.types.session.SessionContext
-import io.github.autotweaker.api.types.session.SessionContextIndex
-import io.github.autotweaker.api.types.session.SessionOutput
+import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolInfo
 import kotlinx.coroutines.flow.SharedFlow
@@ -38,7 +31,7 @@ import java.util.*
  *
  * 大部分方法都重新返回自身（[AgentAPI]）以支持链式调用。
  *
- * 关于 agent 上下文的基本概念（如“轮次”）请参阅 [SessionContextIndex]
+ * 关于 agent 上下文的基本概念（如“轮次”）请参阅 [AgentContextIndex]
  */
 interface AgentAPI {
 	/**
@@ -74,22 +67,22 @@ interface AgentAPI {
 	 *
 	 * 关于状态信息请见 [status]，关于上下文信息请见 [context]。
 	 *
-	 * @see SessionOutput
+	 * @see AgentOutput
 	 */
-	val output: SharedFlow<SessionOutput>
+	val output: SharedFlow<AgentOutput>
 	
 	/**
 	 * agent 的实时上下文，完整的消息、工具调用请求均在此索引。
 	 *
 	 * 关于流式数据请见 [output]。
 	 *
-	 * @see SessionContext
-	 * @see SessionContextIndex
+	 * @see AgentContext
+	 * @see AgentContextIndex
 	 */
-	val context: StateFlow<SessionContext>
+	val context: StateFlow<AgentContext>
 	
 	/**
-	 * agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.session.SessionMessage.Tool.Call.callId]。
+	 * agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.agent.AgentMessage.Tool.Call.callId]。
 	 *
 	 * 当没有正在进行的工具调用时，此属性为 null。
 	 */
@@ -112,7 +105,7 @@ interface AgentAPI {
 	 *
 	 * 无论队列中有多少条消息，消费时都会将它们合并，这之中也可能包含由 AutoTweaker 自动发送的系统消息。
 	 *
-	 * 使用 `send(content).await()` 来挂起等待 agent 消费这条消息，并获取合并后的那条 [io.github.autotweaker.api.types.session.SessionMessage.User] 的 id 用于前端展示。
+	 * 使用 `send(content).await()` 来挂起等待 agent 消费这条消息，并获取合并后的那条 [io.github.autotweaker.api.types.agent.AgentMessage.User] 的 id 用于前端展示。
 	 *
 	 * 发送一条只包含 [MessageContent.injections] 的消息可以注入一些即时信息。
 	 *

@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -101,7 +101,7 @@ object AgentChat : Loggable {
 							val snapshot = result.usage?.let { usage ->
 								UsageSnapshot(usage, resultModel.modelInfo)
 							}
-							val assistantMessage = AgentContext.Message.Assistant(
+							val assistantMessage = RuntimeContext.Message.Assistant(
 								reasoning = msg.reasoningContent,
 								content = msg.content,
 								modelId = resilientResult.model,

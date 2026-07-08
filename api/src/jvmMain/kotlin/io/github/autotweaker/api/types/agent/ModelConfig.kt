@@ -16,15 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.session
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.core.domain.agent.Agent
+import io.github.autotweaker.api.types.serializer.UuidListSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import kotlinx.serialization.Serializable
 import java.util.*
 
-interface AgentHost {
-	suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent
-	fun list(): List<UUID>
-	suspend fun get(id: UUID): Agent?
-}
+@Serializable
+data class ModelConfig(
+	@Serializable(with = UuidSerializer::class)
+	val model: UUID,
+	val thinking: Boolean,
+	@Serializable(with = UuidSerializer::class)
+	val summarize: UUID,
+	@Serializable(with = UuidSerializer::class)
+	val compact: UUID,
+	@Serializable(with = UuidListSerializer::class)
+	val fallback: List<UUID>,
+)

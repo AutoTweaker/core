@@ -21,10 +21,10 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.base.store.MutableStore
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.api.types.session.SessionMessage
 import java.util.*
 
 object UsageStore : MutableStore<MutableMap<UUID, UsageSnapshot>>(), Loggable {
@@ -34,7 +34,7 @@ object UsageStore : MutableStore<MutableMap<UUID, UsageSnapshot>>(), Loggable {
 	
 	override fun default() = mutableMapOf<UUID, UsageSnapshot>()
 	
-	suspend fun collect(messages: List<SessionMessage>) = transform {
+	suspend fun collect(messages: List<AgentMessage>) = transform {
 		var count = 0
 		
 		fun add(key: UUID, snapshot: UsageSnapshot) {
@@ -46,9 +46,9 @@ object UsageStore : MutableStore<MutableMap<UUID, UsageSnapshot>>(), Loggable {
 		
 		messages.forEach { message ->
 			when (message) {
-				is SessionMessage.Assistant -> message.usageSnapshot?.let { add(message.id, it) }
-				is SessionMessage.Compact -> message.snapshots?.forEach { (id, snapshot) -> add(id, snapshot) }
-				is SessionMessage.UsageRecord -> add(message.id, message.snapshot)
+				is AgentMessage.Assistant -> message.usageSnapshot?.let { snapshot -> add(message.id, snapshot) }
+				is AgentMessage.Compact -> message.snapshots?.forEach { (id, snapshot) -> add(id, snapshot) }
+				is AgentMessage.UsageRecord -> add(message.id, message.snapshot)
 				else -> {}
 			}
 		}

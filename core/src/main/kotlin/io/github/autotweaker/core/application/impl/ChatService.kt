@@ -20,11 +20,11 @@ package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SessionRepository
@@ -76,7 +76,7 @@ object ChatService : Loggable {
 				if (cause == null) {
 					lastUsage?.let { usage ->
 						val resolvedModel = lastModelId?.let { modelMap[it] } ?: return@let
-						val record = SessionMessage.UsageRecord(
+						val record = AgentMessage.UsageRecord(
 							UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, resolvedModel.modelInfo)
 						)
 						sessionRepository.saveMessages(listOf(record))

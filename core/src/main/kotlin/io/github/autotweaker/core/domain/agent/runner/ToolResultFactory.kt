@@ -24,37 +24,33 @@ import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
-import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Instant
 import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall as RawToolCall
-import io.github.autotweaker.core.domain.agent.AgentContext.CurrentRound.PendingToolCall as PendingCall
-import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool as ToolMessage
-import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool.Call as ToolCall
-import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool.Result as ToolResult
+import io.github.autotweaker.core.domain.agent.RuntimeContext.CurrentRound.PendingToolCall as PendingCall
+import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as ToolMessage
+import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Call as ToolCall
+import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result as ToolResult
 
 class ToolResultFactory : Settable {
 	
 	//错误/激活
 	
 	fun buildImmediateResults(
-		assistantMessageId: UUID,
 		timestamp: Instant,
 		activations: List<ToolActivation>,
 		parseFailures: List<ThinkingStage.ParseFailure>,
 	): List<ToolMessage> = buildList {
-		parseFailures.forEach { add(buildError(assistantMessageId, it.toolCall, timestamp, it.errorMessage)) }
-		activations.forEach { add(buildActivation(assistantMessageId, timestamp, it)) }
+		parseFailures.forEach { add(buildError(it.toolCall, timestamp, it.errorMessage)) }
+		activations.forEach { add(buildActivation(timestamp, it)) }
 	}
 	
 	//拒绝/错误/激活
 	
 	fun buildRejected(
-		assistantMessageId: UUID,
 		call: PendingCall,
 		reason: String?,
 	) = buildToolMessage(
-		assistantMessageId,
 		call, ToolResult(
 			content = if (reason != null) setting(AgentToolSettings.RejectedWithFeedback()).format(reason) else
 				setting(AgentToolSettings.Rejected()),
@@ -64,12 +60,10 @@ class ToolResultFactory : Settable {
 	)
 	
 	fun buildError(
-		assistantMessageId: UUID,
 		call: RawToolCall,
 		timestamp: Instant,
 		message: String,
 	) = buildToolMessage(
-		assistantMessageId,
 		call, timestamp,
 		ToolResult(
 			content = message,
@@ -79,11 +73,9 @@ class ToolResultFactory : Settable {
 	)
 	
 	fun buildActivation(
-		assistantMessageId: UUID,
 		timestamp: Instant,
 		activation: ToolActivation,
 	) = buildToolMessage(
-		assistantMessageId,
 		activation.toolCall, timestamp,
 		ToolResult(
 			content = activation.message,
@@ -95,35 +87,31 @@ class ToolResultFactory : Settable {
 	//buildToolMessage
 	
 	fun buildToolMessage(
-		assistantMessageId: UUID,
 		call: PendingCall,
 		result: ToolResult,
 	) = ToolMessage(
 		name = call.name,
 		callId = call.callId,
-		call = buildToolCall(assistantMessageId, call),
+		call = buildToolCall(call),
 		result = result,
 	)
 	
 	fun buildToolMessage(
-		assistantMessageId: UUID,
 		call: RawToolCall,
 		timestamp: Instant,
 		result: ToolResult,
 	) = ToolMessage(
 		name = call.name,
 		callId = call.id,
-		call = buildToolCall(assistantMessageId, call, timestamp),
+		call = buildToolCall(call, timestamp),
 		result = result,
 	)
 	
 	//buildToolCall
 	
 	fun buildToolCall(
-		assistantMessageId: UUID,
 		call: PendingCall,
 	) = ToolCall(
-		assistantMessageId = assistantMessageId,
 		arguments = call.arguments,
 		reason = call.reason,
 		timestamp = call.timestamp,
@@ -131,11 +119,9 @@ class ToolResultFactory : Settable {
 	)
 	
 	fun buildToolCall(
-		assistantMessageId: UUID,
 		call: RawToolCall,
 		timestamp: Instant,
 	) = ToolCall(
-		assistantMessageId = assistantMessageId,
 		arguments = call.arguments,
 		timestamp = timestamp,
 	)

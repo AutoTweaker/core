@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
@@ -29,7 +28,7 @@ import java.util.*
 import kotlin.time.Instant
 
 @Serializable
-sealed class SessionMessage {
+sealed class AgentMessage {
 	@Serializable(with = UuidSerializer::class)
 	abstract val id: UUID
 	
@@ -43,7 +42,7 @@ sealed class SessionMessage {
 		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
 		val content: MessageContent,
-	) : SessionMessage()
+	) : AgentMessage()
 	
 	@Serializable
 	data class Assistant(
@@ -56,10 +55,10 @@ sealed class SessionMessage {
 		@Serializable(with = UuidSerializer::class)
 		val model: UUID,
 		val usageSnapshot: UsageSnapshot? = null,
-	) : SessionMessage()
+	) : AgentMessage()
 	
 	@Serializable
-	sealed class Tool : SessionMessage() {
+	sealed class Tool : AgentMessage() {
 		abstract val callId: String
 		
 		@Serializable
@@ -69,8 +68,6 @@ sealed class SessionMessage {
 			@Serializable(with = InstantLongSerializer::class)
 			override val timestamp: Instant,
 			override val callId: String,
-			@Serializable(with = UuidSerializer::class)
-			val assistantMessage: UUID,
 			val name: String,
 			val arguments: String,
 			val reason: String?,
@@ -97,7 +94,7 @@ sealed class SessionMessage {
 		override val timestamp: Instant,
 		val content: String,
 		val snapshots: Map<@Serializable(with = UuidSerializer::class) UUID, UsageSnapshot>? = null,
-	) : SessionMessage()
+	) : AgentMessage()
 	
 	@Serializable
 	data class UsageRecord(
@@ -106,5 +103,5 @@ sealed class SessionMessage {
 		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
 		val snapshot: UsageSnapshot,
-	) : SessionMessage()
+	) : AgentMessage()
 }

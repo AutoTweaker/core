@@ -22,8 +22,8 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
+import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.SessionMessage
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
@@ -133,7 +133,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	
 	// region Messages
 	
-	override suspend fun saveMessages(messages: List<SessionMessage>) {
+	override suspend fun saveMessages(messages: List<AgentMessage>) {
 		db.transaction {
 			messages.forEach { msg ->
 				SessionMessageTable.upsert {
@@ -146,7 +146,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	override suspend fun loadMessages(ids: List<UUID>): List<SessionMessage> =
+	override suspend fun loadMessages(ids: List<UUID>): List<AgentMessage> =
 		db.transaction {
 			val idStrings = ids.map { it.toString() }
 			SessionMessageTable.selectAll()
@@ -161,7 +161,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	private fun ResultRow.toSessionMessage(): SessionMessage =
+	private fun ResultRow.toSessionMessage(): AgentMessage =
 		SessionMessageTable.readContent(this)
 	
 	// endregion

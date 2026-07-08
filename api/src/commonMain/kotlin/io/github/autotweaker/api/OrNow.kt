@@ -16,15 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.session
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.core.domain.agent.Agent
-import java.util.*
+import kotlin.time.Clock
+import kotlin.time.Instant
 
-interface AgentHost {
-	suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent
-	fun list(): List<UUID>
-	suspend fun get(id: UUID): Agent?
-}
+/**
+ * 如果 [this] 为 null，返回 [Clock.System.now]，否则返回 [this] 本身。
+ */
+fun Instant?.orNow() = this ?: Clock.System.now()

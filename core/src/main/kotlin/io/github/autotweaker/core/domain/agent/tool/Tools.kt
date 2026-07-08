@@ -28,8 +28,8 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolOutput
 import io.github.autotweaker.api.types.tool.ToolResultStatus
-import io.github.autotweaker.core.domain.agent.AgentContext
-import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ToolMeta
@@ -72,8 +72,8 @@ class Tools(
 		arguments: ToolArgs,
 		provider: DependencyProvider,
 		truncation: TruncationService,
-		onToolOutput: (AgentOutput) -> Unit,
-	): AgentContext.Message.Tool.Result {
+		onToolOutput: (RuntimeOutput) -> Unit,
+	): RuntimeContext.Message.Tool.Result {
 		val tool = tools.first { it.name == toolName }
 		check(_toolInfo.value.first { it.name == tool.name }.active)
 		
@@ -83,7 +83,7 @@ class Tools(
 		val output = supervisorScope {
 			val drainJob = launch {
 				for (msg in outputChannel) {
-					onToolOutput(AgentOutput.Tool(ToolOutput(toolName, callId, msg.content)))
+					onToolOutput(RuntimeOutput.Tool(ToolOutput(toolName, callId, msg.content)))
 				}
 			}
 			val result = trace.catching {
@@ -102,7 +102,7 @@ class Tools(
 			return@supervisorScope result
 		}
 		
-		return AgentContext.Message.Tool.Result(
+		return RuntimeContext.Message.Tool.Result(
 			content = truncation(output.result, setting(AgentToolSettings.MaxOutput())),
 			timestamp = Clock.System.now(),
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,

@@ -197,7 +197,6 @@ class RoundRunner(
 				
 				val reasons = approval.process(
 					result.needsApproval,
-					result.assistantMessage.id,
 					currentModel,
 					statusFlow,
 				)
@@ -226,11 +225,15 @@ class RoundRunner(
 		val threshold = setting(AgentToolSettings.DeactivationThreshold())
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
-			context.historyRounds.orEmpty() + context.compactedRounds?.flatMap { it.rounds }.orEmpty()
+			context.historyRounds.orEmpty() + context.compactedRounds?.completedRounds().orEmpty()
 		}
 		if (history.isEmpty()) return
 		val allCalls = history.flatMap { round ->
-			round.turns?.flatMap { turn -> turn.tools.map { it.name.substringBefore("-") } }.orEmpty()
+			round.turns?.flatMap { turn ->
+				turn.tools.map {
+					it.name.substringBefore("-")
+				}
+			}.orEmpty()
 		}
 		if (allCalls.size < threshold) return
 		val recentNames = allCalls.takeLast(threshold).toSet()

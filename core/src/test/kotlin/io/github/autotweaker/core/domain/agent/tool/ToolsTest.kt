@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.mockk.coEvery
@@ -38,6 +38,7 @@ import kotlinx.serialization.json.jsonObject
 import java.util.*
 import kotlin.test.*
 
+@Suppress("UNCHECKED_CAST")
 class ToolsTest {
 	companion object {
 		init {
@@ -192,7 +193,7 @@ class ToolsTest {
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
 			"bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation,
-			onToolOutput = { outputs.add((it as AgentOutput.Tool).output.content) },
+			onToolOutput = { outputs.add((it as RuntimeOutput.Tool).output.content) },
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)

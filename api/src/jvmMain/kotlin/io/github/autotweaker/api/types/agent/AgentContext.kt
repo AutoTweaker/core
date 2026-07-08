@@ -16,25 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.serializer.UuidListSerializer
+import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
-data class SessionContext(
+data class AgentContext(
 	val systemPrompt: String,
 	val injections: List<ContextInjection>?,
-	val index: SessionContextIndex,
-	@Serializable(with = UuidListSerializer::class)
-	val droppedMessages: List<UUID>?,
+	val index: AgentContextIndex,
+	val droppedMessages: Set<@Serializable(with = UuidSerializer::class) UUID>?,
 ) {
 	companion object {
-		fun emptyContext(systemPrompt: String) = SessionContext(
-			systemPrompt = systemPrompt, index = SessionContextIndex(
-				compactedRounds = null, historyRounds = null, currentRound = null, summarizedMessage = null
+		fun emptyContext(systemPrompt: String) = AgentContext(
+			systemPrompt = systemPrompt, index = AgentContextIndex(
+				compactedRounds = null, historyRounds = null, currentRound = null
 			), droppedMessages = null, injections = null
 		)
 	}

@@ -16,22 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.serializer.UuidListSerializer
-import io.github.autotweaker.api.types.serializer.UuidSerializer
-import kotlinx.serialization.Serializable
+import io.github.autotweaker.api.types.tool.ToolOutput
 import java.util.*
+import kotlin.time.Instant
 
-@Serializable
-data class ModelConfig(
-	@Serializable(with = UuidSerializer::class)
-	val model: UUID,
-	val thinking: Boolean,
-	@Serializable(with = UuidSerializer::class)
-	val summarize: UUID,
-	@Serializable(with = UuidSerializer::class)
-	val compact: UUID,
-	@Serializable(with = UuidListSerializer::class)
-	val fallback: List<UUID>,
-)
+sealed class AgentOutput {
+	data class LlmDelta(val delta: StreamDelta) : AgentOutput()
+	data class LlmError(
+		val content: String?,
+		val statusCode: Int?,
+		val model: UUID,
+		val timestamp: Instant,
+	) : AgentOutput()
+	
+	data class Compact(
+		val output: CompactOutput
+	) : AgentOutput()
+	
+	data class Tool(
+		val output: ToolOutput
+	) : AgentOutput()
+	
+	data class Error(
+		val error: AgentError
+	) : AgentOutput()
+}

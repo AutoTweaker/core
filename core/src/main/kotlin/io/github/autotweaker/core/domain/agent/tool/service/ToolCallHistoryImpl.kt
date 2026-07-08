@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.core.domain.agent.AgentContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -27,7 +27,7 @@ import kotlinx.serialization.json.JsonElement
 
 @OptIn(ExperimentalSerializationApi::class)
 class ToolCallHistoryImpl(
-	private val context: AgentContext,
+	private val context: RuntimeContext,
 ) : ToolCallHistory {
 	override fun <Args : Any> getAll(
 		toolName: String,

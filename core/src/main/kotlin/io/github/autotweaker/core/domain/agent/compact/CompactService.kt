@@ -26,11 +26,11 @@ import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.UsageSnapshot
-import io.github.autotweaker.core.domain.agent.AgentContext
-import io.github.autotweaker.core.domain.agent.AgentContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.AgentOutput
+import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.findModelInfo
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
@@ -42,7 +42,7 @@ import kotlin.time.Clock
 
 class CompactService(
 	private val agentId: UUID,
-	private val onOutput: (AgentOutput) -> Unit,
+	private val onOutput: (RuntimeOutput) -> Unit,
 ) : Loggable, Traceable, Settable {
 	suspend fun execute(
 		model: AgentModel,
@@ -66,7 +66,8 @@ class CompactService(
 			rounds, model, maxMessageChars, messageSummarizePrompt, thinkingEnabled
 		)
 		
-		val processedMessages = preprocessedMessages.inject(context.injections, context.summarizedMessage?.content)
+		val processedMessages =
+			preprocessedMessages.inject(context.injections, context.compactedRounds?.summarizedMessage?.content)
 		val systemAndMessages = processedMessages + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
 		
 		val snapshots = preprocessSnapshots.toMutableList()
@@ -85,10 +86,10 @@ class CompactService(
 				"Failed compact  agentId={}  attempts={}", agentId, attempt
 			)
 			snapshots.forEach {
-				onOutput(AgentOutput.UsageConsumed(Clock.System.now(), it.usage, it.model))
+				onOutput(RuntimeOutput.UsageConsumed(Clock.System.now(), it.usage, it.model))
 			}
 			onOutput(
-				AgentOutput.Error(
+				RuntimeOutput.Error(
 					AgentError(
 						"Compact failed after $attempt attempts",
 						AgentError.Type.COMPACT
@@ -106,7 +107,7 @@ class CompactService(
 		val compactMsg = SummarizedMessage(
 			timestamp = Clock.System.now(),
 			content = finalResult.content,
-			snapshots = snapshots.associateBy { UUID.randomUUID() },
+			snapshots = snapshots.orNull()?.associateBy { UUID.randomUUID() },
 		)
 		
 		ctx.applyCompact(compactMsg, rounds)
@@ -141,7 +142,7 @@ class CompactService(
 						if (!msg.content.isNullOrEmpty()) {
 							rawContent += msg.content
 							onOutput(
-								AgentOutput.Compact(
+								RuntimeOutput.Compact(
 									CompactOutput(
 										CompactOutput.Status.OUTPUTTING,
 										rawContent,
@@ -166,7 +167,7 @@ class CompactService(
 			log.debug("Cancelled compact  agentId={}", agentId)
 		}.getOrElse { e ->
 			log.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)
-			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
+			onOutput(RuntimeOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, null)))
 			return CompactRequestResult(rawContent, lastSnapshot, success = false)
 		}
 		
@@ -175,7 +176,7 @@ class CompactService(
 		val valid = extracted.length >= minSummaryLength
 		
 		if (valid) onOutput(
-			AgentOutput.Compact(
+			RuntimeOutput.Compact(
 				CompactOutput(
 					CompactOutput.Status.FINISHED,
 					rawContent,
@@ -185,7 +186,7 @@ class CompactService(
 		)
 		else {
 			log.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted.length)
-			onOutput(AgentOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastSnapshot?.usage)))
+			onOutput(RuntimeOutput.Compact(CompactOutput(CompactOutput.Status.FAILED, rawContent, lastSnapshot?.usage)))
 		}
 		
 		return CompactRequestResult(extracted, lastSnapshot, success = valid)
@@ -197,7 +198,7 @@ class CompactService(
 	)
 	
 	private suspend fun preprocessMessages(
-		rounds: List<AgentContext.CompletedRound>,
+		rounds: List<RuntimeContext.CompletedRound>,
 		model: AgentModel,
 		maxMessageChars: Int,
 		messageSummarizePrompt: String,
@@ -250,7 +251,7 @@ class CompactService(
 	}
 	
 	private suspend fun convertUserMessage(
-		msg: AgentContext.Message.User,
+		msg: RuntimeContext.Message.User,
 		maxChars: Int,
 		prompt: String,
 		model: AgentModel,
@@ -262,7 +263,7 @@ class CompactService(
 	}
 	
 	private suspend fun convertAssistantMessage(
-		msg: AgentContext.Message.Assistant,
+		msg: RuntimeContext.Message.Assistant,
 		toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
 		maxChars: Int,
 		prompt: String,
@@ -277,7 +278,7 @@ class CompactService(
 	}
 	
 	private suspend fun convertToolMessage(
-		msg: AgentContext.Message.Tool,
+		msg: RuntimeContext.Message.Tool,
 		maxChars: Int,
 		prompt: String,
 		model: AgentModel,

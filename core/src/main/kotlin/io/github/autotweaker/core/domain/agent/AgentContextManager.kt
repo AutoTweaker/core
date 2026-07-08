@@ -27,28 +27,28 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.time.Clock
-import io.github.autotweaker.core.domain.agent.AgentContext.Message.Tool as ToolMessage
+import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as ToolMessage
 
-class AgentContextManager(initial: AgentContext, private val cancelledMessage: String) {
+class AgentContextManager(initial: RuntimeContext, private val cancelledMessage: String) {
 	private val _context = MutableStateFlow(initial)
-	private val lock = ReentrantMutex()
+	val context: StateFlow<RuntimeContext> = _context.asStateFlow()
 	
-	val context: StateFlow<AgentContext> = _context.asStateFlow()
+	private val lock = ReentrantMutex()
 	
 	private val pendingToolResults = mutableListOf<ToolMessage>()
 	
-	suspend fun get(): AgentContext = lock.withLock { _context.value }
+	suspend fun get(): RuntimeContext = lock.withLock { _context.value }
 	
-	suspend fun beginRound(userMessage: AgentContext.Message.User) = lock.withLock {
+	suspend fun beginRound(userMessage: RuntimeContext.Message.User) = lock.withLock {
 		check(_context.value.currentRound == null)
 		check(pendingToolResults.isEmpty())
-		val round = AgentContext.CurrentRound(userMessage = userMessage, turns = null)
+		val round = RuntimeContext.CurrentRound(userMessage = userMessage, turns = null)
 		_context.update { it.copy(currentRound = round) }
 	}
 	
 	suspend fun applyThinking(
-		assistant: AgentContext.Message.Assistant,
-		pendingCalls: List<AgentContext.CurrentRound.PendingToolCall>,
+		assistant: RuntimeContext.Message.Assistant,
+		pendingCalls: List<RuntimeContext.CurrentRound.PendingToolCall>,
 		immediateResults: List<ToolMessage>,
 	) = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
@@ -74,7 +74,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 	suspend fun finalizeToolTurn() = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
 		val assistant = requireNotNull(current.assistantMessage)
-		val turn = AgentContext.Turn(assistantMessage = assistant, tools = pendingToolResults.toList())
+		val turn = RuntimeContext.Turn(assistantMessage = assistant, tools = pendingToolResults.toList())
 		pendingToolResults.clear()
 		_context.update {
 			it.copy(
@@ -92,8 +92,9 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		
 		
 		//丢弃空round
-		if (round.assistantMessage == null && round.turns.isNullOrEmpty() &&
-			round.pendingToolCalls.isNullOrEmpty()
+		if (round.assistantMessage == null
+			&& round.turns.isNullOrEmpty()
+			&& round.pendingToolCalls.isNullOrEmpty()
 		) {
 			check(pendingToolResults.isEmpty())
 			_context.update { it.copy(currentRound = null) }
@@ -109,7 +110,6 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 						name = call.name,
 						callId = call.callId,
 						call = ToolMessage.Call(
-							assistantMessageId = requireNotNull(round.assistantMessage?.id),
 							arguments = call.arguments,
 							reason = call.reason,
 							timestamp = call.timestamp,
@@ -127,9 +127,9 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 		
 		val assistantMsg = round.assistantMessage
 		val archivedTurn =
-			if (assistantMsg != null && pendingToolResults.isNotEmpty()) {
-				AgentContext.Turn(assistantMsg, pendingToolResults.toList())
-			} else null
+			if (assistantMsg != null && pendingToolResults.isNotEmpty())
+				RuntimeContext.Turn(assistantMsg, pendingToolResults.toList())
+			else null
 		pendingToolResults.clear()
 		
 		val allTurns = buildList {
@@ -137,7 +137,7 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 			archivedTurn?.let { add(it) }
 		}.orNull()
 		
-		val completed = AgentContext.CompletedRound(
+		val completed = RuntimeContext.CompletedRound(
 			userMessage = round.userMessage,
 			turns = allTurns,
 			finalAssistantMessage = if (archivedTurn != null) null else assistantMsg,
@@ -151,16 +151,19 @@ class AgentContextManager(initial: AgentContext, private val cancelledMessage: S
 	}
 	
 	suspend fun applyCompact(
-		summarizedMessage: AgentContext.SummarizedMessage,
-		rounds: List<AgentContext.CompletedRound>,
+		summarizedMessage: RuntimeContext.SummarizedMessage,
+		rounds: List<RuntimeContext.CompletedRound>,
 	) = lock.withLock {
 		val currentHistory = requireNotNull(_context.value.historyRounds)
 		check(rounds.all { it in currentHistory })
-		val remaining = currentHistory.filter { it !in rounds }
-		val compacted = AgentContext.CompactedRound(rounds = rounds, summarizedMessage = summarizedMessage)
+		val remaining = currentHistory.filterNot { it in rounds }
 		_context.update {
 			it.copy(
-				compactedRounds = it.compactedRounds.orEmpty() + compacted,
+				compactedRounds = RuntimeContext.CompactedRounds(
+					compactedRounds = it.compactedRounds,
+					rounds = rounds,
+					summarizedMessage = summarizedMessage
+				),
 				historyRounds = remaining.orNull(),
 			)
 		}

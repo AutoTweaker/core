@@ -24,12 +24,12 @@ import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.session.ModelConfig
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
