@@ -27,7 +27,7 @@ package io.github.autotweaker.api.tool
  *
  * 可以参考 [io.github.autotweaker.api.types.tool.args] 下 AutoTweaker 内置工具的声明，如 [io.github.autotweaker.api.types.tool.args.ReadArgs]
  *
- * 子类类名、字段名都绝对不能打 `@SerialName` 标签，这会导致 LLM 看到的参数声明与实际字段不匹配，从而导致 LLM 的调用请求在反序列化时失败。[ToolArgs] 实现本身打了没事，但是没任何用。
+ * 子类类名、字段名都绝对不能打 `@SerialName` 注释，这会导致 LLM 看到的参数声明与实际字段不匹配，从而导致 LLM 的调用请求在反序列化时失败。打 `@Contextual` 注释会导致程序在解析 [ToolArgs] 时崩溃。
  *
  * @see io.github.autotweaker.api.types.tool.args.ReadArgs
  */
