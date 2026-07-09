@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.tool.args.edit.EditArgs
 import io.github.autotweaker.core.TestServices
 import io.mockk.coEvery
 import io.mockk.every
@@ -360,5 +361,60 @@ class ToolMetaSealedTest {
 		}
 	}
 	
+	// endregion
+
+	// region EditArgs — real-world sealed class with deeply nested sealed hierarchy
+
+	@Suppress("UNCHECKED_CAST")
+	private fun mockEditTool(): Tool<ToolArgs> {
+		val tool = mockk<Tool<EditArgs>>()
+		every { tool.name } returns "edit"
+		every { tool.description } returns "Edit files"
+		every { tool.argsSerializer } returns EditArgs.serializer()
+		coEvery { tool.describe() } returns mapOf(
+			EditArgs.Run::files to "Files to edit",
+			EditArgs.Run::actions to "Edit actions to perform",
+			EditArgs.Run::dryRun to "Preview changes without applying",
+			EditArgs.Apply::operationId to "Operation ID to apply",
+			EditArgs.GetClip::clipId to "Clip ID to retrieve",
+		)
+		coEvery { tool.describeFunctions() } returns mapOf(
+			EditArgs.Run::class to "Run edit actions on files",
+			EditArgs.Apply::class to "Apply a previously reviewed operation",
+			EditArgs.GetClip::class to "Get clipboard content by ID",
+		)
+		return tool as Tool<ToolArgs>
+	}
+
+	@Test
+	fun `EditArgs builds functions with nested sealed classes in list`() = runBlocking {
+		val meta = ToolMeta.build(mockEditTool())
+
+		val runFunc = meta.functions.first { it.name == "run" }
+		assertEquals(3, runFunc.parameters.size)
+		assertTrue(runFunc.parameters["files"]!!.required)
+		assertTrue(runFunc.parameters["actions"]!!.required)
+		assertFalse(runFunc.parameters["dry_run"]!!.required)
+
+		val actionsType = runFunc.parameters["actions"]!!.valueType
+		assertTrue(actionsType is ToolMeta.ValueType.ArrayValue)
+		val variants = ((actionsType as ToolMeta.ValueType.ArrayValue).items as ToolMeta.ValueType.OneOfValue).variants
+		assertEquals(6, variants.size)
+		assertTrue(variants.containsKey("insert"))
+		assertTrue(variants.containsKey("replace"))
+		assertTrue(variants.containsKey("delete"))
+		assertTrue(variants.containsKey("copy"))
+		assertTrue(variants.containsKey("cut"))
+		assertTrue(variants.containsKey("paste"))
+
+		val applyFunc = meta.functions.first { it.name == "apply" }
+		assertEquals(1, applyFunc.parameters.size)
+		assertTrue(applyFunc.parameters["operation_id"]!!.required)
+
+		val getClipFunc = meta.functions.first { it.name == "get_clip" }
+		assertEquals(1, getClipFunc.parameters.size)
+		assertTrue(getClipFunc.parameters["clip_id"]!!.required)
+	}
+
 	// endregion
 }
