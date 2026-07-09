@@ -44,7 +44,7 @@ object TestServices {
 					JsonStoreImpl::namespace,
 					{ mockk(relaxed = true) },
 					{ settingService },
-					mockk(relaxed = true)
+					{ mockk(relaxed = true) }
 				)
 			)
 		} catch (_: IllegalStateException) {
