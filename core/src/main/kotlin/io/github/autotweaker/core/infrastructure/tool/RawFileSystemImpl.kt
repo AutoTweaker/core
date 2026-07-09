@@ -18,14 +18,18 @@
 
 package io.github.autotweaker.core.infrastructure.tool
 
+import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.Unicode.Companion.toUnicode
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 object RawFileSystemImpl : RawFileSystem {
 	override suspend fun exists(path: Path): Boolean = withContext(Dispatchers.IO) { Files.exists(path) }
@@ -44,5 +48,24 @@ object RawFileSystemImpl : RawFileSystem {
 	
 	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
 		Sha256.hash(Files.readAllBytes(path))
+	}
+	
+	override suspend fun write(path: Path, expected: List<String>, lines: List<String>) =
+		withContext(Dispatchers.IO) {
+			FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE).use { channel ->
+				channel.lock().use {
+					val current = Files.readAllLines(path)
+					if (current != expected) error("File content changed since read: $path")
+					channel.truncate(0)
+					channel.write(ByteBuffer.wrap(lines.joinToString("\n").toByteArray()))
+				}
+			}
+		}.discard()
+	
+	override suspend fun glob(pattern: String, cwd: Path): List<Path> = withContext(Dispatchers.IO) {
+		val matcher = cwd.fileSystem.getPathMatcher("glob:$pattern")
+		Files.walk(cwd).use { stream ->
+			stream.filter { matcher.matches(it) }.toList()
+		}
 	}
 }

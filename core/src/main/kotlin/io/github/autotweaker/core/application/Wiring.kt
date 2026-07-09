@@ -63,7 +63,7 @@ object Wiring : Loggable {
 		)
 		SessionManager.init(SessionRepositoryImpl, ModelResolverImpl, SecretManager)
 		TruncationImpl.init(pathResolver, TemporaryStorageImpl)
-		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver)
+		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver, TemporaryStorageImpl)
 		
 		log.info("Completed wiring")
 	}

@@ -16,19 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.port
+package io.github.autotweaker.core.domain.tool.port
 
-import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.Unicode
 import java.nio.file.Path
+import java.util.*
 
-interface RawFileSystem {
-	suspend fun exists(path: Path): Boolean
-	suspend fun isRegularFile(path: Path): Boolean
-	suspend fun readString(path: Path): String
-	suspend fun readAllLines(path: Path): List<String>
-	suspend fun readUnicode(path: Path): List<Unicode>
-	suspend fun sha256(path: Path): Sha256
-	suspend fun write(path: Path, expected: List<String>, lines: List<String>)
-	suspend fun glob(pattern: String, cwd: Path): List<Path>
+interface ClipboardService {
+	suspend fun store(content: String): UUID
+	suspend fun read(clipId: UUID): String?
+	suspend fun path(clipId: UUID): Path?
 }

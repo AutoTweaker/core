@@ -29,4 +29,6 @@ interface FileSystemService {
 	suspend fun readUnicode(path: Path): List<Unicode>
 	suspend fun readAllLines(path: Path): List<String>
 	suspend fun sha256(path: Path): Sha256
+	suspend fun write(path: Path, expected: List<String>, lines: List<String>)
+	suspend fun glob(pattern: String, cwd: Path): List<Path>
 }

@@ -23,12 +23,10 @@ import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.tool.service.BashServiceImpl
-import io.github.autotweaker.core.domain.agent.tool.service.FileSystemServiceImpl
-import io.github.autotweaker.core.domain.agent.tool.service.SummarizeServiceImpl
-import io.github.autotweaker.core.domain.agent.tool.service.ToolCallHistoryImpl
+import io.github.autotweaker.core.domain.agent.tool.service.*
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
+import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.*
@@ -37,11 +35,18 @@ object ToolProvider {
 	private lateinit var shellExecutor: ShellExecutor
 	private lateinit var rawFileSystem: RawFileSystem
 	private lateinit var pathResolver: PathResolver
+	private lateinit var temporaryStorage: TemporaryStorage
 	
-	fun init(shellExecutor: ShellExecutor, rawFileSystem: RawFileSystem, pathResolver: PathResolver) {
+	fun init(
+		shellExecutor: ShellExecutor,
+		rawFileSystem: RawFileSystem,
+		pathResolver: PathResolver,
+		temporaryStorage: TemporaryStorage,
+	) {
 		this.shellExecutor = shellExecutor
 		this.rawFileSystem = rawFileSystem
 		this.pathResolver = pathResolver
+		this.temporaryStorage = temporaryStorage
 	}
 	
 	fun buildToolProvider(
@@ -66,5 +71,8 @@ object ToolProvider {
 		).register(
 			TruncationService::class,
 			truncation
+		).register(
+			ClipboardService::class,
+			ClipboardServiceImpl(temporaryStorage, pathResolver, workspace)
 		)
 }

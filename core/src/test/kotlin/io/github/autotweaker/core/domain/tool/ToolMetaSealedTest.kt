@@ -362,9 +362,9 @@ class ToolMetaSealedTest {
 	}
 	
 	// endregion
-
+	
 	// region EditArgs — real-world sealed class with deeply nested sealed hierarchy
-
+	
 	@Suppress("UNCHECKED_CAST")
 	private fun mockEditTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<EditArgs>>()
@@ -385,17 +385,17 @@ class ToolMetaSealedTest {
 		)
 		return tool as Tool<ToolArgs>
 	}
-
+	
 	@Test
 	fun `EditArgs builds functions with nested sealed classes in list`() = runBlocking {
 		val meta = ToolMeta.build(mockEditTool())
-
+		
 		val runFunc = meta.functions.first { it.name == "run" }
 		assertEquals(3, runFunc.parameters.size)
 		assertTrue(runFunc.parameters["files"]!!.required)
 		assertTrue(runFunc.parameters["actions"]!!.required)
 		assertFalse(runFunc.parameters["dry_run"]!!.required)
-
+		
 		val actionsType = runFunc.parameters["actions"]!!.valueType
 		assertTrue(actionsType is ToolMeta.ValueType.ArrayValue)
 		val variants = ((actionsType as ToolMeta.ValueType.ArrayValue).items as ToolMeta.ValueType.OneOfValue).variants
@@ -406,15 +406,15 @@ class ToolMetaSealedTest {
 		assertTrue(variants.containsKey("copy"))
 		assertTrue(variants.containsKey("cut"))
 		assertTrue(variants.containsKey("paste"))
-
+		
 		val applyFunc = meta.functions.first { it.name == "apply" }
 		assertEquals(1, applyFunc.parameters.size)
 		assertTrue(applyFunc.parameters["operation_id"]!!.required)
-
+		
 		val getClipFunc = meta.functions.first { it.name == "get_clip" }
 		assertEquals(1, getClipFunc.parameters.size)
 		assertTrue(getClipFunc.parameters["clip_id"]!!.required)
 	}
-
+	
 	// endregion
 }

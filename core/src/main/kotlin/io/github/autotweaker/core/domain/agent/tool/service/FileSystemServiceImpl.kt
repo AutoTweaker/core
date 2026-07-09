@@ -52,6 +52,12 @@ class FileSystemServiceImpl(
 	override suspend fun sha256(path: Path): Sha256 =
 		fs.sha256(resolve(path))
 	
+	override suspend fun write(path: Path, expected: List<String>, lines: List<String>) =
+		fs.write(resolve(path), expected, lines)
+	
+	override suspend fun glob(pattern: String, cwd: Path): List<Path> =
+		fs.glob(pattern, resolve(cwd))
+	
 	private fun resolve(path: Path): Path {
 		if (!pathResolver.inContainer(workspace.path)) return path
 		return pathResolver.toHostPath(path)
