@@ -194,8 +194,8 @@ class RoundRunner(
 					) {
 						messages.send(
 							ContextInjection(
-								tag = "system_reminder",
-								content = setting(EmptyResponseFeedbackPrompt())
+								"system_reminder",
+								setting(EmptyResponseFeedbackPrompt())
 							)
 						)
 						ctx.archiveCurrentRound()

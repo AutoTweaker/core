@@ -29,3 +29,11 @@ data class ContextInjection(
 	val tag: String,
 	val content: String,
 )
+
+fun ContextInjection(
+	tag: String,
+	content: Any
+) = ContextInjection(
+	tag = tag,
+	content = content.toString()
+)

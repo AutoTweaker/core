@@ -533,11 +533,6 @@ interface CoreAPI {
 		fun set(id: String, text: String, languageCode: Locale)
 		
 		/**
-		 * 获取程序使用的语言，请不要使用 [Locale.getDefault]，通过此 api 获取到的语言可能经过用户配置。
-		 */
-		fun getLanguage(): Locale
-		
-		/**
 		 * 设置程序在国际化等场景下使用的语言。
 		 */
 		fun setLanguage(locale: Locale)

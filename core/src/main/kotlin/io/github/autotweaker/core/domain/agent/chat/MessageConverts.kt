@@ -21,6 +21,9 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ChatMessage
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import java.util.*
 import kotlin.time.Instant
 
 fun MessageContent.inject(injectImageTag: Boolean = false): String = buildString {
@@ -29,10 +32,19 @@ fun MessageContent.inject(injectImageTag: Boolean = false): String = buildString
 	content?.let { append(it) }
 }
 
-fun MessageContent.injectTimestamp(timestamp: Instant) = copy(
+fun MessageContent.injectContext(
+	timestamp: Instant,
+	timeZone: TimeZone,
+	language: Locale,
+) = copy(
 	injections = injections.orEmpty() + ContextInjection(
-		tag = "timestamp",
-		content = timestamp.toString()
+		"utc_time", timestamp
+	) + ContextInjection(
+		"local_time", timestamp.toLocalDateTime(timeZone)
+	) + ContextInjection(
+		"timezone", timeZone
+	) + ContextInjection(
+		"language", language
 	)
 )
 
@@ -42,8 +54,8 @@ fun List<ChatMessage>.inject(
 	summarize?.let {
 		add(
 			ContextInjection(
-				tag = "summary",
-				content = summarize
+				"summary",
+				summarize
 			)
 		)
 	}
@@ -56,12 +68,10 @@ fun List<ChatMessage>.inject(injections: List<ContextInjection>?): List<ChatMess
 	if (injections.isNullOrEmpty()) return this
 	val firstUserIndex = indexOfFirst { it is ChatMessage.UserMessage }
 	if (firstUserIndex == -1) return this
-	return mapIndexed { index, msg ->
-		if (index == firstUserIndex) {
-			val userMsg = msg as ChatMessage.UserMessage
-			userMsg.copy(content = userMsg.content.inject(injections))
-		} else msg
-	}
+	val mutable = toMutableList()
+	val userMsg = mutable[firstUserIndex] as ChatMessage.UserMessage
+	mutable[firstUserIndex] = userMsg.copy(content = userMsg.content.inject(injections))
+	return mutable
 }
 
 fun String.inject(injections: List<ContextInjection>) = buildString {

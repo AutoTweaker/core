@@ -125,7 +125,6 @@ class CoreAPIImpl(
 		override fun getDefault(id: String) = I18nServiceImpl.getDefault(id)
 		override fun set(id: String, text: String, languageCode: Locale) = I18nServiceImpl.set(id, text, languageCode)
 		override fun getAll() = I18nServiceImpl.getAllEntries()
-		override fun getLanguage() = I18nServiceImpl.getLanguage()
 		override fun setLanguage(locale: Locale) = I18nServiceImpl.setLanguage(locale)
 		override fun getString(id: String) = I18nServiceImpl.resolveByKey(id)
 		override suspend fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)

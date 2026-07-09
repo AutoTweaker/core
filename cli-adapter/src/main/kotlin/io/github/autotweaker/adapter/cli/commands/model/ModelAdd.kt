@@ -198,7 +198,7 @@ class ModelAdd(
 				?: return null
 		val price = trace.catching {
 			BigDecimal(
-				promptI18n(ModelI18n.PromptPrice(), currency.getDisplayName(core.i18n.getLanguage()))
+				promptI18n(ModelI18n.PromptPrice(), currency.getDisplayName(i18n.getLanguage()))
 			)
 		}.getOrNull() ?: return null
 		return Price(price, currency, tokenUnit)

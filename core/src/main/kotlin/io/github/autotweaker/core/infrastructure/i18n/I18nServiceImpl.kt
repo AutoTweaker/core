@@ -44,7 +44,7 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 		}
 	
 	
-	fun getLanguage(): Locale = get().language
+	override fun getLanguage(): Locale = get().language
 	
 	override fun invoke(def: I18nDef): String {
 		val key = requireNotNull(def::class.qualifiedName)

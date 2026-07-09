@@ -18,7 +18,9 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -30,11 +32,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.*
 
-object AgentChat : Loggable {
+object AgentChat : Loggable, I18nable {
 	fun execute(
 		request: AgentChatRequest, agentId: UUID
 	): Flow<AgentChatStreamResult> = flow {
-		val messages = request.toChatMessages()
+		val messages = request.toChatMessages(i18n.getLanguage())
 		
 		log.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  thinking={}  messages={}",

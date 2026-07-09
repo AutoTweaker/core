@@ -23,6 +23,7 @@ import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
+import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -40,6 +41,12 @@ import kotlin.test.*
 import kotlin.time.Clock
 
 class AgentChatTest {
+	companion object {
+		init {
+			TestServices.init()
+		}
+	}
+
 	private val testUrl = "https://api.test.com/v1".toUrl()
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	

@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.api.i18n
 
+import java.util.*
+
 
 /**
  * 此接口提供安全的 i18n 读取服务，使用 [I18nDef] 来读取国际化的文本，而不必手动输入 i18n 条目的 key。
@@ -29,4 +31,9 @@ interface I18nService {
 	 * 用法：`override val description get() = i18n(Description())`。
 	 */
 	operator fun invoke(def: I18nDef): String
+	
+	/**
+	 * 获取程序使用的语言，请不要使用 [Locale.getDefault]，通过此 api 获取到的语言可能经过用户配置。
+	 */
+	fun getLanguage(): Locale
 }
