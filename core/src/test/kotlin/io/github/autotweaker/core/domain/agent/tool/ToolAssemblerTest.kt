@@ -18,10 +18,8 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
-import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.TestServices
 import io.mockk.coEvery
 import io.mockk.every
@@ -63,6 +61,18 @@ class ToolAssemblerTest {
 			val maxChars: Int,
 		) : MultiArgs()
 	}
+	
+	@Serializable
+	private sealed class Inner : ToolArgs {
+		@Serializable
+		data class A(val x: Int) : Inner()
+		
+		@Serializable
+		data class B(val y: String) : Inner()
+	}
+	
+	@Serializable
+	private data class Nested(val a: String, val b: Int) : ToolArgs
 	
 	@Suppress("UNCHECKED_CAST")
 	private fun mockSimpleTool(): Tool<ToolArgs> {
@@ -274,7 +284,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		assertEquals("boolean", props["flag"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 	}
@@ -295,7 +305,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val items = props["items"]?.jsonObject!!
 		assertEquals("array", items["type"]?.jsonPrimitive?.content)
@@ -318,20 +328,11 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val config = props["config"]?.jsonObject!!
 		assertEquals("object", config["type"]?.jsonPrimitive?.content)
 		assertEquals("integer", config["additionalProperties"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
-	}
-	
-	@Serializable
-	private sealed class Inner : ToolArgs {
-		@Serializable
-		data class A(val x: Int) : Inner()
-		
-		@Serializable
-		data class B(val y: String) : Inner()
 	}
 	
 	@Test
@@ -343,14 +344,18 @@ class ToolAssemblerTest {
 		every { tool.name } returns "t"
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::inner to "desc")
+		coEvery { tool.describe() } returns mapOf(
+			Args::inner to "desc",
+			Inner.A::x to "",
+			Inner.B::y to "",
+		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val inner = props["inner"]?.jsonObject!!
 		assertEquals("object", inner["type"]?.jsonPrimitive?.content)
@@ -381,7 +386,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		assertEquals("number", props["ratio"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 	}
@@ -389,23 +394,24 @@ class ToolAssemblerTest {
 	@Test
 	fun `object property has type object with properties`() = runBlocking {
 		@Serializable
-		data class Nested(val a: String, val b: Int) : ToolArgs
-		
-		@Serializable
 		data class Args(val nested: Nested) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
 		every { tool.name } returns "t"
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::nested to "desc")
+		coEvery { tool.describe() } returns mapOf(
+			Args::nested to "desc",
+			Nested::a to "",
+			Nested::b to "",
+		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val nested = props["nested"]?.jsonObject!!
 		assertEquals("object", nested["type"]?.jsonPrimitive?.content)
@@ -454,7 +460,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val required = result!![0].parameters.jsonObject["required"]?.jsonArray
 		val requiredNames = required!!.map { it.jsonPrimitive.content }
 		assertEquals(1, requiredNames.size)
@@ -480,7 +486,7 @@ class ToolAssemblerTest {
 		ToolAssembler.assemble(
 			listOf(tool as Tool<ToolArgs>),
 			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-					)
+		)
 		val required = result!![0].parameters.jsonObject["required"]?.jsonArray
 		val requiredNames = required!!.map { it.jsonPrimitive.content }.toSet()
 		assertTrue(requiredNames.contains("a"))

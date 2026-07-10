@@ -54,7 +54,7 @@ class ToolMeta private constructor(
 		data class IntegerValue(val enum: List<Int>? = null) : ValueType()
 		data object BooleanValue : ValueType()
 		data class ArrayValue(val items: ValueType) : ValueType()
-		data class ObjectValue(val properties: Map<String, ValueType>) : ValueType()
+		data class ObjectValue(val properties: Map<String, Property>) : ValueType()
 		data class MapValue(val key: ValueType, val value: ValueType) : ValueType()
 		data object AnyValue : ValueType()
 		data class OneOfValue(val variants: Map<String, ValueType>) : ValueType()
@@ -68,15 +68,24 @@ class ToolMeta private constructor(
 	companion object : Traceable {
 		fun String.toSnakeCase() = convertCamelCase(this, '_')
 		
+		private fun buildDescIndex(
+			describeMap: Map<KProperty1<*, *>, String>
+		): Map<String, String> = describeMap.entries.associate { (prop, desc) ->
+			val className = prop.javaField?.declaringClass?.name?.replace('$', '.')
+				?: error("Property '${prop.name}' has no backing field")
+			"${className}.${prop.name}" to desc
+		}
+		
 		@OptIn(ExperimentalSerializationApi::class)
 		suspend fun build(tool: Tool<ToolArgs>): ToolMeta {
 			require('-' !in tool.name) { "Tool name must not contain '-': ${tool.name}" }
 			val desc = tool.argsSerializer.descriptor
 			val describeMap = tool.describe()
+			val descIndex = buildDescIndex(describeMap)
 			return if (desc.kind == PolymorphicKind.SEALED) {
-				buildSealed(tool, desc, describeMap, tool.describeFunctions())
+				buildSealed(tool, desc, describeMap, tool.describeFunctions(), descIndex)
 			} else {
-				buildSingle(tool, desc, describeMap)
+				buildSingle(tool, desc, describeMap, descIndex)
 			}
 		}
 		
@@ -84,6 +93,7 @@ class ToolMeta private constructor(
 			tool: Tool<ToolArgs>,
 			desc: SerialDescriptor,
 			describeMap: Map<KProperty1<*, *>, String>,
+			descIndex: Map<String, String>,
 		): ToolMeta {
 			val descByName = describeMap.entries.associate { (prop, d) -> prop.name to d }
 			val params = (0 until desc.elementsCount).associate { i ->
@@ -91,7 +101,7 @@ class ToolMeta private constructor(
 				fieldName.toSnakeCase() to Property(
 					description = descByName[fieldName] ?: error("Missing description for '$fieldName'"),
 					required = !desc.isElementOptional(i),
-					valueType = desc.getElementDescriptor(i).toValueType(),
+					valueType = desc.getElementDescriptor(i).toValueType(descIndex),
 				)
 			}
 			return ToolMeta(tool.name, tool.description, listOf(Function("run", tool.description, params)))
@@ -103,6 +113,7 @@ class ToolMeta private constructor(
 			desc: SerialDescriptor,
 			describeMap: Map<KProperty1<*, *>, String>,
 			funcDescMap: Map<KClass<*>, String>,
+			descIndex: Map<String, String>,
 		): ToolMeta {
 			val sealedBaseClass = funcDescMap.keys.firstOrNull()?.java?.enclosingClass?.kotlin
 			sealedBaseClass?.annotations?.filterIsInstance<JsonClassDiscriminator>()?.firstOrNull()?.let { annotation ->
@@ -144,7 +155,7 @@ class ToolMeta private constructor(
 						description = descByName[fieldName]
 							?: error("Missing description for '$fieldName' in '$funcName'"),
 						required = !subDesc.isElementOptional(j),
-						valueType = subDesc.getElementDescriptor(j).toValueType(),
+						valueType = subDesc.getElementDescriptor(j).toValueType(descIndex),
 					)
 				}
 				Function(funcName.toSnakeCase(), funcDesc, params)
@@ -153,7 +164,7 @@ class ToolMeta private constructor(
 		}
 		
 		@OptIn(ExperimentalSerializationApi::class)
-		private fun SerialDescriptor.toValueType(): ValueType = when (serialName) {
+		private fun SerialDescriptor.toValueType(descIndex: Map<String, String>): ValueType = when (serialName) {
 			"kotlinx.serialization.json.JsonElement",
 			"kotlinx.serialization.json.JsonObject",
 			"kotlinx.serialization.json.JsonPrimitive" -> ValueType.AnyValue
@@ -163,10 +174,17 @@ class ToolMeta private constructor(
 				PrimitiveKind.INT, PrimitiveKind.LONG, PrimitiveKind.BYTE, PrimitiveKind.SHORT -> ValueType.IntegerValue()
 				PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> ValueType.NumberValue()
 				PrimitiveKind.BOOLEAN -> ValueType.BooleanValue
-				is StructureKind.LIST -> ValueType.ArrayValue(getElementDescriptor(0).toValueType())
+				is StructureKind.LIST -> ValueType.ArrayValue(getElementDescriptor(0).toValueType(descIndex))
 				is StructureKind.CLASS, is StructureKind.OBJECT -> ValueType.ObjectValue(
 					(0 until elementsCount).associate { i ->
-						getElementName(i).toSnakeCase() to getElementDescriptor(i).toValueType()
+						val fieldName = getElementName(i)
+						val key = "${serialName.removeSuffix("?")}.${fieldName}"
+						fieldName.toSnakeCase() to Property(
+							description = descIndex[key]
+								?: error("Missing description for '$key'"),
+							required = !isElementOptional(i),
+							valueType = getElementDescriptor(i).toValueType(descIndex),
+						)
 					}
 				)
 				
@@ -182,8 +200,14 @@ class ToolMeta private constructor(
 						val variantName = dispatchDesc.getElementName(i).substringAfterLast('.').toSnakeCase()
 						val variantDesc = dispatchDesc.getElementDescriptor(i)
 						val properties = (0 until variantDesc.elementsCount).associate { j ->
-							variantDesc.getElementName(j).toSnakeCase() to variantDesc.getElementDescriptor(j)
-								.toValueType()
+							val fieldName = variantDesc.getElementName(j)
+							val key = "${variantDesc.serialName.removeSuffix("?")}.${fieldName}"
+							fieldName.toSnakeCase() to Property(
+								description = descIndex[key]
+									?: error("Missing description for '$key'"),
+								required = !variantDesc.isElementOptional(j),
+								valueType = variantDesc.getElementDescriptor(j).toValueType(descIndex),
+							)
 						}
 						variantName to ValueType.ObjectValue(properties)
 					}
@@ -191,8 +215,8 @@ class ToolMeta private constructor(
 				}
 				
 				is StructureKind.MAP -> ValueType.MapValue(
-					getElementDescriptor(0).toValueType(),
-					getElementDescriptor(1).toValueType(),
+					getElementDescriptor(0).toValueType(descIndex),
+					getElementDescriptor(1).toValueType(descIndex),
 				)
 				
 				SerialKind.ENUM -> ValueType.StringValue(

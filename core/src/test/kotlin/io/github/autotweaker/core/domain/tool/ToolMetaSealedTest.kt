@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.tool
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.tool.args.edit.EditArgs
+import io.github.autotweaker.api.types.tool.args.edit.*
 import io.github.autotweaker.core.TestServices
 import io.mockk.coEvery
 import io.mockk.every
@@ -205,6 +205,8 @@ class ToolMetaSealedTest {
 		coEvery { tool.describe() } returns mapOf(
 			NestedSealedArgs::name to "A name",
 			NestedSealedArgs::inner to "Inner choice",
+			InnerChoice.A::x to "X value",
+			InnerChoice.B::y to "Y value",
 		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
@@ -217,9 +219,9 @@ class ToolMetaSealedTest {
 		assertTrue(oneOf.variants.containsKey("a"))
 		assertTrue(oneOf.variants.containsKey("b"))
 		val variantA = oneOf.variants["a"]!! as ToolMeta.ValueType.ObjectValue
-		assertTrue(variantA.properties["x"] is ToolMeta.ValueType.IntegerValue)
+		assertTrue(variantA.properties["x"]!!.valueType is ToolMeta.ValueType.IntegerValue)
 		val variantB = oneOf.variants["b"]!! as ToolMeta.ValueType.ObjectValue
-		assertTrue(variantB.properties["y"] is ToolMeta.ValueType.StringValue)
+		assertTrue(variantB.properties["y"]!!.valueType is ToolMeta.ValueType.StringValue)
 	}
 	
 	@Serializable
@@ -233,7 +235,11 @@ class ToolMetaSealedTest {
 		every { tool.name } returns "t"
 		every { tool.description } returns "d"
 		every { tool.argsSerializer } returns ListSealedArgs.serializer()
-		coEvery { tool.describe() } returns mapOf(ListSealedArgs::items to "Items")
+		coEvery { tool.describe() } returns mapOf(
+			ListSealedArgs::items to "Items",
+			InnerChoice.A::x to "",
+			InnerChoice.B::y to "",
+		)
 		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		@Suppress("UNCHECKED_CAST")
@@ -377,6 +383,42 @@ class ToolMetaSealedTest {
 			EditArgs.Run::dryRun to "Preview changes without applying",
 			EditArgs.Apply::operationId to "Operation ID to apply",
 			EditArgs.GetClip::clipId to "Clip ID to retrieve",
+			EditAction.Insert::at to "",
+			EditAction.Insert::content to "",
+			EditAction.Replace::at to "",
+			EditAction.Replace::content to "",
+			EditAction.Delete::at to "",
+			EditAction.Copy::at to "",
+			EditAction.Cut::at to "",
+			EditAction.Paste::at to "",
+			EditAction.Paste::clipId to "",
+			Selection.Line::at to "",
+			Selection.Lines::start to "",
+			Selection.Lines::end to "",
+			Selection.Range::start to "",
+			Selection.Range::end to "",
+			Selection.Multi::matchAll to "",
+			Selection.Multi::inRange to "",
+			CharLocator.ByChar::line to "",
+			CharLocator.ByChar::char to "",
+			CharLocator.ByMatch::line to "",
+			CharLocator.ByMatch::match to "",
+			CharLocator.ByMatch::occurrence to "",
+			CharLocator.ByMatch::side to "",
+			CharLocator.ByMatchAll::line to "",
+			CharLocator.ByMatchAll::matchAll to "",
+			CharLocator.ByMatchAll::side to "",
+			LineLocator.ByNumber::line to "",
+			LineLocator.ByMatch::match to "",
+			LineLocator.ByMatch::inRange to "",
+			LineLocator.ByMatch::occurrence to "",
+			LineLocator.ByMatchAll::matchAll to "",
+			LineLocator.ByMatchAll::inRange to "",
+			LineLocator.ByEdge::edge to "",
+			LinePosition.Value::n to "",
+			LinePosition.Pos::position to "",
+			LineRange::from to "",
+			LineRange::to to "",
 		)
 		coEvery { tool.describeFunctions() } returns mapOf(
 			EditArgs.Run::class to "Run edit actions on files",

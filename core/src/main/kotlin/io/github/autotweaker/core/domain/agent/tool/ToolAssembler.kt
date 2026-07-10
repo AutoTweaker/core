@@ -118,8 +118,17 @@ object ToolAssembler : Loggable, Settable {
 			is ToolMeta.ValueType.ObjectValue -> {
 				builder.put("type", "object")
 				builder.putJsonObject("properties") {
-					properties.forEach { (name, vt) ->
-						put(name, buildJsonObject { vt.fillJsonObject(this) })
+					properties.forEach { (name, prop) ->
+						put(name, buildJsonObject {
+							put("description", prop.description)
+							prop.valueType.fillJsonObject(this)
+						})
+					}
+				}
+				val requiredProps = properties.filter { it.value.required }.keys
+				if (requiredProps.isNotEmpty()) {
+					builder.putJsonArray("required") {
+						requiredProps.forEach { add(it) }
 					}
 				}
 			}
@@ -139,12 +148,21 @@ object ToolAssembler : Loggable, Settable {
 							putJsonObject("properties") {
 								put("type", buildJsonObject { put("const", variantName) })
 								if (variantType is ToolMeta.ValueType.ObjectValue) {
-									variantType.properties.forEach { (propName, propType) ->
-										put(propName, buildJsonObject { propType.fillJsonObject(this) })
+									variantType.properties.forEach { (propName, prop) ->
+										put(propName, buildJsonObject {
+											put("description", prop.description)
+											prop.valueType.fillJsonObject(this)
+										})
 									}
 								}
 							}
-							putJsonArray("required") { add("type") }
+							putJsonArray("required") {
+								add("type")
+								if (variantType is ToolMeta.ValueType.ObjectValue) {
+									variantType.properties.filter { it.value.required }
+										.forEach { add(it.key) }
+								}
+							}
 						})
 					}
 				}
