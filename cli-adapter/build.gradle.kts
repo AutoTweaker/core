@@ -33,7 +33,7 @@ dependencies {
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 	kapt("com.google.auto.service:auto-service:1.1.1")
 	
-	implementation("io.ktor:ktor-network:3.5.0")
+	implementation("io.ktor:ktor-network:3.5.1")
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	
 	testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")

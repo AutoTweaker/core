@@ -35,7 +35,7 @@ kotlin {
 		commonMain.dependencies {
 			implementation(project(":api"))
 			implementation(project(":cli-protocol"))
-			implementation("io.ktor:ktor-network:3.5.0")
+			implementation("io.ktor:ktor-network:3.5.1")
 			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 		}
