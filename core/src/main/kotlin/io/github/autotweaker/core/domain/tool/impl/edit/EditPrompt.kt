@@ -16,18 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.impl
+package io.github.autotweaker.core.domain.tool.impl.edit
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 
-
-object ToolSettings {
+object EditPrompt {
 	@AutoService(SettingDef::class)
-	class PathErrorMessage : StringSetting(
-		"提供的路径不合法，请检查提供的路径参数",
-		zh("路径解析失败时的描述")
+	class EditDesc : StringSetting(
+		"编辑一个或多个文件，支持批量操作和剪贴板",
+		zh("edit工具的描述")
 	)
 }
