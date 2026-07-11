@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.adapter.cli.commands.Param
+import io.github.autotweaker.adapter.cli.commands.Syntax
+
 object SyntaxValidator {
 	fun collectParams(syntax: Syntax): List<Param> = when (syntax) {
 		is Syntax.All -> syntax.children.flatMap { collectParams(it) }

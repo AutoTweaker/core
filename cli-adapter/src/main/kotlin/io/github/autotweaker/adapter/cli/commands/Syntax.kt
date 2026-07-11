@@ -16,10 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
-
-import io.github.autotweaker.adapter.cli.Param.Type
-import io.github.autotweaker.api.i18n.I18nDef
+package io.github.autotweaker.adapter.cli.commands
 
 sealed class Syntax {
 	abstract val required: Boolean
@@ -29,27 +26,6 @@ sealed class Syntax {
 	data class Leaf(val param: Param, override val required: Boolean = true) : Syntax()
 	
 	companion object {
-		fun all(vararg children: Syntax, required: Boolean = true) = All(children.toList(), required)
-		fun xor(vararg children: Syntax, required: Boolean = true) = Xor(children.toList(), required)
-		fun none() = All(emptyList(), required = false)
-		
-		fun leaf(
-			type: Type,
-			name: String,
-			desc: I18nDef,
-			required: Boolean = true,
-			aliases: List<String>,
-		) = Leaf(
-			Param.fromI18n(type, name, desc, aliases), required
-		)
-		
-		fun leaf(
-			type: Type,
-			name: String,
-			desc: I18nDef,
-			required: Boolean = true,
-		) = Leaf(
-			Param.fromI18n(type, name, desc), required
-		)
+		val EMPTY = All(emptyList(), required = false)
 	}
 }

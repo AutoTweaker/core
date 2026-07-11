@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
+package io.github.autotweaker.adapter.cli.commands
 
 import io.github.autotweaker.api.adapter.CoreAPI
 import kotlinx.coroutines.flow.Flow

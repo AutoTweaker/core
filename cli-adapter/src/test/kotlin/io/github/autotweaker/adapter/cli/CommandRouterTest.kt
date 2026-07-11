@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.adapter.cli.commands.*
 import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
@@ -93,6 +94,8 @@ class CommandRouterTest {
 	private fun List<CmdOutput>.stderr(): List<String> =
 		filterIsInstance<CmdOutput.Data>().filter { it.channel == OutputChannel.STDERR }.map { it.text }
 	
+	private fun all(vararg children: Syntax, required: Boolean = true) = Syntax.All(children.toList(), required)
+	
 	// ── routing ───────────────────────────────────────────────────
 	
 	@Test
@@ -111,14 +114,14 @@ class CommandRouterTest {
 	
 	@Test
 	fun knownCommandDispatched() {
-		registerCommand("test", Syntax.none())
+		registerCommand("test", Syntax.EMPTY)
 		assertEquals(0, dispatch("test").done().exitCode)
 	}
 	
 	@Test
 	fun argsForwardedToHandler() {
 		var captured: Request? = null
-		registerCommand("test", Syntax.all(Syntax.Leaf(Param.Flag("verbose", "v"), required = false))) {
+		registerCommand("test", all(Syntax.Leaf(Param.Flag("verbose", "v", listOf("v")), required = false))) {
 			captured = it; listOf(CmdOutput.Done(0))
 		}
 		dispatch("test", "--verbose")
@@ -130,7 +133,7 @@ class CommandRouterTest {
 	@Test
 	fun lockedKeystoreRejectsCommand() {
 		every { core.secret.isUnlocked } returns MutableStateFlow(false)
-		registerCommand("test", Syntax.none())
+		registerCommand("test", Syntax.EMPTY)
 		assertEquals(1, dispatch("test").done().exitCode)
 	}
 	
@@ -146,7 +149,7 @@ class CommandRouterTest {
 	
 	@Test
 	fun syntaxConflictDetected() {
-		val syntax = Syntax.all(
+		val syntax = all(
 			Syntax.Leaf(Param.Flag("same", "a", listOf("s")), required = false),
 			Syntax.Leaf(Param.Flag("same", "b", listOf("s")), required = false),
 		)
@@ -159,7 +162,7 @@ class CommandRouterTest {
 	
 	@Test
 	fun invalidArgsReturnsError() {
-		registerCommand("test", Syntax.all(Syntax.Leaf(Param.Flag("verbose", "v"), required = true)))
+		registerCommand("test", all(Syntax.Leaf(Param.Flag("verbose", "v", listOf("v")), required = true)))
 		assertEquals(1, dispatch("test").done().exitCode)
 	}
 }

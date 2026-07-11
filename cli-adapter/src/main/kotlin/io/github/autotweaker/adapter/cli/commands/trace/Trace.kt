@@ -19,13 +19,9 @@
 package io.github.autotweaker.adapter.cli.commands.trace
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.CmdOutput
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
-import io.github.autotweaker.adapter.cli.Command
-import io.github.autotweaker.adapter.cli.Param.Type
-import io.github.autotweaker.adapter.cli.Request
-import io.github.autotweaker.adapter.cli.Syntax
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
@@ -38,17 +34,16 @@ class Trace : Command, I18nable {
 	lateinit var core: CoreAPI
 	
 	override val name = "trace"
-	override val description get() = i18n(TraceI18n.Desc())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.leaf(Type.FLAG, "list", TraceI18n.ListDesc()),
-			Syntax.all(
-				Syntax.leaf(Type.FLAG, "show", TraceI18n.Show()),
-				Syntax.leaf(Type.POSITIONAL, "origin", TraceI18n.Origin()),
-				Syntax.leaf(Type.POSITIONAL, "namespace", TraceI18n.Namespace()),
-				Syntax.leaf(Type.POSITIONAL, "range", TraceI18n.Range())
-			)
-		)
+	override val description = i18n(TraceI18n.Desc())
+	override val syntax = buildSyntax(XOR) {
+		flag("list", TraceI18n.ListDesc())
+		all {
+			flag("show", TraceI18n.Show())
+			positional("origin", TraceI18n.Origin())
+			positional("namespace", TraceI18n.Namespace())
+			positional("range", TraceI18n.Range())
+		}
+	}
 	
 	override fun init(core: CoreAPI) {
 		this.core = core

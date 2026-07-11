@@ -19,9 +19,9 @@
 package io.github.autotweaker.adapter.cli.commands.secret
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.catching
@@ -35,36 +35,36 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	private lateinit var core: CoreAPI
 	
 	override val name = "secret"
-	override val description get() = i18n(SecretI18n.Desc())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.all(
-				Syntax.leaf(Param.Type.FLAG, "passwd", SecretI18n.ParamUnlock(), aliases = emptyList()),
-				Syntax.leaf(
-					Param.Type.FLAG,
-					"reset",
-					PasswdI18n.ParamRemove(),
-					required = false,
-					aliases = emptyList()
-				),
-			),
-			Syntax.leaf(Param.Type.FLAG, "unlock", SecretI18n.ParamUnlock()),
-			Syntax.all(
-				Syntax.xor(
-					Syntax.leaf(Param.Type.FLAG, "list", SecretI18n.ParamList()),
-					Syntax.leaf(Param.Type.VALUE, "add", SecretI18n.ParamAdd()),
-					Syntax.leaf(Param.Type.VALUE, "remove", SecretI18n.ParamRemove(), aliases = listOf("rm")),
-					Syntax.leaf(Param.Type.VALUE, "get", SecretI18n.ParamGet()),
-				),
-				Syntax.xor(
-					Syntax.leaf(Param.Type.FLAG, "key", SecretI18n.ParamKey()),
-					Syntax.all(
-						Syntax.leaf(Param.Type.FLAG, "env", SecretI18n.ParamEnv()),
-						Syntax.leaf(Param.Type.VALUE, "type", SecretI18n.ParamEnvType()),
-					),
-				),
-			),
-		)
+	override val description = i18n(SecretI18n.Desc())
+	override val syntax = buildSyntax(XOR) {
+		flag("unlock", SecretI18n.ParamUnlock())
+		all {
+			flag("passwd", SecretI18n.ParamUnlock()) {
+				aliases()
+			}
+			flag("reset", PasswdI18n.ParamRemove()) {
+				required = false
+				aliases()
+			}
+		}
+		all {
+			xor {
+				flag("list", SecretI18n.ParamList())
+				value("add", SecretI18n.ParamAdd())
+				value("remove", SecretI18n.ParamRemove()) {
+					aliases("rm")
+				}
+				value("get", SecretI18n.ParamGet())
+			}
+			xor {
+				flag("key", SecretI18n.ParamKey())
+				all {
+					flag("env", SecretI18n.ParamEnv())
+					value("type", SecretI18n.ParamEnvType())
+				}
+			}
+		}
+	}
 	
 	override fun init(core: CoreAPI) {
 		this.core = core

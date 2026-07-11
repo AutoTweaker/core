@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.adapter.cli.commands.Param
+import io.github.autotweaker.adapter.cli.commands.Syntax
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -26,13 +28,19 @@ import kotlin.test.assertTrue
 class SyntaxValidatorTest {
 	
 	private fun flag(name: String, required: Boolean = false) =
-		Syntax.Leaf(Param.Flag(name, name), required = required)
+		Syntax.Leaf(Param.Flag(name, name, defaultAlias(name)), required = required)
 	
 	private fun value(name: String, required: Boolean = false) =
-		Syntax.Leaf(Param.Value(name, name), required = required)
+		Syntax.Leaf(Param.Value(name, name, defaultAlias(name)), required = required)
 	
 	private fun positional(name: String, required: Boolean = false) =
 		Syntax.Leaf(Param.Positional(name, name), required = required)
+	
+	private fun defaultAlias(name: String) = if (name.length > 1) listOf(name[0].toString()) else emptyList()
+	
+	private fun all(vararg children: Syntax, required: Boolean = true) = Syntax.All(children.toList(), required)
+	
+	private fun xor(vararg children: Syntax, required: Boolean = true) = Syntax.Xor(children.toList(), required)
 	
 	private fun validate(syntax: Syntax, active: Set<String>, posCount: Int = 0): Boolean =
 		SyntaxValidator.validate(syntax, active, posCount)
@@ -41,94 +49,94 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun optionalLeafAbsent() {
-		assertTrue(validate(Syntax.all(flag("v")), emptySet()))
+		assertTrue(validate(all(flag("v")), emptySet()))
 	}
 	
 	@Test
 	fun optionalLeafPresent() {
-		assertTrue(validate(Syntax.all(flag("v")), setOf("v")))
+		assertTrue(validate(all(flag("v")), setOf("v")))
 	}
 	
 	@Test
 	fun requiredLeafAbsent() {
-		assertFalse(validate(Syntax.all(flag("v", required = true)), emptySet()))
+		assertFalse(validate(all(flag("v", required = true)), emptySet()))
 	}
 	
 	@Test
 	fun requiredLeafPresent() {
-		assertTrue(validate(Syntax.all(flag("v", required = true)), setOf("v")))
+		assertTrue(validate(all(flag("v", required = true)), setOf("v")))
 	}
 	
 	// ── all group ─────────────────────────────────────────────────
 	
 	@Test
 	fun allRequiredNoActiveChildrenFails() {
-		assertFalse(validate(Syntax.all(flag("a", required = true), flag("b", required = true)), emptySet()))
+		assertFalse(validate(all(flag("a", required = true), flag("b", required = true)), emptySet()))
 	}
 	
 	@Test
 	fun allRequiredAllPresent() {
-		assertTrue(validate(Syntax.all(flag("a", required = true), flag("b", required = true)), setOf("a", "b")))
+		assertTrue(validate(all(flag("a", required = true), flag("b", required = true)), setOf("a", "b")))
 	}
 	
 	@Test
 	fun allRequiredPartialFails() {
-		assertFalse(validate(Syntax.all(flag("a", required = true), flag("b", required = true)), setOf("a")))
+		assertFalse(validate(all(flag("a", required = true), flag("b", required = true)), setOf("a")))
 	}
 	
 	@Test
 	fun allOptionalGroupEmpty() {
-		assertTrue(validate(Syntax.all(flag("a"), flag("b"), required = false), emptySet()))
+		assertTrue(validate(all(flag("a"), flag("b"), required = false), emptySet()))
 	}
 	
 	@Test
 	fun allWithOnlyOptionalChildrenPassesWithoutActive() {
-		assertTrue(validate(Syntax.all(flag("a"), flag("b")), emptySet()))
+		assertTrue(validate(all(flag("a"), flag("b")), emptySet()))
 	}
 	
 	@Test
 	fun allOptionalGroupWithRequiredLeafFailsWhenLeafAbsent() {
-		assertFalse(validate(Syntax.all(flag("must", required = true), required = false), emptySet()))
+		assertFalse(validate(all(flag("must", required = true), required = false), emptySet()))
 	}
 	
 	@Test
 	fun allOptionalGroupWithRequiredLeafPassesWhenLeafPresent() {
-		assertTrue(validate(Syntax.all(flag("must", required = true), required = false), setOf("must")))
+		assertTrue(validate(all(flag("must", required = true), required = false), setOf("must")))
 	}
 	
 	// ── xor group ─────────────────────────────────────────────────
 	
 	@Test
 	fun xorExactlyOnePasses() {
-		assertTrue(validate(Syntax.xor(flag("a"), flag("b")), setOf("a")))
+		assertTrue(validate(xor(flag("a"), flag("b")), setOf("a")))
 	}
 	
 	@Test
 	fun xorZeroFailsWhenRequired() {
-		assertFalse(validate(Syntax.xor(flag("a"), flag("b")), emptySet()))
+		assertFalse(validate(xor(flag("a"), flag("b")), emptySet()))
 	}
 	
 	@Test
 	fun xorMoreThanOneFails() {
-		assertFalse(validate(Syntax.xor(flag("a"), flag("b")), setOf("a", "b")))
+		assertFalse(validate(xor(flag("a"), flag("b")), setOf("a", "b")))
 	}
 	
 	@Test
 	fun xorOptionalAllowsZero() {
-		assertTrue(validate(Syntax.xor(flag("a"), flag("b"), required = false), emptySet()))
+		assertTrue(validate(xor(flag("a"), flag("b"), required = false), emptySet()))
 	}
 	
 	@Test
 	fun xorOptionalStillRejectsMoreThanOne() {
-		assertFalse(validate(Syntax.xor(flag("a"), flag("b"), required = false), setOf("a", "b")))
+		assertFalse(validate(xor(flag("a"), flag("b"), required = false), setOf("a", "b")))
 	}
 	
 	// ── nested groups ─────────────────────────────────────────────
 	
 	@Test
 	fun xorInsideAllPicksBranch() {
-		val syntax = Syntax.all(
-			Syntax.xor(flag("a"), flag("b")),
+		val syntax = all(
+			xor(flag("a"), flag("b")),
 			flag("c"),
 		)
 		assertTrue(validate(syntax, setOf("a", "c")))
@@ -136,8 +144,8 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun xorInsideAllMissingXorChoice() {
-		val syntax = Syntax.all(
-			Syntax.xor(flag("a"), flag("b")),
+		val syntax = all(
+			xor(flag("a"), flag("b")),
 			flag("c"),
 		)
 		assertFalse(validate(syntax, setOf("c")))
@@ -145,9 +153,9 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun allInsideXor() {
-		val syntax = Syntax.xor(
+		val syntax = xor(
 			flag("a"),
-			Syntax.all(flag("b"), flag("c", required = true)),
+			all(flag("b"), flag("c", required = true)),
 		)
 		assertTrue(validate(syntax, setOf("a")))
 		assertTrue(validate(syntax, setOf("b", "c")))
@@ -156,12 +164,12 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun threeLevelNestedXor() {
-		val syntax = Syntax.xor(
-			Syntax.all(
+		val syntax = xor(
+			all(
 				flag("mode"),
-				Syntax.xor(flag("fast", required = true), flag("slow", required = true)),
+				xor(flag("fast", required = true), flag("slow", required = true)),
 			),
-			Syntax.all(flag("quiet", required = true)),
+			all(flag("quiet", required = true)),
 		)
 		assertTrue(validate(syntax, setOf("mode", "fast")))
 		assertTrue(validate(syntax, setOf("quiet")))
@@ -170,9 +178,9 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun deepOptionalGroupSkipped() {
-		val syntax = Syntax.all(
+		val syntax = all(
 			flag("verbose"),
-			Syntax.xor(flag("a", required = true), flag("b"), required = false),
+			xor(flag("a", required = true), flag("b"), required = false),
 		)
 		assertTrue(validate(syntax, setOf("verbose")))
 	}
@@ -181,17 +189,17 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun requiredPositionalSatisfied() {
-		assertTrue(validate(Syntax.all(positional("file", required = true)), emptySet(), posCount = 1))
+		assertTrue(validate(all(positional("file", required = true)), emptySet(), posCount = 1))
 	}
 	
 	@Test
 	fun requiredPositionalMissing() {
-		assertFalse(validate(Syntax.all(positional("file", required = true)), emptySet(), posCount = 0))
+		assertFalse(validate(all(positional("file", required = true)), emptySet(), posCount = 0))
 	}
 	
 	@Test
 	fun countRequiredPositional() {
-		val syntax = Syntax.all(
+		val syntax = all(
 			positional("src", required = true),
 			positional("dst", required = true),
 		)
@@ -200,7 +208,7 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun countRequiredPositionalWithOptional() {
-		val syntax = Syntax.all(
+		val syntax = all(
 			positional("src", required = true),
 			positional("dst"),
 		)
@@ -209,7 +217,7 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun countRequiredPositionalXorReturnsZero() {
-		val syntax = Syntax.xor(positional("a", required = true), positional("b", required = true))
+		val syntax = xor(positional("a", required = true), positional("b", required = true))
 		assertEquals(0, SyntaxValidator.countRequiredPositional(syntax))
 	}
 	
@@ -217,14 +225,14 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun collectParamsAll() {
-		val syntax = Syntax.all(flag("a"), value("b"), positional("c"))
+		val syntax = all(flag("a"), value("b"), positional("c"))
 		val params = SyntaxValidator.collectParams(syntax)
 		assertEquals(3, params.size)
 	}
 	
 	@Test
 	fun collectParamsXor() {
-		val syntax = Syntax.xor(flag("a"), flag("b"))
+		val syntax = xor(flag("a"), flag("b"))
 		val params = SyntaxValidator.collectParams(syntax)
 		assertEquals(2, params.size)
 	}
@@ -233,14 +241,14 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun noConflicts() {
-		val syntax = Syntax.all(flag("alpha"), flag("beta"))
+		val syntax = all(flag("alpha"), flag("beta"))
 		assertTrue(SyntaxValidator.checkConflicts(syntax).isEmpty())
 	}
 	
 	@Test
 	fun duplicateParamNameDetected() {
-		val f = Param.Flag("same", "a")
-		val syntax = Syntax.all(
+		val f = Param.Flag("same", "a", listOf("s"))
+		val syntax = all(
 			Syntax.Leaf(f, required = false),
 			Syntax.Leaf(f, required = false),
 		)
@@ -250,7 +258,7 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun aliasConflictDetected() {
-		val syntax = Syntax.all(
+		val syntax = all(
 			Syntax.Leaf(Param.Flag("alpha", "a", listOf("a")), required = false),
 			Syntax.Leaf(Param.Flag("beta", "b", listOf("a")), required = false),
 		)
@@ -262,18 +270,18 @@ class SyntaxValidatorTest {
 	
 	@Test
 	fun complexCfgListMode() {
-		val syntax = Syntax.xor(
-			Syntax.all(
-				Syntax.xor(
-					Syntax.all(flag("list", required = true), value("count")),
-					Syntax.all(
+		val syntax = xor(
+			all(
+				xor(
+					all(flag("list", required = true), value("count")),
+					all(
 						flag("search", required = true),
-						Syntax.xor(flag("key"), flag("value"), flag("desc"), required = false)
+						xor(flag("key"), flag("value"), flag("desc"), required = false)
 					),
 				),
 				flag("full"),
 			),
-			Syntax.all(flag("put", required = true), positional("val")),
+			all(flag("put", required = true), positional("val")),
 		)
 		assertTrue(validate(syntax, setOf("list", "full")))
 		assertTrue(validate(syntax, setOf("search", "key", "full")))

@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
-
-import io.github.autotweaker.api.I18nable
-import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.i18n.I18nDef
+package io.github.autotweaker.adapter.cli.commands
 
 sealed class Param {
 	abstract val name: String
@@ -33,12 +29,6 @@ sealed class Param {
 		override val description: String,
 		override val aliases: List<String>,
 	) : Param() {
-		constructor(name: String, description: String) : this(
-			name, description,
-			if (name.length > 1) listOf(name[0].toString()) else emptyList(),
-		)
-		
-		
 		override fun format(): String {
 			val all = listOf(name) + aliases
 			val parts = all.map { if (it.length == 1) "-$it" else "--$it" }
@@ -51,11 +41,6 @@ sealed class Param {
 		override val description: String,
 		override val aliases: List<String>,
 	) : Param() {
-		constructor(name: String, description: String) : this(
-			name, description,
-			if (name.length > 1) listOf(name[0].toString()) else emptyList(),
-		)
-		
 		override fun format(): String {
 			val all = listOf(name) + aliases
 			val parts = all.map { if (it.length == 1) "-$it" else "--$it" }
@@ -69,23 +54,5 @@ sealed class Param {
 	) : Param() {
 		override val aliases: List<String> = emptyList()
 		override fun format(): String = "<$name>"
-	}
-	
-	enum class Type { FLAG, VALUE, POSITIONAL }
-	
-	companion object : I18nable {
-		fun fromI18n(type: Type, name: String, desc: I18nDef, aliases: List<String>): Param =
-			when (type) {
-				Type.FLAG -> Flag(name, i18n(desc), aliases)
-				Type.VALUE -> Value(name, i18n(desc), aliases)
-				Type.POSITIONAL -> Positional(name, i18n(desc))
-			}
-		
-		fun fromI18n(type: Type, name: String, desc: I18nDef): Param =
-			when (type) {
-				Type.FLAG -> Flag(name, i18n(desc))
-				Type.VALUE -> Value(name, i18n(desc))
-				Type.POSITIONAL -> Positional(name, i18n(desc))
-			}
 	}
 }

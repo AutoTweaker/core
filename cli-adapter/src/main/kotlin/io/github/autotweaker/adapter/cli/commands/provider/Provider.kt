@@ -19,8 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
@@ -34,41 +34,44 @@ class Provider : Command, I18nable {
 	lateinit var core: CoreAPI
 	
 	override val name = "prov"
-	override val description get() = i18n(ProvI18n.Desc())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.leaf(Param.Type.FLAG, "list", ProvI18n.List()),
-			Syntax.leaf(Param.Type.VALUE, "show", ProvI18n.Show(), aliases = emptyList()),
-			Syntax.leaf(Param.Type.FLAG, "types", ProvI18n.Types(), aliases = emptyList()),
-			Syntax.leaf(Param.Type.VALUE, "info", ProvI18n.Info()),
-			Syntax.all(
-				Syntax.leaf(Param.Type.FLAG, "add", ProvI18n.Add()),
-				Syntax.leaf(
-					Param.Type.VALUE,
-					"name",
-					ProvI18n.AddName(),
-					required = false,
-					aliases = emptyList()
-				),
-				Syntax.leaf(
-					Param.Type.VALUE,
-					"type",
-					ProvI18n.AddType(),
-					required = false,
-					aliases = emptyList()
-				),
-				Syntax.leaf(Param.Type.VALUE, "key", ProvI18n.AddKey(), required = false, aliases = emptyList()),
-				Syntax.leaf(Param.Type.VALUE, "url", ProvI18n.AddUrl(), required = false, aliases = emptyList()),
-			),
-			Syntax.all(
-				Syntax.leaf(Param.Type.VALUE, "remove", ProvI18n.Remove(), aliases = listOf("rm")),
-				Syntax.leaf(Param.Type.FLAG, "yes", ProvI18n.Yes(), required = false),
-			),
-			Syntax.all(
-				Syntax.leaf(Param.Type.VALUE, "rename", ProvI18n.Rename()),
-				Syntax.leaf(Param.Type.POSITIONAL, "new", ProvI18n.NewName()),
-			),
-		)
+	override val description = i18n(ProvI18n.Desc())
+	override val syntax = buildSyntax(XOR) {
+		flag("list", ProvI18n.List())
+		value("show", ProvI18n.Show()) { aliases() }
+		flag("types", ProvI18n.Types()) { aliases() }
+		value("info", ProvI18n.Info())
+		all {
+			flag("add", ProvI18n.Add())
+			value("name", ProvI18n.AddName()) {
+				required = false
+				aliases()
+			}
+			value("type", ProvI18n.AddType()) {
+				required = false
+				aliases()
+			}
+			value("key", ProvI18n.AddKey()) {
+				required = false
+				aliases()
+			}
+			value("url", ProvI18n.AddUrl()) {
+				required = false
+				aliases()
+			}
+		}
+		all {
+			value("remove", ProvI18n.Remove()) {
+				aliases("rm")
+			}
+			flag("yes", ProvI18n.Yes()) {
+				required = false
+			}
+		}
+		all {
+			value("rename", ProvI18n.Rename())
+			positional("new", ProvI18n.NewName())
+		}
+	}
 	
 	override fun init(core: CoreAPI) {
 		this.core = core

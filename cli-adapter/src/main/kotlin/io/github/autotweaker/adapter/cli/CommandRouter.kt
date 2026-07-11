@@ -19,8 +19,10 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.CmdOutput
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.help.Help
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI

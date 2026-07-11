@@ -19,10 +19,10 @@
 package io.github.autotweaker.adapter.cli.commands.version
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.CmdOutput
-import io.github.autotweaker.adapter.cli.Command
-import io.github.autotweaker.adapter.cli.Request
-import io.github.autotweaker.adapter.cli.Syntax
+import io.github.autotweaker.adapter.cli.commands.CmdOutput
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Request
+import io.github.autotweaker.adapter.cli.commands.Syntax
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
@@ -33,8 +33,8 @@ import kotlinx.coroutines.flow.flowOf
 @AutoService(Command::class)
 class Version : Command, I18nable {
 	override val name = "version"
-	override val description get() = i18n(VersionI18n.Desc())
-	override val syntax = Syntax.none()
+	override val description = i18n(VersionI18n.Desc())
+	override val syntax = Syntax.EMPTY
 	private var coreVersion: SemVer = SemVer.parse("0.0.0")
 	
 	override fun init(core: CoreAPI) {

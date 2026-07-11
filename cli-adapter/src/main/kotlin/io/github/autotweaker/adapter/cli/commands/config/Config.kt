@@ -19,9 +19,9 @@
 package io.github.autotweaker.adapter.cli.commands.config
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
@@ -52,35 +52,36 @@ class Config : Command, Settable, I18nable, Traceable {
 	}
 	
 	override val name: String = "cfg"
-	override val description: String
-		get() = i18n(CfgI18n.Desc())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.all(
-				Syntax.xor(
-					Syntax.leaf(Param.Type.FLAG, "list", CfgI18n.List()),
-					Syntax.all(
-						Syntax.leaf(Param.Type.VALUE, "search", CfgI18n.Search(), aliases = emptyList()),
-						Syntax.xor(
-							Syntax.leaf(Param.Type.FLAG, "key", CfgI18n.SearchKey(), aliases = emptyList()),
-							Syntax.leaf(Param.Type.FLAG, "value", CfgI18n.SearchValue(), aliases = emptyList()),
-							Syntax.leaf(Param.Type.FLAG, "desc", CfgI18n.SearchDesc(), aliases = emptyList()),
-							required = false,
-						),
-					),
-				),
-				Syntax.leaf(Param.Type.VALUE, "limit", CfgI18n.Limit(), required = false, aliases = emptyList()),
-				Syntax.leaf(Param.Type.FLAG, "full", CfgI18n.Full(), required = false),
-			),
-			Syntax.all(
-				Syntax.leaf(Param.Type.VALUE, "set", CfgI18n.Set()),
-				Syntax.leaf(Param.Type.POSITIONAL, "value", CfgI18n.SetValue()),
-			),
-			Syntax.all(
-				Syntax.leaf(Param.Type.VALUE, "reset", CfgI18n.Yes()),
-				Syntax.leaf(Param.Type.FLAG, "yes", CfgI18n.Yes(), required = false),
-			)
-		)
+	override val description: String = i18n(CfgI18n.Desc())
+	override val syntax = buildSyntax(XOR) {
+		all {
+			xor {
+				flag("list", CfgI18n.List())
+				all {
+					value("search", CfgI18n.Search()) { aliases() }
+					xor {
+						required = false
+						flag("key", CfgI18n.SearchKey()) { aliases() }
+						flag("value", CfgI18n.SearchValue()) { aliases() }
+						flag("desc", CfgI18n.SearchDesc()) { aliases() }
+					}
+				}
+			}
+			value("limit", CfgI18n.Limit()) {
+				required = false
+				aliases()
+			}
+			flag("full", CfgI18n.Full()) { required = false }
+		}
+		all {
+			value("set", CfgI18n.Set())
+			positional("value", CfgI18n.SetValue())
+		}
+		all {
+			value("reset", CfgI18n.Yes())
+			flag("yes", CfgI18n.Yes()) { required = false }
+		}
+	}
 	
 	override fun handle(
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
@@ -149,20 +150,17 @@ class Config : Command, Settable, I18nable, Traceable {
 	
 	private fun set(key: String, value: String): Flow<CmdOutput> = flow {
 		val config = settingOrEmit(key) ?: return@flow
-		val newValue = trace.catching { config.value.parse(value) }
-			.getOrElse {
-				emitI18n(CfgI18n.SetTypeError(), error = true)
-				emitDone(1)
-				return@flow
-			}
+		val newValue = trace.catching { config.value.parse(value) }.getOrElse {
+			emitI18n(CfgI18n.SetTypeError(), error = true)
+			emitDone(1)
+			return@flow
+		}
 		core.config.setSetting(key, newValue)
 		emitDone()
 	}
 	
 	private fun reset(
-		key: String,
-		yes: Boolean,
-		prompt: suspend (text: String, echo: Boolean) -> String
+		key: String, yes: Boolean, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		val config = settingOrEmit(key) ?: return@flow
 		
@@ -191,13 +189,11 @@ class Config : Command, Settable, I18nable, Traceable {
 	
 	private suspend fun FlowCollector<CmdOutput>.printConfig(
 		settings: List<SettingEntry>, full: Boolean
-	) = if (full) settings.forEachBetween(
-		{
-			emitI18n(CfgI18n.OutKey(), it.id)
-			emitI18n(CfgI18n.OutDesc(), core.i18n.getString(it.id))
-			emitI18n(CfgI18n.OutValue(), it.value.value.toString())
-		},
-		between = { emit(CmdOutput.Data(LINE)) })
+	) = if (full) settings.forEachBetween({
+		emitI18n(CfgI18n.OutKey(), it.id)
+		emitI18n(CfgI18n.OutDesc(), core.i18n.getString(it.id))
+		emitI18n(CfgI18n.OutValue(), it.value.value.toString())
+	}, between = { emit(CmdOutput.Data(LINE)) })
 	else settings.forEach { emit(CmdOutput.Data(it.id)) }
 	
 	

@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.adapter.cli.commands.model
 
-import io.github.autotweaker.adapter.cli.CmdOutput
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.CmdOutput
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.ModelFeature
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.Traceable

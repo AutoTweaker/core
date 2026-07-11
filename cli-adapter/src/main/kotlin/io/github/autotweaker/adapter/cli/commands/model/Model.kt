@@ -19,9 +19,9 @@
 package io.github.autotweaker.adapter.cli.commands.model
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
@@ -37,26 +37,26 @@ class Model : Command, I18nable, Traceable {
 	lateinit var core: CoreAPI
 	
 	override val name = "model"
-	override val description get() = i18n(ModelI18n.Description())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.leaf(Param.Type.FLAG, "list", ModelI18n.ParamList()),
-			Syntax.all(
-				Syntax.leaf(Param.Type.FLAG, "add", ModelI18n.ParamAdd()),
-				Syntax.leaf(Param.Type.VALUE, "name", ModelI18n.ParamName()),
-				Syntax.leaf(Param.Type.VALUE, "provider", ModelI18n.ParamProvider()),
-				Syntax.leaf(Param.Type.VALUE, "info", ModelI18n.ParamAddInfo(), required = false),
-			),
-			Syntax.leaf(Param.Type.VALUE, "add-all", ModelI18n.ParamAddAll(), aliases = emptyList()),
-			Syntax.all(
-				Syntax.xor(
-					Syntax.leaf(Param.Type.FLAG, "remove", ModelI18n.ParamRemove(), aliases = listOf("rm")),
-					Syntax.leaf(Param.Type.FLAG, "set-default", ModelI18n.ParamDefault(), aliases = emptyList()),
-				),
-				Syntax.leaf(Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
-				Syntax.leaf(Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
-			)
-		)
+	override val description = i18n(ModelI18n.Description())
+	override val syntax = buildSyntax(XOR) {
+		flag("list", ModelI18n.ParamList())
+		all {
+			flag("add", ModelI18n.ParamAdd())
+			value("name", ModelI18n.ParamName())
+			value("provider", ModelI18n.ParamProvider())
+			value("info", ModelI18n.ParamAddInfo()) { required = false }
+		}
+		value("add-all", ModelI18n.ParamAddAll()) { aliases() }
+		
+		all {
+			xor {
+				flag("remove", ModelI18n.ParamRemove()) { aliases("rm") }
+				flag("set-default", ModelI18n.ParamDefault()) { aliases() }
+			}
+			positional("provider", ModelI18n.ParamProvider())
+			positional("model", ModelI18n.ParamName())
+		}
+	}
 	
 	override fun init(core: CoreAPI) {
 		this.core = core

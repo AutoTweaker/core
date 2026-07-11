@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.adapter.cli.commands.help
 
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.i18n
 import kotlinx.coroutines.flow.Flow
@@ -29,9 +29,14 @@ import kotlinx.coroutines.flow.flow
 
 class Help(private val loaded: List<Command>) : Command, I18nable {
 	override val name = "help"
-	override val description get() = i18n(HelpI18n.HelpDesc())
-	override val syntax
-		get() = Syntax.leaf(Param.Type.POSITIONAL, "command", HelpI18n.HelpParamCommand(), required = false)
+	override val description = i18n(HelpI18n.HelpDesc())
+	override val syntax =
+		SyntaxLeafBuilder(
+			"command", i18n(HelpI18n.HelpParamCommand())
+		).apply {
+			required = false
+		}.toPositional()
+	
 	
 	private val all: List<Command> get() = loaded + this
 	

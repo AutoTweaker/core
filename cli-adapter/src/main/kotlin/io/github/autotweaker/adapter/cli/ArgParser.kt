@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.adapter.cli.commands.Param
+import io.github.autotweaker.adapter.cli.commands.Request
+import io.github.autotweaker.adapter.cli.commands.Syntax
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
 

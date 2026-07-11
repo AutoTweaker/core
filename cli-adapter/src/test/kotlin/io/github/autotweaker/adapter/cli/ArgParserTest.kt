@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
+import io.github.autotweaker.adapter.cli.commands.Param
+import io.github.autotweaker.adapter.cli.commands.Request
+import io.github.autotweaker.adapter.cli.commands.Syntax
 import kotlin.test.*
 
 class ArgParserTest {
@@ -28,10 +31,10 @@ class ArgParserTest {
 		parser.parse(args.toList(), syntax, "prog")
 	
 	private fun flag(name: String, required: Boolean = false) =
-		Syntax.Leaf(Param.Flag(name, name), required = required)
+		Syntax.Leaf(Param.Flag(name, name, defaultAlias(name)), required = required)
 	
 	private fun value(name: String, required: Boolean = false) =
-		Syntax.Leaf(Param.Value(name, name), required = required)
+		Syntax.Leaf(Param.Value(name, name, defaultAlias(name)), required = required)
 	
 	private fun positional(name: String, required: Boolean = false) =
 		Syntax.Leaf(Param.Positional(name, name), required = required)
@@ -42,25 +45,29 @@ class ArgParserTest {
 	private fun valueWithAlias(name: String, aliases: List<String>, required: Boolean = false) =
 		Syntax.Leaf(Param.Value(name, name, aliases), required = required)
 	
+	private fun defaultAlias(name: String) = if (name.length > 1) listOf(name[0].toString()) else emptyList()
+	
+	private fun all(vararg children: Syntax, required: Boolean = true) = Syntax.All(children.toList(), required)
+	
 	// ── flag parsing ──────────────────────────────────────────────
 	
 	@Test
 	fun longFlag() {
-		val r = parse(Syntax.all(flag("verbose")), "--verbose")
+		val r = parse(all(flag("verbose")), "--verbose")
 		assertNotNull(r)
 		assertTrue(r.has("verbose"))
 	}
 	
 	@Test
 	fun shortFlag() {
-		val r = parse(Syntax.all(flag("verbose")), "-v")
+		val r = parse(all(flag("verbose")), "-v")
 		assertNotNull(r)
 		assertTrue(r.has("verbose"))
 	}
 	
 	@Test
 	fun bundledShortFlags() {
-		val r = parse(Syntax.all(flag("alpha"), flag("beta")), "-ab")
+		val r = parse(all(flag("alpha"), flag("beta")), "-ab")
 		assertNotNull(r)
 		assertTrue(r.has("alpha"))
 		assertTrue(r.has("beta"))
@@ -68,59 +75,59 @@ class ArgParserTest {
 	
 	@Test
 	fun flagWithEqualsRejected() {
-		assertNull(parse(Syntax.all(flag("verbose")), "--verbose=value"))
+		assertNull(parse(all(flag("verbose")), "--verbose=value"))
 	}
 	
 	@Test
 	fun unknownFlagRejected() {
-		assertNull(parse(Syntax.all(flag("verbose")), "--unknown"))
+		assertNull(parse(all(flag("verbose")), "--unknown"))
 	}
 	
 	// ── value parsing ─────────────────────────────────────────────
 	
 	@Test
 	fun longValueWithEquals() {
-		val r = parse(Syntax.all(value("count")), "--count=42")
+		val r = parse(all(value("count")), "--count=42")
 		assertNotNull(r)
 		assertEquals("42", r.get("count"))
 	}
 	
 	@Test
 	fun longValueWithSpace() {
-		val r = parse(Syntax.all(value("count")), "--count", "42")
+		val r = parse(all(value("count")), "--count", "42")
 		assertNotNull(r)
 		assertEquals("42", r.get("count"))
 	}
 	
 	@Test
 	fun shortValueWithSpace() {
-		val r = parse(Syntax.all(value("count")), "-c", "42")
+		val r = parse(all(value("count")), "-c", "42")
 		assertNotNull(r)
 		assertEquals("42", r.get("count"))
 	}
 	
 	@Test
 	fun shortValueWithEquals() {
-		val r = parse(Syntax.all(value("count")), "-c=42")
+		val r = parse(all(value("count")), "-c=42")
 		assertNotNull(r)
 		assertEquals("42", r.get("count"))
 	}
 	
 	@Test
 	fun valueMissingArgRejected() {
-		assertNull(parse(Syntax.all(value("count")), "--count"))
+		assertNull(parse(all(value("count")), "--count"))
 	}
 	
 	@Test
 	fun valueEndOfOptionsRejected() {
-		assertNull(parse(Syntax.all(value("count")), "-f", "--"))
+		assertNull(parse(all(value("count")), "-f", "--"))
 	}
 	
 	// ── alias resolution ──────────────────────────────────────────
 	
 	@Test
 	fun aliasResolvesToCanonical() {
-		val r = parse(Syntax.all(flagWithAlias("verbose", listOf("v"))), "-v")
+		val r = parse(all(flagWithAlias("verbose", listOf("v"))), "-v")
 		assertNotNull(r)
 		assertTrue(r.has("v"))
 		assertTrue(r.has("verbose"))
@@ -128,7 +135,7 @@ class ArgParserTest {
 	
 	@Test
 	fun aliasForValue() {
-		val r = parse(Syntax.all(valueWithAlias("count", listOf("c"))), "-c", "10")
+		val r = parse(all(valueWithAlias("count", listOf("c"))), "-c", "10")
 		assertNotNull(r)
 		assertEquals("10", r.get("count"))
 		assertEquals("10", r.get("c"))
@@ -138,31 +145,31 @@ class ArgParserTest {
 	
 	@Test
 	fun positionalCollected() {
-		val r = parse(Syntax.all(positional("file")), "myfile.txt")
+		val r = parse(all(positional("file")), "myfile.txt")
 		assertNotNull(r)
 		assertEquals(listOf("myfile.txt"), r.positional)
 	}
 	
 	@Test
 	fun multiplePositionals() {
-		val r = parse(Syntax.all(positional("src"), positional("dst")), "a.txt", "b.txt")
+		val r = parse(all(positional("src"), positional("dst")), "a.txt", "b.txt")
 		assertNotNull(r)
 		assertEquals(listOf("a.txt", "b.txt"), r.positional)
 	}
 	
 	@Test
 	fun positionalTooManyRejected() {
-		assertNull(parse(Syntax.all(positional("single")), "a", "b"))
+		assertNull(parse(all(positional("single")), "a", "b"))
 	}
 	
 	@Test
 	fun requiredPositionalMissingRejected() {
-		assertNull(parse(Syntax.all(positional("file", required = true))))
+		assertNull(parse(all(positional("file", required = true))))
 	}
 	
 	@Test
 	fun optionalPositionalOmitted() {
-		val r = parse(Syntax.all(positional("file")))
+		val r = parse(all(positional("file")))
 		assertNotNull(r)
 		assertTrue(r.positional.isEmpty())
 	}
@@ -171,14 +178,14 @@ class ArgParserTest {
 	
 	@Test
 	fun endOfOptionsMarker() {
-		val r = parse(Syntax.all(positional("file")), "--", "--verbose")
+		val r = parse(all(positional("file")), "--", "--verbose")
 		assertNotNull(r)
 		assertEquals(listOf("--verbose"), r.positional)
 	}
 	
 	@Test
 	fun endOfOptionsStopsParsing() {
-		val r = parse(Syntax.all(flag("verbose"), positional("file")), "--", "--verbose")
+		val r = parse(all(flag("verbose"), positional("file")), "--", "--verbose")
 		assertNotNull(r)
 		assertEquals(listOf("--verbose"), r.positional)
 		assertTrue(!r.has("verbose"))
@@ -188,7 +195,7 @@ class ArgParserTest {
 	
 	@Test
 	fun flagAndPositional() {
-		val r = parse(Syntax.all(flag("verbose"), positional("file")), "--verbose", "input.txt")
+		val r = parse(all(flag("verbose"), positional("file")), "--verbose", "input.txt")
 		assertNotNull(r)
 		assertTrue(r.has("verbose"))
 		assertEquals(listOf("input.txt"), r.positional)
@@ -196,7 +203,7 @@ class ArgParserTest {
 	
 	@Test
 	fun valueAndPositional() {
-		val r = parse(Syntax.all(value("count"), positional("file")), "--count", "5", "data.txt")
+		val r = parse(all(value("count"), positional("file")), "--count", "5", "data.txt")
 		assertNotNull(r)
 		assertEquals("5", r.get("count"))
 		assertEquals(listOf("data.txt"), r.positional)
@@ -206,12 +213,12 @@ class ArgParserTest {
 	
 	@Test
 	fun noneSyntaxNoArgs() {
-		assertNotNull(parse(Syntax.none()))
+		assertNotNull(parse(Syntax.EMPTY))
 	}
 	
 	@Test
 	fun noneSyntaxExtraArgsRejected() {
-		assertNull(parse(Syntax.none(), "--extra"))
+		assertNull(parse(Syntax.EMPTY, "--extra"))
 	}
 	
 	// ── max args ──────────────────────────────────────────────────
@@ -219,6 +226,6 @@ class ArgParserTest {
 	@Test
 	fun exceedsMaxArgsRejected() {
 		val smallParser = ArgParser(2)
-		assertNull(smallParser.parse(listOf("a", "b", "c"), Syntax.none(), "prog"))
+		assertNull(smallParser.parse(listOf("a", "b", "c"), Syntax.EMPTY, "prog"))
 	}
 }

@@ -19,10 +19,11 @@
 package io.github.autotweaker.adapter.cli.debugger.command
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.debugger.CliDebugger
 import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.INDENT
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.base.zh
@@ -36,26 +37,26 @@ import kotlinx.coroutines.flow.flow
 class Debug : Command, I18nable {
 	override val name = "debug"
 	override val description get() = i18n(Description())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.leaf(Param.Type.FLAG, "list-db", ParamListDb(), aliases = emptyList()),
-			Syntax.all(
-				Syntax.xor(
-					Syntax.leaf(Param.Type.VALUE, "list", ParamList()),
-					Syntax.leaf(Param.Type.VALUE, "get", ParamGet()),
-					Syntax.leaf(Param.Type.VALUE, "put", ParamPut()),
-					Syntax.leaf(Param.Type.VALUE, "delete", ParamDelete()),
-				),
-				Syntax.xor(
-					Syntax.leaf(Param.Type.FLAG, "setting", Table(), aliases = emptyList()),
-					Syntax.leaf(Param.Type.FLAG, "jsonStore", Table(), aliases = emptyList()),
-					Syntax.leaf(Param.Type.FLAG, "sessionData", Table(), aliases = emptyList()),
-					Syntax.leaf(Param.Type.FLAG, "agentData", Table(), aliases = emptyList()),
-					Syntax.leaf(Param.Type.FLAG, "sessionMessage", Table(), aliases = emptyList()),
-					Syntax.leaf(Param.Type.FLAG, "secrets", Table(), aliases = emptyList()),
-				),
-			),
-		)
+	override val syntax = buildSyntax(XOR) {
+		flag("list-db", ParamListDb()) { aliases() }
+		all {
+			xor {
+				value("list", ParamList())
+				value("get", ParamGet())
+				value("put", ParamPut())
+				value("delete", ParamDelete())
+			}
+			xor {
+				flag("setting", Table()) { aliases() }
+				flag("jsonStore", Table()) { aliases() }
+				flag("sessionData", Table()) { aliases() }
+				flag("agentData", Table()) { aliases() }
+				flag("sessionMessage", Table()) { aliases() }
+				flag("secrets", Table()) { aliases() }
+			}
+		}
+		
+	}
 	private lateinit var core: CoreAPI
 	private val debug get() = CliDebugger.instance
 	
@@ -70,7 +71,7 @@ class Debug : Command, I18nable {
 			debug.tables().forEach { (db, table) ->
 				emit(CmdOutput.Data(db))
 				table.forEach { (name, count) ->
-					emit(CmdOutput.Data("$SPACE$name: $count"))
+					emit(CmdOutput.Data("$INDENT$name: $count"))
 				}
 			}
 			emitDone()
@@ -100,8 +101,4 @@ class Debug : Command, I18nable {
 	
 	@AutoService(I18nDef::class)
 	class Table : I18nBase(zh("指定此表"))
-	
-	companion object {
-		const val SPACE = "    "
-	}
 }

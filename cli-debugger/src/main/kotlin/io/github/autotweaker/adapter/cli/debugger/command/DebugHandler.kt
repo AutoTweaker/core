@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.adapter.cli.debugger.command
 
-import io.github.autotweaker.adapter.cli.CmdOutput
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.Request
+import io.github.autotweaker.adapter.cli.commands.CmdOutput
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.Request
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.types.debug.*

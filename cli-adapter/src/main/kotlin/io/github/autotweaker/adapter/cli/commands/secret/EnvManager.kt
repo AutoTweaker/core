@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.adapter.cli.commands.secret
 
-import io.github.autotweaker.adapter.cli.CmdOutput
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.CmdOutput
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n

@@ -19,8 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.translate
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.*
-import io.github.autotweaker.adapter.cli.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.commands.model.Model.Companion.findModel
 import io.github.autotweaker.adapter.cli.commands.model.ModelI18n
 import io.github.autotweaker.api.I18nable
@@ -35,18 +35,17 @@ class Translate : Command, I18nable {
 	lateinit var core: CoreAPI
 	
 	override val name = "translate"
-	override val description get() = i18n(TranslateI18n.Desc())
-	override val syntax
-		get() = Syntax.xor(
-			Syntax.all(
-				Syntax.leaf(Param.Type.FLAG, "model", TranslateI18n.SetModelDesc()),
-				Syntax.leaf(Param.Type.POSITIONAL, "provider", ModelI18n.ParamProvider()),
-				Syntax.leaf(Param.Type.POSITIONAL, "model", ModelI18n.ParamName()),
-			),
-			Syntax.leaf(Param.Type.FLAG, "rm-model", TranslateI18n.RemoveModelDesc()),
-			Syntax.leaf(Param.Type.VALUE, "language", TranslateI18n.SetLanguageDesc()),
-			required = false
-		)
+	override val description = i18n(TranslateI18n.Desc())
+	override val syntax = buildSyntax(XOR) {
+		required = false
+		all {
+			flag("model", TranslateI18n.SetModelDesc())
+			positional("provider", ModelI18n.ParamProvider())
+			positional("model", ModelI18n.ParamName())
+		}
+		flag("rm-model", TranslateI18n.RemoveModelDesc())
+		value("language", TranslateI18n.SetLanguageDesc())
+	}
 	
 	override fun init(core: CoreAPI) {
 		this.core = core
