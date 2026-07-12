@@ -28,13 +28,14 @@ import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import java.nio.file.Files
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 object WorkspaceManager : MutableStore<MutableList<WorkspaceData>>(), Loggable {
 	override val serializer = MutableListSerializer(WorkspaceData.serializer())
 	override fun default() = mutableListOf<WorkspaceData>()
 	
 	@Volatile
-	private var defaultCreated = false
+	private var defaultCreated = AtomicBoolean(false)
 	
 	suspend fun updateMeta(meta: WorkspaceMeta) = transform { workspaces ->
 		require(meta.id != defaultWorkspaceId)
@@ -74,22 +75,18 @@ object WorkspaceManager : MutableStore<MutableList<WorkspaceData>>(), Loggable {
 	}
 	
 	private suspend fun ensureDefault() {
-		if (!defaultCreated) {
-			defaultCreated = true
+		if (defaultCreated.compareAndSet(false, true)) transform { workspaces ->
+			val defaultPath = CONFIG_PATH.resolve("workspace")
+			Files.createDirectories(defaultPath)
 			
-			transform { workspaces ->
-				val defaultPath = CONFIG_PATH.resolve("workspace")
-				Files.createDirectories(defaultPath)
-				
-				val meta = WorkspaceMeta(
-					id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
-				)
-				val data = WorkspaceData(meta = meta)
-				
-				workspaces.add(data)
-				
-				log.info("Created default workspace  id={}  path={}", data.meta.id, data.meta.path)
-			}
+			val meta = WorkspaceMeta(
+				id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
+			)
+			val data = WorkspaceData(meta = meta)
+			
+			workspaces.add(data)
+			
+			log.info("Created default workspace  id={}  path={}", data.meta.id, data.meta.path)
 		}
 	}
 	
