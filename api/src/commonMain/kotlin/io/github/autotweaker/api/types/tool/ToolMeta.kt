@@ -1,0 +1,77 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package io.github.autotweaker.api.types.tool
+
+@Suppress("unused")
+class ToolMeta internal constructor(
+	val name: String,
+	val description: String,
+	val functions: List<Function>,
+) {
+	class Function internal constructor(
+		val name: String,
+		val description: suspend () -> String,
+		val parameters: List<Prop>,
+	)
+	
+	class Prop internal constructor(
+		val name: String,
+		val type: Type,
+		val required: Boolean,
+		val description: suspend () -> String,
+	)
+	
+	sealed interface Type {
+		interface Builtin : Type
+		interface Declared : Type
+		
+		@ConsistentCopyVisibility
+		data class OneOf internal constructor(
+			val name: String,
+			val variants: List<Variant>,
+		) : Type, Declared {
+			@ConsistentCopyVisibility
+			data class Variant internal constructor(
+				val name: String,
+				val properties: List<Prop>,
+			)
+		}
+		
+		@ConsistentCopyVisibility
+		data class Obj internal constructor(
+			val name: String,
+			val properties: List<Prop>,
+		) : Type, Declared
+		
+		@ConsistentCopyVisibility
+		data class Enum internal constructor(
+			val name: String,
+			val values: Set<String>,
+		) : Type, Declared
+		
+		@ConsistentCopyVisibility
+		data class TList internal constructor(val element: Type) : Type, Declared
+		
+		data object TString : Type, Builtin
+		data object TInt : Type, Builtin
+		data object TLong : Type, Builtin
+		data object TDouble : Type, Builtin
+		data object TBoolean : Type, Builtin
+	}
+}

@@ -18,10 +18,8 @@
 
 package io.github.autotweaker.api.tool
 
+import io.github.autotweaker.api.types.tool.ToolMeta
 import kotlinx.coroutines.channels.Channel
-import kotlinx.serialization.KSerializer
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 
 /**
  * 实现此接口并打上 `@AutoService(Tool::class)` 来注册成为 agent 的一个工具。
@@ -34,35 +32,8 @@ import kotlin.reflect.KProperty1
  *
  * @see ToolArgs
  */
-interface Tool<Args : ToolArgs> {
-	/**
-	 * 提供用于 [Args] 的序列化器，AutoTweaker 使用这个序列化器来反序列化 LLM 的调用请求。
-	 */
-	val argsSerializer: KSerializer<Args>
-	
-	/**
-	 * 工具名称，不能包含 `-`，否则异常从 agent 的初始化流程一路传播到 `CoreAPI`。
-	 *
-	 * 会覆盖同名内置工具。
-	 */
-	val name: String
-	
-	/**
-	 * 给 LLM 看的工具描述，建议使其可配置。
-	 *
-	 * 此描述仅在工具未激活时对 LLM 可见，可用于介绍工具的整体用途。
-	 */
-	val description: String
-	
-	/**
-	 * 描述所有参数，给 LLM 看，包括 [Args] 的所有形参，[Args] 子类的所有形参，[Args] 及其子类形参引用的任何类型的所有形参，这些类型引用的类型的所有形参，这些类型引用的类型引用的类型的……的所有形参。少一个就会阻止所有 agent 的初始化，异常从 agent 的初始化流程一路传播到 `CoreAPI`。
-	 */
-	suspend fun describe(): Map<KProperty1<*, *>, String>
-	
-	/**
-	 * 描述 [Args] 的所有子类，不包含 [Args] 的内部类，或 [Args] 形参引用的类型，LLM 不能同时看到这些 function 描述和 [description]，这些描述都是对应 function 的工具描述。
-	 */
-	suspend fun describeFunctions(): Map<KClass<*>, String> = emptyMap()
+interface Tool<Args : ToolArgs<Args>> {
+	val meta: ToolMeta
 	
 	/**
 	 * 调用工具，已经经过用户或审批系统确认，不必考虑安全问题，但不保证 [Args] 的参数（如文件路径）一定可用。

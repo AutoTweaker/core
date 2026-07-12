@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.api.tool
 
+import kotlinx.serialization.KSerializer
+
 /**
  * 表示 [Tool] 的调用参数，可以为数据类或密封类，数据类表示此工具只有一个 function，密封类 [ToolArgs] 的所有子类（下文称为子类）的类名将作为 function 名。对于数据类，AutoTweaker 会生成一个名为 `run` 的 function。
  *
@@ -31,4 +33,6 @@ package io.github.autotweaker.api.tool
  *
  * @see io.github.autotweaker.api.types.tool.args.ReadArgs
  */
-interface ToolArgs
+interface ToolArgs<Self : ToolArgs<Self>> {
+	fun serializer(): KSerializer<Self>
+}

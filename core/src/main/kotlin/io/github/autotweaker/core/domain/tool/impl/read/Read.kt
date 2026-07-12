@@ -36,44 +36,11 @@ import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import kotlinx.coroutines.channels.Channel
 import java.nio.file.Path
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 
 @AutoService(CoreTool::class)
 class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
-	override val argsSerializer = ReadArgs.serializer()
-	override val name = "read"
-	override val description get() = setting(ReadSettings.DescriptionSetting())
-	
-	override suspend fun describe(): Map<KProperty1<*, *>, String> = mapOf(
-		ReadArgs.File::filePath to setting(ReadSettings.FilePathPropDescriptionSetting()),
-		ReadArgs.File::startLine to setting(ReadSettings.StartLinePropDescriptionSetting()),
-		ReadArgs.File::endLine to setting(ReadSettings.EndLinePropDescriptionSetting()),
-		ReadArgs.File::lineNumber to setting(ReadSettings.LineNumberPropDescriptionSetting()),
-		ReadArgs.Summarize::filePath to setting(ReadSettings.FilePathPropDescriptionSetting()),
-		ReadArgs.Summarize::startLine to setting(ReadSettings.StartLinePropDescriptionSetting()),
-		ReadArgs.Summarize::endLine to setting(ReadSettings.EndLinePropDescriptionSetting()),
-		ReadArgs.Summarize::prompt to setting(ReadSettings.SummarizePromptPropDescriptionSetting()),
-		ReadArgs.Unicode::filePath to setting(ReadSettings.FilePathPropDescriptionSetting()),
-		ReadArgs.Unicode::startChar to setting(ReadSettings.UnicodeStartCharPropDescriptionSetting()),
-		ReadArgs.Unicode::maxChars to setting(ReadSettings.UnicodeMaxCharsPropDescriptionSetting())
-			.format(setting(ReadSettings.UnicodeMaxCharsSetting())),
-	)
-	
-	override suspend fun describeFunctions(): Map<KClass<*>, String> = mapOf(
-		ReadArgs.File::class to setting(ReadSettings.FileFuncDescriptionSetting()).format(
-			setting(ReadSettings.FileMaxCharsSetting()),
-			setting(ReadSettings.FileMaxLinesSetting())
-		),
-		ReadArgs.Summarize::class to setting(ReadSettings.SummarizeFuncDescriptionSetting()).format(
-			setting(ReadSettings.SummarizeMaxInputCharsSetting()),
-			setting(ReadSettings.SummarizeMinCharsSetting()),
-			setting(ReadSettings.SummarizeMaxLinesSetting())
-		),
-		ReadArgs.Unicode::class to setting(ReadSettings.UnicodeFuncDescriptionSetting()),
-	)
-	
-	
+	override val meta = ReadMeta.meta
+
 	override suspend fun coreExec(
 		container: DependencyProvider,
 		args: ReadArgs,
@@ -170,7 +137,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 			.getOrElse { return Tool.ToolOutput(setting(ReadSettings.MessageFileCannotReadSetting()), false) }
 		
 		val history = container.get<ToolCallHistory>()
-		val previousReads = history.getAll(name, ReadArgs.serializer())
+		val previousReads = history.getAll(meta.name, ReadArgs.serializer())
 			.mapNotNull { entry -> (entry.args as? ReadArgs.File)?.let { entry to it } }
 			.filter { (_, fileArgs) -> fileArgs.lineNumber == args.lineNumber }
 		if (previousReads.any { (entry, fileArgs) ->

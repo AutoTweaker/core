@@ -22,7 +22,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import kotlinx.coroutines.channels.Channel
 
-interface CoreTool<Args : ToolArgs> : Tool<Args> {
+interface CoreTool<Args : ToolArgs<Args>> : Tool<Args> {
 	suspend fun coreExec(
 		container: DependencyProvider,
 		args: Args,

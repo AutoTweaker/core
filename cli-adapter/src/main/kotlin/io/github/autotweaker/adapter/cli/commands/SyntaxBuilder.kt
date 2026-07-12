@@ -88,7 +88,8 @@ class SyntaxBuilder : I18nable {
 
 @SyntaxDsl
 class SyntaxLeafBuilder(
-	val name: String, val desc: String
+	private val name: String,
+	private val desc: String
 ) : I18nable {
 	var required = true
 	private var aliases: Set<String>? = null

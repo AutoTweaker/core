@@ -31,25 +31,15 @@ import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
-import kotlin.reflect.KProperty1
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
 @AutoService(CoreTool::class)
 class Bash : CoreTool<BashArgs>, Loggable, Settable {
-	override val argsSerializer = BashArgs.serializer()
-	override val name = "bash"
-	override val description get() = setting(BashSettings.Description())
-	
-	override suspend fun describe(): Map<KProperty1<*, *>, String> {
-		val envIds = listEnv().sorted().let { if (it.isEmpty()) "[none]" else Json.encodeToString(it) }
-		return mapOf(
-			BashArgs::command to setting(BashSettings.CommandPropDescription()),
-			BashArgs::timeoutSeconds to setting(BashSettings.TimeoutPropDescription()).format(
-				setting(BashSettings.DefaultTimeoutSeconds())
-			),
-			BashArgs::envIds to setting(BashSettings.EnvIdsPropDescription()).format(envIds),
-		)
+	override val meta = BashMeta.meta {
+		listEnv().sorted().let {
+			if (it.isEmpty()) "[none]" else Json.encodeToString(it)
+		}
 	}
 	
 	override suspend fun coreExec(

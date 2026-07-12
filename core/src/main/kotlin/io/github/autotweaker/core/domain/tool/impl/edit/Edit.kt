@@ -19,29 +19,15 @@
 package io.github.autotweaker.core.domain.tool.impl.edit
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.Settable
-import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.tool.args.edit.EditArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import kotlinx.coroutines.channels.Channel
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 
 @AutoService(CoreTool::class)
-class Edit : CoreTool<EditArgs>, Settable {
-	override val name = "edit"
-	override val argsSerializer = EditArgs.serializer()
-	override val description = setting(EditPrompt.EditDesc())
-	
-	override suspend fun describeFunctions(): Map<KClass<*>, String> = mapOf(
-		EditArgs.Run::class to "",
-		EditArgs.Apply::class to "",
-		EditArgs.GetClip::class to ""
-	)
-	
-	override suspend fun describe(): Map<KProperty1<*, *>, String> = mapOf()
+class Edit : CoreTool<EditArgs> {
+	override val meta = EditMeta.meta
 	
 	override suspend fun coreExec(
 		container: DependencyProvider,
