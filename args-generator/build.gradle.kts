@@ -16,22 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
-}
-
 plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+	kotlin("jvm")
 }
 
-rootProject.name = "AutoTweaker"
+dependencies {
+	compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.0")
+}
 
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")
-include("args-generator")
+kotlin {
+	jvmToolchain(25)
+}
