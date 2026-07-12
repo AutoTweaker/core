@@ -53,7 +53,7 @@ data class AgentIndex(
 				if (id == parent) {
 					return copy(children = children + AgentNode(id = child, children = emptyList()))
 				}
-				return copy(children = children.map { replace() })
+				return copy(children = children.map { it.replace() })
 			}
 			return copy(main = main.replace())
 		}

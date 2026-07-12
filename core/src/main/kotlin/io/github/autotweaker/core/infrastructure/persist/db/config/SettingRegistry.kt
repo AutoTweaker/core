@@ -23,7 +23,9 @@ import io.github.autotweaker.core.infrastructure.loadClass
 
 object SettingRegistry {
 	private val defs: Map<String, SettingDef<*>> by lazy {
-		loadClass<SettingDef<*>>().mapNotNull { (it::class.qualifiedName ?: return@mapNotNull null) to it }.toMap()
+		loadClass<SettingDef<*>>().mapNotNull {
+			(it::class.qualifiedName ?: return@mapNotNull null) to it
+		}.toMap()
 	}
 	
 	fun get(id: String): SettingDef<*>? = defs[id]

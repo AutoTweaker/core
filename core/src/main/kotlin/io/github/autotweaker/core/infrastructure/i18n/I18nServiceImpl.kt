@@ -71,16 +71,18 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 	fun resolveByKey(id: String): String = resolve(id, getLanguage())
 	
 	private fun resolve(key: String, target: Locale): String {
-		val loc = getLocalizations(key) ?: return key
-		loc[target]?.let { return it }
-		loc.entries.find { it.key.language == target.language }?.let { return it.value }
-		loc.entries.find { it.key.language == en.language }?.let { return it.value }
-		loc.values.firstOrNull()?.let { return it }
+		getLocalizations(key)?.apply {
+			get(target)?.let { return it }
+			entries.find { it.key.language == target.language }?.let { return it.value }
+			entries.find { it.key.language == en.language }?.let { return it.value }
+			values.firstOrNull()?.let { return it }
+		}
 		return key
 	}
 	
 	private fun getLocalizations(key: String): Localizations? =
-		(I18nRegistry.get(key).orEmpty() + get().entries[key].orEmpty()).orNull()
+		(I18nRegistry.get(key).orEmpty() + get().entries[key].orEmpty())
+			.orNull()
 	
 	private fun mergeAll(): I18nEntries {
 		val cache = get().entries
