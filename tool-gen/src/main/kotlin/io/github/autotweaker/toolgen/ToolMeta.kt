@@ -16,56 +16,65 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.tool
+package io.github.autotweaker.toolgen
 
-data class ToolMeta(
+@ConsistentCopyVisibility
+data class ToolMeta internal constructor(
 	val name: String,
-	val description: String,
 	val functions: List<Function>,
+	val declared: List<Type.Declared>
 ) {
-	data class Function(
+	@ConsistentCopyVisibility
+	data class Function internal constructor(
 		val name: String,
-		val description: String,
 		val parameters: List<Prop>,
 	)
 	
-	data class Prop(
+	@ConsistentCopyVisibility
+	data class Prop internal constructor(
 		val name: String,
 		val type: Type,
 		val required: Boolean,
-		val description: String,
 	)
 	
 	sealed interface Type {
-		data class OneOf(
+		interface Builtin : Type
+		interface Declared : Type
+		
+		@ConsistentCopyVisibility
+		data class OneOf internal constructor(
 			val name: String,
 			val variants: List<Variant>,
-		) : Type {
-			data class Variant(
+		) : Type, Declared {
+			@ConsistentCopyVisibility
+			data class Variant internal constructor(
 				val name: String,
-				val description: String,
 				val properties: List<Prop>,
 			)
 		}
 		
-		data class Obj(
+		@ConsistentCopyVisibility
+		data class Obj internal constructor(
 			val name: String,
 			val properties: List<Prop>,
-		) : Type
+		) : Type, Declared
 		
-		data class Enum(
+		@ConsistentCopyVisibility
+		data class Enum internal constructor(
 			val name: String,
 			val values: Set<String>,
-		) : Type
+		) : Type, Declared
 		
-		data class TList(val element: Type) : Type
+		@ConsistentCopyVisibility
+		data class TList internal constructor(val element: Type) : Type, Declared
 		
-		data class TMap(val key: Type, val value: Type) : Type
+		@ConsistentCopyVisibility
+		data class TMap internal constructor(val key: Type, val value: Type) : Type, Declared
 		
-		data object TString : Type
-		data object TInt : Type
-		data object TLong : Type
-		data object TDouble : Type
-		data object TBoolean : Type
+		data object TString : Type, Builtin
+		data object TInt : Type, Builtin
+		data object TLong : Type, Builtin
+		data object TDouble : Type, Builtin
+		data object TBoolean : Type, Builtin
 	}
 }

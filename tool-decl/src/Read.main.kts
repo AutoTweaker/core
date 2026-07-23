@@ -16,23 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
+@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
+
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
+
+tool("read") {
+	function("file") {
+		string("file_path")
+		int("start_line")
+		int("end_line")
+		boolean("line_number") { required = false }
 	}
-}
-
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")
-include("tool-gen")
-include("tool-decl")
+	
+	function("summarize") {
+		string("file_path")
+		int("start_line")
+		int("end_line")
+		string("prompt") { required = false }
+	}
+	
+	function("unicode") {
+		string("file_path")
+		int("start_char") { required = false }
+		int("max_chars")
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.read",
+)

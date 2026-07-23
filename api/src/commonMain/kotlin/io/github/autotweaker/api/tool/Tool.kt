@@ -20,6 +20,7 @@ package io.github.autotweaker.api.tool
 
 import io.github.autotweaker.api.types.tool.ToolMeta
 import kotlinx.coroutines.channels.Channel
+import kotlinx.serialization.KSerializer
 
 /**
  * 实现此接口并打上 `@AutoService(Tool::class)` 来注册成为 agent 的一个工具。
@@ -28,12 +29,15 @@ import kotlinx.coroutines.channels.Channel
  *
  * AutoTweaker 会为每个 agent 实例构造不同的 [Tool] 实例，在这个 agent 的生命周期中，始终使用同一个 [Tool] 实例。
  *
- * [ToolArgs] 是工具的调用参数，AutoTweaker 使用 kotlin 的序列化器处理 LLM 的工具调用参数来代替手动 Json 解析，同时提供类型安全的参数读取。
+ * [ToolArgs] 是工具的调用参数，应该由插件生成，AutoTweaker 使用 kotlin 的序列化器处理 LLM 的工具调用参数来代替手动 Json 解析，同时提供类型安全的参数读取。
  *
  * @see ToolArgs
  */
-interface Tool<Args : ToolArgs<Args>> {
-	val meta: ToolMeta
+interface Tool<Args : ToolArgs> {
+	/**
+	 * 应该使用插件生成的 builder 来构造 [ToolMeta]。
+	 */
+	suspend fun meta(): Pair<ToolMeta, KSerializer<Args>>
 	
 	/**
 	 * 调用工具，已经经过用户或审批系统确认，不必考虑安全问题，但不保证 [Args] 的参数（如文件路径）一定可用。

@@ -64,7 +64,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class FilePathPropDescriptionSetting : StringSetting(
-		"文件的路径，支持绝对路径或相对路径", zh(
+		"文件的路径，通常使用相对路径", zh(
 			"read工具file_path参数的描述"
 		)
 	)

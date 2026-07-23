@@ -20,18 +20,18 @@ package io.github.autotweaker.core.domain.tool.impl.edit
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.types.tool.args.edit.EditArgs
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import kotlinx.coroutines.channels.Channel
 
 @AutoService(CoreTool::class)
-class Edit : CoreTool<EditArgs> {
-	override val meta = EditMeta.meta
+class Edit : CoreTool<ToolArgs> {
+	override suspend fun meta() = TODO()
 	
 	override suspend fun coreExec(
 		container: DependencyProvider,
-		args: EditArgs,
+		args: ToolArgs,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput {
 		TODO("Not yet implemented")

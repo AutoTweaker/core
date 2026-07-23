@@ -18,16 +18,14 @@
 
 package io.github.autotweaker.core.domain.tool.impl.bash
 
+import io.github.autotweaker.api.generated.tool.args.BashArgs
 import io.github.autotweaker.api.storage.JsonStore
-import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
-import io.github.autotweaker.api.types.tool.args.BashArgs
+import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.ServiceContainer
-import io.github.autotweaker.core.domain.tool.ToolMeta
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
@@ -75,7 +73,6 @@ class BashTest {
 			override fun requireUnlocked() {}
 		}
 		
-		
 		bash = Bash()
 		SecretMapStore.init(secretStore)
 	}
@@ -86,12 +83,11 @@ class BashTest {
 		unmockkObject(JsonStoreImpl)
 	}
 	
-	
 	private fun toolArgs(
 		command: String,
 		timeoutSeconds: Int? = null,
 		envIds: List<String>? = null,
-	): BashArgs = BashArgs(
+	): BashArgs.Run = BashArgs.Run(
 		command = command,
 		timeoutSeconds = timeoutSeconds ?: 60,
 		envIds = envIds ?: emptyList(),
@@ -118,64 +114,52 @@ class BashTest {
 	
 	@Test
 	fun `meta returns correct name`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
+		val (meta, _) = bash.meta()
 		assertEquals("bash", meta.name)
 	}
 	
 	@Test
 	fun `meta returns one function named run`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
+		val (meta, _) = bash.meta()
 		assertEquals(1, meta.functions.size)
 		assertEquals("run", meta.functions.first().name)
 	}
 	
 	@Test
 	fun `meta run function has required command string parameter`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
-		val runFunc = meta.functions.first()
-		val command = runFunc.parameters["command"]!!
+		val (meta, _) = bash.meta()
+		val command = meta.functions.first().parameters.first { it.name == "command" }
 		assertTrue(command.required)
-		assertTrue(command.valueType is ToolMeta.ValueType.StringValue)
+		assertTrue(command.type is ToolMeta.Type.TString)
 	}
 	
 	@Test
 	fun `meta run function has optional timeout_seconds integer parameter`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
-		val runFunc = meta.functions.first()
-		val timeout = runFunc.parameters["timeout_seconds"]!!
+		val (meta, _) = bash.meta()
+		val timeout = meta.functions.first().parameters.first { it.name == "timeout_seconds" }
 		assertFalse(timeout.required)
-		assertTrue(timeout.valueType is ToolMeta.ValueType.IntegerValue)
+		assertTrue(timeout.type is ToolMeta.Type.TInt)
 	}
 	
 	@Test
-	fun `meta run function has optional env_ids array parameter`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
-		val runFunc = meta.functions.first()
-		val envIds = runFunc.parameters["env_ids"]!!
-		assertFalse(envIds.required)
-		assertTrue(envIds.valueType is ToolMeta.ValueType.ArrayValue)
+	fun `meta run function has required env_ids array parameter`() = runTest {
+		val (meta, _) = bash.meta()
+		val envIds = meta.functions.first().parameters.first { it.name == "env_ids" }
+		assertTrue(envIds.required)
+		assertTrue(envIds.type is ToolMeta.Type.TList)
 	}
 	
 	@Test
 	fun `meta timeout parameter description contains formatted default timeout`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
-		val runFunc = meta.functions.first()
-		val timeout = runFunc.parameters["timeout_seconds"]!!
+		val (meta, _) = bash.meta()
+		val timeout = meta.functions.first().parameters.first { it.name == "timeout_seconds" }
 		assertTrue(timeout.description.contains("120"))
 	}
 	
 	@Test
 	fun `meta env_ids description references available envs`() = runTest {
-		@Suppress("UNCHECKED_CAST")
-		val meta = ToolMeta.build(bash as Tool<ToolArgs>)
-		val runFunc = meta.functions.first()
-		val envIds = runFunc.parameters["env_ids"]!!
+		val (meta, _) = bash.meta()
+		val envIds = meta.functions.first().parameters.first { it.name == "env_ids" }
 		assertTrue(envIds.description.contains("[none]"))
 	}
 	
@@ -446,5 +430,4 @@ class BashTest {
 	}
 	
 	// endregion
-	
 }

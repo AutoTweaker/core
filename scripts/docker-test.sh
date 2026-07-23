@@ -56,10 +56,11 @@ fi
 echo "==> Running tests in container..."
 
 if [ ! -f "$HOME/.gradle-docker/.bootstrapped" ]; then
-    mkdir -p "$HOME/.gradle-docker/wrapper" "$HOME/.gradle-docker/native" "$HOME/.gradle-docker/caches"
+    mkdir -p "$HOME/.gradle-docker/wrapper" "$HOME/.gradle-docker/native" "$HOME/.gradle-docker/caches" "$HOME/.gradle-docker/m2"
     cp -rn "$HOME/.gradle/wrapper/dists" "$HOME/.gradle-docker/wrapper/" 2>/dev/null || true
     cp -rn "$HOME/.gradle/native/." "$HOME/.gradle-docker/native/" 2>/dev/null || true
     cp -rn "$HOME/.gradle/caches/modules-2" "$HOME/.gradle-docker/caches/" 2>/dev/null || true
+    cp -rn "$HOME/.m2/repository" "$HOME/.gradle-docker/m2/" 2>/dev/null || true
     touch "$HOME/.gradle-docker/.bootstrapped"
 fi
 
@@ -70,6 +71,7 @@ $DOCKER run --rm \
     -e https_proxy="${HTTPS_PROXY:-}" \
     -v "$PROJECT_DIR:/workspace" \
     -v "$HOME/.gradle-docker:/gradle-cache" \
+    -v "$HOME/.gradle-docker/m2:/home/user/.m2/repository" \
     -w /workspace \
     "$IMAGE_NAME" \
-    ./gradlew --no-daemon --console=plain test "$@"
+    ./gradlew --no-daemon --console=plain test -x :tool-decl:generateArgs "$@" 2>&1 | sed -u 's/^/[docker] /'

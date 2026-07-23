@@ -22,6 +22,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolInfo
+import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
@@ -65,14 +66,19 @@ class ToolsTest {
 		description: String = "a tool",
 	): Tool<ToolArgs> {
 		val tool = mockk<Tool<BashArgs>>()
-		every { tool.name } returns name
-		every { tool.description } returns description
-		every { tool.argsSerializer } returns BashArgs.serializer()
-		coEvery { tool.describe() } returns mapOf(
-			BashArgs::cmd to "command",
-			BashArgs::type to "Function type",
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				name, description, listOf(
+					ToolMeta.Function(
+						"run", description, listOf(
+							ToolMeta.Prop("cmd", ToolMeta.Type.TString, true, "command"),
+							ToolMeta.Prop("type", ToolMeta.Type.TString, true, "Function type"),
+						)
+					)
+				)
+			),
+			BashArgs.serializer()
 		)
-		coEvery { tool.describeFunctions() } returns emptyMap()
 		return tool as Tool<ToolArgs>
 	}
 	

@@ -15,24 +15,3 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-pluginManagement {
-	repositories {
-		gradlePluginPortal()
-	}
-}
-
-plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
-
-rootProject.name = "AutoTweaker"
-
-include("core")
-include("api")
-include("cli-adapter")
-include("cli-debugger")
-include("cli-client")
-include("cli-protocol")
-include("tool-gen")
-include("tool-decl")

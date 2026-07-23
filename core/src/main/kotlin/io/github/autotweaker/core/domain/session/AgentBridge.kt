@@ -22,7 +22,6 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.UsageSnapshot
@@ -56,7 +55,7 @@ class AgentBridge(
 	private val injectLock = ReentrantMutex()
 	
 	private lateinit var initialData: AgentData
-	private lateinit var tools: List<Tool<ToolArgs>>
+	private lateinit var tools: List<Tool<*>>
 	
 	private val _context = MutableStateFlow(initialData.context)
 	override val context: StateFlow<AgentContext> = _context.asStateFlow()
@@ -120,16 +119,19 @@ class AgentBridge(
 		log.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
 	}
 	
-	private fun initTools() {
+	private suspend fun initTools() {
 		val coreTools = ServiceLoader.load(CoreTool::class.java).toList()
-		val duplicates = coreTools.map { it.name }.groupingBy { it }.eachCount().filter { it.value > 1 }
+		val duplicates = coreTools.map {
+			it.meta().first.name
+		}.groupingBy { it }.eachCount().filter {
+			it.value > 1
+		}
 		check(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
 		
-		val pluginTools = PluginLoader.load<Tool<ToolArgs>>().distinctBy { it.name }
+		val pluginTools = PluginLoader.load<Tool<*>>().distinctBy { it.meta().first.name }
+		val pluginNames = pluginTools.map { it.meta().first.name }.toSet()
 		
-		val pluginNames = pluginTools.map { it.name }.toSet()
-		@Suppress("UNCHECKED_CAST")
-		tools = pluginTools + (coreTools as List<CoreTool<ToolArgs>>).filter { it.name !in pluginNames }
+		tools = pluginTools + coreTools.filter { it.meta().first.name !in pluginNames }
 	}
 	
 	/* API */

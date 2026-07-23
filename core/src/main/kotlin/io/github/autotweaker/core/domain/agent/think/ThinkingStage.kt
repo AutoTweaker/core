@@ -24,8 +24,8 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.ToolActivation
+import io.github.autotweaker.core.domain.agent.tool.ToolCallParser
 import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
-import io.github.autotweaker.core.domain.agent.tool.ToolCallValidator
 import io.github.autotweaker.core.domain.agent.tool.Tools
 
 class ThinkingStage(
@@ -115,6 +115,6 @@ class ThinkingStage(
 	
 	class ResolvedToolCall(
 		val pendingCall: RuntimeContext.CurrentRound.PendingToolCall,
-		val validated: ToolCallValidator.ValidationResult.Success<out ToolArgs>,
+		val validated: ToolCallParser.ValidationResult.Success<out ToolArgs>,
 	)
 }

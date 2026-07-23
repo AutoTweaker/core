@@ -1,0 +1,178 @@
+@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
+
+import io.github.autotweaker.toolgen.*
+
+tool("test_complex") {
+	val direction = buildDeclaration {
+		oneOf("direction") {
+			variant("north") { int("steps") }
+			variant("south") { string("label"); boolean("fallback") { required = false } }
+			variant("east")
+			variant("west") { double("bias") }
+		}
+	}
+
+	val point = buildDeclaration {
+		obj("point") {
+			double("x")
+			double("y")
+			string("label") { required = false }
+		}
+	}
+
+	val colorEnum = buildDeclaration {
+		enum("color", "red", "green", "blue")
+	}
+
+	val mode = buildDeclaration {
+		oneOf("mode") {
+			variant("auto") { boolean("enabled") }
+			variant("manual") { int("level") }
+		}
+	}
+
+	val modeList = buildDeclaration { list(mode) }
+
+	val entry = buildDeclaration {
+		obj("entry") { string("key"); int("value") }
+	}
+
+	val statusEnum = buildDeclaration {
+		enum("status", "ok", "fail")
+	}
+
+	val mapDecl = buildDeclaration { map(entry, statusEnum) }
+
+	val shape = buildDeclaration {
+		oneOf("shape") {
+			variant("circle") { double("radius") }
+			variant("rect") { double("width"); double("height") }
+		}
+	}
+
+	val inner = buildDeclaration {
+		obj("inner") { param("inner_one_of", shape) }
+	}
+
+	function("full_smoke") {
+		string("required_str")
+		int("required_int")
+		long("required_long")
+		double("required_double")
+		boolean("required_bool")
+		string("optional_str") { required = false }
+		int("optional_int") { required = false }
+		long("optional_long") { required = false }
+		double("optional_double") { required = false }
+		boolean("optional_bool") { required = false }
+		stringList("str_list")
+		intList("int_list")
+		longList("long_list")
+		doubleList("double_list")
+		booleanList("bool_list")
+	}
+
+	function("nested_types") {
+		param("one_of_thing", direction)
+		param("object_thing", point)
+		param("enum_thing", colorEnum)
+		param("list_of_one_of", modeList)
+		param("map_thing", mapDecl)
+	}
+
+	function("simple_nesting") {
+		param("nested_obj", inner)
+	}
+
+	function("underscore_names") {
+		string("a_very_long_snake_name_with_many_parts")
+		int("__leading_underscores") { required = false }
+		long("trailing___") { required = false }
+	}
+
+	val innerOneOf = buildDeclaration {
+		oneOf("inner_mode") {
+			variant("passive")
+			variant("active") { boolean("aggressive") }
+		}
+	}
+
+	val outerOneOf = buildDeclaration {
+		oneOf("outer_mode") {
+			variant("simple")
+			variant("complex") { param("inner", innerOneOf) }
+		}
+	}
+
+	val builtinMapDecl = buildDeclaration { map(string, int) }
+
+	function("nested_one_of") {
+		param("mode", outerOneOf)
+	}
+
+	function("builtin_wrappers") {
+		param("str_int_map", builtinMapDecl)
+	}
+
+	function("all_required") {
+		string("only_req_field")
+	}
+
+	function("all_optional") {
+		string("a") { required = false }
+		int("b") { required = false }
+	}
+
+	function("consecutive_underscores") {
+		string("snake__name")
+		int("_single_lead")
+		long("single_trail_") { required = false }
+	}
+
+	val dupeObj = buildDeclaration {
+		obj("dupe_point") {
+			double("x")
+			double("y")
+		}
+	}
+
+	val dupeOneOf = buildDeclaration {
+		oneOf("dupe_dir") {
+			variant("north") { int("steps") }
+			variant("south") { string("label") }
+		}
+	}
+
+	function("collision_test") {
+		param("pt1", point)
+		param("pt2", dupeObj)
+		param("dir1", direction)
+		param("dir2", dupeOneOf)
+	}
+
+	val mergeOneOfA = buildDeclaration {
+		oneOf("t") { variant("v_p") { int("d") } }
+	}
+
+	val mergeOneOfB = buildDeclaration {
+		oneOf("t_v") { variant("p") { int("d") } }
+	}
+
+	val mergeObj = buildDeclaration {
+		obj("a") { int("b_c_d") }
+	}
+
+	val mergeOneOfC = buildDeclaration {
+		oneOf("a_b") { variant("c") { int("d") } }
+	}
+
+	function("desc_collision") {
+		param("a", mergeOneOfA)
+		param("b", mergeOneOfB)
+		param("c", mergeObj)
+		param("d", mergeOneOfC)
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.test",
+)

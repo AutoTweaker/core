@@ -19,13 +19,10 @@
 package io.github.autotweaker.api.types.tool.args.edit
 
 import io.github.autotweaker.api.tool.ToolArgs
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class EditArgs : ToolArgs<EditArgs> {
-	override fun serializer(): KSerializer<EditArgs> = Companion.serializer()
-	
+sealed class EditArgs : ToolArgs {
 	@Serializable
 	data class Run(
 		val files: List<String>,

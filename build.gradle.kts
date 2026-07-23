@@ -108,7 +108,7 @@ tasks.register<Exec>("buildDeb") {
 
 tasks.register<Exec>("releaseTag") {
 	description = "基于当前版本号打 tag 并推送"
-	dependsOn(subprojects.map { "${it.path}:build" })
+	dependsOn(subprojects.filter { it.tasks.findByName("build") != null }.map { "${it.path}:build" })
 	workingDir = projectDir
 	commandLine(
 		"bash", "-c", """
@@ -130,14 +130,13 @@ tasks.register<Exec>("releaseTag") {
 
 tasks.register<Exec>("testInDocker") {
 	dependsOn(
-		subprojects.map { subproject ->
+		subprojects.mapNotNull { subproject ->
 			val taskName = when {
 				subproject.tasks.findByName("compileKotlinJvm") != null -> "compileKotlinJvm"
 				subproject.tasks.findByName("compileKotlin") != null -> "compileKotlin"
 				else -> subproject.tasks.names.firstOrNull { it.startsWith("compileKotlin") && !it.contains("Test") }
-					?: "compileKotlin"
 			}
-			"${subproject.path}:$taskName"
+			taskName?.let { "${subproject.path}:$it" }
 		}
 	)
 	group = "verification"

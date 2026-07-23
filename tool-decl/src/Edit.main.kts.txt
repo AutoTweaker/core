@@ -1,0 +1,113 @@
+/*
+ * AutoTweaker
+ * Copyright (C) 2026  WhiteElephant-abc
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
+
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
+
+tool("edit") {
+	val sideEnum = buildDeclaration { enum("side", "before", "after") }
+	val lineEdgeEnum = buildDeclaration { enum("line_edge", "start", "end") }
+	
+	val linePosition = buildDeclaration {
+		oneOf("line_position") {
+			variant("value") { int("n") }
+			variant("pos") { param("position", lineEdgeEnum) }
+		}
+	}
+	
+	val lineRange = buildDeclaration {
+		obj("line_range") {
+			param("from", linePosition)
+			param("to", linePosition)
+		}
+	}
+	
+	val lineLocator = buildDeclaration {
+		oneOf("line_locator") {
+			variant("by_number") { int("line") }
+			variant("by_match") {
+				string("match")
+				param("in_range", lineRange) { required = false }
+				int("occurrence") { required = false }
+			}
+			variant("by_match_all") {
+				string("match_all")
+				param("in_range", lineRange) { required = false }
+			}
+			variant("by_edge") { param("edge", lineEdgeEnum) }
+		}
+	}
+	
+	val charLocator = buildDeclaration {
+		oneOf("char_locator") {
+			variant("by_char") { param("line", lineLocator); int("char") }
+			variant("by_match") {
+				param("line", lineLocator)
+				string("match")
+				int("occurrence") { required = false }
+				param("side", sideEnum) { required = false }
+			}
+			variant("by_match_all") {
+				param("line", lineLocator)
+				string("match_all")
+				param("side", sideEnum) { required = false }
+			}
+		}
+	}
+	
+	val selection = buildDeclaration {
+		oneOf("selection") {
+			variant("line") { param("at", lineLocator) }
+			variant("lines") { param("start", lineLocator); param("end", lineLocator) }
+			variant("range") { param("start", charLocator); param("end", charLocator) }
+			variant("multi") { string("match_all"); param("in_range", lineRange) { required = false } }
+		}
+	}
+	
+	val editAction = buildDeclaration {
+		oneOf("edit_action") {
+			variant("insert") { param("at", charLocator); string("content") }
+			variant("replace") { param("at", selection); string("content") }
+			variant("delete") { param("at", selection) }
+			variant("copy") { param("at", selection) }
+			variant("cut") { param("at", selection) }
+			variant("paste") { param("at", charLocator); string("clip_id") }
+		}
+	}
+	
+	val editActionList = buildDeclaration { list(editAction) }
+	
+	function("run") {
+		stringList("files")
+		param("actions", editActionList)
+		boolean("dry_run") { required = false }
+	}
+	
+	function("apply") {
+		string("operation_id")
+	}
+	
+	function("get_clip") {
+		string("clip_id")
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.edit",
+)

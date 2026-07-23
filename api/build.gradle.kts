@@ -39,11 +39,20 @@ dokka {
 	}
 }
 
+tasks.register<Sync>("syncGeneratedArgs") {
+	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
+	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
+	dependsOn(":tool-decl:generateArgs")
+}
+
 kotlin {
 	jvm()
 	linuxX64()
-	
+
 	sourceSets {
+		commonMain {
+			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
+		}
 		commonMain.dependencies {
 			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
@@ -51,6 +60,12 @@ kotlin {
 		jvmMain.dependencies {
 			implementation("org.slf4j:slf4j-api:2.0.18")
 		}
+	}
+}
+
+tasks.configureEach {
+	if (name.startsWith("compileKotlin") || name.startsWith("compileCommon")) {
+		dependsOn("syncGeneratedArgs")
 	}
 }
 

@@ -24,7 +24,7 @@ sealed class ToolCallResolveResult {
 	) : ToolCallResolveResult()
 	
 	data class NeedsApproval(
-		val result: ToolCallValidator.ValidationResult.Success<*>,
+		val result: ToolCallParser.ValidationResult.Success<*>,
 	) : ToolCallResolveResult()
 	
 	data class Activation(

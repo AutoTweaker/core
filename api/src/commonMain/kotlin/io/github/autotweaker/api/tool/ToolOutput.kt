@@ -16,17 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.tool.args
+package io.github.autotweaker.api.tool
 
-import io.github.autotweaker.api.tool.ToolArgs
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
+fun String.toolFail() = toolResult(false)
 
-@Serializable
-data class BashArgs(
-	val command: String,
-	val timeoutSeconds: Int = 60,
-	val envIds: List<String> = emptyList(),
-) : ToolArgs<BashArgs> {
-	override fun serializer(): KSerializer<BashArgs> = Companion.serializer()
-}
+fun String.toolSuccess() = toolResult(true)
+
+fun String.toolResult(success: Boolean) = Tool.ToolOutput(this, success)

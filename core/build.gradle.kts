@@ -22,7 +22,22 @@ plugins {
 	id("org.jetbrains.kotlin.plugin.serialization")
 	application
 	jacoco
-	
+}
+
+tasks.register<Sync>("syncGeneratedMeta") {
+	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
+	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
+	dependsOn(":tool-decl:generateArgs")
+}
+
+kotlin {
+	sourceSets["main"].kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
+}
+
+tasks.configureEach {
+	if (name.startsWith("compileKotlin") || name.startsWith("kaptGenerateStubs")) {
+		dependsOn("syncGeneratedMeta")
+	}
 }
 
 application {
@@ -36,6 +51,7 @@ tasks.named<JavaExec>("run") {
 
 dependencies {
 	implementation(project(":api"))
+	compileOnly(project(":tool-gen"))
 	
 	implementation("io.ktor:ktor-client-core:3.5.1")
 	implementation("io.ktor:ktor-client-java:3.5.1")

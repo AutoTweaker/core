@@ -16,36 +16,43 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.tool
+@file:Suppress("unused")
 
-import io.github.autotweaker.api.types.tool.ToolMeta
+package io.github.autotweaker.toolgen
 
-fun buildMeta(name: String, desc: String, block: ToolMetaBuilder.() -> Unit) =
-	ToolMetaBuilder(name, desc).apply(block).toMeta()
+import java.nio.file.Path
 
-fun buildDeclaration(block: DeclarationBuilder.() -> Unit) =
-	DeclarationBuilder().apply(block).declaration
+fun tool(name: String, block: ToolMetaBuilder.() -> Unit) =
+	ToolMetaBuilder(name).apply(block).toMeta()
+
+fun ToolMeta.gen(argsPackage: String, toolPackage: String) {
+	val dir = Path.of(System.getProperty("toolgen.outputDir", "build/generated/args"))
+	ArgsCodeGen(this, argsPackage, toolPackage)(dir)
+}
 
 @ToolMetaDsl
 class ToolMetaBuilder internal constructor(
 	private val name: String,
-	private val desc: String,
 ) {
 	init {
-		require('-' !in name)
+		require('-' !in name) { "Name '$name' must not contain '-'" }
 	}
 	
 	private val functions = mutableListOf<ToolMeta.Function>()
+	private val declaration = mutableListOf<ToolMeta.Type.Declared>()
 	
 	fun function(name: String, block: FunctionBuilder.() -> Unit) {
-		require('-' !in name)
+		require('-' !in name) { "Name '$name' must not contain '-'" }
 		functions.add(FunctionBuilder(name).apply(block).toFunction())
 	}
 	
+	fun buildDeclaration(block: DeclarationBuilder.() -> Unit) =
+		DeclarationBuilder(declaration).apply(block).declaration()
+	
 	internal fun toMeta() = ToolMeta(
 		name = name,
-		description = desc,
-		functions = functions
+		functions = functions,
+		declared = declaration
 	)
 }
 
@@ -53,23 +60,23 @@ class ToolMetaBuilder internal constructor(
 class FunctionBuilder internal constructor(
 	private val name: String,
 ) : ParametersBuilder() {
-	private lateinit var desc: suspend () -> String
-	
-	fun description(description: suspend () -> String) {
-		desc = description
-	}
-	
 	internal fun toFunction() = ToolMeta.Function(
 		name = name,
-		description = desc,
 		parameters = parameters
 	)
 }
 
 
 @ToolMetaDsl
-class DeclarationBuilder internal constructor() {
-	internal lateinit var declaration: ToolMeta.Type.Declared
+class DeclarationBuilder internal constructor(
+	private val registry: MutableList<ToolMeta.Type.Declared>
+) {
+	private lateinit var declaration: ToolMeta.Type.Declared
+	
+	internal fun declaration() = declaration.also {
+		if (it is ToolMeta.Type.Obj || it is ToolMeta.Type.Enum || it is ToolMeta.Type.OneOf)
+			registry.add(it)
+	}
 	
 	fun obj(name: String, block: ParametersBuilder.() -> Unit) {
 		val parameters = ParametersBuilder().apply(block).parameters
@@ -88,13 +95,47 @@ class DeclarationBuilder internal constructor() {
 	fun list(element: ToolMeta.Type.Declared) {
 		declaration = ToolMeta.Type.TList(element)
 	}
+	
+	fun map(key: ToolMeta.Type.Declared, value: ToolMeta.Type.Declared) {
+		declaration = ToolMeta.Type.TMap(key, value)
+	}
+	
+	fun map(key: BuiltinType, value: ToolMeta.Type.Declared) {
+		declaration = ToolMeta.Type.TMap(key.toType(), value)
+	}
+	
+	fun map(key: ToolMeta.Type.Declared, value: BuiltinType) {
+		declaration = ToolMeta.Type.TMap(key, value.toType())
+	}
+	
+	fun map(key: BuiltinType, value: BuiltinType) {
+		declaration = ToolMeta.Type.TMap(key.toType(), value.toType())
+	}
+	
+	val string = BuiltinType.STRING
+	val int = BuiltinType.INT
+	val long = BuiltinType.LONG
+	val double = BuiltinType.DOUBLE
+	val boolean = BuiltinType.BOOLEAN
+	
+	private fun BuiltinType.toType(): ToolMeta.Type.Builtin = when (this) {
+		BuiltinType.STRING -> ToolMeta.Type.TString
+		BuiltinType.INT -> ToolMeta.Type.TInt
+		BuiltinType.LONG -> ToolMeta.Type.TLong
+		BuiltinType.DOUBLE -> ToolMeta.Type.TDouble
+		BuiltinType.BOOLEAN -> ToolMeta.Type.TBoolean
+	}
+	
+	enum class BuiltinType {
+		STRING, INT, LONG, DOUBLE, BOOLEAN
+	}
 }
 
 @ToolMetaDsl
 class VariantsBuilder internal constructor() {
 	internal val variants = mutableListOf<ToolMeta.Type.OneOf.Variant>()
 	
-	fun variant(name: String, block: ParametersBuilder.() -> Unit) {
+	fun variant(name: String, block: ParametersBuilder.() -> Unit = {}) {
 		val parameters = ParametersBuilder().apply(block).parameters
 		variants.add(ToolMeta.Type.OneOf.Variant(name, parameters))
 	}
@@ -150,6 +191,7 @@ open class ParametersBuilder internal constructor() {
 	}
 	
 	private fun prop(name: String, type: ToolMeta.Type, block: PropBuilder.() -> Unit) {
+		require(name != "type") { "Property name 'type' conflicts with the sealed class discriminator" }
 		parameters.add(PropBuilder(name, type).apply(block).toProp())
 	}
 }
@@ -159,18 +201,12 @@ class PropBuilder internal constructor(
 	private val name: String,
 	private val type: ToolMeta.Type,
 ) {
-	private lateinit var desc: suspend () -> String
 	var required = true
-	
-	fun description(description: suspend () -> String) {
-		desc = description
-	}
 	
 	internal fun toProp() = ToolMeta.Prop(
 		name = name,
 		type = type,
 		required = required,
-		description = desc
 	)
 }
 

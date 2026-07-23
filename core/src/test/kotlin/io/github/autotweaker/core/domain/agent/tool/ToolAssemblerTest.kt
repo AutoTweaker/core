@@ -20,9 +20,9 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.core.TestServices
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
@@ -37,7 +37,6 @@ class ToolAssemblerTest {
 			TestServices.init()
 		}
 	}
-	
 	
 	// region test data
 	
@@ -77,32 +76,43 @@ class ToolAssemblerTest {
 	@Suppress("UNCHECKED_CAST")
 	private fun mockSimpleTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<SimpleArgs>>()
-		every { tool.name } returns "bash"
-		every { tool.description } returns "Run bash commands"
-		every { tool.argsSerializer } returns SimpleArgs.serializer()
-		coEvery { tool.describe() } returns mapOf(
-			SimpleArgs::command to "The command",
-			SimpleArgs::timeoutSeconds to "Timeout in seconds",
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"bash", "Run bash commands", listOf(
+					ToolMeta.Function(
+						"run", "Run bash commands", listOf(
+							ToolMeta.Prop("command", ToolMeta.Type.TString, true, "The command"),
+							ToolMeta.Prop("timeout_seconds", ToolMeta.Type.TInt, false, "Timeout in seconds"),
+						)
+					)
+				)
+			),
+			SimpleArgs.serializer()
 		)
-		coEvery { tool.describeFunctions() } returns emptyMap()
 		return tool as Tool<ToolArgs>
 	}
 	
 	@Suppress("UNCHECKED_CAST")
 	private fun mockMultiTool(): Tool<ToolArgs> {
 		val tool = mockk<Tool<MultiArgs>>()
-		every { tool.name } returns "read"
-		every { tool.description } returns "Read files"
-		every { tool.argsSerializer } returns MultiArgs.serializer()
-		coEvery { tool.describe() } returns mapOf(
-			MultiArgs.File::filePath to "File path",
-			MultiArgs.File::startLine to "Start line",
-			MultiArgs.Unicode::filePath to "File path",
-			MultiArgs.Unicode::maxChars to "Max chars",
-		)
-		coEvery { tool.describeFunctions() } returns mapOf(
-			MultiArgs.File::class to "Read file lines",
-			MultiArgs.Unicode::class to "Read unicode chars",
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"read", "Read files", listOf(
+					ToolMeta.Function(
+						"file", "Read file lines", listOf(
+							ToolMeta.Prop("file_path", ToolMeta.Type.TString, true, "File path"),
+							ToolMeta.Prop("start_line", ToolMeta.Type.TInt, true, "Start line"),
+						)
+					),
+					ToolMeta.Function(
+						"unicode", "Read unicode chars", listOf(
+							ToolMeta.Prop("file_path", ToolMeta.Type.TString, true, "File path"),
+							ToolMeta.Prop("max_chars", ToolMeta.Type.TInt, true, "Max chars"),
+						)
+					),
+				)
+			),
+			MultiArgs.serializer()
 		)
 		return tool as Tool<ToolArgs>
 	}
@@ -274,11 +284,18 @@ class ToolAssemblerTest {
 		data class Args(val flag: Boolean) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::flag to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop("flag", ToolMeta.Type.TBoolean, true, "desc")
+						)
+					)
+				)
+			),
+			Args.serializer()
+		)
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -295,11 +312,18 @@ class ToolAssemblerTest {
 		data class Args(val items: List<String>) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::items to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop("items", ToolMeta.Type.TList(ToolMeta.Type.TString), true, "desc")
+						)
+					)
+				)
+			),
+			Args.serializer()
+		)
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -318,11 +342,23 @@ class ToolAssemblerTest {
 		data class Args(val config: Map<String, Int>) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::config to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop(
+								"config",
+								ToolMeta.Type.TMap(ToolMeta.Type.TString, ToolMeta.Type.TInt),
+								true,
+								"desc"
+							)
+						)
+					)
+				)
+			),
+			Args.serializer()
+		)
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -341,15 +377,33 @@ class ToolAssemblerTest {
 		data class Args(val inner: Inner) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(
-			Args::inner to "desc",
-			Inner.A::x to "",
-			Inner.B::y to "",
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop(
+								"inner", ToolMeta.Type.OneOf(
+									"inner", listOf(
+										ToolMeta.Type.OneOf.Variant(
+											"a", "", listOf(
+												ToolMeta.Prop("x", ToolMeta.Type.TInt, true, "")
+											)
+										),
+										ToolMeta.Type.OneOf.Variant(
+											"b", "", listOf(
+												ToolMeta.Prop("y", ToolMeta.Type.TString, true, "")
+											)
+										),
+									)
+								), true, "desc"
+							)
+						)
+					)
+				)
+			),
+			Args.serializer()
 		)
-		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -376,11 +430,18 @@ class ToolAssemblerTest {
 		data class Args(val ratio: Double) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(Args::ratio to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop("ratio", ToolMeta.Type.TDouble, true, "desc")
+						)
+					)
+				)
+			),
+			Args.serializer()
+		)
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -397,15 +458,25 @@ class ToolAssemblerTest {
 		data class Args(val nested: Nested) : ToolArgs
 		
 		val tool = mockk<Tool<Args>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns Args.serializer()
-		coEvery { tool.describe() } returns mapOf(
-			Args::nested to "desc",
-			Nested::a to "",
-			Nested::b to "",
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop(
+								"nested", ToolMeta.Type.Obj(
+									"nested", listOf(
+										ToolMeta.Prop("a", ToolMeta.Type.TString, true, ""),
+										ToolMeta.Prop("b", ToolMeta.Type.TInt, true, ""),
+									)
+								), true, "desc"
+							)
+						)
+					)
+				)
+			),
+			Args.serializer()
 		)
-		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -450,11 +521,18 @@ class ToolAssemblerTest {
 		data class AllOptional(val x: String = "default") : ToolArgs
 		
 		val tool = mockk<Tool<AllOptional>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns AllOptional.serializer()
-		coEvery { tool.describe() } returns mapOf(AllOptional::x to "desc")
-		coEvery { tool.describeFunctions() } returns emptyMap()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop("x", ToolMeta.Type.TString, false, "desc")
+						)
+					)
+				)
+			),
+			AllOptional.serializer()
+		)
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(
@@ -473,14 +551,19 @@ class ToolAssemblerTest {
 		data class AllRequired(val a: String, val b: Int) : ToolArgs
 		
 		val tool = mockk<Tool<AllRequired>>()
-		every { tool.name } returns "t"
-		every { tool.description } returns "d"
-		every { tool.argsSerializer } returns AllRequired.serializer()
-		coEvery { tool.describe() } returns mapOf(
-			AllRequired::a to "desc a",
-			AllRequired::b to "desc b",
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop("a", ToolMeta.Type.TString, true, "desc a"),
+							ToolMeta.Prop("b", ToolMeta.Type.TInt, true, "desc b"),
+						)
+					)
+				)
+			),
+			AllRequired.serializer()
 		)
-		coEvery { tool.describeFunctions() } returns emptyMap()
 		
 		val result = @Suppress("UNCHECKED_CAST")
 		ToolAssembler.assemble(

@@ -20,15 +20,14 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.tool.ToolInfo
-import io.github.autotweaker.core.domain.tool.ToolMeta
+import io.github.autotweaker.api.types.tool.ToolMeta
 import kotlinx.serialization.json.*
 
 object ToolAssembler : Loggable, Settable {
 	suspend fun assemble(
-		tools: List<Tool<ToolArgs>>,
+		tools: List<Tool<*>>,
 		toolInfo: List<ToolInfo>,
 	): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
@@ -39,9 +38,9 @@ object ToolAssembler : Loggable, Settable {
 		val enableDesc = setting(AgentToolSettings.EnableDescription())
 		
 		val activeNames = toolInfo.filter { it.active }.map { it.name }.toSet()
-		val activeMetas = tools.filter { it.name in activeNames }.map { ToolMeta.build(it) }
 		
-		val activeTools = activeMetas.flatMap { meta ->
+		val activeTools = tools.filter { it.meta().first.name in activeNames }.flatMap { tool ->
+			val (meta, _) = tool.meta()
 			meta.functions.map { func ->
 				ChatRequest.Tool(
 					name = "${meta.name}-${func.name}",
@@ -51,10 +50,11 @@ object ToolAssembler : Loggable, Settable {
 			}
 		}
 		
-		val inactiveTools = tools.filter { it.name !in activeNames }.map { tool ->
+		val inactiveTools = tools.filter { it.meta().first.name !in activeNames }.map { tool ->
+			val (meta, _) = tool.meta()
 			ChatRequest.Tool(
-				name = tool.name,
-				description = tool.description,
+				name = meta.name,
+				description = meta.description,
 				parameters = buildJsonObject {
 					put("type", "object")
 					put("properties", buildJsonObject {
@@ -70,102 +70,102 @@ object ToolAssembler : Loggable, Settable {
 		return (activeTools + inactiveTools).orNull()
 	}
 	
-	private fun Map<String, ToolMeta.Property>.toChatRequestParameters(
+	private fun List<ToolMeta.Prop>.toChatRequestParameters(
 		reasonDescription: String
 	): JsonElement = buildJsonObject {
 		put("type", "object")
 		putJsonObject("properties") {
-			forEach { (name, prop) -> put(name, prop.toPropertyJson()) }
+			forEach { (name, type, _, description) -> put(name, type.toPropertyJson(description)) }
 			put("reason", buildJsonObject {
 				put("type", "string")
 				put("description", reasonDescription)
 			})
 		}
 		putJsonArray("required") {
-			filter { it.value.required }.keys.forEach { add(it) }
+			filter { it.required }.forEach { add(it.name) }
 			add("reason")
 		}
 	}
 	
-	private fun ToolMeta.Property.toPropertyJson(): JsonElement = buildJsonObject {
+	private fun ToolMeta.Type.toPropertyJson(description: String): JsonElement = buildJsonObject {
 		put("description", description)
-		valueType.fillJsonObject(this)
+		fillJsonObject(this)
 	}
 	
-	private fun ToolMeta.ValueType.fillJsonObject(builder: JsonObjectBuilder) {
+	private fun ToolMeta.Type.fillJsonObject(builder: JsonObjectBuilder) {
 		when (this) {
-			is ToolMeta.ValueType.StringValue -> {
+			is ToolMeta.Type.TString -> {
 				builder.put("type", "string")
-				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
 			}
 			
-			is ToolMeta.ValueType.NumberValue -> {
-				builder.put("type", "number")
-				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
-			}
-			
-			is ToolMeta.ValueType.IntegerValue -> {
+			is ToolMeta.Type.TInt, is ToolMeta.Type.TLong -> {
 				builder.put("type", "integer")
-				enum?.let { builder.put("enum", buildJsonArray { it.forEach { e -> add(e) } }) }
 			}
 			
-			is ToolMeta.ValueType.BooleanValue -> builder.put("type", "boolean")
-			is ToolMeta.ValueType.ArrayValue -> {
+			is ToolMeta.Type.TDouble -> {
+				builder.put("type", "number")
+			}
+			
+			is ToolMeta.Type.TBoolean -> {
+				builder.put("type", "boolean")
+			}
+			
+			is ToolMeta.Type.TList -> {
 				builder.put("type", "array")
-				builder.put("items", buildJsonObject { items.fillJsonObject(this) })
+				builder.put("items", buildJsonObject { element.fillJsonObject(this) })
 			}
 			
-			is ToolMeta.ValueType.ObjectValue -> {
-				builder.put("type", "object")
-				builder.putJsonObject("properties") {
-					properties.forEach { (name, prop) ->
-						put(name, buildJsonObject {
-							put("description", prop.description)
-							prop.valueType.fillJsonObject(this)
-						})
-					}
-				}
-				val requiredProps = properties.filter { it.value.required }.keys
-				if (requiredProps.isNotEmpty()) {
-					builder.putJsonArray("required") {
-						requiredProps.forEach { add(it) }
-					}
-				}
-			}
-			
-			is ToolMeta.ValueType.MapValue -> {
+			is ToolMeta.Type.TMap -> {
 				builder.put("type", "object")
 				builder.put("additionalProperties", buildJsonObject { value.fillJsonObject(this) })
 			}
 			
-			is ToolMeta.ValueType.AnyValue -> {}
-			is ToolMeta.ValueType.OneOfValue -> {
+			is ToolMeta.Type.OneOf -> {
 				builder.put("type", "object")
 				builder.putJsonArray("oneOf") {
-					variants.forEach { (variantName, variantType) ->
+					for ((name, description, properties) in variants) {
 						add(buildJsonObject {
 							put("type", "object")
 							putJsonObject("properties") {
-								put("type", buildJsonObject { put("const", variantName) })
-								if (variantType is ToolMeta.ValueType.ObjectValue) {
-									variantType.properties.forEach { (propName, prop) ->
-										put(propName, buildJsonObject {
-											put("description", prop.description)
-											prop.valueType.fillJsonObject(this)
-										})
-									}
+								put("type", buildJsonObject {
+									put("const", name)
+									put("description", description)
+								})
+								for ((propName, propType, _, propDesc) in properties) {
+									put(propName, buildJsonObject {
+										put("description", propDesc)
+										propType.fillJsonObject(this)
+									})
 								}
 							}
 							putJsonArray("required") {
 								add("type")
-								if (variantType is ToolMeta.ValueType.ObjectValue) {
-									variantType.properties.filter { it.value.required }
-										.forEach { add(it.key) }
-								}
+								properties.filter { it.required }.forEach { add(it.name) }
 							}
 						})
 					}
 				}
+			}
+			
+			is ToolMeta.Type.Obj -> {
+				builder.put("type", "object")
+				builder.putJsonObject("properties") {
+					for ((name, type, _, description) in properties) {
+						put(name, buildJsonObject {
+							put("description", description)
+							type.fillJsonObject(this)
+						})
+					}
+				}
+				val requiredProps = properties.filter { it.required }.map { it.name }
+				if (requiredProps.isNotEmpty()) {
+					builder.putJsonArray("required") { requiredProps.forEach { add(it) } }
+				}
+			}
+			
+			is ToolMeta.Type.Enum -> {
+				builder.put("type", "string")
+				builder.put("enum", buildJsonArray { values.forEach { add(it) } })
 			}
 		}
 	}

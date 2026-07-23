@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
+
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
@@ -47,7 +47,7 @@ class Agent(
 	val agentId: UUID,
 	val name: KebabCase,
 	private val workspace: WorkspaceMeta,
-	private val tools: List<Tool<ToolArgs>>,
+	private val tools: List<Tool<*>>,
 	private val activeTools: List<String>,
 	@Suppress("unused") private val host: AgentHost,
 ) : Settable {
@@ -88,7 +88,7 @@ class Agent(
 	suspend fun init(
 		model: AgentModel
 	) = also {
-		val info = tools.map { buildToolInfo(it, it.name in activeTools) }
+		val info = tools.map { buildToolInfo(it, it.meta().first.name in activeTools) }
 		toolManager = Tools(info, tools, agentId)
 		runner = RoundRunner(
 			ctx = ctx,

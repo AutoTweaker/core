@@ -16,14 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-	kotlin("jvm")
-}
+@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
 
-dependencies {
-	compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.0")
-}
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
 
-kotlin {
-	jvmToolchain(25)
-}
+tool("bash") {
+	function("run") {
+		string("command")
+		int("timeout_seconds") { required = false }
+		stringList("env_ids")
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.bash",
+)
