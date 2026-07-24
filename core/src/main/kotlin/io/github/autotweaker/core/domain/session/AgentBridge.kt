@@ -22,14 +22,18 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolApprove
-import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.agent.*
+import io.github.autotweaker.core.domain.agent.tool.MetaCache
+import io.github.autotweaker.core.domain.agent.tool.ToolMap
+import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.cacheMeta
+import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextBuilder
@@ -55,7 +59,7 @@ class AgentBridge(
 	private val injectLock = ReentrantMutex()
 	
 	private lateinit var initialData: AgentData
-	private lateinit var tools: List<Tool<*>>
+	private lateinit var tools: ToolMap
 	
 	private val _context = MutableStateFlow(initialData.context)
 	override val context: StateFlow<AgentContext> = _context.asStateFlow()
@@ -73,7 +77,7 @@ class AgentBridge(
 	override val id: UUID get() = _agent.agentId
 	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
-	override val toolInfo: StateFlow<List<ToolInfo>> get() = _agent.toolInfo
+	override val activeTools: StateFlow<Set<String>> get() = _agent.activeTools
 	override val toolCalling: StateFlow<String?> get() = _agent.toolCalling
 	
 	override val model: ModelConfig
@@ -85,7 +89,7 @@ class AgentBridge(
 			name = name,
 			model = _agent.model,
 			context = _context.value,
-			activeTools = toolInfo.value.filter { it.active }.map { it.name }
+			activeTools = activeTools.value
 		)
 	
 	private val scope = scope()
@@ -101,8 +105,7 @@ class AgentBridge(
 		loaded?.forEach { messages[it.id] = it }
 		loaded?.let { UsageStore.collect(it) }
 		
-		initTools()
-		createAgent()
+		initTools(); createAgent()
 		collectJob = scope.launch {
 			_agent.context.collect { saveChannel.send(Unit) }
 		}
@@ -119,19 +122,13 @@ class AgentBridge(
 		log.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
 	}
 	
-	private suspend fun initTools() {
-		val coreTools = ServiceLoader.load(CoreTool::class.java).toList()
-		val duplicates = coreTools.map {
-			it.meta().first.name
-		}.groupingBy { it }.eachCount().filter {
-			it.value > 1
-		}
-		check(duplicates.isEmpty()) { "Duplicate CoreTool: ${duplicates.keys}" }
+	private suspend fun initTools(): MetaCache {
+		val coreTools = loadService<CoreTool<ToolArgs>>().associateBy { it.name() }
+		val pluginTools = PluginLoader.load<Tool<ToolArgs>>().associateBy { it.name() }
 		
-		val pluginTools = PluginLoader.load<Tool<*>>().distinctBy { it.meta().first.name }
-		val pluginNames = pluginTools.map { it.meta().first.name }.toSet()
-		
-		tools = pluginTools + coreTools.filter { it.meta().first.name !in pluginNames }
+		val all = coreTools + pluginTools
+		tools = all
+		return cacheMeta(all)
 	}
 	
 	/* API */
@@ -235,12 +232,11 @@ class AgentBridge(
 			agentId = id,
 			context = RuntimeContextBuilder(_context.value, messages)(),
 			workspace = workspace,
+			model = initialData.model.toAgentModel(),
 			tools = tools,
 			activeTools = initialData.activeTools,
 			host = host,
 			name = initialData.name
-		).init(
-			model = initialData.model.toAgentModel()
 		)
 	}
 	

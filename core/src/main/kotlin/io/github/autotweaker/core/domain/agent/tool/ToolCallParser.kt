@@ -21,7 +21,6 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -40,12 +39,24 @@ class ToolCallParser : Loggable, Traceable, Settable {
 		) : ValidationResult<Nothing>()
 	}
 	
-	suspend fun validate(
+	fun validate(
 		toolCallName: String,
 		argumentsJson: String,
 		callId: String,
-		tools: List<Tool<*>>
+		metaCache: MetaCache,
 	): ValidationResult<*> {
+		val (toolName, functionName) = resolveCallName(toolCallName)
+			?.takeIf { result ->
+				metaCache[result.first]?.first?.functions?.any { function ->
+					function.name == result.second
+				} == true
+			}
+			?: return ValidationResult.Failure(
+				setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
+			).andLog(log) {
+				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
+			}
+		
 		val arguments = trace.catching {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 		}.getOrElse { e ->
@@ -60,24 +71,6 @@ class ToolCallParser : Loggable, Traceable, Settable {
 			debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
 		
-		val parts = toolCallName.split("-", limit = 2)
-		if (parts.size != 2) {
-			return ValidationResult.Failure(
-				setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
-			).andLog(log) {
-				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
-			}
-		}
-		
-		val toolName = parts[0]
-		val functionName = parts[1]//TODO 校验
-		
-		val tool = tools.find { it.meta().first.name == toolName } ?: return ValidationResult.Failure(
-			setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
-		).andLog(log) {
-			debug("Failed tool lookup  callId={}  name={}  tool={}", callId, toolCallName, toolName)
-		}
-		
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
@@ -89,9 +82,11 @@ class ToolCallParser : Loggable, Traceable, Settable {
 			}
 		}
 		val reason = reasonElement.content
-		if (reason.isBlank()) return ValidationResult.Failure(setting(AgentToolSettings.ReasonEmptyError()))
 		
-		val (_, argsSerializer) = tool.meta()
+		if (reason.isBlank() || reason.length < setting(AgentToolSettings.ReasonLength()))
+			return ValidationResult.Failure(setting(AgentToolSettings.ReasonEmptyError()))
+		
+		val argsSerializer = checkNotNull(metaCache[toolName]).second
 		val deserializationJson = JsonObject(
 			arguments.filterKeys { it != "reason" } + ("type" to JsonPrimitive(functionName))
 		)
@@ -118,5 +113,11 @@ class ToolCallParser : Loggable, Traceable, Settable {
 			reason = reason,
 			args = args,
 		)
+	}
+	
+	private fun resolveCallName(callName: String): Pair<String, String>? {
+		val parts = callName.split("-")
+		if (parts.size != 2) return null
+		return parts[0] to parts[1]
 	}
 }

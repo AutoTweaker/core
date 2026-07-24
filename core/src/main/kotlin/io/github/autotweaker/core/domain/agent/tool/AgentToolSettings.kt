@@ -88,8 +88,15 @@ object AgentToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ReasonEmptyError : StringSetting(
-		"reason不能为空，请提供reason\n$TOOL_NOT_EXECUTED", zh(
+		"reason为空或过短，请提供有效的reason\n$TOOL_NOT_EXECUTED", zh(
 			"工具调用的reason属性为空时的ToolResult"
+		)
+	)
+	
+	@AutoService(SettingDef::class)
+	class ReasonLength : IntSetting(
+		5, zh(
+			"工具调用的reason属性的最少字符数"
 		)
 	)
 	

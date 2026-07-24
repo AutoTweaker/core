@@ -90,7 +90,6 @@ class ToolResultFactory : Settable {
 		call: PendingCall,
 		result: ToolResult,
 	) = ToolMessage(
-		name = call.name,
 		callId = call.callId,
 		call = buildToolCall(call),
 		result = result,
@@ -101,7 +100,6 @@ class ToolResultFactory : Settable {
 		timestamp: Instant,
 		result: ToolResult,
 	) = ToolMessage(
-		name = call.name,
 		callId = call.id,
 		call = buildToolCall(call, timestamp),
 		result = result,
@@ -112,9 +110,11 @@ class ToolResultFactory : Settable {
 	fun buildToolCall(
 		call: PendingCall,
 	) = ToolCall(
+		callName = call.callName,
 		arguments = call.arguments,
 		reason = call.reason,
 		timestamp = call.timestamp,
+		validatedToolName = call.validatedToolName,
 		validatedArgs = call.validatedArgs,
 	)
 	
@@ -122,6 +122,7 @@ class ToolResultFactory : Settable {
 		call: RawToolCall,
 		timestamp: Instant,
 	) = ToolCall(
+		callName = call.name,
 		arguments = call.arguments,
 		timestamp = timestamp,
 	)

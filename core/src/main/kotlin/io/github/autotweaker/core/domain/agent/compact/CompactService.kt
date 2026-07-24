@@ -221,7 +221,7 @@ class CompactService(
 			round.turns?.forEach { turn ->
 				val toolCalls = turn.tools.map { tool ->
 					ChatMessage.AssistantMessage.ToolCall(
-						id = tool.callId, name = tool.name, arguments = tool.call.arguments
+						id = tool.callId, name = tool.call.callName, arguments = tool.call.arguments
 					)
 				}
 				val (assistantMsg, assistantSnapshot) = convertAssistantMessage(

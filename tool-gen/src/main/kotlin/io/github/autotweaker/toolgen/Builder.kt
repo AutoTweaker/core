@@ -96,38 +96,8 @@ class DeclarationBuilder internal constructor(
 		declaration = ToolMeta.Type.TList(element)
 	}
 	
-	fun map(key: ToolMeta.Type.Declared, value: ToolMeta.Type.Declared) {
-		declaration = ToolMeta.Type.TMap(key, value)
-	}
-	
-	fun map(key: BuiltinType, value: ToolMeta.Type.Declared) {
-		declaration = ToolMeta.Type.TMap(key.toType(), value)
-	}
-	
-	fun map(key: ToolMeta.Type.Declared, value: BuiltinType) {
-		declaration = ToolMeta.Type.TMap(key, value.toType())
-	}
-	
-	fun map(key: BuiltinType, value: BuiltinType) {
-		declaration = ToolMeta.Type.TMap(key.toType(), value.toType())
-	}
-	
-	val string = BuiltinType.STRING
-	val int = BuiltinType.INT
-	val long = BuiltinType.LONG
-	val double = BuiltinType.DOUBLE
-	val boolean = BuiltinType.BOOLEAN
-	
-	private fun BuiltinType.toType(): ToolMeta.Type.Builtin = when (this) {
-		BuiltinType.STRING -> ToolMeta.Type.TString
-		BuiltinType.INT -> ToolMeta.Type.TInt
-		BuiltinType.LONG -> ToolMeta.Type.TLong
-		BuiltinType.DOUBLE -> ToolMeta.Type.TDouble
-		BuiltinType.BOOLEAN -> ToolMeta.Type.TBoolean
-	}
-	
-	enum class BuiltinType {
-		STRING, INT, LONG, DOUBLE, BOOLEAN
+	fun map(element: ToolMeta.Type.Declared) {
+		declaration = ToolMeta.Type.TMap(element)
 	}
 }
 
@@ -170,6 +140,7 @@ open class ParametersBuilder internal constructor() {
 		prop(name, ToolMeta.Type.TBoolean, block)
 	}
 	
+	
 	fun stringList(name: String, block: PropBuilder.() -> Unit = {}) {
 		prop(name, ToolMeta.Type.TList(ToolMeta.Type.TString), block)
 	}
@@ -189,6 +160,28 @@ open class ParametersBuilder internal constructor() {
 	fun booleanList(name: String, block: PropBuilder.() -> Unit = {}) {
 		prop(name, ToolMeta.Type.TList(ToolMeta.Type.TBoolean), block)
 	}
+	
+	
+	fun stringMap(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TString), block)
+	}
+	
+	fun intMap(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TInt), block)
+	}
+	
+	fun longMap(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TLong), block)
+	}
+	
+	fun doubleMap(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TDouble), block)
+	}
+	
+	fun booleanMap(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TBoolean), block)
+	}
+	
 	
 	private fun prop(name: String, type: ToolMeta.Type, block: PropBuilder.() -> Unit) {
 		require(name != "type") { "Property name 'type' conflicts with the sealed class discriminator" }

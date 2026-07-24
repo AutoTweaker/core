@@ -21,7 +21,6 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.tool.ToolInfo
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
@@ -85,19 +84,22 @@ class ToolsTest {
 	private fun toolCall(
 		id: String = "c1",
 		name: String = "bash-run",
-		arguments: String = """{"cmd":"echo","reason":"test"}""",
+		arguments: String = """{"cmd":"echo","reason":"tests"}""",
 	) = ChatMessage.AssistantMessage.ToolCall(
 		id = id, name = name, arguments = arguments,
 	)
 	
-	private fun makeTools(tools: List<Tool<ToolArgs>>, toolInfo: List<ToolInfo>) = Tools(
-		toolInfo = toolInfo,
-		tools = tools,
-		agentId = agentId,
-	)
-	
-	private suspend fun Tool<ToolArgs>.info() = Tools.buildToolInfo(this, true)
-	private suspend fun Tool<ToolArgs>.infoInactive() = Tools.buildToolInfo(this, false)
+	private suspend fun makeTools(
+		tools: List<Tool<ToolArgs>>,
+		activeToolNames: Set<String>,
+	): Tools {
+		val toolMap = tools.associate { it.meta().first.name to it }
+		return Tools(
+			tools = toolMap,
+			activeTools = activeToolNames,
+			agentId = agentId,
+		)
+	}
 	
 	// endregion
 	
@@ -106,20 +108,21 @@ class ToolsTest {
 	@Test
 	fun `resolveToolCall inactive tool returns Activation`() = runTest {
 		val tool = mockTool()
-		val inactiveInfo = tool.infoInactive()
-		val tools = makeTools(listOf(tool), listOf(inactiveInfo))
+		val tools = makeTools(listOf(tool), emptySet())
+		tools.assembleTools()
 		
-		assertFalse(tools.toolInfo.value[0].active)
+		assertFalse("bash" in tools.activeTools.value)
 		val result = tools.resolveToolCall(toolCall(name = "bash"))
 		
 		assertIs<ToolCallResolveResult.Activation>(result)
-		assertFalse(tools.toolInfo.value[0].active)
+		assertFalse("bash" in tools.activeTools.value)
 	}
 	
 	@Test
 	fun `resolveToolCall active tool returns NeedsApproval`() = runTest {
 		val tool = mockTool()
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
+		tools.assembleTools()
 		
 		val result = tools.resolveToolCall(toolCall(name = "bash-run"))
 		
@@ -129,7 +132,8 @@ class ToolsTest {
 	@Test
 	fun `resolveToolCall unknown tool returns ParseFailure`() = runTest {
 		val tool = mockTool("inactive")
-		val tools = makeTools(listOf(tool), listOf(tool.infoInactive()))
+		val tools = makeTools(listOf(tool), emptySet())
+		tools.assembleTools()
 		val result = tools.resolveToolCall(toolCall(name = "unknown-run"))
 		
 		assertIs<ToolCallResolveResult.ParseFailure>(result)
@@ -142,7 +146,7 @@ class ToolsTest {
 	fun `executeTool runs active tool successfully`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } returns Tool.ToolOutput("output ok", true)
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
 		
@@ -154,7 +158,7 @@ class ToolsTest {
 	fun `executeTool runs active tool with failure`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } returns Tool.ToolOutput("error happened", false)
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
 		
@@ -166,7 +170,7 @@ class ToolsTest {
 	fun `executeTool handles exception from tool`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } throws RuntimeException("crash!")
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
 		
@@ -178,7 +182,7 @@ class ToolsTest {
 	fun `executeTool rethrows CancellationException`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } throws CancellationException("cancelled")
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		assertFailsWith<CancellationException> {
 			tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
@@ -194,7 +198,7 @@ class ToolsTest {
 			channel.send(Tool.RuntimeOutput("progress 2", Tool.RuntimeOutput.OutputType.INFO))
 			Tool.ToolOutput("done", true)
 		}
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
@@ -212,7 +216,7 @@ class ToolsTest {
 	
 	@Test
 	fun `assembleTools returns null when no tools`() = runTest {
-		val tools = makeTools(emptyList(), emptyList())
+		val tools = makeTools(emptyList(), emptySet())
 		val result = tools.assembleTools()
 		assertNull(result)
 	}
@@ -221,8 +225,7 @@ class ToolsTest {
 	fun `assembleTools with only inactive tools`() = runTest {
 		val bash = mockTool("bash", "a bash tool")
 		val read = mockTool("read", "a read tool")
-		val info = listOf(bash.infoInactive(), read.infoInactive())
-		val tools = makeTools(listOf(bash, read), info)
+		val tools = makeTools(listOf(bash, read), emptySet())
 		
 		val result = tools.assembleTools()
 		
@@ -239,7 +242,7 @@ class ToolsTest {
 	@Test
 	fun `assembleTools with only active tools`() = runTest {
 		val tool = mockTool("bash", "bash tool")
-		val tools = makeTools(listOf(tool), listOf(tool.info()))
+		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.assembleTools()
 		
@@ -252,8 +255,7 @@ class ToolsTest {
 	fun `assembleTools with both active and inactive tools`() = runTest {
 		val activeTool = mockTool("bash", "bash tool")
 		val inactiveTool = mockTool("read", "read tool")
-		val info = listOf(activeTool.info(), inactiveTool.infoInactive())
-		val tools = makeTools(listOf(activeTool, inactiveTool), info)
+		val tools = makeTools(listOf(activeTool, inactiveTool), setOf("bash"))
 		
 		val result = tools.assembleTools()
 		
@@ -269,24 +271,24 @@ class ToolsTest {
 	@Test
 	fun `activate toggles tool active state`() = runTest {
 		val tool = mockTool()
-		val tools = makeTools(listOf(tool), listOf(tool.infoInactive()))
+		val tools = makeTools(listOf(tool), emptySet())
 		
-		assertFalse(tools.toolInfo.value[0].active)
+		assertFalse("bash" in tools.activeTools.value)
 		
 		tools.activate("bash", true)
-		assertTrue(tools.toolInfo.value[0].active)
+		assertTrue("bash" in tools.activeTools.value)
 		
 		tools.activate("bash", false)
-		assertFalse(tools.toolInfo.value[0].active)
+		assertFalse("bash" in tools.activeTools.value)
 	}
 	
 	@Test
 	fun `activate unknown tool does nothing`() = runTest {
 		val tool = mockTool()
-		val tools = makeTools(listOf(tool), listOf(tool.infoInactive()))
+		val tools = makeTools(listOf(tool), emptySet())
 		tools.activate("nonexistent", true)
 		
-		assertFalse(tools.toolInfo.value[0].active)
+		assertFalse("bash" in tools.activeTools.value)
 	}
 	// endregion
 }

@@ -25,6 +25,7 @@ import io.github.autotweaker.core.TestServices
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -117,11 +118,14 @@ class ToolAssemblerTest {
 		return tool as Tool<ToolArgs>
 	}
 	
-	private suspend fun activeInfo(tools: List<Tool<ToolArgs>>) =
-		tools.map { Tools.buildToolInfo(it, true) }
-	
 	private fun assemble(tools: List<Tool<ToolArgs>>) = runBlocking {
-		ToolAssembler.assemble(tools, activeInfo(tools))
+		val metaCache = Tools.cacheMeta(tools.associate { it.meta().first.name to it })
+		ToolAssembler.assemble(metaCache) { true }
+	}
+	
+	private fun assembleWithTool(tool: Tool<ToolArgs>) = runBlocking {
+		val metaCache = Tools.cacheMeta(mapOf(tool.meta().first.name to tool))
+		ToolAssembler.assemble(metaCache) { true }
 	}
 	
 	// endregion
@@ -130,7 +134,7 @@ class ToolAssemblerTest {
 	
 	@Test
 	fun `empty tools returns null`() = runBlocking {
-		val result = ToolAssembler.assemble(emptyList(), emptyList())
+		val result = ToolAssembler.assemble(emptyMap()) { true }
 		assertNull(result)
 	}
 	
@@ -279,11 +283,12 @@ class ToolAssemblerTest {
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `boolean property has type boolean`() = runBlocking {
 		@Serializable
 		data class Args(val flag: Boolean) : ToolArgs
 		
-		val tool = mockk<Tool<Args>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -294,24 +299,20 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			Args.serializer()
+			Args.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		assertEquals("boolean", props["flag"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `array property has type array with items`() = runBlocking {
 		@Serializable
 		data class Args(val items: List<String>) : ToolArgs
 		
-		val tool = mockk<Tool<Args>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -322,14 +323,9 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			Args.serializer()
+			Args.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val items = props["items"]?.jsonObject!!
 		assertEquals("array", items["type"]?.jsonPrimitive?.content)
@@ -337,11 +333,12 @@ class ToolAssemblerTest {
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `map property has type object with additionalProperties`() = runBlocking {
 		@Serializable
 		data class Args(val config: Map<String, Int>) : ToolArgs
 		
-		val tool = mockk<Tool<Args>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -349,7 +346,7 @@ class ToolAssemblerTest {
 						"run", "d", listOf(
 							ToolMeta.Prop(
 								"config",
-								ToolMeta.Type.TMap(ToolMeta.Type.TString, ToolMeta.Type.TInt),
+								ToolMeta.Type.TMap(ToolMeta.Type.TInt),
 								true,
 								"desc"
 							)
@@ -357,14 +354,9 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			Args.serializer()
+			Args.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val config = props["config"]?.jsonObject!!
 		assertEquals("object", config["type"]?.jsonPrimitive?.content)
@@ -372,11 +364,12 @@ class ToolAssemblerTest {
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `nested sealed property produces oneOf schema`() = runBlocking {
 		@Serializable
 		data class Args(val inner: Inner) : ToolArgs
 		
-		val tool = mockk<Tool<Args>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -402,14 +395,9 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			Args.serializer()
+			Args.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val inner = props["inner"]?.jsonObject!!
 		assertEquals("object", inner["type"]?.jsonPrimitive?.content)
@@ -425,11 +413,12 @@ class ToolAssemblerTest {
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `number property has type number`() = runBlocking {
 		@Serializable
 		data class Args(val ratio: Double) : ToolArgs
 		
-		val tool = mockk<Tool<Args>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -440,24 +429,20 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			Args.serializer()
+			Args.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		assertEquals("number", props["ratio"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `object property has type object with properties`() = runBlocking {
 		@Serializable
 		data class Args(val nested: Nested) : ToolArgs
 		
-		val tool = mockk<Tool<Args>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -475,14 +460,9 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			Args.serializer()
+			Args.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
 		val nested = props["nested"]?.jsonObject!!
 		assertEquals("object", nested["type"]?.jsonPrimitive?.content)
@@ -516,11 +496,12 @@ class ToolAssemblerTest {
 	// region edge cases
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `tool with no required fields still has reason in required`() = runBlocking {
 		@Serializable
 		data class AllOptional(val x: String = "default") : ToolArgs
 		
-		val tool = mockk<Tool<AllOptional>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -531,14 +512,9 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			AllOptional.serializer()
+			AllOptional.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val required = result!![0].parameters.jsonObject["required"]?.jsonArray
 		val requiredNames = required!!.map { it.jsonPrimitive.content }
 		assertEquals(1, requiredNames.size)
@@ -546,11 +522,12 @@ class ToolAssemblerTest {
 	}
 	
 	@Test
+	@Suppress("UNCHECKED_CAST")
 	fun `tool with all required fields includes all plus reason`() = runBlocking {
 		@Serializable
 		data class AllRequired(val a: String, val b: Int) : ToolArgs
 		
-		val tool = mockk<Tool<AllRequired>>()
+		val tool = mockk<Tool<ToolArgs>>()
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				"t", "d", listOf(
@@ -562,14 +539,9 @@ class ToolAssemblerTest {
 					)
 				)
 			),
-			AllRequired.serializer()
+			AllRequired.serializer() as KSerializer<ToolArgs>,
 		)
-		
-		val result = @Suppress("UNCHECKED_CAST")
-		ToolAssembler.assemble(
-			listOf(tool as Tool<ToolArgs>),
-			listOf(Tools.buildToolInfo(tool as Tool<ToolArgs>, true)),
-		)
+		val result = assembleWithTool(tool)
 		val required = result!![0].parameters.jsonObject["required"]?.jsonArray
 		val requiredNames = required!!.map { it.jsonPrimitive.content }.toSet()
 		assertTrue(requiredNames.contains("a"))

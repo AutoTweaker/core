@@ -26,7 +26,8 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.tool.toolFail
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.tool.ToolInfo
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolOutput
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -35,6 +36,7 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,22 +47,56 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.util.*
+import kotlin.reflect.KClass
 import kotlin.time.Clock
 
 class Tools(
-	toolInfo: List<ToolInfo>,
-	private val tools: List<Tool<*>>,
-	private val agentId: UUID
+	private val tools: ToolMap,
+	activeTools: Set<String>,
+	private val agentId: UUID,
 ) : Loggable, Traceable, Settable {
+	private val _activeTools = MutableStateFlow(activeTools)
+	val activeTools: StateFlow<Set<String>> = _activeTools.asStateFlow()
 	
-	private val _toolInfo = MutableStateFlow(toolInfo)
-	val toolInfo: StateFlow<List<ToolInfo>> = _toolInfo.asStateFlow()
-	
-	private val validator: ToolCallParser = ToolCallParser()
+	private val validator = ToolCallParser()
 	
 	fun activate(toolName: String, active: Boolean) {
-		_toolInfo.update { list -> list.map { if (it.name == toolName) it.copy(active = active) else it } }
-		log.debug("Changed tool activation  tool={}  active={}  agentId={}", toolName, active, agentId)
+		_activeTools.update { all ->
+			if (active) all + toolName else all.filterNot { it == toolName }.toSet()
+		}
+		log.debug("Changed tool activation  tool={}  activeTools={}  agentId={}", toolName, _activeTools.value, agentId)
+	}
+	
+	
+	fun resolveToolCall(
+		call: ChatMessage.AssistantMessage.ToolCall,
+	): ToolCallResolveResult {
+		val meta = metaCache[call.name]?.first
+		if (meta != null && !active(call.name)) {
+			val message = setting(AgentToolSettings.ActiveMessage()).format(
+				meta.functions.joinToString(", ") { "${meta.name}-${it.name}" },
+				meta.name
+			)
+			
+			return ToolCallResolveResult.Activation(message).andLog(log) {
+				debug(
+					"Resolved tool activation  agentId={}  callId={}  tool={}", agentId, call.id, call.name
+				)
+			}
+		}
+		val result = validator.validate(
+			call.name, call.arguments, call.id, metaCache
+		)
+		return when (result) {
+			is ToolCallParser.ValidationResult.Success -> ToolCallResolveResult.NeedsApproval(result)
+			is ToolCallParser.ValidationResult.Failure -> ToolCallResolveResult.ParseFailure(result.errorMessage)
+		}
+	}
+	
+	suspend fun assembleTools(): List<ChatRequest.Tool>? {
+		//缓存meta，此处为请求LLM前，确保每次请求前刷新
+		metaCache = cacheMeta(tools)
+		return ToolAssembler.assemble(metaCache, ::active)
 	}
 	
 	suspend fun executeTool(
@@ -71,33 +107,28 @@ class Tools(
 		truncation: TruncationService,
 		onToolOutput: (RuntimeOutput) -> Unit,
 	): RuntimeContext.Message.Tool.Result {
-		val tool = tools.first { it.meta().first.name == toolName }
-		check(_toolInfo.value.first { it.name == tool.meta().first.name }.active)
+		val tool = requireNotNull(tools[toolName])
+		check(active(toolName))
 		
 		log.info("Started tool execution  agentId={}  tool={}", agentId, toolName)
 		
 		val outputChannel = Channel<Tool.RuntimeOutput>(Channel.UNLIMITED)
 		val output = supervisorScope {
-			val drainJob = launch {
-				for ((content, _) in outputChannel) {
-					onToolOutput(RuntimeOutput.Tool(ToolOutput(toolName, callId, content)))
+			launch {
+				outputChannel.consumeEach {
+					onToolOutput(RuntimeOutput.Tool(ToolOutput(toolName, callId, it.content, it.type)))
 				}
 			}
-			val result = trace.catching {
-				@Suppress("UNCHECKED_CAST")
+			trace.catching {
 				when (tool) {
-					is CoreTool -> (tool as CoreTool<ToolArgs>).coreExec(provider, arguments, outputChannel)
-					else -> (tool as Tool<ToolArgs>).execute(arguments, outputChannel)
+					is CoreTool<ToolArgs> -> tool.coreExec(provider, arguments, outputChannel)
+					is Tool<ToolArgs> -> tool.execute(arguments, outputChannel)
 				}
-			}.also { outputChannel.close() }
-				.rethrow<SecretStoreLockedException>()
-				.rethrowCancellation()
+			}.also { outputChannel.close() }.rethrow<SecretStoreLockedException>().rethrowCancellation()
 				.getOrElse { e ->
 					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
 					(e.message ?: "Unknown error").toolFail()
 				}
-			drainJob.join()
-			return@supervisorScope result
 		}
 		
 		return RuntimeContext.Message.Tool.Result(
@@ -106,77 +137,38 @@ class Tools(
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,
 		).andLog(log) {
 			debug(
-				"Completed tool execution  agentId={}  tool={}  success={}",
-				agentId,
-				toolName,
-				output.success
+				"Completed tool execution  agentId={}  tool={}  success={}", agentId, toolName, output.success
 			)
 		}
 	}
 	
-	suspend fun resolveToolCall(
-		call: ChatMessage.AssistantMessage.ToolCall,
-	): ToolCallResolveResult {
-		if (_toolInfo.value.any { !it.active && it.name == call.name }) {
-			val tool = tools.first { it.meta().first.name == call.name }
-			val (meta, _) = tool.meta()
-			val message = setting(AgentToolSettings.ActiveMessage())
-				.format(meta.functions.joinToString(", ") { "${meta.name}-${it.name}" }, meta.name)
-			
-			return ToolCallResolveResult.Activation(message)
-				.andLog(log) {
-					debug(
-						"Resolved tool activation  agentId={}  callId={}  tool={}",
-						agentId, call.id, call.name
-					)
-				}
-		}
+	private fun active(name: String): Boolean = name in _activeTools.value
+	
+	companion object {
+		private var metaCache: MetaCache = mapOf()
+		private val toolNameCache = mutableMapOf<KClass<*>, String>()
 		
-		val activeTools = tools.filter { tool ->
-			_toolInfo.value.any { info ->
-				info.name == tool.meta().first.name && info.active
+		fun serializeValidatedArgs(toolName: String, args: ToolArgs): JsonElement =
+			Json.encodeToJsonElement(requireNotNull(metaCache[toolName]).second, args)
+		
+		fun deserializeValidatedArgs(toolName: String, args: JsonElement): ToolArgs =
+			Json.decodeFromJsonElement(requireNotNull(metaCache[toolName]).second, args)
+		
+		fun <T : ToolArgs> deserializeValidatedArgs(
+			deserializer: KSerializer<T>, args: JsonElement
+		): T = Json.decodeFromJsonElement(deserializer, args)
+		
+		suspend fun cacheMeta(tools: ToolMap): MetaCache = buildMap {
+			tools.forEach {
+				set(it.key, it.value.meta())
 			}
 		}
 		
-		when (val result = validator.validate(call.name, call.arguments, call.id, activeTools)) {
-			is ToolCallParser.ValidationResult.Success ->
-				return ToolCallResolveResult.NeedsApproval(result)
-					.andLog(log) {
-						debug(
-							"Resolved tool call  agentId={}  callId={}  tool={}",
-							agentId, call.id, call.name
-						)
-					}
-			
-			is ToolCallParser.ValidationResult.Failure ->
-				return ToolCallResolveResult.ParseFailure(result.errorMessage)
-					.andLog(log) {
-						debug(
-							"Failed to resolve tool call  agentId={}  callId={}  tool={}",
-							agentId,
-							call.id,
-							call.name
-						)
-					}
-		}
-	}
-	
-	suspend fun assembleTools() =
-		ToolAssembler.assemble(tools, _toolInfo.value)
-	
-	suspend fun serializeValidatedArgs(toolName: String, args: ToolArgs): JsonElement {
-		val tool = requireNotNull(tools.find { it.meta().first.name == toolName })
-		val (_, serializer) = tool.meta()
-		@Suppress("UNCHECKED_CAST")
-		return Json.encodeToJsonElement(serializer as KSerializer<ToolArgs>, args)
-	}
-	
-	companion object {
-		suspend fun buildToolInfo(tool: Tool<*>, active: Boolean): ToolInfo {
-			val (meta, _) = tool.meta()
-			return ToolInfo(
-				meta.name, meta.description, meta.functions.map { it.name }, active
-			)
-		}
+		fun getMetaCache(): Map<String, ToolMeta>? = metaCache.orNull()?.mapValues { it.value.first }
+		
+		suspend fun <T : ToolArgs> Tool<T>.name() =
+			toolNameCache[this::class] ?: meta().first.name.also {
+				toolNameCache[this::class] = it
+			}
 	}
 }

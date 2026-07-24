@@ -20,8 +20,17 @@ package io.github.autotweaker.api.types.llm
 
 import kotlinx.serialization.Serializable
 
+/**
+ * LLM 花费信息。
+ */
 @Serializable
 data class UsageSnapshot(
+	/**
+	 * 大模型 api 返回的花费数据。
+	 */
 	val usage: Usage,
+	/**
+	 * 产生花费时模型元数据快照，确保即使模型被删除或定价变动，用量信息依然能够准确计算。
+	 */
 	val model: ModelData.ModelInfo,
 )

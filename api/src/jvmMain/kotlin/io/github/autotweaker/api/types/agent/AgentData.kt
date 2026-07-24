@@ -30,5 +30,5 @@ data class AgentData(
 	val name: KebabCase,
 	val model: ModelConfig,
 	val context: AgentContext,
-	val activeTools: List<String>,
+	val activeTools: Set<String>,
 )

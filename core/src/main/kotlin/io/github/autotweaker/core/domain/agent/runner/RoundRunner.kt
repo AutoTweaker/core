@@ -84,7 +84,7 @@ class RoundRunner(
 	)
 	private val roundCtx = RoundContext(ctx, ToolResultFactory())
 	
-	fun start() = also {
+	init {
 		scope.launch { workLoop() }
 	}
 	
@@ -247,17 +247,16 @@ class RoundRunner(
 		if (history.isEmpty()) return
 		val allCalls = history.flatMap { round ->
 			round.turns?.flatMap { turn ->
-				turn.tools.map {
-					it.name.substringBefore("-")
+				turn.tools.mapNotNull {
+					it.call.validatedToolName
 				}
 			}.orEmpty()
 		}
 		if (allCalls.size < threshold) return
 		val recentNames = allCalls.takeLast(threshold).toSet()
 		
-		tools.toolInfo.value.filter { it.active }.forEach { info ->
-			if (info.name !in recentNames)
-				tools.activate(info.name, false)
+		tools.activeTools.value.forEach {
+			if (it !in recentNames) tools.activate(it, false)
 		}
 	}
 	

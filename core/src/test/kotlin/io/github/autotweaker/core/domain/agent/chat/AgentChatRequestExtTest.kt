@@ -80,8 +80,8 @@ class AgentChatRequestExtTest {
 	
 	private fun toolResult() =
 		RuntimeContext.Message.Tool(
-			name = "read",
 			call = RuntimeContext.Message.Tool.Call(
+				callName = "read",
 				arguments = "{}",
 				timestamp = Clock.System.now(),
 				validatedArgs = JsonPrimitive("{}"),
@@ -245,10 +245,11 @@ class AgentChatRequestExtTest {
 		val pending = listOf(
 			RuntimeContext.CurrentRound.PendingToolCall(
 				callId = "id1",
-				name = "read",
+				callName = "read",
 				arguments = "{}",
 				reason = "test",
 				timestamp = Clock.System.now(),
+				validatedToolName = "read",
 				validatedArgs = JsonPrimitive("{}"),
 			)
 		)

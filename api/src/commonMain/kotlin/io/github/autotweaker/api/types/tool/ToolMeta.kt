@@ -60,7 +60,7 @@ data class ToolMeta(
 		
 		data class TList(val element: Type) : Type
 		
-		data class TMap(val key: Type, val value: Type) : Type
+		data class TMap(val element: Type) : Type
 		
 		data object TString : Type
 		data object TInt : Type

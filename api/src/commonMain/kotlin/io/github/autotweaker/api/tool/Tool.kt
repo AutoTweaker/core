@@ -35,7 +35,9 @@ import kotlinx.serialization.KSerializer
  */
 interface Tool<Args : ToolArgs> {
 	/**
-	 * 应该使用插件生成的 builder 来构造 [ToolMeta]。
+	 * 应该委托给插件生成的 builder 来构造 `Pair<ToolMeta, KSerializer<Args>>`。
+	 *
+	 * 此方法的返回值会被 AutoTweaker 缓存，并仅在新 Agent 创建或请求 LLM 前刷新，避免频繁 I/O。
 	 */
 	suspend fun meta(): Pair<ToolMeta, KSerializer<Args>>
 	

@@ -99,7 +99,7 @@ class ToolCallingStage(
 						val elapsed = startTime.elapsedNow().inWholeSeconds
 						log.warn(
 							"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}s",
-							agentId, call.pendingCall.name, elapsed
+							agentId, call.pendingCall.validatedToolName, elapsed
 						)
 						buildToolResult(timeoutMessage.format(elapsed), ToolResultStatus.TIMEOUT)
 					}
@@ -108,13 +108,18 @@ class ToolCallingStage(
 						log.debug(
 							"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
 							agentId,
-							call.pendingCall.name
+							call.pendingCall.validatedToolName
 						)
 						buildToolResult(cancelledMessage, ToolResultStatus.CANCELLED)
 					}
 					
 					else -> {
-						log.error("Failed tool execution  agentId={}  tool={}", agentId, call.pendingCall.name, e)
+						log.error(
+							"Failed tool execution  agentId={}  tool={}",
+							agentId,
+							call.pendingCall.validatedToolName,
+							e
+						)
 						buildToolResult(e.message ?: "Tool execution failed", ToolResultStatus.FAILURE)
 					}
 				}

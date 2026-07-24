@@ -105,9 +105,10 @@ class AgentContextBuilder(
 			id = call.id,
 			timestamp = call.timestamp,
 			callId = callId,
-			name = name,
+			callName = call.callName,
 			arguments = call.arguments,
 			reason = call.reason,
+			validatedToolName = call.validatedToolName,
 			validatedArgs = call.validatedArgs
 		).add()
 	
@@ -125,9 +126,10 @@ class AgentContextBuilder(
 			id = id,
 			timestamp = timestamp,
 			callId = callId,
-			name = name,
+			callName = callName,
 			arguments = arguments,
 			reason = reason,
+			validatedToolName = validatedToolName,
 			validatedArgs = validatedArgs
 		).add()
 	

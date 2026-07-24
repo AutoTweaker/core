@@ -36,7 +36,7 @@ internal class ArgsCodeGen(
 	private val runtimeType = ClassName("io.github.autotweaker.api.types.tool", "ToolMeta", "Type")
 	
 	private val fileSuppress by lazy {
-		AnnotationSpec.builder(ClassName("kotlin", "Suppress"))
+		AnnotationSpec.builder(Suppress::class.asTypeName())
 			.addMember("%S, %S, %S", "RedundantVisibilityModifier", "RemoveRedundantBackticks", "unused")
 			.useSiteTarget(AnnotationSpec.UseSiteTarget.FILE).build()
 	}
@@ -69,7 +69,7 @@ internal class ArgsCodeGen(
 	
 	private fun generateDescriptions(outputDir: Path) {
 		val root = TypeSpec.classBuilder("${namePascal}MetaDescriptions").addModifiers(KModifier.DATA)
-		val strType = ClassName("kotlin", "String")
+		val strType = STRING
 		val constructor = FunSpec.constructorBuilder()
 		constructor.addParameter("toolDescription", strType)
 		root.addProperty(PropertySpec.builder("toolDescription", strType).initializer("toolDescription").build())
@@ -80,7 +80,7 @@ internal class ArgsCodeGen(
 		for ((name, parameters) in meta.functions) {
 			val funcType = ClassName(toolPackage, "${namePascal}MetaDescriptions", "Functions", name.toPascalCase())
 			funcsSpec.addType(funcDescClass(funcType, parameters))
-			val pairType = ClassName("kotlin", "Pair").parameterizedBy(funcType, strType)
+			val pairType = Pair::class.asTypeName().parameterizedBy(funcType, strType)
 			funcsCtor.addParameter(name.toCamelCase(), pairType)
 			funcsSpec.addProperty(
 				PropertySpec.builder(name.toCamelCase(), pairType).initializer(name.toCamelCase()).build()
@@ -119,8 +119,9 @@ internal class ArgsCodeGen(
 			.build().writeTo(outputDir)
 	}
 	
-	private fun funcDescClass(typeName: ClassName, parameters: List<ToolMeta.Prop>): TypeSpec =
-		variantDescClass(typeName, parameters)
+	private fun funcDescClass(
+		typeName: ClassName, parameters: List<ToolMeta.Prop>
+	): TypeSpec = variantDescClass(typeName, parameters)
 	
 	private fun addSerializableProps(target: TypeSpec.Builder, ctor: FunSpec.Builder, properties: List<ToolMeta.Prop>) {
 		for ((snakeName, type, required) in properties) {
@@ -130,88 +131,87 @@ internal class ArgsCodeGen(
 				ctor.addParameter(propName, kt)
 				target.addProperty(
 					PropertySpec.builder(propName, kt).initializer(propName)
-						.addAnnotation(AnnotationSpec.builder(SerialName).addMember("%S", snakeName).build()).build()
+						.addAnnotation(
+							AnnotationSpec.builder(SerialName).addMember("%S", snakeName)
+								.build()
+						).build()
 				)
 			} else {
 				val pt = kt.copy(nullable = true)
 				ctor.addParameter(ParameterSpec.builder(propName, pt).defaultValue("null").build())
 				target.addProperty(
 					PropertySpec.builder(propName, pt).initializer(propName)
-						.addAnnotation(AnnotationSpec.builder(SerialName).addMember("%S", snakeName).build()).build()
+						.addAnnotation(
+							AnnotationSpec.builder(SerialName).addMember("%S", snakeName)
+								.build()
+						).build()
 				)
 			}
 		}
 	}
 	
 	private fun generateMetaBuilder(outputDir: Path) {
-		val code = CodeBlock.builder()
-		code.add("return Pair(%T(\n", runtimeMeta)
-		code.indent()
-		code.add("name = %S,\n", meta.name)
-		code.add("description = descriptions.toolDescription,\n")
-		code.add("functions = listOf(\n")
-		code.indent()
-		for ((name, parameters) in meta.functions) {
-			code.add(functionBlock(name, parameters))
-			code.add(",\n")
+		val code = buildCodeBlock {
+			block("return Pair") {
+				block("%T", runtimeMeta) {
+					add("name = %S,\n", meta.name)
+					add("description = descriptions.toolDescription,\n")
+					block("functions = listOf") {
+						for ((name, parameters) in meta.functions) {
+							add(functionBlock(name, parameters))
+							add(",\n")
+						}
+					}
+				}
+				add(", %T.serializer()", argsType)
+			}
 		}
-		code.unindent()
-		code.add(")\n")
-		code.unindent()
-		code.add("), %T.serializer())\n", argsType)
 		
-		val functionSpec = FunSpec.builder("${meta.name.toCamelCase()}Meta").addParameter("descriptions", metaType)
-			.returns(
-				ClassName("kotlin", "Pair").parameterizedBy(
-					runtimeMeta,
-					ClassName("kotlinx.serialization", "KSerializer").parameterizedBy(argsType)
+		val functionSpec =
+			FunSpec.builder("${meta.name.toCamelCase()}Meta").addParameter("descriptions", metaType).returns(
+				Pair::class.asTypeName().parameterizedBy(
+					runtimeMeta, ClassName("kotlinx.serialization", "KSerializer").parameterizedBy(argsType)
 				)
-			).addCode(code.build()).build()
+			).addCode(code).build()
 		
 		FileSpec.builder(toolPackage, "${namePascal}MetaBuilder").addAnnotation(fileSuppress).addFunction(functionSpec)
 			.build().writeTo(outputDir)
 	}
 	
-	private fun functionBlock(name: String, parameters: List<ToolMeta.Prop>): CodeBlock = CodeBlock.builder().apply {
+	private fun functionBlock(name: String, parameters: List<ToolMeta.Prop>): CodeBlock = buildCodeBlock {
 		val desc = "descriptions.functions.${name.toCamelCase()}"
-		add("%T(\n", runtimeFunction)
-		indent()
-		add("name = %S,\n", name)
-		add("description = $desc.second,\n")
-		add("parameters = listOf(\n")
-		indent()
-		for ((snakeName, type, required) in parameters) {
-			add(propBlock(snakeName, type, required, "$desc.first.${snakeName.toCamelCase()}"))
-			add(",\n")
+		block("%T", runtimeFunction) {
+			add("name = %S,\n", name)
+			add("description = $desc.second,\n")
+			block("parameters = listOf") {
+				for ((snakeName, type, required) in parameters) {
+					add(propBlock(snakeName, type, required, "$desc.first.${snakeName.toCamelCase()}"))
+					add(",\n")
+				}
+			}
 		}
-		unindent()
-		add(")\n")
-		unindent()
-		add(")")
-	}.build()
+	}
 	
 	private fun propBlock(
 		snakeName: String, type: ToolMeta.Type, required: Boolean, descriptionCall: String
-	): CodeBlock = CodeBlock.builder().apply {
-		add("%T(\n", runtimeProp)
-		indent()
-		add("name = %S,\n", snakeName)
-		add("type = %L,\n", type.toMetaTypeBlock())
-		add("required = %L,\n", required)
-		add("description = $descriptionCall,\n")
-		unindent()
-		add(")")
-	}.build()
+	): CodeBlock = buildCodeBlock {
+		block("%T", runtimeProp) {
+			add("name = %S,\n", snakeName)
+			add("type = %L,\n", type.toMetaTypeBlock())
+			add("required = %L,\n", required)
+			add("description = $descriptionCall,\n")
+		}
+	}
 	
 	private fun ToolMeta.Type.toKotlinType(): TypeName = when (this) {
-		is ToolMeta.Type.TString -> ClassName("kotlin", "String")
-		is ToolMeta.Type.TInt -> ClassName("kotlin", "Int")
-		is ToolMeta.Type.TLong -> ClassName("kotlin", "Long")
-		is ToolMeta.Type.TDouble -> ClassName("kotlin", "Double")
-		is ToolMeta.Type.TBoolean -> ClassName("kotlin", "Boolean")
-		is ToolMeta.Type.TList -> ClassName("kotlin.collections", "List").parameterizedBy(element.toKotlinType())
-		is ToolMeta.Type.TMap -> ClassName("kotlin.collections", "Map").parameterizedBy(
-			key.toKotlinType(), value.toKotlinType()
+		is ToolMeta.Type.TString -> STRING
+		is ToolMeta.Type.TInt -> INT
+		is ToolMeta.Type.TLong -> LONG
+		is ToolMeta.Type.TDouble -> DOUBLE
+		is ToolMeta.Type.TBoolean -> BOOLEAN
+		is ToolMeta.Type.TList -> LIST.parameterizedBy(element.toKotlinType())
+		is ToolMeta.Type.TMap -> MAP.parameterizedBy(
+			ToolMeta.Type.TString.toKotlinType(), element.toKotlinType()
 		)
 		
 		is ToolMeta.Type.OneOf -> ClassName(argsPackage, name.toPascalCase())
@@ -227,9 +227,7 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.TDouble -> CodeBlock.of("%T.TDouble", runtimeType)
 		is ToolMeta.Type.TBoolean -> CodeBlock.of("%T.TBoolean", runtimeType)
 		is ToolMeta.Type.TList -> CodeBlock.of("%T.TList(%L)", runtimeType, element.toMetaTypeBlock())
-		is ToolMeta.Type.TMap -> CodeBlock.of(
-			"%T.TMap(%L, %L)", runtimeType, key.toMetaTypeBlock(), value.toMetaTypeBlock()
-		)
+		is ToolMeta.Type.TMap -> CodeBlock.of("%T.TMap(%L)", runtimeType, element.toMetaTypeBlock())
 		
 		is ToolMeta.Type.OneOf -> oneOfBlock(this)
 		is ToolMeta.Type.Obj -> objBlock(this)
@@ -240,61 +238,49 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.Builtin, is ToolMeta.Type.Declared -> unreachable()
 	}
 	
-	private fun oneOfBlock(oneOf: ToolMeta.Type.OneOf): CodeBlock = CodeBlock.builder().apply {
-		add("%T.OneOf(\n", runtimeType)
-		indent()
-		add("name = %S,\n", oneOf.name)
-		add("variants = listOf(\n")
-		indent()
-		for ((variantName, properties) in oneOf.variants) {
-			add(variantBlock(oneOf.name, variantName, properties))
-			add(",\n")
-		}
-		unindent()
-		add(")\n")
-		unindent()
-		add(")")
-	}.build()
-	
-	private fun variantBlock(oneOfName: String, variantName: String, properties: List<ToolMeta.Prop>): CodeBlock =
-		CodeBlock.builder().apply {
-			val vt = runtimeMeta.nestedClass("Type").nestedClass("OneOf").nestedClass("Variant")
-			val desc = "descriptions.types.${oneOfName.toCamelCase()}.${variantName.toCamelCase()}"
-			add("%T(\n", vt)
-			indent()
-			add("name = %S,\n", variantName)
-			val empty = properties.isEmpty()
-			add("description = ${if (empty) desc else "$desc.second"},\n")
-			add("properties = listOf(\n")
-			indent()
-			if (!empty) {
-				for ((snakeName, type, required) in properties) {
-					add(propBlock(snakeName, type, required, "$desc.first.${snakeName.toCamelCase()}"))
+	private fun oneOfBlock(oneOf: ToolMeta.Type.OneOf): CodeBlock = buildCodeBlock {
+		block("%T.OneOf", runtimeType) {
+			add("name = %S,\n", oneOf.name)
+			block("variants = listOf") {
+				for ((variantName, properties) in oneOf.variants) {
+					add(variantBlock(oneOf.name, variantName, properties))
 					add(",\n")
 				}
 			}
-			unindent()
-			add(")\n")
-			unindent()
-			add(")")
-		}.build()
-	
-	private fun objBlock(obj: ToolMeta.Type.Obj): CodeBlock = CodeBlock.builder().apply {
-		val desc = "descriptions.types.${obj.name.toCamelCase()}"
-		add("%T.Obj(\n", runtimeType)
-		indent()
-		add("name = %S,\n", obj.name)
-		add("properties = listOf(\n")
-		indent()
-		for ((snakeName, type, required) in obj.properties) {
-			add(propBlock(snakeName, type, required, "$desc.${snakeName.toCamelCase()}"))
-			add(",\n")
 		}
-		unindent()
-		add(")\n")
-		unindent()
-		add(")")
-	}.build()
+	}
+	
+	private fun variantBlock(oneOfName: String, variantName: String, properties: List<ToolMeta.Prop>): CodeBlock =
+		buildCodeBlock {
+			val vt = runtimeMeta.nestedClass("Type").nestedClass("OneOf").nestedClass("Variant")
+			val desc = "descriptions.types.${oneOfName.toCamelCase()}.${variantName.toCamelCase()}"
+			block("%T", vt) {
+				add("name = %S,\n", variantName)
+				val empty = properties.isEmpty()
+				add("description = ${if (empty) desc else "$desc.second"},\n")
+				block("properties = listOf") {
+					if (!empty) {
+						for ((snakeName, type, required) in properties) {
+							add(propBlock(snakeName, type, required, "$desc.first.${snakeName.toCamelCase()}"))
+							add(",\n")
+						}
+					}
+				}
+			}
+		}
+	
+	private fun objBlock(obj: ToolMeta.Type.Obj): CodeBlock = buildCodeBlock {
+		val desc = "descriptions.types.${obj.name.toCamelCase()}"
+		block("%T.Obj", runtimeType) {
+			add("name = %S,\n", obj.name)
+			block("properties = listOf") {
+				for ((snakeName, type, required) in obj.properties) {
+					add(propBlock(snakeName, type, required, "$desc.${snakeName.toCamelCase()}"))
+					add(",\n")
+				}
+			}
+		}
+	}
 	
 	private fun ToolMeta.Type.Declared.toTopLevelType(): TypeSpec = when (this) {
 		is ToolMeta.Type.OneOf -> TypeSpec.classBuilder(name.toPascalCase()).addModifiers(KModifier.SEALED)
@@ -351,7 +337,7 @@ internal class ArgsCodeGen(
 					val ctor = FunSpec.constructorBuilder()
 					for ((variantName, properties) in variants) {
 						if (properties.isEmpty()) {
-							val strType = ClassName("kotlin", "String")
+							val strType = STRING
 							ctor.addParameter(variantName.toCamelCase(), strType)
 							addProperty(
 								PropertySpec.builder(variantName.toCamelCase(), strType)
@@ -361,7 +347,7 @@ internal class ArgsCodeGen(
 							val variantPascal = variantName.toPascalCase()
 							val variantType = typeName.nestedClass(variantPascal)
 							val pairType =
-								ClassName("kotlin", "Pair").parameterizedBy(variantType, ClassName("kotlin", "String"))
+								Pair::class.asTypeName().parameterizedBy(variantType, STRING)
 							ctor.addParameter(variantName.toCamelCase(), pairType)
 							addProperty(
 								PropertySpec.builder(variantName.toCamelCase(), pairType)
@@ -375,7 +361,7 @@ internal class ArgsCodeGen(
 			}
 			
 			is ToolMeta.Type.Obj -> {
-				val strType = ClassName("kotlin", "String")
+				val strType = STRING
 				TypeSpec.classBuilder(name.toPascalCase()).addModifiers(KModifier.DATA).apply {
 					val ctor = FunSpec.constructorBuilder()
 					for ((snakeName) in properties) {
@@ -389,14 +375,13 @@ internal class ArgsCodeGen(
 				}.build()
 			}
 			
-			is ToolMeta.Type.Enum -> unreachable()
-			else -> error("unsupported")
+			else -> unreachable()
 		}
 	
 	private fun variantDescClass(typeName: ClassName, properties: List<ToolMeta.Prop>): TypeSpec =
 		TypeSpec.classBuilder(typeName.simpleName).addModifiers(KModifier.DATA).apply {
 			val ctor = FunSpec.constructorBuilder()
-			val strType = ClassName("kotlin", "String")
+			val strType = STRING
 			for ((snakeName) in properties) {
 				ctor.addParameter(snakeName.toCamelCase(), strType)
 				addProperty(
@@ -411,7 +396,18 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.Obj -> name
 		is ToolMeta.Type.Enum -> name
 		is ToolMeta.Type.TList, is ToolMeta.Type.TMap -> unreachable()
-		else -> unreachable()
+	}
+	
+	private inline fun CodeBlock.Builder.block(name: String, vararg args: Any?, body: () -> Unit) {
+		add("$name(\n", *args)
+		withIndent(body)
+		add(")")
+	}
+	
+	private inline fun CodeBlock.Builder.withIndent(body: () -> Unit) {
+		indent()
+		body()
+		unindent()
 	}
 	
 	private fun String.toCamelCase() = toCamelCase(this)

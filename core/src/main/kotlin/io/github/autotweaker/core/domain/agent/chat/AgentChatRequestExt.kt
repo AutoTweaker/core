@@ -70,7 +70,7 @@ private fun MutableList<ChatMessage>.addTurn(turn: RuntimeContext.Turn) {
 	val toolCalls = turn.tools.orNull()?.map { tool ->
 		ChatMessage.AssistantMessage.ToolCall(
 			id = tool.callId,
-			name = tool.name,
+			name = tool.call.callName,
 			arguments = tool.call.arguments,
 		)
 	}

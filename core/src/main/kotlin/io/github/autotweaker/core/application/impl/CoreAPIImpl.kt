@@ -21,6 +21,7 @@ package io.github.autotweaker.core.application.impl
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
@@ -33,6 +34,8 @@ import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
+import io.github.autotweaker.api.types.tool.ToolMeta
+import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.EnvRepository
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
@@ -50,6 +53,8 @@ import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Instant
 
@@ -69,20 +74,25 @@ class CoreAPIImpl(
 			SessionManager.create(workspaceId, model)
 		
 		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
-		
 		override suspend fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
 		override suspend fun updateTitle(sessionId: UUID, title: String) = SessionManager.updateTitle(sessionId, title)
-		
-		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
-		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
-		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
-		override suspend fun getUsageSnapshots() = UsageStore.getSnapshots()
-		
+		override fun isContainerRunning(): Boolean = SessionManager.isContainerRunning()
+	}
+	
+	override val workspace = object : CoreAPI.WorkspaceAPI {
 		override suspend fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
 		override suspend fun listWorkspaces() = WorkspaceAPI.list()
-		override fun isContainerRunning(): Boolean = SessionManager.isContainerRunning()
+	}
+	
+	override val tool = object : CoreAPI.ToolAPI {
+		override fun getMeta(): Map<String, ToolMeta>? = Tools.getMetaCache()
+		override fun deserializeArgs(toolName: String, args: JsonElement): ToolArgs =
+			Tools.deserializeValidatedArgs(toolName, args)
+		
+		override fun <T : ToolArgs> deserializeArgs(deserializer: KSerializer<T>, args: JsonElement): T =
+			Tools.deserializeValidatedArgs(deserializer, args)
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
@@ -111,6 +121,13 @@ class CoreAPIImpl(
 		override fun getAllSettings() = Settings.getAllEntries()
 		override fun getSettingDef(id: String) = Settings.getDef(id)
 		override suspend fun setSetting(id: String, value: SettingValue<*>) = Settings.setById(id, value)
+	}
+	
+	override val persistence = object : CoreAPI.PersistenceAPI {
+		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
+		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
+		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
+		override suspend fun getUsageSnapshots() = UsageStore.getSnapshots()
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {

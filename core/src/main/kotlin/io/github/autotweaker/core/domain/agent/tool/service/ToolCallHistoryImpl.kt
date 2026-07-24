@@ -18,47 +18,42 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.tool.Tools
+import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 
-@OptIn(ExperimentalSerializationApi::class)
 class ToolCallHistoryImpl(
 	private val context: RuntimeContext,
-) : ToolCallHistory {
-	override fun <Args : Any> getAll(
-		toolName: String,
+) : ToolCallHistory, Traceable {
+	@Suppress("NestedLambdaShadowedImplicitParameter")
+	override suspend fun <Args : ToolArgs> getAll(
+		self: Tool<Args>,
 		argsSerializer: KSerializer<Args>
-	): List<ToolCallHistory.Entry<Args>> = buildList {
-		for (round in context.historyRounds.orEmpty()) {
-			for (turn in round.turns.orEmpty()) {
-				for (tool in turn.tools) {
-					val args = tryDeserialize(toolName, tool.name, tool.call.validatedArgs ?: continue, argsSerializer)
-						?: continue
-					add(ToolCallHistory.Entry(args, tool.result.content))
+	): List<ToolCallHistory.Entry> = buildList {
+		suspend fun RuntimeContext.Message.Tool.tryDeserialize() =
+			call.validatedArgs?.let {
+				trace.catching { Tools.deserializeValidatedArgs(self.name(), it) }.getOrNull()
+			}?.let { add(ToolCallHistory.Entry(it, result.content)) }
+		
+		context.historyRounds?.forEach {
+			it.turns?.forEach {
+				it.tools.forEach {
+					it.tryDeserialize()
 				}
 			}
 		}
-		for (turn in context.currentRound?.turns.orEmpty()) {
-			for (tool in turn.tools) {
-				val args =
-					tryDeserialize(toolName, tool.name, tool.call.validatedArgs ?: continue, argsSerializer) ?: continue
-				add(ToolCallHistory.Entry(args, tool.result.content))
+		
+		context.currentRound?.turns?.forEach {
+			it.tools.forEach {
+				it.tryDeserialize()
 			}
 		}
-	}
-	
-	private fun <Args : Any> tryDeserialize(
-		expectedToolName: String,
-		callName: String,
-		arguments: JsonElement,
-		argsSerializer: KSerializer<Args>,
-	): Args? {
-		val toolName = callName.substringBefore("-")
-		if (toolName != expectedToolName) return null
-		return Json.decodeFromJsonElement(argsSerializer, arguments)
 	}
 }

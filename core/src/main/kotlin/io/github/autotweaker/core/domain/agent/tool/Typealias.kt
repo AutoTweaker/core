@@ -15,3 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+package io.github.autotweaker.core.domain.agent.tool
+
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.tool.ToolMeta
+import kotlinx.serialization.KSerializer
+
+typealias MetaCache = Map<String, Pair<ToolMeta, KSerializer<ToolArgs>>>
+
+typealias ToolMap = Map<String, Tool<ToolArgs>>

@@ -20,6 +20,7 @@ package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.*
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
@@ -43,9 +44,13 @@ import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
+import io.github.autotweaker.api.types.tool.ToolMeta
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Instant
 
@@ -68,39 +73,15 @@ interface CoreAPI {
 	 */
 	val appVersion: SemVer
 	
-	/**
-	 * @see AdapterAPI
-	 */
 	val adapter: AdapterAPI
-	
-	/**
-	 * @see SessionAPI
-	 */
 	val session: SessionAPI
-	
-	/**
-	 * @see ConfigAPI
-	 */
+	val workspace: WorkspaceAPI
+	val tool: ToolAPI
 	val config: ConfigAPI
-	
-	/**
-	 * @see SecretAPI
-	 */
+	val persistence: PersistenceAPI
 	val secret: SecretAPI
-	
-	/**
-	 * @see I18nAPI
-	 */
 	val i18n: I18nAPI
-	
-	/**
-	 * @see TraceAPI
-	 */
 	val trace: TraceAPI
-	
-	/**
-	 * @see LogAPI
-	 */
 	val log: LogAPI
 	
 	/**
@@ -161,7 +142,9 @@ interface CoreAPI {
 	}
 	
 	/**
-	 * 管理会话、Agent和工作区，AutoTweaker AI 功能的主要 API。
+	 * 管理会话，AutoTweaker AI 功能的主要 API。
+	 *
+	 * @see AgentAPI
 	 */
 	interface SessionAPI {
 		/**
@@ -209,36 +192,17 @@ interface CoreAPI {
 		suspend fun updateTitle(sessionId: UUID, title: String)
 		
 		/**
-		 * 从数据库加载会话数据，找不到不会炸。
+		 * 容器的启停由 AutoTweaker 内部管理，按需自动启动，不需要在调用 api 前检查此值。
 		 *
-		 * [getHandle] 可能会触发会话的实例化，如果只是查数据，请使用此 api。
-		 *
-		 * @return 找不到会话返回 [emptyList]。
+		 * @return AutoTweaker 的容器是否在运行。
 		 */
-		suspend fun loadData(ids: List<UUID>): List<SessionData>
-		
-		/**
-		 * 从数据库加载 agent 数据，找不到返回 null。
-		 *
-		 * agent 数据中索引了上下文中所有消息的 id，请自行通过 [loadMessages] 加载，请按需加载。
-		 */
-		suspend fun loadAgent(id: UUID): AgentData?
-		
-		/**
-		 * 从数据库加载会话消息，请按需加载，找不到不会炸。
-		 *
-		 * @return 找不到消息返回 [emptyList]。
-		 */
-		suspend fun loadMessages(ids: List<UUID>): List<AgentMessage>
-		
-		/**
-		 * 获取历史的全部 Usage。
-		 *
-		 * @return key 为消息 id，value 为 [UsageSnapshot]，可以通过 [loadMessages] 反查对应消息。
-		 * @see UsageSnapshot
-		 */
-		suspend fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
-		
+		fun isContainerRunning(): Boolean
+	}
+	
+	/**
+	 * 用于管理工作区的 API。
+	 */
+	interface WorkspaceAPI {
 		/**
 		 * 创建一个新的工作区。
 		 *
@@ -268,13 +232,35 @@ interface CoreAPI {
 		 * 获取全部已有工作区的数据。
 		 */
 		suspend fun listWorkspaces(): List<WorkspaceData>
+	}
+	
+	/**
+	 * 查询工具属性或处理工具参数。
+	 */
+	interface ToolAPI {
+		/**
+		 * 从内存中获取所有工具的属性，不会调用 [io.github.autotweaker.api.tool.Tool.meta]。
+		 *
+		 * 所有工具的属性都会被缓存，并仅在新 Agent 创建或请求 LLM 前刷新。
+		 */
+		fun getMeta(): Map<String, ToolMeta>?
 		
 		/**
-		 * 容器的启停由 AutoTweaker 内部管理，按需自动启动，不需要在调用 api 前检查此值。
+		 * 用于反序列化 [AgentMessage.Tool.Call.validatedArgs]，得到解析后的请求数据类。
 		 *
-		 * @return AutoTweaker 的容器是否在运行。
+		 * AutoTweaker 会从内存中寻找 [toolName] 对应的实例，若对应工具所属插件未被加载，会抛出异常。
+		 *
+		 * @throws IllegalArgumentException 未知的 [toolName]
+		 * @throws SerializationException 反序列化错误，如果 [args] 来自 [AgentMessage.Tool.Call.validatedArgs]，通常不会触发，除非工具格式发生了变更，而 [AgentMessage.Tool.Call] 使用旧的格式
 		 */
-		fun isContainerRunning(): Boolean
+		fun deserializeArgs(toolName: String, args: JsonElement): ToolArgs
+		
+		/**
+		 * 用于反序列化 [AgentMessage.Tool.Call.validatedArgs]，适用于已知工具参数类型，可以拿到序列化器时。
+		 *
+		 * @throws SerializationException 反序列化错误，如果 [args] 来自 [AgentMessage.Tool.Call.validatedArgs]，通常不会触发，除非工具格式发生了变更，而 [AgentMessage.Tool.Call] 使用旧的格式
+		 */
+		fun <T : ToolArgs> deserializeArgs(deserializer: KSerializer<T>, args: JsonElement): T
 	}
 	
 	/**
@@ -441,6 +427,44 @@ interface CoreAPI {
 		 * 列出所有 api key 的名称（不是值）。
 		 */
 		suspend fun listApiKey(): List<String>
+	}
+	
+	/**
+	 * 读取持久化数据的 API。
+	 *
+	 * 其他关于持久化的内容分布在 [ConfigAPI] 和 [WorkspaceAPI] 等专用 API。
+	 */
+	interface PersistenceAPI {
+		/**
+		 * 从数据库加载会话数据，找不到不会炸。
+		 *
+		 * [SessionAPI.getHandle] 可能会触发会话的实例化，如果只是查数据，请使用此 api。
+		 *
+		 * @return 找不到会话返回 [emptyList]。
+		 */
+		suspend fun loadData(ids: List<UUID>): List<SessionData>
+		
+		/**
+		 * 从数据库加载 agent 数据，找不到返回 null。
+		 *
+		 * agent 数据中索引了上下文中所有消息的 id，请自行通过 [loadMessages] 加载，请按需加载。
+		 */
+		suspend fun loadAgent(id: UUID): AgentData?
+		
+		/**
+		 * 从数据库加载会话消息，请按需加载，找不到不会炸。
+		 *
+		 * @return 找不到消息返回 [emptyList]。
+		 */
+		suspend fun loadMessages(ids: List<UUID>): List<AgentMessage>
+		
+		/**
+		 * 获取历史的全部 Usage。
+		 *
+		 * @return key 为消息 id，value 为 [UsageSnapshot]，可以通过 [loadMessages] 反查对应消息。
+		 * @see UsageSnapshot
+		 */
+		suspend fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
 	}
 	
 	/**

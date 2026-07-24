@@ -24,6 +24,8 @@ import io.github.autotweaker.api.types.Sha256
  * 基于 H2 数据库，内容寻址的对象存储服务，适用于存储二进制数据。
  *
  * 所有数据都会被存储到 `Objects` 数据库的 `objects` 表，并通过 SHA-256 去重。
+ *
+ * 不具备自动清理机制，也不支持删除数据。
  */
 interface ObjectStorage {
 	/**

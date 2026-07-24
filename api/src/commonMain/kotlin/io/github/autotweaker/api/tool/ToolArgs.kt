@@ -18,8 +18,6 @@
 
 package io.github.autotweaker.api.tool
 
-
-
 /**
  * 表示 [Tool] 的调用参数，应该由插件自动生成。
  */

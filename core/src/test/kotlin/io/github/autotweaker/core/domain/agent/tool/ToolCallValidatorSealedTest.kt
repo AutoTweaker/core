@@ -40,7 +40,6 @@ class ToolCallValidatorSealedTest {
 		}
 	}
 	
-	
 	// region test data
 	
 	@Serializable
@@ -112,7 +111,12 @@ class ToolCallValidatorSealedTest {
 	private fun mockNestedSealedTool(): Tool<*> {
 		val tool = mockk<Tool<NestedSealedArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("task", "Task operations", emptyList()),
+			ToolMeta(
+				"task", "Task operations", listOf(
+					ToolMeta.Function("process", "Process task", emptyList()),
+					ToolMeta.Function("simple", "Simple task", emptyList()),
+				)
+			),
 			NestedSealedArgs.serializer()
 		)
 		return tool as Tool<*>
@@ -122,7 +126,12 @@ class ToolCallValidatorSealedTest {
 	private fun mockListSealedTool(): Tool<*> {
 		val tool = mockk<Tool<ListSealedArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("batch", "Batch operations", emptyList()),
+			ToolMeta(
+				"batch", "Batch operations", listOf(
+					ToolMeta.Function("run", "Run batch", emptyList()),
+					ToolMeta.Function("stop", "Stop batch", emptyList()),
+				)
+			),
 			ListSealedArgs.serializer()
 		)
 		return tool as Tool<*>
@@ -132,7 +141,12 @@ class ToolCallValidatorSealedTest {
 	private fun mockMapSealedTool(): Tool<*> {
 		val tool = mockk<Tool<MapSealedArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("cfg", "Config operations", emptyList()),
+			ToolMeta(
+				"cfg", "Config operations", listOf(
+					ToolMeta.Function("configure", "Configure settings", emptyList()),
+					ToolMeta.Function("reset", "Reset settings", emptyList()),
+				)
+			),
 			MapSealedArgs.serializer()
 		)
 		return tool as Tool<*>
@@ -142,11 +156,20 @@ class ToolCallValidatorSealedTest {
 	private fun mockDeepNestedTool(): Tool<*> {
 		val tool = mockk<Tool<DeepNestedArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("deep", "Deep nested operations", emptyList()),
+			ToolMeta(
+				"deep", "Deep nested operations", listOf(
+					ToolMeta.Function("process", "Process deeply", emptyList()),
+					ToolMeta.Function("skip", "Skip processing", emptyList()),
+				)
+			),
 			DeepNestedArgs.serializer()
 		)
 		return tool as Tool<*>
 	}
+	
+	@Suppress("UNCHECKED_CAST")
+	private suspend fun toolMetaCache(vararg tools: Tool<*>): MetaCache =
+		Tools.cacheMeta(tools.associate { it.meta().first.name to it as Tool<ToolArgs> })
 	
 	// endregion
 	
@@ -157,7 +180,8 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"a","x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool())
+			"""{"name":"test","inner":{"type":"a","x":42},"reason":"tests"}""", "",
+			toolMetaCache(mockNestedSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as NestedSealedArgs.Process
@@ -170,7 +194,8 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"test"}""", "", listOf(mockNestedSealedTool())
+			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"tests"}""", "",
+			toolMetaCache(mockNestedSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("hello", ((result.args as NestedSealedArgs.Process).inner as InnerChoice.B).y)
@@ -186,9 +211,9 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"batch-run",
-			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"test"}""",
+			"""{"items":[{"type":"a","x":1},{"type":"b","y":"two"}],"reason":"tests"}""",
 			"",
-			listOf(mockListSealedTool())
+			toolMetaCache(mockListSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as ListSealedArgs.Run
@@ -202,9 +227,9 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"batch-run",
-			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"test"}""",
+			"""{"items":[{"type":"a","x":10},{"type":"b","y":"hello"},{"type":"a","x":20}],"reason":"tests"}""",
 			"",
-			listOf(mockListSealedTool())
+			toolMetaCache(mockListSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as ListSealedArgs.Run
@@ -223,9 +248,9 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"cfg-configure",
-			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"test"}""",
+			"""{"config":{"rule1":{"type":"a","x":1},"rule2":{"type":"b","y":"two"}},"reason":"tests"}""",
 			"",
-			listOf(mockMapSealedTool())
+			toolMetaCache(mockMapSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as MapSealedArgs.Configure
@@ -243,7 +268,8 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"deep-process",
-			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"test"}""", "", listOf(mockDeepNestedTool())
+			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"tests"}""", "",
+			toolMetaCache(mockDeepNestedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals(42, ((result.args as DeepNestedArgs.Process).wrapper.inner as InnerChoice.A).x)
@@ -258,7 +284,8 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool())
+			"""{"name":"test","inner":{"x":42},"reason":"tests"}""", "",
+			toolMetaCache(mockNestedSealedTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -268,7 +295,8 @@ class ToolCallValidatorSealedTest {
 		val validator = ToolCallParser()
 		val result = validator.validate(
 			"task-process",
-			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"test"}""", "", listOf(mockNestedSealedTool())
+			"""{"name":"test","inner":{"type":"unknown","x":42},"reason":"tests"}""", "",
+			toolMetaCache(mockNestedSealedTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()

@@ -40,7 +40,6 @@ class ToolCallValidatorTest {
 		}
 	}
 	
-	
 	private val validator = ToolCallParser()
 	
 	// region test data
@@ -77,7 +76,11 @@ class ToolCallValidatorTest {
 	private fun mockSimpleTool(): Tool<*> {
 		val tool = mockk<Tool<SimpleArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("bash", "Run bash commands", emptyList()), SimpleArgs.serializer()
+			ToolMeta(
+				"bash", "Run bash commands", listOf(
+					ToolMeta.Function("run", "Run bash commands", emptyList())
+				)
+			), SimpleArgs.serializer()
 		)
 		return tool as Tool<*>
 	}
@@ -86,10 +89,19 @@ class ToolCallValidatorTest {
 	private fun mockSealedTool(): Tool<*> {
 		val tool = mockk<Tool<SealedArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("read", "Read files", emptyList()), SealedArgs.serializer()
+			ToolMeta(
+				"read", "Read files", listOf(
+					ToolMeta.Function("file", "Read file lines", emptyList()),
+					ToolMeta.Function("unicode", "Read unicode chars", emptyList()),
+				)
+			), SealedArgs.serializer()
 		)
 		return tool as Tool<*>
 	}
+	
+	@Suppress("UNCHECKED_CAST")
+	private suspend fun toolMetaCache(vararg tools: Tool<*>): MetaCache =
+		Tools.cacheMeta(tools.associate { it.meta().first.name to it as Tool<ToolArgs> })
 	
 	// endregion
 	
@@ -97,22 +109,26 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `valid tool-function name with dash separator`() = runBlocking {
-		val result =
-			validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-run", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("bash", result.toolName)
 	}
 	
 	@Test
 	fun `name without separator fails`() = runBlocking {
-		val result =
-			validator.validate("bashrun", """{"command":"echo","reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bashrun", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
 	@Test
 	fun `name with only separator fails`() = runBlocking {
-		val result = validator.validate("-", """{"command":"echo","reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"-", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
@@ -120,10 +136,15 @@ class ToolCallValidatorTest {
 	fun `name with multiple dashes splits on first dash`() = runBlocking {
 		val tool = mockk<Tool<SimpleArgs>>()
 		coEvery { tool.meta() } returns Pair(
-			ToolMeta("my-tool", "", emptyList()), SimpleArgs.serializer()
+			ToolMeta(
+				"my-tool", "", listOf(
+					ToolMeta.Function("run", "", emptyList())
+				)
+			), SimpleArgs.serializer()
 		)
 		val result = validator.validate(
-			"my-tool-run", """{"command":"echo","reason":"test"}""", "", listOf(tool as Tool<*>)
+			"my-tool-run", """{"command":"echo","reason":"tests"}""", "",
+			toolMetaCache(tool as Tool<*>),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -134,15 +155,17 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `unknown tool name fails`() = runBlocking {
-		val result =
-			validator.validate("unknown-run", """{"command":"echo","reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"unknown-run", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
 	@Test
 	fun `unknown function on known tool fails deserialization`() = runBlocking {
-		val result =
-			validator.validate("bash-unknown", """{"command":"echo","reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-unknown", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
@@ -152,19 +175,19 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `invalid JSON fails`() = runBlocking {
-		val result = validator.validate("bash-run", "not json", "", listOf(mockSimpleTool()))
+		val result = validator.validate("bash-run", "not json", "", toolMetaCache(mockSimpleTool()))
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
 	@Test
 	fun `JSON array fails`() = runBlocking {
-		val result = validator.validate("bash-run", "[1,2,3]", "", listOf(mockSimpleTool()))
+		val result = validator.validate("bash-run", "[1,2,3]", "", toolMetaCache(mockSimpleTool()))
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
 	@Test
 	fun `empty JSON object fails missing reason`() = runBlocking {
-		val result = validator.validate("bash-run", "{}", "", listOf(mockSimpleTool()))
+		val result = validator.validate("bash-run", "{}", "", toolMetaCache(mockSimpleTool()))
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
@@ -174,22 +197,26 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `missing reason field fails`() = runBlocking {
-		val result = validator.validate("bash-run", """{"command":"echo"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-run", """{"command":"echo"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
 	@Test
 	fun `reason is extracted correctly`() = runBlocking {
-		val result =
-			validator.validate("bash-run", """{"command":"echo","reason":"testing"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-run", """{"command":"echo","reason":"testing"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertEquals("testing", result.reason)
 	}
 	
 	@Test
 	fun `reason is not passed to args deserialization`() = runBlocking {
-		val result =
-			validator.validate("bash-run", """{"command":"echo","reason":"testing"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-run", """{"command":"echo","reason":"testing"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs.Run
 		assertEquals("echo", args.command)
@@ -203,9 +230,9 @@ class ToolCallValidatorTest {
 	fun `deserializes simple args with all fields`() = runBlocking {
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo hello","timeout_seconds":30,"reason":"test"}""",
+			"""{"command":"echo hello","timeout_seconds":30,"reason":"tests"}""",
 			"",
-			listOf(mockSimpleTool())
+			toolMetaCache(mockSimpleTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs.Run
@@ -215,8 +242,9 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `deserializes simple args with defaults`() = runBlocking {
-		val result =
-			validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-run", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs.Run
 		assertEquals("echo", args.command)
@@ -226,7 +254,8 @@ class ToolCallValidatorTest {
 	@Test
 	fun `camelCase JSON keys fails with snake_case strategy`() = runBlocking {
 		val result = validator.validate(
-			"bash-run", """{"command":"echo","timeoutSeconds":30,"reason":"test"}""", "", listOf(mockSimpleTool())
+			"bash-run", """{"command":"echo","timeoutSeconds":30,"reason":"tests"}""", "",
+			toolMetaCache(mockSimpleTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -234,7 +263,8 @@ class ToolCallValidatorTest {
 	@Test
 	fun `snake_case JSON keys work directly`() = runBlocking {
 		val result = validator.validate(
-			"bash-run", """{"command":"echo","timeout_seconds":15,"reason":"test"}""", "", listOf(mockSimpleTool())
+			"bash-run", """{"command":"echo","timeout_seconds":15,"reason":"tests"}""", "",
+			toolMetaCache(mockSimpleTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SimpleArgs.Run
@@ -243,8 +273,9 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `missing required field fails deserialization`() = runBlocking {
-		val result =
-			validator.validate("bash-run", """{"timeout_seconds":30,"reason":"test"}""", "", listOf(mockSimpleTool()))
+		val result = validator.validate(
+			"bash-run", """{"timeout_seconds":30,"reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
@@ -252,9 +283,9 @@ class ToolCallValidatorTest {
 	fun `wrong type for field fails deserialization`() = runBlocking {
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo","timeout_seconds":"not_a_number","reason":"test"}""",
+			"""{"command":"echo","timeout_seconds":"not_a_number","reason":"tests"}""",
 			"",
-			listOf(mockSimpleTool())
+			toolMetaCache(mockSimpleTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -269,7 +300,7 @@ class ToolCallValidatorTest {
 			"read-file",
 			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"read file"}""",
 			"",
-			listOf(mockSealedTool())
+			toolMetaCache(mockSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		val args = result.args as SealedArgs.File
@@ -285,7 +316,7 @@ class ToolCallValidatorTest {
 			"read-unicode",
 			"""{"file_path":"/tmp/test.txt","max_chars":1000,"reason":"read unicode"}""",
 			"",
-			listOf(mockSealedTool())
+			toolMetaCache(mockSealedTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 		assertIs<SealedArgs.Unicode>(result.args)
@@ -295,9 +326,9 @@ class ToolCallValidatorTest {
 	fun `sealed args with wrong type value fails`() = runBlocking {
 		val result = validator.validate(
 			"read-nonexistent",
-			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"test"}""",
+			"""{"file_path":"/tmp/test.txt","start_line":1,"end_line":10,"reason":"tests"}""",
 			"",
-			listOf(mockSealedTool())
+			toolMetaCache(mockSealedTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -306,9 +337,9 @@ class ToolCallValidatorTest {
 	fun `sealed args camelCase keys fails with snake_case strategy`() = runBlocking {
 		val result = validator.validate(
 			"read-file",
-			"""{"filePath":"/tmp/test.txt","startLine":1,"endLine":10,"reason":"read"}""",
+			"""{"filePath":"/tmp/test.txt","startLine":1,"endLine":10,"reason":"reads"}""",
 			"",
-			listOf(mockSealedTool())
+			toolMetaCache(mockSealedTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -319,14 +350,14 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `validator with multiple tools routes correctly`() = runBlocking {
-		val tools = listOf(mockSimpleTool(), mockSealedTool())
+		val cache = toolMetaCache(mockSimpleTool(), mockSealedTool())
 		
-		val bashResult = validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "", tools)
+		val bashResult = validator.validate("bash-run", """{"command":"echo","reason":"tests"}""", "", cache)
 		assertIs<ValidationResult.Success<*>>(bashResult)
 		assertEquals("bash", bashResult.toolName)
 		
 		val readResult = validator.validate(
-			"read-file", """{"file_path":"/tmp/test.txt","start_line":1,"end_line":5,"reason":"read"}""", "", tools
+			"read-file", """{"file_path":"/tmp/test.txt","start_line":1,"end_line":5,"reason":"reads"}""", "", cache
 		)
 		assertIs<ValidationResult.Success<*>>(readResult)
 		assertEquals("read", readResult.toolName)
@@ -334,7 +365,9 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `validator with empty tool list fails all`() = runBlocking {
-		val result = validator.validate("bash-run", """{"command":"echo","reason":"test"}""", "", emptyList())
+		val result = validator.validate(
+			"bash-run", """{"command":"echo","reason":"tests"}""", "", emptyMap()
+		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
@@ -346,9 +379,9 @@ class ToolCallValidatorTest {
 	fun `callId is not used in result but does not affect validation`() = runBlocking {
 		val result = validator.validate(
 			"bash-run",
-			"""{"command":"echo","reason":"test"}""",
-			callId = "my-call-123",
-			tools = listOf(mockSimpleTool())
+			"""{"command":"echo","reason":"tests"}""",
+			"my-call-123",
+			toolMetaCache(mockSimpleTool()),
 		)
 		assertIs<ValidationResult.Success<*>>(result)
 	}.discard()
@@ -359,14 +392,15 @@ class ToolCallValidatorTest {
 	
 	@Test
 	fun `empty arguments string fails JSON parse`() = runBlocking {
-		val result = validator.validate("bash-run", "", "", listOf(mockSimpleTool()))
+		val result = validator.validate("bash-run", "", "", toolMetaCache(mockSimpleTool()))
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
 	
 	@Test
 	fun `extra unknown fields in args fails`() = runBlocking {
 		val result = validator.validate(
-			"bash-run", """{"command":"echo","unknown_field":"value","reason":"test"}""", "", listOf(mockSimpleTool())
+			"bash-run", """{"command":"echo","unknown_field":"value","reason":"tests"}""", "",
+			toolMetaCache(mockSimpleTool()),
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
@@ -374,7 +408,7 @@ class ToolCallValidatorTest {
 	@Test
 	fun `args with nested object fails for simple string field`() = runBlocking {
 		val result = validator.validate(
-			"bash-run", """{"command":{"nested":"object"},"reason":"test"}""", "", listOf(mockSimpleTool())
+			"bash-run", """{"command":{"nested":"object"},"reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()

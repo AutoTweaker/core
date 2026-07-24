@@ -107,12 +107,13 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 			round.pendingToolCalls.filter { it.callId !in processedIds }.forEach { call ->
 				pendingToolResults.add(
 					ToolMessage(
-						name = call.name,
 						callId = call.callId,
 						call = ToolMessage.Call(
+							callName = call.callName,
 							arguments = call.arguments,
 							reason = call.reason,
 							timestamp = call.timestamp,
+							validatedToolName = call.validatedToolName,
 							validatedArgs = call.validatedArgs,
 						),
 						result = ToolMessage.Result(

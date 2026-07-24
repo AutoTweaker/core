@@ -62,13 +62,14 @@ class ThinkingStage(
 					
 					is ToolCallResolveResult.NeedsApproval -> {
 						val validatedArgs =
-							tools.serializeValidatedArgs(result.result.toolName, result.result.args)
+							Tools.serializeValidatedArgs(result.result.toolName, result.result.args)
 						val pendingCall = RuntimeContext.CurrentRound.PendingToolCall(
 							callId = rawCall.id,
-							name = rawCall.name,
+							callName = rawCall.name,
 							arguments = rawCall.arguments,
 							reason = result.result.reason,
 							timestamp = timestamp,
+							validatedToolName = result.result.toolName,
 							validatedArgs = validatedArgs,
 						)
 						needsApproval.add(ResolvedToolCall(pendingCall, result.result))

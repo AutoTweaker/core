@@ -125,7 +125,7 @@ object SessionManager : Loggable, Traceable, Settable {
 		).init(
 			model = model,
 			systemPrompt = systemPrompt,
-			activeTools = emptyList()
+			activeTools = emptySet()
 		).listen().andSave()
 		wsm.updateSessions(
 			workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + data.id
@@ -155,7 +155,7 @@ object SessionManager : Loggable, Traceable, Settable {
 			workspace = workspaceMeta
 		).init(
 			systemPrompt = systemPrompt,
-			activeTools = emptyList(),
+			activeTools = emptySet(),
 			model = model
 		)
 			.listen()

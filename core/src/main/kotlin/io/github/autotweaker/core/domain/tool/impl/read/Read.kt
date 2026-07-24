@@ -153,17 +153,23 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 			.getOrElse { return fileCannotRead }
 		
 		val history = container.get<ToolCallHistory>()
-		val previousReads = history.getAll(meta().first.name, ReadArgs.serializer())
-			.mapNotNull { entry -> (entry.args as? ReadArgs.File)?.let { entry to it } }
-			.filter { (_, fileArgs) -> fileArgs.lineNumber == args.lineNumber }
-		if (previousReads.any { (entry, fileArgs) ->
+		val duplicate = history.getAll(this, ReadArgs.serializer())
+			.mapNotNull {
+				if (it.args is ReadArgs.File && it.args.lineNumber == args.lineNumber)
+					it.args to it.resultContent
+				else null
+			}.any { (fileArgs, resultContent) ->
 				trace.catching {
-					val prevNormalized = fs.normalize(fileArgs.filePath)
-					prevNormalized == normalizedPath && entry.resultContent.substringBefore('\n') == sha256.toString() && fileArgs.startLine <= args.startLine && fileArgs.endLine >= args.endLine
+					fs.normalize(fileArgs.filePath) == normalizedPath
+							&& resultContent.substringBefore('\n') == sha256.toString()
+							&& fileArgs.startLine <= args.startLine
+							&& fileArgs.endLine >= args.endLine
 				}.getOrDefault(false)
-			}) {
+			}
+		
+		if (duplicate)
 			return setting(ReadSettings.FileMessageDuplicateSetting()).format(sha256).toolSuccess()
-		}
+		
 		return "$sha256\n$content".toolSuccess()
 	}
 	

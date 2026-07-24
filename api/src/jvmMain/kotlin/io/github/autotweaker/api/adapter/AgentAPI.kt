@@ -21,7 +21,6 @@ package io.github.autotweaker.api.adapter
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.tool.ToolApprove
-import io.github.autotweaker.api.types.tool.ToolInfo
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
@@ -89,13 +88,11 @@ interface AgentAPI {
 	val toolCalling: StateFlow<String?>
 	
 	/**
-	 * 实时的工具列表，列表中只有各值的 `active` 属性会变化，列表本身不会变化。
+	 * 实时的已激活工具名称列表，未激活的工具可能被 agent 激活，已激活的工具也可能被 AutoTweaker 取消激活。
 	 *
 	 * 关于工具相关的机制，请见 [io.github.autotweaker.api.tool.Tool]。
-	 *
-	 * @see ToolInfo
 	 */
-	val toolInfo: StateFlow<List<ToolInfo>>
+	val activeTools: StateFlow<Set<String>>
 	
 	/**
 	 * 向 agent 发送消息，无论 agent 状态如何，消息将始终进入队列。

@@ -79,11 +79,11 @@ object AgentDataTable : Table("agent_data") {
 	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
 	fun fillContext(it: UpdateBuilder<*>, context: AgentContext) = fillJson(it, contextJson, context)
 	fun readContext(row: ResultRow): AgentContext = readJson(row, contextJson)
-	fun fillActiveTools(it: UpdateBuilder<*>, tools: List<String>) = fillJson(it, activeToolsJson, tools)
+	fun fillActiveTools(it: UpdateBuilder<*>, tools: Set<String>) = fillJson(it, activeToolsJson, tools)
 	
-	fun readActiveTools(row: ResultRow): List<String> {
+	fun readActiveTools(row: ResultRow): Set<String> {
 		val jsonStr = row[activeToolsJson]
-		if (jsonStr.isBlank()) return emptyList()
+		if (jsonStr.isBlank()) return emptySet()
 		return readJson(row, activeToolsJson)
 	}
 }

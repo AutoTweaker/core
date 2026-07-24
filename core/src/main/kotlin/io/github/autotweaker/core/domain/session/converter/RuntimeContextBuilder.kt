@@ -69,7 +69,6 @@ class RuntimeContextBuilder(
 	
 	private fun AgentContextIndex.Turn.Tool.transform() = message<AgentMessage.Tool.Call>(call).let {
 		RuntimeContext.Message.Tool(
-			name = it?.name.orEmpty(),
 			call = toolCall(call),
 			callId = it?.callId.orEmpty(),
 			result = toolResult(result)
@@ -99,10 +98,11 @@ class RuntimeContextBuilder(
 		RuntimeContext.CurrentRound.PendingToolCall(
 			id = id,
 			callId = it?.callId.orEmpty(),
-			name = it?.name.orEmpty(),
+			callName = it?.callName.orEmpty(),
 			arguments = it?.arguments.orEmpty(),
 			reason = it?.reason.orEmpty(),
 			timestamp = it?.timestamp.orNow(),
+			validatedToolName = it?.validatedToolName.orEmpty(),
 			validatedArgs = it?.validatedArgs ?: JsonNull
 		)
 	}
@@ -110,9 +110,11 @@ class RuntimeContextBuilder(
 	private fun toolCall(id: UUID) = message<AgentMessage.Tool.Call>(id).let {
 		RuntimeContext.Message.Tool.Call(
 			id = id,
+			callName = it?.callName.orEmpty(),
 			arguments = it?.arguments.orEmpty(),
 			reason = it?.reason,
 			timestamp = it?.timestamp.orNow(),
+			validatedToolName = it?.validatedToolName.orEmpty(),
 			validatedArgs = it?.validatedArgs
 		)
 	}

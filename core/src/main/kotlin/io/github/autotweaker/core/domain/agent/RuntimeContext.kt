@@ -57,16 +57,17 @@ data class RuntimeContext(
 		) : Message()
 		
 		data class Tool(
-			val name: String,
 			val call: Call,
 			val callId: String,
 			val result: Result,
 		) : Message() {
 			data class Call(
 				val id: UUID = UUID.randomUUID(),
+				val callName: String,
 				val arguments: String,
 				val reason: String? = null,
 				val timestamp: Instant,
+				val validatedToolName: String? = null,
 				val validatedArgs: JsonElement? = null,
 			)
 			
@@ -107,10 +108,11 @@ data class RuntimeContext(
 		data class PendingToolCall(
 			val id: UUID = UUID.randomUUID(),
 			val callId: String,
-			val name: String,
+			val callName: String,
 			val arguments: String,
 			val reason: String,
 			val timestamp: Instant,
+			val validatedToolName: String,
 			val validatedArgs: JsonElement,
 		)
 	}

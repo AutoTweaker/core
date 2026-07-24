@@ -38,8 +38,8 @@ data class ToolMeta internal constructor(
 	)
 	
 	sealed interface Type {
-		interface Builtin : Type
-		interface Declared : Type
+		sealed interface Builtin : Type
+		sealed interface Declared : Type
 		
 		@ConsistentCopyVisibility
 		data class OneOf internal constructor(
@@ -69,7 +69,7 @@ data class ToolMeta internal constructor(
 		data class TList internal constructor(val element: Type) : Type, Declared
 		
 		@ConsistentCopyVisibility
-		data class TMap internal constructor(val key: Type, val value: Type) : Type, Declared
+		data class TMap internal constructor(val element: Type) : Type, Declared
 		
 		data object TString : Type, Builtin
 		data object TInt : Type, Builtin

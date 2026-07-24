@@ -16,13 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.tool
+package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.tool.Tool.RuntimeOutput.OutputType
+import java.util.*
 
-data class ToolOutput(
-	val name: String,
-	val callId: String,
-	val content: String,
-	val type: OutputType
-)
+inline fun <reified T : Any> loadService() =
+	ServiceLoader.load(T::class.java).toList()
