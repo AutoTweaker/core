@@ -101,8 +101,8 @@ tool("test_complex") {
 	
 	function("underscore_names") {
 		string("a_very_long_snake_name_with_many_parts")
-		int("__leading_underscores") { required = false }
-		long("trailing___") { required = false }
+		int("a_leading_underscores") { required = false }
+		long("trailing_a_b_c") { required = false }
 	}
 	
 	val innerOneOf = buildDeclaration {
@@ -137,9 +137,9 @@ tool("test_complex") {
 	}
 	
 	function("consecutive_underscores") {
-		string("snake__name")
-		int("_single_lead")
-		long("single_trail_") { required = false }
+		string("snake_i_name")
+		int("i_single_lead")
+		long("single_trail_i") { required = false }
 	}
 	
 	val dupeObj = buildDeclaration {

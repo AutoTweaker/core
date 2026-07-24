@@ -23,7 +23,7 @@ package io.github.autotweaker.toolgen
 import java.nio.file.Path
 
 fun tool(name: String, block: ToolMetaBuilder.() -> Unit) =
-	ToolMetaBuilder(name).apply(block).toMeta()
+	ToolMetaBuilder(name.check()).apply(block).toMeta()
 
 fun ToolMeta.gen(argsPackage: String, toolPackage: String) {
 	val dir = Path.of(System.getProperty("toolgen.outputDir", "build/generated/args"))
@@ -34,23 +34,18 @@ fun ToolMeta.gen(argsPackage: String, toolPackage: String) {
 class ToolMetaBuilder internal constructor(
 	private val name: String,
 ) {
-	init {
-		require('-' !in name) { "Name '$name' must not contain '-'" }
-	}
-	
 	private val functions = mutableListOf<ToolMeta.Function>()
 	private val declaration = mutableListOf<ToolMeta.Type.Declared>()
 	
 	fun function(name: String, block: FunctionBuilder.() -> Unit) {
-		require('-' !in name) { "Name '$name' must not contain '-'" }
-		functions.add(FunctionBuilder(name).apply(block).toFunction())
+		functions.add(FunctionBuilder(name.check()).apply(block).toFunction())
 	}
 	
 	fun buildDeclaration(block: DeclarationBuilder.() -> Unit) =
 		DeclarationBuilder(declaration).apply(block).declaration()
 	
 	internal fun toMeta() = ToolMeta(
-		name = name,
+		name = name.check(),
 		functions = functions,
 		declared = declaration
 	)
@@ -59,9 +54,9 @@ class ToolMetaBuilder internal constructor(
 @ToolMetaDsl
 class FunctionBuilder internal constructor(
 	private val name: String,
-) : ParametersBuilder() {
+) : ParametersBuilder(true) {
 	internal fun toFunction() = ToolMeta.Function(
-		name = name,
+		name = name.check(),
 		parameters = parameters
 	)
 }
@@ -79,17 +74,17 @@ class DeclarationBuilder internal constructor(
 	}
 	
 	fun obj(name: String, block: ParametersBuilder.() -> Unit) {
-		val parameters = ParametersBuilder().apply(block).parameters
-		declaration = ToolMeta.Type.Obj(name, parameters)
+		val parameters = ParametersBuilder(false).apply(block).parameters
+		declaration = ToolMeta.Type.Obj(name.check(), parameters)
 	}
 	
 	fun enum(name: String, vararg values: String) {
-		declaration = ToolMeta.Type.Enum(name, values.toSet())
+		declaration = ToolMeta.Type.Enum(name.check(), values.map { it.check() }.toSet())
 	}
 	
 	fun oneOf(name: String, block: VariantsBuilder.() -> Unit) {
 		val variants = VariantsBuilder().apply(block).variants
-		declaration = ToolMeta.Type.OneOf(name, variants)
+		declaration = ToolMeta.Type.OneOf(name.check(), variants)
 	}
 	
 	fun list(element: ToolMeta.Type.Declared) {
@@ -106,13 +101,15 @@ class VariantsBuilder internal constructor() {
 	internal val variants = mutableListOf<ToolMeta.Type.OneOf.Variant>()
 	
 	fun variant(name: String, block: ParametersBuilder.() -> Unit = {}) {
-		val parameters = ParametersBuilder().apply(block).parameters
-		variants.add(ToolMeta.Type.OneOf.Variant(name, parameters))
+		val parameters = ParametersBuilder(true).apply(block).parameters
+		variants.add(ToolMeta.Type.OneOf.Variant(name.check(), parameters))
 	}
 }
 
 @ToolMetaDsl
-open class ParametersBuilder internal constructor() {
+open class ParametersBuilder internal constructor(
+	val variant: Boolean
+) {
 	internal val parameters = mutableListOf<ToolMeta.Prop>()
 	
 	fun param(name: String, type: ToolMeta.Type.Declared, block: PropBuilder.() -> Unit = {}) {
@@ -184,8 +181,10 @@ open class ParametersBuilder internal constructor() {
 	
 	
 	private fun prop(name: String, type: ToolMeta.Type, block: PropBuilder.() -> Unit) {
-		require(name != "type") { "Property name 'type' conflicts with the sealed class discriminator" }
-		parameters.add(PropBuilder(name, type).apply(block).toProp())
+		if (variant) require(name != "type") {
+			"Property name 'type' conflicts with the sealed class discriminator"
+		}
+		parameters.add(PropBuilder(name.check(), type).apply(block).toProp())
 	}
 }
 
@@ -197,7 +196,7 @@ class PropBuilder internal constructor(
 	var required = true
 	
 	internal fun toProp() = ToolMeta.Prop(
-		name = name,
+		name = name.check(),
 		type = type,
 		required = required,
 	)
@@ -205,3 +204,19 @@ class PropBuilder internal constructor(
 
 @DslMarker
 internal annotation class ToolMetaDsl
+
+private fun String.check(): String {
+	require(isNotEmpty()) {
+		"Name must not be empty"
+	}
+	require(first() != '_' && last() != '_') {
+		"Name '$this' must not start or end with '_'"
+	}
+	require(all { it.isLowerCase() || it == '_' }) {
+		"Name '$this' must consist of lowercase letters and '_' only"
+	}
+	require(!contains("__")) {
+		"Name '$this' must not contain consecutive '_'"
+	}
+	return this
+}
