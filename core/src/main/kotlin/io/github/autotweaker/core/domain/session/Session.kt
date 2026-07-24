@@ -18,9 +18,12 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.forEachParallel
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentContext
@@ -45,7 +48,7 @@ class Session(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
-) : Loggable, Settable {
+) : Loggable {
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
 	

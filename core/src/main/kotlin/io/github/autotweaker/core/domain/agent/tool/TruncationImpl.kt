@@ -19,12 +19,11 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.Settable
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.setting
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
@@ -32,13 +31,13 @@ import io.github.autotweaker.core.domain.tool.port.TruncationService
 
 class TruncationImpl(
 	private val workspace: WorkspaceMeta,
-) : TruncationService, Settable {
+) : TruncationService {
 	override fun invoke(content: String, threshold: Int, keepTail: Boolean): String {
 		if (content.length <= threshold) return content
 		val inContainer = pathResolver.inContainer(workspace.path)
 		val (_, hostPath) = temporaryStorage.save(content, inContainer)
 		val filePath = if (inContainer) pathResolver.toContainerPath(hostPath) else hostPath
-		val prompt = setting(TruncatedPrompt()).format(content.length, filePath)
+		val prompt = TruncatedPrompt().get().format(content.length, filePath)
 		return if (keepTail) prompt + content.takeLast(threshold) else content.take(threshold) + prompt
 	}
 	

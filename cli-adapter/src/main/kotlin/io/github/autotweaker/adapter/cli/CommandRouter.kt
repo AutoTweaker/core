@@ -24,18 +24,21 @@ import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
 import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.help.Help
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.APP_NAME
+import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.get
+import io.github.autotweaker.api.log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.*
 
 
-class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, Settable {
+class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable {
 	private val handlers: Map<String, Command>
 	
 	@AutoService(SettingDef::class)
@@ -45,7 +48,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		)
 	)
 	
-	private val maxArgsCount = setting(MaxArgsCount())
+	private val maxArgsCount = MaxArgsCount().get()
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {

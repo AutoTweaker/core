@@ -18,21 +18,24 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.CONFIG_PATH
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.get
+import io.github.autotweaker.api.log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Files
 
-object TraceCleanup : Loggable, Settable {
+object TraceCleanup : Loggable {
 	private const val BYTES_PER_MB = 1024 * 1024
 	private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
 	
 	suspend fun cleanup() {
-		val maxAgeDays = setting(TraceSettings.MaxAgeDays())
-		val maxEntriesPerNs = setting(TraceSettings.MaxEntriesPerNamespace())
-		val maxTotalEntries = setting(TraceSettings.MaxTotalEntries())
-		val maxDbSizeMB = setting(TraceSettings.MaxDbSizeMB())
-		val batchSize = setting(TraceSettings.CleanupBatchSize())
+		val maxAgeDays = TraceSettings.MaxAgeDays().get()
+		val maxEntriesPerNs = TraceSettings.MaxEntriesPerNamespace().get()
+		val maxTotalEntries = TraceSettings.MaxTotalEntries().get()
+		val maxDbSizeMB = TraceSettings.MaxDbSizeMB().get()
+		val batchSize = TraceSettings.CleanupBatchSize().get()
 		
 		var cleanupCount = 0
 		

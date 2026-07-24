@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.api
 
-import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.storage.ObjectStorage
@@ -53,13 +52,6 @@ interface JsonStorable
  * @see ObjectStorage
  */
 interface ObjectStorable
-
-/**
- * 允许对象通过 [setting] 获取 [SettingService]。
- *
- * @see SettingService
- */
-interface Settable
 
 /**
  * 允许对象通过 [i18n] 获取 [I18nService]。
@@ -108,14 +100,6 @@ inline val JsonStorable.store: JsonStore get() = services.store(this::class)
  */
 @Suppress("UnusedReceiverParameter")
 inline val ObjectStorable.objects: ObjectStorage get() = services.objects
-
-/**
- * 获取 AutoTweaker 提供的 [SettingService]。
- *
- * 直接在实现了 [Settable] 的类 / 对象内部的任何地方使用 `setting` 即可。
- */
-@Suppress("UnusedReceiverParameter")
-inline val Settable.setting: SettingService get() = services.setting
 
 /**
  * 获取 AutoTweaker 提供的 [I18nService]。

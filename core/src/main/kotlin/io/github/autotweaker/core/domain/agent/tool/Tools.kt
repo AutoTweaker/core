@@ -54,7 +54,7 @@ class Tools(
 	private val tools: ToolMap,
 	activeTools: Set<String>,
 	private val agentId: UUID,
-) : Loggable, Traceable, Settable {
+) : Loggable, Traceable {
 	private val _activeTools = MutableStateFlow(activeTools)
 	val activeTools: StateFlow<Set<String>> = _activeTools.asStateFlow()
 	
@@ -73,7 +73,7 @@ class Tools(
 	): ToolCallResolveResult {
 		val meta = metaCache[call.name]?.first
 		if (meta != null && !active(call.name)) {
-			val message = setting(AgentToolSettings.ActiveMessage()).format(
+			val message = AgentToolSettings.ActiveMessage().get().format(
 				meta.functions.joinToString(", ") { "${meta.name}-${it.name}" },
 				meta.name
 			)
@@ -132,7 +132,7 @@ class Tools(
 		}
 		
 		return RuntimeContext.Message.Tool.Result(
-			content = truncation(output.result, setting(AgentToolSettings.MaxOutput())),
+			content = truncation(output.result, AgentToolSettings.MaxOutput().get()),
 			timestamp = Clock.System.now(),
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,
 		).andLog(log) {

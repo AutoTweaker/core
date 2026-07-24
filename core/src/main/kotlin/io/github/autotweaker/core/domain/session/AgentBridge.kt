@@ -53,7 +53,7 @@ class AgentBridge(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: WorkspaceMeta,
-) : AgentAPI, Loggable, Settable {
+) : AgentAPI, Loggable {
 	/* 初始化 */
 	private val contextLock = ReentrantMutex()
 	private val injectLock = ReentrantMutex()

@@ -55,7 +55,7 @@ class RoundRunner(
 	agentModel: AgentModel,
 	private val statusFlow: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
-) : Loggable, Traceable, Settable {
+) : Loggable, Traceable {
 	private val scope = scope()
 	private val cmdLock = ReentrantMutex()
 	private val compactLock = ReentrantMutex()
@@ -189,13 +189,13 @@ class RoundRunner(
 					}
 					
 					if (result.assistantMessage.content.isNullOrBlank()
-						&& setting(EmptyResponseFeedback())
-						&& emptyResponseRetries <= setting(EmptyResponseFeedbackRetries())
+						&& EmptyResponseFeedback().get()
+						&& emptyResponseRetries <= EmptyResponseFeedbackRetries().get()
 					) {
 						messages.send(
 							ContextInjection(
 								"system_reminder",
-								setting(EmptyResponseFeedbackPrompt())
+								EmptyResponseFeedbackPrompt().get()
 							)
 						)
 						ctx.archiveCurrentRound()
@@ -239,7 +239,7 @@ class RoundRunner(
 	}
 	
 	private suspend fun autoDeactivate() {
-		val threshold = setting(AgentToolSettings.DeactivationThreshold())
+		val threshold = AgentToolSettings.DeactivationThreshold().get()
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
 			context.historyRounds.orEmpty() + context.compactedRounds?.completedRounds().orEmpty()
@@ -273,10 +273,10 @@ class RoundRunner(
 		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
 		
 		val contextUsageThreshold = config?.compactContextUsage
-			?: setting(CompactSettings.DefaultCompactContextUsage())
+			?: CompactSettings.DefaultCompactContextUsage().get()
 				.takeIf { it > 0.0 && it <= 1.0 }
 		val totalTokensThreshold = config?.compactTotalTokens
-			?: setting(CompactSettings.DefaultCompactTotalTokens())
+			?: CompactSettings.DefaultCompactTotalTokens().get()
 				.takeIf { it > 0 }
 		
 		val exceedContextUsage = contextUsageThreshold != null &&

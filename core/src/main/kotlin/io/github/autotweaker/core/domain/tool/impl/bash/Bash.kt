@@ -19,8 +19,11 @@
 package io.github.autotweaker.core.domain.tool.impl.bash
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.generated.tool.args.BashArgs
+import io.github.autotweaker.api.get
+import io.github.autotweaker.api.log
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.toolFail
 import io.github.autotweaker.api.tool.toolResult
@@ -37,17 +40,17 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
 @AutoService(CoreTool::class)
-class Bash : CoreTool<BashArgs>, Loggable, Settable {
+class Bash : CoreTool<BashArgs>, Loggable {
 	override suspend fun meta() = bashMeta(
 		BashMetaDescriptions(
-			toolDescription = setting(BashSettings.Description()),
+			toolDescription = BashSettings.Description().get(),
 			functions = BashMetaDescriptions.Functions(
 				run = BashMetaDescriptions.Functions.Run(
-					command = setting(BashSettings.CommandPropDescription()),
-					timeoutSeconds = setting(BashSettings.TimeoutPropDescription())
-						.format(setting(BashSettings.DefaultTimeoutSeconds())),
-					envIds = setting(BashSettings.EnvIdsPropDescription()).format(envListString()),
-				) to setting(BashSettings.RunFuncDescription()),
+					command = BashSettings.CommandPropDescription().get(),
+					timeoutSeconds = BashSettings.TimeoutPropDescription().get()
+						.format(BashSettings.DefaultTimeoutSeconds().get()),
+					envIds = BashSettings.EnvIdsPropDescription().get().format(envListString()),
+				) to BashSettings.RunFuncDescription().get(),
 			)
 		)
 	)
@@ -62,11 +65,11 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 	): Tool.ToolOutput {
 		val request = args as BashArgs.Run
 		val command = request.command
-		if (command.isBlank()) return setting(BashSettings.InvalidCommandMessage()).toolFail()
+		if (command.isBlank()) return BashSettings.InvalidCommandMessage().get().toolFail()
 			.andLog(log) { debug("Rejected blank bash command  tool=bash") }
 		
-		val timeoutSeconds = request.timeoutSeconds ?: setting(BashSettings.DefaultTimeoutSeconds())
-		if (timeoutSeconds <= 0) return setting(BashSettings.InvalidTimeoutMessage()).toolFail()
+		val timeoutSeconds = request.timeoutSeconds ?: BashSettings.DefaultTimeoutSeconds().get()
+		if (timeoutSeconds <= 0) return BashSettings.InvalidTimeoutMessage().get().toolFail()
 			.andLog(log) {
 				debug("Rejected invalid bash timeout  tool=bash  timeout={}", timeoutSeconds)
 			}
@@ -101,7 +104,7 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 		fun processOutput(content: StringBuilder) =
 			container.get<TruncationService>()(
 				content = content.toString().trimEnd().ifBlank { "[empty]" },
-				threshold = setting(BashSettings.MaxOutput()),
+				threshold = BashSettings.MaxOutput().get(),
 				keepTail = true
 			)
 		
@@ -115,7 +118,7 @@ class Bash : CoreTool<BashArgs>, Loggable, Settable {
 			r.result.timeout
 		)
 		
-		return setting(BashSettings.ResultTemplate())
+		return BashSettings.ResultTemplate().get()
 			.format(r.result.exitCode, duration, processOutput(stdout), processOutput(stderr))
 			.toolResult(r.result.exitCode == 0 && !r.result.timeout)
 	}

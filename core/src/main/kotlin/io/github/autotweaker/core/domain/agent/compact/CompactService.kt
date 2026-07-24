@@ -43,7 +43,7 @@ import kotlin.time.Clock
 class CompactService(
 	private val agentId: UUID,
 	private val onOutput: (RuntimeOutput) -> Unit,
-) : Loggable, Traceable, Settable {
+) : Loggable, Traceable {
 	suspend fun execute(
 		model: AgentModel,
 		ctx: AgentContextManager,
@@ -56,11 +56,11 @@ class CompactService(
 			agentId, rounds.size, model.summarize.id
 		)
 		
-		val compactPrompt = setting(CompactSettings.Prompt())
-		val maxMessageChars = setting(CompactSettings.MaxMessageChars())
-		val messageSummarizePrompt = setting(CompactSettings.MessageSummarizePrompt())
-		val thinkingEnabled = setting(CompactSettings.Thinking())
-		val maxRetries = setting(CompactSettings.MaxCompactRetries())
+		val compactPrompt = CompactSettings.Prompt().get()
+		val maxMessageChars = CompactSettings.MaxMessageChars().get()
+		val messageSummarizePrompt = CompactSettings.MessageSummarizePrompt().get()
+		val thinkingEnabled = CompactSettings.Thinking().get()
+		val maxRetries = CompactSettings.MaxCompactRetries().get()
 		
 		val (preprocessedMessages, preprocessSnapshots) = preprocessMessages(
 			rounds, model, maxMessageChars, messageSummarizePrompt, thinkingEnabled
@@ -172,7 +172,7 @@ class CompactService(
 		}
 		
 		val extracted = rawContent.extractSummary()
-		val minSummaryLength = setting(CompactSettings.MinSummaryLength())
+		val minSummaryLength = CompactSettings.MinSummaryLength().get()
 		val valid = extracted.length >= minSummaryLength
 		
 		if (valid) onOutput(

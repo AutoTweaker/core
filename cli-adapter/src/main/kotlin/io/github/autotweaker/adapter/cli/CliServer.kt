@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
 
 
-object CliServer : Loggable, Settable, Traceable {
+object CliServer : Loggable, Traceable {
 	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
 	
 	@AutoService(SettingDef::class)
@@ -51,7 +51,7 @@ object CliServer : Loggable, Settable, Traceable {
 		)
 	)
 	
-	private val maxLineLength = setting(MaxLineLength())
+	private val maxLineLength = MaxLineLength().get()
 	
 	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = scope(IO)

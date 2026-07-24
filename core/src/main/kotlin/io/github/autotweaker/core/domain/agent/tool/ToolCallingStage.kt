@@ -40,7 +40,7 @@ class ToolCallingStage(
 	private val workspace: WorkspaceMeta,
 	private val onOutput: (RuntimeOutput) -> Unit,
 	private val onToolCall: (String?) -> Unit
-) : Loggable, Traceable, Settable {
+) : Loggable, Traceable {
 	private val truncation = TruncationImpl(workspace)
 	
 	@Volatile
@@ -56,9 +56,9 @@ class ToolCallingStage(
 		model: AgentModel,
 		context: RuntimeContext,
 	): RuntimeContext.Message.Tool.Result {
-		val timeoutSeconds = setting(AgentToolSettings.TimeoutSeconds())
-		val timeoutMessage = setting(AgentToolSettings.TimeoutMessage())
-		val cancelledMessage = setting(AgentToolSettings.Cancelled())
+		val timeoutSeconds = AgentToolSettings.TimeoutSeconds().get()
+		val timeoutMessage = AgentToolSettings.TimeoutMessage().get()
+		val cancelledMessage = AgentToolSettings.Cancelled().get()
 		
 		val startTime = TimeSource.Monotonic.markNow()
 		return trace.catching {

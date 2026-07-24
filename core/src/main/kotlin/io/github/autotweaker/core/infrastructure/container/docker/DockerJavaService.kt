@@ -46,7 +46,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 import java.time.Duration as JavaDuration
 
-class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
+class DockerJavaService : ContainerService, Loggable, Traceable {
 	private val uidGid: String = run {
 		val unix = UnixSystem()
 		"${unix.uid}:${unix.gid}"
@@ -178,7 +178,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable, Settable {
 	}
 	
 	private fun schedulePermissionFix(containerId: String) {
-		val delaySeconds = setting(DockerSettings.PermissionFixDelaySeconds())
+		val delaySeconds = DockerSettings.PermissionFixDelaySeconds().get()
 		if (delaySeconds <= 0) return
 		permissionFixJob?.cancel()
 		permissionFixJob = scope.launch {

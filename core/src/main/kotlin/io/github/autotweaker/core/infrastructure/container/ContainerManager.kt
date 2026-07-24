@@ -36,7 +36,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
-object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
+object ContainerManager : Loggable, Traceable, EnvStore() {
 	private val lock = ReentrantMutex()
 	private val scope = scope(IO)
 	
@@ -63,7 +63,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 		else log.warn("Denied container access, features disabled").also { return }
 		
 		imagePullJob = scope.async {
-			val image = setting(ContainerSettings.DockerImage())
+			val image = ContainerSettings.DockerImage().get()
 			service.pullImage(image)
 		}
 	}
@@ -72,7 +72,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 	private suspend fun ensureRunning() = lock.withLock {
 		if (isRunning) return@withLock
 		secretStore.requireUnlocked()
-		val image = setting(ContainerSettings.DockerImage())
+		val image = ContainerSettings.DockerImage().get()
 		val job = imagePullJob
 		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null)
 			imagePullJob = scope.async { service.pullImage(image) }
@@ -107,7 +107,7 @@ object ContainerManager : Loggable, Traceable, Settable, EnvStore() {
 		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
 	): Flow<ShellEvent> = flow {
 		if (!containerAccess) {
-			val msg = setting(ContainerSettings.AccessDeniedMessage())
+			val msg = ContainerSettings.AccessDeniedMessage().get()
 			emit(ShellEvent.Stderr("$msg\n"))
 			emit(
 				ShellEvent.Exit(

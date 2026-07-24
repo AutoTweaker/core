@@ -18,7 +18,10 @@
 
 package io.github.autotweaker.core.domain.chat
 
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.get
+import io.github.autotweaker.api.log
+import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.model.Model
@@ -30,7 +33,7 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-object ResilientChat : Loggable, Settable {
+object ResilientChat : Loggable {
 	private lateinit var gateway: LlmGateway
 	
 	fun init(gateway: LlmGateway) {
@@ -47,12 +50,12 @@ object ResilientChat : Loggable, Settable {
 		thinking: Boolean? = null,
 		timeout: ChatTimeout? = null,
 	): Flow<CoreLlmResult> = flow {
-		val maxRetries = setting(ResilientChatSettings.MaxRetries())
-		val llmChatRetries = setting(ResilientChatSettings.LlmChatRetries())
+		val maxRetries = ResilientChatSettings.MaxRetries().get()
+		val llmChatRetries = ResilientChatSettings.LlmChatRetries().get()
 		val effectiveTimeout = timeout ?: ChatTimeout(
-			requestTimeout = setting(ResilientChatSettings.ChatRequestTimeout()).seconds,
-			connectTimeout = setting(ResilientChatSettings.ChatConnectTimeout()).seconds,
-			streamChunkTimeout = setting(ResilientChatSettings.ChatStreamChunkTimeout()).seconds,
+			requestTimeout = ResilientChatSettings.ChatRequestTimeout().get().seconds,
+			connectTimeout = ResilientChatSettings.ChatConnectTimeout().get().seconds,
+			streamChunkTimeout = ResilientChatSettings.ChatStreamChunkTimeout().get().seconds,
 		)
 		
 		log.debug(
@@ -126,9 +129,9 @@ object ResilientChat : Loggable, Settable {
 								retriesUsed + 1,
 								statusCode
 							)
-							val baseDelay = setting(ResilientChatSettings.RetryBaseDelaySeconds())
-							val maxDelay = setting(ResilientChatSettings.MaxRetryDelaySeconds())
-							val jitterEnabled = setting(ResilientChatSettings.RetryJitterEnabled())
+							val baseDelay = ResilientChatSettings.RetryBaseDelaySeconds().get()
+							val maxDelay = ResilientChatSettings.MaxRetryDelaySeconds().get()
+							val jitterEnabled = ResilientChatSettings.RetryJitterEnabled().get()
 							val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
 							val finalDelay = if (jitterEnabled) {
 								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds

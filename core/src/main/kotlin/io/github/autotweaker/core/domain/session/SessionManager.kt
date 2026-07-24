@@ -45,8 +45,8 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 
-object SessionManager : Loggable, Traceable, Settable {
-	private val systemPrompt = setting(SystemPrompt())
+object SessionManager : Loggable, Traceable {
+	private val systemPrompt = SystemPrompt().get()
 	
 	private val wsm = WorkspaceManager
 	

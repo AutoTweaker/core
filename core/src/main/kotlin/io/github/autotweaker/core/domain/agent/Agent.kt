@@ -18,8 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.Settable
-import io.github.autotweaker.api.setting
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
@@ -48,7 +47,7 @@ class Agent(
 	private val tools: ToolMap,
 	activeTools: Set<String>,
 	@Suppress("unused") private val host: AgentHost,
-) : Settable {
+) {
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
 	
@@ -60,7 +59,7 @@ class Agent(
 	
 	private val ctx = AgentContextManager(
 		context.copy(currentRound = null),
-		setting(AgentToolSettings.Cancelled())
+		AgentToolSettings.Cancelled().get()
 	)
 	val context: StateFlow<RuntimeContext> = ctx.context
 	

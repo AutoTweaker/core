@@ -57,7 +57,7 @@ import kotlin.time.Instant
 /**
  * AutoTweaker/core 提供的 API，主要包含适配器、会话、配置的管理。
  *
- * 基础设施类的 API 通过 able 接口暴露，参见 [io.github.autotweaker.api.Loggable]、[io.github.autotweaker.api.Traceable]、[io.github.autotweaker.api.JsonStorable]、[io.github.autotweaker.api.Settable]、[io.github.autotweaker.api.I18nable]。
+ * 基础设施类的 API 通过 able 接口暴露，参见 [io.github.autotweaker.api.Loggable]、[io.github.autotweaker.api.Traceable]、[io.github.autotweaker.api.JsonStorable]、[io.github.autotweaker.api.I18nable]。
  *
  * 请确保在调用任何 API 前检查 [SecretAPI.isUnlocked]，否则 [SecretStoreLockedException] 可能在任何地方抛出。
  *
@@ -267,11 +267,10 @@ interface CoreAPI {
 	 * 管理环境变量、模型提供商、模型。
 	 *
 	 * @see SecretAPI
-	 * @see io.github.autotweaker.api.Settable
 	 */
 	interface ConfigAPI {
 		/**
-		 * 获取所有设置，此 api 通常用于向用户展示，要获取自己注册的设置项请使用 [io.github.autotweaker.api.config.SettingService.invoke]。
+		 * 获取所有设置，此 api 通常用于向用户展示，要获取自己注册的设置项请使用 [io.github.autotweaker.api.get]。
 		 *
 		 * 所有设置项都拥有描述，但 [SettingEntry] 不会包含，请使用 [I18nAPI.getString] 获取国际化的描述。
 		 */

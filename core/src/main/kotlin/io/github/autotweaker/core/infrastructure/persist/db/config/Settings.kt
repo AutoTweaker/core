@@ -73,7 +73,7 @@ object Settings : SettingService, Loggable, Traceable {
 		return@transaction map
 	}
 	
-	override fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T {
+	override fun <V : SettingValue<T>, T> get(def: SettingDef<V>): T {
 		val id = requireDef(def)
 		val stored = cache[id]
 		

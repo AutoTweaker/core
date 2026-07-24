@@ -37,7 +37,7 @@ import kotlinx.coroutines.flow.flow
 
 
 @AutoService(Command::class)
-class Config : Command, Settable, I18nable, Traceable {
+class Config : Command, I18nable, Traceable {
 	private lateinit var core: CoreAPI
 	
 	@AutoService(SettingDef::class)
@@ -87,7 +87,7 @@ class Config : Command, Settable, I18nable, Traceable {
 		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
 		val full: Boolean = request.get("full").toBoolean()
-		val limit: Int = request.get("limit")?.toIntOrNull() ?: setting(DefaultLimit())
+		val limit: Int = request.get("limit")?.toIntOrNull() ?: DefaultLimit().get()
 		
 		if (request.has("list")) {
 			emitAll(list(limit, full))
@@ -200,9 +200,7 @@ class Config : Command, Settable, I18nable, Traceable {
 	private fun match(text: String, query: String): Boolean {
 		val keywords = query.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
 		
-		if (keywords.isEmpty()) return false
-		
-		return keywords.all { keyword ->
+		return keywords.isNotEmpty() && keywords.all { keyword ->
 			text.contains(keyword, ignoreCase = true)
 		}
 	}

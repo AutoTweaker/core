@@ -26,11 +26,12 @@ import io.github.autotweaker.api.types.config.SettingValue
  *
  * 使用 [io.github.autotweaker.api.base.IntSetting] 等基类可以省去一些声明设置的重复代码。
  *
- * 实现 [io.github.autotweaker.api.Settable] 接口即可通过 [SettingService] 获取设置的当前值。
- *
  * 通过 [io.github.autotweaker.api.adapter.CoreAPI.ConfigAPI] 可管理所有设置。
  *
  * AutoTweaker 通过 SPI 和 [SettingService] 来实现分布式的设置声明以及安全的取值。
+ *
+ * @see io.github.autotweaker.api.get
+ * @see io.github.autotweaker.api.set
  */
 interface SettingDef<out V : SettingValue<*>> {
 	/**

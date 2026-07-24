@@ -26,8 +26,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-class ToolCallParser : Loggable, Traceable, Settable {
-	sealed class ValidationResult<out Args : ToolArgs> : Settable {
+class ToolCallParser : Loggable, Traceable {
+	sealed class ValidationResult<out Args : ToolArgs> {
 		data class Success<Args : ToolArgs>(
 			val toolName: String,
 			val reason: String,
@@ -52,7 +52,7 @@ class ToolCallParser : Loggable, Traceable, Settable {
 				} == true
 			}
 			?: return ValidationResult.Failure(
-				setting(AgentToolSettings.FunctionNameError()).format(toolCallName)
+				AgentToolSettings.FunctionNameError().get().format(toolCallName)
 			).andLog(log) {
 				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
 			}
@@ -61,12 +61,12 @@ class ToolCallParser : Loggable, Traceable, Settable {
 			Json.parseToJsonElement(argumentsJson) as? JsonObject
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				setting(AgentToolSettings.JsonError()).format(e.message ?: "Unknown error")
+				AgentToolSettings.JsonError().get().format(e.message ?: "Unknown error")
 			).andLog(log) {
 				debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
 			}
 		} ?: return ValidationResult.Failure(
-			setting(AgentToolSettings.JsonError()).format("Invalid JSON object")
+			AgentToolSettings.JsonError().get().format("Invalid JSON object")
 		).andLog(log) {
 			debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
@@ -74,7 +74,7 @@ class ToolCallParser : Loggable, Traceable, Settable {
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
-				setting(AgentToolSettings.PropertyMissing()).format(toolCallName, "reason")
+				AgentToolSettings.PropertyMissing().get().format(toolCallName, "reason")
 			).andLog(log) {
 				debug(
 					"Failed tool call validation reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
@@ -83,8 +83,8 @@ class ToolCallParser : Loggable, Traceable, Settable {
 		}
 		val reason = reasonElement.content
 		
-		if (reason.isBlank() || reason.length < setting(AgentToolSettings.ReasonLength()))
-			return ValidationResult.Failure(setting(AgentToolSettings.ReasonEmptyError()))
+		if (reason.isBlank() || reason.length < AgentToolSettings.ReasonLength().get())
+			return ValidationResult.Failure(AgentToolSettings.ReasonEmptyError().get())
 		
 		val argsSerializer = checkNotNull(metaCache[toolName]).second
 		val deserializationJson = JsonObject(
@@ -95,7 +95,7 @@ class ToolCallParser : Loggable, Traceable, Settable {
 			Json.decodeFromJsonElement(argsSerializer, deserializationJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				setting(AgentToolSettings.DeserializationError()).format(toolCallName, e.message)
+				AgentToolSettings.DeserializationError().get().format(toolCallName, e.message)
 			).andLog(log) {
 				debug(
 					"Failed tool call arg deserialization  callId={}  name={}  tool={}  error={}",

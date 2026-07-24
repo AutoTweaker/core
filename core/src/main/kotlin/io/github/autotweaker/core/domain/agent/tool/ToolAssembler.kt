@@ -19,15 +19,14 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Settable
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.setting
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolMeta.Prop
 import kotlinx.serialization.json.*
 
-object ToolAssembler : Loggable, Settable {
+object ToolAssembler : Loggable {
 	fun assemble(
 		tools: MetaCache,
 		active: (String) -> Boolean
@@ -36,8 +35,8 @@ object ToolAssembler : Loggable, Settable {
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription = setting(AgentToolSettings.ReasonEmptyError())
-		val enableDesc = setting(AgentToolSettings.EnableDescription())
+		val reasonDescription = AgentToolSettings.ReasonEmptyError().get()
+		val enableDesc = AgentToolSettings.EnableDescription().get()
 		
 		return tools.flatMap {
 			val meta = it.value.first

@@ -30,7 +30,7 @@ import io.mockk.mockk
 object TestServices {
 	private val settingService = object : SettingService {
 		@Suppress("UNCHECKED_CAST")
-		override operator fun <V : SettingValue<T>, T> invoke(def: SettingDef<V>): T =
+		override fun <V : SettingValue<T>, T> get(def: SettingDef<V>): T =
 			def.default.value
 		
 		override fun <V : SettingValue<T>, T> set(def: SettingDef<V>, value: T) {}

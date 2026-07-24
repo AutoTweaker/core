@@ -40,43 +40,43 @@ import kotlinx.coroutines.channels.Channel
 import java.nio.file.Path
 
 @AutoService(CoreTool::class)
-class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
+class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	override suspend fun meta() = readMeta(
 		ReadMetaDescriptions(
-			toolDescription = setting(ReadSettings.DescriptionSetting()),
+			toolDescription = ReadSettings.DescriptionSetting().get(),
 			functions = ReadMetaDescriptions.Functions(
 				file = ReadMetaDescriptions.Functions.File(
-					filePath = setting(ReadSettings.FilePathPropDescriptionSetting()),
-					startLine = setting(ReadSettings.StartLinePropDescriptionSetting()),
-					endLine = setting(ReadSettings.EndLinePropDescriptionSetting()),
-					lineNumber = setting(ReadSettings.LineNumberPropDescriptionSetting()),
-				) to setting(ReadSettings.FileFuncDescriptionSetting()).format(
-					setting(ReadSettings.FileMaxCharsSetting()),
-					setting(ReadSettings.FileMaxLinesSetting())
+					filePath = ReadSettings.FilePathPropDescriptionSetting().get(),
+					startLine = ReadSettings.StartLinePropDescriptionSetting().get(),
+					endLine = ReadSettings.EndLinePropDescriptionSetting().get(),
+					lineNumber = ReadSettings.LineNumberPropDescriptionSetting().get(),
+				) to ReadSettings.FileFuncDescriptionSetting().get().format(
+					ReadSettings.FileMaxCharsSetting().get(),
+					ReadSettings.FileMaxLinesSetting().get()
 				
 				),
 				summarize = ReadMetaDescriptions.Functions.Summarize(
-					filePath = setting(ReadSettings.FilePathPropDescriptionSetting()),
-					startLine = setting(ReadSettings.StartLinePropDescriptionSetting()),
-					endLine = setting(ReadSettings.EndLinePropDescriptionSetting()),
-					prompt = setting(ReadSettings.SummarizePromptPropDescriptionSetting()),
-				) to setting(ReadSettings.SummarizeFuncDescriptionSetting()).format(
-					setting(ReadSettings.SummarizeMaxInputCharsSetting()),
-					setting(ReadSettings.SummarizeMinCharsSetting()),
-					setting(ReadSettings.SummarizeMaxLinesSetting())
+					filePath = ReadSettings.FilePathPropDescriptionSetting().get(),
+					startLine = ReadSettings.StartLinePropDescriptionSetting().get(),
+					endLine = ReadSettings.EndLinePropDescriptionSetting().get(),
+					prompt = ReadSettings.SummarizePromptPropDescriptionSetting().get(),
+				) to ReadSettings.SummarizeFuncDescriptionSetting().get().format(
+					ReadSettings.SummarizeMaxInputCharsSetting().get(),
+					ReadSettings.SummarizeMinCharsSetting().get(),
+					ReadSettings.SummarizeMaxLinesSetting().get()
 				),
 				unicode = ReadMetaDescriptions.Functions.Unicode(
-					filePath = setting(ReadSettings.FilePathPropDescriptionSetting()),
-					startChar = setting(ReadSettings.UnicodeStartCharPropDescriptionSetting()),
-					maxChars = setting(ReadSettings.UnicodeMaxCharsPropDescriptionSetting()).format(
-						setting(ReadSettings.UnicodeMaxCharsSetting())
+					filePath = ReadSettings.FilePathPropDescriptionSetting().get(),
+					startChar = ReadSettings.UnicodeStartCharPropDescriptionSetting().get(),
+					maxChars = ReadSettings.UnicodeMaxCharsPropDescriptionSetting().get().format(
+						ReadSettings.UnicodeMaxCharsSetting().get()
 					),
-				) to setting(ReadSettings.UnicodeFuncDescriptionSetting()),
+				) to ReadSettings.UnicodeFuncDescriptionSetting().get(),
 			),
 		)
 	)
 	
-	private val fileCannotRead = setting(ReadSettings.MessageFileCannotReadSetting()).toolFail()
+	private val fileCannotRead = ReadSettings.MessageFileCannotReadSetting().get().toolFail()
 	
 	override suspend fun coreExec(
 		container: DependencyProvider, args: ReadArgs, outputChannel: Channel<Tool.RuntimeOutput>?
@@ -88,39 +88,41 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		}
 		val fs = container.get<FileSystemService>()
 		val normalizedPath = trace.catching { fs.normalize(filePath) }
-			.getOrElse { return setting(ToolSettings.PathErrorMessage()).toolFail() }
+			.getOrElse { return ToolSettings.PathErrorMessage().get().toolFail() }
 		trace.catching {
 			if (!fs.exists(normalizedPath)) {
-				return setting(ReadSettings.MessageFileNotFoundSetting()).toolFail()
+				return ReadSettings.MessageFileNotFoundSetting().get().toolFail()
 			}
 			if (!fs.isRegularFile(normalizedPath)) {
 				return fileCannotRead
 			}
 		}.rethrowNot<PathOutsideWorkspaceException>().getOrElse {
-			return setting(ReadSettings.MessagePathOutsideWorkspaceSetting()).toolFail()
+			return ReadSettings.MessagePathOutsideWorkspaceSetting().get().toolFail()
 		}
 		
 		log.debug("Started read tool  tool=read  function={}  filePath={}", args::class.simpleName, filePath)
 		
 		return when (args) {
 			is ReadArgs.File -> {
-				if (args.startLine < 1) return setting(ReadSettings.MessageStartLineErrorSetting()).toolFail()
-				if (args.endLine < args.startLine) return setting(ReadSettings.MessageStartLineBiggerThanEndSetting()).toolFail()
+				if (args.startLine < 1) return ReadSettings.MessageStartLineErrorSetting().get().toolFail()
+				if (args.endLine < args.startLine) return ReadSettings.MessageStartLineBiggerThanEndSetting().get()
+					.toolFail()
 				executeFile(container, fs, normalizedPath, args)
 			}
 			
 			is ReadArgs.Summarize -> {
-				if (args.startLine < 1) return setting(ReadSettings.MessageStartLineErrorSetting()).toolFail()
-				if (args.endLine < args.startLine) return setting(ReadSettings.MessageStartLineBiggerThanEndSetting()).toolFail()
+				if (args.startLine < 1) return ReadSettings.MessageStartLineErrorSetting().get().toolFail()
+				if (args.endLine < args.startLine) return ReadSettings.MessageStartLineBiggerThanEndSetting().get()
+					.toolFail()
 				executeSummarize(container, fs, normalizedPath, args)
 			}
 			
 			is ReadArgs.Unicode -> {
 				val startChar = args.startChar ?: 0
-				if (startChar < 0) return setting(ReadSettings.MessageStartCharErrorSetting()).toolFail()
-				val unicodeMaxChars = setting(ReadSettings.UnicodeMaxCharsSetting())
+				if (startChar < 0) return ReadSettings.MessageStartCharErrorSetting().get().toolFail()
+				val unicodeMaxChars = ReadSettings.UnicodeMaxCharsSetting().get()
 				if (args.maxChars > unicodeMaxChars) {
-					return setting(ReadSettings.UnicodeMessageTooManyCharsSetting()).format(unicodeMaxChars).toolFail()
+					return ReadSettings.UnicodeMessageTooManyCharsSetting().get().format(unicodeMaxChars).toolFail()
 				}
 				executeUnicode(fs, normalizedPath, startChar, args.maxChars)
 			}
@@ -133,9 +135,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		normalizedPath: Path,
 		args: ReadArgs.File,
 	): Tool.ToolOutput {
-		val fileMaxLines = setting(ReadSettings.FileMaxLinesSetting())
+		val fileMaxLines = ReadSettings.FileMaxLinesSetting().get()
 		if (args.endLine - args.startLine + 1 > fileMaxLines) {
-			return setting(ReadSettings.MessageTooManyLinesSetting()).format(fileMaxLines).toolFail()
+			return ReadSettings.MessageTooManyLinesSetting().get().format(fileMaxLines).toolFail()
 		}
 		val content = trace.catching {
 			readFileContent(
@@ -143,8 +145,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				normalizedPath,
 				args.startLine,
 				args.endLine,
-				maxChars = setting(ReadSettings.FileMaxCharsSetting()),
-				truncateMessage = setting(ReadSettings.FileMessageTruncateSetting()),
+				maxChars = ReadSettings.FileMaxCharsSetting().get(),
+				truncateMessage = ReadSettings.FileMessageTruncateSetting().get(),
 				lineNumber = args.lineNumber ?: true
 			)
 		}.rethrowCancellation()
@@ -168,7 +170,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 			}
 		
 		if (duplicate)
-			return setting(ReadSettings.FileMessageDuplicateSetting()).format(sha256).toolSuccess()
+			return ReadSettings.FileMessageDuplicateSetting().get().format(sha256).toolSuccess()
 		
 		return "$sha256\n$content".toolSuccess()
 	}
@@ -179,9 +181,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 		normalizedPath: Path,
 		args: ReadArgs.Summarize,
 	): Tool.ToolOutput {
-		val summarizeMaxLines = setting(ReadSettings.SummarizeMaxLinesSetting())
+		val summarizeMaxLines = ReadSettings.SummarizeMaxLinesSetting().get()
 		if (args.endLine - args.startLine + 1 > summarizeMaxLines) {
-			return setting(ReadSettings.MessageTooManyLinesSetting()).format(summarizeMaxLines).toolFail()
+			return ReadSettings.MessageTooManyLinesSetting().get().format(summarizeMaxLines).toolFail()
 		}
 		val content = trace.catching {
 			readFileContent(
@@ -189,28 +191,28 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable, Settable {
 				normalizedPath,
 				args.startLine,
 				args.endLine,
-				maxChars = setting(ReadSettings.SummarizeMaxInputCharsSetting()),
-				truncateMessage = setting(ReadSettings.SummarizeMessageInputTruncateSetting()),
+				maxChars = ReadSettings.SummarizeMaxInputCharsSetting().get(),
+				truncateMessage = ReadSettings.SummarizeMessageInputTruncateSetting().get(),
 				lineNumber = false
 			)
 		}.rethrowCancellation()
 			.getOrElse { return fileCannotRead }
-		val summarizeMinChars = setting(ReadSettings.SummarizeMinCharsSetting())
+		val summarizeMinChars = ReadSettings.SummarizeMinCharsSetting().get()
 		if (content.length < summarizeMinChars)
-			return setting(ReadSettings.SummarizeMessageTooFewSetting()).format(
+			return ReadSettings.SummarizeMessageTooFewSetting().get().format(
 				content.length, summarizeMinChars
 			).toolFail()
 		
-		val summarizePrompt = setting(ReadSettings.SummarizePromptSetting())
+		val summarizePrompt = ReadSettings.SummarizePromptSetting().get()
 		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		val summarize = container.get<SummarizeService>()
 		val output = trace.catching { summarize(content, prompt) }.getOrElse { e ->
-			return setting(ReadSettings.SummarizeMessageFailedSetting()).format(e.message).toolFail()
+			return ReadSettings.SummarizeMessageFailedSetting().get().format(e.message).toolFail()
 		}
-		val summarizeMaxOutputChars = setting(ReadSettings.SummarizeMaxOutputCharsSetting())
+		val summarizeMaxOutputChars = ReadSettings.SummarizeMaxOutputCharsSetting().get()
 		return if (output.length > summarizeMaxOutputChars)
 			(output.take(summarizeMaxOutputChars) +
-					setting(ReadSettings.SummarizeMessageOutputTruncateSetting())
+					ReadSettings.SummarizeMessageOutputTruncateSetting().get()
 						.format(output.length)
 					).toolSuccess()
 		else output.toolSuccess()

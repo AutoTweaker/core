@@ -34,7 +34,7 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.*
 
-object SecretManager : SecretStore, Loggable, Traceable, Settable {
+object SecretManager : SecretStore, Loggable, Traceable {
 	private val rootDir = CONFIG_PATH.resolve("secret")
 	private val secretsDir = rootDir.resolve("secrets")
 	private val gpgHome = rootDir.resolve(".gnupg")

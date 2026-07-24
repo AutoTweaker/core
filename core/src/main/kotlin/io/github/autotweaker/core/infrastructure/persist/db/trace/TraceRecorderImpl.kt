@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.minutes
 
-object TraceRecorderImpl : Loggable, Settable {
+object TraceRecorderImpl : Loggable {
 	private val scope = scope(IO)
 	private val queue = Channel<TraceEntry>(Channel.UNLIMITED)
 	private val cache = ConcurrentHashMap<KClass<*>, TraceRecorder>()
@@ -43,7 +43,7 @@ object TraceRecorderImpl : Loggable, Settable {
 			}
 		}
 		
-		val interval = setting(TraceSettings.CleanupIntervalMinutes())
+		val interval = TraceSettings.CleanupIntervalMinutes().get()
 		if (interval > 0) scope.launch {
 			while (isActive) {
 				delay(interval.minutes)

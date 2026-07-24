@@ -18,11 +18,13 @@
 
 package io.github.autotweaker.api
 
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.storage.ObjectStorage
 import io.github.autotweaker.api.trace.TraceRecorder
+import io.github.autotweaker.api.types.config.SettingValue
 import kotlin.reflect.KClass
 
 /**
@@ -53,3 +55,23 @@ fun initServices(services: ServiceRegistry) {
 	check(ServiceRegistry.services == null) { "Services already initialized" }
 	ServiceRegistry.services = services
 }
+
+/**
+ * 对一个 [SettingDef] 调用 [get] 可以直接从数据库拿到当前配置值。
+ *
+ * 用法：`val prompt: String = SystemPrompt().get()`。
+ *
+ * @see io.github.autotweaker.api.config.SettingService.get
+ */
+fun <V : SettingValue<T>, T> SettingDef<V>.get(): T =
+	ServiceRegistry.servicesOrError().setting.get(this)
+
+/**
+ * 对一个 [SettingDef] 调用 [set] 可以更新配置值。
+ *
+ * 用法：`SystemPrompt().set("你是一袋猫粮")`。
+ *
+ * @see io.github.autotweaker.api.config.SettingService.set
+ */
+fun <V : SettingValue<T>, T> SettingDef<V>.set(value: T) =
+	ServiceRegistry.servicesOrError().setting.set(this, value)

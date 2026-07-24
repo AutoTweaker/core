@@ -34,7 +34,7 @@ import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.time.Clock
 
-object TranslationEngine : Loggable, Traceable, Settable {
+object TranslationEngine : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(
@@ -56,11 +56,11 @@ object TranslationEngine : Loggable, Traceable, Settable {
 		modelRepo: ModelResolver,
 	) {
 		val model = modelRepo.resolve(modelId) ?: error("Model not found: $modelId")
-		val systemPrompt = setting(TranslateSettings.SystemPrompt())
+		val systemPrompt = TranslateSettings.SystemPrompt().get()
 			.replace("{{target_language}}", target.displayName)
-		val userPromptTemplate = setting(TranslateSettings.UserPrompt())
-		val batchSize = setting(TranslateSettings.BatchSize())
-		val limit = setting(TranslateSettings.MaxConcurrent())
+		val userPromptTemplate = TranslateSettings.UserPrompt().get()
+		val batchSize = TranslateSettings.BatchSize().get()
+		val limit = TranslateSettings.MaxConcurrent().get()
 		
 		val baths = collectBaths(target).ifEmpty { return }
 		val jobs = baths.toList().chunked(batchSize) {
@@ -106,7 +106,7 @@ object TranslationEngine : Loggable, Traceable, Settable {
 				ChatMessage.UserMessage(userPrompt, Clock.System.now()),
 			),
 			stream = false,
-			thinking = setting(TranslateSettings.Thinking()),
+			thinking = TranslateSettings.Thinking().get(),
 			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
 		)
 		val results = trace.catching { ChatService.chat(request).toList() }

@@ -18,8 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
-import io.github.autotweaker.api.Settable
-import io.github.autotweaker.api.setting
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
@@ -32,7 +31,7 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as To
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Call as ToolCall
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result as ToolResult
 
-class ToolResultFactory : Settable {
+class ToolResultFactory {
 	
 	//错误/激活
 	
@@ -52,8 +51,8 @@ class ToolResultFactory : Settable {
 		reason: String?,
 	) = buildToolMessage(
 		call, ToolResult(
-			content = if (reason != null) setting(AgentToolSettings.RejectedWithFeedback()).format(reason) else
-				setting(AgentToolSettings.Rejected()),
+			content = if (reason != null) AgentToolSettings.RejectedWithFeedback().get().format(reason) else
+				AgentToolSettings.Rejected().get(),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.REJECTED,
 		)
