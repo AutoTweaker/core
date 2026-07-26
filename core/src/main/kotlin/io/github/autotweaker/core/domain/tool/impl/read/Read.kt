@@ -227,7 +227,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val allUnicode: List<Unicode> = trace.catching { fs.readUnicode(normalizedPath) }
 			.getOrElse { return fileCannotRead }
 		return allUnicode.drop(startChar).take(maxChars)
-			.joinToString("") { it.value }.toolSuccess()
+			.joinToString("").toolSuccess()
 	}
 	
 	private suspend fun readFileContent(

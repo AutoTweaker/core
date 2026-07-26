@@ -18,59 +18,35 @@
 
 package io.github.autotweaker.api.types
 
-import io.github.autotweaker.api.types.Unicode.Companion.toUnicode
-
-
 /**
- * 表示一个 Unicode 转义序列，建议使用 [toUnicode] 构造。
- *
- * @throws IllegalArgumentException [value] 不是一个合法的 Unicode 转义序列。
+ * 表示一个 Unicode 转义序列，可使用原始 [Char] 构造。
  */
 @JvmInline
-value class Unicode(val value: String) {
-	init {
-		require(isValid(value)) { "Invalid Unicode escape sequence: $value" }
-	}
-	
-	override fun toString() = value
+value class Unicode(private val value: Char) {
+	/**
+	 * 获取 Unicode 转义序列。
+	 */
+	override fun toString() = String.format("\\u%04X", value.code)
 	
 	/**
-	 * 解码为对应的字符
+	 * 获取原始字符。
 	 */
-	fun toChar(): Char = hexValue().toChar()
+	fun toChar(): Char = value
 	
 	/**
-	 * 获取 Unicode 码点值
+	 * 获取 Unicode 码点值。
 	 */
-	fun codePoint(): Int = hexValue()
-	
-	private fun hexValue(): Int = value.substring(2).toInt(16)
+	fun codePoint(): Int = value.code
 	
 	companion object {
 		/**
-		 * 从 [Char] 创建 Unicode 转义序列
-		 */
-		fun Char.toUnicode(): Unicode =
-			Unicode("\\u${code.toHex4()}")
-		
-		/**
-		 * 从码点创建 Unicode 转义序列
+		 * 从码点创建 Unicode 转义序列。
 		 */
 		fun Int.toUnicode(): Unicode {
-			require(this in 0..0xFFFF) { "Code point out of range for \\uXXXX format: $this" }
-			return Unicode("\\u${toHex4()}")
-		}
-		
-		private fun Int.toHex4(): String = toString(16).padStart(4, '0')
-		
-		/**
-		 * @return 字符串是否是一个有效的 Unicode 转义序列
-		 */
-		fun isValid(input: String): Boolean {
-			if (input.length != 6) return false
-			if (!input.startsWith("\\u")) return false
-			return input.substring(2)
-				.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }
+			require(this in Char.MIN_VALUE.code..Char.MAX_VALUE.code) {
+				"Code point out of range for \\uXXXX format: $this"
+			}
+			return Unicode(toChar())
 		}
 	}
 }
