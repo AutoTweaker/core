@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -32,6 +33,9 @@ import kotlin.time.Clock
 class MessageQueue(private val agentId: UUID) : Loggable {
 	private val channel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
 	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<UUID?>>()
+	
+	private val cancelled = mutableSetOf<UUID>()
+	private val lock = ReentrantMutex()
 	
 	fun shutdown() {
 		channel.close()
@@ -60,24 +64,28 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		}
 	}
 	
-	fun drain(): RuntimeContext.Message.User? {
+	suspend fun drain(): RuntimeContext.Message.User? {
 		val all = mutableMapOf<UUID, MessageContent>()
 		while (true) all += channel.tryReceive().getOrNull() ?: break
 		return merge(all)
 	}
 	
-	fun merge(all: Map<UUID, MessageContent>): RuntimeContext.Message.User? {
+	suspend fun merge(all: Map<UUID, MessageContent>): RuntimeContext.Message.User? {
 		if (all.isEmpty()) return null
-		val injections = all.values.flatMap { it.injections.orEmpty() }.orNull()
-		val images = all.values.flatMap { it.images.orEmpty() }.orNull()
+		val cancelQueued = lock.withLock {
+			cancelled.toSet().also { cancelled.clear() }
+		}
+		val filtered = all.filterNot { it.key in cancelQueued }
+		val injections = filtered.values.flatMap { it.injections.orEmpty() }.orNull()
+		val images = filtered.values.flatMap { it.images.orEmpty() }.orNull()
 		val content = buildString {
-			val filtered = all.values.filterNot { it.content.isNullOrBlank() }
+			val filtered = filtered.values.filterNot { it.content.isNullOrBlank() }
 			filtered.forEachBetween(
 				action = { append(it.content) },
 				between = { append("\n\n---\n\n") })
 		}.orNull()
 		if (allNull(injections, images, content)) {
-			all.keys.forEach {
+			filtered.keys.forEach {
 				deliveries.remove(it)?.complete(null)
 			}
 			return null
@@ -88,10 +96,10 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			),
 			timestamp = Clock.System.now()
 		).also { message ->
-			all.keys.forEach {
+			filtered.keys.forEach {
 				deliveries.remove(it)?.complete(message.id)
 			}
-		}.andLog(log) { info("Merged queued messages  count={}  agentId={}", all.count(), agentId) }
+		}.andLog(log) { info("Merged queued messages  count={}  agentId={}", filtered.count(), agentId) }
 	}
 	
 	fun send(content: List<String>) = content.map {
@@ -112,7 +120,12 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		deliveries[token] = deferred
 		channel.trySend(token to msg)
 		return object : Delivery {
+			override val isActive get() = deferred.isActive
 			override suspend fun await() = deferred.await()
+			override suspend fun cancel() = lock.withLock {
+				deferred.cancel()
+				cancelled.add(token)
+			}.discard()
 		}
 	}
 }

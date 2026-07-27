@@ -25,9 +25,22 @@ import java.util.*
  */
 interface Delivery {
 	/**
+	 * 消息是否仍未被消费。
+	 */
+	val isActive: Boolean
+	
+	/**
 	 * 等待消息被消费，并得到消息的 id。
 	 *
 	 * @return 如果消息为空而被丢弃，返回 null。
+	 * @throws kotlinx.coroutines.CancellationException 消息被取消
 	 */
 	suspend fun await(): UUID?
+	
+	/**
+	 * 如果消息仍未被消费，取消消息处理。
+	 *
+	 * 不保证消息一定被取消，[isActive] 为 false 时可通过 [await] 查询状态。
+	 */
+	suspend fun cancel()
 }
