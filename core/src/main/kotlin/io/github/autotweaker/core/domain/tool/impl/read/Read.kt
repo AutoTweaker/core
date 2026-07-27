@@ -90,12 +90,10 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val normalizedPath = trace.catching { fs.normalize(filePath) }
 			.getOrElse { return ToolSettings.PathErrorMessage().get().toolFail() }
 		trace.catching {
-			if (!fs.exists(normalizedPath)) {
+			if (!fs.exists(normalizedPath))
 				return ReadSettings.MessageFileNotFoundSetting().get().toolFail()
-			}
-			if (!fs.isRegularFile(normalizedPath)) {
+			if (!fs.isRegularFile(normalizedPath))
 				return fileCannotRead
-			}
 		}.rethrowNot<PathOutsideWorkspaceException>().getOrElse {
 			return ReadSettings.MessagePathOutsideWorkspaceSetting().get().toolFail()
 		}
@@ -121,9 +119,10 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				val startChar = args.startChar ?: 0
 				if (startChar < 0) return ReadSettings.MessageStartCharErrorSetting().get().toolFail()
 				val unicodeMaxChars = ReadSettings.UnicodeMaxCharsSetting().get()
-				if (args.maxChars > unicodeMaxChars) {
-					return ReadSettings.UnicodeMessageTooManyCharsSetting().get().format(unicodeMaxChars).toolFail()
-				}
+				if (args.maxChars > unicodeMaxChars)
+					return ReadSettings.UnicodeMessageTooManyCharsSetting().get()
+						.format(unicodeMaxChars).toolFail()
+				
 				executeUnicode(fs, normalizedPath, startChar, args.maxChars)
 			}
 		}
@@ -136,9 +135,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		args: ReadArgs.File,
 	): Tool.ToolOutput {
 		val fileMaxLines = ReadSettings.FileMaxLinesSetting().get()
-		if (args.endLine - args.startLine + 1 > fileMaxLines) {
+		if (args.endLine - args.startLine + 1 > fileMaxLines)
 			return ReadSettings.MessageTooManyLinesSetting().get().format(fileMaxLines).toolFail()
-		}
+		
 		val content = trace.catching {
 			readFileContent(
 				fs,
@@ -182,9 +181,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		args: ReadArgs.Summarize,
 	): Tool.ToolOutput {
 		val summarizeMaxLines = ReadSettings.SummarizeMaxLinesSetting().get()
-		if (args.endLine - args.startLine + 1 > summarizeMaxLines) {
+		if (args.endLine - args.startLine + 1 > summarizeMaxLines)
 			return ReadSettings.MessageTooManyLinesSetting().get().format(summarizeMaxLines).toolFail()
-		}
+		
 		val content = trace.catching {
 			readFileContent(
 				fs,
@@ -193,7 +192,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				args.endLine,
 				maxChars = ReadSettings.SummarizeMaxInputCharsSetting().get(),
 				truncateMessage = ReadSettings.SummarizeMessageInputTruncateSetting().get(),
-				lineNumber = false
+				lineNumber = true
 			)
 		}.rethrowCancellation()
 			.getOrElse { return fileCannotRead }
