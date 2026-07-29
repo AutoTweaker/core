@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.PLUGIN_PATH
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.log
 import org.objectweb.asm.ClassReader
 import java.net.URLClassLoader
 import java.nio.file.Files
@@ -27,8 +29,6 @@ import java.util.*
 import java.util.jar.JarFile
 
 object PluginLoader : Loggable, Traceable {
-	private val classLoaders = Collections.synchronizedList(mutableListOf<URLClassLoader>())
-	
 	@Volatile
 	var sharedClassLoader: URLClassLoader? = null
 	
@@ -44,7 +44,7 @@ object PluginLoader : Loggable, Traceable {
 			if (jars.isEmpty()) return null
 			
 			val urls = jars.mapNotNull { path ->
-				trace.catching {
+				runCatching { //加载StartupHook时trace尚未准备好
 					JarFile(path.toFile()).use { jar ->
 						jar.entries().asSequence()
 							.filter { it.name.endsWith(".class") }
@@ -60,7 +60,6 @@ object PluginLoader : Loggable, Traceable {
 					.getOrNull()
 			}.toTypedArray()
 			val classLoader = URLClassLoader(urls, apiClassLoader)
-			classLoaders.add(classLoader)
 			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
 			sharedClassLoader = classLoader
 			return classLoader
@@ -74,9 +73,5 @@ object PluginLoader : Loggable, Traceable {
 		return plugins
 	}
 	
-	fun closeClassLoaders() {
-		classLoaders.forEach { trace.catching { it.close() } }
-		classLoaders.clear()
-		sharedClassLoader = null
-	}
+	fun close() = sharedClassLoader?.close()
 }

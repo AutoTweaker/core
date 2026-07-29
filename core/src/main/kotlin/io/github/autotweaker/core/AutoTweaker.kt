@@ -68,7 +68,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	fun shutdown() {
 		log.info("Initiated AutoTweaker shutdown")
 		runBlocking { Launcher.shutdown(registry.values.toList()) }
-		PluginLoader.closeClassLoaders()
+		PluginLoader.close()
 		releaseLock()
 		log.info("Completed AutoTweaker shutdown")
 	}
