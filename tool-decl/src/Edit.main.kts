@@ -16,9 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.tool.args.edit
+@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
 
-import kotlinx.serialization.Serializable
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
 
-@Serializable
-enum class Side { BEFORE, AFTER }
+tool("edit") {
+	function("run") {
+		string("file_path")
+		int("line_from")
+		int("line_to")
+		stringList("old_string")
+		boolean("json_string")
+		string("new_string")
+		
+	}
+	
+	
+	function("batch") {
+		stringList("files")
+		string("regex")
+		string("replace_with")
+	}
+	
+	function("apply") {
+		string("operation_id")
+	}
+	
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.edit",
+)
