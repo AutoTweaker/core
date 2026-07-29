@@ -56,20 +56,6 @@ object ReadSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class UnicodeFuncDescriptionSetting : StringSetting(
-		"读取一个文件但是返回每个字符的Unicode编码，在普通读取看起来没有返回有效内容时使用", zh(
-			"read_unicode工具的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class FilePathPropDescriptionSetting : StringSetting(
-		"文件的路径，通常使用相对路径", zh(
-			"read工具file_path参数的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
 	class StartLinePropDescriptionSetting : StringSetting(
 		"读取文件的开始行号，从1开始", zh(
 			"read工具start_line参数的描述"
@@ -91,23 +77,16 @@ object ReadSettings {
 	)
 	
 	@AutoService(SettingDef::class)
+	class UnicodeEscapePropDescriptionSetting : StringSetting(
+		"将文件内容进行Unicode转义，用于在文件内容看起来无效或需要确认准确字符时启用，默认为false", zh(
+			"read-file工具unicode_escape参数的描述"
+		)
+	)
+	
+	@AutoService(SettingDef::class)
 	class SummarizePromptPropDescriptionSetting : StringSetting(
 		"用于总结文件的提示词，调整此字段来要求总结器关注不同细节", zh(
 			"read_summarize工具prompt参数的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class UnicodeMaxCharsPropDescriptionSetting : StringSetting(
-		"读取文件的前n个字符，这将包括换行符等特殊字符，最多%s个字符", zh(
-			"read_unicode工具max_chars参数的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class UnicodeStartCharPropDescriptionSetting : StringSetting(
-		"从文件的第n个字符开始读取，默认为0从头开始", zh(
-			"read_unicode工具start_char参数的描述"
 		)
 	)
 	
@@ -164,13 +143,6 @@ object ReadSettings {
 	class MessageStartCharErrorSetting : StringSetting(
 		"start_char必须大于或等于0", zh(
 			"read_unicode工具start_char不合法的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class UnicodeMessageTooManyCharsSetting : StringSetting(
-		"读取的字符数过多，上限为%s", zh(
-			"read_unicode工具读取过多内容时的描述"
 		)
 	)
 	
@@ -248,13 +220,6 @@ object ReadSettings {
 	class SummarizeMaxOutputCharsSetting : IntSetting(
 		5000, zh(
 			"read_summarize工具最大输出字符数，超出会截断"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class UnicodeMaxCharsSetting : IntSetting(
-		500, zh(
-			"read_unicode工具最大允许字符数，超出会返回错误消息"
 		)
 	)
 }

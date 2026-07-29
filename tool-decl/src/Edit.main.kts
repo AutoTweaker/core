@@ -22,21 +22,40 @@ import io.github.autotweaker.toolgen.gen
 import io.github.autotweaker.toolgen.tool
 
 tool("edit") {
-	function("run") {
-		string("file_path")
-		int("line_from")
-		int("line_to")
-		stringList("old_string")
-		boolean("json_string")
-		string("new_string")
-		
+	val unescapeConfig = buildDeclaration {
+		obj("unescape_config") {
+			boolean("enable_unescape")
+			boolean("lenient_mode") {
+				required = false
+			}
+		}
 	}
 	
+	function("single") {
+		string("file_path")
+		int("line_from") {
+			required = false
+		}
+		int("line_to") {
+			required = false
+		}
+		stringList("old_string")
+		param("unescape_old", unescapeConfig) {
+			required = false
+		}
+		string("new_string")
+		param("unescape_new", unescapeConfig) {
+			required = false
+		}
+	}
 	
 	function("batch") {
 		stringList("files")
 		string("regex")
 		string("replace_with")
+		param("unescape_config", unescapeConfig) {
+			required = false
+		}
 	}
 	
 	function("apply") {

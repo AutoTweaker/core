@@ -19,19 +19,51 @@
 package io.github.autotweaker.core.domain.tool.impl.edit
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.generated.tool.args.EditArgs
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
+import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import kotlinx.coroutines.channels.Channel
 
 @AutoService(CoreTool::class)
-class Edit : CoreTool<ToolArgs> {
-	override suspend fun meta() = TODO()
+class Edit : CoreTool<EditArgs> {
+	override suspend fun meta() = editMeta(
+		EditMetaDescriptions(
+			toolDescription = EditDesc.Tool().get(),
+			functions = EditMetaDescriptions.Functions(
+				single = EditMetaDescriptions.Functions.Single(
+					filePath = ToolSettings.FilePathDesc().get(),
+					lineFrom = EditDesc.SingleLineFrom().get(),
+					lineTo = EditDesc.SingleLineTo().get(),
+					oldString = EditDesc.SingleOldString().get(),
+					unescapeOld = EditDesc.SingleUnescapeOldString().get(),
+					newString = EditDesc.SingleNewString().get(),
+					unescapeNew = EditDesc.SingleUnescapeNewString().get()
+				) to EditDesc.Single().get(),
+				batch = EditMetaDescriptions.Functions.Batch(
+					files = EditDesc.BatchFiles().get(),
+					regex = EditDesc.BatchRegex().get(),
+					replaceWith = EditDesc.BatchReplaceWith().get(),
+					unescapeConfig = EditDesc.BatchUnescapeConfig().get()
+				) to EditDesc.Batch().get(),
+				apply = EditMetaDescriptions.Functions.Apply(
+					operationId = EditDesc.ApplyOperationId().get(),
+				) to EditDesc.Apply().get()
+			),
+			types = EditMetaDescriptions.Types(
+				unescapeConfig = EditMetaDescriptions.Types.UnescapeConfig(
+					enableUnescape = EditDesc.UnescapeConfigEnable().get(),
+					lenientMode = EditDesc.UnescapeConfigLenient().get()
+				)
+			)
+		)
+	)
 	
 	override suspend fun coreExec(
 		container: DependencyProvider,
-		args: ToolArgs,
+		args: EditArgs,
 		outputChannel: Channel<Tool.RuntimeOutput>?
 	): Tool.ToolOutput {
 		TODO("Not yet implemented")

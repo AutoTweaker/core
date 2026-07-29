@@ -27,6 +27,7 @@ tool("read") {
 		int("start_line")
 		int("end_line")
 		boolean("line_number") { required = false }
+		boolean("unicode_escape") { required = false }
 	}
 	
 	function("summarize") {
@@ -34,12 +35,6 @@ tool("read") {
 		int("start_line")
 		int("end_line")
 		string("prompt") { required = false }
-	}
-	
-	function("unicode") {
-		string("file_path")
-		int("start_char") { required = false }
-		int("max_chars")
 	}
 }.gen(
 	"io.github.autotweaker.api.generated.tool.args",

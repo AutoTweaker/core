@@ -20,7 +20,6 @@ package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
@@ -42,9 +41,6 @@ class FileSystemServiceImpl(
 	
 	override suspend fun isRegularFile(path: Path): Boolean =
 		fs.isRegularFile(resolve(path))
-	
-	override suspend fun readUnicode(path: Path): List<Unicode> =
-		fs.readUnicode(resolve(path))
 	
 	override suspend fun readAllLines(path: Path): List<String> =
 		fs.readAllLines(resolve(path))

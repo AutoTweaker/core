@@ -18,118 +18,68 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.types.Unicode
-import io.github.autotweaker.api.types.Unicode.Companion.toUnicode
+import io.github.autotweaker.api.toUnicodeEscape
+import io.github.autotweaker.api.unescapeUnicode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class UnicodeTest {
 	
-	// region construction & toString
+	// region Char.toUnicodeEscape
 	
 	@Test
-	fun `construct with uppercase char`() {
-		val unicode = Unicode('A')
-		assertEquals("\\u0041", unicode.toString())
+	fun `toUnicodeEscape uppercase letter`() {
+		assertEquals("\\u0041", 'A'.toUnicodeEscape())
 	}
 	
 	@Test
-	fun `construct with lowercase char`() {
-		val unicode = Unicode(0x00FF.toChar())
-		assertEquals("\\u00FF", unicode.toString())
-	}
-	
-	// endregion
-	
-	// region toChar
-	
-	@Test
-	fun `toChar converts unicode escape to character`() {
-		val unicode = Unicode('A')
-		assertEquals('A', unicode.toChar())
+	fun `toUnicodeEscape lowercase letter`() {
+		assertEquals("\\u007A", 'z'.toUnicodeEscape())
 	}
 	
 	@Test
-	fun `toChar with lowercase letter`() {
-		val unicode = Unicode('a')
-		assertEquals('a', unicode.toChar())
+	fun `toUnicodeEscape null character`() {
+		assertEquals("\\u0000", '\u0000'.toUnicodeEscape())
 	}
 	
 	@Test
-	fun `toChar with null character`() {
-		val unicode = Unicode(0x0000.toChar())
-		assertEquals('\u0000', unicode.toChar())
+	fun `toUnicodeEscape max BMP character`() {
+		assertEquals("\\uFFFF", '\uFFFF'.toUnicodeEscape())
+	}
+	
+	@Test
+	fun `toUnicodeEscape newline`() {
+		assertEquals("\\u000A", '\n'.toUnicodeEscape())
+	}
+	
+	@Test
+	fun `toUnicodeEscape space`() {
+		assertEquals("\\u0020", ' '.toUnicodeEscape())
 	}
 	
 	// endregion
 	
-	// region codePoint
+	// region String.toUnicodeEscape
 	
 	@Test
-	fun `codePoint returns correct value`() {
-		val unicode = Unicode('A')
-		assertEquals(65, unicode.codePoint())
+	fun `toUnicodeEscape single char string`() {
+		assertEquals("\\u0041", "A".toUnicodeEscape())
 	}
 	
 	@Test
-	fun `codePoint with max value`() {
-		val unicode = Unicode(0xFFFF.toChar())
-		assertEquals(65535, unicode.codePoint())
-	}
-	
-	// endregion
-	
-	// region fromChar
-	
-	@Test
-	fun `fromChar creates correct escape`() {
-		val unicode = Unicode('A')
-		assertEquals("\\u0041", unicode.toString())
+	fun `toUnicodeEscape multiple chars`() {
+		assertEquals("\\u0041\\u0042\\u0043", "ABC".toUnicodeEscape())
 	}
 	
 	@Test
-	fun `fromChar with lowercase`() {
-		val unicode = Unicode('z')
-		assertEquals("\\u007A", unicode.toString())
+	fun `toUnicodeEscape empty string`() {
+		assertEquals("", "".toUnicodeEscape())
 	}
 	
 	@Test
-	fun `fromChar with max BMP char`() {
-		val unicode = Unicode(0xFFFF.toChar())
-		assertEquals("\\uFFFF", unicode.toString())
-	}
-	
-	// endregion
-	
-	// region fromCodePoint
-	
-	@Test
-	fun `fromCodePoint creates correct escape`() {
-		val unicode = 65.toUnicode()
-		assertEquals("\\u0041", unicode.toString())
-	}
-	
-	@Test
-	fun `fromCodePoint with zero`() {
-		val unicode = 0.toUnicode()
-		assertEquals("\\u0000", unicode.toString())
-	}
-	
-	@Test
-	fun `fromCodePoint with max BMP`() {
-		val unicode = 0xFFFF.toUnicode()
-		assertEquals("\\uFFFF", unicode.toString())
-	}
-	
-	@Test
-	fun `fromCodePoint out of range throws`() {
-		assertFailsWith<IllegalArgumentException> {
-			0x10000.toUnicode()
-		}
-		assertFailsWith<IllegalArgumentException> {
-			(-1).toUnicode()
-		}
+	fun `toUnicodeEscape mixed chars`() {
+		assertEquals("\\u0048\\u0065\\u006C\\u006C\\u006F", "Hello".toUnicodeEscape())
 	}
 	
 	// endregion
@@ -137,21 +87,156 @@ class UnicodeTest {
 	// region roundtrip
 	
 	@Test
-	fun `fromChar toChar roundtrip`() {
-		val chars = listOf('A', 'z', '0', ' ', '\n', 0xFFFF.toChar())
+	fun `toUnicodeEscape then unescapeUnicode roundtrip`() {
+		val original = "ABC"
+		val escaped = original.toUnicodeEscape()
+		assertEquals("\\u0041\\u0042\\u0043", escaped)
+		assertEquals(original, escaped.unescapeUnicode())
+	}
+	
+	@Test
+	fun `toUnicodeEscape then unescapeUnicode roundtrip various chars`() {
+		val chars = listOf('A', 'z', '0', ' ', '\n', '\uFFFF', '\u0000')
 		for (c in chars) {
-			val unicode = Unicode(c)
-			assertEquals(c, unicode.toChar(), "roundtrip failed for char: $c")
+			val escaped = c.toUnicodeEscape()
+			assertEquals(c.toString(), escaped.unescapeUnicode(), "roundtrip failed for char: $c")
 		}
 	}
 	
 	@Test
-	fun `fromCodePoint codePoint roundtrip`() {
-		val points = listOf(0, 65, 255, 4095, 0xFFFF)
-		for (cp in points) {
-			val unicode = cp.toUnicode()
-			assertEquals(cp, unicode.codePoint(), "roundtrip failed for codePoint: $cp")
+	fun `unescapeUnicode then toUnicodeEscape roundtrip`() {
+		val escaped = "\\u0041\\u0042\\u0043"
+		val original = escaped.unescapeUnicode()
+		assertEquals("ABC", original)
+		assertEquals(escaped, original.toUnicodeEscape())
+	}
+	
+	// endregion
+	
+	// region unescapeUnicode
+	
+	@Test
+	fun `unescapeUnicode passes plain string through`() {
+		val input = "hello world"
+		assertEquals("hello world", input.unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode with empty string`() {
+		assertEquals("", "".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode escaped backslash`() {
+		assertEquals("\\", "\\\\".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode escaped backslash before uXXXX preserves literal uXXXX`() {
+		assertEquals("\\u0000", "\\\\u0000".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode single unicode escape`() {
+		assertEquals("A", "\\u0041".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode lowercase unicode escape`() {
+		assertEquals("A", "\\u0041".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode multiple unicode escapes`() {
+		assertEquals("ABC", "\\u0041\\u0042\\u0043".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode mixed escapes`() {
+		assertEquals("\\A", "\\\\\\u0041".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode null character`() {
+		assertEquals("\u0000", "\\u0000".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode max BMP character`() {
+		assertEquals("\uFFFF", "\\uFFFF".unescapeUnicode())
+	}
+	
+	@Test
+	fun `unescapeUnicode unicode escape in middle of string`() {
+		assertEquals("hello   world", "hello \\u0020 world".unescapeUnicode())
+	}
+	
+	@Test
+	fun `trailing backslash throws with clear message`() {
+		val ex = assertFailsWith<IllegalStateException> {
+			"abc\\".unescapeUnicode(strict = true)
 		}
+		assertEquals("Trailing backslash at position 3", ex.message)
+	}
+	
+	@Test
+	fun `incomplete unicode escape throws with clear message`() {
+		val ex = assertFailsWith<IllegalStateException> {
+			"abc\\u12".unescapeUnicode(strict = true)
+		}
+		assertEquals("Incomplete Unicode escape sequence at position 3: expected 4 hex digits after \\u", ex.message)
+	}
+	
+	@Test
+	fun `incomplete unicode escape at end throws with clear message`() {
+		val ex = assertFailsWith<IllegalStateException> {
+			"\\u1".unescapeUnicode(strict = true)
+		}
+		assertEquals("Incomplete Unicode escape sequence at position 0: expected 4 hex digits after \\u", ex.message)
+	}
+	
+	@Test
+	fun `unknown escape sequence throws with clear message`() {
+		val ex = assertFailsWith<IllegalStateException> {
+			"abc\\n".unescapeUnicode(strict = true)
+		}
+		assertEquals("Unknown escape sequence \\n at position 3", ex.message)
+	}
+	
+	@Test
+	fun `unknown escape sequence at position 0 throws with clear message`() {
+		val ex = assertFailsWith<IllegalStateException> {
+			"\\t".unescapeUnicode(strict = true)
+		}
+		assertEquals("Unknown escape sequence \\t at position 0", ex.message)
+	}
+	
+	@Test
+	fun `nonStrict trailing backslash skips backslash`() {
+		assertEquals("abc", "abc\\".unescapeUnicode())
+	}
+	
+	@Test
+	fun `nonStrict incomplete unicode escape preserves backslash`() {
+		assertEquals("abc\\u12", "abc\\u12".unescapeUnicode())
+	}
+	
+	@Test
+	fun `nonStrict unknown escape preserves backslash`() {
+		assertEquals("abc\\n", "abc\\n".unescapeUnicode())
+	}
+	
+	@Test
+	fun `invalid hex in unicode escape throws with clear message`() {
+		val ex = assertFailsWith<IllegalStateException> {
+			"abc\\u00ZZ".unescapeUnicode(strict = true)
+		}
+		assertEquals("Invalid Unicode escape sequence \\u00ZZ at position 3: not a valid hex number", ex.message)
+	}
+	
+	@Test
+	fun `nonStrict invalid hex in unicode escape preserves backslash`() {
+		assertEquals("abc\\u00ZZ", "abc\\u00ZZ".unescapeUnicode())
 	}
 	
 	// endregion

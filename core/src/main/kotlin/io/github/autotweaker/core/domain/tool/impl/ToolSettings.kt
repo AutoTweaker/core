@@ -30,4 +30,11 @@ object ToolSettings {
 		"提供的路径不合法，请检查提供的路径参数",
 		zh("路径解析失败时的描述")
 	)
+	
+	@AutoService(SettingDef::class)
+	class FilePathDesc : StringSetting(
+		"文件的路径，请使用基于工作区路径的相对路径。\n" +
+				"除非需要访问工作区外部，否则请不要使用绝对路径，这可能导致意外的越权访问",
+		zh("工具文件路径参数的描述")
+	)
 }

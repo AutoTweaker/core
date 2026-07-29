@@ -27,7 +27,6 @@ import io.github.autotweaker.api.generated.tool.args.ReadArgs
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.toolFail
 import io.github.autotweaker.api.tool.toolSuccess
-import io.github.autotweaker.api.types.Unicode
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
@@ -46,17 +45,18 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			toolDescription = ReadSettings.DescriptionSetting().get(),
 			functions = ReadMetaDescriptions.Functions(
 				file = ReadMetaDescriptions.Functions.File(
-					filePath = ReadSettings.FilePathPropDescriptionSetting().get(),
+					filePath = ToolSettings.FilePathDesc().get(),
 					startLine = ReadSettings.StartLinePropDescriptionSetting().get(),
 					endLine = ReadSettings.EndLinePropDescriptionSetting().get(),
 					lineNumber = ReadSettings.LineNumberPropDescriptionSetting().get(),
+					unicodeEscape = ReadSettings.UnicodeEscapePropDescriptionSetting().get()
 				) to ReadSettings.FileFuncDescriptionSetting().get().format(
 					ReadSettings.FileMaxCharsSetting().get(),
 					ReadSettings.FileMaxLinesSetting().get()
 				
 				),
 				summarize = ReadMetaDescriptions.Functions.Summarize(
-					filePath = ReadSettings.FilePathPropDescriptionSetting().get(),
+					filePath = ToolSettings.FilePathDesc().get(),
 					startLine = ReadSettings.StartLinePropDescriptionSetting().get(),
 					endLine = ReadSettings.EndLinePropDescriptionSetting().get(),
 					prompt = ReadSettings.SummarizePromptPropDescriptionSetting().get(),
@@ -64,14 +64,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					ReadSettings.SummarizeMaxInputCharsSetting().get(),
 					ReadSettings.SummarizeMinCharsSetting().get(),
 					ReadSettings.SummarizeMaxLinesSetting().get()
-				),
-				unicode = ReadMetaDescriptions.Functions.Unicode(
-					filePath = ReadSettings.FilePathPropDescriptionSetting().get(),
-					startChar = ReadSettings.UnicodeStartCharPropDescriptionSetting().get(),
-					maxChars = ReadSettings.UnicodeMaxCharsPropDescriptionSetting().get().format(
-						ReadSettings.UnicodeMaxCharsSetting().get()
-					),
-				) to ReadSettings.UnicodeFuncDescriptionSetting().get(),
+				)
 			),
 		)
 	)
@@ -84,7 +77,6 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val filePath = when (args) {
 			is ReadArgs.File -> args.filePath
 			is ReadArgs.Summarize -> args.filePath
-			is ReadArgs.Unicode -> args.filePath
 		}
 		val fs = container.get<FileSystemService>()
 		val normalizedPath = trace.catching { fs.normalize(filePath) }
@@ -114,17 +106,6 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					.toolFail()
 				executeSummarize(container, fs, normalizedPath, args)
 			}
-			
-			is ReadArgs.Unicode -> {
-				val startChar = args.startChar ?: 0
-				if (startChar < 0) return ReadSettings.MessageStartCharErrorSetting().get().toolFail()
-				val unicodeMaxChars = ReadSettings.UnicodeMaxCharsSetting().get()
-				if (args.maxChars > unicodeMaxChars)
-					return ReadSettings.UnicodeMessageTooManyCharsSetting().get()
-						.format(unicodeMaxChars).toolFail()
-				
-				executeUnicode(fs, normalizedPath, startChar, args.maxChars)
-			}
 		}
 	}
 	
@@ -146,7 +127,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				args.endLine,
 				maxChars = ReadSettings.FileMaxCharsSetting().get(),
 				truncateMessage = ReadSettings.FileMessageTruncateSetting().get(),
-				lineNumber = args.lineNumber ?: true
+				lineNumber = args.lineNumber ?: true,
+				unicodeEscape = args.unicodeEscape ?: false
 			)
 		}.rethrowCancellation()
 			.getOrElse { return fileCannotRead }
@@ -192,7 +174,8 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				args.endLine,
 				maxChars = ReadSettings.SummarizeMaxInputCharsSetting().get(),
 				truncateMessage = ReadSettings.SummarizeMessageInputTruncateSetting().get(),
-				lineNumber = true
+				lineNumber = true,
+				unicodeEscape = false
 			)
 		}.rethrowCancellation()
 			.getOrElse { return fileCannotRead }
@@ -217,21 +200,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		else output.toolSuccess()
 	}
 	
-	private suspend fun executeUnicode(
-		fs: FileSystemService,
-		normalizedPath: Path,
-		startChar: Int,
-		maxChars: Int,
-	): Tool.ToolOutput {
-		val allUnicode: List<Unicode> = trace.catching { fs.readUnicode(normalizedPath) }
-			.getOrElse { return fileCannotRead }
-		return allUnicode.drop(startChar).take(maxChars)
-			.joinToString("").toolSuccess()
-	}
-	
 	private suspend fun readFileContent(
 		fs: FileSystemService, path: Path, startLine: Int, endLine: Int,
-		maxChars: Int, truncateMessage: String, lineNumber: Boolean,
+		maxChars: Int, truncateMessage: String, lineNumber: Boolean, unicodeEscape: Boolean
 	): String {
 		val allLines: List<String> = trace.catching { fs.readAllLines(path) }
 			.getOrElse { e -> throw IllegalStateException("Failed to read: $e") }
@@ -239,13 +210,17 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val selectedLines = allLines.subList(startLine - 1, actualEndLine)
 		val sb = StringBuilder()
 		for (i in selectedLines.indices) {
-			val line = if (lineNumber) "${startLine + i}\t${selectedLines[i]}" else selectedLines[i]
-			sb.appendLine(line)
+			val line = if (lineNumber) "${startLine + i}\t${selectedLines[i]}"
+			else selectedLines[i]
+			sb.appendLine(
+				if (unicodeEscape) line.toUnicodeEscape()
+				else line
+			)
 			if (sb.length > maxChars) {
 				sb.append(truncateMessage.format(sb.length))
 				break
 			}
 		}
-		return sb.toString().trimEnd()
+		return sb.toString()
 	}
 }

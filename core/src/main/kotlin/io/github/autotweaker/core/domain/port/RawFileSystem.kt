@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.Unicode
 import java.nio.file.Path
 
 interface RawFileSystem {
@@ -27,7 +26,6 @@ interface RawFileSystem {
 	suspend fun isRegularFile(path: Path): Boolean
 	suspend fun readString(path: Path): String
 	suspend fun readAllLines(path: Path): List<String>
-	suspend fun readUnicode(path: Path): List<Unicode>
 	suspend fun sha256(path: Path): Sha256
 	suspend fun write(path: Path, expected: List<String>, lines: List<String>)
 	suspend fun glob(pattern: String, cwd: Path): List<Path>
