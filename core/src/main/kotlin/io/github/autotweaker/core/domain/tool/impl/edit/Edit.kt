@@ -64,7 +64,7 @@ class Edit : CoreTool<EditArgs> {
 	override suspend fun coreExec(
 		container: DependencyProvider,
 		args: EditArgs,
-		outputChannel: Channel<Tool.RuntimeOutput>?
+		outputChannel: Channel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
 		TODO("Not yet implemented")
 	}

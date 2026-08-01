@@ -46,11 +46,13 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import java.nio.file.Path
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.time.Clock
 
 class Tools(
+	private val workspace: () -> Path,
 	private val tools: ToolMap,
 	activeTools: Set<String>,
 	private val agentId: UUID,
@@ -122,7 +124,7 @@ class Tools(
 			trace.catching {
 				when (tool) {
 					is CoreTool<ToolArgs> -> tool.coreExec(provider, arguments, outputChannel)
-					is Tool<ToolArgs> -> tool.execute(arguments, outputChannel)
+					is Tool<ToolArgs> -> tool.execute(arguments, workspace(), outputChannel)
 				}
 			}.also { outputChannel.close() }.rethrow<SecretStoreLockedException>().rethrowCancellation()
 				.getOrElse { e ->

@@ -24,17 +24,17 @@ import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.get
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+import java.nio.file.Path
 
 
 class TruncationImpl(
-	private val workspace: WorkspaceMeta,
+	private val workspace: () -> Path,
 ) : TruncationService {
 	override fun invoke(content: String, threshold: Int, keepTail: Boolean): String {
 		if (content.length <= threshold) return content
-		val inContainer = pathResolver.inContainer(workspace.path)
+		val inContainer = pathResolver.inContainer(workspace())
 		val (_, hostPath) = temporaryStorage.save(content, inContainer)
 		val filePath = if (inContainer) pathResolver.toContainerPath(hostPath) else hostPath
 		val prompt = TruncatedPrompt().get().format(content.length, filePath)

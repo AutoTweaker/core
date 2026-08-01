@@ -24,7 +24,6 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
@@ -36,6 +35,7 @@ import io.github.autotweaker.core.domain.agent.tool.ToolMap
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.session.AgentHost
 import kotlinx.coroutines.flow.*
+import java.nio.file.Path
 import java.util.*
 
 class Agent(
@@ -43,7 +43,7 @@ class Agent(
 	val agentId: UUID,
 	val name: KebabCase,
 	model: AgentModel,
-	private val workspace: WorkspaceMeta,
+	private val workspace: () -> Path,
 	private val tools: ToolMap,
 	activeTools: Set<String>,
 	@Suppress("unused") private val host: AgentHost,
@@ -63,7 +63,7 @@ class Agent(
 	)
 	val context: StateFlow<RuntimeContext> = ctx.context
 	
-	private val toolManager = Tools(tools, activeTools, agentId)
+	private val toolManager = Tools(workspace, tools, activeTools, agentId)
 	val activeTools: StateFlow<Set<String>> = toolManager.activeTools
 	
 	private val llmService = LlmService(agentId) { _output.tryEmit(it) }

@@ -21,6 +21,7 @@ package io.github.autotweaker.api.tool
 import io.github.autotweaker.api.types.tool.ToolMeta
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.KSerializer
+import java.nio.file.Path
 
 /**
  * 实现此接口并打上 `@AutoService(Tool::class)` 来注册成为 agent 的一个工具。
@@ -47,7 +48,7 @@ interface Tool<Args : ToolArgs> {
 	 * @param outputChannel 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。
 	 * @return 不同于 [outputChannel]，这些内容直接返回给 LLM。
 	 */
-	suspend fun execute(args: Args, outputChannel: Channel<RuntimeOutput>? = null): ToolOutput
+	suspend fun execute(args: Args, cwd: Path, outputChannel: Channel<RuntimeOutput>): ToolOutput
 	
 	/**
 	 * 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。

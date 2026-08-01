@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.ClipboardService
 import java.nio.file.Path
@@ -28,9 +27,9 @@ import java.util.*
 class ClipboardServiceImpl(
 	private val storage: TemporaryStorage,
 	private val pathResolver: PathResolver,
-	private val workspace: WorkspaceMeta,
+	private val workspace: () -> Path,
 ) : ClipboardService {
-	private val inContainer get() = pathResolver.inContainer(workspace.path)
+	private val inContainer get() = pathResolver.inContainer(workspace())
 	
 	override suspend fun store(content: String): UUID =
 		storage.save(content, inContainer).first

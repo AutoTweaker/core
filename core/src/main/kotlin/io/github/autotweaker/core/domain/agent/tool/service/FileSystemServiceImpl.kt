@@ -20,7 +20,6 @@ package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import java.nio.file.Path
@@ -28,11 +27,11 @@ import java.nio.file.Path
 class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
 	private val pathResolver: PathResolver,
-	private val workspace: WorkspaceMeta,
+	private val workspace: () -> Path,
 ) : FileSystemService {
 	override fun normalize(filePath: String): Path =
 		pathResolver.toAbsolutePath(
-			workspace.path,
+			workspace(),
 			Path.of(filePath)
 		)
 	
@@ -55,7 +54,7 @@ class FileSystemServiceImpl(
 		fs.glob(pattern, resolve(cwd))
 	
 	private fun resolve(path: Path): Path {
-		if (!pathResolver.inContainer(workspace.path)) return path
+		if (!pathResolver.inContainer(workspace())) return path
 		return pathResolver.toHostPath(path)
 	}
 }

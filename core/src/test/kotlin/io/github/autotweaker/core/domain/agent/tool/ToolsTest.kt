@@ -95,6 +95,7 @@ class ToolsTest {
 	): Tools {
 		val toolMap = tools.associate { it.meta().first.name to it }
 		return Tools(
+			workspace = { java.nio.file.Path.of(".") },
 			tools = toolMap,
 			activeTools = activeToolNames,
 			agentId = agentId,
@@ -145,7 +146,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool runs active tool successfully`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } returns Tool.ToolOutput("output ok", true)
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput("output ok", true)
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
@@ -157,7 +158,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool runs active tool with failure`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } returns Tool.ToolOutput("error happened", false)
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput("error happened", false)
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
@@ -169,7 +170,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool handles exception from tool`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } throws RuntimeException("crash!")
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } throws RuntimeException("crash!")
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
@@ -181,7 +182,7 @@ class ToolsTest {
 	@Test
 	fun `executeTool rethrows CancellationException`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } throws CancellationException("cancelled")
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } throws CancellationException("cancelled")
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		assertFailsWith<CancellationException> {
@@ -192,9 +193,9 @@ class ToolsTest {
 	@Test
 	fun `executeTool streams runtime output`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any()) } coAnswers {
-			val channel = secondArg<Channel<Tool.RuntimeOutput>?>()
-			channel!!.send(Tool.RuntimeOutput("progress 1", Tool.RuntimeOutput.OutputType.INFO))
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } coAnswers {
+			val channel = thirdArg<Channel<Tool.RuntimeOutput>>()
+			channel.send(Tool.RuntimeOutput("progress 1", Tool.RuntimeOutput.OutputType.INFO))
 			channel.send(Tool.RuntimeOutput("progress 2", Tool.RuntimeOutput.OutputType.INFO))
 			Tool.ToolOutput("done", true)
 		}

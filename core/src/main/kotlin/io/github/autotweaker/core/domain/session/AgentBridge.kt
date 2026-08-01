@@ -52,7 +52,7 @@ class AgentBridge(
 	private val host: AgentHost,
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
-	private val workspace: WorkspaceMeta,
+	workspace: WorkspaceMeta,
 ) : AgentAPI, Loggable {
 	/* 初始化 */
 	private val contextLock = ReentrantMutex()
@@ -65,6 +65,8 @@ class AgentBridge(
 	override val context: StateFlow<AgentContext> = _context.asStateFlow()
 	
 	private val messages = ConcurrentHashMap<UUID, AgentMessage>()
+	
+	private var cwd = workspace.path
 	
 	private lateinit var _agent: Agent
 	val agent get() = _agent
@@ -119,7 +121,7 @@ class AgentBridge(
 				}
 			}
 		}
-		log.info("Initialized agent bridge  agentId={}  workspace={}", _agent.agentId, workspace.displayName)
+		log.info("Initialized agent bridge  agentId={}  cwd={}", _agent.agentId, cwd)
 	}
 	
 	private suspend fun initTools(): MetaCache {
@@ -231,7 +233,7 @@ class AgentBridge(
 		_agent = Agent(
 			agentId = id,
 			context = RuntimeContextBuilder(_context.value, messages)(),
-			workspace = workspace,
+			workspace = { cwd },
 			model = initialData.model.toAgentModel(),
 			tools = tools,
 			activeTools = initialData.activeTools,

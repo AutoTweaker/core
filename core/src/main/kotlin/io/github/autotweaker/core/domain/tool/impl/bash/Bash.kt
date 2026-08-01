@@ -61,7 +61,7 @@ class Bash : CoreTool<BashArgs>, Loggable {
 	override suspend fun coreExec(
 		container: DependencyProvider,
 		args: BashArgs,
-		outputChannel: Channel<Tool.RuntimeOutput>?
+		outputChannel: Channel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
 		val request = args as BashArgs.Run
 		val command = request.command
@@ -88,12 +88,12 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		container.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
 			when (event) {
 				is ShellEvent.Stdout -> {
-					outputChannel?.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.INFO))
+					outputChannel.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.INFO))
 					stdout.appendLine(event.text)
 				}
 				
 				is ShellEvent.Stderr -> {
-					outputChannel?.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.ERROR))
+					outputChannel.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.ERROR))
 					stderr.appendLine(event.text)
 				}
 				

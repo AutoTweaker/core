@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.adapter.PathResolver
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
@@ -30,6 +29,7 @@ import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.*
+import java.nio.file.Path
 
 object ToolProvider {
 	private lateinit var shellExecutor: ShellExecutor
@@ -50,7 +50,7 @@ object ToolProvider {
 	}
 	
 	fun buildToolProvider(
-		workspace: WorkspaceMeta,
+		workspace: () -> Path,
 		model: AgentModel,
 		context: RuntimeContext,
 		onOutput: (RuntimeOutput) -> Unit,

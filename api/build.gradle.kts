@@ -48,17 +48,17 @@ tasks.register<Sync>("syncGeneratedArgs") {
 kotlin {
 	jvm()
 	linuxX64()
-
+	
 	sourceSets {
-		commonMain {
-			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
-		}
 		commonMain.dependencies {
 			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 		}
 		jvmMain.dependencies {
 			implementation("org.slf4j:slf4j-api:2.0.18")
+		}
+		jvmMain {
+			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
 		}
 	}
 }

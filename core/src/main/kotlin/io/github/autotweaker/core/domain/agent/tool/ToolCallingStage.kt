@@ -22,13 +22,13 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import kotlinx.coroutines.*
+import java.nio.file.Path
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -37,7 +37,7 @@ import kotlin.time.TimeSource
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
-	private val workspace: WorkspaceMeta,
+	private val workspace: () -> Path,
 	private val onOutput: (RuntimeOutput) -> Unit,
 	private val onToolCall: (String?) -> Unit
 ) : Loggable, Traceable {

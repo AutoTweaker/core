@@ -72,7 +72,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	private val fileCannotRead = ReadSettings.MessageFileCannotReadSetting().get().toolFail()
 	
 	override suspend fun coreExec(
-		container: DependencyProvider, args: ReadArgs, outputChannel: Channel<Tool.RuntimeOutput>?
+		container: DependencyProvider, args: ReadArgs, outputChannel: Channel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
 		val filePath = when (args) {
 			is ReadArgs.File -> args.filePath

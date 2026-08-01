@@ -21,14 +21,15 @@ package io.github.autotweaker.core.domain.tool
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import kotlinx.coroutines.channels.Channel
+import java.nio.file.Path
 
 interface CoreTool<Args : ToolArgs> : Tool<Args> {
 	suspend fun coreExec(
 		container: DependencyProvider,
 		args: Args,
-		outputChannel: Channel<Tool.RuntimeOutput>?
+		outputChannel: Channel<Tool.RuntimeOutput>
 	): Tool.ToolOutput
 	
-	override suspend fun execute(args: Args, outputChannel: Channel<Tool.RuntimeOutput>?): Tool.ToolOutput =
+	override suspend fun execute(args: Args, cwd: Path, outputChannel: Channel<Tool.RuntimeOutput>): Tool.ToolOutput =
 		throw UnsupportedOperationException("Use coreExec")
 }

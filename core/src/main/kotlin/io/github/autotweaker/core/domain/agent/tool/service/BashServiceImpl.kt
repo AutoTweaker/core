@@ -19,24 +19,25 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.tool.port.BashService
 import kotlinx.coroutines.flow.Flow
+import java.nio.file.Path
 import kotlin.time.Duration
 
 class BashServiceImpl(
 	private val executor: ShellExecutor,
 	private val pathResolver: PathResolver,
-	private val workspace: WorkspaceMeta,
+	private val workspace: () -> Path,
 ) : BashService {
 	override fun run(command: String, timeout: Duration, env: Map<String, String>): Flow<ShellEvent> {
-		val inContainer = pathResolver.inContainer(workspace.path)
+		val cwd = workspace()
+		val inContainer = pathResolver.inContainer(cwd)
 		val workDir =
-			if (inContainer) pathResolver.toContainerPath(workspace.path)
-			else workspace.path.normalize()
+			if (inContainer) pathResolver.toContainerPath(cwd)
+			else cwd.normalize()
 		
 		return executor.exec(ShellExec(command, workDir, inContainer, env, timeout))
 	}
