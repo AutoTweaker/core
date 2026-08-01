@@ -137,6 +137,10 @@ open class ParametersBuilder internal constructor(
 		prop(name, ToolMeta.Type.TBoolean, block)
 	}
 	
+	fun any(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TAny, block)
+	}
+	
 	
 	fun stringList(name: String, block: PropBuilder.() -> Unit = {}) {
 		prop(name, ToolMeta.Type.TList(ToolMeta.Type.TString), block)
@@ -158,6 +162,10 @@ open class ParametersBuilder internal constructor(
 		prop(name, ToolMeta.Type.TList(ToolMeta.Type.TBoolean), block)
 	}
 	
+	fun anyList(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TList(ToolMeta.Type.TAny), block)
+	}
+	
 	
 	fun stringMap(name: String, block: PropBuilder.() -> Unit = {}) {
 		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TString), block)
@@ -177,6 +185,10 @@ open class ParametersBuilder internal constructor(
 	
 	fun booleanMap(name: String, block: PropBuilder.() -> Unit = {}) {
 		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TBoolean), block)
+	}
+	
+	fun anyMap(name: String, block: PropBuilder.() -> Unit = {}) {
+		prop(name, ToolMeta.Type.TMap(ToolMeta.Type.TAny), block)
 	}
 	
 	

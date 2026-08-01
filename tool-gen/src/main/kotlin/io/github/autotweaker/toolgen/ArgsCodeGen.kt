@@ -209,6 +209,7 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.TLong -> LONG
 		is ToolMeta.Type.TDouble -> DOUBLE
 		is ToolMeta.Type.TBoolean -> BOOLEAN
+		is ToolMeta.Type.TAny -> JsonElement
 		is ToolMeta.Type.TList -> LIST.parameterizedBy(element.toKotlinType())
 		is ToolMeta.Type.TMap -> MAP.parameterizedBy(
 			ToolMeta.Type.TString.toKotlinType(), element.toKotlinType()
@@ -217,7 +218,6 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.OneOf -> ClassName(argsPackage, name.toPascalCase())
 		is ToolMeta.Type.Obj -> ClassName(argsPackage, name.toPascalCase())
 		is ToolMeta.Type.Enum -> ClassName(argsPackage, name.toPascalCase())
-		is ToolMeta.Type.Builtin, is ToolMeta.Type.Declared -> unreachable()
 	}
 	
 	private fun ToolMeta.Type.toMetaTypeBlock(): CodeBlock = when (this) {
@@ -226,6 +226,7 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.TLong -> CodeBlock.of("%T.TLong", runtimeType)
 		is ToolMeta.Type.TDouble -> CodeBlock.of("%T.TDouble", runtimeType)
 		is ToolMeta.Type.TBoolean -> CodeBlock.of("%T.TBoolean", runtimeType)
+		is ToolMeta.Type.TAny -> CodeBlock.of("%T.TAny", runtimeType)
 		is ToolMeta.Type.TList -> CodeBlock.of("%T.TList(%L)", runtimeType, element.toMetaTypeBlock())
 		is ToolMeta.Type.TMap -> CodeBlock.of("%T.TMap(%L)", runtimeType, element.toMetaTypeBlock())
 		
@@ -234,8 +235,6 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.Enum -> CodeBlock.of(
 			"%T.Enum(%S, setOf(${values.joinToString(", ") { "\"$it\"" }}))", runtimeType, name
 		)
-		
-		is ToolMeta.Type.Builtin, is ToolMeta.Type.Declared -> unreachable()
 	}
 	
 	private fun oneOfBlock(oneOf: ToolMeta.Type.OneOf): CodeBlock = buildCodeBlock {
@@ -418,6 +417,7 @@ internal class ArgsCodeGen(
 	companion object {
 		private val Serializable = ClassName("kotlinx.serialization", "Serializable")
 		private val SerialName = ClassName("kotlinx.serialization", "SerialName")
+		private val JsonElement = ClassName("kotlinx.serialization.json", "JsonElement")
 		private val ToolArgs = ClassName("io.github.autotweaker.api.tool", "ToolArgs")
 		
 		internal fun toCamelCase(snake: String): String {

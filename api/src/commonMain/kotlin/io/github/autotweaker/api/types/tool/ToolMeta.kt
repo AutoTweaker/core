@@ -67,5 +67,6 @@ data class ToolMeta(
 		data object TLong : Type
 		data object TDouble : Type
 		data object TBoolean : Type
+		data object TAny : Type
 	}
 }

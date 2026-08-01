@@ -76,5 +76,6 @@ data class ToolMeta internal constructor(
 		data object TLong : Type, Builtin
 		data object TDouble : Type, Builtin
 		data object TBoolean : Type, Builtin
+		data object TAny : Type, Builtin
 	}
 }

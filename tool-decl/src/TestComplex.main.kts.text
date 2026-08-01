@@ -60,7 +60,7 @@ tool("test_complex") {
 	
 	val shape = buildDeclaration {
 		oneOf("shape") {
-			variant("circle") { double("radius") }
+			variant("circle") { double("radius"); any("any") }
 			variant("rect") { double("width"); double("height") }
 		}
 	}
@@ -75,16 +75,20 @@ tool("test_complex") {
 		long("required_long")
 		double("required_double")
 		boolean("required_bool")
+		any("required_any")
 		string("optional_str") { required = false }
 		int("optional_int") { required = false }
 		long("optional_long") { required = false }
 		double("optional_double") { required = false }
 		boolean("optional_bool") { required = false }
+		any("optional_any") { required = false }
 		stringList("str_list")
 		intList("int_list")
 		longList("long_list")
 		doubleList("double_list")
 		booleanList("bool_list")
+		anyList("any_list")
+		anyMap("any_map")
 	}
 	
 	function("nested_types") {
@@ -157,10 +161,10 @@ tool("test_complex") {
 	}
 	
 	function("collision_test") {
-		param("pt1", point)
-		param("pt2", dupeObj)
-		param("dir1", direction)
-		param("dir2", dupeOneOf)
+		param("pt_one", point)
+		param("pt_two", dupeObj)
+		param("dir_one", direction)
+		param("dir_two", dupeOneOf)
 	}
 	
 	val mergeOneOfA = buildDeclaration {

@@ -94,6 +94,7 @@ object ToolAssembler : Loggable {
 			is ToolMeta.Type.TInt, is ToolMeta.Type.TLong -> put("type", "integer")
 			is ToolMeta.Type.TDouble -> put("type", "number")
 			is ToolMeta.Type.TBoolean -> put("type", "boolean")
+			is ToolMeta.Type.TAny -> {}
 			
 			is ToolMeta.Type.TList -> {
 				put("type", "array")
