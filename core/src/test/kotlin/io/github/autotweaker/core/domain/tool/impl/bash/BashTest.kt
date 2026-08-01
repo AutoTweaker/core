@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.tool.impl.bash
 
 import io.github.autotweaker.api.generated.tool.args.BashArgs
-import kotlinx.coroutines.channels.Channel
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
@@ -32,6 +31,7 @@ import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest

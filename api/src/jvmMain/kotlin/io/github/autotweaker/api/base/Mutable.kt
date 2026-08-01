@@ -18,10 +18,6 @@
 
 package io.github.autotweaker.api.base
 
-import io.github.autotweaker.api.base.Mutable.Companion.forceMutable
-import io.github.autotweaker.api.base.Mutable.Companion.mutable
-
-
 /**
  * 包装一个不可变数据，基于 [ReentrantMutex] 提供并发安全的更新方式。同时支持在数据被修改时执行 lambda。
  *
@@ -50,7 +46,6 @@ class Mutable<T> private constructor(
 	suspend fun update(transform: suspend (T) -> T): T = lock.withLock {
 		set(transform(value))
 	}
-	
 	
 	/**
 	 * 覆盖当前值，返回修改后的新值。
@@ -91,23 +86,35 @@ class Mutable<T> private constructor(
 		
 		
 		/**
-		 * 尽可能地在编译器拦截对 [Mutable] 的 [mutable] 调用，前提是匹配到此重载。
+		 * 尽可能地在编译期拦截对 [Mutable] 的 [mutable] 调用，前提是匹配到此重载。
 		 */
-		@Deprecated("Already a Mutable object. Avoid nesting.", level = DeprecationLevel.ERROR)
+		@Deprecated(
+			"Already a Mutable object. Avoid nesting.",
+			level = DeprecationLevel.ERROR,
+			replaceWith = ReplaceWith("")
+		)
 		@Suppress("UnusedReceiverParameter")
 		fun <T> Mutable<T>.mutable(): Nothing = throw UnsupportedOperationException()
 		
 		/**
-		 * 尽可能地在编译器拦截对 [MutableCollection] 的 [mutable] 调用，前提是匹配到此重载。
+		 * 尽可能地在编译期拦截对 [MutableCollection] 的 [mutable] 调用，前提是匹配到此重载。
 		 */
-		@Deprecated("Already a Mutable object. Avoid nesting.", level = DeprecationLevel.ERROR)
+		@Deprecated(
+			"Already a Mutable object. Avoid nesting.",
+			level = DeprecationLevel.ERROR,
+			replaceWith = ReplaceWith("")
+		)
 		@Suppress("UnusedReceiverParameter")
 		fun <T> MutableCollection<T>.mutable(): Nothing = throw UnsupportedOperationException()
 		
 		/**
-		 * 尽可能地在编译器拦截对 [MutableMap] 的 [mutable] 调用，前提是匹配到此重载。
+		 * 尽可能地在编译期拦截对 [MutableMap] 的 [mutable] 调用，前提是匹配到此重载。
 		 */
-		@Deprecated("Already a Mutable object. Avoid nesting.", level = DeprecationLevel.ERROR)
+		@Deprecated(
+			"Already a Mutable object. Avoid nesting.",
+			level = DeprecationLevel.ERROR,
+			replaceWith = ReplaceWith("")
+		)
 		@Suppress("UnusedReceiverParameter")
 		fun <K, V> MutableMap<K, V>.mutable(): Nothing = throw UnsupportedOperationException()
 	}

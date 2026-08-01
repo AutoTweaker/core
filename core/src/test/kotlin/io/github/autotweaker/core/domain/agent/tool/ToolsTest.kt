@@ -158,7 +158,10 @@ class ToolsTest {
 	@Test
 	fun `executeTool runs active tool with failure`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput("error happened", false)
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
+			"error happened",
+			false
+		)
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
