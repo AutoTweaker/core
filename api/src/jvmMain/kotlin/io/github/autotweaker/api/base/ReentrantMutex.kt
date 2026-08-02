@@ -23,6 +23,9 @@ import io.github.autotweaker.api.trace
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -52,7 +55,10 @@ class ReentrantMutex : Traceable {
 	 * @throws Throwable 当 [block] 抛出异常。
 	 * @return [block] 的返回值。
 	 */
+	@OptIn(ExperimentalContracts::class)
+	@Suppress("WRONG_INVOCATION_KIND")
 	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T {
+		contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
 		if (currentCoroutineContext()[lockKey] === key) return block()
 		mutex.lock()
 		return trace.catching { withContext(key) { block() } }

@@ -18,16 +18,15 @@
 
 package io.github.autotweaker.api.base.store
 
-import io.github.autotweaker.api.IO
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.scope
-import io.github.autotweaker.api.store
+import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.catching
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * 使用 [AtomicReference] 为缓存，[io.github.autotweaker.api.storage.JsonStore] 为持久化服务的存储基类。
@@ -40,7 +39,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * 请确保在程序关闭前调用 [shutdown] 方法，可以注册一个 [io.github.autotweaker.api.hook.ShutdownHook] 来调用 [shutdown]。
  */
-abstract class AtomicStore<V> : StoreBase<V>(), Loggable {
+abstract class AtomicStore<V> : StoreBase<V>(), Loggable, Traceable {
 	@Volatile
 	private var initialized = false
 	private val accessor by lazy { JsonStoreAccessor(store, serializer, ::default).also { initialized = true } }
@@ -50,11 +49,19 @@ abstract class AtomicStore<V> : StoreBase<V>(), Loggable {
 	
 	init {
 		scope.launch {
+			var retry = 0
 			while (true) {
 				delay(500.milliseconds)
-				if (dirty.compareAndSet(true, false)) {
-					accessor.save(cache.get())
-				}
+				if (retry >= 10) delay(30.seconds)
+				if (dirty.compareAndSet(true, false))
+					trace.catching {
+						accessor.save(cache.get())
+						retry = 0
+					}.rethrowCancellation().onFailure {
+						dirty.set(true)
+						retry++
+						log.error("Failed store save", it)
+					}
 			}
 		}
 	}

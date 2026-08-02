@@ -37,11 +37,10 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 	override fun default() = Data()
 	
 	fun setLanguage(locale: Locale) =
-		update {
-			it.copy(language = locale)
-		}.andLog(log) {
-			debug("Updated language  lang={}", locale.toLanguageTag())
-		}
+		update { it.copy(language = locale) }
+			.andLog(log) {
+				debug("Updated language  lang={}", locale.toLanguageTag())
+			}
 	
 	
 	override fun getLanguage(): Locale = get().language

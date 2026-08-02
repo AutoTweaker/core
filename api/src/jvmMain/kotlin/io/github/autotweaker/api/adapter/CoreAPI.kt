@@ -32,10 +32,7 @@ import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.exception.PasswordInvalidException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmRequest
-import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.SessionData
@@ -458,12 +455,25 @@ interface CoreAPI {
 		suspend fun loadMessages(ids: List<UUID>): List<AgentMessage>
 		
 		/**
-		 * 获取历史的全部 Usage。
+		 * 获取一个消息的 LLM 用量信息。
 		 *
-		 * @return key 为消息 id，value 为 [UsageSnapshot]，可以通过 [loadMessages] 反查对应消息。
 		 * @see UsageSnapshot
 		 */
-		suspend fun getUsageSnapshots(): Map<UUID, UsageSnapshot>
+		suspend fun getUsageSnapshot(id: UUID): UsageSnapshot?
+		
+		/**
+		 * 获取历史的全部 Usage。
+		 *
+		 * @return key 为消息 id，value 为 [Usage]，可以通过 [loadMessages] 反查对应消息。
+		 */
+		suspend fun getAllUsage(): Map<UUID, Usage>
+		
+		/**
+		 * 获取 [Usage] 对应的模型信息，用于计算价格花费。
+		 *
+		 * 类似 [UsageSnapshot]，为产生花费时的快照。
+		 */
+		suspend fun modelOfUsage(id: UUID): ModelData.ModelInfo?
 	}
 	
 	/**

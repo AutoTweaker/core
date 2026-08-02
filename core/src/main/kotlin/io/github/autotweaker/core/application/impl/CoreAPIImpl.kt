@@ -127,7 +127,9 @@ class CoreAPIImpl(
 		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
 		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
 		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
-		override suspend fun getUsageSnapshots() = UsageStore.getSnapshots()
+		override suspend fun getAllUsage() = UsageStore.getAll()
+		override suspend fun getUsageSnapshot(id: UUID) = UsageStore.getSnapshot(id)
+		override suspend fun modelOfUsage(id: UUID) = UsageStore.modelOf(id)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {
