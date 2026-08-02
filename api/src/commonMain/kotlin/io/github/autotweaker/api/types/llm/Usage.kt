@@ -18,15 +18,16 @@
 
 package io.github.autotweaker.api.types.llm
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class Usage(
-	val promptTokens: Int,
-	val completionTokens: Int,
-	val reasoningTokens: Int? = null,
-	val cacheHitTokens: Int? = null,
-	val imageTokens: Int? = null,
+	@SerialName("p") val promptTokens: Int,
+	@SerialName("c") val completionTokens: Int,
+	@SerialName("r") val reasoningTokens: Int? = null,
+	@SerialName("h") val cacheHitTokens: Int? = null,
+	@SerialName("i") val imageTokens: Int? = null,
 ) {
 	val totalTokens: Int get() = promptTokens + completionTokens
 	

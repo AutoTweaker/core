@@ -78,7 +78,7 @@ class Config : Command, I18nable, Traceable {
 			positional("value", CfgI18n.SetValue())
 		}
 		all {
-			value("reset", CfgI18n.Yes())
+			value("reset", CfgI18n.Reset())
 			flag("yes", CfgI18n.Yes()) { required = false }
 		}
 	}
