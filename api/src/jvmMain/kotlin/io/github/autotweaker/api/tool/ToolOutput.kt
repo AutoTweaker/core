@@ -18,8 +18,20 @@
 
 package io.github.autotweaker.api.tool
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
+
 fun String.toolFail() = toolResult(false)
 
 fun String.toolSuccess() = toolResult(true)
 
-fun String.toolResult(success: Boolean) = Tool.ToolOutput(this, success)
+fun String.toolResult(success: Boolean) = Tool.ToolOutput(this, null, success)
+
+fun <T> String.toolFail(data: T?, serializer: KSerializer<T>) =
+	toolResult(data, serializer, false)
+
+fun <T> String.toolSuccess(data: T?, serializer: KSerializer<T>) =
+	toolResult(data, serializer, true)
+
+fun <T> String.toolResult(data: T?, serializer: KSerializer<T>, success: Boolean) =
+	Tool.ToolOutput(this, data?.let { Json.encodeToJsonElement(serializer, it) }, success)

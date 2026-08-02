@@ -16,24 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
-import kotlinx.coroutines.channels.Channel
-import java.nio.file.Path
-
-interface CoreTool<Args : ToolArgs> : Tool<Args> {
-	suspend fun coreExec(
-		container: DependencyProvider,
-		args: Args,
-		outputChannel: Channel<Tool.RuntimeOutput>
-	): Tool.ToolOutput
-	
-	override suspend fun execute(
-		args: Args,
-		cwd: Path,
-		outputChannel: Channel<Tool.RuntimeOutput>
-	): Tool.ToolOutput =
-		throw UnsupportedOperationException("Use coreExec")
+fun Throwable.message(): String = buildString {
+	append(className())
+	message?.let { append(": ").append(it) }
+	val cause = cause
+	if (cause != null) append(" (caused by ").append(cause.className()).append(")")
 }
+
+private fun Throwable.className(): String =
+	this::class.simpleName ?: this::class.qualifiedName ?: "UnknownException"

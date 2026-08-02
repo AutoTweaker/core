@@ -129,7 +129,7 @@ class Tools(
 			}.also { outputChannel.close() }.rethrow<SecretStoreLockedException>().rethrowCancellation()
 				.getOrElse { e ->
 					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
-					(e.message ?: "Unknown error").toolFail()
+					"ERROR: ${e.message()}".toolFail()
 				}
 		}
 		

@@ -74,6 +74,7 @@ data class RuntimeContext(
 			data class Result(
 				val id: UUID = UUID.randomUUID(),
 				val content: String,
+				val data: JsonElement? = null,
 				val timestamp: Instant,
 				val status: ToolResultStatus,
 			)

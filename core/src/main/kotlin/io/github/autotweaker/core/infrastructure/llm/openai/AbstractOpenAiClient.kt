@@ -18,13 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.llm.openai
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
 import io.ktor.client.*
@@ -107,7 +104,7 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			emit(
 				ChatResult.Assembled(
 					message = ChatMessage.ErrorMessage(
-						content = e.message ?: "Unknown error", createdAt = Clock.System.now(), statusCode = null
+						content = e.message(), createdAt = Clock.System.now(), statusCode = null
 					),
 				)
 			)

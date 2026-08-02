@@ -16,24 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool
+package io.github.autotweaker.api.types.tool.bash
 
-import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
-import kotlinx.coroutines.channels.Channel
-import java.nio.file.Path
+import kotlinx.serialization.Serializable
 
-interface CoreTool<Args : ToolArgs> : Tool<Args> {
-	suspend fun coreExec(
-		container: DependencyProvider,
-		args: Args,
-		outputChannel: Channel<Tool.RuntimeOutput>
-	): Tool.ToolOutput
+@Serializable
+sealed class BashOutput {
+	abstract val content: String
 	
-	override suspend fun execute(
-		args: Args,
-		cwd: Path,
-		outputChannel: Channel<Tool.RuntimeOutput>
-	): Tool.ToolOutput =
-		throw UnsupportedOperationException("Use coreExec")
+	@Serializable
+	data class Stdout(
+		override val content: String
+	) : BashOutput()
+	
+	@Serializable
+	data class Stderr(
+		override val content: String
+	) : BashOutput()
 }

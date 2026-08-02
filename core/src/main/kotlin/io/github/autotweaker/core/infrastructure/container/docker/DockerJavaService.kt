@@ -134,7 +134,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 				throw ContainerOperationException("Image '$image' not found", e)
 			}.getOrElse { e ->
 				log.error("Failed container start  image={}  name={}", image, config.name, e)
-				throw ContainerOperationException("Failed to start container: ${e.message}", e)
+				throw ContainerOperationException("Failed to start container: ${e.message()}", e)
 			} as String
 	}
 	
@@ -153,7 +153,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 			}
 			.onFailure { e ->
 				log.error("Failed container stop  containerId={}", containerId, e)
-				throw ContainerOperationException("Failed to stop container: ${e.message}", e)
+				throw ContainerOperationException("Failed to stop container: ${e.message()}", e)
 			}.discard()
 	}
 	
@@ -199,9 +199,9 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 				val execCmd =
 					client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
 						.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
-				if (workDir != null) {
+				if (workDir != null)
 					execCmd.withWorkingDir(workDir.toString())
-				}
+				
 				val execId = execCmd.exec().id
 				
 				val execDuration = measureTimedValue {
@@ -232,7 +232,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 					throw ContainerOperationException("Container not found: $containerId", e)
 				}.onFailure { e ->
 					log.error("Failed command execution  containerId={}", containerId, e)
-					throw ContainerOperationException("Failed to exec command: ${e.message}", e)
+					throw ContainerOperationException("Failed to exec command: ${e.message()}", e)
 				}.getOrThrow()
 		}
 		schedulePermissionFix(containerId)

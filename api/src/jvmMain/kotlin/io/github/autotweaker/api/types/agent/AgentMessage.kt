@@ -153,6 +153,7 @@ sealed class AgentMessage {
 			 * 响应内容，不一定是结构化数据。
 			 */
 			val content: String,
+			val data: JsonElement?,
 			/**
 			 * 工具调用的结果（状态），前端可以据此调整显示。
 			 *

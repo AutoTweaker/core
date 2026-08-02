@@ -21,6 +21,7 @@ package io.github.autotweaker.api.tool
 import io.github.autotweaker.api.types.tool.ToolMeta
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
 
 /**
@@ -84,7 +85,7 @@ interface Tool<Args : ToolArgs> {
 	}
 	
 	/**
-	 * 工具响应，[result] 给 LLM 看，[success] 给用户看。
+	 * 工具响应，[result] 给 LLM 看，[success] 给用户看，[data] 给程序读。
 	 */
 	data class ToolOutput(
 		/**
@@ -93,6 +94,10 @@ interface Tool<Args : ToolArgs> {
 		 * 阈值由用户配置，默认 50 万字符，“字符”的语义是 [String.length]。
 		 */
 		val result: String,
+		/**
+		 * 结构化的数据，便于程序解析。
+		 */
+		val data: JsonElement?,
 		/**
 		 * 工具执行是否成功。给用户看。
 		 */

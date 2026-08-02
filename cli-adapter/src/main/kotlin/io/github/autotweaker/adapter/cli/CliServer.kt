@@ -163,7 +163,7 @@ object CliServer : Loggable, Traceable {
 					log.error("Failed command  command={}", cmdName, e)
 					trace.catching {
 						sendChannel.writeResponse(
-							CliResponse.Data(e.message ?: "Internal error", OutputChannel.STDERR, true)
+							CliResponse.Data(e.message(), OutputChannel.STDERR, true)
 						)
 					}
 				}

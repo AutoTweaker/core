@@ -189,7 +189,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val prompt = args.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 		val summarize = container.get<SummarizeService>()
 		val output = trace.catching { summarize(content, prompt) }.getOrElse { e ->
-			return ReadSettings.SummarizeMessageFailedSetting().get().format(e.message).toolFail()
+			return ReadSettings.SummarizeMessageFailedSetting().get().format(e.message()).toolFail()
 		}
 		val summarizeMaxOutputChars = ReadSettings.SummarizeMaxOutputCharsSetting().get()
 		return if (output.length > summarizeMaxOutputChars)

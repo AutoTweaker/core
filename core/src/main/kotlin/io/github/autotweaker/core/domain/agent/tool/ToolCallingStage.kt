@@ -120,7 +120,7 @@ class ToolCallingStage(
 							call.pendingCall.validatedToolName,
 							e
 						)
-						buildToolResult(e.message ?: "Tool execution failed", ToolResultStatus.FAILURE)
+						buildToolResult("ERROR: ${e.message()}", ToolResultStatus.FAILURE)
 					}
 				}
 			}

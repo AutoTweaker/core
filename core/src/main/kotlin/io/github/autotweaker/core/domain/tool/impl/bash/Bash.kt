@@ -28,6 +28,8 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.toolFail
 import io.github.autotweaker.api.tool.toolResult
 import io.github.autotweaker.api.types.shell.ShellEvent
+import io.github.autotweaker.api.types.tool.bash.BashOutput
+import io.github.autotweaker.api.types.tool.bash.BashResult
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
@@ -81,47 +83,57 @@ class Bash : CoreTool<BashArgs>, Loggable {
 			command.take(100), timeoutSeconds
 		)
 		
-		val stdout = StringBuilder()
-		val stderr = StringBuilder()
-		var result: ShellEvent.Exit? = null
+		val lines = mutableListOf<BashOutput>()
+		var exit: ShellEvent.Exit? = null
 		
 		container.get<BashService>().run(command, timeoutSeconds.seconds, selectedEnv).collect { event ->
 			when (event) {
 				is ShellEvent.Stdout -> {
 					outputChannel.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.INFO))
-					stdout.appendLine(event.text)
+					lines.add(BashOutput.Stdout(event.text))
 				}
 				
 				is ShellEvent.Stderr -> {
 					outputChannel.send(Tool.RuntimeOutput(event.text, Tool.RuntimeOutput.OutputType.ERROR))
-					stderr.appendLine(event.text)
+					lines.add(BashOutput.Stderr(event.text))
 				}
 				
-				is ShellEvent.Exit -> result = event
+				is ShellEvent.Exit -> exit = event
 			}
 		}
 		
-		fun processOutput(content: StringBuilder) =
+		val result = checkNotNull(exit) { "Bash completed with no exit event" }.result
+		val duration = String.format("%.3f", result.duration.toDouble(DurationUnit.SECONDS))
+		
+		log.debug(
+			"Completed bash  tool=bash  exitCode={}  duration={}s  timeout={}",
+			result.exitCode,
+			duration,
+			result.timeout
+		)
+		
+		val stdout = lines.filterOutput<BashOutput.Stdout>()
+		val stderr = lines.filterOutput<BashOutput.Stderr>()
+		
+		fun processOutput(content: String) =
 			container.get<TruncationService>()(
-				content = content.toString().trimEnd().ifBlank { "[empty]" },
+				content = content.trimEnd().ifBlank { "[empty]" },
 				threshold = BashSettings.MaxOutput().get(),
 				keepTail = true
 			)
 		
-		val r = result ?: return "No result".toolFail()
-		val duration = String.format("%.3f", r.result.duration.toDouble(DurationUnit.SECONDS))
-		
-		log.debug(
-			"Completed bash  tool=bash  exitCode={}  duration={}s  timeout={}",
-			r.result.exitCode,
-			duration,
-			r.result.timeout
+		val success = result.exitCode == 0 && !result.timeout
+		val output = BashResult(
+			lines, result.exitCode, result.timeout, result.duration
 		)
 		
 		return BashSettings.ResultTemplate().get()
-			.format(r.result.exitCode, duration, processOutput(stdout), processOutput(stderr))
-			.toolResult(r.result.exitCode == 0 && !r.result.timeout)
+			.format(result.exitCode, duration, processOutput(stdout), processOutput(stderr))
+			.toolResult(output, BashResult.serializer(), success)
 	}
+	
+	private inline fun <reified T : BashOutput> List<BashOutput>.filterOutput() =
+		filterIsInstance<T>().joinToString("\n") { it.content }
 	
 	companion object : EnvStore()
 }

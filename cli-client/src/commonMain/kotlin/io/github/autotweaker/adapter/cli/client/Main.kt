@@ -29,6 +29,7 @@ import io.github.autotweaker.adapter.cli.client.FsService.syncPlugins
 import io.github.autotweaker.adapter.cli.client.FsService.writeProxyEnv
 import io.github.autotweaker.adapter.cli.client.expect.printErr
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
+import io.github.autotweaker.api.message
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import kotlinx.serialization.json.Json
@@ -68,7 +69,7 @@ fun main(args: Array<String>) {
 			transport.sendLine(request)
 			exitProcess(Protocol(transport))
 		} catch (e: Exception) {
-			printErr("Error: ${e.message}\n")
+			printErr("Error: ${e.message()}\n")
 			exitProcess(1)
 		}
 	}

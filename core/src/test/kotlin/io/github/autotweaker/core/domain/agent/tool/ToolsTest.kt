@@ -146,7 +146,11 @@ class ToolsTest {
 	@Test
 	fun `executeTool runs active tool successfully`() = runTest {
 		val tool = mockTool()
-		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput("output ok", true)
+		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
+			"output ok",
+			null,
+			true
+		)
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
@@ -160,6 +164,7 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
 			"error happened",
+			null,
 			false
 		)
 		val tools = makeTools(listOf(tool), setOf("bash"))
@@ -179,7 +184,7 @@ class ToolsTest {
 		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
 		
 		assertEquals(ToolResultStatus.FAILURE, result.status)
-		assertEquals("crash!", result.content)
+		assertEquals("ERROR: RuntimeException: crash!", result.content)
 	}
 	
 	@Test
@@ -200,7 +205,7 @@ class ToolsTest {
 			val channel = thirdArg<Channel<Tool.RuntimeOutput>>()
 			channel.send(Tool.RuntimeOutput("progress 1", Tool.RuntimeOutput.OutputType.INFO))
 			channel.send(Tool.RuntimeOutput("progress 2", Tool.RuntimeOutput.OutputType.INFO))
-			Tool.ToolOutput("done", true)
+			Tool.ToolOutput("done", null, true)
 		}
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		

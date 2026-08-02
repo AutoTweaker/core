@@ -36,7 +36,6 @@ object ShellRouter : ShellExecutor, Loggable {
 		log.debug("Routed shell command  target={}  command={}", target, arg.command)
 		return if (arg.container)
 			container.exec(arg.command, arg.directory, arg.environment, arg.timeout)
-		else
-			local.exec(arg.command, arg.directory, arg.environment, arg.timeout)
+		else local.exec(arg.command, arg.directory, arg.environment, arg.timeout)
 	}
 }

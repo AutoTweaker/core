@@ -118,6 +118,7 @@ class AgentContextBuilder(
 			timestamp = result.timestamp,
 			callId = callId,
 			content = result.content,
+			data = result.data,
 			status = result.status,
 		).add()
 	
