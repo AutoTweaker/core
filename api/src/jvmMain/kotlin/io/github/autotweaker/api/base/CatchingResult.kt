@@ -27,7 +27,7 @@ import kotlinx.coroutines.CancellationException
  * 为了避免 `<E, T>` 导致编译器无法推断泛型类型，包装 [Result]，成员函数就不需要 [T] 了。
  */
 @JvmInline
-value class CatchingResult<T> @PublishedApi internal constructor(@PublishedApi internal val result: Result<T>) {
+value class CatchingResult<out T> @PublishedApi internal constructor(@PublishedApi internal val result: Result<T>) {
 	/**
 	 * 重新抛出类型为 [E] 的异常，请使用 [rethrowCancellation] 替代 `rethrow<CancellationException>()`
 	 */
@@ -88,11 +88,14 @@ value class CatchingResult<T> @PublishedApi internal constructor(@PublishedApi i
 		onFailure { if (test(it)) action(it) }
 	
 	/**
-	 * 如果 [test]，对 [T] 进行 [transform]，返回新的 [CatchingResult]
+	 * 如果 [test]，对 [T] 进行 [transform]，返回新的成功 [CatchingResult]
 	 */
 	inline fun <R, T : R> CatchingResult<T>.recoverIf(
 		test: (Throwable) -> Boolean, transform: (Throwable) -> R
-	) = recover { if (test(it)) transform(it) else it }
+	): CatchingResult<R> = when (val exception = exceptionOrNull()) {
+		null -> this
+		else -> if (test(exception)) CatchingResult(Result.success(transform(exception))) else this
+	}
 	
 	
 	//region Result 的 API 转发
@@ -156,7 +159,7 @@ value class CatchingResult<T> @PublishedApi internal constructor(@PublishedApi i
 /* 涉及 T : R 的，无法作为成员函数 */
 
 /**
- * 如果异常为 [E]，对 [T] 进行 [transform]，返回新的 [CatchingResult]。
+ * 如果异常为 [E]，对 [T] 进行 [transform]，返回新的成功 [CatchingResult]。
  *
  * 注意不要使用尖括号声明类型 [E]，如 `recoverException<IOException>()`。
  * 请使用 lambda 参数来声明异常类型，编译器会推断全部三个泛型。
@@ -170,7 +173,10 @@ value class CatchingResult<T> @PublishedApi internal constructor(@PublishedApi i
  */
 inline fun <reified E : Throwable, R, T : R> CatchingResult<T>.recoverException(
 	transform: (E) -> R
-) = recover { if (it is E) transform(it) else it }
+): CatchingResult<R> = when (val exception = exceptionOrNull()) {
+	is E -> CatchingResult(Result.success(transform(exception)))
+	else -> this
+}
 
 //region Result 的 API 转发
 
