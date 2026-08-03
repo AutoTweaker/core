@@ -42,7 +42,7 @@ class FileSystemServiceImpl(
 		fs.isRegularFile(resolve(path))
 	
 	override suspend fun readAllLines(path: Path): List<String> =
-		fs.readAllLines(resolve(path))
+		fs.readAllLines(resolve(path)).content
 	
 	override suspend fun sha256(path: Path): Sha256 =
 		fs.sha256(resolve(path))

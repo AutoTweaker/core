@@ -18,15 +18,4 @@
 
 package io.github.autotweaker.core.domain.port
 
-import io.github.autotweaker.api.types.Sha256
-import java.nio.file.Path
-
-interface RawFileSystem {
-	suspend fun exists(path: Path): Boolean
-	suspend fun isRegularFile(path: Path): Boolean
-	suspend fun readString(path: Path): Truncated<String>
-	suspend fun readAllLines(path: Path): Truncated<List<String>>
-	suspend fun sha256(path: Path): Sha256
-	suspend fun write(path: Path, expected: List<String>, lines: List<String>)
-	suspend fun glob(pattern: String, cwd: Path): List<Path>
-}
+data class Truncated<T>(val content: T, val truncated: Boolean)
