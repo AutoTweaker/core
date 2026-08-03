@@ -91,7 +91,7 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class BatchFiles : StringSetting(
-		"正则匹配的范围，可提供一个或多个文件路径",
+		"正则匹配的范围，可提供一个或多个文件路径，不支持glob",
 		zh("edit-batch工具files参数的描述")
 	)
 	
