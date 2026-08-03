@@ -25,6 +25,7 @@ interface RawFileSystem {
 	suspend fun exists(path: Path): Boolean
 	suspend fun isRegularFile(path: Path): Boolean
 	suspend fun metadata(path: Path): FileMetadata
+	suspend fun lineCount(path: Path): Int
 	suspend fun readString(path: Path): Truncated<String>
 	suspend fun readAllLines(path: Path): Truncated<List<String>>
 	suspend fun sha256(path: Path): Sha256

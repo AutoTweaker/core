@@ -78,6 +78,24 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}
 	}
 	
+	override suspend fun lineCount(path: Path): Int = withContext(Dispatchers.IO) {
+		Files.newInputStream(path).use { input ->
+			var count = 0
+			var last = -1
+			val buffer = ByteArray(BUFFER_SIZE)
+			while (true) {
+				val read = input.read(buffer)
+				if (read < 0) break
+				for (i in 0 until read) {
+					if (buffer[i] == '\n'.code.toByte()) count++
+					last = buffer[i].toInt()
+				}
+			}
+			if (last != -1 && last != '\n'.code) count++
+			return@withContext count
+		}
+	}
+
 	override suspend fun readString(path: Path): Truncated<String> = withContext(Dispatchers.IO) {
 		readStringLimited(path)
 	}
