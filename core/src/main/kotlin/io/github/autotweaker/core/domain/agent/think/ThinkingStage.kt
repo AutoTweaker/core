@@ -23,14 +23,24 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext.CurrentRound.PendingToolCall
+import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.tool.ToolCallParser
 import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
+import io.github.autotweaker.core.domain.tool.port.TruncationService
+import kotlinx.serialization.json.JsonElement
+import java.nio.file.Path
+import java.util.*
 
 class ThinkingStage(
 	private val llmService: LlmService,
 	private val tools: Tools,
+	private val workspace: () -> Path,
+	private val truncation: TruncationService,
+	private val onOutput: (RuntimeOutput) -> Unit,
 ) {
 	suspend fun execute(
 		model: AgentModel,
@@ -44,33 +54,54 @@ class ThinkingStage(
 				assistantMessage = callResult.assistantMessage,
 				activations = emptyList(),
 				parseFailures = emptyList(),
+				resolveFailures = emptyList()
 			)
 			
 			
 			val activations = mutableListOf<ToolActivation>()
 			val parseFailures = mutableListOf<ParseFailure>()
+			val resolveFailures = mutableListOf<ResolveFailure>()
 			val needsApproval = mutableListOf<ResolvedToolCall>()
 			
 			val timestamp = callResult.assistantMessage.timestamp
+			val provider = ToolProvider.buildToolProvider(
+				workspace = workspace,
+				onOutput = onOutput,
+				model = model,
+				context = context,
+				truncation = truncation,
+			)
 			rawCalls.forEach { rawCall ->
-				when (val result = tools.resolveToolCall(rawCall)) {
+				when (val result = tools.resolveToolCall(rawCall, provider)) {
 					is ToolCallResolveResult.Activation ->
 						activations.add(ToolActivation(rawCall, result.message))
 					
 					is ToolCallResolveResult.ParseFailure ->
 						parseFailures.add(ParseFailure(rawCall, result.errorMessage))
 					
+					is ToolCallResolveResult.ResolveFailure -> resolveFailures.add(
+						ResolveFailure(
+							rawCall,
+							result.result.reason,
+							result.result.toolName,
+							Tools.serializeValidatedArgs(result.result.toolName, result.result.args),
+							result.errorMessage
+						)
+					)
+					
 					is ToolCallResolveResult.NeedsApproval -> {
 						val validatedArgs =
 							Tools.serializeValidatedArgs(result.result.toolName, result.result.args)
-						val pendingCall = RuntimeContext.CurrentRound.PendingToolCall(
+						val pendingCall = PendingToolCall(
+							id = UUID.randomUUID(),
+							timestamp = timestamp,
 							callId = rawCall.id,
 							callName = rawCall.name,
 							arguments = rawCall.arguments,
 							reason = result.result.reason,
-							timestamp = timestamp,
 							validatedToolName = result.result.toolName,
 							validatedArgs = validatedArgs,
+							resolvedRequest = result.request
 						)
 						needsApproval.add(ResolvedToolCall(pendingCall, result.result))
 					}
@@ -81,12 +112,14 @@ class ThinkingStage(
 				assistantMessage = callResult.assistantMessage,
 				activations = activations,
 				parseFailures = parseFailures,
+				resolveFailures = resolveFailures,
 				needsApproval = needsApproval,
 			)
 			else Result.Done(
 				assistantMessage = callResult.assistantMessage,
 				activations = activations,
 				parseFailures = parseFailures,
+				resolveFailures = resolveFailures
 			)
 		}
 	}
@@ -97,12 +130,14 @@ class ThinkingStage(
 			val assistantMessage: RuntimeContext.Message.Assistant,
 			val activations: List<ToolActivation>,
 			val parseFailures: List<ParseFailure>,
+			val resolveFailures: List<ResolveFailure>,
 		) : Result()
 		
 		data class HasPending(
 			val assistantMessage: RuntimeContext.Message.Assistant,
 			val activations: List<ToolActivation>,
 			val parseFailures: List<ParseFailure>,
+			val resolveFailures: List<ResolveFailure>,
 			val needsApproval: List<ResolvedToolCall>,
 		) : Result()
 		
@@ -114,8 +149,16 @@ class ThinkingStage(
 		val errorMessage: String,
 	)
 	
+	class ResolveFailure(
+		val toolCall: ChatMessage.AssistantMessage.ToolCall,
+		val reason: String,
+		val validatedToolName: String,
+		val validatedArgs: JsonElement,
+		val errorMessage: String,
+	)
+	
 	class ResolvedToolCall(
-		val pendingCall: RuntimeContext.CurrentRound.PendingToolCall,
+		val pendingCall: PendingToolCall,
 		val validated: ToolCallParser.ValidationResult.Success<out ToolArgs>,
 	)
 }

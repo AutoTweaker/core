@@ -94,6 +94,20 @@ object AgentToolSettings {
 	)
 	
 	@AutoService(SettingDef::class)
+	class ToolResolveError : StringSetting(
+		"调用参数在解析时出错：%s", zh(
+			"工具调用解析抛出异常时的ToolResult"
+		)
+	)
+	
+	@AutoService(SettingDef::class)
+	class ToolExecutionError : StringSetting(
+		"工具执行时出错：%s", zh(
+			"工具调用抛出异常时的ToolResult"
+		)
+	)
+	
+	@AutoService(SettingDef::class)
 	class ReasonLength : IntSetting(
 		5, zh(
 			"工具调用的reason属性的最少字符数"

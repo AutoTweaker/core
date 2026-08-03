@@ -27,6 +27,7 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
+import io.github.autotweaker.core.domain.tool.port.TruncationService
 import kotlinx.coroutines.*
 import java.nio.file.Path
 import java.util.*
@@ -38,11 +39,10 @@ class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
 	private val workspace: () -> Path,
+	private val truncation: TruncationService,
 	private val onOutput: (RuntimeOutput) -> Unit,
 	private val onToolCall: (String?) -> Unit
 ) : Loggable, Traceable {
-	private val truncation = TruncationImpl(workspace)
-	
 	@Volatile
 	private var toolJob: Job? = null
 	
@@ -77,7 +77,7 @@ class ToolCallingStage(
 					tools.executeTool(
 						toolName = call.validated.toolName,
 						callId = call.pendingCall.callId,
-						arguments = call.validated.args,
+						request = call.pendingCall.resolvedRequest,
 						provider = provider,
 						onToolOutput = onOutput,
 						truncation = truncation,
@@ -120,7 +120,10 @@ class ToolCallingStage(
 							call.pendingCall.validatedToolName,
 							e
 						)
-						buildToolResult("ERROR: ${e.message()}", ToolResultStatus.FAILURE)
+						buildToolResult(
+							AgentToolSettings.ToolExecutionError().get().format(e.message()),
+							ToolResultStatus.FAILURE
+						)
 					}
 				}
 			}
@@ -130,8 +133,10 @@ class ToolCallingStage(
 		content: String,
 		status: ToolResultStatus,
 	): RuntimeContext.Message.Tool.Result = RuntimeContext.Message.Tool.Result(
-		content = content,
+		id = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
+		content = content,
+		data = null,
 		status = status
 	)
 }

@@ -16,17 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.port
+@file:Suppress("FunctionName")
 
+package io.github.autotweaker.api.tool
+
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.get
+import io.github.autotweaker.api.types.config.SettingValue
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
 
-interface ToolCallHistory {
-	data class Entry<Request>(
-		val request: Request,
-		val resultContent: String,
-	)
-	
-	fun <Request> getAll(
-		requestSerializer: KSerializer<Request>
-	): List<Entry<Request>>
-}
+fun <T> Ready(serializer: KSerializer<T>, result: T) =
+	Tool.ResolveResult.Ready(Json.encodeToJsonElement(serializer, result))
+
+fun Rejected(message: SettingDef<SettingValue.ValString>, vararg args: Any?) =
+	Tool.ResolveResult.Rejected(message.get().format(*args))

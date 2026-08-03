@@ -97,13 +97,14 @@ class RuntimeContextBuilder(
 	private fun pendingToolCall(id: UUID) = message<AgentMessage.Tool.Call>(id).let {
 		RuntimeContext.CurrentRound.PendingToolCall(
 			id = id,
+			timestamp = it?.timestamp.orNow(),
 			callId = it?.callId.orEmpty(),
 			callName = it?.callName.orEmpty(),
 			arguments = it?.arguments.orEmpty(),
 			reason = it?.reason.orEmpty(),
-			timestamp = it?.timestamp.orNow(),
 			validatedToolName = it?.validatedToolName.orEmpty(),
-			validatedArgs = it?.validatedArgs ?: JsonNull
+			validatedArgs = it?.validatedArgs ?: JsonNull,
+			resolvedRequest = it?.resolvedRequest ?: JsonNull,
 		)
 	}
 	
@@ -115,7 +116,8 @@ class RuntimeContextBuilder(
 			reason = it?.reason,
 			timestamp = it?.timestamp.orNow(),
 			validatedToolName = it?.validatedToolName.orEmpty(),
-			validatedArgs = it?.validatedArgs
+			validatedArgs = it?.validatedArgs,
+			resolvedRequest = it?.resolvedRequest
 		)
 	}
 	
@@ -123,6 +125,7 @@ class RuntimeContextBuilder(
 		RuntimeContext.Message.Tool.Result(
 			id = id,
 			content = it?.content.orEmpty(),
+			data = it?.data,
 			timestamp = it?.timestamp.orNow(),
 			status = it?.status ?: ToolResultStatus.FAILURE
 		)

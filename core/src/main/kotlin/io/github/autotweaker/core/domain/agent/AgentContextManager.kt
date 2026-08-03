@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.util.*
 import kotlin.time.Clock
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as ToolMessage
 
@@ -42,7 +43,12 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 	suspend fun beginRound(userMessage: RuntimeContext.Message.User) = lock.withLock {
 		check(_context.value.currentRound == null)
 		check(pendingToolResults.isEmpty())
-		val round = RuntimeContext.CurrentRound(userMessage = userMessage, turns = null)
+		val round = RuntimeContext.CurrentRound(
+			userMessage = userMessage,
+			turns = null,
+			assistantMessage = null,
+			pendingToolCalls = null,
+		)
 		_context.update { it.copy(currentRound = round) }
 	}
 	
@@ -109,16 +115,20 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 					ToolMessage(
 						callId = call.callId,
 						call = ToolMessage.Call(
+							id = UUID.randomUUID(),
+							timestamp = call.timestamp,
 							callName = call.callName,
 							arguments = call.arguments,
 							reason = call.reason,
-							timestamp = call.timestamp,
 							validatedToolName = call.validatedToolName,
 							validatedArgs = call.validatedArgs,
+							resolvedRequest = call.resolvedRequest
 						),
 						result = ToolMessage.Result(
-							content = cancelledMessage,
+							id = UUID.randomUUID(),
 							timestamp = Clock.System.now(),
+							content = cancelledMessage,
+							data = null,
 							status = ToolResultStatus.CANCELLED,
 						),
 					)

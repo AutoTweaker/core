@@ -90,7 +90,7 @@ sealed class AgentMessage {
 		 *
 		 * @see UsageSnapshot
 		 */
-		val usageSnapshot: UsageSnapshot? = null,
+		val usageSnapshot: UsageSnapshot?,
 	) : AgentMessage()
 	
 	/**
@@ -135,8 +135,18 @@ sealed class AgentMessage {
 			 * 成功反序列化为工具的 [io.github.autotweaker.api.tool.ToolArgs] 后序列化到 [JsonElement]。
 			 *
 			 * 使用 [io.github.autotweaker.api.adapter.CoreAPI.ToolAPI.deserializeArgs] 可拿到 [io.github.autotweaker.api.tool.ToolArgs] 对象。
+			 *
+			 * 可反序列化为如 [io.github.autotweaker.api.generated.tool.args.EditArgs] 的数据。
 			 */
 			val validatedArgs: JsonElement?,
+			/**
+			 * 工具调用预处理的响应序列化到 [JsonElement]，此字段非空时工具参数必然已校验成功。
+			 *
+			 * 可反序列化为如 [io.github.autotweaker.api.types.tool.bash.BashRequest] 的数据。
+			 *
+			 * @see io.github.autotweaker.api.tool.Tool.ResolveResult
+			 */
+			val resolvedRequest: JsonElement?
 		) : Tool()
 		
 		/**
@@ -181,7 +191,7 @@ sealed class AgentMessage {
 		 *
 		 * 不同于普通的 LLM 消息，就算存在请求重试机制，失败的请求也根本不会拿到 [io.github.autotweaker.api.types.llm.Usage] 响应，它仅存在于已完成且技术上成功的消息，而这种消息会被算作一条单独的 [AgentMessage.Assistant]。
 		 */
-		val snapshots: Map<@Serializable(with = UuidSerializer::class) UUID, UsageSnapshot>? = null,
+		val snapshots: Map<@Serializable(with = UuidSerializer::class) UUID, UsageSnapshot>?,
 	) : AgentMessage()
 	
 	/**

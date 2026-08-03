@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
@@ -53,7 +54,7 @@ class AgentBridge(
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	workspace: WorkspaceMeta,
-) : AgentAPI, Loggable {
+) : AgentAPI, Loggable, Traceable {
 	/* 初始化 */
 	private val contextLock = ReentrantMutex()
 	private val injectLock = ReentrantMutex()
@@ -61,8 +62,8 @@ class AgentBridge(
 	private lateinit var initialData: AgentData
 	private lateinit var tools: ToolMap
 	
-	private val _context = MutableStateFlow(initialData.context)
-	override val context: StateFlow<AgentContext> = _context.asStateFlow()
+	private val _context by lazy { MutableStateFlow(initialData.context) }
+	override val context: StateFlow<AgentContext> by lazy { _context.asStateFlow() }
 	
 	private val messages = ConcurrentHashMap<UUID, AgentMessage>()
 	
@@ -112,7 +113,9 @@ class AgentBridge(
 			_agent.context.collect { saveChannel.send(Unit) }
 		}
 		scope.launch {
-			saveChannel.consumeEach { _agent.context.value.save() }
+			saveChannel.consumeEach {
+				trace.catching { _agent.context.value.save() }
+			}
 		}
 		scope.launch {
 			_agent.output.collect {
@@ -246,8 +249,8 @@ class AgentBridge(
 		val builder = AgentContextBuilder(_context.value, this)
 		val (context, messages) = builder()
 		
-		updateContext(context)
 		messages.save()
+		updateContext(context)
 	}
 	
 	private suspend fun updateContext(context: AgentContext) =

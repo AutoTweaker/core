@@ -18,13 +18,22 @@
 
 package io.github.autotweaker.core.domain.agent.tool
 
+import io.github.autotweaker.api.tool.ToolArgs
+import kotlinx.serialization.json.JsonElement
+
 sealed class ToolCallResolveResult {
 	data class ParseFailure(
 		val errorMessage: String,
 	) : ToolCallResolveResult()
 	
+	data class ResolveFailure(
+		val result: ToolCallParser.ValidationResult.Success<out ToolArgs>,
+		val errorMessage: String,
+	) : ToolCallResolveResult()
+	
 	data class NeedsApproval(
-		val result: ToolCallParser.ValidationResult.Success<*>,
+		val result: ToolCallParser.ValidationResult.Success<out ToolArgs>,
+		val request: JsonElement
 	) : ToolCallResolveResult()
 	
 	data class Activation(

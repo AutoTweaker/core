@@ -92,7 +92,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MessageFileNotFound : StringSetting(
-		"文件%s不存在", zh(
+		"文件%s不存在或访问被拒绝", zh(
 			"read工具读取不存在的文件时的描述"
 		)
 	)
@@ -120,7 +120,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MessagePathOutsideWorkspace : StringSetting(
-		"请求的文件路径在工作目录外部", zh(
+		"错误：请求的文件路径在工作目录外部", zh(
 			"read工具在容器内读取工作目录外的文件时的描述"
 		)
 	)

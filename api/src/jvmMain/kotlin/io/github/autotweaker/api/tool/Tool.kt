@@ -39,17 +39,51 @@ interface Tool<Args : ToolArgs> {
 	/**
 	 * 应该委托给插件生成的 builder 来构造 `Pair<ToolMeta, KSerializer<Args>>`。
 	 *
-	 * 此方法的返回值会被 AutoTweaker 缓存，并仅在新 Agent 创建或请求 LLM 前刷新，避免频繁 I/O。
+	 * 此方法的返回值会被 AutoTweaker 缓存，并仅在新 Agent 创建或请求 LLM 前刷新，避免大型 I/O。
 	 */
 	suspend fun meta(): Pair<ToolMeta, KSerializer<Args>>
 	
 	/**
-	 * 调用工具，已经经过用户或审批系统确认，不必考虑安全问题，但不保证 [Args] 的参数（如文件路径）一定可用。
+	 * 解析 LLM 的调用请求，在不执行任何实际操作的情况下对请求进行预处理，并在有必要时提前返回错误消息而不是等到用户批准之后。
 	 *
+	 * 在 LLM 生成工具调用请求，[ToolArgs] 反序列化成功后调用，此时未经过程序或用户审批，避免直接执行请求的操作。
+	 *
+	 * 可以在此时对请求进行业务校验，例如检查 String 是不是一个有效的 Path，startLine 有没有大于 endLine，并提前驳回工具调用。
+	 *
+	 * 避免进行影响外部环境操作，例如删除或修改文件，或其他影响系统或程序状态的动作，此时拿到的 [Args] 不会经过来自程序或用户的任何审查。
+	 *
+	 * @return 解析后的结果，如果为 [ResolveResult.Ready]，将会由程序或用户进行下一步审批。
+	 */
+	suspend fun resolve(args: Args, cwd: Path): ResolveResult
+	
+	/**
+	 * 调用工具，已经经过用户或审批系统确认，不必考虑安全问题。
+	 *
+	 * @param request 来自 [resolve] 的返回值。
 	 * @param outputChannel 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。
 	 * @return 不同于 [outputChannel]，这些内容直接返回给 LLM。
 	 */
-	suspend fun execute(args: Args, cwd: Path, outputChannel: Channel<RuntimeOutput>): ToolOutput
+	suspend fun execute(request: JsonElement, cwd: Path, outputChannel: Channel<RuntimeOutput>):
+			ToolOutput
+	
+	/**
+	 * 预处理的结果，决定直接生成工具响应还是等待用户审批调用。
+	 */
+	sealed interface ResolveResult {
+		/**
+		 * 参数解析成功，接下来会由程序或用户进行审批，审批通过后会使用 [result] 作为 [execute] 的 `request`。
+		 *
+		 * @param result 建议反序列化自数据类，数据格式可以自由决定。
+		 */
+		data class Ready(val result: JsonElement) : ResolveResult
+		
+		/**
+		 * 参数存在问题，驳回工具调用并使用 [reason] 作为工具消息。
+		 *
+		 * 工具不应该自行实现鉴权，可以在参数错误、目标不可访问等场景驳回调用。
+		 */
+		data class Rejected(val reason: String) : ResolveResult
+	}
 	
 	/**
 	 * 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。

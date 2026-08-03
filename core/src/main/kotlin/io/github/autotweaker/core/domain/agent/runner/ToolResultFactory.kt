@@ -23,6 +23,8 @@ import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
+import kotlinx.serialization.json.JsonElement
+import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Instant
 import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall as RawToolCall
@@ -31,7 +33,7 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as To
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Call as ToolCall
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result as ToolResult
 
-class ToolResultFactory {
+object ToolResultFactory {
 	
 	//错误/激活
 	
@@ -39,8 +41,21 @@ class ToolResultFactory {
 		timestamp: Instant,
 		activations: List<ToolActivation>,
 		parseFailures: List<ThinkingStage.ParseFailure>,
+		resolveFailures: List<ThinkingStage.ResolveFailure>
 	): List<ToolMessage> = buildList {
-		parseFailures.forEach { add(buildError(it.toolCall, timestamp, it.errorMessage)) }
+		parseFailures.forEach { add(buildError(timestamp, it.toolCall, it.errorMessage)) }
+		resolveFailures.forEach {
+			add(
+				buildError(
+					timestamp = timestamp,
+					call = it.toolCall,
+					reason = it.reason,
+					validatedToolName = it.validatedToolName,
+					validatedArgs = it.validatedArgs,
+					message = it.errorMessage
+				)
+			)
+		}
 		activations.forEach { add(buildActivation(timestamp, it)) }
 	}
 	
@@ -51,22 +66,44 @@ class ToolResultFactory {
 		reason: String?,
 	) = buildToolMessage(
 		call, ToolResult(
-			content = if (reason != null) AgentToolSettings.RejectedWithFeedback().get().format(reason) else
-				AgentToolSettings.Rejected().get(),
+			id = UUID.randomUUID(),
+			content = if (reason != null) AgentToolSettings.RejectedWithFeedback().get().format(reason)
+			else AgentToolSettings.Rejected().get(),
+			data = null,
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.REJECTED,
 		)
 	)
 	
 	fun buildError(
-		call: RawToolCall,
 		timestamp: Instant,
+		call: RawToolCall,
 		message: String,
 	) = buildToolMessage(
-		call, timestamp,
+		timestamp, call,
 		ToolResult(
+			id = UUID.randomUUID(),
 			content = message,
-			timestamp = Clock.System.now(),
+			data = null,
+			timestamp = timestamp,
+			status = ToolResultStatus.FAILURE,
+		)
+	)
+	
+	fun buildError(
+		timestamp: Instant,
+		call: RawToolCall,
+		reason: String,
+		validatedToolName: String,
+		validatedArgs: JsonElement,
+		message: String,
+	) = buildToolMessage(
+		timestamp, call, reason, validatedToolName, validatedArgs,
+		ToolResult(
+			id = UUID.randomUUID(),
+			content = message,
+			data = null,
+			timestamp = timestamp,
 			status = ToolResultStatus.FAILURE,
 		)
 	)
@@ -75,10 +112,12 @@ class ToolResultFactory {
 		timestamp: Instant,
 		activation: ToolActivation,
 	) = buildToolMessage(
-		activation.toolCall, timestamp,
+		timestamp, activation.toolCall,
 		ToolResult(
+			id = UUID.randomUUID(),
 			content = activation.message,
-			timestamp = Clock.System.now(),
+			data = null,
+			timestamp = timestamp,
 			status = ToolResultStatus.SUCCESS,
 		)
 	)
@@ -95,12 +134,25 @@ class ToolResultFactory {
 	)
 	
 	fun buildToolMessage(
-		call: RawToolCall,
 		timestamp: Instant,
+		call: RawToolCall,
 		result: ToolResult,
 	) = ToolMessage(
 		callId = call.id,
-		call = buildToolCall(call, timestamp),
+		call = buildToolCall(timestamp, call),
+		result = result,
+	)
+	
+	fun buildToolMessage(
+		timestamp: Instant,
+		call: RawToolCall,
+		reason: String,
+		validatedToolName: String,
+		validatedArgs: JsonElement,
+		result: ToolResult,
+	) = ToolMessage(
+		callId = call.id,
+		call = buildToolCall(timestamp, call, reason, validatedToolName, validatedArgs),
 		result = result,
 	)
 	
@@ -109,20 +161,44 @@ class ToolResultFactory {
 	fun buildToolCall(
 		call: PendingCall,
 	) = ToolCall(
+		id = UUID.randomUUID(),
+		timestamp = call.timestamp,
 		callName = call.callName,
 		arguments = call.arguments,
 		reason = call.reason,
-		timestamp = call.timestamp,
 		validatedToolName = call.validatedToolName,
 		validatedArgs = call.validatedArgs,
+		resolvedRequest = call.resolvedRequest
 	)
 	
 	fun buildToolCall(
-		call: RawToolCall,
 		timestamp: Instant,
+		call: RawToolCall,
 	) = ToolCall(
+		id = UUID.randomUUID(),
+		timestamp = timestamp,
 		callName = call.name,
 		arguments = call.arguments,
+		reason = null,
+		validatedToolName = null,
+		validatedArgs = null,
+		resolvedRequest = null
+	)
+	
+	fun buildToolCall(
+		timestamp: Instant,
+		call: RawToolCall,
+		reason: String,
+		validatedToolName: String,
+		validatedArgs: JsonElement,
+	) = ToolCall(
+		id = UUID.randomUUID(),
 		timestamp = timestamp,
+		callName = call.name,
+		arguments = call.arguments,
+		reason = reason,
+		validatedToolName = validatedToolName,
+		validatedArgs = validatedArgs,
+		resolvedRequest = null
 	)
 }

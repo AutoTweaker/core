@@ -91,6 +91,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			return null
 		}
 		return RuntimeContext.Message.User(
+			id = UUID.randomUUID(),
 			content = MessageContent(
 				injections, content, images
 			),

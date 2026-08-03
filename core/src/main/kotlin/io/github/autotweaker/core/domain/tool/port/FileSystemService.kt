@@ -27,6 +27,6 @@ interface FileSystemService {
 	suspend fun isRegularFile(path: Path): Boolean
 	suspend fun readAllLines(path: Path): List<String>
 	suspend fun sha256(path: Path): Sha256
-	suspend fun write(path: Path, expected: List<String>, lines: List<String>)
+	suspend fun write(path: Path, expected: Sha256, lines: List<String>)
 	suspend fun glob(pattern: String, cwd: Path): List<Path>
 }

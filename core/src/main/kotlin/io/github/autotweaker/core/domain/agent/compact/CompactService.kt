@@ -105,6 +105,7 @@ class CompactService(
 		)
 		
 		val compactMsg = SummarizedMessage(
+			id = UUID.randomUUID(),
 			timestamp = Clock.System.now(),
 			content = finalResult.content,
 			snapshots = snapshots.orNull()?.associateBy { UUID.randomUUID() },

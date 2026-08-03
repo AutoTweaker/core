@@ -16,17 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.port
+package io.github.autotweaker.api.types.tool.bash
 
-import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlin.time.Duration
 
-interface ToolCallHistory {
-	data class Entry<Request>(
-		val request: Request,
-		val resultContent: String,
-	)
-	
-	fun <Request> getAll(
-		requestSerializer: KSerializer<Request>
-	): List<Entry<Request>>
-}
+@Serializable
+data class BashRequest(
+	val command: String,
+	val timeout: Duration,
+	val envIds: Set<String>,
+)

@@ -79,10 +79,9 @@ class RoundRunner(
 	
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
-		ToolResultFactory(),
 		scope, shouldBreak
 	)
-	private val roundCtx = RoundContext(ctx, ToolResultFactory())
+	private val roundCtx = RoundContext(ctx)
 	
 	init {
 		scope.launch { workLoop() }
@@ -181,7 +180,10 @@ class RoundRunner(
 			if (result is ThinkingStage.Result.Done) {
 				roundCtx.applyDone(result)
 				
-				if (result.activations.isEmpty() && result.parseFailures.isEmpty()) {
+				if (result.activations.isEmpty()
+					&& result.parseFailures.isEmpty()
+					&& result.resolveFailures.isEmpty()
+				) {
 					messages.drain()?.let {
 						ctx.archiveCurrentRound()
 						ctx.beginRound(it)

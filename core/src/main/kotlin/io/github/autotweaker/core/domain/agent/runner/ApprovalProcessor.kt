@@ -39,7 +39,6 @@ import kotlinx.coroutines.launch
 class ApprovalProcessor(
 	private val ctx: AgentContextManager,
 	private val tool: ToolCallingStage,
-	private val factory: ToolResultFactory,
 	private val scope: CoroutineScope,
 	private val shouldBreak: StateFlow<Boolean>,
 ) : Traceable {
@@ -84,10 +83,9 @@ class ApprovalProcessor(
 					tool.execute(call, model, ctx.get())
 				}
 				val toolResult = deferred.await()
-				ctx.recordToolResult(factory.buildToolMessage(call.pendingCall, toolResult))
-			} else {
-				ctx.recordToolResult(factory.buildRejected(call.pendingCall, approval.reason))
-			}
+				ctx.recordToolResult(ToolResultFactory.buildToolMessage(call.pendingCall, toolResult))
+			} else
+				ctx.recordToolResult(ToolResultFactory.buildRejected(call.pendingCall, approval.reason))
 		}
 		return reasons
 	}

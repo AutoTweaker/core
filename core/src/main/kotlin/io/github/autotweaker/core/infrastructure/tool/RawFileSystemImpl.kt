@@ -20,15 +20,13 @@ package io.github.autotweaker.core.infrastructure.tool
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.CatchingResult
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.core.domain.port.FileAccessDeniedException
-import io.github.autotweaker.core.domain.port.FileMetadata
-import io.github.autotweaker.core.domain.port.RawFileSystem
-import io.github.autotweaker.core.domain.port.Truncated
+import io.github.autotweaker.core.domain.port.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -59,40 +57,44 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	}
 	
 	override suspend fun metadata(path: Path): FileMetadata = withContext(Dispatchers.IO) {
-		with(Files.readAttributes(path, PosixFileAttributes::class.java)) {
-			FileMetadata(
-				size = size(),
-				lastModifiedTime = lastModifiedTime().toInstant().toKotlinInstant(),
-				lastAccessTime = lastAccessTime().toInstant().toKotlinInstant(),
-				creationTime = creationTime().toInstant().toKotlinInstant(),
-				isRegularFile = isRegularFile,
-				isDirectory = isDirectory,
-				isSymbolicLink = isSymbolicLink,
-				isOther = isOther,
-				fileKey = fileKey()?.toString(),
-				owner = owner().name,
-				group = group().name,
-				permissions = permissions(),
-			)
-		}
+		trace.catching {
+			with(Files.readAttributes(path, PosixFileAttributes::class.java)) {
+				FileMetadata(
+					size = size(),
+					lastModifiedTime = lastModifiedTime().toInstant().toKotlinInstant(),
+					lastAccessTime = lastAccessTime().toInstant().toKotlinInstant(),
+					creationTime = creationTime().toInstant().toKotlinInstant(),
+					isRegularFile = isRegularFile,
+					isDirectory = isDirectory,
+					isSymbolicLink = isSymbolicLink,
+					isOther = isOther,
+					fileKey = fileKey()?.toString(),
+					owner = owner().name,
+					group = group().name,
+					permissions = permissions(),
+				)
+			}
+		}.rethrowFileSystemException()
 	}
 	
 	override suspend fun lineCount(path: Path): Int = withContext(Dispatchers.IO) {
-		Files.newInputStream(path).use { input ->
-			var count = 0
-			var last = -1
-			val buffer = ByteArray(BUFFER_SIZE)
-			while (true) {
-				val read = input.read(buffer)
-				if (read < 0) break
-				for (i in 0 until read) {
-					if (buffer[i] == '\n'.code.toByte()) count++
-					last = buffer[i].toInt()
+		trace.catching {
+			Files.newInputStream(path).use { input ->
+				var count = 0
+				var last = -1
+				val buffer = ByteArray(BUFFER_SIZE)
+				while (true) {
+					val read = input.read(buffer)
+					if (read < 0) break
+					for (i in 0 until read) {
+						if (buffer[i] == '\n'.code.toByte()) count++
+						last = buffer[i].toInt()
+					}
 				}
+				if (last != -1 && last != '\n'.code) count++
+				return@use count
 			}
-			if (last != -1 && last != '\n'.code) count++
-			return@withContext count
-		}
+		}.rethrowFileSystemException()
 	}
 	
 	override suspend fun readString(path: Path): Truncated<String> = withContext(Dispatchers.IO) {
@@ -116,20 +118,20 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 				}
 			}
 			Sha256(digest.digest())
-		}.rethrowCancellation()
-			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
-			.getOrThrow()
+		}.rethrowFileSystemException()
 	}
 	
-	override suspend fun write(path: Path, expected: List<String>, lines: List<String>) =
+	override suspend fun write(path: Path, expected: Sha256, lines: List<String>) =
 		withContext(Dispatchers.IO) {
-			val target = path.toRealPath()
-			if (!Files.isWritable(target)) error("File is not writable: $path")
-			pathLocks[target.hashCode() and 255].withLock {
-				val current = readStringLimited(target).content.lines()
-				if (current != expected) error("File content changed since read: $path")
-				atomicReplace(target, lines)
-			}
+			trace.catching {
+				val target = path.toRealPath()
+				if (!Files.isWritable(target)) error("File is not writable: $path")
+				pathLocks[target.hashCode() and 255].withLock {
+					val current = sha256(target)
+					if (current != expected) error("File content changed since read: $path")
+					atomicReplace(target, lines)
+				}
+			}.rethrowFileSystemException()
 		}
 	
 	private fun readStringLimited(path: Path): Truncated<String> =
@@ -145,9 +147,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 				}
 				Truncated(String(chars, 0, total), reader.read() != -1)
 			}
-		}.rethrowCancellation()
-			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
-			.getOrThrow()
+		}.rethrowFileSystemException()
 	
 	private fun atomicReplace(path: Path, lines: List<String>) {
 		val tmp = path.resolveSibling(".${path.fileName}.${UUID.randomUUID()}.tmp")
@@ -207,4 +207,10 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 				stream.filter { matcher.matches(it) }.toList()
 			}
 		}
+	
+	private fun <T> CatchingResult<T>.rethrowFileSystemException(): T =
+		rethrowCancellation()
+			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
+			.recoverException { e: NoSuchFileException -> throw FileNotFoundException(e) }
+			.getOrThrow()
 }

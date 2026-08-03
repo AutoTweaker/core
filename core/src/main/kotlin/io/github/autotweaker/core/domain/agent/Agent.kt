@@ -29,10 +29,7 @@ import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
-import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import io.github.autotweaker.core.domain.agent.tool.ToolMap
-import io.github.autotweaker.core.domain.agent.tool.Tools
+import io.github.autotweaker.core.domain.agent.tool.*
 import io.github.autotweaker.core.domain.session.AgentHost
 import kotlinx.coroutines.flow.*
 import java.nio.file.Path
@@ -57,6 +54,8 @@ class Agent(
 	private val _output = MutableSharedFlow<RuntimeOutput>()
 	val output: SharedFlow<RuntimeOutput> = _output.asSharedFlow()
 	
+	private val onOutput: (RuntimeOutput) -> Unit = { _output.tryEmit(it) }
+	
 	private val ctx = AgentContextManager(
 		context.copy(currentRound = null),
 		AgentToolSettings.Cancelled().get()
@@ -66,17 +65,21 @@ class Agent(
 	private val toolManager = Tools(workspace, tools, activeTools, agentId)
 	val activeTools: StateFlow<Set<String>> = toolManager.activeTools
 	
-	private val llmService = LlmService(agentId) { _output.tryEmit(it) }
-	private val thinkingStage by lazy { ThinkingStage(llmService, toolManager) }
+	private val truncation = TruncationImpl(workspace)
+	private val llmService = LlmService(agentId, onOutput)
+	private val thinkingStage by lazy {
+		ThinkingStage(llmService, toolManager, workspace, truncation, onOutput)
+	}
 	private val toolCallingStage by lazy {
 		ToolCallingStage(
 			agentId = agentId,
 			tools = toolManager,
 			workspace = workspace,
-			onOutput = { _output.tryEmit(it) },
+			truncation = truncation,
+			onOutput = onOutput,
 			onToolCall = { _toolCalling.update { it } })
 	}
-	private val compact = CompactService(agentId) { _output.tryEmit(it) }
+	private val compact = CompactService(agentId, onOutput)
 	
 	private val runner = RoundRunner(
 		ctx = ctx,

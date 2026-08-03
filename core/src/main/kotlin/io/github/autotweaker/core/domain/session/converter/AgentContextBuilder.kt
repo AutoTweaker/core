@@ -28,6 +28,7 @@ class AgentContextBuilder(
 	private val old: AgentContext,
 	private val new: RuntimeContext,
 ) {
+	private val oldMessages = old.index.ids()
 	private val messages = mutableMapOf<UUID, AgentMessage>()
 	
 	operator fun invoke(): Pair<AgentContext, List<AgentMessage>> = new.transform().let {
@@ -35,7 +36,7 @@ class AgentContextBuilder(
 			systemPrompt = new.systemPrompt ?: old.systemPrompt,
 			injections = new.injections,
 			index = it,
-			droppedMessages = old.index.ids() - it.ids()
+			droppedMessages = oldMessages - it.ids()
 		) to messages.values.toList()
 	}
 	
@@ -109,7 +110,8 @@ class AgentContextBuilder(
 			arguments = call.arguments,
 			reason = call.reason,
 			validatedToolName = call.validatedToolName,
-			validatedArgs = call.validatedArgs
+			validatedArgs = call.validatedArgs,
+			resolvedRequest = call.resolvedRequest
 		).add()
 	
 	private fun RuntimeContext.Message.Tool.result(): UUID =
@@ -131,8 +133,12 @@ class AgentContextBuilder(
 			arguments = arguments,
 			reason = reason,
 			validatedToolName = validatedToolName,
-			validatedArgs = validatedArgs
+			validatedArgs = validatedArgs,
+			resolvedRequest = resolvedRequest
 		).add()
 	
-	private fun AgentMessage.add(): UUID = id.also { messages[id] = this }
+	private fun AgentMessage.add(): UUID = id.also {
+		if (id !in oldMessages)
+			messages[id] = this
+	}
 }

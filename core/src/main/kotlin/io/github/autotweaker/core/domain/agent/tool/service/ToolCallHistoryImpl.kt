@@ -20,27 +20,27 @@ package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
 
 class ToolCallHistoryImpl(
 	private val context: RuntimeContext,
 ) : ToolCallHistory, Traceable {
 	@Suppress("NestedLambdaShadowedImplicitParameter")
-	override suspend fun <Args : ToolArgs> getAll(
-		self: Tool<Args>,
-		argsSerializer: KSerializer<Args>
-	): List<ToolCallHistory.Entry> = buildList {
-		suspend fun RuntimeContext.Message.Tool.tryDeserialize() =
-			call.validatedArgs?.let {
-				trace.catching { Tools.deserializeValidatedArgs(self.name(), it) }.getOrNull()
-			}?.let { add(ToolCallHistory.Entry(it, result.content)) }
+	override fun <Request> getAll(
+		requestSerializer: KSerializer<Request>
+	): List<ToolCallHistory.Entry<Request>> = buildList {
+		fun RuntimeContext.Message.Tool.tryDeserialize() =
+			call.resolvedRequest?.let {
+				trace.catching {
+					Json.decodeFromJsonElement(requestSerializer, it)
+				}.rethrowCancellation().getOrNull()?.let {
+					add(ToolCallHistory.Entry(it, result.content))
+				}
+			}
 		
 		context.historyRounds?.forEach {
 			it.turns?.forEach {

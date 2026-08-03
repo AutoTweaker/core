@@ -34,26 +34,26 @@ data class RuntimeContext(
 	val currentRound: CurrentRound?,
 ) {
 	data class SummarizedMessage(
-		val id: UUID = UUID.randomUUID(),
+		val id: UUID,
 		val timestamp: Instant,
 		val content: String,
-		val snapshots: Map<UUID, UsageSnapshot>? = null,
+		val snapshots: Map<UUID, UsageSnapshot>?,
 	)
 	
 	sealed class Message {
 		data class User(
-			val id: UUID = UUID.randomUUID(),
+			val id: UUID,
 			val content: MessageContent,
 			val timestamp: Instant,
 		) : Message()
 		
 		data class Assistant(
-			val id: UUID = UUID.randomUUID(),
-			val reasoning: String? = null,
-			val content: String? = null,
+			val id: UUID,
+			val reasoning: String?,
+			val content: String?,
 			val modelId: UUID,
 			val timestamp: Instant,
-			val usageSnapshot: UsageSnapshot? = null,
+			val usageSnapshot: UsageSnapshot?,
 		) : Message()
 		
 		data class Tool(
@@ -62,19 +62,20 @@ data class RuntimeContext(
 			val result: Result,
 		) : Message() {
 			data class Call(
-				val id: UUID = UUID.randomUUID(),
+				val id: UUID,
+				val timestamp: Instant,
 				val callName: String,
 				val arguments: String,
-				val reason: String? = null,
-				val timestamp: Instant,
-				val validatedToolName: String? = null,
-				val validatedArgs: JsonElement? = null,
+				val reason: String?,
+				val validatedToolName: String?,
+				val validatedArgs: JsonElement?,
+				val resolvedRequest: JsonElement?,
 			)
 			
 			data class Result(
-				val id: UUID = UUID.randomUUID(),
+				val id: UUID,
 				val content: String,
-				val data: JsonElement? = null,
+				val data: JsonElement?,
 				val timestamp: Instant,
 				val status: ToolResultStatus,
 			)
@@ -103,18 +104,19 @@ data class RuntimeContext(
 	data class CurrentRound(
 		val userMessage: Message.User,
 		val turns: List<Turn>?,
-		val assistantMessage: Message.Assistant? = null,
-		val pendingToolCalls: List<PendingToolCall>? = null,
+		val assistantMessage: Message.Assistant?,
+		val pendingToolCalls: List<PendingToolCall>?,
 	) {
 		data class PendingToolCall(
-			val id: UUID = UUID.randomUUID(),
+			val id: UUID,
+			val timestamp: Instant,
 			val callId: String,
 			val callName: String,
 			val arguments: String,
 			val reason: String,
-			val timestamp: Instant,
 			val validatedToolName: String,
 			val validatedArgs: JsonElement,
+			val resolvedRequest: JsonElement,
 		)
 	}
 	

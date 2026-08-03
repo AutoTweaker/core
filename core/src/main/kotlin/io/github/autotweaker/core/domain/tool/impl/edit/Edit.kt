@@ -26,6 +26,7 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import kotlinx.coroutines.channels.Channel
+import kotlinx.serialization.json.JsonElement
 
 @AutoService(CoreTool::class)
 class Edit : CoreTool<EditArgs> {
@@ -61,9 +62,13 @@ class Edit : CoreTool<EditArgs> {
 		)
 	)
 	
+	override suspend fun coreResolve(dependency: DependencyProvider, args: EditArgs): Tool.ResolveResult {
+		TODO("Not yet implemented")
+	}
+	
 	override suspend fun coreExec(
-		container: DependencyProvider,
-		args: EditArgs,
+		dependency: DependencyProvider,
+		request: JsonElement,
 		outputChannel: Channel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
 		TODO("Not yet implemented")

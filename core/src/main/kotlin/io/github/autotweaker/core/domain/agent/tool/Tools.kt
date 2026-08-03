@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.tool.toolFail
@@ -70,8 +71,9 @@ class Tools(
 	}
 	
 	
-	fun resolveToolCall(
+	suspend fun resolveToolCall(
 		call: ChatMessage.AssistantMessage.ToolCall,
+		provider: DependencyProvider,
 	): ToolCallResolveResult {
 		val meta = metaCache[call.name]?.first
 		if (meta != null && !active(call.name)) {
@@ -90,7 +92,29 @@ class Tools(
 			call.name, call.arguments, call.id, metaCache
 		)
 		return when (result) {
-			is ToolCallParser.ValidationResult.Success -> ToolCallResolveResult.NeedsApproval(result)
+			is ToolCallParser.ValidationResult.Success -> {
+				val resolveResult = trace.catching {
+					val tool = requireNotNull(tools[result.toolName]) {
+						"Tool '${result.toolName}' not found"
+					}
+					when (tool) {
+						is CoreTool<ToolArgs> -> tool.coreResolve(provider, result.args)
+						is Tool<ToolArgs> -> tool.resolve(result.args, workspace())
+					}
+				}.rethrow<SecretStoreLockedException>().rethrowCancellation()
+					.getOrElse { e ->
+						log.error("Failed tool call resolve  agentId={}  tool={}", agentId, result.toolName, e)
+						Rejected(AgentToolSettings.ToolResolveError(), e.message())
+					}
+				when (resolveResult) {
+					is Tool.ResolveResult.Ready ->
+						ToolCallResolveResult.NeedsApproval(result, resolveResult.result)
+					
+					is Tool.ResolveResult.Rejected ->
+						ToolCallResolveResult.ResolveFailure(result, resolveResult.reason)
+				}
+			}
+			
 			is ToolCallParser.ValidationResult.Failure -> ToolCallResolveResult.ParseFailure(result.errorMessage)
 		}
 	}
@@ -104,7 +128,7 @@ class Tools(
 	suspend fun executeTool(
 		toolName: String,
 		callId: String,
-		arguments: ToolArgs,
+		request: JsonElement,
 		provider: DependencyProvider,
 		truncation: TruncationService,
 		onToolOutput: (RuntimeOutput) -> Unit,
@@ -123,19 +147,21 @@ class Tools(
 			}
 			trace.catching {
 				when (tool) {
-					is CoreTool<ToolArgs> -> tool.coreExec(provider, arguments, outputChannel)
-					is Tool<ToolArgs> -> tool.execute(arguments, workspace(), outputChannel)
+					is CoreTool<ToolArgs> -> tool.coreExec(provider, request, outputChannel)
+					is Tool<ToolArgs> -> tool.execute(request, workspace(), outputChannel)
 				}
 			}.also { outputChannel.close() }.rethrow<SecretStoreLockedException>().rethrowCancellation()
 				.getOrElse { e ->
 					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
-					"ERROR: ${e.message()}".toolFail()
+					AgentToolSettings.ToolExecutionError().get().format(e.message()).toolFail()
 				}
 		}
 		
 		return RuntimeContext.Message.Tool.Result(
-			content = truncation(output.result, AgentToolSettings.MaxOutput().get()),
+			id = UUID.randomUUID(),
 			timestamp = Clock.System.now(),
+			content = truncation(output.result, AgentToolSettings.MaxOutput().get()),
+			data = output.data,
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,
 		).andLog(log) {
 			debug(

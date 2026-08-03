@@ -104,10 +104,11 @@ object AgentChat : Loggable, I18nable {
 								UsageSnapshot(usage, resultModel.modelInfo)
 							}
 							val assistantMessage = RuntimeContext.Message.Assistant(
+								id = UUID.randomUUID(),
+								timestamp = msg.createdAt,
 								reasoning = msg.reasoningContent,
 								content = msg.content,
 								modelId = resilientResult.model,
-								timestamp = msg.createdAt,
 								usageSnapshot = snapshot,
 							)
 							emit(

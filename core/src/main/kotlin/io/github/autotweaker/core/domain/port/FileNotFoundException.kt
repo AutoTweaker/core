@@ -16,17 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.port
+package io.github.autotweaker.core.domain.port
 
-import kotlinx.serialization.KSerializer
-
-interface ToolCallHistory {
-	data class Entry<Request>(
-		val request: Request,
-		val resultContent: String,
-	)
-	
-	fun <Request> getAll(
-		requestSerializer: KSerializer<Request>
-	): List<Entry<Request>>
-}
+class FileNotFoundException(cause: Throwable) : IllegalStateException("File not found", cause)
