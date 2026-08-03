@@ -47,7 +47,7 @@ import kotlin.time.measureTimedValue
 import java.time.Duration as JavaDuration
 
 class DockerJavaService : ContainerService, Loggable, Traceable {
-	private val uidGid: String = run {
+	private val uidGid: String by lazy {
 		val unix = UnixSystem()
 		"${unix.uid}:${unix.gid}"
 	}

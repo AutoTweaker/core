@@ -24,6 +24,7 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.core.domain.port.FileMetadata
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.Truncated
 import kotlinx.coroutines.Dispatchers
@@ -38,10 +39,12 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.AclFileAttributeView
+import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.attribute.UserDefinedFileAttributeView
 import java.security.MessageDigest
 import java.util.*
+import kotlin.time.toKotlinInstant
 
 object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	private val pathLocks = Array(256) { Mutex() }
@@ -54,6 +57,25 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	
 	override suspend fun isRegularFile(path: Path): Boolean = withContext(Dispatchers.IO) {
 		Files.isRegularFile(path)
+	}
+	
+	override suspend fun metadata(path: Path): FileMetadata = withContext(Dispatchers.IO) {
+		with(Files.readAttributes(path, PosixFileAttributes::class.java)) {
+			FileMetadata(
+				size = size(),
+				lastModifiedTime = lastModifiedTime().toInstant().toKotlinInstant(),
+				lastAccessTime = lastAccessTime().toInstant().toKotlinInstant(),
+				creationTime = creationTime().toInstant().toKotlinInstant(),
+				isRegularFile = isRegularFile,
+				isDirectory = isDirectory,
+				isSymbolicLink = isSymbolicLink,
+				isOther = isOther,
+				fileKey = fileKey()?.toString(),
+				owner = owner().name,
+				group = group().name,
+				permissions = permissions(),
+			)
+		}
 	}
 	
 	override suspend fun readString(path: Path): Truncated<String> = withContext(Dispatchers.IO) {
