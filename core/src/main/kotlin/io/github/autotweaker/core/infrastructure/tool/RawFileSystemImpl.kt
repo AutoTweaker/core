@@ -21,9 +21,11 @@ package io.github.autotweaker.core.infrastructure.tool
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.core.domain.port.FileAccessDeniedException
 import io.github.autotweaker.core.domain.port.FileMetadata
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.Truncated
@@ -34,10 +36,7 @@ import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.nio.file.StandardOpenOption
+import java.nio.file.*
 import java.nio.file.attribute.AclFileAttributeView
 import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
@@ -95,7 +94,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 			return@withContext count
 		}
 	}
-
+	
 	override suspend fun readString(path: Path): Truncated<String> = withContext(Dispatchers.IO) {
 		readStringLimited(path)
 	}
@@ -106,16 +105,20 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	}
 	
 	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
-		val digest = MessageDigest.getInstance("SHA-256")
-		Files.newInputStream(path).use { input ->
-			val buffer = ByteArray(BUFFER_SIZE)
-			while (true) {
-				val read = input.read(buffer)
-				if (read < 0) break
-				digest.update(buffer, 0, read)
+		trace.catching {
+			val digest = MessageDigest.getInstance("SHA-256")
+			Files.newInputStream(path).use { input ->
+				val buffer = ByteArray(BUFFER_SIZE)
+				while (true) {
+					val read = input.read(buffer)
+					if (read < 0) break
+					digest.update(buffer, 0, read)
+				}
 			}
-		}
-		Sha256(digest.digest())
+			Sha256(digest.digest())
+		}.rethrowCancellation()
+			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
+			.getOrThrow()
 	}
 	
 	override suspend fun write(path: Path, expected: List<String>, lines: List<String>) =
@@ -130,17 +133,21 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}
 	
 	private fun readStringLimited(path: Path): Truncated<String> =
-		Files.newInputStream(path).use { input ->
-			val reader = InputStreamReader(input, Charsets.UTF_8)
-			val chars = CharArray(minOf(Files.size(path), MAX_READ_CHARS.toLong()).toInt())
-			var total = 0
-			while (total < chars.size) {
-				val read = reader.read(chars, total, chars.size - total)
-				if (read < 0) break
-				total += read
+		trace.catching {
+			Files.newInputStream(path).use { input ->
+				val reader = InputStreamReader(input, Charsets.UTF_8)
+				val chars = CharArray(minOf(Files.size(path), MAX_READ_CHARS.toLong()).toInt())
+				var total = 0
+				while (total < chars.size) {
+					val read = reader.read(chars, total, chars.size - total)
+					if (read < 0) break
+					total += read
+				}
+				Truncated(String(chars, 0, total), reader.read() != -1)
 			}
-			Truncated(String(chars, 0, total), reader.read() != -1)
-		}
+		}.rethrowCancellation()
+			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
+			.getOrThrow()
 	
 	private fun atomicReplace(path: Path, lines: List<String>) {
 		val tmp = path.resolveSibling(".${path.fileName}.${UUID.randomUUID()}.tmp")
