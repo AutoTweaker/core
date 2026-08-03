@@ -20,9 +20,13 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 
 import io.github.autotweaker.api.generated.tool.args.BashArgs
 import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.ToolMeta
+import io.github.autotweaker.api.types.tool.bash.BashOutput
+import io.github.autotweaker.api.types.tool.bash.BashRequest
+import io.github.autotweaker.api.types.tool.bash.BashResult
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.ServiceContainer
@@ -35,6 +39,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.test.*
@@ -84,7 +89,7 @@ class BashTest {
 		unmockkObject(JsonStoreImpl)
 	}
 	
-	private fun toolArgs(
+	private fun bashArgs(
 		command: String,
 		timeoutSeconds: Int? = null,
 		envIds: List<String>? = null,
@@ -92,6 +97,19 @@ class BashTest {
 		command = command,
 		timeoutSeconds = timeoutSeconds ?: 60,
 		envIds = envIds ?: emptyList(),
+	)
+	
+	private fun toolArgs(
+		command: String,
+		timeoutSeconds: Int? = null,
+		envIds: List<String>? = null,
+	): JsonElement = Json.encodeToJsonElement(
+		BashRequest.serializer(),
+		BashRequest(
+			command = command,
+			timeout = (timeoutSeconds ?: 60).seconds,
+			envIds = (envIds ?: emptyList()).toSet(),
+		)
 	)
 	
 	private fun container(bashService: BashService): ServiceContainer {
@@ -166,28 +184,59 @@ class BashTest {
 	
 	// endregion
 	
+	// region resolve - valid requests
+	
+	@Test
+	fun `resolve valid request returns Ready with converted request`() = runTest {
+		Bash.setEnv("MY_VAR", "value")
+		
+		val bashService = mockk<BashService>()
+		SecretMapStore.init(secretStore)
+		val result = bash.coreResolve(container(bashService), bashArgs("echo hi", envIds = listOf("MY_VAR")))
+		
+		assertIs<Tool.ResolveResult.Ready>(result)
+		val request = Json.decodeFromJsonElement(BashRequest.serializer(), result.result)
+		assertEquals("echo hi", request.command)
+		assertEquals(60.seconds, request.timeout)
+		assertEquals(setOf("MY_VAR"), request.envIds)
+	}
+	
+	@Test
+	fun `resolve missing timeout uses default from settings`() = runTest {
+		val bashService = mockk<BashService>()
+		SecretMapStore.init(secretStore)
+		val result = bash.coreResolve(
+			container(bashService),
+			BashArgs.Run(command = "echo hi", timeoutSeconds = null, envIds = emptyList())
+		)
+		
+		assertIs<Tool.ResolveResult.Ready>(result)
+		val request = Json.decodeFromJsonElement(BashRequest.serializer(), result.result)
+		assertEquals(120.seconds, request.timeout)
+	}
+	
+	// endregion
+	
 	// region execute - command validation
 	
 	@Test
 	fun `blank command returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val args = toolArgs("   ")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.coreResolve(container(bashService), bashArgs("   "))
 		
-		assertFalse(result.success)
-		assertEquals("command参数不能为空", result.result)
+		assertIs<Tool.ResolveResult.Rejected>(result)
+		assertEquals("command参数不能为空", result.reason)
 	}
 	
 	@Test
 	fun `empty command returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val args = toolArgs("")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.coreResolve(container(bashService), bashArgs(""))
 		
-		assertFalse(result.success)
-		assertEquals("command参数不能为空", result.result)
+		assertIs<Tool.ResolveResult.Rejected>(result)
+		assertEquals("command参数不能为空", result.reason)
 	}
 	
 	// endregion
@@ -198,22 +247,20 @@ class BashTest {
 	fun `timeout zero returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val args = toolArgs("echo hello", timeoutSeconds = 0)
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.coreResolve(container(bashService), bashArgs("echo hello", timeoutSeconds = 0))
 		
-		assertFalse(result.success)
-		assertEquals("timeout_seconds必须大于0", result.result)
+		assertIs<Tool.ResolveResult.Rejected>(result)
+		assertEquals("timeout_seconds必须大于0", result.reason)
 	}
 	
 	@Test
 	fun `negative timeout returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val args = toolArgs("echo hello", timeoutSeconds = -5)
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.coreResolve(container(bashService), bashArgs("echo hello", timeoutSeconds = -5))
 		
-		assertFalse(result.success)
-		assertEquals("timeout_seconds必须大于0", result.result)
+		assertIs<Tool.ResolveResult.Rejected>(result)
+		assertEquals("timeout_seconds必须大于0", result.reason)
 	}
 	
 	// endregion
@@ -234,6 +281,41 @@ class BashTest {
 		assertTrue(result.result.contains("退出码：0"))
 		assertTrue(result.result.contains("0.123"))
 		assertTrue(result.result.contains("hello"))
+	}
+	
+	@Test
+	fun `successful command returns BashResult data`() = runTest {
+		val bashService = mockk<BashService>()
+		coEvery { bashService.run("echo hello", 60.seconds, emptyMap()) } returns mockResult(
+			exitCode = 0, stdout = "hello", stderr = "warn", durationSeconds = 0.123
+		)
+		SecretMapStore.init(secretStore)
+		val args = toolArgs("echo hello")
+		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		
+		assertTrue(result.success)
+		val data = Json.decodeFromJsonElement(BashResult.serializer(), requireNotNull(result.data))
+		assertEquals(0, data.exitCode)
+		assertFalse(data.timeout)
+		assertEquals(0.123.seconds, data.duration)
+		assertEquals(listOf(BashOutput.Stdout("hello\n"), BashOutput.Stderr("warn\n")), data.output)
+	}
+	
+	@Test
+	fun `timeout command returns BashResult with timeout flag`() = runTest {
+		val bashService = mockk<BashService>()
+		coEvery { bashService.run("sleep 100", 1.seconds, emptyMap()) } returns mockResult(
+			exitCode = -1, stdout = "", timeout = true, durationSeconds = 1.0
+		)
+		SecretMapStore.init(secretStore)
+		val args = toolArgs("sleep 100", timeoutSeconds = 1)
+		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		
+		assertFalse(result.success)
+		val data = Json.decodeFromJsonElement(BashResult.serializer(), requireNotNull(result.data))
+		assertTrue(data.timeout)
+		assertEquals(-1, data.exitCode)
+		assertEquals(1.seconds, data.duration)
 	}
 	
 	@Test
@@ -384,19 +466,17 @@ class BashTest {
 	}
 	
 	@Test
-	fun `non-existent env_ids are ignored`() = runTest {
+	fun `non-existent env_ids are rejected`() = runTest {
 		Bash.setEnv("EXISTING", "val")
 		
 		val bashService = mockk<BashService>()
-		coEvery { bashService.run("cmd", 60.seconds, mapOf("EXISTING" to "val")) } returns mockResult(
-			exitCode = 0,
-			stdout = ""
-		)
 		SecretMapStore.init(secretStore)
-		val args = toolArgs("cmd", envIds = listOf("EXISTING", "MISSING"))
-		bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.coreResolve(
+			container(bashService), bashArgs("cmd", envIds = listOf("EXISTING", "MISSING"))
+		)
 		
-		coVerify { bashService.run("cmd", 60.seconds, mapOf("EXISTING" to "val")) }
+		assertIs<Tool.ResolveResult.Rejected>(result)
+		assertTrue(result.reason.contains("MISSING"))
 	}
 	
 	// endregion

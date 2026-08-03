@@ -34,6 +34,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.*
 import kotlin.test.*
@@ -50,6 +52,7 @@ class ToolsTest {
 	private val truncation = mockk<TruncationService>().also {
 		every { it.invoke(any(), any(), any()) } answers { firstArg() }
 	}
+	private val bashRequest = Json.encodeToJsonElement(BashArgs.serializer(), BashArgs(cmd = "echo"))
 	
 	// region helpers
 	
@@ -65,6 +68,7 @@ class ToolsTest {
 		description: String = "a tool",
 	): Tool<ToolArgs> {
 		val tool = mockk<Tool<BashArgs>>()
+		coEvery { tool.resolve(any(), any()) } returns Tool.ResolveResult.Ready(JsonPrimitive("{}"))
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				name, description, listOf(
@@ -113,7 +117,7 @@ class ToolsTest {
 		tools.assembleTools()
 		
 		assertFalse("bash" in tools.activeTools.value)
-		val result = tools.resolveToolCall(toolCall(name = "bash"))
+		val result = tools.resolveToolCall(toolCall(name = "bash"), ServiceContainer())
 		
 		assertIs<ToolCallResolveResult.Activation>(result)
 		assertFalse("bash" in tools.activeTools.value)
@@ -125,7 +129,7 @@ class ToolsTest {
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		tools.assembleTools()
 		
-		val result = tools.resolveToolCall(toolCall(name = "bash-run"))
+		val result = tools.resolveToolCall(toolCall(name = "bash-run"), ServiceContainer())
 		
 		assertIs<ToolCallResolveResult.NeedsApproval>(result)
 	}
@@ -135,7 +139,7 @@ class ToolsTest {
 		val tool = mockTool("inactive")
 		val tools = makeTools(listOf(tool), emptySet())
 		tools.assembleTools()
-		val result = tools.resolveToolCall(toolCall(name = "unknown-run"))
+		val result = tools.resolveToolCall(toolCall(name = "unknown-run"), ServiceContainer())
 		
 		assertIs<ToolCallResolveResult.ParseFailure>(result)
 	}
@@ -153,7 +157,7 @@ class ToolsTest {
 		)
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
-		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
+		val result = tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)
 		assertEquals("output ok", result.content)
@@ -169,7 +173,7 @@ class ToolsTest {
 		)
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
-		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
+		val result = tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
 		
 		assertEquals(ToolResultStatus.FAILURE, result.status)
 		assertEquals("error happened", result.content)
@@ -181,10 +185,10 @@ class ToolsTest {
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } throws RuntimeException("crash!")
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
-		val result = tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
+		val result = tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
 		
 		assertEquals(ToolResultStatus.FAILURE, result.status)
-		assertEquals("ERROR: RuntimeException: crash!", result.content)
+		assertEquals("工具执行时出错：RuntimeException: crash!", result.content)
 	}
 	
 	@Test
@@ -194,7 +198,7 @@ class ToolsTest {
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
 		assertFailsWith<CancellationException> {
-			tools.executeTool("bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation) {}
+			tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
 		}
 	}
 	
@@ -211,7 +215,7 @@ class ToolsTest {
 		
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
-			"bash", "c2", BashArgs(cmd = "echo"), ServiceContainer(), truncation,
+			"bash", "c2", bashRequest, ServiceContainer(), truncation,
 			onToolOutput = { outputs.add((it as RuntimeOutput.Tool).output.content) },
 		)
 		

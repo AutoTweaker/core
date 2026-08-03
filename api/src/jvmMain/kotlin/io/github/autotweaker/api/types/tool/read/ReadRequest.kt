@@ -18,11 +18,13 @@
 
 package io.github.autotweaker.api.types.tool.read
 
+import io.github.autotweaker.api.types.serializer.PathSerializer
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
 
 @Serializable
 sealed interface ReadRequest {
+	@Serializable(with = PathSerializer::class)
 	val path: Path
 	val startLine: Int
 	val endLine: Int
@@ -31,6 +33,7 @@ sealed interface ReadRequest {
 	
 	@Serializable
 	data class File(
+		@Serializable(with = PathSerializer::class)
 		override val path: Path,
 		override val startLine: Int,
 		override val endLine: Int,
@@ -40,6 +43,7 @@ sealed interface ReadRequest {
 	
 	@Serializable
 	data class Summarize(
+		@Serializable(with = PathSerializer::class)
 		override val path: Path,
 		override val startLine: Int,
 		override val endLine: Int,

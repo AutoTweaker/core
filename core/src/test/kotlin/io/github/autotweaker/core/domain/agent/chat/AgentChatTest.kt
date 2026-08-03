@@ -46,7 +46,7 @@ class AgentChatTest {
 			TestServices.init()
 		}
 	}
-
+	
 	private val testUrl = "https://api.test.com/v1".toUrl()
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	
@@ -79,10 +79,14 @@ class AgentChatTest {
 	}
 	
 	private fun userMsg(content: String = "hello") =
-		RuntimeContext.Message.User(content = MessageContent(content = content), timestamp = Clock.System.now())
+		RuntimeContext.Message.User(
+			id = UUID.randomUUID(),
+			content = MessageContent(content = content),
+			timestamp = Clock.System.now()
+		)
 	
 	private fun ctx(user: RuntimeContext.Message.User) =
-		RuntimeContext(null, null, null, null, RuntimeContext.CurrentRound(user, null))
+		RuntimeContext(null, null, null, null, RuntimeContext.CurrentRound(user, null, null, null))
 	
 	@Test
 	fun `collects assembled message with content and finish reason`() = runTest {

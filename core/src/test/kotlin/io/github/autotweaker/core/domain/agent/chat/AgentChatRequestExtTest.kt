@@ -45,7 +45,7 @@ class AgentChatRequestExtTest {
 			TestServices.init()
 		}
 	}
-
+	
 	private val testUrl = "https://api.test.com/v1".toUrl()
 	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
@@ -72,23 +72,38 @@ class AgentChatRequestExtTest {
 	private val agentModel = AgentModel(testModel, testModel, testModel, null, false)
 	
 	private fun userMsg(content: String = "hello") =
-		RuntimeContext.Message.User(content = MessageContent(content = content), timestamp = Clock.System.now())
+		RuntimeContext.Message.User(
+			id = UUID.randomUUID(),
+			content = MessageContent(content = content),
+			timestamp = Clock.System.now()
+		)
 	
 	private fun assistantMsg(content: String = "response") = RuntimeContext.Message.Assistant(
-		content = content, modelId = testModel.id, timestamp = Clock.System.now()
+		id = UUID.randomUUID(),
+		reasoning = null,
+		content = content,
+		modelId = testModel.id,
+		timestamp = Clock.System.now(),
+		usageSnapshot = null,
 	)
 	
 	private fun toolResult() =
 		RuntimeContext.Message.Tool(
 			call = RuntimeContext.Message.Tool.Call(
+				id = UUID.randomUUID(),
 				callName = "read",
 				arguments = "{}",
+				reason = null,
 				timestamp = Clock.System.now(),
+				validatedToolName = null,
 				validatedArgs = JsonPrimitive("{}"),
+				resolvedRequest = null,
 			),
 			callId = "call-1",
 			result = RuntimeContext.Message.Tool.Result(
+				id = UUID.randomUUID(),
 				content = "file content",
+				data = null,
 				timestamp = Clock.System.now(),
 				status = ToolResultStatus.SUCCESS
 			),
@@ -152,7 +167,8 @@ class AgentChatRequestExtTest {
 			summarizedMessage = RuntimeContext.SummarizedMessage(
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
-				content = "previous summary"
+				content = "previous summary",
+				snapshots = null,
 			)
 		)
 		val ctx = RuntimeContext(null, null, compactedRounds, null, currentRound(user))
@@ -179,7 +195,8 @@ class AgentChatRequestExtTest {
 			summarizedMessage = RuntimeContext.SummarizedMessage(
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
-				content = "compacted summary of old rounds"
+				content = "compacted summary of old rounds",
+				snapshots = null,
 			)
 		)
 		val ctx = RuntimeContext(
@@ -205,6 +222,7 @@ class AgentChatRequestExtTest {
 	fun `images in user message`() {
 		val img = Sha256(ByteArray(32) { it.toByte() })
 		val user = RuntimeContext.Message.User(
+			id = UUID.randomUUID(),
 			content = MessageContent(content = "look at this", images = listOf(img)),
 			timestamp = Clock.System.now()
 		)
@@ -244,6 +262,7 @@ class AgentChatRequestExtTest {
 		val user = userMsg("hello")
 		val pending = listOf(
 			RuntimeContext.CurrentRound.PendingToolCall(
+				id = UUID.randomUUID(),
 				callId = "id1",
 				callName = "read",
 				arguments = "{}",
@@ -251,6 +270,7 @@ class AgentChatRequestExtTest {
 				timestamp = Clock.System.now(),
 				validatedToolName = "read",
 				validatedArgs = JsonPrimitive("{}"),
+				resolvedRequest = JsonPrimitive("{}"),
 			)
 		)
 		val round = RuntimeContext.CurrentRound(user, null, null, pending)
