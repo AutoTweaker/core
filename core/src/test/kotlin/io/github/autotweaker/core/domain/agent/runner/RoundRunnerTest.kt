@@ -37,9 +37,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
@@ -94,7 +96,7 @@ class RoundRunnerTest {
 	}
 	
 	private suspend fun makeTools(vararg names: String): Tools {
-		val tools = names.associate { it to mockTool(it) }
+		val tools = names.associateWith { mockTool(it) }
 		return Tools(
 			workspace = workspace,
 			tools = tools,
@@ -169,8 +171,11 @@ class RoundRunnerTest {
 	}
 	
 	private suspend fun awaitUntil(condition: () -> Boolean) {
-		withTimeout(5_000.milliseconds) {
-			while (!condition()) delay(10.milliseconds)
+		// workLoop 跑在真实调度器上，轮询需使用真实时间
+		withContext(Dispatchers.Default.limitedParallelism(1)) {
+			withTimeout(5_000.milliseconds) {
+				while (!condition()) delay(10.milliseconds)
+			}
 		}
 	}
 	
@@ -184,9 +189,8 @@ class RoundRunnerTest {
 		val h = harness(tools, thinking)
 		
 		h.runner.send(MessageContent(content = "hello"))
-		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 }
-		
-		assertEquals(AgentStatus.FREE, h.status.value)
+		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 && h.status.value == AgentStatus.FREE }
+
 		val completed = h.ctx.context.value.historyRounds!!.single()
 		assertEquals("hello", completed.userMessage.content.content)
 		assertEquals("answer", completed.finalAssistantMessage?.content)
@@ -285,7 +289,7 @@ class RoundRunnerTest {
 		val tools = makeTools("bash")
 		val thinking = mockk<ThinkingStage>()
 		coEvery { thinking.execute(any(), any(), any()) } returnsMany listOf(
-			hasPending("c1"),
+			hasPending(),
 			done("answer"),
 		)
 		val h = harness(tools, thinking)

@@ -115,6 +115,9 @@ class AgentBridge(
 		scope.launch {
 			saveChannel.consumeEach {
 				trace.catching { _agent.context.value.save() }
+					.onFailure { e ->
+						log.error("Failed agent context save  agentId={}", _agent.agentId, e)
+					}
 			}
 		}
 		scope.launch {
@@ -234,7 +237,7 @@ class AgentBridge(
 	
 	private suspend fun createAgent() {
 		_agent = Agent(
-			agentId = id,
+			agentId = initialData.id,
 			context = RuntimeContextBuilder(_context.value, messages)(),
 			workspace = { cwd },
 			model = initialData.model.toAgentModel(),
