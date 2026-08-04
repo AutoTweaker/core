@@ -190,7 +190,7 @@ class RoundRunnerTest {
 		
 		h.runner.send(MessageContent(content = "hello"))
 		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 && h.status.value == AgentStatus.FREE }
-
+		
 		val completed = h.ctx.context.value.historyRounds!!.single()
 		assertEquals("hello", completed.userMessage.content.content)
 		assertEquals("answer", completed.finalAssistantMessage?.content)
@@ -206,8 +206,8 @@ class RoundRunnerTest {
 		coEvery { thinking.execute(any(), any(), any()) } returns ThinkingStage.Result.Failed
 		val h = harness(tools, thinking)
 		
-		h.runner.send(MessageContent(content = "hello"))
-		awaitUntil { h.status.value == AgentStatus.THINKING }
+		// 等待消息被消费，确保回合已开始；THINKING 是瞬态，回合可能在轮询开始前已完成
+		h.runner.send(MessageContent(content = "hello")).await()
 		awaitUntil { h.status.value == AgentStatus.FREE && h.ctx.context.value.currentRound == null }
 		
 		assertNull(h.ctx.context.value.historyRounds)

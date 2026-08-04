@@ -438,7 +438,7 @@ interface CoreAPI {
 		 *
 		 * @return 找不到会话返回 [emptyList]。
 		 */
-		suspend fun loadData(ids: List<UUID>): List<SessionData>
+		suspend fun loadData(ids: Set<UUID>): List<SessionData>
 		
 		/**
 		 * 从数据库加载 agent 数据，找不到返回 null。
@@ -452,7 +452,7 @@ interface CoreAPI {
 		 *
 		 * @return 找不到消息返回 [emptyList]。
 		 */
-		suspend fun loadMessages(ids: List<UUID>): List<AgentMessage>
+		suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage>
 		
 		/**
 		 * 获取一个消息的 LLM 用量信息。

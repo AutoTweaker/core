@@ -83,11 +83,11 @@ object SessionManager : Loggable, Traceable {
 	suspend fun get(id: UUID): SessionHandle = getOrRestore(id).toHandle()
 	
 	suspend fun delete(id: UUID): Boolean = lock.withLock {
-		val data = store.loadSessions(listOf(id)).firstOrNull() ?: return@withLock false
+		val data = store.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
 		sessions[id]?.shutdown()
 		listener[id]?.cancel()
 		sessions.remove(id)
-		store.deleteSessions(listOf(id))
+		store.deleteSessions(setOf(id))
 		data.agentIndex.getAll().forEach { store.deleteAgent(it) }
 		log.info("Deleted session  id={}", id)
 		return@withLock true
@@ -100,8 +100,8 @@ object SessionManager : Loggable, Traceable {
 	
 	suspend fun create(model: ModelConfig) = create(wsm.defaultWorkspaceId, model)
 	
-	suspend fun loadData(ids: List<UUID>) = store.loadSessions(ids)
-	suspend fun loadMessages(ids: List<UUID>) = store.loadMessages(ids)
+	suspend fun loadData(ids: Set<UUID>) = store.loadSessions(ids)
+	suspend fun loadMessages(ids: Set<UUID>) = store.loadMessages(ids)
 	suspend fun loadAgent(id: UUID) = store.loadAgent(id)
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
@@ -140,7 +140,7 @@ object SessionManager : Loggable, Traceable {
 	
 	private suspend fun restore(id: UUID): Session = lock.withLock {
 		secretStore.requireUnlocked()
-		val data = store.loadSessions(listOf(id)).firstOrNull() ?: error("Session not found: $id")
+		val data = store.loadSessions(setOf(id)).firstOrNull() ?: error("Session not found: $id")
 		val workspaceId = data.workspaceId
 		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
 		if (!Files.isDirectory(workspaceMeta.path)) {

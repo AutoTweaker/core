@@ -124,8 +124,8 @@ class CoreAPIImpl(
 	}
 	
 	override val persistence = object : CoreAPI.PersistenceAPI {
-		override suspend fun loadData(ids: List<UUID>) = SessionManager.loadData(ids)
-		override suspend fun loadMessages(ids: List<UUID>) = SessionManager.loadMessages(ids)
+		override suspend fun loadData(ids: Set<UUID>) = SessionManager.loadData(ids)
+		override suspend fun loadMessages(ids: Set<UUID>) = SessionManager.loadMessages(ids)
 		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
 		override suspend fun getAllUsage() = UsageStore.getAll()
 		override suspend fun getUsageSnapshot(id: UUID) = UsageStore.getSnapshot(id)

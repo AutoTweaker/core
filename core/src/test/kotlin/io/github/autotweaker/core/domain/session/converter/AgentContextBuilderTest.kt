@@ -22,12 +22,10 @@ import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 import kotlin.time.Clock
 
 class AgentContextBuilderTest {
@@ -117,7 +115,7 @@ class AgentContextBuilderTest {
 	@Test
 	fun `empty runtime context transforms to empty agent context`() {
 		val old = AgentContext.emptyContext("old prompt")
-		val (context, messages) = AgentContextBuilder(old, RuntimeContext(null, null, null, null, null))()
+		val (context, messages) = AgentContextBuilder(old, RuntimeContext(null, null, null, null, null), null)()
 		
 		assertNull(context.index.compactedRounds)
 		assertNull(context.index.historyRounds)
@@ -128,7 +126,7 @@ class AgentContextBuilderTest {
 	@Test
 	fun `full context transforms with all message types`() {
 		val old = AgentContext.emptyContext("old prompt")
-		val (context, messages) = AgentContextBuilder(old, fullRuntimeContext())()
+		val (context, messages) = AgentContextBuilder(old, fullRuntimeContext(), null)()
 		
 		val allIds = context.index.ids()
 		val messageTypes = messages.map { it::class }.toSet()
@@ -154,7 +152,7 @@ class AgentContextBuilderTest {
 		)
 		val new = RuntimeContext(null, null, null, null, null)
 		
-		val (context, _) = AgentContextBuilder(old, new)()
+		val (context, _) = AgentContextBuilder(old, new, null)()
 		
 		assertEquals(setOf(oldUser.id), context.droppedMessages)
 	}
@@ -162,7 +160,7 @@ class AgentContextBuilderTest {
 	@Test
 	fun `system prompt falls back to old context`() {
 		val old = AgentContext.emptyContext("old prompt")
-		val (context, _) = AgentContextBuilder(old, RuntimeContext(null, null, null, null, null))()
+		val (context, _) = AgentContextBuilder(old, RuntimeContext(null, null, null, null, null), null)()
 		
 		assertEquals("old prompt", context.systemPrompt)
 	}
@@ -185,7 +183,7 @@ class AgentContextBuilderTest {
 			null,
 		)
 		
-		val (_, messages) = AgentContextBuilder(old, new)()
+		val (_, messages) = AgentContextBuilder(old, new, null)()
 		
 		assertTrue(messages.isEmpty())
 	}
@@ -198,10 +196,10 @@ class AgentContextBuilderTest {
 	fun `round trip preserves full runtime context`() {
 		val old = AgentContext.emptyContext("old prompt")
 		val original = fullRuntimeContext()
-		val (context, messages) = AgentContextBuilder(old, original)()
+		val (context, messages) = AgentContextBuilder(old, original, null)()
 		val messageMap = messages.associateBy { it.id }
 		
-		val rebuilt = RuntimeContextBuilder(context, messageMap)()
+		val (rebuilt, _) = runBlocking { RuntimeContextBuilder(context) { ids -> ids.mapNotNull(messageMap::get) }() }
 		
 		assertEquals(original, rebuilt)
 	}
@@ -218,8 +216,9 @@ class AgentContextBuilderTest {
 				pendingToolCalls = listOf(pendingCall()),
 			),
 		)
-		val (context, messages) = AgentContextBuilder(old, original)()
-		val rebuilt = RuntimeContextBuilder(context, messages.associateBy { it.id })()
+		val (context, messages) = AgentContextBuilder(old, original, null)()
+		val messageMap = messages.associateBy { it.id }
+		val (rebuilt, _) = runBlocking { RuntimeContextBuilder(context) { ids -> ids.mapNotNull(messageMap::get) }() }
 		
 		assertEquals(original, rebuilt)
 		val pending = rebuilt.currentRound!!.pendingToolCalls!!.single()
@@ -227,5 +226,57 @@ class AgentContextBuilderTest {
 		assertEquals("bash", pending.validatedToolName)
 	}
 	
+	@Test
+	fun `round trip restores full compacted chain after truncation`() {
+		val (context, messages) = multiLayerContext()
+		
+		// 运行时截断只保留最近 5 层，被丢弃的子树由 RuntimeContextBuilder 返回
+		val (runtime, dropped) = runBlocking { RuntimeContextBuilder(context) { ids -> ids.mapNotNull(messages::get) }() }
+		assertNotNull(dropped)
+		
+		// 持久化时用 dropped 子树补全，完整链不丢失
+		val (saved, emitted) = AgentContextBuilder(context, runtime, dropped)()
+		
+		assertEquals(7, depth(saved.index.compactedRounds))
+		// 被丢弃层的消息引用仍然保留在索引中
+		assertTrue(messages.keys.all { it in saved.index.ids() })
+		// 已在旧上下文中的消息不重复输出
+		assertTrue(emitted.isEmpty())
+	}
+	
 	// endregion
+	
+	private fun multiLayerContext(): Pair<AgentContext, Map<UUID, AgentMessage>> {
+		val depth = 7
+		val users = List(depth) { i ->
+			AgentMessage.User(
+				id = UUID.randomUUID(),
+				timestamp = Clock.System.now(),
+				content = MessageContent(content = "question $i"),
+			)
+		}
+		val compacts = List(depth) { i ->
+			AgentMessage.Compact(
+				id = UUID.randomUUID(),
+				timestamp = Clock.System.now(),
+				content = "summary $i",
+				snapshots = null,
+			)
+		}
+		var node: AgentContextIndex.CompactedRounds? = null
+		for (i in depth - 1 downTo 0) {
+			node = AgentContextIndex.CompactedRounds(
+				compactedRounds = node,
+				rounds = listOf(AgentContextIndex.CompletedRound(users[i].id, null, null)),
+				summarizedMessage = compacts[i].id,
+			)
+		}
+		val context = AgentContext.emptyContext("prompt").copy(
+			index = AgentContextIndex(node, null, null)
+		)
+		return context to (users + compacts).associateBy { it.id }
+	}
+	
+	private fun depth(cr: AgentContextIndex.CompactedRounds?): Int =
+		if (cr == null) 0 else 1 + depth(cr.compactedRounds)
 }

@@ -47,7 +47,6 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 class AgentBridge(
 	private val host: AgentHost,
@@ -64,8 +63,7 @@ class AgentBridge(
 	
 	private val _context by lazy { MutableStateFlow(initialData.context) }
 	override val context: StateFlow<AgentContext> by lazy { _context.asStateFlow() }
-	
-	private val messages = ConcurrentHashMap<UUID, AgentMessage>()
+	private var droppedCompacted: AgentContextIndex.CompactedRounds? = null
 	
 	private var cwd = workspace.path
 	
@@ -103,11 +101,6 @@ class AgentBridge(
 	suspend fun init(data: AgentData) = also {
 		initialData = data
 		
-		val ids = _context.value.index.ids().orNull()
-		val loaded = ids?.let { store.loadMessages(it.toList()) }?.orNull()
-		loaded?.forEach { messages[it.id] = it }
-		loaded?.let { UsageStore.collect(it) }
-		
 		initTools(); createAgent()
 		collectJob = scope.launch {
 			_agent.context.collect { saveChannel.send(Unit) }
@@ -116,7 +109,15 @@ class AgentBridge(
 			saveChannel.consumeEach {
 				trace.catching { _agent.context.value.save() }
 					.onFailure { e ->
-						log.error("Failed agent context save  agentId={}", _agent.agentId, e)
+						log.error("Failed to save agent context  agentId={}", _agent.agentId, e)
+					}
+			}
+		}
+		scope.launch {
+			_agent.activeTools.collect {
+				trace.catching { agentData.save() }
+					.onFailure { e ->
+						log.error("Failed to save agent data  agentId={}", _agent.agentId, e)
 					}
 			}
 		}
@@ -149,22 +150,25 @@ class AgentBridge(
 	
 	override suspend fun inject(injection: ContextInjection) = also {
 		injectLock.withLock {
-			val oldInjections = agentData.context.injections.orEmpty()
+			val oldInjections = _context.value.injections.orEmpty()
 			val new = (oldInjections.filterNot { it.id == injection.id } + injection)
+			if (oldInjections == new) return@withLock
 			_agent.updateInjections(new)
 		}
 	}
 	
 	override suspend fun removeInjection(id: UUID) = also {
 		injectLock.withLock {
-			val oldInjections = agentData.context.injections ?: return@withLock
+			val oldInjections = _context.value.injections ?: return@withLock
 			val new = oldInjections.filterNot { it.id == id }.orNull()
+			if (oldInjections == new) return@withLock
 			_agent.updateInjections(new)
 		}
 	}
 	
 	override suspend fun pause() = also {
 		_agent.execute(AgentCommand.Pause)
+		agentData.save()
 	}
 	
 	override suspend fun compact() = also {
@@ -188,13 +192,15 @@ class AgentBridge(
 			AgentCommand.UpdateModel(
 				model = config.toAgentModel()
 			)
-		).andSave()
+		)
+		agentData.save()
 		log.info("Updated agent model  agentId={}", _agent.agentId)
 	}
 	
 	override suspend fun stop() = also {
 		log.info("Initiated agent stop  agentId={}", _agent.agentId)
-		_agent.execute(AgentCommand.Stop).andSave()
+		_agent.execute(AgentCommand.Stop)
+		agentData.save()
 		log.info("Stopped agent  agentId={}", _agent.agentId)
 	}
 	
@@ -224,7 +230,7 @@ class AgentBridge(
 				timestamp = timestamp,
 				snapshot = UsageSnapshot(usage, modelInfo),
 			)
-			let { messages[record.id] = record }.andSave()
+			listOf(record).save()
 			contextLock.withLock {
 				val ctx = _context.value
 				updateContext(
@@ -238,7 +244,10 @@ class AgentBridge(
 	private suspend fun createAgent() {
 		_agent = Agent(
 			agentId = initialData.id,
-			context = RuntimeContextBuilder(_context.value, messages)(),
+			context = RuntimeContextBuilder(_context.value, store::loadMessages)().let {
+				droppedCompacted = it.second
+				return@let it.first
+			},
 			workspace = { cwd },
 			model = initialData.model.toAgentModel(),
 			tools = tools,
@@ -249,28 +258,24 @@ class AgentBridge(
 	}
 	
 	private suspend fun RuntimeContext.save() = contextLock.withLock {
-		val builder = AgentContextBuilder(_context.value, this)
+		val builder = AgentContextBuilder(_context.value, this, droppedCompacted)
 		val (context, messages) = builder()
 		
 		messages.save()
 		updateContext(context)
 	}
 	
-	private suspend fun updateContext(context: AgentContext) =
-		_context.update { context }.andSave()
-	
+	private suspend fun updateContext(context: AgentContext) {
+		_context.update { context }
+		agentData.save()
+	}
 	
 	private suspend fun List<AgentMessage>.save() {
-		forEach { messages[it.id] = it }.andSave()
+		store.saveMessages(this)
 		UsageStore.collect(this)
 	}
 	
-	private suspend fun <T> T.andSave(): T = also {
-		store.saveAgent(agentData)
-		if (messages.isNotEmpty()) {
-			store.saveMessages(messages.values.toList())
-		}
-	}
+	private suspend fun AgentData.save() = store.saveAgent(this)
 	
 	private suspend fun ModelConfig.toAgentModel() = AgentModel(
 		model = resolveModel(model),

@@ -27,6 +27,7 @@ import java.util.*
 class AgentContextBuilder(
 	private val old: AgentContext,
 	private val new: RuntimeContext,
+	private val droppedCompacted: AgentContextIndex.CompactedRounds?
 ) {
 	private val oldMessages = old.index.ids()
 	private val messages = mutableMapOf<UUID, AgentMessage>()
@@ -48,7 +49,7 @@ class AgentContextBuilder(
 	
 	private fun RuntimeContext.CompactedRounds.transform(): AgentContextIndex.CompactedRounds =
 		AgentContextIndex.CompactedRounds(
-			compactedRounds = compactedRounds?.transform(),
+			compactedRounds = compactedRounds?.transform() ?: droppedCompacted,
 			rounds = rounds.map { it.transform() },
 			summarizedMessage = summarizedMessage.id()
 		)

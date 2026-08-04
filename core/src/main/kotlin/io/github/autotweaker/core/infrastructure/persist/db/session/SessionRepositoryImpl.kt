@@ -60,7 +60,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	override suspend fun loadSessions(ids: List<UUID>): List<SessionData> =
+	override suspend fun loadSessions(ids: Set<UUID>): List<SessionData> =
 		db.transaction {
 			val idStrings = ids.map { it.toString() }
 			SessionDataTable.selectAll()
@@ -74,7 +74,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 				.map { it.toSessionData() }
 		}
 	
-	override suspend fun deleteSessions(id: List<UUID>) {
+	override suspend fun deleteSessions(id: Set<UUID>) {
 		val idStrings = id.map { it.toString() }
 		db.transaction {
 			SessionDataTable.deleteWhere { SessionDataTable.id inList idStrings }
@@ -146,7 +146,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	}
 	
-	override suspend fun loadMessages(ids: List<UUID>): List<AgentMessage> =
+	override suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage> =
 		db.transaction {
 			val idStrings = ids.map { it.toString() }
 			SessionMessageTable.selectAll()
@@ -154,7 +154,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 				.map { it.toSessionMessage() }
 		}
 	
-	override suspend fun deleteMessages(ids: List<UUID>) {
+	override suspend fun deleteMessages(ids: Set<UUID>) {
 		val idStrings = ids.map { it.toString() }
 		db.transaction {
 			SessionMessageTable.deleteWhere { SessionMessageTable.id inList idStrings }
