@@ -213,17 +213,17 @@ class UnicodeTest {
 	
 	@Test
 	fun `nonStrict trailing backslash skips backslash`() {
-		assertEquals("abc", "abc\\".unescapeUnicode())
+		assertEquals("abc", "abc\\".unescapeUnicode(strict = false))
 	}
-	
+
 	@Test
 	fun `nonStrict incomplete unicode escape preserves backslash`() {
-		assertEquals("abc\\u12", "abc\\u12".unescapeUnicode())
+		assertEquals("abc\\u12", "abc\\u12".unescapeUnicode(strict = false))
 	}
-	
+
 	@Test
 	fun `nonStrict unknown escape preserves backslash`() {
-		assertEquals("abc\\n", "abc\\n".unescapeUnicode())
+		assertEquals("abc\\n", "abc\\n".unescapeUnicode(strict = false))
 	}
 	
 	@Test
@@ -236,7 +236,7 @@ class UnicodeTest {
 	
 	@Test
 	fun `nonStrict invalid hex in unicode escape preserves backslash`() {
-		assertEquals("abc\\u00ZZ", "abc\\u00ZZ".unescapeUnicode())
+		assertEquals("abc\\u00ZZ", "abc\\u00ZZ".unescapeUnicode(strict = false))
 	}
 	
 	// endregion

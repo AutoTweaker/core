@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.api
 
+/**
+ * 格式化异常信息，包括类名、message、cause。
+ */
 fun Throwable.message(): String = buildString {
 	append(className())
 	message?.let { append(": ").append(it) }

@@ -38,6 +38,12 @@ object PasswdI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class SameAsOld : I18nBase(
+		en("New password is the same as the old one"),
+		zh("新密码与旧密码相同"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class PromptConfirm : I18nBase(
 		en("Confirm new password:"),
 		zh("确认新密码:"),

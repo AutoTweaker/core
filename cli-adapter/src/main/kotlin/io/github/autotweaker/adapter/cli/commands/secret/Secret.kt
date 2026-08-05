@@ -26,6 +26,8 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.recoverException
+import io.github.autotweaker.api.types.exception.PasswordInvalidException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -167,30 +169,22 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	}
 	
 	private fun handleUnlock(prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> = flow {
-		if (core.secret.isPasswordEmpty()) {
+		if (!core.secret.isUnlocked.value) {
+			val password = prompt(i18n(SecretI18n.UnlockPrompt()), false)
+			
+			trace.catching { core.secret.unlock(password) }
+				.recoverException { _: PasswordInvalidException ->
+					emitI18n(SecretI18n.InvalidPasswd(), error = true)
+					log.warn("Failed keystore unlock  command=secret  reason=invalid_passwd")
+					emitDone(1)
+					return@flow
+				}.getOrThrow()
+		} else if (core.secret.isPasswordEmpty()) {
 			log.debug("Skipped unlock  command=secret  reason=no_password_set")
 			emitI18n(SecretI18n.UnlockNoPassword())
-			emitDone(0)
-			return@flow
-		}
-		
-		if (core.secret.isUnlocked.value) {
+		} else {
 			log.debug("Skipped unlock  command=secret  reason=already_unlocked")
 			emitI18n(SecretI18n.UnlockAlready())
-			emitDone(0)
-			return@flow
-		}
-		
-		val password = prompt(i18n(SecretI18n.UnlockPrompt()), false)
-		
-		trace.catching {
-			core.secret.unlock(password)
-			log.info("Unlocked keystore  command=secret")
-		}.getOrElse {
-			log.warn("Failed keystore unlock  command=secret")
-			emitI18n(SecretI18n.UnlockFailed(), error = true)
-			emitDone(1)
-			return@flow
 		}
 		emitDone()
 	}
@@ -216,10 +210,30 @@ class Secret : Command, Loggable, I18nable, Traceable {
 	private fun handleChange(
 		prompt: suspend (text: String, echo: Boolean) -> String
 	): Flow<CmdOutput> = flow {
-		val oldPassword = if (core.secret.isPasswordEmpty()) ""
+		val oldPassword = if (core.secret.isUnlocked.value && core.secret.isPasswordEmpty()) ""
 		else prompt(i18n(SecretI18n.UnlockPrompt()), false)
 		
+		suspend fun emitInvalidPasswd() {
+			emitI18n(SecretI18n.InvalidPasswd(), error = true)
+			log.warn("Failed password change  command=secret  reason=invalid_passwd")
+			emitDone(1)
+		}
+		
+		if (!core.secret.isUnlocked.value) {
+			trace.catching { core.secret.unlock(oldPassword) }
+				.recoverException { _: PasswordInvalidException ->
+					emitInvalidPasswd()
+					return@flow
+				}.getOrThrow()
+		}
+		
 		val newPassword = prompt(i18n(PasswdI18n.PromptNew()), false)
+		
+		if (oldPassword == newPassword) {
+			emitI18n(PasswdI18n.SameAsOld(), error = true)
+			emitDone(1)
+			return@flow
+		}
 		
 		val confirm = prompt(i18n(PasswdI18n.PromptConfirm()), false)
 		
@@ -231,17 +245,12 @@ class Secret : Command, Loggable, I18nable, Traceable {
 		}
 		
 		trace.catching {
-			if (!core.secret.isUnlocked.value) {
-				core.secret.unlock(oldPassword)
-			}
 			core.secret.changePassword(oldPassword, newPassword)
 			log.info("Changed password  command=secret")
-		}.getOrElse {
-			log.warn("Failed password change  command=secret")
-			emitI18n(SecretI18n.InvalidPasswd(), error = true)
-			emitDone(1)
+		}.recoverException { _: PasswordInvalidException ->
+			emitInvalidPasswd()
 			return@flow
-		}
+		}.getOrThrow()
 		emitDone()
 	}
 }

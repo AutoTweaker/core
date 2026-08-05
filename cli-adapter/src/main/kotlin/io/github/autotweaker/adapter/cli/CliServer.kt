@@ -140,7 +140,7 @@ object CliServer : Loggable, Traceable {
 				router.dispatch(command, prompt).collect { chunk ->
 					when (chunk) {
 						is CmdOutput.Data -> {
-							chunk.text.chunked(MAX_RESPONSE_CHUNK).forEach { part ->
+							chunk.text.chunked(MAX_RESPONSE_CHUNK).ifEmpty { listOf("") }.forEach { part ->
 								sendChannel.writeResponse(CliResponse.Data(part, chunk.channel, chunk.newline))
 							}
 						}
@@ -163,7 +163,7 @@ object CliServer : Loggable, Traceable {
 					log.error("Failed command  command={}", cmdName, e)
 					trace.catching {
 						sendChannel.writeResponse(
-							CliResponse.Data(e.message(), OutputChannel.STDERR, true)
+							CliResponse.Data("Error: ${e.message()}", OutputChannel.STDERR, true)
 						)
 					}
 				}

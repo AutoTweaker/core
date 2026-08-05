@@ -61,14 +61,13 @@ data class ModelData(
 		val outputPrice: List<PriceTier>,
 	) {
 		init {
-			require(inputPrice.isNotEmpty()) { "inputPrice must not be empty" }
-			require(outputPrice.isNotEmpty()) { "outputPrice must not be empty" }
 			requireValidTiers(inputPrice, "inputPrice")
 			requireValidTiers(outputPrice, "outputPrice")
 		}
 		
 		companion object {
 			private fun requireValidTiers(tiers: List<PriceTier>, name: String) {
+				if (tiers.isEmpty()) return
 				val sorted = tiers.sortedBy { it.fromTokens }
 				require(sorted.first().fromTokens == 0) { "$name must start from 0, got fromTokens=${sorted.first().fromTokens}" }
 				require(sorted.last().toTokens == null) { "$name last tier must have no upper bound (toTokens=null)" }

@@ -65,9 +65,10 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class SingleOldString : StringSetting(
-		"要替换的内容，如果元素数量大于或等于1，那么在匹配时每个元素之间可以出现任意长度、种类的空白字符，" +
-				"所有元素作为一个整体匹配目标内容。" +
-				"示例：" + """["a","b"]可以匹配"a\n\tb"或"ab"；而["a ","b"]只能匹配"a  b"而不能匹配"ab"""",
+		"要替换的内容，如果元素数量大于或等于1，那么在匹配时每个元素之间可以出现任意长度、种类的空白字符" +
+				"（但必须出现至少一个空白字符），" +
+				"所有元素作为一个整体匹配目标内容。\n" +
+				"示例：" + """["a","b"]可以匹配"a\n\tb"或"a b"而不能匹配"ab"""",
 		zh("edit-single工具old_string参数的描述")
 	)
 	
@@ -129,7 +130,7 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class UnescapeConfigLenient : StringSetting(
-		"危险！如果启用，将**忽略**不合法的Unicode转义序列或不支持的转义（如'\\n'），单个'\\'会被保留，但\\\\仍会被处理，这可能带来预期之外的情况，除非确实存在大量'\\'的同时需要使用Unicode转义才可临时启用，默认为false",
+		"危险！如果启用，将**忽略**不合法的Unicode转义序列或不支持的转义（如'\\n'将被识别为字面量），单个'\\'会被保留，但'\\\\'仍会被处理，这可能带来预期之外的情况，除非确实存在大量'\\'的同时需要使用Unicode转义才可临时启用，默认为false",
 		zh("edit工具unescape_config对象lenient_mode的描述")
 	)
 	

@@ -206,17 +206,15 @@ class ModelDataTest {
 	}
 	
 	@Test
-	fun `TokenPrice with empty inputPrice throws`() {
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice(emptyList(), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
-		}
+	fun `TokenPrice with empty inputPrice constructs`() {
+		val tokenPrice = ModelData.TokenPrice(emptyList(), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
+		assertTrue(tokenPrice.inputPrice.isEmpty())
 	}
-	
+
 	@Test
-	fun `TokenPrice with empty outputPrice throws`() {
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice(listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)), emptyList())
-		}
+	fun `TokenPrice with empty outputPrice constructs`() {
+		val tokenPrice = ModelData.TokenPrice(listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)), emptyList())
+		assertTrue(tokenPrice.outputPrice.isEmpty())
 	}
 	
 	@Test

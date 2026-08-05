@@ -22,6 +22,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrDefault
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.exception.PasswordInvalidException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -66,6 +67,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	}.discard()
 	
 	suspend fun unlock(passphrase: String) = lock.withLock {
+		if (password != null) return@withLock
 		//确保目录存在
 		Files.createDirectories(secretsDir)
 		Files.createDirectories(gpgHome)
@@ -143,8 +145,9 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	
 	//解密markerFile，如果成功就是密钥正确
 	private suspend fun verifyPassword(password: String) {
-		val result =
+		val result = trace.catching {
 			gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
+		}.getOrElse { throw PasswordInvalidException() }
 		if (result != "ok") throw PasswordInvalidException()
 	}
 	

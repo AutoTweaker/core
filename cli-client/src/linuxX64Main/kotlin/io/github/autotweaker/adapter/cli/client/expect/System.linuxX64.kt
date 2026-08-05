@@ -23,6 +23,18 @@ import kotlinx.cinterop.*
 import platform.posix.*
 
 
+private var stdinExhausted = false
+private var ttyFd: Int = -1
+
+private fun ensureTty(): Int {
+	if (ttyFd < 0) {
+		ttyFd = open("/dev/tty", O_RDWR)
+		if (ttyFd >= 0) fcntl(ttyFd, F_SETFD, FD_CLOEXEC)
+	}
+	return ttyFd
+}
+
+
 @OptIn(ExperimentalForeignApi::class)
 actual fun exec(vararg args: String): CommandResult {
 	val stdoutBuilder = StringBuilder()
@@ -79,73 +91,252 @@ actual fun exec(vararg args: String): CommandResult {
 	}
 }
 
+
 @OptIn(ExperimentalForeignApi::class)
 actual fun promptOrStdin(prompt: String, echo: Boolean): String {
 	print(prompt)
 	fflush(null)
 	
 	if (echo) {
-		val input = readlnOrNull() ?: ""
-		if (isatty(STDIN_FILENO) != 1) println(input)
-		return input
+		if (!stdinExhausted || isatty(STDIN_FILENO) == 1) {
+			var readErr = false
+			val input = try {
+				readlnOrNull()
+			} catch (_: Exception) {
+				clearerr(stdin)
+				readErr = true
+				null
+			}
+			if (input != null) {
+				if (isatty(STDIN_FILENO) != 1) println(input)
+				return input
+			}
+			if (readErr) {
+				val fd = ensureTty()
+				if (fd >= 0) return readTtyLine(fd)
+				println(); fflush(null)
+				return ""
+			}
+			if (isatty(STDIN_FILENO) != 1) stdinExhausted = true
+			if (isatty(STDIN_FILENO) == 1) {
+				clearerr(stdin)
+				return ""
+			}
+		}
+		val fd = ensureTty()
+		if (fd >= 0) return readTtyLine(fd)
+		println(); fflush(null)
+		return ""
 	}
 	
-	return memScoped {
-		val tty = alloc<termios>()
-		val oldTty = alloc<termios>()
-		val stdinFd = STDIN_FILENO
+	if (!stdinExhausted || isatty(STDIN_FILENO) == 1) {
+		if (isatty(STDIN_FILENO) == 1) return readPasswordTty(STDIN_FILENO)
 		
-		val isAtty = isatty(stdinFd) == 1
+		val (password, hitEof) = readPasswordPipe()
+		if (!hitEof) return password
 		
-		if (isAtty) {
-			tcgetattr(stdinFd, oldTty.ptr)
-			tcgetattr(stdinFd, tty.ptr)
-			
-			tty.c_lflag = tty.c_lflag and ECHO.toUInt().inv()
-			tty.c_lflag = tty.c_lflag and ICANON.toUInt().inv()
-			
-			tcsetattr(stdinFd, TCSANOW, tty.ptr)
+		stdinExhausted = true
+	}
+	val fd = ensureTty()
+	if (fd >= 0) return readPasswordTty(fd)
+	println(); fflush(null)
+	return ""
+}
+
+
+@OptIn(ExperimentalForeignApi::class)
+private fun readTtyLine(fd: Int): String {
+	val bytes = mutableListOf<Byte>()
+	
+	memScoped {
+		val buf = allocArray<ByteVar>(1)
+		while (true) {
+			val n = read(fd, buf, 1U)
+			if (n < 0 && errno == EINTR) continue
+			if (n <= 0) break
+			val byte = buf[0]
+			if (byte == '\n'.code.toByte() || byte == '\r'.code.toByte()) break
+			bytes.add(byte)
 		}
-		
-		val inputBuilder = StringBuilder()
-		
-		try {
-			while (true) {
-				val ch = getchar()
+	}
+	return bytes.toByteArray().decodeToString()
+}
+
+
+private sealed class ByteResult {
+	data class Ok(val value: Int) : ByteResult()
+	object Eof : ByteResult()
+	object Retry : ByteResult()
+}
+
+
+@OptIn(ExperimentalForeignApi::class)
+private fun readPasswordByteLoop(nextByte: () -> ByteResult): Pair<List<Byte>, Boolean> {
+	val bytes = mutableListOf<Byte>()
+	var sawAnyChar = false
+	var escSeen = false
+	var bracketSeen = false
+	
+	while (true) {
+		when (val result = nextByte()) {
+			is ByteResult.Eof -> return Pair(stripIncompleteUtf8(bytes), !sawAnyChar)
+			is ByteResult.Retry -> {}
+			is ByteResult.Ok -> {
+				val ch = result.value
+				sawAnyChar = true
 				
-				if (ch == -1) break
+				if (escSeen) {
+					escSeen = false
+					if (ch == '['.code || ch == 'O'.code) {
+						bracketSeen = true; continue
+					}
+				}
+				if (bracketSeen) {
+					if (ch in 0x20..0x3F) continue
+					bracketSeen = false
+					if (ch in 0x40..0x7E) continue
+				}
 				
 				when (ch) {
-					10, 13 -> break
-					
-					
-					127, 8 -> if (inputBuilder.isNotEmpty()) {
-						inputBuilder.deleteAt(inputBuilder.length - 1)
-						
-						print("\b \b")
-						fflush(null)
+					'\n'.code, '\r'.code -> return Pair(stripIncompleteUtf8(bytes), false)
+					0x04 -> {
+						bytes.clear(); return Pair(emptyList(), false)
 					}
 					
-					
-					else -> if (ch in 32..126) {
-						inputBuilder.append(ch.toChar())
-						
-						print("*")
-						fflush(null)
+					0x1B -> {
+						escSeen = true
 					}
 					
+					127, 8 -> if (bytes.isNotEmpty()) {
+						removeLastUtf8Char(bytes)
+						print("\b \b"); fflush(null)
+					}
+					
+					else -> if (ch in 32..126 || ch >= 128) {
+						bytes.add(ch.toByte())
+						if (isUtf8Boundary(bytes)) {
+							print("*"); fflush(null)
+						}
+					}
 				}
 			}
-			inputBuilder.toString()
-		} finally {
-			if (isAtty) {
-				tcsetattr(stdinFd, TCSANOW, oldTty.ptr)
-			}
-			println()
-			fflush(null)
 		}
 	}
 }
+
+
+@OptIn(ExperimentalForeignApi::class)
+private fun readPasswordPipe(): Pair<String, Boolean> {
+	val (bytes, hitEof) = readPasswordByteLoop {
+		val ch = getchar()
+		if (ch == -1) ByteResult.Eof
+		else ByteResult.Ok(ch)
+	}
+	if (!hitEof) {
+		println(); fflush(null)
+	}
+	return Pair(bytes.toByteArray().decodeToString(), hitEof)
+}
+
+
+private var sigintTermiosFd: Int = -1
+
+@OptIn(ExperimentalForeignApi::class)
+private var sigintTermiosPtr: CPointer<termios>? = null
+
+@OptIn(ExperimentalForeignApi::class)
+private val sigintHandlerPtr = staticCFunction { _: Int ->
+	val fd = sigintTermiosFd
+	val ptr = sigintTermiosPtr
+	if (fd >= 0 && ptr != null) {
+		tcsetattr(fd, TCSANOW, ptr)
+	}
+	_exit(128 + SIGINT)
+}
+
+
+@OptIn(ExperimentalForeignApi::class)
+private fun readPasswordTty(fd: Int): String = memScoped {
+	tcflush(fd, TCIFLUSH)
+	
+	val t = alloc<termios>()
+	val saved = alloc<termios>()
+	tcgetattr(fd, saved.ptr)
+	tcgetattr(fd, t.ptr)
+	t.c_lflag = t.c_lflag and ECHO.toUInt().inv()
+	t.c_lflag = t.c_lflag and ICANON.toUInt().inv()
+	tcsetattr(fd, TCSANOW, t.ptr)
+	
+	sigintTermiosFd = fd
+	sigintTermiosPtr = saved.ptr
+	signal(SIGINT, sigintHandlerPtr)
+	
+	val buf = allocArray<ByteVar>(1)
+	val (bytes, _) = try {
+		readPasswordByteLoop {
+			val n = read(fd, buf, 1U)
+			if (n < 0 && errno == EINTR) ByteResult.Retry
+			else if (n <= 0) ByteResult.Eof
+			else ByteResult.Ok(buf[0].toInt() and 0xFF)
+		}
+	} finally {
+		signal(SIGINT, SIG_DFL)
+		sigintTermiosFd = -1
+		sigintTermiosPtr = null
+		tcsetattr(fd, TCSANOW, saved.ptr)
+		println(); fflush(null)
+	}
+	bytes.toByteArray().decodeToString()
+}
+
+
+private fun isUtf8Boundary(bytes: List<Byte>): Boolean {
+	if (bytes.isEmpty()) return true
+	val last = bytes.last().toInt() and 0xFF
+	if (last < 0x80) return true
+	if ((last and 0xC0) == 0x80) {
+		var pos = bytes.size - 2
+		while (pos >= 0 && (bytes[pos].toInt() and 0xC0) == 0x80) pos--
+		if (pos < 0) return false
+		val start = bytes[pos].toInt() and 0xFF
+		val expected = when {
+			(start and 0xE0) == 0xC0 -> 2
+			(start and 0xF0) == 0xE0 -> 3
+			(start and 0xF8) == 0xF0 -> 4
+			else -> 1
+		}
+		return (bytes.size - pos) >= expected
+	}
+	return false
+}
+
+
+private fun removeLastUtf8Char(bytes: MutableList<Byte>) {
+	if (bytes.isEmpty()) return
+	val removed = bytes.removeLast().toInt() and 0xFF
+	if ((removed and 0xC0) != 0x80) return
+	while (bytes.isNotEmpty() && (bytes.last().toInt() and 0xC0) == 0x80) {
+		bytes.removeLast()
+	}
+	if (bytes.isNotEmpty()) bytes.removeLast()
+}
+
+
+private fun stripIncompleteUtf8(bytes: List<Byte>): List<Byte> {
+	var end = bytes.size
+	while (end > 0 && (bytes[end - 1].toInt() and 0xC0) == 0x80) end--
+	if (end == 0) return emptyList()
+	val start = bytes[end - 1].toInt() and 0xFF
+	val actualLen = bytes.size - end + 1
+	val expectedLen = when {
+		(start and 0xE0) == 0xC0 -> 2
+		(start and 0xF0) == 0xE0 -> 3
+		(start and 0xF8) == 0xF0 -> 4
+		else -> 1
+	}
+	return if (actualLen < expectedLen) bytes.subList(0, end - 1) else bytes
+}
+
 
 @OptIn(ExperimentalForeignApi::class)
 actual fun env(name: String): String {

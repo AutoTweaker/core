@@ -18,7 +18,14 @@
 
 package io.github.autotweaker.api
 
-fun String.unescapeUnicode(strict: Boolean = false): String {
+/**
+ * 从一个可能包含 Unicode 转义序列的字符串中解码 Unicode 转义。
+ *
+ * 还支持反斜杠转义（`\\` 解码为 `\`），除此之外不支持任何转义（如 `\n`）。
+ *
+ * 除非 [strict] 否则将在遇到未知转义标记或不合法的 Unicode 转义时抛出 [IllegalStateException]，包含可读的 message。
+ */
+fun String.unescapeUnicode(strict: Boolean = true): String {
 	val out = StringBuilder()
 	
 	var i = 0
@@ -67,10 +74,15 @@ fun String.unescapeUnicode(strict: Boolean = false): String {
 	return out.toString()
 }
 
-
+/**
+ * 对一个字符进行 Unicode 转义，返回一个 Unicode 转义序列。
+ */
 fun Char.toUnicodeEscape(): String =
 	"\\u%04X".format(code)
 
+/**
+ * 对一个字符串进行 Unicode 转义，返回 6 倍大小的新字符串。
+ */
 fun String.toUnicodeEscape(): String =
 	buildString(length * 6) {
 		for (c in this@toUnicodeEscape) {

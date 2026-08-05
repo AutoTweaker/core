@@ -26,5 +26,5 @@ import org.slf4j.LoggerFactory
  * 要防止误提交到 git，可以在 `.git/hooks/pre-commit` 中扫描 `_LOG_TRACE_` 是否出现在代码中。
  */
 @Deprecated("DO NOT COMMIT THIS", level = DeprecationLevel.WARNING)
-@Suppress("FunctionName")
+@Suppress("FunctionName", "DeprecatedCallableAddReplaceWith")
 fun Loggable._LOG_TRACE_(content: String) = LoggerFactory.getLogger(this::class.java).error(content)
