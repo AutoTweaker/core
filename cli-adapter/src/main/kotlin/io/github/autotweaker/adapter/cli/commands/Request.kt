@@ -24,6 +24,7 @@ data class Request(
 	val values: Map<String, String>,
 	val positional: List<String>,
 	val prog: String = APP_NAME_LOWERCASE,
+	val isTty: Boolean = false,
 	private val aliasToCanonical: Map<String, String> = emptyMap(),
 ) {
 	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }

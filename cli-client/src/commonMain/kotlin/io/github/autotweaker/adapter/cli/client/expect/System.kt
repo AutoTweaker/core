@@ -26,4 +26,6 @@ expect fun promptOrStdin(prompt: String, echo: Boolean): String
 
 expect fun env(name: String): String
 
+expect fun stdoutIsTty(): Boolean
+
 expect fun printErr(content: String)

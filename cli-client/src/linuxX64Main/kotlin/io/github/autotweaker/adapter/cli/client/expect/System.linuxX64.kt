@@ -36,6 +36,9 @@ private fun ensureTty(): Int {
 
 
 @OptIn(ExperimentalForeignApi::class)
+actual fun stdoutIsTty() = isatty(STDOUT_FILENO) == 1
+
+@OptIn(ExperimentalForeignApi::class)
 actual fun exec(vararg args: String): CommandResult {
 	val stdoutBuilder = StringBuilder()
 	

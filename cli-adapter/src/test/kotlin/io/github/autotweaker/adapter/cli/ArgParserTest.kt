@@ -28,7 +28,7 @@ class ArgParserTest {
 	private val parser = ArgParser(100_000)
 	
 	private fun parse(syntax: Syntax, vararg args: String): Request? =
-		parser.parse(args.toList(), syntax, "prog")
+		parser.parse(args.toList(), syntax, "prog", false)
 	
 	private fun flag(name: String, required: Boolean = false) =
 		Syntax.Leaf(Param.Flag(name, name, defaultAlias(name)), required = required)
@@ -226,6 +226,6 @@ class ArgParserTest {
 	@Test
 	fun exceedsMaxArgsRejected() {
 		val smallParser = ArgParser(2)
-		assertNull(smallParser.parse(listOf("a", "b", "c"), Syntax.EMPTY, "prog"))
+		assertNull(smallParser.parse(listOf("a", "b", "c"), Syntax.EMPTY, "prog", false))
 	}
 }

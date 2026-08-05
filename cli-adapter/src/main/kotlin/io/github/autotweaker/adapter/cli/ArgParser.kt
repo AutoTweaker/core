@@ -28,7 +28,7 @@ class ArgParser(
 	private val maxArgsCount: Int,
 ) : Loggable {
 	private val syntaxValidator = SyntaxValidator
-	fun parse(args: List<String>, syntax: Syntax, prog: String): Request? {
+	fun parse(args: List<String>, syntax: Syntax, prog: String, isTty: Boolean): Request? {
 		val positional = mutableListOf<String>()
 		val values = mutableMapOf<String, String>()
 		var posCounter = 0
@@ -124,7 +124,7 @@ class ArgParser(
 			return null
 		}
 		
-		return Request(values, positional, prog, aliasMap)
+		return Request(values, positional, prog, isTty, aliasMap)
 	}
 	
 	private fun buildAliasMap(params: List<Param>): Map<String, String> {

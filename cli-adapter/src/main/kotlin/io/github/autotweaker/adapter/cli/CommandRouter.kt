@@ -94,7 +94,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		}
 		
 		log.debug("Dispatched command  command={}  args={}", cmd, request.args.drop(1))
-		val parsed = argParser.parse(request.args.drop(1), handler.syntax, request.prog)
+		val parsed = argParser.parse(request.args.drop(1), handler.syntax, request.prog, request.isTty)
 			?: run {
 				log.debug("Rejected invalid arguments for command  command={}", cmd)
 				return flow {

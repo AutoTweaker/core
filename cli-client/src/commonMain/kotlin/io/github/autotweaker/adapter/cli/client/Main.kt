@@ -28,6 +28,7 @@ import io.github.autotweaker.adapter.cli.client.FsService.fs
 import io.github.autotweaker.adapter.cli.client.FsService.syncPlugins
 import io.github.autotweaker.adapter.cli.client.FsService.writeProxyEnv
 import io.github.autotweaker.adapter.cli.client.expect.printErr
+import io.github.autotweaker.adapter.cli.client.expect.stdoutIsTty
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.message
 import kotlinx.coroutines.runBlocking
@@ -56,7 +57,7 @@ fun main(args: Array<String>) {
 	fun buildRequest(): String {
 		val prog = APP_NAME_LOWERCASE
 		val cmdArgs = args.toList()
-		return Json.encodeToString(CliMessage.Command(args = cmdArgs, prog = prog))
+		return Json.encodeToString(CliMessage.Command(args = cmdArgs, prog = prog, isTty = stdoutIsTty()))
 	}
 	
 	runBlocking {

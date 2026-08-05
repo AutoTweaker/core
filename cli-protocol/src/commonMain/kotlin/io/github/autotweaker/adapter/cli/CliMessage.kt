@@ -27,6 +27,7 @@ sealed class CliMessage {
 	data class Command(
 		val args: List<String> = emptyList(),
 		val prog: String = APP_NAME_LOWERCASE,
+		val isTty: Boolean = false,
 	) : CliMessage() {
 		fun command(): String = args.firstOrNull() ?: ""
 		
