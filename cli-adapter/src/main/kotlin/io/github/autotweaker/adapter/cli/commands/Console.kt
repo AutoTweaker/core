@@ -21,6 +21,7 @@
 package io.github.autotweaker.adapter.cli.commands
 
 import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.i18n.I18nDef
 import kotlinx.coroutines.flow.Flow
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -28,8 +29,10 @@ import kotlin.coroutines.cancellation.CancellationException
 interface Console : I18nable {
 	suspend fun hasArg(name: String): Boolean
 	suspend fun getValue(name: String): String
+	suspend fun getValueOrNull(name: String): String?
 	suspend fun getPositional(): List<String>
 	suspend fun getPositional(index: Int): String
+	suspend fun getPositionalOrNull(index: Int): String?
 	
 	suspend fun handleFlag(name: String, block: suspend () -> Unit) // 末尾自动 done(0)
 	suspend fun handleValue(name: String, block: suspend (String) -> Unit) // 末尾自动 done(0)
@@ -49,6 +52,14 @@ interface Console : I18nable {
 	
 	suspend fun done(exitCode: Int = 0): Nothing
 	suspend fun error(text: String, style: StyleBuilder.() -> Unit = {}): Nothing
+	
+	// i18n 区域
+	suspend fun out(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {})
+	suspend fun err(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {})
+	suspend fun prompt(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): String
+	suspend fun secret(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): String
+	suspend fun title(def: I18nDef, vararg args: Any?)
+	suspend fun error(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): Nothing
 }
 
 @ConsoleDsl

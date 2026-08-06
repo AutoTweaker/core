@@ -36,7 +36,7 @@ class ToolCallParser : Loggable, Traceable {
 		
 		data class Failure(
 			val errorMessage: String,
-		) : ValidationResult<Nothing>()
+		) : ValidationResult<ToolArgs>()
 	}
 	
 	fun validate(

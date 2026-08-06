@@ -19,19 +19,18 @@
 package io.github.autotweaker.adapter.cli.commands.translate
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.*
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.commands.model.Model.Companion.findModel
 import io.github.autotweaker.adapter.cli.commands.model.ModelI18n
-import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.adapter.cli.syntax.XOR
+import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import java.util.*
 
 @AutoService(Command::class)
-class Translate : Command, I18nable {
+class Translate : Command {
 	lateinit var core: CoreAPI
 	
 	override val name = "translate"
@@ -47,37 +46,24 @@ class Translate : Command, I18nable {
 		value("language", TranslateI18n.SetLanguageDesc())
 	}
 	
-	override fun init(core: CoreAPI) {
-		this.core = core
-	}
-	
-	override fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput> =
-		flow {
-			if (request.has("model")) {
-				val model = findModel(request, core) ?: return@flow
-				core.i18n.setTranslationModel(model)
-				emitDone()
-				return@flow
-			}
-			
-			if (request.has("rm-model")) {
-				core.i18n.setTranslationModel(null)
-				emitDone()
-				return@flow
-			}
-			
-			if (request.has("language")) {
-				val locale = Locale.forLanguageTag(request.get("language") ?: return@flow)
-				if (locale.language.isEmpty()) {
-					emitDone(1)
-					return@flow
-				}
-				core.i18n.setLanguage(locale)
-				emitDone()
-				return@flow
-			}
-			
-			core.i18n.startTranslation()
-			emitDone()
+	override suspend fun Console.execute(core: CoreAPI): Nothing {
+		handleFlag("model") {
+			val model = findModel(core)
+			core.i18n.setTranslationModel(model)
 		}
+		
+		handleFlag("rm-model") {
+			core.i18n.setTranslationModel(null)
+		}
+		
+		handleValue("language") {
+			val locale = Locale.forLanguageTag(it)
+			if (locale.language.isEmpty() || locale.toLanguageTag() != it)
+				error(TranslateI18n.InvalidLanguageTag(), it)
+			core.i18n.setLanguage(locale)
+		}
+		
+		core.i18n.startTranslation()
+		done()
+	}
 }

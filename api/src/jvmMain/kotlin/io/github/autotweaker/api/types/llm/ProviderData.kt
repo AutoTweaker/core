@@ -42,7 +42,8 @@ data class ProviderData(
 		val statusCode: Int, val strategy: RecoveryStrategy
 	) {
 		init {
-			require(statusCode in 100..599) { "statusCode must be a valid HTTP status code (100-599), got $statusCode" }
+			require(statusCode in 100..599)
+			{ "statusCode must be a valid HTTP status code (100-599), got $statusCode" }
 		}
 		
 		@Serializable

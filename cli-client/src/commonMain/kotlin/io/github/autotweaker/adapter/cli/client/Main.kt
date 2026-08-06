@@ -65,10 +65,9 @@ fun main(args: Array<String>) {
 	runBlocking {
 		try {
 			ensureDaemon()
-			waitForReady(sockPath, lockPath)
-			
+			val transport = waitForReady(sockPath, lockPath)
+
 			val request = buildRequest()
-			val transport = Transport.connect(sockPath)
 			transport.sendLine(request)
 			exitProcess(Protocol(transport))
 		} catch (e: Exception) {

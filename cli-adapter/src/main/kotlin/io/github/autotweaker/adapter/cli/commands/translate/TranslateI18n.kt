@@ -35,4 +35,7 @@ object TranslateI18n {
 	
 	@AutoService(I18nDef::class)
 	class SetLanguageDesc : I18nBase(zh("指定国际化的目标语言，必须为 BCP 47 格式"))
+	
+	@AutoService(I18nDef::class)
+	class InvalidLanguageTag : I18nBase(zh("无效的语言代码: '%s'"))
 }

@@ -22,12 +22,11 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.syntax.Syntax
-import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
 
 @AutoService(Command::class)
-class Version : Command, I18nable {
+class Version : Command {
 	override val name = "version"
 	override val description = i18n(VersionI18n.Desc())
 	override val syntax = Syntax.EMPTY

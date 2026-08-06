@@ -51,10 +51,17 @@ object DaemonManager {
 		}
 	}
 	
-	suspend fun waitForReady(sockPath: Path, lockPath: Path) {
+	suspend fun waitForReady(sockPath: Path, lockPath: Path): Transport {
 		var waited = 0
 		while (true) {
-			if (sockPath.isSocket() && lockPath.isRegularFile() && connectable(sockPath)) return
+			if (sockPath.isSocket() && lockPath.isRegularFile()) {
+				val transport = try {
+					Transport.connect(sockPath)
+				} catch (_: Exception) {
+					null
+				}
+				if (transport != null) return transport
+			}
 			val sub = daemonSubstate()
 			if (!daemonIsActive() || sub == "failed" || sub == "auto-restart") {
 				showJournalLogs(30)
@@ -70,14 +77,6 @@ object DaemonManager {
 			delay(100.milliseconds)
 		}
 	}
-	
-	private suspend fun connectable(sockPath: Path): Boolean =
-		try {
-			Transport.connect(sockPath).close()
-			true
-		} catch (_: Exception) {
-			false
-		}
 	
 	private fun daemonIsActive(): Boolean {
 		val result = systemctl("--user", "show", APP_NAME_LOWERCASE, "-p", "ActiveState", "--value")

@@ -25,6 +25,7 @@ import io.github.autotweaker.adapter.cli.commands.StyleBuilder
 import io.github.autotweaker.api.SPACE
 import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.i18n.I18nDef
 import kotlinx.coroutines.flow.Flow
 
 class ConsoleImpl(
@@ -39,13 +40,19 @@ class ConsoleImpl(
 	override suspend fun getValue(name: String): String =
 		request.get(name) ?: error(i18n(ConsoleI18n.MissingValue(), name))
 	
+	override suspend fun getValueOrNull(name: String): String? =
+		request.get(name)
+	
 	override suspend fun getPositional(): List<String> =
 		request.positional
 	
 	override suspend fun getPositional(index: Int): String =
 		request.positional.getOrElse(index) {
-			error(i18n(ConsoleI18n.MissingPos(), index))
+			error(i18n(ConsoleI18n.MissingPos(), index + 1))
 		}
+	
+	override suspend fun getPositionalOrNull(index: Int): String? =
+		request.positional.getOrNull(index)
 	
 	override suspend fun handleFlag(name: String, block: suspend () -> Unit) {
 		if (request.has(name)) {
@@ -107,6 +114,39 @@ class ConsoleImpl(
 		err(text, style)
 		done(1)
 	}
+	
+	override suspend fun out(
+		def: I18nDef,
+		vararg args: Any?,
+		style: StyleBuilder.() -> Unit
+	) = out(i18n(def, *args), style)
+	
+	override suspend fun err(
+		def: I18nDef,
+		vararg args: Any?,
+		style: StyleBuilder.() -> Unit
+	) = err(i18n(def, *args), style)
+	
+	override suspend fun prompt(
+		def: I18nDef,
+		vararg args: Any?,
+		style: StyleBuilder.() -> Unit
+	): String = prompt(i18n(def, *args), style)
+	
+	override suspend fun secret(
+		def: I18nDef,
+		vararg args: Any?,
+		style: StyleBuilder.() -> Unit
+	): String = secret(i18n(def, *args), style)
+	
+	override suspend fun title(def: I18nDef, vararg args: Any?) =
+		title(i18n(def, *args))
+	
+	override suspend fun error(
+		def: I18nDef,
+		vararg args: Any?,
+		style: StyleBuilder.() -> Unit
+	): Nothing = error(i18n(def, *args), style)
 	
 	private suspend fun prompt(
 		text: String,

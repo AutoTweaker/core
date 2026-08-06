@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.adapter.cli.client.expect
 
+import io.github.autotweaker.api.MASK_CHAR
 import kotlinx.cinterop.*
 import platform.posix.*
 
@@ -161,7 +162,7 @@ object InputReader {
 							bytes.add(ch.toByte())
 							if (bytes.size > MAX_PASSWORD_BYTES) return Pair(stripIncompleteUtf8(bytes), true)
 							if (isUtf8Boundary(bytes)) {
-								printErr("*")
+								printErr(MASK_CHAR.toString())
 							}
 						}
 					}

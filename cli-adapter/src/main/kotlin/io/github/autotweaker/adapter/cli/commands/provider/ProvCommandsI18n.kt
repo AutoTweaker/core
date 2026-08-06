@@ -86,15 +86,8 @@ object ProvCommandsI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class RemoveListCount : I18nBase(
-		en("About to delete %s providers:"),
-		zh("即将删除 %s 个提供商:"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class RemoveConfirm : I18nBase(
-		en("Enter (y/yes) to confirm:"),
-		zh("输入 (y/yes) 确认删除:"),
+		zh("即将删除提供商 %s，输入 (y/yes) 确认删除:"),
 	)
 	
 	@AutoService(I18nDef::class)

@@ -23,11 +23,10 @@ import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.adapter.cli.syntax.SyntaxLeafBuilder
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
-import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
 
-class Help(private val loaded: List<Command>) : Command, I18nable {
+class Help(private val loaded: List<Command>) : Command {
 	override val name = "help"
 	override val description = i18n(HelpI18n.HelpDesc())
 	override val syntax =
@@ -45,17 +44,17 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				error(i18n(HelpI18n.Unknown(), target))
+				error(HelpI18n.Unknown(), target)
 			}
 			renderDetail(cmd)
 			done()
 		}
-		out(i18n(HelpI18n.Available()))
+		out(HelpI18n.Available())
 		for (cmd in all.sortedBy { it.name }) {
 			out("  ${cmd.name}  —  ${cmd.description}")
 		}
 		ln()
-		out(i18n(HelpI18n.HelpHint(), APP_NAME_LOWERCASE))
+		out(HelpI18n.HelpHint(), APP_NAME_LOWERCASE)
 		done()
 	}
 	
@@ -64,7 +63,7 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
 			ln()
-			out(i18n(HelpI18n.Params()))
+			out(HelpI18n.Params())
 			lines.forEach {
 				out(it)
 			}
@@ -101,9 +100,9 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 	private fun formatSyntax(root: Syntax): List<String> {
 		val nodes = root.toContent()
 		val result = mutableListOf<String>()
-		for (node in nodes) {
+		nodes.forEach { node ->
 			result.add(node.text)
-			for (i in node.children.indices) {
+			node.children.indices.forEach { i ->
 				result.addAll(renderNode(node.children[i], "", i == node.children.lastIndex))
 			}
 		}
@@ -116,7 +115,7 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 		result.add("$bars$connector${node.text}")
 		
 		val childBars = bars + if (isLast) "    " else "│   "
-		for (i in node.children.indices) {
+		node.children.indices.forEach { i ->
 			result.addAll(renderNode(node.children[i], childBars, i == node.children.lastIndex))
 		}
 		return result

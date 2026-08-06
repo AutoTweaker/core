@@ -19,18 +19,15 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.*
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
-import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.syntax.XOR
+import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 
 @AutoService(Command::class)
-class Provider : Command, I18nable {
+class Provider : Command {
 	lateinit var core: CoreAPI
 	
 	override val name = "prov"
@@ -73,65 +70,56 @@ class Provider : Command, I18nable {
 		}
 	}
 	
-	override fun init(core: CoreAPI) {
-		this.core = core
-	}
-	
-	override fun handle(
-		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<CmdOutput> = flow {
+	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		val queries = ProviderQueries(core)
-		val commands = ProviderCommands(core, prompt)
-		if (request.has("list")) {
-			emitAll(queries.list().map { CmdOutput.Data(it) })
-			emitDone()
-			return@flow
+		val commands = ProviderCommands(core)
+		handleFlag("list") {
+			with(queries) {
+				list()
+			}
 		}
 		
-		if (request.has("show")) {
-			val name = request.get("show") ?: error("Missing provider name")
-			emitAll(queries.show(name).map { CmdOutput.Data(it) })
-			emitDone()
-			return@flow
+		handleValue("show") {
+			with(queries) {
+				show(it)
+			}
 		}
 		
-		if (request.has(("types"))) {
-			emitAll(queries.types().map { CmdOutput.Data(it) })
-			emitDone()
-			return@flow
+		handleFlag("types") {
+			with(queries) {
+				types()
+			}
 		}
 		
-		if (request.has("info")) {
-			val name = request.get("info") ?: error("Missing provider type")
-			emitAll(queries.info(name))
-			return@flow
+		handleValue("info") {
+			with(queries) {
+				info(it)
+			}
 		}
 		
-		if (request.has("add")) {
-			val name = request.get("name")
-			val type = request.get("type")
-			val key = request.get("key")
-			val url = request.get("url")
-			emitAll(commands.add(name, type, key, url))
-			return@flow
-		}
-		
-		if (request.has("remove")) {
-			emitAll(commands.remove(request.get("remove") ?: error("Missing provider name"), request.has("yes")))
-			return@flow
-		}
-		
-		if (request.has("rename")) {
-			emitAll(
-				commands.rename(
-					name = request.get("rename") ?: error("Missing provider name"),
-					new = request.positional.first(),
+		handleFlag("add") {
+			with(commands) {
+				add(
+					getValueOrNull("name"),
+					getValueOrNull("type"),
+					getValueOrNull("key"),
+					getValueOrNull("url"),
 				)
-			)
-			return@flow
+			}
 		}
 		
-		emitDone(1)
-		return@flow
+		handleValue("remove") {
+			with(commands) {
+				remove(it, hasArg("yes"))
+			}
+		}
+		
+		handleValue("rename") {
+			with(commands) {
+				rename(it, getPositional(0))
+			}
+		}
+		
+		done(1)
 	}
 }
