@@ -19,7 +19,8 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.CmdOutput
+import io.github.autotweaker.adapter.cli.console.CmdOutput
+import io.github.autotweaker.adapter.cli.console.ColsHolder
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
@@ -30,6 +31,8 @@ import io.ktor.utils.io.charsets.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
@@ -39,7 +42,6 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.deleteIfExists
-
 
 object CliServer : Loggable, Traceable {
 	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
@@ -127,17 +129,33 @@ object CliServer : Loggable, Traceable {
 			
 			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
 			
-			val prompt: suspend (text: String, echo: Boolean) -> String = { text, echo ->
-				sendChannel.writeResponse(CliResponse.Prompt(text + SPACE, echo))
-				val line = receiveChannel.readCliLine()
-					?: throw CancellationException("Client disconnected", null)
-				json.decodeFromString<CliMessage.PromptResponse>(line).text
+			val colsHolder = ColsHolder(command.cols)
+			val responseChannel = Channel<CliMessage.PromptResponse>(Channel.UNLIMITED)
+			
+			scope.launch {
+				while (true) {
+					val line = receiveChannel.readCliLine() ?: break
+					val msg = json.decodeFromString<CliMessage>(line)
+					if (msg is CliMessage.Resize) colsHolder.cols = msg.cols
+					else if (msg is CliMessage.PromptResponse) responseChannel.send(msg)
+				}
+				responseChannel.close()
+			}
+			
+			val prompt: suspend (echo: Boolean) -> String = { echo ->
+				sendChannel.writeResponse(CliResponse.Prompt(echo))
+				trace.catching { responseChannel.receive().text }
+					.rethrowCancellation()
+					.recoverException { e: ClosedReceiveChannelException ->
+						throw CancellationException("Client disconnected", e)
+					}
+					.getOrThrow()
 			}
 			
 			var sawDone = false
 			val cmdName = command.command()
 			trace.catching {
-				router.dispatch(command, prompt).collect { chunk ->
+				router.dispatch(command, prompt, colsHolder).collect { chunk ->
 					when (chunk) {
 						is CmdOutput.Data -> {
 							chunk.text.chunked(MAX_RESPONSE_CHUNK).ifEmpty { listOf("") }.forEach { part ->

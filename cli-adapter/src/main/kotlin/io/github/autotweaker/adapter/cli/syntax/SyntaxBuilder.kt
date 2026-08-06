@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands
+package io.github.autotweaker.adapter.cli.syntax
 
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.i18n

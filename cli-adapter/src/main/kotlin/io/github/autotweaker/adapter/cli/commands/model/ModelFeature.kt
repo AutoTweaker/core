@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands
+package io.github.autotweaker.adapter.cli.commands.model
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase

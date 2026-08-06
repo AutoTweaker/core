@@ -45,10 +45,10 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 	
 	override fun getLanguage(): Locale = get().language
 	
-	override fun invoke(def: I18nDef): String {
+	override fun invoke(def: I18nDef, vararg args: Any?): String {
 		val key = requireNotNull(def::class.qualifiedName)
 		{ "Anonymous I18nDef not supported: ${def::class}" }
-		return resolve(key, get().language)
+		return resolve(key, get().language).format(*args)
 	}
 	
 	fun getDefault(id: String): Localizations? = I18nRegistry.get(id)

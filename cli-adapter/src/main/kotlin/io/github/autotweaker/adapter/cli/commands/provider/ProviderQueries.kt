@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.adapter.cli.commands.provider
 
-import io.github.autotweaker.adapter.cli.commands.CmdOutput
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
-import io.github.autotweaker.adapter.cli.commands.ModelFeature
+import io.github.autotweaker.adapter.cli.commands.model.ModelFeature
+import io.github.autotweaker.adapter.cli.console.CmdOutput
+import io.github.autotweaker.adapter.cli.console.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.console.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.types.llm.ModelData

@@ -29,8 +29,11 @@ import io.github.autotweaker.adapter.cli.client.FsService.syncPlugins
 import io.github.autotweaker.adapter.cli.client.FsService.writeProxyEnv
 import io.github.autotweaker.adapter.cli.client.expect.printErr
 import io.github.autotweaker.adapter.cli.client.expect.stdoutIsTty
+import io.github.autotweaker.adapter.cli.client.expect.windowCols
+import io.github.autotweaker.adapter.cli.client.expect.windowResizeFlow
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.message
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import kotlinx.serialization.json.Json
@@ -57,17 +60,24 @@ fun main(args: Array<String>) {
 	fun buildRequest(): String {
 		val prog = APP_NAME_LOWERCASE
 		val cmdArgs = args.toList()
-		return Json.encodeToString(CliMessage.Command(args = cmdArgs, prog = prog, isTty = stdoutIsTty()))
+		return Json.encodeToString<CliMessage>(
+			CliMessage.Command(args = cmdArgs, prog = prog, isTty = stdoutIsTty(), cols = windowCols())
+		)
 	}
 	
 	runBlocking {
-		ensureDaemon()
-		waitForReady(sockPath, lockPath)
-		
-		val request = buildRequest()
-		val transport = Transport.connect(sockPath)
 		try {
+			ensureDaemon()
+			waitForReady(sockPath, lockPath)
+			
+			val request = buildRequest()
+			val transport = Transport.connect(sockPath)
 			transport.sendLine(request)
+			launch {
+				windowResizeFlow().collect { cols ->
+					transport.sendLine(Json.encodeToString<CliMessage>(CliMessage.Resize(cols)))
+				}
+			}
 			exitProcess(Protocol(transport))
 		} catch (e: Exception) {
 			printErr("Error: ${e.message()}\n")

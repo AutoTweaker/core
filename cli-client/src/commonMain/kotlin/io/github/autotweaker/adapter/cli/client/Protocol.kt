@@ -21,45 +21,50 @@ package io.github.autotweaker.adapter.cli.client
 import io.github.autotweaker.adapter.cli.CliMessage
 import io.github.autotweaker.adapter.cli.CliResponse
 import io.github.autotweaker.adapter.cli.OutputChannel
-import io.github.autotweaker.adapter.cli.client.expect.printErr
-import io.github.autotweaker.adapter.cli.client.expect.promptOrStdin
+import io.github.autotweaker.adapter.cli.client.expect.*
 import io.github.autotweaker.api.message
 import kotlinx.serialization.json.Json
 
 object Protocol {
 	private val json = Json { ignoreUnknownKeys = true }
 	suspend operator fun invoke(transport: Transport): Int {
-		while (true) {
-			val line = transport.readLine() ?: break
-			val response = try {
-				json.decodeFromString<CliResponse>(line)
-			} catch (e: Exception) {
-				printErr("Error: failed to parse server response: ${e.message()}\n")
-				break
-			}
-			when (response) {
-				is CliResponse.Data -> {
-					when (response.channel) {
-						OutputChannel.STDERR -> {
-							printErr(response.text)
-							if (response.newline) printErr("\n")
-						}
-						
-						OutputChannel.STDOUT -> {
-							print(response.text)
-							if (response.newline) println()
+		beginNoEcho()
+		try {
+			while (true) {
+				val line = transport.readLine() ?: break
+				val response = try {
+					json.decodeFromString<CliResponse>(line)
+				} catch (e: Exception) {
+					printErr("Error: failed to parse server response: ${e.message()}\n")
+					break
+				}
+				when (response) {
+					is CliResponse.Data -> {
+						when (response.channel) {
+							OutputChannel.STDERR -> {
+								printErr(response.text)
+								if (response.newline) printErr("\n")
+							}
+							
+							OutputChannel.STDOUT -> {
+								print(response.text)
+								if (response.newline) println()
+								flushOutput()
+							}
 						}
 					}
-				}
-				
-				is CliResponse.Done -> return response.exitCode
-				is CliResponse.Prompt -> {
-					val answer = promptOrStdin(response.text, response.echo)
-					transport.sendLine(json.encodeToString(CliMessage.PromptResponse(answer)))
+					
+					is CliResponse.Done -> return response.exitCode
+					is CliResponse.Prompt -> {
+						val answer = promptOrStdin(response.echo)
+						transport.sendLine(json.encodeToString<CliMessage>(CliMessage.PromptResponse(answer)))
+					}
 				}
 			}
+			printErr("Error: server disconnected.")
+			return 1
+		} finally {
+			endNoEcho()
 		}
-		printErr("Error: server disconnected.")
-		return 1
 	}
 }

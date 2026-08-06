@@ -16,16 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands
+package io.github.autotweaker.adapter.cli.console
 
-sealed class Syntax {
-	abstract val required: Boolean
+import io.github.autotweaker.adapter.cli.OutputChannel
+
+sealed interface CmdOutput {
+	data class Data(
+		val text: String, val channel: OutputChannel = OutputChannel.STDOUT
+	) : CmdOutput
 	
-	data class All(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
-	data class Xor(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
-	data class Leaf(val param: Param, override val required: Boolean = true) : Syntax()
-	
-	companion object {
-		val EMPTY = All(emptyList(), required = false)
-	}
+	data class Done(val exitCode: Int) : CmdOutput
 }

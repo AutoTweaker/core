@@ -19,13 +19,24 @@
 package io.github.autotweaker.adapter.cli.client.expect
 
 import io.github.autotweaker.adapter.cli.client.CommandResult
+import kotlinx.coroutines.flow.Flow
 
 expect fun exec(vararg args: String): CommandResult
 
-expect fun promptOrStdin(prompt: String, echo: Boolean): String
+expect fun promptOrStdin(echo: Boolean): String
 
 expect fun env(name: String): String
 
 expect fun stdoutIsTty(): Boolean
 
+expect fun windowCols(): Int
+
+expect fun windowResizeFlow(): Flow<Int>
+
+expect fun flushOutput()
+
 expect fun printErr(content: String)
+
+expect fun beginNoEcho()
+
+expect fun endNoEcho()

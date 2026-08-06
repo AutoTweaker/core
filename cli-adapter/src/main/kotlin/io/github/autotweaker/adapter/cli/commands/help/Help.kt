@@ -18,14 +18,14 @@
 
 package io.github.autotweaker.adapter.cli.commands.help
 
-import io.github.autotweaker.adapter.cli.commands.*
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.commands.Style
+import io.github.autotweaker.adapter.cli.syntax.Request
+import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.adapter.cli.syntax.SyntaxLeafBuilder
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.i18n
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 
 class Help(private val loaded: List<Command>) : Command, I18nable {
 	override val name = "help"
@@ -40,38 +40,34 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 	
 	private val all: List<Command> get() = loaded + this
 	
-	override fun handle(
-		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<CmdOutput> = flow {
+	override suspend fun Console.render(request: Request) {
 		val target = request.positional.firstOrNull()
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				emitI18n(HelpI18n.Unknown(), target, error = true)
-				emitDone(1)
-				return@flow
+				err(i18n(HelpI18n.Unknown(), target), Style.RED)
+				done(1)
 			}
-			emitAll(formatDetail(cmd))
-			emitDone()
-			return@flow
+			renderDetail(cmd)
+			done()
 		}
-		emitI18n(HelpI18n.Available())
+		out(i18n(HelpI18n.Available()))
 		for (cmd in all.sortedBy { it.name }) {
-			emit(CmdOutput.Data("  ${cmd.name}  —  ${cmd.description}"))
+			out("  ${cmd.name}  —  ${cmd.description}")
 		}
-		emit(CmdOutput.Data(""))
-		emitI18n(HelpI18n.HelpHint(), request.prog)
-		emitDone()
+		ln()
+		out(i18n(HelpI18n.HelpHint(), request.prog))
+		done()
 	}
 	
-	private fun formatDetail(cmd: Command): Flow<CmdOutput> = flow {
-		emit(CmdOutput.Data("${cmd.name}  —  ${cmd.description}"))
+	private suspend fun Console.renderDetail(cmd: Command) {
+		out("${cmd.name}  —  ${cmd.description}")
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
-			emit(CmdOutput.Data(""))
-			emitI18n(HelpI18n.Params())
+			ln()
+			out(i18n(HelpI18n.Params()))
 			for (line in lines) {
-				emit(CmdOutput.Data(line))
+				out(line)
 			}
 		}
 	}

@@ -16,10 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
-
-import io.github.autotweaker.adapter.cli.commands.Param
-import io.github.autotweaker.adapter.cli.commands.Syntax
+package io.github.autotweaker.adapter.cli.syntax
 
 object SyntaxValidator {
 	fun collectParams(syntax: Syntax): List<Param> = when (syntax) {
@@ -60,9 +57,7 @@ object SyntaxValidator {
 			val hasRequired = syntax.children.any { it.required }
 			val requiredPos =
 				syntax.children.sumOf { if (it.required && it is Syntax.Leaf && it.param is Param.Positional) 1 else 0 }
-			if (syntax.required && hasRequired && !anyActive) false
-			else if (positionalCount < requiredPos) false
-			else syntax.children.all {
+			!(syntax.required && hasRequired && !anyActive) && positionalCount >= requiredPos && syntax.children.all {
 				val childPos = if (hasPositionalParam(it)) positionalCount else 0
 				validate(it, activeValues, childPos)
 			}
@@ -81,8 +76,11 @@ object SyntaxValidator {
 				count == 0 -> true
 				else -> {
 					val activeChild = syntax.children.first { isActive(it, activeValues, effectiveHasPos) }
-					if (!effectiveHasPos && positionalCount > 0 && !hasPositionalParam(activeChild)) false
-					else validate(activeChild, activeValues, positionalCount)
+					!(!effectiveHasPos && positionalCount > 0 && !hasPositionalParam(activeChild)) && validate(
+						activeChild,
+						activeValues,
+						positionalCount
+					)
 				}
 			}
 		}

@@ -30,7 +30,7 @@ interface I18nService {
 	/**
 	 * 用法：`override val description get() = i18n(Description())`。
 	 */
-	operator fun invoke(def: I18nDef): String
+	operator fun invoke(def: I18nDef, vararg args: Any?): String
 	
 	/**
 	 * 获取程序使用的语言，请不要使用 [Locale.getDefault]，通过此 api 获取到的语言可能经过用户配置。

@@ -16,18 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands
+package io.github.autotweaker.adapter.cli.syntax
 
-import io.github.autotweaker.api.APP_NAME_LOWERCASE
-
-data class Request(
-	val values: Map<String, String>,
-	val positional: List<String>,
-	val prog: String = APP_NAME_LOWERCASE,
-	val isTty: Boolean = false,
-	private val aliasToCanonical: Map<String, String> = emptyMap(),
-) {
-	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }
+sealed class Syntax {
+	abstract val required: Boolean
 	
-	fun has(name: String): Boolean = name in values || aliasToCanonical[name] in values
+	data class All(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
+	data class Xor(val children: List<Syntax>, override val required: Boolean = true) : Syntax()
+	data class Leaf(val param: Param, override val required: Boolean = true) : Syntax()
+	
+	companion object {
+		val EMPTY = All(emptyList(), required = false)
+	}
 }

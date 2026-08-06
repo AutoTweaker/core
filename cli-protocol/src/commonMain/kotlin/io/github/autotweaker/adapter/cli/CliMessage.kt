@@ -18,28 +18,23 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed class CliMessage {
 	@Serializable
 	data class Command(
-		val args: List<String> = emptyList(),
-		val prog: String = APP_NAME_LOWERCASE,
-		val isTty: Boolean = false,
+		val args: List<String>,
+		val prog: String,
+		val isTty: Boolean,
+		val cols: Int,
 	) : CliMessage() {
-		fun command(): String = args.firstOrNull() ?: ""
-		
-		@Suppress("unused")
-		fun arg(index: Int): String? = args.getOrNull(index)
-		
-		fun option(long: String, short: String): String? {
-			val idx = args.indexOf(long).let { if (it >= 0) it else args.indexOf(short) }
-			return if (idx >= 0) args.getOrNull(idx + 1) else null
-		}
+		fun command(): String? = args.firstOrNull()
 	}
 	
 	@Serializable
 	data class PromptResponse(val text: String) : CliMessage()
+	
+	@Serializable
+	data class Resize(val cols: Int) : CliMessage()
 }

@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.adapter.cli.commands
 
+import io.github.autotweaker.adapter.cli.syntax.Request
+import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.api.adapter.CoreAPI
-import kotlinx.coroutines.flow.Flow
 
 interface Command {
 	val name: String
@@ -27,5 +28,6 @@ interface Command {
 	val syntax: Syntax
 	
 	fun init(core: CoreAPI) {}
-	fun handle(request: Request, prompt: suspend (text: String, echo: Boolean) -> String): Flow<CmdOutput>
+	
+	suspend fun Console.render(request: Request)
 }

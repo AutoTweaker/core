@@ -16,31 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.client.expect
+package io.github.autotweaker.adapter.cli.syntax
 
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.ptr
-import kotlinx.io.files.Path
-import platform.posix.*
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
 
-actual fun createSymbolicLink(link: Path, source: Path) {
-	val linkStr = link.toString()
-	val sourceStr = source.toString()
+data class Request(
+	val values: Map<String, String>,
+	val positional: List<String>,
+	val prog: String = APP_NAME_LOWERCASE,
+	val isTty: Boolean = false,
+	private val aliasToCanonical: Map<String, String> = emptyMap(),
+) {
+	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }
 	
-	unlink(linkStr)
-	
-	if (symlink(sourceStr, linkStr) == -1)
-		perror("symlink")
-}
-
-@OptIn(ExperimentalForeignApi::class)
-actual fun Path.isSocket(): Boolean {
-	val pathStr = toString()
-	
-	return memScoped {
-		val statBuf = alloc<stat>()
-		stat(pathStr, statBuf.ptr) == 0 && (statBuf.st_mode.toInt() and S_IFMT) == S_IFSOCK
-	}
+	fun has(name: String): Boolean = name in values || aliasToCanonical[name] in values
 }
