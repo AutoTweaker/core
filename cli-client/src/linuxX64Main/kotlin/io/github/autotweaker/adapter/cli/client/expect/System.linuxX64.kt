@@ -20,18 +20,9 @@ package io.github.autotweaker.adapter.cli.client.expect
 
 import io.github.autotweaker.adapter.cli.client.CommandResult
 import kotlinx.cinterop.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
 import platform.posix.*
 
 actual fun stdoutIsTty() = isatty(STDOUT_FILENO) == 1
-
-actual fun windowCols(): Int = Terminal.windowCols()
-
-actual fun windowResizeFlow(): Flow<Int> {
-	Terminal.startResizeWatcher()
-	return Terminal.resizeChannel.receiveAsFlow()
-}
 
 actual fun beginNoEcho() = Terminal.beginNoEcho()
 

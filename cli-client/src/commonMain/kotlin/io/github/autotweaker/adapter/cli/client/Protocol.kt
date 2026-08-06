@@ -43,12 +43,10 @@ object Protocol {
 						when (response.channel) {
 							OutputChannel.STDERR -> {
 								printErr(response.text)
-								if (response.newline) printErr("\n")
 							}
 							
 							OutputChannel.STDOUT -> {
 								print(response.text)
-								if (response.newline) println()
 								flushOutput()
 							}
 						}

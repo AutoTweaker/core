@@ -18,16 +18,14 @@
 
 package io.github.autotweaker.adapter.cli.commands
 
-import io.github.autotweaker.adapter.cli.syntax.Request
 import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
 
-interface Command {
+interface Command : I18nable {
 	val name: String
 	val description: String
 	val syntax: Syntax
 	
-	fun init(core: CoreAPI) {}
-	
-	suspend fun Console.render(request: Request)
+	suspend fun Console.execute(core: CoreAPI): Nothing
 }

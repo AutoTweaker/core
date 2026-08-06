@@ -19,26 +19,22 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.CmdOutput
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitI18n
 import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.DoneException
 import io.github.autotweaker.adapter.cli.commands.help.Help
-import io.github.autotweaker.api.APP_NAME
-import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.adapter.cli.console.CmdOutput
+import io.github.autotweaker.adapter.cli.console.ConsoleImpl
+import io.github.autotweaker.adapter.cli.syntax.ArgParser
+import io.github.autotweaker.adapter.cli.syntax.SyntaxValidator
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.get
-import io.github.autotweaker.api.log
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import java.util.*
 
 
-class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable {
+class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, I18nable {
 	private val handlers: Map<String, Command>
 	
 	@AutoService(SettingDef::class)
@@ -52,7 +48,6 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {
-		commands.forEach { it.init(core) }
 		val help = Help(commands)
 		handlers = (commands + help).associateBy { it.name }
 		log.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
@@ -64,54 +59,76 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		)
 	}
 	
-	fun dispatch(
-		request: CliMessage.Command, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<CmdOutput> {
+	suspend fun dispatch(
+		request: CliMessage.Command,
+		prompt: suspend (echo: Boolean) -> String,
+		output: suspend (CmdOutput) -> Unit
+	): Int = try {
 		//取子命令
 		val cmd = request.command()
 		//无参at
-		if (cmd.isEmpty()) {
-			return flowOf(
-				CmdOutput.Data("$APP_NAME  Copyright (C) 2026  WhiteElephant-abc"), CmdOutput.Done()
-			)
+		if (cmd == null) {
+			output(CmdOutput("$APP_NAME  Copyright (C) 2026  WhiteElephant-abc\n"))
+			return 0
 		}
 		//找子命令
-		val handler = handlers[cmd] ?: run {
+		val command = handlers[cmd] ?: run {
+			output(
+				CmdOutput(
+					i18n(CmdI18n.UnknownHint(), cmd, request.prog) + '\n',
+					OutputChannel.STDERR
+				)
+			)
 			log.warn("Received unknown command  command={}  args={}", cmd, request.args)
-			return flow {
-				emitI18n(CmdI18n.UnknownHint(), cmd, request.prog, error = true)
-				emitDone(1)
-			}
+			return 1
 		}
 		
-		val conflicts = SyntaxValidator.checkConflicts(handler.syntax)
+		val conflicts = SyntaxValidator.checkConflicts(command.syntax)
 		if (conflicts.isNotEmpty()) {
+			conflicts.forEach {
+				output(CmdOutput("Error: $it\n", OutputChannel.STDERR))
+			}
 			log.warn("Detected param name conflict in command  command={}  conflicts={}", cmd, conflicts)
-			return flowOf(
-				*conflicts.map { CmdOutput.Data(it, OutputChannel.STDERR) }.toTypedArray(),
-				CmdOutput.Done(1),
-			)
+			return 1
 		}
 		
 		log.debug("Dispatched command  command={}  args={}", cmd, request.args.drop(1))
-		val parsed = argParser.parse(request.args.drop(1), handler.syntax, request.prog, request.isTty)
+		val parsed = argParser.parse(request.args.drop(1), command.syntax)
 			?: run {
 				log.debug("Rejected invalid arguments for command  command={}", cmd)
-				return flow {
-					emitI18n(CmdI18n.InvalidArgs(), cmd, request.prog, error = true)
-					emitDone(1)
-				}
+				output(
+					CmdOutput(
+						i18n(CmdI18n.InvalidArgs(), cmd, request.prog) + '\n',
+						OutputChannel.STDERR
+					)
+				)
+				return 1
 			}
 		
 		val isSecretUnlock = cmd == "secret" && (parsed.has("unlock") || parsed.has("passwd"))
 		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked.value) {
 			log.debug("Rejected command, keystore locked  command={}", cmd)
-			return flow {
-				emitI18n(CmdI18n.KeystoreLocked(), request.prog, error = true)
-				emitDone(1)
-			}
+			
+			output(
+				CmdOutput(
+					i18n(CmdI18n.KeystoreLocked(), request.prog) + '\n',
+					OutputChannel.STDERR
+				)
+			)
+			return 1
 		}
 		
-		return handler.handle(parsed, prompt)
+		val console = ConsoleImpl(
+			isTty = request.isTty,
+			request = parsed,
+			output = output,
+			readLine = prompt
+		)
+		
+		with(command) {
+			console.execute(core)
+		}
+	} catch (e: DoneException) {
+		return e.exitCode
 	}
 }

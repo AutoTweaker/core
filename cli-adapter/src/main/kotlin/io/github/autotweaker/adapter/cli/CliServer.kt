@@ -20,7 +20,6 @@ package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.console.CmdOutput
-import io.github.autotweaker.adapter.cli.console.ColsHolder
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
@@ -28,11 +27,8 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.charsets.*
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
@@ -41,6 +37,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.path.deleteIfExists
 
 object CliServer : Loggable, Traceable {
@@ -70,7 +67,6 @@ object CliServer : Loggable, Traceable {
 	
 	private val lock = ReentrantMutex()
 	
-	
 	suspend fun start(router: CommandRouter) = lock.withLock {
 		Files.createDirectories(socketPath.parent)
 		socketPath.deleteIfExists()
@@ -90,8 +86,7 @@ object CliServer : Loggable, Traceable {
 							socketPath,
 							it.message
 						)
-					}
-					.getOrNull() ?: break
+					}.getOrNull() ?: break
 				log.info("Client connected  socketPath={}", socketPath)
 				connectionLimit.acquire()
 				activeClients.add(client)
@@ -123,52 +118,36 @@ object CliServer : Loggable, Traceable {
 			val sendChannel = socket.openWriteChannel(autoFlush = true)
 			
 			val line = receiveChannel.readCliLine() ?: run {
-				log.debug("Client sent no data"); return@use
+				log.warn("Client sent no data"); return@use
 			}
 			val command = json.decodeFromString<CliMessage.Command>(line)
 			
 			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
 			
-			val colsHolder = ColsHolder(command.cols)
-			val responseChannel = Channel<CliMessage.PromptResponse>(Channel.UNLIMITED)
-			
-			scope.launch {
-				while (true) {
-					val line = receiveChannel.readCliLine() ?: break
-					val msg = json.decodeFromString<CliMessage>(line)
-					if (msg is CliMessage.Resize) colsHolder.cols = msg.cols
-					else if (msg is CliMessage.PromptResponse) responseChannel.send(msg)
-				}
-				responseChannel.close()
-			}
-			
+			val responseLock = ReentrantMutex()
 			val prompt: suspend (echo: Boolean) -> String = { echo ->
-				sendChannel.writeResponse(CliResponse.Prompt(echo))
-				trace.catching { responseChannel.receive().text }
-					.rethrowCancellation()
-					.recoverException { e: ClosedReceiveChannelException ->
-						throw CancellationException("Client disconnected", e)
+				responseLock.withLock {
+					sendChannel.writeResponse(CliResponse.Prompt(echo))
+					
+					val line = receiveChannel.readCliLine()
+						?: throw CancellationException("Client disconnected")
+					json.decodeFromString<CliMessage.PromptResponse>(line).text
+				}
+			}
+			val output: suspend (CmdOutput) -> Unit = { (text, channel) ->
+				responseLock.withLock {
+					text.chunked(MAX_RESPONSE_CHUNK).ifEmpty { listOf("") }.forEach { part ->
+						sendChannel.writeResponse(CliResponse.Data(part, channel))
 					}
-					.getOrThrow()
+				}
 			}
 			
-			var sawDone = false
 			val cmdName = command.command()
 			trace.catching {
-				router.dispatch(command, prompt, colsHolder).collect { chunk ->
-					when (chunk) {
-						is CmdOutput.Data -> {
-							chunk.text.chunked(MAX_RESPONSE_CHUNK).ifEmpty { listOf("") }.forEach { part ->
-								sendChannel.writeResponse(CliResponse.Data(part, chunk.channel, chunk.newline))
-							}
-						}
-						
-						is CmdOutput.Done -> {
-							sawDone = true
-							sendChannel.writeResponse(CliResponse.Done(chunk.exitCode))
-							return@collect
-						}
-					}
+				val exitCode = router.dispatch(command, prompt, output)
+				log.debug("Command finished  exitCode={}", exitCode)
+				responseLock.withLock {
+					sendChannel.writeResponse(CliResponse.Done(exitCode))
 				}
 			}.rethrowCancellation()
 				.recoverException { e: IOException ->
@@ -176,22 +155,17 @@ object CliServer : Loggable, Traceable {
 						"Disconnected client during command  command={}  reason={}",
 						cmdName, e.message
 					)
-				}
-				.onFailure { e ->
-					log.error("Failed command  command={}", cmdName, e)
-					trace.catching {
-						sendChannel.writeResponse(
-							CliResponse.Data("Error: ${e.message()}", OutputChannel.STDERR, true)
-						)
+				}.onFailure { e ->
+					log.error("Command failed  command={}", cmdName, e)
+					responseLock.withLock {
+						trace.catching {
+							sendChannel.writeResponse(
+								CliResponse.Data("Error: ${e.message()}\n", OutputChannel.STDERR)
+							)
+							sendChannel.writeResponse(CliResponse.Done(1))
+						}
 					}
 				}
-			
-			if (!sawDone) {
-				log.warn("Command did not emit Done  command={}", cmdName)
-				trace.catching {
-					sendChannel.writeResponse(CliResponse.Done(1))
-				}
-			}
 		}
 	
 	

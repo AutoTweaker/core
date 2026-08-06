@@ -16,21 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
+package io.github.autotweaker.adapter.cli.console
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-sealed class CliMessage {
-	@Serializable
-	data class Command(
-		val args: List<String>,
-		val prog: String,
-		val isTty: Boolean,
-	) : CliMessage() {
-		fun command(): String? = args.firstOrNull()
-	}
+data class Request(
+	val values: Map<String, String>,
+	val positional: List<String>,
+	private val aliasToCanonical: Map<String, String>,
+) {
+	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }
 	
-	@Serializable
-	data class PromptResponse(val text: String) : CliMessage()
+	fun has(name: String): Boolean = name in values || aliasToCanonical[name] in values
 }

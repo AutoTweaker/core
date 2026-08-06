@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.adapter.cli.console
 
-@Suppress("unused")
 /** ANSI 终端控制序列。 */
+@Suppress("unused")
 object Ansi {
 	/** ESC (U+001B)，所有 ANSI 控制序列的前缀字节。 */
 	private const val ESC = "\u001b"
@@ -29,6 +29,9 @@ object Ansi {
 	
 	/** RCP &mdash; 恢复之前保存的光标位置。 */
 	const val RESTORE = "$ESC[u"
+	
+	/** CUP &mdash; 光标回到左上角原点（无参数形式）。 */
+	const val HOME = "$ESC[H"
 	
 	/** DECTCEM &mdash; 隐藏光标。 */
 	const val HIDE_CURSOR = "$ESC[?25l"
@@ -42,11 +45,14 @@ object Ansi {
 	/** EL &mdash; 从光标清至行末。 */
 	const val CLEAR_LINE_TO_END = "$ESC[0K"
 	
-	/** ED &mdash; 清屏，光标回到原点。 */
+	/** ED &mdash; 清除整个屏幕，光标位置不变。 */
 	const val CLEAR_SCREEN = "$ESC[2J"
 	
 	/** ED &mdash; 从光标清至屏幕末尾。 */
 	const val CLEAR_SCREEN_TO_END = "$ESC[0J"
+	
+	/** ED &mdash; 清除滚动缓冲区（历史输出）。 */
+	const val CLEAR_SCROLLBACK = "$ESC[3J"
 	
 	/** IL &mdash; 在光标处插入空行，后续行下移。 */
 	const val INSERT_LINE = "$ESC[L"
@@ -125,6 +131,9 @@ object Ansi {
 	
 	/** DECSTBM &mdash; 重置滚动区域为全屏。 */
 	const val SCROLL_RESET = "$ESC[r"
+	
+	/** 清屏并清除滚动缓冲区，光标回到左上角。 */
+	fun clear() = HOME + CLEAR_SCREEN + CLEAR_SCROLLBACK
 	
 	/** 用 [codes] 包裹 [text]，末尾自动追加 [RESET]。 */
 	fun styled(text: String, vararg codes: String) =

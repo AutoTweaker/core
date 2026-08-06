@@ -19,12 +19,7 @@
 package io.github.autotweaker.adapter.cli.client.expect
 
 import kotlinx.cinterop.*
-import kotlinx.coroutines.channels.Channel
 import platform.posix.*
-import kotlin.concurrent.Volatile
-import kotlin.native.concurrent.ObsoleteWorkersApi
-import kotlin.native.concurrent.TransferMode
-import kotlin.native.concurrent.Worker
 
 
 object Terminal {
@@ -45,6 +40,15 @@ object Terminal {
 	@OptIn(ExperimentalForeignApi::class)
 	private val termiosScratch: CPointer<termios> = nativeHeap.alloc<termios>().ptr
 	
+	@OptIn(ExperimentalForeignApi::class)
+	private val exitScreenBytes = nativeHeap.allocArray<ByteVar>(19).apply {
+		this[0] = 0x1B; this[1] = 0x5B; this[2] = 0x3F; this[3] = 0x31
+		this[4] = 0x30; this[5] = 0x34; this[6] = 0x39; this[7] = 0x6C
+		this[8] = 0x1B; this[9] = 0x5B; this[10] = 0x72
+		this[11] = 0x1B; this[12] = 0x5B; this[13] = 0x39; this[14] = 0x39
+		this[15] = 0x39; this[16] = 0x3B; this[17] = 0x31; this[18] = 0x48
+	}
+	
 	private val fatalSignals = intArrayOf(
 		SIGTERM, SIGQUIT, SIGHUP, SIGPIPE, SIGSEGV, SIGABRT, SIGBUS, SIGFPE,
 		SIGUSR1, SIGUSR2, SIGALRM, SIGXCPU, SIGXFSZ,
@@ -60,12 +64,14 @@ object Terminal {
 	@OptIn(ExperimentalForeignApi::class)
 	private val interruptHandlerPtr: CPointer<CFunction<(Int) -> Unit>> = staticCFunction { _: Int ->
 		restoreInteractiveSafe()
+		exitAltScreen()
 		_exit(128 + SIGINT)
 	}
 	
 	@OptIn(ExperimentalForeignApi::class)
 	private val fatalHandlerPtr: CPointer<CFunction<(Int) -> Unit>> = staticCFunction { sig: Int ->
 		restoreInteractiveSafe()
+		exitAltScreen()
 		signal(sig, SIG_DFL)
 		raise(sig)
 	}
@@ -89,40 +95,6 @@ object Terminal {
 	}
 	
 	fun interactiveFd(): Int = if (isatty(STDIN_FILENO) == 1) STDIN_FILENO else ensureTty()
-	
-	val resizeChannel = Channel<Int>(Channel.CONFLATED)
-	
-	@Volatile
-	private var watcherStarted = false
-	
-	@OptIn(ExperimentalForeignApi::class, ObsoleteWorkersApi::class)
-	fun startResizeWatcher() {
-		if (watcherStarted) return
-		watcherStarted = true
-		val worker = Worker.start()
-		worker.execute(TransferMode.SAFE, { }) {
-			memScoped {
-				val set = alloc<sigset_t>()
-				sigemptyset(set.ptr)
-				sigaddset(set.ptr, SIGWINCH)
-				sigprocmask(SIG_BLOCK, set.ptr, null)
-				val sig = alloc<IntVar>()
-				while (true) {
-					sigwait(set.ptr, sig.ptr)
-					val cols = windowCols()
-					if (cols > 0) resizeChannel.trySend(cols)
-				}
-			}
-		}
-	}
-	
-	@OptIn(ExperimentalForeignApi::class)
-	fun windowCols(): Int = memScoped {
-		val ws = allocArray<UShortVar>(4)
-		if (ioctl(STDOUT_FILENO, TIOCGWINSZ.toULong(), ws.reinterpret<ByteVar>()) == 0) ws[1].toInt() else 0
-	}
-	
-	private const val TIOCGWINSZ = 0x5413
 	
 	@OptIn(ExperimentalForeignApi::class)
 	fun beginNoEcho() {
@@ -243,6 +215,11 @@ object Terminal {
 	private fun restoreInteractiveSafe() {
 		restoreTermiosSafe(STDIN_FILENO, savedStdinTermios, stdinOursFlags)
 		if (ttyFd >= 0) restoreTermiosSafe(ttyFd, savedTtyTermios, ttyOursFlags)
+	}
+	
+	@OptIn(ExperimentalForeignApi::class)
+	private fun exitAltScreen() {
+		if (isatty(STDOUT_FILENO) == 1) write(STDOUT_FILENO, exitScreenBytes, 19uL)
 	}
 	
 	@OptIn(ExperimentalForeignApi::class)

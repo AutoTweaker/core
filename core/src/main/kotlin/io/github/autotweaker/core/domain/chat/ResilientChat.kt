@@ -88,9 +88,8 @@ object ResilientChat : Loggable {
 					emit(CoreLlmResult(result, model = target.id))
 					statusCode = msg.statusCode
 					hasError = true
-				} else {
-					emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
-				}
+				} else emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
+				
 			}
 			
 			return Pair(statusCode, hasError)
@@ -133,9 +132,9 @@ object ResilientChat : Loggable {
 							val maxDelay = ResilientChatSettings.MaxRetryDelaySeconds().get()
 							val jitterEnabled = ResilientChatSettings.RetryJitterEnabled().get()
 							val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
-							val finalDelay = if (jitterEnabled) {
+							val finalDelay = if (jitterEnabled)
 								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
-							} else capped
+							else capped
 							delay(finalDelay)
 							
 							return handle(attempt(current), retriesUsed + 1)
@@ -184,7 +183,7 @@ object ResilientChat : Loggable {
 		}
 		
 		log.warn("Exhausted all LLM chat retries")
-		throw IllegalStateException("All LLM chat retries exhausted without success")
+		error("All LLM chat retries exhausted without success")
 	}
 	
 	private fun ChatResult.normalizeEmptyStrings(): ChatResult {

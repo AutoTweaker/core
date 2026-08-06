@@ -18,8 +18,9 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.adapter.cli.commands.Param
-import io.github.autotweaker.adapter.cli.commands.Syntax
+import io.github.autotweaker.adapter.cli.syntax.Param
+import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.adapter.cli.syntax.SyntaxValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

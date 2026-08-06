@@ -18,7 +18,11 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.adapter.cli.commands.*
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.console.CmdOutput
+import io.github.autotweaker.adapter.cli.syntax.Param
+import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.config.SettingService
@@ -27,8 +31,6 @@ import io.github.autotweaker.api.types.config.SettingValue
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -70,29 +72,31 @@ class CommandRouterTest {
 	private fun registerCommand(
 		name: String,
 		syntax: Syntax,
-		handle: (Request) -> List<CmdOutput> = { listOf(CmdOutput.Done(0)) },
+		onExecute: suspend Console.(CoreAPI) -> Nothing = { done() },
 	): Command {
-		val cmd = mockk<Command>()
-		every { cmd.name } returns name
-		every { cmd.description } returns ""
-		every { cmd.syntax } returns syntax
-		every { cmd.init(any<CoreAPI>()) } returns Unit
-		every { cmd.handle(any(), any()) } answers {
-			val request = firstArg<Request>()
-			flowOf(*(handle(request).toTypedArray()))
+		val cmd = object : Command {
+			override val name = name
+			override val description = ""
+			override val syntax = syntax
+			override suspend fun Console.execute(core: CoreAPI): Nothing = onExecute(core)
 		}
 		commands.add(cmd)
 		router = CommandRouter(core, commands)
 		return cmd
 	}
 	
-	private fun dispatch(vararg args: String): List<CmdOutput> = runBlocking {
-		router.dispatch(CliMessage.Command(args = args.toList())) { _, _ -> "" }.toList()
+	private fun dispatch(vararg args: String): Pair<Int, List<CmdOutput>> = runBlocking {
+		val outputs = mutableListOf<CmdOutput>()
+		val exitCode = router.dispatch(
+			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false),
+			prompt = { "" },
+			output = { outputs.add(it) },
+		)
+		exitCode to outputs
 	}
 	
-	private fun List<CmdOutput>.done(): CmdOutput.Done = last() as CmdOutput.Done
 	private fun List<CmdOutput>.stderr(): List<String> =
-		filterIsInstance<CmdOutput.Data>().filter { it.channel == OutputChannel.STDERR }.map { it.text }
+		filter { it.channel == OutputChannel.STDERR }.map { it.text }
 	
 	private fun all(vararg children: Syntax, required: Boolean = true) = Syntax.All(children.toList(), required)
 	
@@ -100,32 +104,36 @@ class CommandRouterTest {
 	
 	@Test
 	fun emptyCommandShowsCopyright() {
-		val r = dispatch()
-		assertEquals(0, r.done().exitCode)
-		assertTrue(r.any { it is CmdOutput.Data && it.text.contains("AutoTweaker") })
+		val (exitCode, outputs) = dispatch()
+		assertEquals(0, exitCode)
+		assertTrue(outputs.any { it.text.contains("AutoTweaker") })
 	}
 	
 	@Test
 	fun unknownCommandReturnsError() {
-		val r = dispatch("nonexistent")
-		assertEquals(1, r.done().exitCode)
-		assertTrue(r.stderr().isNotEmpty())
+		val (exitCode, outputs) = dispatch("nonexistent")
+		assertEquals(1, exitCode)
+		assertTrue(outputs.stderr().isNotEmpty())
 	}
 	
 	@Test
 	fun knownCommandDispatched() {
 		registerCommand("test", Syntax.EMPTY)
-		assertEquals(0, dispatch("test").done().exitCode)
+		assertEquals(0, dispatch("test").first)
 	}
 	
 	@Test
 	fun argsForwardedToHandler() {
-		var captured: Request? = null
-		registerCommand("test", all(Syntax.Leaf(Param.Flag("verbose", "v", listOf("v")), required = false))) {
-			captured = it; listOf(CmdOutput.Done(0))
+		var captured: Boolean? = null
+		registerCommand(
+			"test",
+			all(Syntax.Leaf(Param.Flag("verbose", "v", listOf("v")), required = false))
+		) {
+			captured = hasArg("verbose")
+			done()
 		}
 		dispatch("test", "--verbose")
-		assertTrue(captured!!.has("verbose"))
+		assertTrue(captured!!)
 	}
 	
 	// ── keystore lock ─────────────────────────────────────────────
@@ -134,15 +142,14 @@ class CommandRouterTest {
 	fun lockedKeystoreRejectsCommand() {
 		every { core.secret.isUnlocked } returns MutableStateFlow(false)
 		registerCommand("test", Syntax.EMPTY)
-		assertEquals(1, dispatch("test").done().exitCode)
+		assertEquals(1, dispatch("test").first)
 	}
 	
 	@Test
 	fun helpAllowedWhenLocked() {
 		every { core.secret.isUnlocked } returns MutableStateFlow(false)
 		// help is auto-registered, dispatch should not fail with keystore error
-		val r = dispatch("help")
-		assertEquals(0, r.done().exitCode)
+		assertEquals(0, dispatch("help").first)
 	}
 	
 	// ── syntax conflict ───────────────────────────────────────────
@@ -154,8 +161,8 @@ class CommandRouterTest {
 			Syntax.Leaf(Param.Flag("same", "b", listOf("s")), required = false),
 		)
 		registerCommand("test", syntax)
-		assertEquals(1, dispatch("test").done().exitCode)
-		assertTrue(dispatch("test").stderr().any { it.contains("Duplicate") || it.contains("conflict") })
+		assertEquals(1, dispatch("test").first)
+		assertTrue(dispatch("test").second.stderr().any { it.contains("Duplicate") || it.contains("conflict") })
 	}
 	
 	// ── invalid args ──────────────────────────────────────────────
@@ -163,6 +170,6 @@ class CommandRouterTest {
 	@Test
 	fun invalidArgsReturnsError() {
 		registerCommand("test", all(Syntax.Leaf(Param.Flag("verbose", "v", listOf("v")), required = true)))
-		assertEquals(1, dispatch("test").done().exitCode)
+		assertEquals(1, dispatch("test").first)
 	}
 }

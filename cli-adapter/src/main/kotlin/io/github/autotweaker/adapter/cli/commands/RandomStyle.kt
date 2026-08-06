@@ -16,18 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.syntax
+package io.github.autotweaker.adapter.cli.commands
 
-import io.github.autotweaker.api.APP_NAME_LOWERCASE
+import kotlin.random.Random
 
-data class Request(
-	val values: Map<String, String>,
-	val positional: List<String>,
-	val prog: String = APP_NAME_LOWERCASE,
-	val isTty: Boolean = false,
-	private val aliasToCanonical: Map<String, String> = emptyMap(),
-) {
-	fun get(name: String): String? = values[name] ?: aliasToCanonical[name]?.let { values[it] }
-	
-	fun has(name: String): Boolean = name in values || aliasToCanonical[name] in values
+private val colors: List<StyleBuilder.(Boolean) -> Unit> = listOf(
+	StyleBuilder::black, StyleBuilder::red, StyleBuilder::green, StyleBuilder::yellow,
+	StyleBuilder::blue, StyleBuilder::magenta, StyleBuilder::cyan, StyleBuilder::white,
+)
+
+fun StyleBuilder.randomStyle() {
+	colors.random()(false)
+	colors.random()(true)
+	if (Random.nextBoolean()) bold()
+	if (Random.nextBoolean()) dim()
+	if (Random.nextBoolean()) italic()
+	if (Random.nextBoolean()) underline()
 }

@@ -18,20 +18,12 @@
 
 package io.github.autotweaker.adapter.cli.debugger.command
 
-import io.github.autotweaker.adapter.cli.commands.CmdOutput
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
-import io.github.autotweaker.adapter.cli.commands.Request
+import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.types.debug.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.flow
 
-class DebugHandler(
-	private val debug: DbDebugAPI,
-	private val prompt: suspend (String, Boolean) -> String
-) {
+class DebugHandler(private val debug: DbDebugAPI) {
 	companion object {
 		private val TABLES = listOf(
 			"setting", "jsonStore", "sessionData",
@@ -39,46 +31,38 @@ class DebugHandler(
 		)
 	}
 	
-	fun handle(request: Request): Flow<CmdOutput> = flow {
+	suspend fun Console.handle() {
 		when {
-			request.has("list") -> listEntries(request)
-			request.has("get") -> getEntry(request)
-			request.has("put") -> putEntry(request)
-			request.has("delete") -> deleteEntry(request)
+			hasArg("list") -> listEntries(getValue("list"))
+			hasArg("get") -> getEntry(getValue("get"))
+			hasArg("put") -> putEntry(getValue("put"))
+			hasArg("delete") -> deleteEntry(getValue("delete"))
 		}
 	}
 	
-	private suspend fun FlowCollector<CmdOutput>.listEntries(request: Request) {
-		val table = TABLES.first { request.has(it) }
-		val (from, to) = request.get("list")?.split("-", limit = 2)?.map { it.trim().toUInt() }
-			?: run { emitDone(1); return }
-		
-		entryApi(table).list(from..to).forEach {
-			emit(CmdOutput.Data(it.toString()))
-		}
-		emitDone()
+	private suspend fun Console.listEntries(range: String) {
+		val table = table()
+		val (from, to) = range.split("-", limit = 2).map { it.trim().toUInt() }
+		entryApi(table).list(from..to).forEach { out(it.toString()) }
 	}
 	
-	private suspend fun FlowCollector<CmdOutput>.getEntry(request: Request) {
-		val table = TABLES.first { request.has(it) }
-		val key = request.get("get") ?: run { emitDone(1); return }
-		val entry = entryApi(table).get(key)
-		emit(CmdOutput.Data(entry?.toString() ?: run { emitDone(1); return }))
-		emitDone()
+	private suspend fun Console.getEntry(key: String) {
+		val table = table()
+		val entry = entryApi(table).get(key) ?: error("Entry not found  key=$key")
+		out(entry.toString())
 	}
 	
-	private suspend fun FlowCollector<CmdOutput>.putEntry(request: Request) {
-		val table = TABLES.first { request.has(it) }
-		entryApi(table).put(promptEntry(table, request.get("put") ?: run { emitDone(1); return }))
-		emitDone()
+	private suspend fun Console.putEntry(key: String) {
+		val table = table()
+		entryApi(table).put(promptEntry(table, key))
 	}
 	
-	private suspend fun FlowCollector<CmdOutput>.deleteEntry(request: Request) {
-		val table = TABLES.first { request.has(it) }
-		val key = request.get("delete") ?: run { emitDone(1); return }
+	private suspend fun Console.deleteEntry(key: String) {
+		val table = table()
 		entryApi(table).delete(key)
-		emitDone()
 	}
+	
+	private suspend fun Console.table() = TABLES.first { hasArg(it) }
 	
 	private fun api(table: String): DbAPI<*> = when (table) {
 		"setting" -> debug.setting
@@ -93,44 +77,44 @@ class DebugHandler(
 	@Suppress("UNCHECKED_CAST")
 	private fun entryApi(table: String) = api(table) as DbAPI<DbEntry>
 	
-	private suspend fun promptEntry(table: String, key: String): DbEntry =
+	private suspend fun Console.promptEntry(table: String, key: String): DbEntry =
 		when (table) {
 			"setting" -> SettingEntry(
 				key,
-				prompt("value: ", true),
+				prompt("value:"),
 			)
 			
 			"jsonStore" -> JsonStoreEntry(
 				key,
-				prompt("content: ", true)
+				prompt("content:")
 			)
 			
 			"sessionData" -> SessionDataEntry(
 				key,
-				prompt("title: ", true),
-				prompt("overview: ", true),
-				prompt("model: ", true),
-				prompt("workspaceId: ", true),
+				prompt("title:"),
+				prompt("overview:"),
+				prompt("model:"),
+				prompt("workspaceId:"),
 			)
 			
 			"agentData" -> AgentDataEntry(
 				key,
-				prompt("name: ", true),
-				prompt("model: ", true),
-				prompt("context: ", true),
-				prompt("activeTools: ", true)
+				prompt("name:"),
+				prompt("model:"),
+				prompt("context:"),
+				prompt("activeTools:")
 			)
 			
 			"sessionMessage" -> SessionMessageEntry(
 				key,
-				prompt("type: ", true),
-				prompt("timestamp: ", true).toLong(),
-				prompt("content: ", true)
+				prompt("type:"),
+				prompt("timestamp:").toLong(),
+				prompt("content:")
 			)
 			
 			"secrets" -> SecretEntry(
 				key,
-				prompt("content: ", true)
+				prompt("content:")
 			)
 			
 			else -> error("Unknown table: $table")

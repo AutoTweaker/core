@@ -45,7 +45,12 @@ class Transport private constructor(
 	companion object {
 		suspend fun connect(path: Path): Transport {
 			val selectorManager = SelectorManager(Dispatchers.Default)
-			val socket = aSocket(selectorManager).tcp().connect(UnixSocketAddress(path.toString()))
+			val socket = try {
+				aSocket(selectorManager).tcp().connect(UnixSocketAddress(path.toString()))
+			} catch (e: Exception) {
+				selectorManager.close()
+				throw e
+			}
 			return Transport(selectorManager, socket)
 		}
 	}

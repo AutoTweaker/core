@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.adapter.cli.syntax
 
+import io.github.autotweaker.adapter.cli.console.Request
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
 
@@ -25,7 +26,7 @@ class ArgParser(
 	private val maxArgsCount: Int,
 ) : Loggable {
 	private val syntaxValidator = SyntaxValidator
-	fun parse(args: List<String>, syntax: Syntax, prog: String, isTty: Boolean): Request? {
+	fun parse(args: List<String>, syntax: Syntax): Request? {
 		val positional = mutableListOf<String>()
 		val values = mutableMapOf<String, String>()
 		var posCounter = 0
@@ -121,7 +122,7 @@ class ArgParser(
 			return null
 		}
 		
-		return Request(values, positional, prog, isTty, aliasMap)
+		return Request(values, positional, aliasMap)
 	}
 	
 	private fun buildAliasMap(params: List<Param>): Map<String, String> {

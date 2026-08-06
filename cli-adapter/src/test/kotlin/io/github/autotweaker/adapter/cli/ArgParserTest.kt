@@ -18,9 +18,10 @@
 
 package io.github.autotweaker.adapter.cli
 
-import io.github.autotweaker.adapter.cli.commands.Param
-import io.github.autotweaker.adapter.cli.commands.Request
-import io.github.autotweaker.adapter.cli.commands.Syntax
+import io.github.autotweaker.adapter.cli.console.Request
+import io.github.autotweaker.adapter.cli.syntax.ArgParser
+import io.github.autotweaker.adapter.cli.syntax.Param
+import io.github.autotweaker.adapter.cli.syntax.Syntax
 import kotlin.test.*
 
 class ArgParserTest {
@@ -28,7 +29,7 @@ class ArgParserTest {
 	private val parser = ArgParser(100_000)
 	
 	private fun parse(syntax: Syntax, vararg args: String): Request? =
-		parser.parse(args.toList(), syntax, "prog", false)
+		parser.parse(args.toList(), syntax)
 	
 	private fun flag(name: String, required: Boolean = false) =
 		Syntax.Leaf(Param.Flag(name, name, defaultAlias(name)), required = required)
@@ -226,6 +227,6 @@ class ArgParserTest {
 	@Test
 	fun exceedsMaxArgsRejected() {
 		val smallParser = ArgParser(2)
-		assertNull(smallParser.parse(listOf("a", "b", "c"), Syntax.EMPTY, "prog", false))
+		assertNull(smallParser.parse(listOf("a", "b", "c"), Syntax.EMPTY))
 	}
 }

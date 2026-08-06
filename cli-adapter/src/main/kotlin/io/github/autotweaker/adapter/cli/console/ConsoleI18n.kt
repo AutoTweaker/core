@@ -16,21 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
+package io.github.autotweaker.adapter.cli.console
 
-import kotlinx.serialization.Serializable
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.zh
+import io.github.autotweaker.api.i18n.I18nDef
 
-@Serializable
-sealed class CliMessage {
-	@Serializable
-	data class Command(
-		val args: List<String>,
-		val prog: String,
-		val isTty: Boolean,
-	) : CliMessage() {
-		fun command(): String? = args.firstOrNull()
-	}
+object ConsoleI18n {
+	@AutoService(I18nDef::class)
+	class MissingValue : I18nBase(
+		zh("无效的参数，缺失 '%s'"),
+	)
 	
-	@Serializable
-	data class PromptResponse(val text: String) : CliMessage()
+	@AutoService(I18nDef::class)
+	class MissingPos : I18nBase(
+		zh("无效的参数，缺失第 %s 个位置参数"),
+	)
 }

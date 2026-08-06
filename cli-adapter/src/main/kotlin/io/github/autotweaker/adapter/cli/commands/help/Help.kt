@@ -20,11 +20,11 @@ package io.github.autotweaker.adapter.cli.commands.help
 
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
-import io.github.autotweaker.adapter.cli.commands.Style
-import io.github.autotweaker.adapter.cli.syntax.Request
 import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.adapter.cli.syntax.SyntaxLeafBuilder
+import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
 
 class Help(private val loaded: List<Command>) : Command, I18nable {
@@ -40,13 +40,12 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 	
 	private val all: List<Command> get() = loaded + this
 	
-	override suspend fun Console.render(request: Request) {
-		val target = request.positional.firstOrNull()
+	override suspend fun Console.execute(core: CoreAPI): Nothing {
+		val target = getPositional().firstOrNull()
 		if (target != null) {
 			val cmd = all.find { it.name == target }
 			if (cmd == null) {
-				err(i18n(HelpI18n.Unknown(), target), Style.RED)
-				done(1)
+				error(i18n(HelpI18n.Unknown(), target))
 			}
 			renderDetail(cmd)
 			done()
@@ -56,7 +55,7 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 			out("  ${cmd.name}  —  ${cmd.description}")
 		}
 		ln()
-		out(i18n(HelpI18n.HelpHint(), request.prog))
+		out(i18n(HelpI18n.HelpHint(), APP_NAME_LOWERCASE))
 		done()
 	}
 	
@@ -66,8 +65,8 @@ class Help(private val loaded: List<Command>) : Command, I18nable {
 		if (lines.isNotEmpty()) {
 			ln()
 			out(i18n(HelpI18n.Params()))
-			for (line in lines) {
-				out(line)
+			lines.forEach {
+				out(it)
 			}
 		}
 	}

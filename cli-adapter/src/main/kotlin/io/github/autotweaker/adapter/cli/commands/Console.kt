@@ -24,33 +24,58 @@ import io.github.autotweaker.api.I18nable
 import kotlinx.coroutines.flow.Flow
 import kotlin.coroutines.cancellation.CancellationException
 
-enum class Style { GREEN, RED, YELLOW, BLUE, MAGENTA, CYAN, WHITE, BLACK, BOLD, DIM, ITALIC, UNDERLINE }
-
+@ConsoleDsl
 interface Console : I18nable {
-	suspend fun out(text: String, vararg styles: Style, newline: Boolean = true)
-	suspend fun err(text: String, vararg styles: Style, newline: Boolean = true)
+	suspend fun hasArg(name: String): Boolean
+	suspend fun getValue(name: String): String
+	suspend fun getPositional(): List<String>
+	suspend fun getPositional(index: Int): String
 	
+	suspend fun handleFlag(name: String, block: suspend () -> Unit) // 末尾自动 done(0)
+	suspend fun handleValue(name: String, block: suspend (String) -> Unit) // 末尾自动 done(0)
+	
+	suspend fun out(text: String, style: StyleBuilder.() -> Unit = {})
+	suspend fun err(text: String, style: StyleBuilder.() -> Unit = {})
 	suspend fun ln()
-	
-	suspend fun status(vararg lines: String)
-	suspend fun status(build: suspend StatusScope.() -> Unit)
-	suspend fun clearStatus()
-	
-	suspend fun prompt(text: String): String
-	suspend fun secret(text: String): String
 	
 	suspend fun <T> stream(flow: Flow<T>, render: suspend (T) -> Unit)
 	
-	suspend fun done(exitCode: Int = 0): Nothing
+	suspend fun prompt(text: String, style: StyleBuilder.() -> Unit = {}): String
+	suspend fun secret(text: String, style: StyleBuilder.() -> Unit = {}): String
 	
-	suspend fun clear()
 	suspend fun title(text: String)
-	suspend fun enterAltScreen()
-	suspend fun exitAltScreen()
+	suspend fun clear()
+	suspend fun altScreen(block: suspend () -> Unit)
+	
+	suspend fun done(exitCode: Int = 0): Nothing
+	suspend fun error(text: String, style: StyleBuilder.() -> Unit = {}): Nothing
 }
 
-interface StatusScope {
-	fun line(text: String, vararg styles: Style)
+@ConsoleDsl
+interface StyleBuilder {
+	var newline: Boolean // 默认 true
+	
+	fun black(background: Boolean = false)
+	fun red(background: Boolean = false)
+	fun green(background: Boolean = false)
+	fun yellow(background: Boolean = false)
+	fun blue(background: Boolean = false)
+	fun magenta(background: Boolean = false)
+	fun cyan(background: Boolean = false)
+	fun white(background: Boolean = false)
+	
+	fun bold()
+	fun dim()
+	fun italic()
+	fun underline()
 }
 
-class DoneException(val exitCode: Int) : CancellationException("Command done, exitCode=$exitCode")
+class DoneException(val exitCode: Int) : // 使用异常作为常规业务流程，允许 try-catch
+	CancellationException("Command done, exitCode=$exitCode") {
+	override fun fillInStackTrace(): Throwable {
+		return this
+	}
+}
+
+@DslMarker
+annotation class ConsoleDsl

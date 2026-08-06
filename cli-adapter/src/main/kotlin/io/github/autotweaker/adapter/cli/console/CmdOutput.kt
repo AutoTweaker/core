@@ -20,10 +20,6 @@ package io.github.autotweaker.adapter.cli.console
 
 import io.github.autotweaker.adapter.cli.OutputChannel
 
-sealed interface CmdOutput {
-	data class Data(
-		val text: String, val channel: OutputChannel = OutputChannel.STDOUT
-	) : CmdOutput
-	
-	data class Done(val exitCode: Int) : CmdOutput
-}
+data class CmdOutput(
+	val text: String, val channel: OutputChannel = OutputChannel.STDOUT
+)

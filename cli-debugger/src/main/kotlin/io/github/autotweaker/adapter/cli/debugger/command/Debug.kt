@@ -19,9 +19,11 @@
 package io.github.autotweaker.adapter.cli.debugger.command
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.*
-import io.github.autotweaker.adapter.cli.commands.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.debugger.CliDebugger
+import io.github.autotweaker.adapter.cli.syntax.XOR
+import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.INDENT
 import io.github.autotweaker.api.adapter.CoreAPI
@@ -29,9 +31,6 @@ import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 
 @AutoService(Command::class)
 class Debug : Command, I18nable {
@@ -57,28 +56,23 @@ class Debug : Command, I18nable {
 		}
 		
 	}
-	private lateinit var core: CoreAPI
 	private val debug get() = CliDebugger.instance
 	
-	override fun init(core: CoreAPI) {
-		this.core = core
-	}
-	
-	override fun handle(
-		request: Request, prompt: suspend (text: String, echo: Boolean) -> String
-	): Flow<CmdOutput> = flow {
-		if (request.has("list-db")) {
+	override suspend fun Console.execute(core: CoreAPI): Nothing {
+		if (hasArg("list-db")) {
 			debug.tables().forEach { (db, table) ->
-				emit(CmdOutput.Data(db))
+				out(db)
 				table.forEach { (name, count) ->
-					emit(CmdOutput.Data("$INDENT$name: $count"))
+					out("$INDENT$name: $count")
 				}
 			}
-			emitDone()
-			return@flow
+			done()
 		}
 		
-		emitAll(DebugHandler(debug, prompt).handle(request))
+		with(DebugHandler(debug)) {
+			handle()
+		}
+		done()
 	}
 	
 	@AutoService(I18nDef::class)
