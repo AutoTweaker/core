@@ -20,6 +20,7 @@ package io.github.autotweaker.adapter.cli.commands.model
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
 
@@ -47,6 +48,9 @@ object ModelI18n {
 	
 	@AutoService(I18nDef::class)
 	class ParamRemove : I18nBase(zh("删除指定模型"))
+	
+	@AutoService(I18nDef::class)
+	class ParamShow : I18nBase(zh("显示模型信息"))
 	
 	@AutoService(I18nDef::class)
 	class ParamDefault : I18nBase(zh("设置指定模型为一些模型无法解析时的回退模型"))
@@ -117,6 +121,64 @@ object ModelI18n {
 	
 	@AutoService(I18nDef::class)
 	class Unknown : I18nBase(zh("未知"))
+	
+	@AutoService(I18nDef::class)
+	class ModelName : I18nBase(
+		zh("模型名称: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ProviderName : I18nBase(
+		zh("提供商名称: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ModelId : I18nBase(
+		en("Model ID: %s"),
+		zh("模型ID: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ContextWindow : I18nBase(
+		en("Context window: %s"),
+		zh("上下文窗口: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class MaxOutput : I18nBase(
+		en("Max output: %s"),
+		zh("最大输出长度: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ModelFeature : I18nBase(
+		en("Features: %s"),
+		zh("能力: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class InputPrice : I18nBase(
+		en("Input price:"),
+		zh("输入价格:"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CachedPrice : I18nBase(
+		en("(cached)"),
+		zh("(命中缓存)"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class OutputPrice : I18nBase(
+		en("Output price:"),
+		zh("输出价格:"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Or : I18nBase(
+		en("or"),
+		zh("或"),
+	)
 	
 	const val TOKENS = "(tokens)"
 	const val YON = "(y/n)"

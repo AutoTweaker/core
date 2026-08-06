@@ -19,11 +19,9 @@
 package io.github.autotweaker.adapter.cli.commands.provider
 
 import io.github.autotweaker.adapter.cli.commands.Console
-import io.github.autotweaker.adapter.cli.commands.model.ModelFeature
+import io.github.autotweaker.adapter.cli.commands.model.Model.Companion.printModelInfo
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
 
 class ProviderQueries(private val core: CoreAPI) : I18nable {
@@ -80,70 +78,4 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 			)
 		}
 	}
-	
-	private suspend fun Console.printModelInfo(info: ModelData.ModelInfo) {
-		val feature = buildList {
-			if (info.supportsStreaming) add(i18n(ModelFeature.StreamingFeature()))
-			if (info.supportsToolCalls) add(i18n(ModelFeature.ToolCallFeature()))
-			if (info.supportsReasoning) add(i18n(ModelFeature.ReasoningFeature()))
-			if (info.supportsImage) add(i18n(ModelFeature.ImageFeature()))
-			if (info.supportsJsonOutput) add(i18n(ModelFeature.JsonOutputFeature()))
-		}.joinToString(separator = SPACE.toString()) { "[${it}]" }
-		
-		out(ProvQueriesI18n.ModelId(), info.modelId)
-		out(ProvQueriesI18n.ContextWindow(), formatUnit(info.contextWindow))
-		out(ProvQueriesI18n.MaxOutput(), formatUnit(info.maxOutputTokens))
-		out(ProvQueriesI18n.ModelFeature(), feature)
-		printTokenPrice(info.price)
-	}
-	
-	private suspend fun Console.printTokenPrice(price: ModelData.TokenPrice) {
-		suspend fun formatPrice(price: List<ModelData.TokenPrice.PriceTier>) {
-			price.forEach {
-				val from = it.fromTokens
-				val to = it.toTokens
-				out(
-					INDENT + when {
-						from == 0 && to == null -> buildPrice(it.price, it.cachedPrice)
-						to == null -> "[${formatUnit(from)}+] ${
-							buildPrice(
-								it.price, it.cachedPrice
-							)
-						}"
-						
-						else -> "[${formatUnit(from)} - ${formatUnit(to)}] ${
-							buildPrice(
-								it.price, it.cachedPrice
-							)
-						}"
-					}
-				)
-			}
-		}
-		
-		out(ProvQueriesI18n.InputPrice())
-		formatPrice(price.inputPrice)
-		out(ProvQueriesI18n.OutputPrice())
-		formatPrice(price.outputPrice)
-	}
-	
-	
-	private fun buildPrice(price: Price, cached: Price?): String {
-		fun formatPrice(price: Price) =
-			"${price.amount.toPlainString()} ${price.currency} / ${formatUnit(price.tokenUnit)} tokens"
-		
-		if (cached == null) return formatPrice(price)
-		return "${formatPrice(price)} ${i18n(ProvQueriesI18n.Or())} ${formatPrice(cached)} ${
-			i18n(
-				ProvQueriesI18n.CachedPrice()
-			)
-		}"
-	}
-	
-	private fun formatUnit(number: Int): String = when {
-		number == 0 -> 0
-		number % 1_000_000 == 0 -> "${number / 1_000_000}m"
-		number % 1_000 == 0 -> "${number / 1_000}k"
-		else -> number
-	}.toString()
 }

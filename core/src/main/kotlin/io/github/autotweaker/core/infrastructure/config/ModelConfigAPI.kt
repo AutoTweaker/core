@@ -33,8 +33,8 @@ object ModelConfigAPI : ModelConfigRepository, Loggable {
 	override suspend fun set(model: ModelConfig) {
 		require(store.getAll().values.all {
 			it.displayName != model.data.displayName
-					&& it.providerId == model.data.providerId
-		})
+					|| it.providerId != model.data.providerId
+		}) { "Model with name ${model.data.displayName} already exists" }
 		store.set(model.data)
 		log.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
 	}

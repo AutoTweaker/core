@@ -59,6 +59,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	
 	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) = lock.withLock {
 		check(store.getAll().values.all { it.displayName != provider.displayName })
+		{ "Provider with name ${provider.displayName} already exists" }
 		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.set(
 			ProviderData(

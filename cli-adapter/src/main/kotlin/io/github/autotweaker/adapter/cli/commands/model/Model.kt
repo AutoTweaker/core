@@ -23,10 +23,10 @@ import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
-import io.github.autotweaker.api.I18nable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.types.llm.ModelData
+import io.github.autotweaker.api.types.llm.Price
 import java.util.*
 
 @AutoService(Command::class)
@@ -46,6 +46,7 @@ class Model : Command, Traceable {
 		all {
 			xor {
 				flag("remove", ModelI18n.ParamRemove()) { aliases("rm") }
+				flag("show", ModelI18n.ParamShow())
 				flag("set-default", ModelI18n.ParamDefault()) { aliases() }
 			}
 			positional("provider", ModelI18n.ParamProvider())
@@ -86,6 +87,14 @@ class Model : Command, Traceable {
 			core.config.removeModel(id)
 		}
 		
+		handleFlag("show") {
+			val model = core.config.getModel(findModel(core))?.data ?: done(1)
+			out(ModelI18n.ModelName(), model.displayName)
+			out(ModelI18n.ProviderName(), getPositional(0))
+			printModelInfo(model.modelInfo)
+			
+		}
+		
 		handleFlag("set-default") {
 			core.config.setDefaultModel(findModel(core))
 		}
@@ -124,5 +133,71 @@ class Model : Command, Traceable {
 				?: error(ModelI18n.ModelNotFound(), model)
 			return modelId
 		}
+		
+		suspend fun Console.printModelInfo(info: ModelData.ModelInfo) {
+			val feature = buildList {
+				if (info.supportsStreaming) add(i18n(ModelFeature.StreamingFeature()))
+				if (info.supportsToolCalls) add(i18n(ModelFeature.ToolCallFeature()))
+				if (info.supportsReasoning) add(i18n(ModelFeature.ReasoningFeature()))
+				if (info.supportsImage) add(i18n(ModelFeature.ImageFeature()))
+				if (info.supportsJsonOutput) add(i18n(ModelFeature.JsonOutputFeature()))
+			}.joinToString(separator = SPACE.toString()) { "[${it}]" }
+			
+			out(ModelI18n.ModelId(), info.modelId)
+			out(ModelI18n.ContextWindow(), formatUnit(info.contextWindow))
+			out(ModelI18n.MaxOutput(), formatUnit(info.maxOutputTokens))
+			out(ModelI18n.ModelFeature(), feature)
+			printTokenPrice(info.price)
+		}
+		
+		private suspend fun Console.printTokenPrice(price: ModelData.TokenPrice) {
+			suspend fun formatPrice(price: List<ModelData.TokenPrice.PriceTier>) {
+				price.forEach {
+					val from = it.fromTokens
+					val to = it.toTokens
+					out(
+						INDENT + when {
+							from == 0 && to == null -> buildPrice(it.price, it.cachedPrice)
+							to == null -> "[${formatUnit(from)}+] ${
+								buildPrice(
+									it.price, it.cachedPrice
+								)
+							}"
+							
+							else -> "[${formatUnit(from)} - ${formatUnit(to)}] ${
+								buildPrice(
+									it.price, it.cachedPrice
+								)
+							}"
+						}
+					)
+				}
+			}
+			
+			out(ModelI18n.InputPrice())
+			formatPrice(price.inputPrice)
+			out(ModelI18n.OutputPrice())
+			formatPrice(price.outputPrice)
+		}
+		
+		
+		private fun buildPrice(price: Price, cached: Price?): String {
+			fun formatPrice(price: Price) =
+				"${price.amount.toPlainString()} ${price.currency} / ${formatUnit(price.tokenUnit)} tokens"
+			
+			if (cached == null) return formatPrice(price)
+			return "${formatPrice(price)} ${i18n(ModelI18n.Or())} ${formatPrice(cached)} ${
+				i18n(
+					ModelI18n.CachedPrice()
+				)
+			}"
+		}
+		
+		private fun formatUnit(number: Int): String = when {
+			number == 0 -> 0
+			number % 1_000_000 == 0 -> "${number / 1_000_000}m"
+			number % 1_000 == 0 -> "${number / 1_000}k"
+			else -> number
+		}.toString()
 	}
 }

@@ -34,6 +34,9 @@ class ProviderCommands(
 		val name = name ?: promptOrError(
 			ProvCommandsI18n.PromptName(), ProvCommandsI18n.MissingName()
 		)
+		if (core.config.listProviders().any { it.displayName == name })
+			error(ProvCommandsI18n.ProviderExistsError(), name)
+		
 		val type = type ?: promptOrError(
 			ProvCommandsI18n.PromptType(), ProvCommandsI18n.MissingType()
 		)
