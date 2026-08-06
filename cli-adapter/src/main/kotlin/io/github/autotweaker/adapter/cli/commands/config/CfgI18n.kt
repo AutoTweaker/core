@@ -108,7 +108,7 @@ object CfgI18n {
 	@AutoService(I18nDef::class)
 	class OutType : I18nBase(
 		en("Type: %s"),
-		zh("格式: %s"),
+		zh("类型: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -124,12 +124,12 @@ object CfgI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class ShowSetting : I18nBase(
+	class ResetConfirmShowing : I18nBase(
 		zh("以下内容将被重置为默认:"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class SureReset : I18nBase(
+	class ResetConfirm : I18nBase(
 		zh("输入 (y/yes) 确认:"),
 	)
 	
