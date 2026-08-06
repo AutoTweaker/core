@@ -80,7 +80,7 @@ class ModelAdd(
 			val price = promptTokenPrice()
 			
 			suspend fun promptFeature(featureI18n: I18nDef) =
-				promptYesOrNo(ModelI18n.PromptSetFeature(), i18n(featureI18n))
+				confirm(ModelI18n.PromptSetFeature(), i18n(featureI18n))
 			
 			val supportsStreaming = promptFeature(ModelFeature.StreamingFeature())
 			val supportsToolCalls = promptFeature(ModelFeature.ToolCallFeature())
@@ -116,11 +116,11 @@ class ModelAdd(
 	}
 	
 	private suspend fun Console.promptTokenPrice(): ModelData.TokenPrice {
-		val inputPrice = if (promptYesOrNo(ModelI18n.PromptSetInputPrice()))
+		val inputPrice = if (confirm(ModelI18n.PromptSetInputPrice()))
 			promptPriceTierList()
 		else emptyList()
 		
-		val outputPrice = if (promptYesOrNo(ModelI18n.PromptSetOutputPrice()))
+		val outputPrice = if (confirm(ModelI18n.PromptSetOutputPrice()))
 			promptPriceTierList()
 		else emptyList()
 		
@@ -131,14 +131,14 @@ class ModelAdd(
 		val priceList = mutableListOf<PriceTier>()
 		priceList.add(promptPriceTier())
 		while (true) {
-			if (!promptYesOrNo(ModelI18n.PromptSetPrice())) break
+			if (!confirm(ModelI18n.PromptSetPrice())) break
 			priceList.add(promptPriceTier())
 		}
 		return priceList.toList()
 	}
 	
 	private suspend fun Console.promptPriceTier(): PriceTier {
-		val tieredPrice: Boolean = promptYesOrNo(ModelI18n.PromptTieredPrice())
+		val tieredPrice: Boolean = confirm(ModelI18n.PromptTieredPrice())
 		val fromTokens: Int
 		val toTokens: Int?
 		if (tieredPrice) {
@@ -153,7 +153,7 @@ class ModelAdd(
 		}
 		val price = promptPrice()
 		val cachedPrice: Price? =
-			if (promptYesOrNo(ModelI18n.PromptSetCachedPrice()))
+			if (confirm(ModelI18n.PromptSetCachedPrice()))
 				promptPrice()
 			else null
 		return PriceTier(fromTokens, toTokens, price, cachedPrice)
@@ -172,14 +172,6 @@ class ModelAdd(
 			)
 		}.getOrElse { invalidValue() }
 		return Price(price, currency, tokenUnit)
-	}
-	
-	private suspend fun Console.promptYesOrNo(key: I18nDef, vararg args: Any): Boolean {
-		val result = prompt(key, *args).trim()
-		return when (result) {
-			"y", "yes", "true" -> true
-			else -> false
-		}
 	}
 	
 	suspend fun Console.invalidValue(): Nothing = error(ModelI18n.InvalidValue())

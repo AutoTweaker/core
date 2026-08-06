@@ -41,7 +41,11 @@ object ModelResolverImpl : ImmutableStore<UUID?>(), ModelResolver, Loggable {
 	
 	fun getDefaultModel(): UUID? = cache.get()
 	
-	suspend fun setDefaultModel(id: UUID) {
+	suspend fun setDefaultModel(id: UUID?) {
+		if (id == null) {
+			cache.set(null)
+			return
+		}
 		requireNotNull(ModelStore.get(id)) { "Model not found: $id" }
 		cache.set(id)
 		log.info("Set default model  modelId={}", id)

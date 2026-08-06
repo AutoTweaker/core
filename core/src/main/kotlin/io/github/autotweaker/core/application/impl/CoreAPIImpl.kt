@@ -114,7 +114,7 @@ class CoreAPIImpl(
 		}
 		
 		override fun getDefaultModel(): UUID? = ModelResolverImpl.getDefaultModel()
-		override suspend fun setDefaultModel(id: UUID) = ModelResolverImpl.setDefaultModel(id)
+		override suspend fun setDefaultModel(id: UUID?) = ModelResolverImpl.setDefaultModel(id)
 		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
 		override suspend fun listApiKey() = apiKeyRepo.list()
 		override suspend fun removeApiKey(name: String) = apiKeyRepo.remove(name)

@@ -400,7 +400,7 @@ interface CoreAPI {
 		 *
 		 * @throws IllegalArgumentException 找不到模型。
 		 */
-		suspend fun setDefaultModel(id: UUID)
+		suspend fun setDefaultModel(id: UUID?)
 		
 		/**
 		 * 添加一个新的 api key。

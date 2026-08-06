@@ -69,11 +69,10 @@ class ProviderCommands(
 	suspend fun Console.remove(name: String, yes: Boolean) {
 		val id = core.config.listProviders().find { it.displayName == name }?.id
 			?: error(ProvI18n.ProviderNotFound(), name)
+		val models = core.config.listModels().filter { it.data.providerId == id }
 		
-		if (!yes) {
-			val sure = prompt(ProvCommandsI18n.RemoveConfirm()).trim()
-			if (sure != "yes" && sure != "y") done(1)
-		}
+		if (!yes && !confirm(ProvCommandsI18n.RemoveConfirm(), name, models.count()))
+			done(1)
 		
 		core.config.removeProvider(id)
 	}

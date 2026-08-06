@@ -87,7 +87,7 @@ object ProvCommandsI18n {
 	
 	@AutoService(I18nDef::class)
 	class RemoveConfirm : I18nBase(
-		zh("即将删除提供商 %s，输入 (y/yes) 确认删除:"),
+		zh("即将删除提供商 %s 及其所有 %s 个模型，输入 (y/yes) 确认删除:"),
 	)
 	
 	@AutoService(I18nDef::class)

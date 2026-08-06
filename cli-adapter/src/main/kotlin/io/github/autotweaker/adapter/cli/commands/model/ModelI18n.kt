@@ -101,6 +101,15 @@ object ModelI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class ParamResetDefault : I18nBase(zh("重置默认模型"))
+	
+	@AutoService(I18nDef::class)
+	class ParamGetDefault : I18nBase(zh("获取当前默认模型"))
+	
+	@AutoService(I18nDef::class)
+	class RemoveDefaultError : I18nBase(zh("不能删除默认模型"))
+	
+	@AutoService(I18nDef::class)
 	class PromptPriceCurrency : I18nBase(zh("货币代码，必须为三位英文字母:"))
 	
 	@AutoService(I18nDef::class)

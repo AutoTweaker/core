@@ -45,6 +45,7 @@ interface Console : I18nable {
 	
 	suspend fun prompt(text: String, style: StyleBuilder.() -> Unit = {}): String
 	suspend fun secret(text: String, style: StyleBuilder.() -> Unit = {}): String
+	suspend fun confirm(text: String, style: StyleBuilder.() -> Unit = {}): Boolean
 	
 	suspend fun title(text: String)
 	suspend fun clear()
@@ -58,6 +59,7 @@ interface Console : I18nable {
 	suspend fun err(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {})
 	suspend fun prompt(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): String
 	suspend fun secret(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): String
+	suspend fun confirm(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): Boolean
 	suspend fun title(def: I18nDef, vararg args: Any?)
 	suspend fun error(def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit = {}): Nothing
 }

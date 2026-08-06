@@ -33,4 +33,9 @@ object ConsoleI18n {
 	class MissingPos : I18nBase(
 		zh("无效的参数，缺失第 %s 个位置参数"),
 	)
+	
+	@AutoService(I18nDef::class)
+	class InvalidConfirm : I18nBase(
+		zh("无效的值 '%s'，请输入 y/n 或类似值"),
+	)
 }

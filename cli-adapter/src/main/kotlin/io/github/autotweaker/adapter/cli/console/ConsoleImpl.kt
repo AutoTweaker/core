@@ -93,6 +93,13 @@ class ConsoleImpl(
 		style: StyleBuilder.() -> Unit
 	): String = prompt(text, style, echo = false)
 	
+	override suspend fun confirm(text: String, style: StyleBuilder.() -> Unit): Boolean =
+		when (val result = prompt(text, style).trim().lowercase()) {
+			"y", "t", "a", "1", "yes", "true", "approve" -> true
+			"n", "f", "r", "0", "no", "false", "reject" -> false
+			else -> error(ConsoleI18n.InvalidConfirm(), result)
+		}
+	
 	override suspend fun title(text: String) {
 		if (isTty) stdout(Ansi.title(text))
 	}
@@ -138,6 +145,10 @@ class ConsoleImpl(
 		vararg args: Any?,
 		style: StyleBuilder.() -> Unit
 	): String = secret(i18n(def, *args), style)
+	
+	override suspend fun confirm(
+		def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit
+	): Boolean = confirm(i18n(def, *args), style)
 	
 	override suspend fun title(def: I18nDef, vararg args: Any?) =
 		title(i18n(def, *args))

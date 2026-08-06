@@ -51,6 +51,11 @@ class Model : Command, Traceable {
 			positional("provider", ModelI18n.ParamProvider())
 			positional("model", ModelI18n.ParamName())
 		}
+		
+		xor {
+			flag("get-default", ModelI18n.ParamGetDefault()) { aliases() }
+			flag("reset-default", ModelI18n.ParamResetDefault()) { aliases() }
+		}
 	}
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
@@ -76,24 +81,36 @@ class Model : Command, Traceable {
 		}
 		
 		handleFlag("remove") {
-			core.config.removeModel(findModel(core))
+			val id = findModel(core)
+			if (id == core.config.getDefaultModel()) error(ModelI18n.RemoveDefaultError())
+			core.config.removeModel(id)
 		}
 		
 		handleFlag("set-default") {
 			core.config.setDefaultModel(findModel(core))
 		}
 		
+		handleFlag("get-default") {
+			core.config.getDefaultModel()?.let { printModel(it, core) } ?: out("null")
+		}
+		
+		handleFlag("reset-default") {
+			core.config.setDefaultModel(null)
+		}
+		
 		done(1)
 	}
 	
-	private suspend fun Console.list(core: CoreAPI): Nothing {
-		val provider = core.config.listProviders()
+	private suspend fun Console.list(core: CoreAPI) {
 		core.config.listModels().forEach { model ->
-			val providerName =
-				provider.find { it.id == model.data.providerId }?.displayName ?: i18n(ModelI18n.Unknown())
-			out("[$providerName] ${model.data.displayName}")
+			printModel(model.data.id, core)
 		}
-		done()
+	}
+	
+	private suspend fun Console.printModel(id: UUID, core: CoreAPI) {
+		val model = core.config.getModel(id) ?: error(id.toString())
+		val providerName = core.config.getProvider(model.data.providerId)?.displayName ?: i18n(ModelI18n.Unknown())
+		out("[$providerName] ${model.data.displayName}")
 	}
 	
 	companion object : I18nable {

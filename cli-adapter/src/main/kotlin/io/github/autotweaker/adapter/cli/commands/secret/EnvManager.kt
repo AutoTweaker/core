@@ -18,43 +18,36 @@
 
 package io.github.autotweaker.adapter.cli.commands.secret
 
-import io.github.autotweaker.adapter.cli.console.CmdOutput
-import io.github.autotweaker.adapter.cli.console.CmdOutput.Companion.emitDone
+import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.config.CoreConfig
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 
 class EnvManager(
-	private val core: CoreAPI, private val prompt: suspend (text: String, echo: Boolean) -> String
+	private val core: CoreAPI
 ) : I18nable {
-	
-	fun list(type: EnvType): Flow<CmdOutput> = flow {
+	suspend fun Console.list(type: EnvType) {
 		core.config.listEnv(
 			type.toCoreConfig()
 		).forEach {
-			emit(CmdOutput.Data(it))
-		}.also {
-			emitDone()
+			out(it)
 		}
 	}
 	
-	fun add(type: EnvType, name: String): Flow<CmdOutput> = flow {
-		val value = prompt(i18n(SecretI18n.PromptInputApiKey()), false)
+	suspend fun Console.add(type: EnvType, name: String) {
+		val value = secret(SecretI18n.PromptInputApiKey())
 		core.config.setEnv(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig()))
-		emitDone()
 	}
 	
-	fun get(type: EnvType, name: String): Flow<CmdOutput> = flow {
-		core.config.getEnv(type.toCoreConfig(), name)?.let { emit(CmdOutput.Data(it)) }
-		emitDone()
+	suspend fun Console.get(type: EnvType, name: String) {
+		val value = core.config.getEnv(type.toCoreConfig(), name)
+			?: error(SecretI18n.KeyNotFoundError(), name)
+		out(value)
 	}
 	
-	fun remove(type: EnvType, name: String): Flow<CmdOutput> = flow {
-		core.config.removeEnv(type.toCoreConfig(), name)
-		emitDone()
+	suspend fun Console.remove(type: EnvType, name: String) {
+		if (!core.config.removeEnv(type.toCoreConfig(), name))
+			error(SecretI18n.KeyNotFoundError(), name)
 	}
 	
 	private fun EnvType.toCoreConfig(): CoreConfig.JsonConfig.Env.Type = when (this) {
