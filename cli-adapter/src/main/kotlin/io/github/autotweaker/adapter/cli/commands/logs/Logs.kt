@@ -22,13 +22,16 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.commands.StyleBuilder
-import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.adapter.cli.syntax.ALL
+import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.SPACE
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.types.log.ExceptionInfo
+import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -40,22 +43,37 @@ import kotlin.time.Instant
 class Logs : Command {
 	override val name = "logs"
 	override val description = i18n(Desc())
-	override val syntax = Syntax.EMPTY
+	override val syntax = buildSyntax(ALL) {
+		value("filter", Filter()) { required = false }
+	}
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		defaultNewline = false
+		handleValue("filter") { logger ->
+			core.log.flow.collect {
+				if (it.logger.startsWith(logger))
+					it.printLog()
+			}
+		}
 		core.log.flow.collect {
-			out(it.timestamp.toTimestamp())
+			it.printLog()
+		}
+	}
+	
+	context(c: Console)
+	private suspend fun LogEvent<ExceptionInfo.Live>.printLog() {
+		with(c) {
+			out(timestamp.toTimestamp())
 			space()
-			out("[${it.thread}]") { magenta() }
+			out("[${thread}]") { magenta() }
 			space()
-			out(it.level.toString()) { it.level.toColor() }
+			out(level.toString()) { level.toColor() }
 			space()
-			out(abbreviateLogger(it.logger)) { blue() }
+			out(abbreviateLogger(logger)) { blue() }
 			out(" - ")
-			out(it.message) { it.level.toColor() }
+			out(message) { level.toColor() }
 			ln()
-			it.exception?.throwable?.stackTraceToString()?.let { text ->
+			exception?.throwable?.stackTraceToString()?.let { text ->
 				out(text.trimEnd()) { red() }
 				ln()
 			}
@@ -103,5 +121,10 @@ class Logs : Command {
 	@AutoService(I18nDef::class)
 	class Desc : I18nBase(
 		zh("显示程序日志"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Filter : I18nBase(
+		zh("仅显示属于指定包及其子包的日志"),
 	)
 }
