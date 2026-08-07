@@ -59,7 +59,7 @@ object Protocol {
 					}
 				}
 			}
-			printErr("Error: server disconnected.")
+			printErr("Error: server disconnected.\n")
 			return 1
 		} finally {
 			endNoEcho()

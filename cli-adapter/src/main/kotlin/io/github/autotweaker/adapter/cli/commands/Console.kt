@@ -27,6 +27,8 @@ import kotlin.coroutines.cancellation.CancellationException
 
 @ConsoleDsl
 interface Console : I18nable {
+	var defaultNewline: Boolean // 默认 true
+	
 	suspend fun hasArg(name: String): Boolean
 	suspend fun getValue(name: String): String
 	suspend fun getValueOrNull(name: String): String?
@@ -66,7 +68,7 @@ interface Console : I18nable {
 
 @ConsoleDsl
 interface StyleBuilder {
-	var newline: Boolean // 默认 true
+	var newline: Boolean
 	
 	fun black(background: Boolean = false)
 	fun red(background: Boolean = false)

@@ -22,17 +22,28 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.api.APP_NAME
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.en
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.i18n.I18nDef
 
 @AutoService(Command::class)
 class Version : Command {
 	override val name = "version"
-	override val description = i18n(VersionI18n.Desc())
+	override val description = i18n(Desc())
 	override val syntax = Syntax.EMPTY
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		out(core.appVersion.toString())
 		done()
 	}
+	
+	@AutoService(I18nDef::class)
+	class Desc : I18nBase(
+		en("Show $APP_NAME version"),
+		zh("显示应用版本号"),
+	)
 }

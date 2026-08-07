@@ -39,11 +39,11 @@ class Config : Command, Traceable {
 	@AutoService(SettingDef::class)
 	class DefaultLimit : IntSetting(
 		500, zh(
-			"cfg命令的默认limit参数值"
+			"config命令的默认limit参数值"
 		)
 	)
 	
-	override val name: String = "cfg"
+	override val name: String = "config"
 	override val description: String = i18n(CfgI18n.Desc())
 	override val syntax = buildSyntax(XOR) {
 		all {

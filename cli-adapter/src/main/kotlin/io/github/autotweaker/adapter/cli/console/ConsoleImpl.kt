@@ -34,6 +34,8 @@ class ConsoleImpl(
 	private val readLine: suspend (echo: Boolean) -> String,
 	private val output: suspend (CmdOutput) -> Unit
 ) : Console {
+	override var defaultNewline = true
+	
 	override suspend fun hasArg(name: String): Boolean =
 		request.has(name)
 	
@@ -164,12 +166,12 @@ class ConsoleImpl(
 		style: StyleBuilder.() -> Unit,
 		echo: Boolean
 	): String {
-		stderr(buildStyle(text + SPACE, style, defaultNewLine = false))
+		stderr(buildStyle(text + SPACE, style, newline = false))
 		return readLine(echo)
 	}
 	
-	private fun buildStyle(text: String, style: StyleBuilder.() -> Unit, defaultNewLine: Boolean = true): String {
-		val style = StyleBuilderImpl(defaultNewLine).apply(style)
+	private fun buildStyle(text: String, style: StyleBuilder.() -> Unit, newline: Boolean? = null): String {
+		val style = StyleBuilderImpl(newline ?: defaultNewline).apply(style)
 		val string = if (style.newline) text + '\n' else text
 		return if (isTty) Ansi.styled(string, *style.codes.toTypedArray())
 		else string
