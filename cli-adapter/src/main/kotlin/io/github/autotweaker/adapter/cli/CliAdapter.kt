@@ -30,14 +30,13 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 
 @AutoService(Adapter::class)
 class CliAdapter : Adapter, Loggable {
-	private val info by lazy {
-		AdapterInfo(
-			name = "cli-adapter".toKebab(),
-			description = "AutoTweaker CLI Adapter",
-			version = SemVer.parse("0.1.0"),
-			source = "https://github.com/AutoTweaker/core".toUrl(),
-		)
-	}
+	private val info = AdapterInfo(
+		name = "cli-adapter".toKebab(),
+		description = "AutoTweaker CLI Adapter",
+		version = SemVer.parse("0.1.0"),
+		source = "https://github.com/AutoTweaker/core".toUrl(),
+	)
+	
 	private lateinit var core: CoreAPI
 	
 	override val isRunning: Boolean get() = CliServer.isRunning

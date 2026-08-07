@@ -103,7 +103,7 @@ object Launcher : Loggable, Traceable {
 		val adapters = all.groupBy { (_, info) -> info.name }
 			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
 		
-		if (!adapters.isEmpty()) {
+		if (adapters.isNotEmpty()) {
 			log.info("Found adapters to start  count={}", adapters.size)
 			adapters.forEach { (adapter, info) ->
 				registry[info.name] = adapter to info

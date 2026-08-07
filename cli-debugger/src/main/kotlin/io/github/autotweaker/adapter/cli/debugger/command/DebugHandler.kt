@@ -31,13 +31,12 @@ class DebugHandler(private val debug: DbDebugAPI) {
 		)
 	}
 	
-	suspend fun Console.handle() {
-		when {
-			hasArg("list") -> listEntries(getValue("list"))
-			hasArg("get") -> getEntry(getValue("get"))
-			hasArg("put") -> putEntry(getValue("put"))
-			hasArg("delete") -> deleteEntry(getValue("delete"))
-		}
+	suspend fun Console.handle(): Nothing {
+		handleValue("list") { listEntries(it) }
+		handleValue("get") { getEntry(it) }
+		handleValue("put") { putEntry(it) }
+		handleValue("delete") { deleteEntry(it) }
+		done(1)
 	}
 	
 	private suspend fun Console.listEntries(range: String) {
@@ -48,7 +47,7 @@ class DebugHandler(private val debug: DbDebugAPI) {
 	
 	private suspend fun Console.getEntry(key: String) {
 		val table = table()
-		val entry = entryApi(table).get(key) ?: error("Entry not found  key=$key")
+		val entry = entryApi(table).get(key) ?: error("Entry not found: $key")
 		out(entry.toString())
 	}
 	

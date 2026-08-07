@@ -59,20 +59,18 @@ class Debug : Command, I18nable {
 	private val debug get() = CliDebugger.instance
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
-		if (hasArg("list-db")) {
+		handleFlag("list-db") {
 			debug.tables().forEach { (db, table) ->
 				out(db)
 				table.forEach { (name, count) ->
 					out("$INDENT$name: $count")
 				}
 			}
-			done()
 		}
 		
 		with(DebugHandler(debug)) {
 			handle()
 		}
-		done()
 	}
 	
 	@AutoService(I18nDef::class)

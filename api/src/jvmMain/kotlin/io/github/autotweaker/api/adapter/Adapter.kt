@@ -38,6 +38,8 @@ interface Adapter {
 	
 	/**
 	 * 初始化适配器，请不要在此时启动适配器，只做初始化工作。
+	 *
+	 * 会且仅会在 AutoTweaker 启动后调用一次。
 	 */
 	suspend fun init(core: CoreAPI): AdapterInfo
 	
