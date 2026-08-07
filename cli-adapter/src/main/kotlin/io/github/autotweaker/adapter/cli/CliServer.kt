@@ -27,9 +27,7 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.charsets.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
 import java.io.IOException
@@ -37,6 +35,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.path.deleteIfExists
 
@@ -114,7 +113,9 @@ object CliServer : Loggable, Traceable {
 	
 	private suspend fun handle(socket: Socket, router: CommandRouter) =
 		socket.use {
-			val receiveChannel = socket.openReadChannel()
+			val readChannel = ByteChannel(false)
+			val readerJob = socket.attachForReading(readChannel)
+			val receiveChannel: ByteReadChannel = readChannel
 			val sendChannel = socket.openWriteChannel(autoFlush = true)
 			
 			val line = receiveChannel.readCliLine() ?: run {
@@ -123,6 +124,20 @@ object CliServer : Loggable, Traceable {
 			val command = json.decodeFromString<CliMessage.Command>(line)
 			
 			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
+			
+			val cmdName = command.command()
+			val done = AtomicBoolean(false)
+			val disconnected = AtomicBoolean(false)
+			val parentJob = currentCoroutineContext()[Job]
+			readerJob.invokeOnCompletion {
+				if (!done.get() && disconnected.compareAndSet(false, true)) {
+					log.warn(
+						"Client disconnected during command  command={}  reason=connection closed by peer",
+						cmdName
+					)
+					parentJob?.cancel(CancellationException("Client disconnected"))
+				}
+			}
 			
 			val responseLock = ReentrantMutex()
 			val prompt: suspend (echo: Boolean) -> String = { echo ->
@@ -142,19 +157,20 @@ object CliServer : Loggable, Traceable {
 				}
 			}
 			
-			val cmdName = command.command()
 			trace.catching {
 				val exitCode = router.dispatch(command, prompt, output)
+				done.set(true)
 				log.debug("Command finished  exitCode={}", exitCode)
 				responseLock.withLock {
 					sendChannel.writeResponse(CliResponse.Done(exitCode))
 				}
 			}.rethrowCancellation()
 				.recoverException { e: IOException ->
-					log.warn(
-						"Disconnected client during command  command={}  reason={}",
-						cmdName, e.message
-					)
+					if (disconnected.compareAndSet(false, true))
+						log.warn(
+							"Disconnected client during command  command={}  reason={}",
+							cmdName, e.message
+						)
 				}.onFailure { e ->
 					log.error("Command failed  command={}", cmdName, e)
 					responseLock.withLock {
