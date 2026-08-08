@@ -91,7 +91,7 @@ class Mutable<T> private constructor(
 		@Deprecated(
 			"Already a Mutable object. Avoid nesting.",
 			level = DeprecationLevel.ERROR,
-			replaceWith = ReplaceWith("")
+			replaceWith = ReplaceWith("this")
 		)
 		@Suppress("UnusedReceiverParameter")
 		fun <T> Mutable<T>.mutable(): Nothing = throw UnsupportedOperationException()
@@ -102,7 +102,7 @@ class Mutable<T> private constructor(
 		@Deprecated(
 			"Already a Mutable object. Avoid nesting.",
 			level = DeprecationLevel.ERROR,
-			replaceWith = ReplaceWith("")
+			replaceWith = ReplaceWith("this")
 		)
 		@Suppress("UnusedReceiverParameter")
 		fun <T> MutableCollection<T>.mutable(): Nothing = throw UnsupportedOperationException()
@@ -113,7 +113,7 @@ class Mutable<T> private constructor(
 		@Deprecated(
 			"Already a Mutable object. Avoid nesting.",
 			level = DeprecationLevel.ERROR,
-			replaceWith = ReplaceWith("")
+			replaceWith = ReplaceWith("this")
 		)
 		@Suppress("UnusedReceiverParameter")
 		fun <K, V> MutableMap<K, V>.mutable(): Nothing = throw UnsupportedOperationException()
