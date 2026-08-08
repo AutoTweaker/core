@@ -16,6 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api.types.exception.notfound
 
-class PasswordInvalidException : IllegalStateException("Invalid password")
+import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.types.exception.ExceptionI18n
+import java.util.*
+
+class ModelNotFoundException(override val id: UUID) : NotFoundException("Model not found", id) {
+	override fun message() = i18n(ExceptionI18n.ModelNotFoundException(), id)
+}

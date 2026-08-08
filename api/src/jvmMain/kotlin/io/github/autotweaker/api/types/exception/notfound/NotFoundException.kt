@@ -16,12 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api.types.exception.notfound
 
-import io.github.autotweaker.api.i18n
-import java.nio.file.Path
+import io.github.autotweaker.api.types.exception.AutoTweakerException
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
-}
+abstract class NotFoundException(message: String, open val id: Any) :
+	AutoTweakerException("$message: $id")

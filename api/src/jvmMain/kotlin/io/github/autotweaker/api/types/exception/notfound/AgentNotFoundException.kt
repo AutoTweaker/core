@@ -16,12 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api.types.exception.notfound
 
 import io.github.autotweaker.api.i18n
-import java.nio.file.Path
+import io.github.autotweaker.api.types.exception.ExceptionI18n
+import java.util.*
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
+class AgentNotFoundException(message: String, override val id: UUID, val sessionId: UUID) :
+	NotFoundException(message, id) {
+	constructor(id: UUID, sessionId: UUID) :
+			this("Main agent not found for session '$sessionId'", id, sessionId)
+	
+	override fun message() = i18n(ExceptionI18n.AgentNotFoundException(), id, sessionId)
 }

@@ -19,9 +19,13 @@
 package io.github.autotweaker.api.types.exception
 
 import io.github.autotweaker.api.i18n
-import java.nio.file.Path
+import java.util.*
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
+class DefaultModelDeletionException private constructor(message: String) :
+	AutoTweakerException(message) {
+	constructor(id: UUID) : this("Cannot remove default model: $id")
+	constructor(id: UUID, providerId: UUID) :
+			this("Cannot remove provider '$providerId', contains default model: $id")
+	
+	override fun message() = i18n(ExceptionI18n.DefaultModelDeletionException())
 }

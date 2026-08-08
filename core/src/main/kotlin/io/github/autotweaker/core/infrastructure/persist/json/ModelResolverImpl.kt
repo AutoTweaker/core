@@ -76,10 +76,10 @@ object ModelResolverImpl : ImmutableStore<UUID?>(), ModelResolver, Loggable {
 			log.warn("Resolved model via default  requestedId={}  defaultId={}", id, defaultId)
 			return defaultId
 		}
-		for (model in ModelStore.getAll())
-			if (ProviderStore.get(model.value.providerId) != null)
-				return model.key.andLog(log) {
-					warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, model.key)
+		for ((key, value) in ModelStore.getAll())
+			if (ProviderStore.get(value.providerId) != null)
+				return key.andLog(log) {
+					warn("Resolved model via fallback  requestedId={}  fallbackId={}", id, key)
 				}
 		
 		return id

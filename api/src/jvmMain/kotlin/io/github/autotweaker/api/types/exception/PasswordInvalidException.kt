@@ -19,9 +19,7 @@
 package io.github.autotweaker.api.types.exception
 
 import io.github.autotweaker.api.i18n
-import java.nio.file.Path
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
+class PasswordInvalidException : AutoTweakerException("Invalid password") {
+	override fun message() = i18n(ExceptionI18n.PasswordInvalidException())
 }

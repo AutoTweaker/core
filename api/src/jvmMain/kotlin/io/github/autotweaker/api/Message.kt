@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.i18n
-import java.nio.file.Path
+import io.github.autotweaker.api.types.exception.AutoTweakerException
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
-}
+/**
+ * 格式化异常信息，包括类名、message、cause。
+ *
+ * 如果为 [AutoTweakerException] 会直接使用其本地化字符串。
+ */
+fun Throwable.message(): String = if (this is AutoTweakerException) message() else buildMessage()

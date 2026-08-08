@@ -16,17 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api
+package io.github.autotweaker.api.types.exception.notfound
 
-/**
- * 格式化异常信息，包括类名、message、cause。
- */
-fun Throwable.message(): String = buildString {
-	append(className())
-	message?.let { append(": ").append(it) }
-	val cause = cause
-	if (cause != null) append(" (caused by ").append(cause.className()).append(")")
+import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.types.exception.ExceptionI18n
+
+class SettingNotFoundException(override val id: String) : NotFoundException("Setting not found", id) {
+	override fun message() = i18n(ExceptionI18n.SettingNotFoundException(), id)
 }
-
-private fun Throwable.className(): String =
-	this::class.simpleName ?: this::class.qualifiedName ?: "UnknownException"

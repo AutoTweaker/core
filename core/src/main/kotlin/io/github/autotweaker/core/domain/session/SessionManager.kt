@@ -107,15 +107,15 @@ object SessionManager : Loggable, Traceable {
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
 		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
-		if (!Files.isDirectory(workspaceData.meta.path)) {
+		if (!Files.isDirectory(workspaceData.meta.path))
 			error("Workspace directory does not exist: ${workspaceData.meta.path}")
-		}
+		
 		val data = SessionData(
 			id = UUID.randomUUID(),
 			title = null,
 			overview = null,
 			workspaceId = workspaceId,
-			agentIndex = AgentIndex.emptyIndex()
+			agentIndex = AgentIndex.new()
 		)
 		sessions[data.id] = Session(
 			data = data,
@@ -123,9 +123,11 @@ object SessionManager : Loggable, Traceable {
 			resolveModel = ::resolveModel,
 			workspace = workspaceData.meta
 		).init(
-			model = model,
-			systemPrompt = systemPrompt,
-			activeTools = emptySet()
+			Session.SessionInit.New(
+				model = model,
+				systemPrompt = systemPrompt,
+				activeTools = emptySet()
+			)
 		).listen().andSave()
 		wsm.updateSessions(
 			workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + data.id
@@ -143,21 +145,14 @@ object SessionManager : Loggable, Traceable {
 		val data = store.loadSessions(setOf(id)).firstOrNull() ?: error("Session not found: $id")
 		val workspaceId = data.workspaceId
 		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
-		if (!Files.isDirectory(workspaceMeta.path)) {
+		if (!Files.isDirectory(workspaceMeta.path))
 			error("Workspace directory does not exist: ${workspaceMeta.path}")
-		}
-		val model = store.loadAgent(data.agentIndex.main.id)?.model
-			?: error("Main agent not found: ${data.agentIndex.main.id}")
 		return@withLock Session(
 			data = data,
 			store = store,
 			resolveModel = ::resolveModel,
 			workspace = workspaceMeta
-		).init(
-			systemPrompt = systemPrompt,
-			activeTools = emptySet(),
-			model = model
-		)
+		).init(Session.SessionInit.Restore)
 			.listen()
 			.also { sessions[data.id] = it }
 			.andLog(log)

@@ -22,7 +22,7 @@ import io.github.autotweaker.adapter.cli.CliMessage
 import io.github.autotweaker.adapter.cli.CliResponse
 import io.github.autotweaker.adapter.cli.OutputChannel
 import io.github.autotweaker.adapter.cli.client.expect.*
-import io.github.autotweaker.api.message
+import io.github.autotweaker.api.buildMessage
 import kotlinx.serialization.json.Json
 
 object Protocol {
@@ -35,7 +35,7 @@ object Protocol {
 				val response = try {
 					json.decodeFromString<CliResponse>(line)
 				} catch (e: Exception) {
-					printErr("Error: failed to parse server response: ${e.message()}\n")
+					printErr("Error: failed to parse server response: ${e.buildMessage()}\n")
 					break
 				}
 				when (response) {

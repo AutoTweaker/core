@@ -16,6 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api.types.exception.duplicate
 
-class SecretStoreLockedException : IllegalStateException("Secret store locked, please wait for unlock")
+import io.github.autotweaker.api.types.exception.AutoTweakerException
+
+abstract class DuplicateException(message: String, open val id: Any) :
+	AutoTweakerException("$message: $id")

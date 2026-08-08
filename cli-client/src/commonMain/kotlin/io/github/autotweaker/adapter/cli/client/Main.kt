@@ -30,7 +30,7 @@ import io.github.autotweaker.adapter.cli.client.FsService.writeProxyEnv
 import io.github.autotweaker.adapter.cli.client.expect.printErr
 import io.github.autotweaker.adapter.cli.client.expect.stdoutIsTty
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
-import io.github.autotweaker.api.message
+import io.github.autotweaker.api.buildMessage
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import kotlinx.serialization.json.Json
@@ -66,12 +66,12 @@ fun main(args: Array<String>) {
 		try {
 			ensureDaemon()
 			val transport = waitForReady(sockPath, lockPath)
-
+			
 			val request = buildRequest()
 			transport.sendLine(request)
 			exitProcess(Protocol(transport))
 		} catch (e: Exception) {
-			printErr("Error: ${e.message()}\n")
+			printErr("Error: ${e.buildMessage()}\n")
 			exitProcess(1)
 		}
 	}

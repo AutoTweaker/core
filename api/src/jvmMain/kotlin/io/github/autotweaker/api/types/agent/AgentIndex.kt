@@ -70,6 +70,6 @@ data class AgentIndex(
 			return all
 		}
 		
-		fun emptyIndex() = AgentIndex(AgentNode(UUID.randomUUID(), emptyList()))
+		fun new() = AgentIndex(AgentNode(UUID.randomUUID(), emptyList()))
 	}
 }

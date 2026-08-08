@@ -61,11 +61,11 @@ object Settings : SettingService, Loggable, Traceable {
 		db.transaction {
 			SchemaUtils.create(ConfigTable)
 		}
-		cache.putAll(loadAllIntoCache())
+		cache.putAll(loadAll())
 		log.info("Initialized settings  count={}", cache.size)
 	}
 	
-	private fun loadAllIntoCache(): Map<String, SettingValue<*>> = transaction(db) {
+	private fun loadAll(): Map<String, SettingValue<*>> = transaction(db) {
 		val map = mutableMapOf<String, SettingValue<*>>()
 		ConfigTable.selectAll().forEach { row ->
 			getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }

@@ -69,6 +69,8 @@ object ResilientChat : Loggable {
 		
 		val userMsg = messages.filterIsInstance<ChatMessage.UserMessage>()
 		
+		var retries = 0
+		
 		suspend fun attempt(target: Model): Pair<Int?, Boolean> {
 			val chatRequest = buildRequest(target, messages, tools, responseFormat, stream, thinking)
 			val results = gateway.send(
@@ -89,8 +91,8 @@ object ResilientChat : Loggable {
 					statusCode = msg.statusCode
 					hasError = true
 				} else emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
-				
 			}
+			retries++
 			
 			return Pair(statusCode, hasError)
 		}
@@ -100,10 +102,9 @@ object ResilientChat : Loggable {
 				add(model)
 				addAll(fallbackModels.orEmpty())
 			}
-			if (userMsg.any { !it.pictures.isNullOrEmpty() } && candidates.any { it.modelInfo.supportsImage }) {
-				candidates =
-					candidates.filter { it.modelInfo.supportsImage } + candidates.filter { !it.modelInfo.supportsImage }
-			}
+			if (userMsg.any { !it.pictures.isNullOrEmpty() } && candidates.any { it.modelInfo.supportsImage })
+				candidates = candidates.filter { it.modelInfo.supportsImage } +
+						candidates.filter { !it.modelInfo.supportsImage }
 			
 			while (candidates.isNotEmpty()) {
 				val current = candidates.first()
@@ -177,12 +178,11 @@ object ResilientChat : Loggable {
 				if (handle(attempt(current), 0)) return@flow
 			}
 			
-			if (round < llmChatRetries) {
+			if (round < llmChatRetries)
 				log.info("Exhausted all candidate models and restarted  round={}", round + 1)
-			}
 		}
 		
-		log.warn("Exhausted all LLM chat retries")
+		log.warn("Exhausted all LLM chat retries  retries={}", retries)
 		error("All LLM chat retries exhausted without success")
 	}
 	

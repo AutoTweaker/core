@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api.types.exception.duplicate
 
 import io.github.autotweaker.api.i18n
-import java.nio.file.Path
+import io.github.autotweaker.api.types.exception.ExceptionI18n
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
+class DuplicateWorkspaceNameException(override val id: String) :
+	DuplicateException("Workspace already exists", id) {
+	override fun message() = i18n(ExceptionI18n.DuplicateWorkspaceNameException(), id)
 }

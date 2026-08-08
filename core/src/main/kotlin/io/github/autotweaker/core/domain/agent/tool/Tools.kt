@@ -192,7 +192,9 @@ class Tools(
 			}
 		}
 		
-		fun getMetaCache(): Map<String, ToolMeta>? = metaCache.orNull()?.mapValues { it.value.first }
+		fun getMetaCache(): Map<String, ToolMeta>? = metaCache.orNull()?.mapValues {
+			it.value.first
+		}
 		
 		suspend fun <T : ToolArgs> Tool<T>.name() =
 			toolNameCache[this::class] ?: meta().first.name.also {

@@ -19,9 +19,18 @@
 package io.github.autotweaker.api.types.exception
 
 import io.github.autotweaker.api.i18n
-import java.nio.file.Path
+import io.github.autotweaker.api.types.config.SettingValue
+import kotlin.reflect.KClass
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
+class SettingTypeMismatchException(
+	val id: String,
+	val defType: KClass<SettingValue<*>>,
+	val gotType: KClass<SettingValue<*>>
+) : AutoTweakerException(
+	"Type mismatch for setting '$id': expected ${defType.simpleName}, got ${gotType.simpleName ?: "Unknown"}"
+) {
+	override fun message() = i18n(
+		ExceptionI18n.SettingTypeMismatchException(),
+		id, defType.simpleName, gotType.simpleName ?: "Unknown"
+	)
 }

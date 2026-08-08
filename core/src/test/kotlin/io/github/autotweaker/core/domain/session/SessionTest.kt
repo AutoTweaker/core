@@ -46,7 +46,7 @@ class SessionTest {
 			title = "original title",
 			overview = null,
 			workspaceId = UUID.randomUUID(),
-			agentIndex = AgentIndex.emptyIndex(),
+			agentIndex = AgentIndex.new(),
 		),
 		store = mockk<SessionRepository>(),
 		resolveModel = { mockk<Model>() },

@@ -18,10 +18,17 @@
 
 package io.github.autotweaker.api.types.exception
 
+import io.github.autotweaker.api.SPACE
 import io.github.autotweaker.api.i18n
-import java.nio.file.Path
 
-class PathOutsideWorkspaceException(val path: Path) :
-	AutoTweakerException("Path is outside workspace: $path") {
-	override fun message() = i18n(ExceptionI18n.PathOutsideWorkspaceException(), path)
+class GpgException(
+	val args: List<String>,
+	val stdout: String,
+	val stderr: String
+) : AutoTweakerException("GPG command failed (${args.joinToString(SPACE.toString())}): $stderr") {
+	override fun message() = i18n(
+		ExceptionI18n.GpgException(),
+		args.joinToString(SPACE.toString()),
+		stderr
+	)
 }

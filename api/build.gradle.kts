@@ -20,6 +20,7 @@ import java.net.URI
 
 plugins {
 	kotlin("multiplatform")
+	kotlin("kapt")
 	kotlin("plugin.serialization")
 	id("org.jetbrains.dokka")
 	`maven-publish`
@@ -56,6 +57,7 @@ kotlin {
 		}
 		jvmMain.dependencies {
 			implementation("org.slf4j:slf4j-api:2.0.18")
+			implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 		}
 		jvmMain {
 			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
@@ -64,9 +66,13 @@ kotlin {
 }
 
 tasks.configureEach {
-	if (name.startsWith("compileKotlin") || name.startsWith("compileCommon")) {
+	if (name.startsWith("compileKotlin") || name.startsWith("compileCommon") || name.startsWith("kaptGenerateStubs")) {
 		dependsOn("syncGeneratedArgs")
 	}
+}
+
+dependencies {
+	add("kapt", "com.google.auto.service:auto-service:1.1.1")
 }
 
 // region Maven publish to GitHub Packages

@@ -31,6 +31,7 @@ import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
 import io.github.autotweaker.api.types.agent.ModelConfig
+import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.Agent
@@ -58,25 +59,40 @@ class Session(
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
 	val agents: Map<UUID, AgentAPI> = bridges.toMap()
 	
-	suspend fun init(model: ModelConfig, systemPrompt: String, activeTools: Set<String>) = also {
+	suspend fun init(init: SessionInit) = also {
 		lock.withLock {
 			val mainId = index.main.id
-			restoreOrNull(mainId) ?: createAgent(
-				AgentData(
-					id = mainId,
-					name = MAIN_AGENT_NAME.toKebab(),
-					model = model,
-					context = AgentContext.emptyContext(systemPrompt),
-					activeTools = activeTools
-				)
-			).andLog(log) {
-				info(
-					"Initialized session  sessionId={}  workspace={}",
-					it.id,
-					workspace.displayName
-				)
+			when (init) {
+				is SessionInit.Restore -> restoreOrNull(mainId)
+					?: throw AgentNotFoundException(mainId, _data.value.id)
+				
+				is SessionInit.New -> createAgent(
+					AgentData(
+						id = mainId,
+						name = MAIN_AGENT_NAME.toKebab(),
+						model = init.model,
+						context = AgentContext.emptyContext(init.systemPrompt),
+						activeTools = init.activeTools
+					)
+				).andLog(log) {
+					info(
+						"Initialized session  sessionId={}  workspace={}",
+						it.id,
+						workspace.displayName
+					)
+				}
 			}
 		}
+	}
+	
+	sealed interface SessionInit {
+		data class New(
+			val model: ModelConfig,
+			val systemPrompt: String,
+			val activeTools: Set<String>
+		) : SessionInit
+		
+		data object Restore : SessionInit
 	}
 	
 	fun updateTitle(title: String) = also {
@@ -109,8 +125,9 @@ class Session(
 	}
 	
 	private suspend fun restoreOrNull(id: UUID): AgentBridge? = lock.withLock {
-		val data: AgentData = store.loadAgent(id) ?: return@withLock null
-		return@withLock createAgent(data)
+		store.loadAgent(id)?.let {
+			createAgent(it)
+		}
 	}
 	
 	private suspend fun createAgent(
