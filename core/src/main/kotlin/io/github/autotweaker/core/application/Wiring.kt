@@ -35,6 +35,7 @@ import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
+import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
@@ -56,6 +57,7 @@ object Wiring : Loggable {
 	fun init() {
 		TranslationManager.init(ModelResolverImpl)
 		SecretMapStore.init(SecretManager)
+		SecretDbApi.init(SecretManager)
 		ModelResolverImpl.init(SecretManager)
 		ResilientChat.init(LlmGatewayImpl)
 		ChatService.init(

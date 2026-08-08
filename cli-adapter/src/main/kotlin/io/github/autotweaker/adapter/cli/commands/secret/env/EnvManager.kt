@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.secret
+package io.github.autotweaker.adapter.cli.commands.secret.env
 
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.I18nable
@@ -35,19 +35,19 @@ class EnvManager(
 	}
 	
 	suspend fun Console.add(type: EnvType, name: String) {
-		val value = secret(SecretI18n.PromptInputApiKey())
+		val value = secret(EnvI18n.PromptInputEnv(), name)
 		core.config.setEnv(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig()))
 	}
 	
 	suspend fun Console.get(type: EnvType, name: String) {
 		val value = core.config.getEnv(type.toCoreConfig(), name)
-			?: error(SecretI18n.KeyNotFoundError(), name)
+			?: error(EnvI18n.EnvNotFoundError(), name)
 		out(value)
 	}
 	
 	suspend fun Console.remove(type: EnvType, name: String) {
 		if (!core.config.removeEnv(type.toCoreConfig(), name))
-			error(SecretI18n.KeyNotFoundError(), name)
+			error(EnvI18n.EnvNotFoundError(), name)
 	}
 	
 	private fun EnvType.toCoreConfig(): CoreConfig.JsonConfig.Env.Type = when (this) {

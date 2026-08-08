@@ -21,6 +21,8 @@ package io.github.autotweaker.adapter.cli.commands.secret
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.commands.secret.env.Env
+import io.github.autotweaker.adapter.cli.commands.secret.key.Key
 import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.Traceable
@@ -36,6 +38,8 @@ import io.github.autotweaker.api.types.exception.PasswordInvalidException
 class Secret : Command, Traceable {
 	override val name = "secret"
 	override val description = i18n(SecretI18n.Desc())
+	override val children: List<Command> = listOf(Env(), Key())
+	override val requiresKeystore = false
 	override val syntax = buildSyntax(XOR) {
 		flag("unlock", SecretI18n.ParamUnlock())
 		all {
@@ -45,23 +49,6 @@ class Secret : Command, Traceable {
 			flag("reset", PasswdI18n.ParamRemove()) {
 				required = false
 				aliases()
-			}
-		}
-		all {
-			xor {
-				flag("list", SecretI18n.ParamList())
-				value("add", SecretI18n.ParamAdd())
-				value("remove", SecretI18n.ParamRemove()) {
-					aliases("rm")
-				}
-				value("get", SecretI18n.ParamGet())
-			}
-			xor {
-				flag("key", SecretI18n.ParamKey())
-				all {
-					flag("env", SecretI18n.ParamEnv())
-					value("type", SecretI18n.ParamEnvType())
-				}
 			}
 		}
 	}
@@ -79,61 +66,7 @@ class Secret : Command, Traceable {
 			}
 		}
 		
-		suspend fun invalidArg(): Nothing =
-			error(SecretI18n.InvalidArg())
-		
-		if (hasArg("key")) {
-			val keyManager = KeyManager(core)
-			handleFlag("list") {
-				with(keyManager) {
-					list()
-				}
-			}
-			handleValue("add") {
-				with(keyManager) {
-					add(it)
-				}
-			}
-			handleValue("remove") {
-				with(keyManager) {
-					remove(it)
-				}
-			}
-			invalidArg()
-		}
-		
-		if (hasArg("env") && hasArg("type")) {
-			val envManager = EnvManager(core)
-			val type = when (getValue("type").lowercase()) {
-				"bash" -> EnvManager.EnvType.BASH
-				"container" -> EnvManager.EnvType.CONTAINER
-				else -> invalidArg()
-			}
-			
-			handleFlag("list") {
-				with(envManager) {
-					list(type)
-				}
-			}
-			handleValue("add") {
-				with(envManager) {
-					add(type, it)
-				}
-			}
-			handleValue("get") {
-				with(envManager) {
-					get(type, it)
-				}
-			}
-			handleValue("remove") {
-				with(envManager) {
-					remove(type, it)
-				}
-			}
-			invalidArg()
-		}
-		
-		invalidArg()
+		error(SecretI18n.InvalidArg())
 	}
 	
 	private suspend fun Console.handleUnlock(core: CoreAPI) {

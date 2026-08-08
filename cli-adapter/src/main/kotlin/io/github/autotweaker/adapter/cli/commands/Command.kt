@@ -26,6 +26,8 @@ interface Command : I18nable {
 	val name: String
 	val description: String
 	val syntax: Syntax
-	
+	val children: List<Command> get() = emptyList()
+	val requiresKeystore: Boolean get() = true
+
 	suspend fun Console.execute(core: CoreAPI): Nothing
 }

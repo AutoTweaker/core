@@ -22,15 +22,29 @@ import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
 
+
+inline fun buildSyntax(type: SyntaxType, block: SyntaxBuilder.() -> Unit) = when (type) {
+	ALL -> buildSyntax(block).toAll()
+	XOR -> buildSyntax(block).toXor()
+}
+
+inline fun buildLeaf(
+	type: SyntaxLeafType, name: String, desc: String, block: SyntaxLeafBuilder.() -> Unit = {}
+) = when (type) {
+	FLAG -> buildLeaf(name, desc, block).toFlag()
+	POSITIONAL -> buildLeaf(name, desc, block).toPositional()
+	VALUE -> buildLeaf(name, desc, block).toValue()
+}
+
+sealed interface SyntaxType
+object XOR : SyntaxType
+object ALL : SyntaxType
+sealed interface SyntaxLeafType
+object FLAG : SyntaxLeafType
+object VALUE : SyntaxLeafType
+object POSITIONAL : SyntaxLeafType
+
 inline fun buildSyntax(block: SyntaxBuilder.() -> Unit) = SyntaxBuilder().apply(block)
-
-@Suppress("unused")
-inline fun buildSyntax(xor: XOR, block: SyntaxBuilder.() -> Unit) = buildSyntax(block).toXor()
-
-@Suppress("unused")
-inline fun buildSyntax(all: ALL, block: SyntaxBuilder.() -> Unit) = buildSyntax(block).toAll()
-
-object XOR; object ALL
 
 @SyntaxDsl
 class SyntaxBuilder : I18nable {
@@ -77,14 +91,15 @@ class SyntaxBuilder : I18nable {
 		block: SyntaxLeafBuilder.() -> Unit,
 		transform: SyntaxLeafBuilder.() -> Syntax.Leaf
 	) {
-		syntax.add(
-			SyntaxLeafBuilder(name, desc).apply(block).transform()
-		)
+		syntax.add(buildLeaf(name, desc, block).transform())
 	}
 	
 	fun toAll() = Syntax.All(syntax, required)
 	fun toXor() = Syntax.Xor(syntax, required)
 }
+
+inline fun buildLeaf(name: String, desc: String, block: SyntaxLeafBuilder.() -> Unit = {}) =
+	SyntaxLeafBuilder(name, desc).apply(block)
 
 @SyntaxDsl
 class SyntaxLeafBuilder(

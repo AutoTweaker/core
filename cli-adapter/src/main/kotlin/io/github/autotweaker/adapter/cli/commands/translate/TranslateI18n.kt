@@ -25,7 +25,7 @@ import io.github.autotweaker.api.i18n.I18nDef
 
 object TranslateI18n {
 	@AutoService(I18nDef::class)
-	class Desc : I18nBase(zh("管理国际化服务，未指定参数时触发自动翻译"))
+	class Desc : I18nBase(zh("管理国际化服务，无参数触发自动翻译"))
 	
 	@AutoService(I18nDef::class)
 	class SetModelDesc : I18nBase(zh("指定用于国际化翻译的模型"))

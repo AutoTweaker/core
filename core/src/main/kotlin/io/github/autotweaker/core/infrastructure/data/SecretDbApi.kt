@@ -20,28 +20,35 @@ package io.github.autotweaker.core.infrastructure.data
 
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.types.debug.SecretEntry
+import io.github.autotweaker.core.domain.port.SecretStore
 import java.util.*
 
 object SecretDbApi : DbAPI<SecretEntry> {
+	private lateinit var secretStore: SecretStore
+	
+	fun init(secretStore: SecretStore) {
+		this.secretStore = secretStore
+	}
+	
 	override suspend fun list(range: UIntRange): List<SecretEntry> {
-		val all = SecretManager.list()
+		val all = secretStore.list()
 		val count = (range.last - range.first + 1u).toInt()
 		return all.drop(range.first.toInt()).take(count).map { id ->
-			SecretEntry(key = id.toString(), content = SecretManager.get(id))
+			SecretEntry(key = id.toString(), content = secretStore.get(id))
 		}
 	}
 	
 	override suspend fun get(key: String): SecretEntry? {
 		val id = UUID.fromString(key)
-		if (id !in SecretManager.list()) return null
-		return SecretEntry(key = key, content = SecretManager.get(id))
+		if (id !in secretStore.list()) return null
+		return SecretEntry(key = key, content = secretStore.get(id))
 	}
 	
 	override suspend fun put(content: SecretEntry) {
-		SecretManager.set(content.content, UUID.fromString(content.key))
+		secretStore.set(content.content, UUID.fromString(content.key))
 	}
 	
 	override suspend fun delete(key: String) {
-		SecretManager.remove(UUID.fromString(key))
+		secretStore.remove(UUID.fromString(key))
 	}
 }

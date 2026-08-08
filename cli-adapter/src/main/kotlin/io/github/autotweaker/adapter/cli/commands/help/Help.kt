@@ -20,42 +20,58 @@ package io.github.autotweaker.adapter.cli.commands.help
 
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.syntax.POSITIONAL
 import io.github.autotweaker.adapter.cli.syntax.Syntax
-import io.github.autotweaker.adapter.cli.syntax.SyntaxLeafBuilder
+import io.github.autotweaker.adapter.cli.syntax.buildLeaf
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.unreachable
 
 class Help(private val loaded: List<Command>) : Command {
 	override val name = "help"
 	override val description = i18n(HelpI18n.HelpDesc())
-	override val syntax =
-		SyntaxLeafBuilder(
-			"command", i18n(HelpI18n.HelpParamCommand())
-		).apply {
-			required = false
-		}.toPositional()
+	override val requiresKeystore = false
+	override val syntax = buildLeaf(
+		POSITIONAL, "command", i18n(HelpI18n.HelpParamCommand())
+	) { required = false }
 	
 	
 	private val all: List<Command> get() = loaded + this
 	
-	override suspend fun Console.execute(core: CoreAPI): Nothing {
-		val target = getPositional().firstOrNull()
-		if (target != null) {
-			val cmd = all.find { it.name == target }
-			if (cmd == null) {
-				error(HelpI18n.Unknown(), target)
-			}
-			renderDetail(cmd)
+	override suspend fun Console.execute(core: CoreAPI): Nothing =
+		unreachable()
+	
+	suspend fun Console.executePath(path: List<String>): Nothing {
+		if (path.isEmpty()) {
+			renderAll()
 			done()
 		}
-		out(HelpI18n.Available())
-		for (cmd in all.sortedBy { it.name }) {
+		val target = findPath(path) ?: error(HelpI18n.Unknown(), path.joinToString(" "))
+		renderDetail(target)
+		done()
+	}
+	
+	private fun findPath(path: List<String>): Command? {
+		var current: Command? = null
+		path.forEach { segment ->
+			current = (current?.children ?: all).find { it.name == segment } ?: return null
+		}
+		return current
+	}
+	
+	private suspend fun Console.renderAll() {
+		renderList(HelpI18n.Available(), all)
+		ln()
+		out(HelpI18n.HelpHint(), "$APP_NAME_LOWERCASE help <command>")
+	}
+	
+	private suspend fun Console.renderList(title: I18nDef, items: List<Command>) {
+		out(title)
+		for (cmd in items.sortedBy { it.name }) {
 			out("  ${cmd.name}  —  ${cmd.description}")
 		}
-		ln()
-		out(HelpI18n.HelpHint(), APP_NAME_LOWERCASE)
-		done()
 	}
 	
 	private suspend fun Console.renderDetail(cmd: Command) {
@@ -67,6 +83,12 @@ class Help(private val loaded: List<Command>) : Command {
 			lines.forEach {
 				out(it)
 			}
+		}
+		if (cmd.children.isNotEmpty()) {
+			ln()
+			renderList(HelpI18n.Subcommands(), cmd.children)
+			ln()
+			out(HelpI18n.HelpHint(), "$APP_NAME_LOWERCASE help ${cmd.name} <command>")
 		}
 	}
 	

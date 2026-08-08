@@ -54,22 +54,7 @@ object SecretI18n {
 	
 	@AutoService(I18nDef::class)
 	class ParamGet : I18nBase(
-		zh("要获取条目的名称，已保存的提供商密钥不能够获取")
-	)
-	
-	@AutoService(I18nDef::class)
-	class ParamKey : I18nBase(
-		zh("管理提供商密钥")
-	)
-	
-	@AutoService(I18nDef::class)
-	class ParamEnv : I18nBase(
-		zh("管理容器或暴露给大模型的环境变量")
-	)
-	
-	@AutoService(I18nDef::class)
-	class ParamEnvType : I18nBase(
-		zh("""指定环境变量的类型，可选值"container"/"bash""""),
+		zh("要获取条目的名称")
 	)
 	
 	@AutoService(I18nDef::class)
@@ -106,30 +91,5 @@ object SecretI18n {
 	class InvalidPasswd : I18nBase(
 		en("Invalid password"),
 		zh("密码错误"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class EmptyNameError : I18nBase(
-		zh("条目名称不能为空")
-	)
-	
-	@AutoService(I18nDef::class)
-	class EmptyKeyError : I18nBase(
-		zh("密钥内容不能为空")
-	)
-	
-	@AutoService(I18nDef::class)
-	class KeyExistsError : I18nBase(
-		zh("名为 '%s' 的密钥已存在")
-	)
-	
-	@AutoService(I18nDef::class)
-	class KeyNotFoundError : I18nBase(
-		zh("不存在名为 '%s' 的密钥")
-	)
-	
-	@AutoService(I18nDef::class)
-	class PromptInputApiKey : I18nBase(
-		zh("请输入密钥内容:")
 	)
 }

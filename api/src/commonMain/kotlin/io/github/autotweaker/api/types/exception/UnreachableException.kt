@@ -18,7 +18,4 @@
 
 package io.github.autotweaker.api.types.exception
 
-import java.nio.file.Path
-
-class PathOutsideWorkspaceException(path: Path) :
-	IllegalStateException("Path is outside workspace: $path")
+class UnreachableException : IllegalStateException("unreachable")

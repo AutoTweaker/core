@@ -256,7 +256,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				ReadSettings.MessageFileCannotRead().get()
 					.format(path, e.message()).toolFail()
 			)
-			error("unreachable")
+			unreachable()
 		}
 	
 	private class StartLineException(val lineCount: Int) :

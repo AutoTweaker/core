@@ -83,7 +83,7 @@ object Launcher : Loggable, Traceable {
 		//密钥库
 		SecretManager.init()
 		//依赖SecretManager
-		DbDebugAPIImpl.init(databaseStore)
+		DbDebugAPIImpl.init(databaseStore, SecretManager)
 		
 		//Trace服务，会启动协程
 		TraceRecorderImpl.init()

@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.api
 
-import java.nio.file.Path
+import io.github.autotweaker.api.types.exception.UnreachableException
 
-class PathOutsideWorkspaceException(path: Path) :
-	IllegalStateException("Path is outside workspace: $path")
+fun unreachable(): Nothing = throw UnreachableException()

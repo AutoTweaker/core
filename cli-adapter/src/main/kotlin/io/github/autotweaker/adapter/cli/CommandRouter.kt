@@ -24,6 +24,7 @@ import io.github.autotweaker.adapter.cli.commands.DoneException
 import io.github.autotweaker.adapter.cli.commands.help.Help
 import io.github.autotweaker.adapter.cli.console.CmdOutput
 import io.github.autotweaker.adapter.cli.console.ConsoleImpl
+import io.github.autotweaker.adapter.cli.console.Request
 import io.github.autotweaker.adapter.cli.syntax.ArgParser
 import io.github.autotweaker.adapter.cli.syntax.SyntaxValidator
 import io.github.autotweaker.api.*
@@ -35,7 +36,8 @@ import java.util.*
 
 
 class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, I18nable {
-	private val handlers: Map<String, Command>
+	private val help = Help(commands)
+	private val handlers: Map<String, Command> = commands.associateBy { it.name }
 	
 	@AutoService(SettingDef::class)
 	class MaxArgsCount : IntSetting(
@@ -48,8 +50,6 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {
-		val help = Help(commands)
-		handlers = (commands + help).associateBy { it.name }
 		log.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
@@ -71,8 +71,20 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 			output(CmdOutput("$APP_NAME  Copyright (C) 2026  WhiteElephant-abc\n"))
 			return 0
 		}
+		if (cmd == help.name) {
+			val console = ConsoleImpl(
+				isTty = request.isTty,
+				request = Request(emptyMap(), emptyList(), emptyMap()),
+				output = output,
+				readLine = prompt
+			)
+			with(help) {
+				console.executePath(request.args.drop(1))
+			}
+		}
+		
 		//找子命令
-		val command = handlers[cmd] ?: run {
+		var command = handlers[cmd] ?: run {
 			output(
 				CmdOutput(
 					i18n(CmdI18n.UnknownHint(), cmd, request.prog) + '\n',
@@ -83,31 +95,36 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 			return 1
 		}
 		
+		var args = request.args.drop(1)
+		while (true) {
+			command = command.children.find { it.name == args.firstOrNull() } ?: break
+			args = args.drop(1)
+		}
+		
 		val conflicts = SyntaxValidator.checkConflicts(command.syntax)
 		if (conflicts.isNotEmpty()) {
 			conflicts.forEach {
 				output(CmdOutput("Error: $it\n", OutputChannel.STDERR))
 			}
-			log.warn("Detected param name conflict in command  command={}  conflicts={}", cmd, conflicts)
+			log.warn("Detected param name conflict in command  command={}  conflicts={}", command.name, conflicts)
 			return 1
 		}
 		
-		log.debug("Dispatched command  command={}  args={}", cmd, request.args.drop(1))
-		val parsed = argParser.parse(request.args.drop(1), command.syntax)
+		log.debug("Dispatched command  command={}  args={}", command.name, args)
+		val parsed = argParser.parse(args, command.syntax)
 			?: run {
-				log.debug("Rejected invalid arguments for command  command={}", cmd)
+				log.debug("Rejected invalid arguments for command  command={}", command.name)
 				output(
 					CmdOutput(
-						i18n(CmdI18n.InvalidArgs(), cmd, request.prog) + '\n',
+						i18n(CmdI18n.InvalidArgs(), command.name, request.prog) + '\n',
 						OutputChannel.STDERR
 					)
 				)
 				return 1
 			}
 		
-		val isSecretUnlock = cmd == "secret" && (parsed.has("unlock") || parsed.has("passwd"))
-		if (cmd != "help" && cmd != "version" && !isSecretUnlock && !core.secret.isUnlocked.value) {
-			log.debug("Rejected command, keystore locked  command={}", cmd)
+		if (command.requiresKeystore && !core.secret.isUnlocked.value) {
+			log.debug("Rejected command, keystore locked  command={}", command.name)
 			
 			output(
 				CmdOutput(

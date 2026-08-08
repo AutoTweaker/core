@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.secret
+package io.github.autotweaker.adapter.cli.commands.secret.key
 
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.I18nable
@@ -31,12 +31,12 @@ class KeyManager(
 	}
 	
 	suspend fun Console.add(name: String) {
-		if (name.isBlank()) error(SecretI18n.EmptyNameError())
+		if (name.isBlank()) error(KeyI18n.EmptyNameError())
 		
-		val key = secret(SecretI18n.PromptInputApiKey())
+		val key = secret(KeyI18n.PromptInputApiKey())
 		
-		if (key.isBlank()) error(SecretI18n.EmptyKeyError())
-		if (core.config.listApiKey().any { it == name }) error(SecretI18n.KeyExistsError(), name)
+		if (key.isBlank()) error(KeyI18n.EmptyKeyError())
+		if (core.config.listApiKey().any { it == name }) error(KeyI18n.KeyExistsError(), name)
 		
 		core.config.addApiKey(
 			CoreConfig.ProviderConfig.ApiKey(
@@ -46,6 +46,6 @@ class KeyManager(
 	}
 	
 	suspend fun Console.remove(name: String) {
-		if (!core.config.removeApiKey(name)) error(SecretI18n.KeyNotFoundError(), name)
+		if (!core.config.removeApiKey(name)) error(KeyI18n.KeyNotFoundError(), name)
 	}
 }

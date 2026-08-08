@@ -16,35 +16,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.version
+package io.github.autotweaker.adapter.cli.commands.secret.env
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.adapter.cli.commands.Command
-import io.github.autotweaker.adapter.cli.commands.Console
-import io.github.autotweaker.adapter.cli.syntax.Syntax
-import io.github.autotweaker.api.APP_NAME
-import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
-import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.base.zh
-import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
 
-@AutoService(Command::class)
-class Version : Command {
-	override val name = "version"
-	override val description = i18n(Desc())
-	override val syntax = Syntax.EMPTY
-	override val requiresKeystore = false
-	
-	override suspend fun Console.execute(core: CoreAPI): Nothing {
-		out(core.appVersion.toString())
-		done()
-	}
-	
+object EnvI18n {
 	@AutoService(I18nDef::class)
 	class Desc : I18nBase(
-		en("Show $APP_NAME version"),
-		zh("显示应用版本号"),
+		zh("管理容器或暴露给大模型的环境变量")
+	)
+	
+	@AutoService(I18nDef::class)
+	class EnvType : I18nBase(
+		zh("""指定环境变量的类型，可选值"container"/"bash""""),
+	)
+	
+	@AutoService(I18nDef::class)
+	class PromptInputEnv : I18nBase(
+		zh("请输入环境变量 %s 的值:")
+	)
+	
+	@AutoService(I18nDef::class)
+	class EnvNotFoundError : I18nBase(
+		zh("不存在名为 '%s' 的环境变量")
 	)
 }

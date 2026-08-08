@@ -22,8 +22,8 @@ import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.types.debug.*
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
-import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.*
@@ -37,10 +37,12 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 object DbDebugAPIImpl : DbDebugAPI {
 	private lateinit var configDb: Database
 	private lateinit var sessionDb: Database
+	private lateinit var secretStore: SecretStore
 	
-	fun init(databaseStore: DatabaseStore) {
+	fun init(databaseStore: DatabaseStore, secretStore: SecretStore) {
 		configDb = databaseStore.connect("AppConfig")
 		sessionDb = databaseStore.connect("Sessions")
+		this.secretStore = secretStore
 	}
 	
 	override val setting: DbAPI<SettingEntry> get() = SettingDbApi
@@ -65,7 +67,7 @@ object DbDebugAPIImpl : DbDebugAPI {
 			)
 		},
 		"~/.config/$APP_NAME_LOWERCASE/secret" to mapOf(
-			"secrets" to SecretManager.list().size.toLong(),
+			"secrets" to secretStore.list().size.toLong(),
 		),
 	)
 }

@@ -16,66 +16,41 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.help
+package io.github.autotweaker.adapter.cli.commands.secret.key
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
-import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
 
-object HelpI18n {
+object KeyI18n {
 	@AutoService(I18nDef::class)
-	class HelpDesc : I18nBase(
-		en("Show available commands and their usage"),
-		zh("列出可用命令"),
+	class Desc : I18nBase(
+		zh("管理提供商密钥")
 	)
 	
 	@AutoService(I18nDef::class)
-	class HelpParamCommand : I18nBase(
-		en("Show help for a specific command"),
-		zh("查看指定命令的用法"),
+	class EmptyNameError : I18nBase(
+		zh("条目名称不能为空")
 	)
 	
 	@AutoService(I18nDef::class)
-	class Unknown : I18nBase(
-		en("Unknown command: '%s'"),
-		zh("未知的命令: %s"),
+	class EmptyKeyError : I18nBase(
+		zh("密钥内容不能为空")
 	)
 	
 	@AutoService(I18nDef::class)
-	class Available : I18nBase(
-		en("Available commands:"),
-		zh("可用命令:"),
+	class KeyExistsError : I18nBase(
+		zh("名为 '%s' 的密钥已存在")
 	)
 	
 	@AutoService(I18nDef::class)
-	class HelpHint : I18nBase(
-		en("Run '%s' for detailed usage."),
-		zh("运行 %s 查看用法"),
+	class KeyNotFoundError : I18nBase(
+		zh("不存在名为 '%s' 的密钥")
 	)
 	
 	@AutoService(I18nDef::class)
-	class Params : I18nBase(
-		en("Parameters:"),
-		zh("参数:"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class Subcommands : I18nBase(
-		en("Subcommands:"),
-		zh("子命令:"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class ParamOptional : I18nBase(
-		en("(optional)"),
-		zh("(可选)"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class SyntaxXorLabel : I18nBase(
-		en("[choose one]"),
-		zh("[任选其一]"),
+	class PromptInputApiKey : I18nBase(
+		zh("请输入密钥内容:")
 	)
 }
