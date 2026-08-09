@@ -21,6 +21,9 @@ package io.github.autotweaker.core.infrastructure.config
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.duplicate.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.domain.port.ApiKeyRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
@@ -30,25 +33,29 @@ object ApiKeyConfigAPI : SecretMapStore(), ApiKeyRepository, Loggable {
 	private val provCfg: ProviderRepository = ProviderConfigAPI
 	
 	override suspend fun add(key: CoreConfig.ProviderConfig.ApiKey) = transform {
-		require(it[key.name] == null) { "Key ${key.name} already exists" }
+		if (it.containsKey(key.name)) throw DuplicateApiKeyException(key.name)
 		putSecret(key.name, key.key)
 		log.info("Added API key  name={}", key.name)
 	}
 	
 	override suspend fun list() = listSecrets()
 	
-	override suspend fun get(name: String) = getSecret(name) ?: error("Key $name not found")
+	override suspend fun get(name: String) = getSecret(name)
+		?: throw ApiKeyNotFoundException(name)
 	
-	override suspend fun remove(name: String) = transform {
-		if (it[name] == null) return@transform false
-		if (provCfg.list().any { p -> p.keyId == name }) error("Key $name is currently in use")
-		removeSecret(name)
-		log.info("Deleted API key  name={}", name)
-		return@transform true
+	override suspend fun remove(name: String) = ProviderConfigAPI.lock.withLock {
+		transform {
+			if (!it.containsKey(name)) return@transform false
+			if (provCfg.list().any { provider -> provider.keyId == name })
+				throw ApiKeyInUseException(name)
+			removeSecret(name)
+			log.info("Deleted API key  name={}", name)
+			return@transform true
+		}
 	}
 	
 	suspend fun getId(name: String): UUID = transform {
-		it[name] ?: error("Key $name not found")
+		it[name] ?: throw ApiKeyNotFoundException(name)
 	}
 	
 	suspend fun getName(id: UUID): String? = transform { map ->

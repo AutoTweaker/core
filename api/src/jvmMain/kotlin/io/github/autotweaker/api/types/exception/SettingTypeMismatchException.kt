@@ -24,8 +24,8 @@ import kotlin.reflect.KClass
 
 class SettingTypeMismatchException(
 	val id: String,
-	val defType: KClass<SettingValue<*>>,
-	val gotType: KClass<SettingValue<*>>
+	val defType: KClass<out SettingValue<*>>,
+	val gotType: KClass<out SettingValue<*>>
 ) : AutoTweakerException(
 	"Type mismatch for setting '$id': expected ${defType.simpleName}, got ${gotType.simpleName ?: "Unknown"}"
 ) {

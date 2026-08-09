@@ -29,8 +29,9 @@ import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.api.types.exception.PasswordInvalidException
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.duplicate.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.log.ExceptionInfo
@@ -52,13 +53,10 @@ import java.util.*
 import kotlin.time.Instant
 
 /**
- * AutoTweaker/core 提供的 API，主要包含适配器、会话、配置的管理。
+ * AutoTweaker/core 为适配器提供的 API，主要包含适配器、会话、配置的管理。
  *
  * 基础设施类的 API 通过 able 接口暴露，参见 [io.github.autotweaker.api.Loggable]、[io.github.autotweaker.api.Traceable]、[io.github.autotweaker.api.JsonStorable]、[io.github.autotweaker.api.I18nable]。
  *
- * 请确保在调用任何 API 前检查 [SecretAPI.isUnlocked]，否则 [SecretStoreLockedException] 可能在任何地方抛出。
- *
- * @throws SecretStoreLockedException 密钥库未解锁（参见 [SecretAPI]）
  * @see Adapter
  * @author WhiteElephant-abc
  */
@@ -85,6 +83,12 @@ interface CoreAPI {
 	 * 调用 LLM，模型、提供商必须来自配置的模型和提供商。
 	 *
 	 * @return LLM 返回的流式数据（若有），请求结束后必然返回一次 [ChatResult.Assembled]，无论成功与失败（除非抛出异常）。
+	 * @throws ModelNotFoundException
+	 * @throws ProviderNotFoundException
+	 * @throws SecretStoreLockedException
+	 * @throws SecretNotFoundException
+	 * @throws ChatRetriesExhaustedException
+	 * @throws UnknownProviderTypeException
 	 */
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
 	
@@ -93,6 +97,7 @@ interface CoreAPI {
 	 *
 	 * @param arg 命令是整条 [String]，小心注入。
 	 * @return 命令的实时输出，命令执行完毕后返回 [ShellEvent.Exit]。
+	 * @throws SecretStoreLockedException
 	 */
 	fun bash(arg: ShellExec): Flow<ShellEvent>
 	
@@ -117,23 +122,23 @@ interface CoreAPI {
 		/**
 		 * 根据适配器的 name 启动适配器，AutoTweaker 不会捕获适配器在此过程中抛出的异常，请自行处理。
 		 *
-		 * @throws IllegalArgumentException 找不到适配器。
 		 * @return 成功启动适配器返回 true，适配器正在运行返回 false。
+		 * @throws AdapterNotFoundException
 		 */
 		suspend fun start(name: KebabCase): Boolean
 		
 		/**
 		 * 根据适配器的 name 获取适配器是否正在运行。
 		 *
-		 * @throws IllegalArgumentException 找不到适配器。
+		 * @throws AdapterNotFoundException
 		 */
 		suspend fun alive(name: KebabCase): Boolean
 		
 		/**
 		 * 根据适配器的 name 停止适配器，AutoTweaker 不会捕获适配器在此过程中抛出的异常，请自行处理。
 		 *
-		 * @throws IllegalArgumentException 找不到适配器。
 		 * @return 成功停止适配器返回 true，适配器未在运行返回 false。
+		 * @throws AdapterNotFoundException
 		 */
 		suspend fun stop(name: KebabCase): Boolean
 	}
@@ -154,15 +159,27 @@ interface CoreAPI {
 		 *
 		 * @param model 用于 main Agent 的模型配置。
 		 * @return 新会话的 id。
+		 * @throws SecretStoreLockedException
+		 * @throws WorkspaceNotFoundException
+		 * @throws InvalidWorkspacePathException
+		 * @throws ModelNotFoundException
+		 * @throws ProviderNotFoundException
+		 * @throws SecretNotFoundException
 		 */
 		suspend fun create(model: ModelConfig): UUID
 		
 		/**
 		 * 在指定工作区内创建新会话。
 		 *
-		 * @param workspaceId 工作区的 id，传 [defaultWorkspaceId] 不会炸。
+		 * @param workspaceId 工作区的 id，传 [defaultWorkspaceId] 也允许。
 		 * @param model 用于 main Agent 的模型配置。
 		 * @return 新会话的 id。
+		 * @throws SecretStoreLockedException
+		 * @throws WorkspaceNotFoundException
+		 * @throws InvalidWorkspacePathException
+		 * @throws ModelNotFoundException
+		 * @throws ProviderNotFoundException
+		 * @throws SecretNotFoundException
 		 */
 		suspend fun create(workspaceId: UUID, model: ModelConfig): UUID
 		
@@ -176,15 +193,29 @@ interface CoreAPI {
 		/**
 		 * 获取会话的控制器。
 		 *
-		 * @throws IllegalStateException 找不到会话、找不到工作区、工作区目录不存在。
 		 * @return 所有 Agent 的 API，[SessionData] 数据流。
+		 * @throws SecretStoreLockedException
+		 * @throws SessionNotFoundException
+		 * @throws WorkspaceNotFoundException
+		 * @throws InvalidWorkspacePathException
+		 * @throws AgentNotFoundException
+		 * @throws ModelNotFoundException
+		 * @throws ProviderNotFoundException
+		 * @throws SecretNotFoundException
 		 */
 		suspend fun getHandle(sessionId: UUID): SessionHandle
 		
 		/**
 		 * 更新会话标题。
 		 *
-		 * @throws IllegalStateException 找不到会话、找不到工作区、工作区目录不存在
+		 * @throws SecretStoreLockedException
+		 * @throws SessionNotFoundException
+		 * @throws WorkspaceNotFoundException
+		 * @throws InvalidWorkspacePathException
+		 * @throws AgentNotFoundException
+		 * @throws ModelNotFoundException
+		 * @throws ProviderNotFoundException
+		 * @throws SecretNotFoundException
 		 */
 		suspend fun updateTitle(sessionId: UUID, title: String)
 		
@@ -203,25 +234,28 @@ interface CoreAPI {
 		/**
 		 * 创建一个新的工作区。
 		 *
-		 * @throws IllegalArgumentException [WorkspaceMeta.displayName] 与已有工作区重复。
-		 * @throws IllegalStateException [WorkspaceMeta.path] 不是一个目录。
 		 * @return 新工作区的数据。
+		 * @throws InvalidWorkspacePathException
+		 * @throws DuplicateWorkspaceIdException
+		 * @throws DuplicateWorkspaceNameException
 		 */
 		suspend fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
 		
 		/**
 		 * 重命名一个工作区。
 		 *
-		 * @throws IllegalStateException 找不到工作区，或找到工作区后工作区被删除，更新名称时找不到工作区
-		 * @throws IllegalArgumentException 新的名称与已有工作区重复，或新的名称与当前相同。
+		 * @throws DefaultWorkspaceMutationException
+		 * @throws WorkspaceNotFoundException
+		 * @throws DuplicateWorkspaceNameException
 		 */
 		suspend fun renameWorkspace(id: UUID, newName: String)
 		
 		/**
-		 * 删除工作区，删除前会先遍历 delete 所有 session。
+		 * 删除工作区，请确保工作区内无会话。
 		 *
-		 * @throws IllegalArgumentException 试图删除默认工作区。
 		 * @return 找不到工作区返回 false，删除成功返回 true。
+		 * @throws DefaultWorkspaceMutationException
+		 * @throws WorkspaceNotEmptyException
 		 */
 		suspend fun deleteWorkspace(id: UUID): Boolean
 		
@@ -238,16 +272,16 @@ interface CoreAPI {
 		/**
 		 * 从内存中获取所有工具的属性，不会调用 [io.github.autotweaker.api.tool.Tool.meta]。
 		 *
-		 * 所有工具的属性都会被缓存，并仅在新 Agent 创建或请求 LLM 前刷新。
+		 * 所有工具的属性都会被缓存，并仅在请求 LLM 前刷新。
 		 */
 		fun getMeta(): Map<String, ToolMeta>?
 		
 		/**
 		 * 用于反序列化 [AgentMessage.Tool.Call.validatedArgs]，得到解析后的请求数据类。
 		 *
-		 * AutoTweaker 会从内存中寻找 [toolName] 对应的实例，若对应工具所属插件未被加载，会抛出异常。
+		 * AutoTweaker 会从内存中寻找 [toolName] 对应的实例，若对应工具所属插件未被加载或工具数据从未被缓存，会抛出异常。
 		 *
-		 * @throws IllegalArgumentException 未知的 [toolName]
+		 * @throws ToolNotFoundException 在内存缓存中找不到对应工具
 		 * @throws SerializationException 反序列化错误，如果 [args] 来自 [AgentMessage.Tool.Call.validatedArgs]，通常不会触发，除非工具格式发生了变更，而 [AgentMessage.Tool.Call] 使用旧的格式
 		 */
 		fun deserializeArgs(toolName: String, args: JsonElement): ToolArgs
@@ -280,6 +314,9 @@ interface CoreAPI {
 		
 		/**
 		 * 更新一个设置项的值，要更新自己注册的设置项请使用 [io.github.autotweaker.api.config.SettingService.set]。
+		 *
+		 * @throws SettingNotFoundException
+		 * @throws SettingTypeMismatchException
 		 */
 		suspend fun setSetting(id: String, value: SettingValue<*>)
 		
@@ -287,6 +324,9 @@ interface CoreAPI {
 		 * 添加一个环境变量，允许覆盖。
 		 *
 		 * 环境变量加密存储。
+		 *
+		 * @throws SecretStoreLockedException
+		 * @throws GpgException
 		 */
 		suspend fun setEnv(env: CoreConfig.JsonConfig.Env)
 		
@@ -294,13 +334,15 @@ interface CoreAPI {
 		 * 删除一个环境变量。
 		 *
 		 * @return 找不到环境变量返回 false，删除成功返回 true。
+		 * @throws SecretStoreLockedException
 		 */
 		suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): Boolean
 		
 		/**
 		 * 获取一个环境变量的值。
 		 *
-		 * @return 环境变量的 value，找不到返回 null
+		 * @return 环境变量的 value，找不到返回 null。
+		 * @throws SecretStoreLockedException
 		 */
 		suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
 		
@@ -321,24 +363,25 @@ interface CoreAPI {
 		/**
 		 * 获取指定类型提供商的元数据。可以用于展示或快速创建提供商配置。
 		 *
-		 * @throws IllegalArgumentException 找不到类型为 [type] 的提供商。
+		 * @throws UnknownProviderTypeException
 		 */
 		fun getProviderMeta(type: String): LlmClient.ProviderInfo
 		
 		/**
 		 * 创建或更新一个提供商。
 		 *
+		 * @throws DuplicateProviderNameException
+		 * @throws UnknownProviderTypeException
+		 * @throws ApiKeyNotFoundException
 		 * @see CoreConfig.ProviderConfig.Provider
-		 * @throws IllegalStateException 已经存在 displayName 相同的提供商、已经存在 id 相同的提供商、找不到指定的 api key。
-		 * @throws IllegalArgumentException 找不到类型为 type 的提供商。
 		 */
 		suspend fun setProvider(provider: CoreConfig.ProviderConfig.Provider)
 		
 		/**
 		 * 删除提供商，同时删除提供商的所有模型。
 		 *
-		 * @throws IllegalArgumentException 默认模型在此提供商下。
 		 * @return 找不到返回 false，成功删除返回 true。
+		 * @throws DefaultModelDeletionException 默认模型在此提供商下
 		 * @see setDefaultModel
 		 * @see getDefaultModel
 		 */
@@ -352,21 +395,22 @@ interface CoreAPI {
 		/**
 		 * 获取所有已配置提供商的数据。
 		 *
-		 * 密钥不存在时会给 `keyId` 填充 "unknown"。
+		 * 密钥不存在时会给 `keyId` 填充 "UNKNOWN"。
 		 */
 		suspend fun listProviders(): List<CoreConfig.ProviderConfig.Provider>
 		
 		/**
 		 * 添加或更新一个模型。
 		 *
-		 * @throws IllegalArgumentException 同一提供商下存在 displayName 相同的模型。
+		 * @throws ProviderNotFoundException
+		 * @throws DuplicateModelNameException
 		 */
 		suspend fun setModel(model: CoreConfig.ProviderConfig.Model)
 		
 		/**
 		 * 删除一个模型配置。
 		 *
-		 * @throws IllegalStateException 试图删除默认模型。
+		 * @throws DefaultModelDeletionException
 		 * @see setDefaultModel
 		 * @see getDefaultModel
 		 */
@@ -398,14 +442,16 @@ interface CoreAPI {
 		 * 所谓默认模型，就是 AutoTweaker 在无法通过模型配置中的 id 找到模型时作为 fallback 的模型。
 		 * 本质上就是一个“备用模型”。
 		 *
-		 * @throws IllegalArgumentException 找不到模型。
+		 * @throws ModelNotFoundException
 		 */
 		suspend fun setDefaultModel(id: UUID?)
 		
 		/**
 		 * 添加一个新的 api key。
 		 *
-		 * @throws IllegalArgumentException 存在同名 api key。
+		 * @throws DuplicateApiKeyException
+		 * @throws SecretStoreLockedException
+		 * @throws GpgException
 		 */
 		suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
 		
@@ -414,8 +460,9 @@ interface CoreAPI {
 		 *
 		 * 删除前请先检查提供商数据，确保没有提供商正在使用这个 api key。
 		 *
-		 * @throws IllegalStateException key 正在被一个或多个提供商使用。
 		 * @return 成功删除返回 true，找不到 key 返回 false。
+		 * @throws ApiKeyInUseException
+		 * @throws SecretStoreLockedException
 		 */
 		suspend fun removeApiKey(name: String): Boolean
 		
@@ -432,7 +479,7 @@ interface CoreAPI {
 	 */
 	interface PersistenceAPI {
 		/**
-		 * 从数据库加载会话数据，找不到不会炸。
+		 * 从数据库加载会话数据。
 		 *
 		 * [SessionAPI.getHandle] 可能会触发会话的实例化，如果只是查数据，请使用此 api。
 		 *
@@ -448,7 +495,7 @@ interface CoreAPI {
 		suspend fun loadAgent(id: UUID): AgentData?
 		
 		/**
-		 * 从数据库加载会话消息，请按需加载，找不到不会炸。
+		 * 从数据库加载会话消息，请按需加载。
 		 *
 		 * @return 找不到消息返回 [emptyList]。
 		 */
@@ -489,7 +536,7 @@ interface CoreAPI {
 	 */
 	interface SecretAPI {
 		/**
-		 * 密钥库已经解锁，请确保在调用任何 API 前检查此值，否则 [SecretStoreLockedException] 可能在任何地方抛出。
+		 * 密钥库是否已经解锁，可订阅 flow 来等待密钥库解锁。
 		 *
 		 * 理论上此值为 true 后就再也不可能重新为 false。
 		 */
@@ -507,6 +554,7 @@ interface CoreAPI {
 		 * 解锁密钥库。在从用户接收密码时，请注意安全。
 		 *
 		 * @throws PasswordInvalidException
+		 * @throws GpgException
 		 * @see SecretAPI
 		 */
 		suspend fun unlock(password: String)
@@ -514,8 +562,10 @@ interface CoreAPI {
 		/**
 		 * 修改密码。在从用户接收密码时，请注意安全。
 		 *
-		 * @throws PasswordInvalidException
 		 * @throws SecretStoreLockedException
+		 * @throws PasswordInvalidException
+		 * @throws GpgException
+		 * @throws SecretNotFoundException
 		 * @see SecretAPI
 		 */
 		suspend fun changePassword(oldPassword: String, newPassword: String)
@@ -561,7 +611,9 @@ interface CoreAPI {
 		/**
 		 * 更新一个 i18n 条目某个语言的文本，或添加一个语言的文本。
 		 *
-		 * @throws IllegalStateException 通过 [id] 找不到条目。
+		 * 不允许添加未注册的条目。
+		 *
+		 * @throws I18nEntryNotFoundException
 		 */
 		fun set(id: String, text: String, languageCode: Locale)
 		

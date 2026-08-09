@@ -21,7 +21,6 @@ package io.github.autotweaker.api.types
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.Url.Companion.toUrl
 import kotlinx.serialization.Serializable
 import java.net.URI
 
@@ -41,7 +40,7 @@ value class Url private constructor(val value: String) {
 			val trimmed = trim().trimEnd('/')
 			require(trimmed.isNotBlank()) { "URL must not be blank" }
 			trace.catching { URI(trimmed) }.getOrNull()
-				?.takeIf { it.isAbsolute && it.scheme in listOf("http", "https") }
+				?.takeIf { it.isAbsolute && it.scheme in setOf("http", "https") }
 				?: throw IllegalArgumentException("Invalid URL: $trimmed")
 			return Url(trimmed)
 		}

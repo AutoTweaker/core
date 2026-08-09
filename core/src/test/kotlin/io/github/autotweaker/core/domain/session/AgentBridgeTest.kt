@@ -24,7 +24,6 @@ import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
@@ -78,7 +77,7 @@ class AgentBridgeTest {
 			// toModelConfig() 需要非空 Model.id
 			mockk<Model>(relaxed = true).also { model -> every { model.id } returns UUID.randomUUID() }
 		},
-		workspace = WorkspaceMeta(displayName = "ws", path = dir),
+		workspace = dir,
 	).init(data)
 	
 	private suspend fun awaitUntil(condition: () -> Boolean) {

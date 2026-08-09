@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.llm
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.llm.LlmClient
+import io.github.autotweaker.api.types.exception.*
 import io.github.autotweaker.core.PluginLoader
 import java.util.*
 
@@ -46,9 +47,8 @@ object LlmClientLoader : Loggable, Traceable {
 	}
 	
 	fun load(name: String): LlmClient =
-		requireNotNull(
-			all.firstOrNull { it.providerInfo.name == name }
-		) { "Unknown LLM provider: $name" }
+		all.find { it.providerInfo.name == name }
+			.orThrow { UnknownProviderTypeException(name) }
 			.andLog(log) { debug("Loaded LLM provider  name={}", name) }
 	
 	

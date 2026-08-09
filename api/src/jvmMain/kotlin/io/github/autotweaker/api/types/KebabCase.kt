@@ -21,7 +21,6 @@ package io.github.autotweaker.api.types
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import kotlinx.serialization.Serializable
 
 /**
@@ -39,10 +38,12 @@ value class KebabCase private constructor(val value: String) {
 		 * @throws IllegalArgumentException [this] 不合法。
 		 */
 		fun String.toKebab(): KebabCase {
-			require(isNotEmpty())
-			require(first() != '-' && last() != '-')
-			require(all { it.isLowerCase() || it.isDigit() || it == '-' })
-			require(!contains("--"))
+			require(isNotEmpty()) { "Kebab case must not be empty" }
+			require(first() != '-' && last() != '-') { "Kebab case must not start or end with '-': $this" }
+			require(all { it.isLowerCase() || it.isDigit() || it == '-' }) {
+				"Kebab case must only contain lowercase letters, digits and '-': $this"
+			}
+			require(!contains("--")) { "Kebab case must not contain consecutive '-': $this" }
 			return KebabCase(this)
 		}
 		

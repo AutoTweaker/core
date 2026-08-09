@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.*
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
@@ -73,7 +73,7 @@ class RoundRunner(
 	
 	@Volatile
 	private var currentModel = agentModel
-	val model = currentModel
+	val model get() = currentModel
 	
 	private val messages = MessageQueue(agentId)
 	

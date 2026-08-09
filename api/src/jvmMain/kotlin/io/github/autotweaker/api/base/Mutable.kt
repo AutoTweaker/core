@@ -37,6 +37,15 @@ class Mutable<T> private constructor(
 	fun get(): T = value
 	
 	/**
+	 * 获取当前值，可同时锁内执行一些操作。
+	 *
+	 * @see ReentrantMutex
+	 */
+	suspend fun <R> get(function: suspend (T) -> R): R = lock.withLock {
+		function(value)
+	}
+	
+	/**
 	 * 使用 [transform] 的返回值来更新值，返回更新后的值，[transform] 内的表达式在锁内执行，并发安全。
 	 *
 	 * 内部使用 [ReentrantMutex]，虽然应该不会有人在 [update] 里面 [update]，但这不会导致死锁。
@@ -67,9 +76,9 @@ class Mutable<T> private constructor(
 		 * @throws IllegalArgumentException [T] 的类型为 [Mutable] / [MutableCollection] / [MutableMap]。
 		 */
 		fun <T> T.mutable(onChange: suspend (old: T, new: T) -> Unit = { _, _ -> }): Mutable<T> {
-			require(this !is Mutable<*>)
-			require(this !is MutableCollection<*>)
-			require(this !is MutableMap<*, *>)
+			require(this !is Mutable<*>) { "Cannot wrap a Mutable with mutable()" }
+			require(this !is MutableCollection<*>) { "Cannot wrap a MutableCollection with mutable()" }
+			require(this !is MutableMap<*, *>) { "Cannot wrap a MutableMap with mutable()" }
 			return Mutable(this, onChange)
 		}
 		

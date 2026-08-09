@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.adapter
 
-import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
+import io.github.autotweaker.api.types.exception.*
 import java.nio.file.Path
 
 /**

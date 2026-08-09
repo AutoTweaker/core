@@ -187,9 +187,7 @@ class Model : Command, Traceable {
 			
 			if (cached == null) return formatPrice(price)
 			return "${formatPrice(price)} ${i18n(ModelI18n.Or())} ${formatPrice(cached)} ${
-				i18n(
-					ModelI18n.CachedPrice()
-				)
+				i18n(ModelI18n.CachedPrice())
 			}"
 		}
 		

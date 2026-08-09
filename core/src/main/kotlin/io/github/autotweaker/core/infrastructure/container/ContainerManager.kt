@@ -117,7 +117,7 @@ object ContainerManager : Loggable, Traceable, EnvStore() {
 			return@flow
 		}
 		ensureRunning()
-		val id = containerId ?: throw NoContainerRunningException()
+		val id = containerId ?: error("Failed to start container")
 		val wrappedCommand = listOf(
 			"timeout", "--signal=KILL", "${timeout.inWholeSeconds}", "bash", "-lc", command
 		)

@@ -23,8 +23,8 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.types.exception.PasswordInvalidException
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -172,8 +172,9 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	}
 	
 	private suspend fun fingerprint(): String =
-		gpg("--list-keys", "--with-colons", "--fingerprint", KEY_UID).lines().first { it.startsWith("fpr:") }.split(":")
-			.getOrNull(9) ?: error("Cannot find fingerprint for $KEY_UID")
+		gpg("--list-keys", "--with-colons", "--fingerprint", KEY_UID).lines()
+			.find { it.startsWith("fpr:") }?.split(":")
+			?.getOrNull(9) ?: error("Cannot find fingerprint for $KEY_UID")
 	
 	//删除密钥
 	private suspend fun deleteKey() =
@@ -199,11 +200,10 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		vararg args: String, input: String? = null, passphrase: String? = null
 	): String = withContext(Dispatchers.IO) {
 		val allArgs = mutableListOf("gpg")
-		if (passphrase != null) {
-			allArgs += listOf("--passphrase-fd", "0")
-		}
+		if (passphrase != null) allArgs += listOf("--passphrase-fd", "0")
 		allArgs.addAll(args)
 		val cmd = allArgs.toList()
+		
 		val pb = ProcessBuilder(cmd)
 		pb.environment()["GNUPGHOME"] = gpgHome.toString()
 		pb.environment().remove("GPG_AGENT_INFO")
@@ -219,8 +219,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		}
 		val stdout = proc.inputStream.bufferedReader().readText()
 		val stderr = proc.errorStream.bufferedReader().readText()
-		check(proc.waitFor() == 0)
-		{ "GPG command failed (${cmd.joinToString(SPACE.toString())}): $stderr" }
+		if (proc.waitFor() != 0) throw GpgException(allArgs.toList(), stdout, stderr)
 		return@withContext stdout
 	}
 	
@@ -247,17 +246,23 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	
 	override suspend fun get(id: UUID): String = lock.withLock {
 		val file = secretsDir.resolve("$id.gpg")
-		check(Files.exists(file)) { "Secret not found: $id" }
+		if (!Files.exists(file)) throw SecretNotFoundException(id)
 		log.debug("Retrieved secret  id={}", id)
-		return@withLock gpg(
-			"--batch",
-			"--yes",
-			"--pinentry-mode",
-			"loopback",
-			"-d",
-			file.toString(),
-			passphrase = String(getPassword())
-		)
+		return@withLock trace.catching {
+			gpg(
+				"--batch",
+				"--yes",
+				"--pinentry-mode",
+				"loopback",
+				"-d",
+				file.toString(),
+				passphrase = String(getPassword())
+			)
+		}.rethrowNot<GpgException>()
+			.getOrElse { e ->
+				log.error("Failed secret decryption  id={}", id, e)
+				throw SecretNotFoundException(id)
+			}
 	}
 	
 	override suspend fun list(): List<UUID> = lock.withLock {

@@ -30,21 +30,6 @@ import kotlin.time.Duration
 class ContainerExceptionsTest {
 	
 	@Test
-	fun `ContainerAlreadyRunningException contains container id in message`() {
-		val ex = ContainerAlreadyRunningException("abc123")
-		assertTrue(ex.message!!.contains("abc123"))
-		assertTrue(ex.message!!.contains("already running"))
-		assertIs<IllegalStateException>(ex)
-	}
-	
-	@Test
-	fun `NoContainerRunningException has descriptive message`() {
-		val ex = NoContainerRunningException()
-		assertTrue(ex.message!!.contains("No container is running"))
-		assertIs<IllegalStateException>(ex)
-	}
-	
-	@Test
 	fun `ContainerOperationException with message only`() {
 		val ex = ContainerOperationException("something went wrong")
 		assertEquals("something went wrong", ex.message)

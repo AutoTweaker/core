@@ -20,7 +20,11 @@ package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.duplicate.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelStore
@@ -29,22 +33,32 @@ import io.github.autotweaker.api.types.config.CoreConfig.ProviderConfig.Model as
 
 object ModelConfigAPI : ModelConfigRepository, Loggable {
 	private val store = ModelStore
+	private val lock = ReentrantMutex()
 	
-	override suspend fun set(model: ModelConfig) {
-		require(store.getAll().values.all {
-			it.displayName != model.data.displayName
-					|| it.providerId != model.data.providerId
-		}) { "Model with name ${model.data.displayName} already exists" }
-		store.set(model.data)
-		log.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
+	override suspend fun set(model: ModelConfig) = lock.withLock {
+		ProviderConfigAPI.lock.withLock {
+			ProviderConfigAPI.get(model.data.providerId)
+				?: throw ProviderNotFoundException(model.data.providerId)
+			val duplicate = store.getAll().values.any {
+				it.id != model.data.id
+						&& it.providerId == model.data.providerId
+						&& it.displayName == model.data.displayName
+			}
+			if (duplicate) throw DuplicateModelNameException(model.data.displayName)
+			store.set(model.data)
+			log.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
+		}
 	}
 	
 	override suspend fun list() = store.getAll().values.map { ModelConfig(it) }
 	
 	override suspend fun get(id: UUID) = store.get(id)?.let { ModelConfig(it) }
 	
-	override suspend fun remove(id: UUID): Boolean {
-		check(ModelResolverImpl.getDefaultModel() != id) { "Cannot remove default model: $id" }
-		return store.delete(id).andLog(log) { info("Removed model  id={}", id) }
-	}
+	override suspend fun remove(id: UUID): Boolean =
+		ModelResolverImpl.getDefaultModel {
+			if (it == id) throw DefaultModelDeletionException(it)
+			store.delete(id).andLog(log) {
+				info("Removed model  id={}", id)
+			}
+		}
 }

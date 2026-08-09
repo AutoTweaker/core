@@ -25,7 +25,8 @@ import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.tool.toolFail
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.tool.ToolMeta
@@ -134,7 +135,7 @@ class Tools(
 		onToolOutput: (RuntimeOutput) -> Unit,
 	): RuntimeContext.Message.Tool.Result {
 		val tool = requireNotNull(tools[toolName])
-		check(active(toolName))
+		check(active(toolName)) { "Tool $toolName is not active" }
 		
 		log.info("Started tool execution  agentId={}  tool={}", agentId, toolName)
 		
@@ -173,14 +174,19 @@ class Tools(
 	private fun active(name: String): Boolean = name in _activeTools.value
 	
 	companion object {
+		@Volatile
 		private var metaCache: MetaCache = mapOf()
 		private val toolNameCache = mutableMapOf<KClass<*>, String>()
 		
 		fun serializeValidatedArgs(toolName: String, args: ToolArgs): JsonElement =
-			Json.encodeToJsonElement(requireNotNull(metaCache[toolName]).second, args)
+			Json.encodeToJsonElement(
+				metaCache[toolName].orThrow { ToolNotFoundException(toolName) }.second, args
+			)
 		
 		fun deserializeValidatedArgs(toolName: String, args: JsonElement): ToolArgs =
-			Json.decodeFromJsonElement(requireNotNull(metaCache[toolName]).second, args)
+			Json.decodeFromJsonElement(
+				metaCache[toolName].orThrow { ToolNotFoundException(toolName) }.second, args
+			)
 		
 		fun <T : ToolArgs> deserializeValidatedArgs(
 			deserializer: KSerializer<T>, args: JsonElement

@@ -18,13 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.base
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.store.MutableStore
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.*
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -36,22 +33,31 @@ abstract class SecretMapStore : MutableStore<MutableMap<String, UUID>>(), Loggab
 	override fun default() = mutableMapOf<String, UUID>()
 	
 	protected suspend fun putSecret(name: String, value: String) = transform {
-		it[name]?.let { uuid -> secretStore.remove(uuid) }
-		it[name] = secretStore.set(value)
+		it.put(name, secretStore.set(value)).also { old ->
+			old ?: return@also
+			secretStore.remove(old)
+		}.discard()
 	}
 	
 	protected suspend fun getSecret(name: String): String? = transform {
 		val uuid = it[name] ?: return@transform null
 		trace.catching { secretStore.get(uuid) }
+			.rethrowCancellation()
 			.rethrow<SecretStoreLockedException>()
-			.onFailure { log.warn("Failed secret retrieval  name={}", name, it) }
-			.getOrNull()
+			.onFailure { e ->
+				log.warn("Failed secret retrieval  name={}  reason={}", name, e.message)
+			}.getOrNull()
 	}
 	
 	protected suspend fun removeSecret(name: String): Boolean = transform {
-		val uuid = it.remove(name) ?: return@transform false
+		val uuid = it[name] ?: return@transform false
 		trace.catching { secretStore.remove(uuid) }
+			.rethrowCancellation()
 			.rethrow<SecretStoreLockedException>()
+			.onFailure { e ->
+				log.warn("Failed to remove secret  name={}  reason={}", name, e.message)
+			}
+		it.remove(name)
 		return@transform true
 	}
 	

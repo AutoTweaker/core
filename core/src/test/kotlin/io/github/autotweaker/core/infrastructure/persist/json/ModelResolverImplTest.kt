@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.types.Url.Companion.toUrl
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice
@@ -211,16 +212,20 @@ class ModelResolverImplTest {
 	}
 	
 	@Test
-	fun `resolve returns null when nothing available`() = runTest {
-		assertNull(ModelResolverImpl.resolve(UUID.randomUUID()))
+	fun `resolve throws when nothing available`() = runTest {
+		assertFailsWith<ModelNotFoundException> {
+			ModelResolverImpl.resolve(UUID.randomUUID())
+		}
 	}
 	
 	@Test
-	fun `resolve returns null when provider missing`() = runTest {
+	fun `resolve throws when provider missing`() = runTest {
 		val modelId = UUID.randomUUID()
 		ModelStore.set(modelData(modelId, UUID.randomUUID()))
 		
-		assertNull(ModelResolverImpl.resolve(modelId))
+		assertFailsWith<ProviderNotFoundException> {
+			ModelResolverImpl.resolve(modelId)
+		}
 	}
 	
 	// endregion
@@ -239,7 +244,7 @@ class ModelResolverImplTest {
 	
 	@Test
 	fun `setDefaultModel with missing model fails`() = runTest {
-		assertFailsWith<IllegalArgumentException> {
+		assertFailsWith<ModelNotFoundException> {
 			ModelResolverImpl.setDefaultModel(UUID.randomUUID())
 		}
 	}

@@ -16,11 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+@file:Suppress("unused")
 
-import io.github.autotweaker.api.i18n
+package io.github.autotweaker.api
 
-class ChatRetriesExhaustedException(val attempts: Int) :
-	AutoTweakerException("All LLM chat retries exhausted without success, attempts: $attempts") {
-	override fun message() = i18n(ExceptionI18n.ChatRetriesExhaustedException(), attempts)
-}
+import kotlin.jvm.JvmName
+
+inline fun <T : Any> T?.orThrow(exception: () -> Throwable): T = this ?: throw exception()
+
+@JvmName("orThrowNotNull")
+@Deprecated(
+	"orThrow() on a non-null T is redundant",
+	ReplaceWith("this"),
+	level = DeprecationLevel.ERROR,
+)
+inline fun <T : Any> T.orThrow(exception: () -> Throwable): T = this

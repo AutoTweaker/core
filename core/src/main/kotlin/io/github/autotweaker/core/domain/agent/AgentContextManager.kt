@@ -180,11 +180,13 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 		}
 	}
 	
-	suspend fun updateInjections(injections: List<ContextInjection>?) = lock.withLock {
+	suspend fun updateInjections(
+		function: (List<ContextInjection>?) -> List<ContextInjection>?
+	) = lock.withLock {
 		_context.update {
-			it.copy(
-				injections = injections
-			)
+			val new = function(it.injections)
+			if (it.injections == new) return@withLock
+			it.copy(injections = new)
 		}
 	}
 }

@@ -399,10 +399,10 @@ class AgentContextManagerTest {
 			tag = "context", content = "workspace data"
 		)
 		
-		manager.updateInjections(listOf(injection))
+		manager.updateInjections { listOf(injection) }
 		assertEquals(listOf(injection), manager.context.value.injections)
 		
-		manager.updateInjections(null)
+		manager.updateInjections { null }
 		assertNull(manager.context.value.injections)
 	}
 	

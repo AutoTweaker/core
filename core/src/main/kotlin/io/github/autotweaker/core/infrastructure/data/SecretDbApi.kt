@@ -18,12 +18,16 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.debug.DbAPI
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.debug.SecretEntry
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.domain.port.SecretStore
 import java.util.*
 
-object SecretDbApi : DbAPI<SecretEntry> {
+object SecretDbApi : DbAPI<SecretEntry>, Traceable {
 	private lateinit var secretStore: SecretStore
 	
 	fun init(secretStore: SecretStore) {
@@ -40,8 +44,9 @@ object SecretDbApi : DbAPI<SecretEntry> {
 	
 	override suspend fun get(key: String): SecretEntry? {
 		val id = UUID.fromString(key)
-		if (id !in secretStore.list()) return null
-		return SecretEntry(key = key, content = secretStore.get(id))
+		return trace.catching { SecretEntry(key = key, content = secretStore.get(id)) }
+			.rethrowNot<SecretNotFoundException>()
+			.getOrNull()
 	}
 	
 	override suspend fun put(content: SecretEntry) {

@@ -20,7 +20,6 @@ package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
@@ -50,7 +49,7 @@ class SessionTest {
 		),
 		store = mockk<SessionRepository>(),
 		resolveModel = { mockk<Model>() },
-		workspace = WorkspaceMeta(displayName = "ws", path = Path.of("/tmp")),
+		workspace = Path.of("/tmp"),
 	)
 	
 	@Test

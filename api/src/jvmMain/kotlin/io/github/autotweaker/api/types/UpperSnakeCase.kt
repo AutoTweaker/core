@@ -21,7 +21,6 @@ package io.github.autotweaker.api.types
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.UpperSnakeCase.Companion.toUpperSnake
 import kotlinx.serialization.Serializable
 
 /**
@@ -39,10 +38,12 @@ value class UpperSnakeCase private constructor(val value: String) {
 		 * @throws IllegalArgumentException [this] 不合法。
 		 */
 		fun String.toUpperSnake(): UpperSnakeCase {
-			require(isNotEmpty())
-			require(first() != '_' && last() != '_')
-			require(all { it.isUpperCase() || it.isDigit() || it == '_' })
-			require(!contains("__"))
+			require(isNotEmpty()) { "Upper snake case must not be empty" }
+			require(first() != '_' && last() != '_') { "Upper snake case must not start or end with '_': $this" }
+			require(all { it.isUpperCase() || it.isDigit() || it == '_' }) {
+				"Upper snake case must only contain uppercase letters, digits and '_': $this"
+			}
+			require(!contains("__")) { "Upper snake case must not contain consecutive '_': $this" }
 			return UpperSnakeCase(this)
 		}
 		

@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.i18n
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.types.Localizations
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every
@@ -132,7 +133,7 @@ class I18nServiceImplTest {
 	
 	@Test
 	fun `set unknown key fails`() {
-		assertFailsWith<IllegalStateException> {
+		assertFailsWith<I18nEntryNotFoundException> {
 			I18nServiceImpl.set("com.unknown.Key", "text", Locale.ENGLISH)
 		}
 	}

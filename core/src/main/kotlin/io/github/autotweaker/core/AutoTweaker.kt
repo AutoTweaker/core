@@ -26,6 +26,7 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.hook.StartupHook
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.adapter.AdapterInfo
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.application.Launcher
 import io.github.autotweaker.core.application.Wiring
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
@@ -115,7 +116,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	}
 	
 	private fun requireAdapter(name: KebabCase): Pair<Adapter, AdapterInfo> =
-		requireNotNull(registry[name]) { "Unknown adapter: $name" }
+		registry[name] ?: throw AdapterNotFoundException(name)
 	
 	private fun releaseLock() {
 		trace.catching {

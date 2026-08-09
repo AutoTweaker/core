@@ -22,6 +22,7 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.store.ImmutableStore
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
@@ -41,20 +42,24 @@ object ModelResolverImpl : ImmutableStore<UUID?>(), ModelResolver, Loggable {
 	
 	fun getDefaultModel(): UUID? = cache.get()
 	
+	suspend fun <R> getDefaultModel(function: suspend (UUID?) -> R) = cache.get(function)
+	
 	suspend fun setDefaultModel(id: UUID?) {
 		if (id == null) {
 			cache.set(null)
 			return
 		}
-		requireNotNull(ModelStore.get(id)) { "Model not found: $id" }
-		cache.set(id)
+		cache.update {
+			ModelStore.get(id) ?: throw ModelNotFoundException(id)
+			return@update id
+		}
 		log.info("Set default model  modelId={}", id)
 	}
 	
-	override suspend fun resolve(id: UUID): Model? {
+	override suspend fun resolve(id: UUID): Model {
 		val resolvedId = resolveModelId(id)
-		val model = ModelStore.get(resolvedId) ?: return null
-		val provider = ProviderStore.get(model.providerId) ?: return null
+		val model = ModelStore.get(resolvedId) ?: throw ModelNotFoundException(id)
+		val provider = ProviderStore.get(model.providerId) ?: throw ProviderNotFoundException(model.providerId)
 		return Model(
 			id = model.id,
 			provider = Provider(

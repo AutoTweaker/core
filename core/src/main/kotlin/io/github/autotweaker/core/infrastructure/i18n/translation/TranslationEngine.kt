@@ -55,7 +55,7 @@ object TranslationEngine : Loggable, Traceable {
 		modelId: UUID, target: Locale,
 		modelRepo: ModelResolver,
 	) {
-		val model = modelRepo.resolve(modelId) ?: error("Model not found: $modelId")
+		val model = modelRepo.resolve(modelId)
 		val systemPrompt = TranslateSettings.SystemPrompt().get()
 			.replace("{{target_language}}", target.displayName)
 		val userPromptTemplate = TranslateSettings.UserPrompt().get()

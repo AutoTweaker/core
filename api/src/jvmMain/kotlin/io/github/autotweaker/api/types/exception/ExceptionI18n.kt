@@ -24,7 +24,7 @@ import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
 
-object ExceptionI18n {
+internal object ExceptionI18n {
 	@AutoService(I18nDef::class)
 	class DuplicateWorkspaceIdException : I18nBase(
 		zh("ID 为 '%s' 的工作区已存在"),
@@ -47,6 +47,12 @@ object ExceptionI18n {
 	class ModelNotFoundException : I18nBase(
 		zh("找不到模型: '%s'"),
 		en("Model not found: '%s'"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ProviderNotFoundException : I18nBase(
+		zh("找不到模型提供商: '%s'"),
+		en("Provider not found: '%s'"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -179,5 +185,11 @@ object ExceptionI18n {
 	class GpgException : I18nBase(
 		zh("GPG 命令 '%s' 执行失败: %s"),
 		en("GPG command '%s' failed: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class WorkspaceNotEmptyException : I18nBase(
+		zh("工作区 '%s' 中包含会话, 无法删除"),
+		en("Workspace '%s' contains sessions and cannot be deleted"),
 	)
 }

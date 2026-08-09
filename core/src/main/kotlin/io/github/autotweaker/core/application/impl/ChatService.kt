@@ -43,9 +43,9 @@ object ChatService : Loggable {
 	}
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = flow {
-		val model = modelRepo.resolve(request.model) ?: error("Unknown model: ${request.model}")
+		val model = modelRepo.resolve(request.model)
 		val fallbacks = request.fallbackModels?.map {
-			modelRepo.resolve(it) ?: error("Unknown fallback model: $it")
+			modelRepo.resolve(it)
 		}
 		log.info(
 			"Started chat request  model={}  fallbackCount={}  stream={}",

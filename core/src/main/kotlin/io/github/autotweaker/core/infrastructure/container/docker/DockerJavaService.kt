@@ -28,10 +28,7 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrDefault
-import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.base.recoverException
+import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
@@ -60,6 +57,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	
 	@Volatile
 	private var permissionFixJob: Job? = null
+	private val lock = ReentrantMutex()
 	
 	private val scope = scope(IO)
 	
@@ -140,7 +138,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {
 		trace.catching {
-			permissionFixJob?.cancel()
+			lock.withLock { permissionFixJob?.cancel() }
 			fixWorkspacePermissions(containerId)
 			client.stopContainerCmd(containerId).withTimeout(10).exec()
 			log.info("Stopped container  containerId={}", containerId)
@@ -177,13 +175,15 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 		}
 	}
 	
-	private fun schedulePermissionFix(containerId: String) {
+	private suspend fun schedulePermissionFix(containerId: String) {
 		val delaySeconds = DockerSettings.PermissionFixDelaySeconds().get()
 		if (delaySeconds <= 0) return
-		permissionFixJob?.cancel()
-		permissionFixJob = scope.launch {
-			delay(delaySeconds.seconds)
-			fixWorkspacePermissions(containerId)
+		lock.withLock {
+			permissionFixJob?.cancel()
+			permissionFixJob = scope.launch {
+				delay(delaySeconds.seconds)
+				fixWorkspacePermissions(containerId)
+			}
 		}
 	}
 	

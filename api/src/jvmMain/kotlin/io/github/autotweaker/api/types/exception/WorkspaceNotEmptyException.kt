@@ -16,13 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.container
+package io.github.autotweaker.api.types.exception
 
-class ContainerAlreadyRunningException(containerId: String) :
-	IllegalStateException("A container is already running (id: $containerId). Only one container is allowed at a time.")
+import io.github.autotweaker.api.i18n
+import java.util.*
 
-class NoContainerRunningException :
-	IllegalStateException("No container is running. Start a container first.")
-
-class ContainerOperationException(message: String, cause: Throwable? = null) :
-	RuntimeException(message, cause)
+class WorkspaceNotEmptyException(val id: UUID) :
+	AutoTweakerException("Workspace '$id' still contains sessions") {
+	override fun message() = i18n(ExceptionI18n.WorkspaceNotEmptyException(), id)
+}

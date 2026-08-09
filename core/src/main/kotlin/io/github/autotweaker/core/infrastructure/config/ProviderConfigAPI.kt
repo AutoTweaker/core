@@ -24,6 +24,8 @@ import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.duplicate.*
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.domain.port.ModelConfigRepository
 import io.github.autotweaker.core.domain.port.ProviderRepository
@@ -37,7 +39,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	private val modelConfig: ModelConfigRepository = ModelConfigAPI
 	private val store = ProviderStore
 	
-	private val lock = ReentrantMutex()
+	val lock = ReentrantMutex()
 	
 	override fun listAvailable(): List<String> = LlmClientLoader.available()
 	override fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo
@@ -47,19 +49,22 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	override suspend fun get(id: UUID): CoreConfig.ProviderConfig.Provider? =
 		store.get(id)?.toCoreConfig()
 	
-	override suspend fun remove(id: UUID) = lock.withLock {
+	override suspend fun remove(id: UUID): Boolean = lock.withLock {
 		val modelIds = modelConfig.list().filter { it.data.providerId == id }.map { it.data.id }
-		val defaultModel = ModelResolverImpl.getDefaultModel()
-		require(defaultModel !in modelIds) { "Cannot delete provider: contains default model $defaultModel" }
-		modelIds.forEach { modelConfig.remove(it) }
+		ModelResolverImpl.getDefaultModel {
+			it?.let { defaultModel ->
+				if (defaultModel in modelIds) throw DefaultModelDeletionException(defaultModel, id)
+			}
+			modelIds.forEach { model -> modelConfig.remove(model) }
+		}
 		return@withLock store.delete(id).andLog(log) {
 			info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
 		}
 	}
 	
 	override suspend fun set(provider: CoreConfig.ProviderConfig.Provider) = lock.withLock {
-		check(store.getAll().values.all { it.displayName != provider.displayName })
-		{ "Provider with name ${provider.displayName} already exists" }
+		if (store.getAll().values.any { it.id != provider.id && it.displayName == provider.displayName })
+			throw DuplicateProviderNameException(provider.displayName)
 		val meta = LlmClientLoader.load(provider.type).providerInfo
 		store.set(
 			ProviderData(
@@ -78,7 +83,7 @@ object ProviderConfigAPI : ProviderRepository, Loggable, Traceable {
 	private suspend fun ProviderData.toCoreConfig() = CoreConfig.ProviderConfig.Provider(
 		id = id,
 		type = providerType,
-		keyId = apiKeyConfig.getName(apiKey) ?: "unknown",
+		keyId = apiKeyConfig.getName(apiKey) ?: "UNKNOWN",
 		baseUrl = baseUrl,
 		displayName = displayName,
 		errorHandlingRules = errorHandlingRules,

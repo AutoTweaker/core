@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.core.infrastructure.container
 
-import io.github.autotweaker.api.i18n
-
-class ChatRetriesExhaustedException(val attempts: Int) :
-	AutoTweakerException("All LLM chat retries exhausted without success, attempts: $attempts") {
-	override fun message() = i18n(ExceptionI18n.ChatRetriesExhaustedException(), attempts)
-}
+class ContainerOperationException(message: String, cause: Throwable? = null) :
+	RuntimeException(message, cause)

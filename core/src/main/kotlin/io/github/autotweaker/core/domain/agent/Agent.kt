@@ -100,8 +100,10 @@ class Agent(
 	
 	fun sendMessage(content: MessageContent): Delivery = runner.send(content)
 	
-	suspend fun updateInjections(injections: List<ContextInjection>?) = also {
-		ctx.updateInjections(injections)
+	suspend fun updateInjections(
+		function: (List<ContextInjection>?) -> List<ContextInjection>?
+	) = also {
+		ctx.updateInjections(function)
 	}
 	
 	suspend fun shutdown() {

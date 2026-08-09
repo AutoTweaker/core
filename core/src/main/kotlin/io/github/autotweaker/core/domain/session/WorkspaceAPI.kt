@@ -21,6 +21,8 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
@@ -32,34 +34,26 @@ object WorkspaceAPI : Loggable {
 	private val wsm = WorkspaceManager
 	
 	suspend fun create(meta: WorkspaceMeta): WorkspaceData {
-		require(!wsm.getAll().any { it.meta.displayName == meta.displayName })
-		
 		val home = Path.of(System.getProperty("user.home"))
 		val resolved = if (meta.path.isAbsolute) meta.path else home.resolve(meta.path)
 		val meta = meta.copy(path = resolved)
 		
-		if (!Files.isDirectory(meta.path)) error("${meta.path} is not a directory")
+		if (!Files.isDirectory(meta.path)) throw InvalidWorkspacePathException(meta.path)
 		
 		return wsm.create(meta).andLog(log) {
 			info("Created workspace  id={}  name={}  path={}", it.meta.id, it.meta.displayName, it.meta.path)
 		}
 	}
 	
-	suspend fun rename(id: UUID, newName: String) {
-		val data = wsm.getData(id) ?: error("Workspace not found: $id")
-		require(!wsm.getAll().any { it.meta.displayName == newName })
-		
-		wsm.updateMeta(data.meta.copy(displayName = newName))
-		log.info("Renamed workspace  id={}  newName={}", id, newName)
-	}
+	suspend fun rename(id: UUID, newName: String) =
+		wsm.updateMeta {
+			val data = wsm.getData(id) ?: throw WorkspaceNotFoundException(id)
+			data.meta.copy(displayName = newName)
+		}.andLog(log) {
+			info("Renamed workspace  id={}  newName={}", id, newName)
+		}
 	
-	suspend fun delete(id: UUID): Boolean {
-		val data = wsm.getData(id) ?: return false
-		data.sessionIds?.forEach { SessionManager.delete(it) }
-		
-		return wsm.delete(id).andLog(log)
-		{ info("Deleted workspace  success={}  id={}  sessionCount={}", it, id, data.sessionIds?.size ?: 0) }
-	}
+	suspend fun delete(id: UUID): Boolean = wsm.delete(id)
 	
 	suspend fun list() = wsm.getAll()
 }

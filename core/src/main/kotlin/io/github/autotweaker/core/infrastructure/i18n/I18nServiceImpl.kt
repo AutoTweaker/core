@@ -28,6 +28,7 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.I18nEntries
 import io.github.autotweaker.api.types.Localizations
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -54,7 +55,7 @@ object I18nServiceImpl : AtomicStore<I18nServiceImpl.Data>(), I18nService, Logga
 	fun getDefault(id: String): Localizations? = I18nRegistry.get(id)
 	
 	fun set(id: String, text: String, languageCode: Locale) {
-		if (I18nRegistry.get(id) == null) error("I18n not found: $id")
+		I18nRegistry.get(id) ?: throw I18nEntryNotFoundException(id)
 		update { data ->
 			val entries = data.entries.toMutableMap()
 			val localizations = entries[id].orEmpty().toMutableMap()

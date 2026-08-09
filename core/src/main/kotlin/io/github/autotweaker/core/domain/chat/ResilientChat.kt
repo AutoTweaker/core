@@ -22,6 +22,7 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.types.exception.*
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.model.Model
@@ -69,7 +70,7 @@ object ResilientChat : Loggable {
 		
 		val userMsg = messages.filterIsInstance<ChatMessage.UserMessage>()
 		
-		var retries = 0
+		var attempts = 0
 		
 		suspend fun attempt(target: Model): Pair<Int?, Boolean> {
 			val chatRequest = buildRequest(target, messages, tools, responseFormat, stream, thinking)
@@ -92,7 +93,7 @@ object ResilientChat : Loggable {
 					hasError = true
 				} else emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
 			}
-			retries++
+			attempts++
 			
 			return Pair(statusCode, hasError)
 		}
@@ -132,7 +133,9 @@ object ResilientChat : Loggable {
 							val baseDelay = ResilientChatSettings.RetryBaseDelaySeconds().get()
 							val maxDelay = ResilientChatSettings.MaxRetryDelaySeconds().get()
 							val jitterEnabled = ResilientChatSettings.RetryJitterEnabled().get()
-							val capped = minOf(baseDelay.seconds * (1 shl retriesUsed), maxDelay.seconds)
+							val scale = 1L shl retriesUsed
+							val capped = if (scale < 0) maxDelay.seconds
+							else minOf(scale.seconds * baseDelay, maxDelay.seconds)
 							val finalDelay = if (jitterEnabled)
 								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
 							else capped
@@ -182,8 +185,8 @@ object ResilientChat : Loggable {
 				log.info("Exhausted all candidate models and restarted  round={}", round + 1)
 		}
 		
-		log.warn("Exhausted all LLM chat retries  retries={}", retries)
-		error("All LLM chat retries exhausted without success")
+		log.warn("Exhausted all LLM chat retries  attempts={}", attempts)
+		throw ChatRetriesExhaustedException(attempts)
 	}
 	
 	private fun ChatResult.normalizeEmptyStrings(): ChatResult {

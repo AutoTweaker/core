@@ -27,6 +27,8 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import kotlinx.serialization.json.Json
@@ -78,8 +80,7 @@ object Settings : SettingService, Loggable, Traceable {
 		val stored = cache[id]
 		
 		@Suppress("UNCHECKED_CAST")
-		val result =
-			if (stored != null && stored::class == def.default::class) stored as V else def.default
+		val result = if (stored != null && stored::class == def.default::class) stored as V else def.default
 		return result.value
 	}
 	
@@ -106,9 +107,9 @@ object Settings : SettingService, Loggable, Traceable {
 		requireNotNull(def::class.qualifiedName) { "Anonymous SettingDef not supported: ${def::class}" }
 	
 	fun setById(id: String, value: SettingValue<*>) {
-		val def = requireNotNull(SettingRegistry.get(id)) { "Unknown setting: $id" }
-		require(value::class == def.default::class)
-		{ "Type mismatch for '$id': expected ${def.default::class.simpleName}, got ${value::class.simpleName}" }
+		val def = SettingRegistry.get(id) ?: throw SettingNotFoundException(id)
+		if (value::class != def.default::class)
+			throw SettingTypeMismatchException(id, def.default::class, value::class)
 		upsertValue(id, value)
 		cache[id] = value
 		log.debug("Updated setting by id  id={}  value={}", id, value)

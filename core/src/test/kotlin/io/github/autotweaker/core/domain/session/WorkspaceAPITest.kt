@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.duplicate.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.TestServices
@@ -41,7 +44,7 @@ class WorkspaceAPITest {
 	
 	private lateinit var dir: Path
 	
-	private fun workspaceData(id: UUID = UUID.randomUUID(), sessionIds: List<UUID>? = null) = WorkspaceData(
+	private fun workspaceData(id: UUID = UUID.randomUUID(), sessionIds: Set<UUID> = emptySet()) = WorkspaceData(
 		meta = WorkspaceMeta(displayName = "ws-$id", id = id, path = dir),
 		sessionIds = sessionIds,
 	)
@@ -78,20 +81,19 @@ class WorkspaceAPITest {
 		val expectedPath = Path.of(System.getProperty("user.home")).resolve("relative/dir")
 		
 		// home 下不存在该目录，isDirectory 检查会失败——但错误消息应包含解析后的绝对路径
-		val ex = assertFailsWith<IllegalStateException> {
+		val ex = assertFailsWith<InvalidWorkspacePathException> {
 			WorkspaceAPI.create(relative)
 		}
 		
-		assertTrue(ex.message!!.contains(expectedPath.toString()))
+		assertTrue(ex.message.contains(expectedPath.toString()))
 	}
 	
 	@Test
 	fun `create duplicate display name fails`() = runTest {
 		val data = workspaceData()
-		coEvery { WorkspaceManager.getAll() } returns listOf(data)
-		coEvery { WorkspaceManager.create(any()) } returns data
+		coEvery { WorkspaceManager.create(any()) } throws DuplicateWorkspaceNameException(data.meta.displayName)
 		
-		assertFailsWith<IllegalArgumentException> {
+		assertFailsWith<DuplicateWorkspaceNameException> {
 			WorkspaceAPI.create(data.meta)
 		}
 	}
@@ -100,7 +102,7 @@ class WorkspaceAPITest {
 	fun `create non-directory path fails`() = runTest {
 		val meta = WorkspaceMeta(displayName = "missing", path = dir.resolve("nope"))
 		
-		assertFailsWith<IllegalStateException> {
+		assertFailsWith<InvalidWorkspacePathException> {
 			WorkspaceAPI.create(meta)
 		}
 	}
@@ -113,30 +115,36 @@ class WorkspaceAPITest {
 	fun `rename updates workspace meta`() = runTest {
 		val data = workspaceData()
 		coEvery { WorkspaceManager.getData(data.meta.id) } returns data
-		coEvery { WorkspaceManager.updateMeta(any()) } returns Unit
+		coEvery { WorkspaceManager.updateMeta(any()) } coAnswers {
+			val meta = firstArg<suspend () -> WorkspaceMeta>()()
+			assertEquals("new name", meta.displayName)
+		}
 		
 		WorkspaceAPI.rename(data.meta.id, "new name")
 		
-		coVerify { WorkspaceManager.updateMeta(match { it.displayName == "new name" }) }
+		coVerify { WorkspaceManager.updateMeta(any()) }
 	}
 	
 	@Test
 	fun `rename duplicate name fails`() = runTest {
-		val existing = workspaceData()
-		val target = workspaceData()
-		coEvery { WorkspaceManager.getData(target.meta.id) } returns target
-		coEvery { WorkspaceManager.getAll() } returns listOf(existing)
+		val data = workspaceData()
+		coEvery { WorkspaceManager.getData(data.meta.id) } returns data
+		coEvery { WorkspaceManager.updateMeta(any()) } throws DuplicateWorkspaceNameException(data.meta.displayName)
 		
-		assertFailsWith<IllegalArgumentException> {
-			WorkspaceAPI.rename(target.meta.id, existing.meta.displayName)
+		assertFailsWith<DuplicateWorkspaceNameException> {
+			WorkspaceAPI.rename(data.meta.id, data.meta.displayName)
 		}
 	}
 	
 	@Test
 	fun `rename missing workspace fails`() = runTest {
 		coEvery { WorkspaceManager.getData(any()) } returns null
+		coEvery { WorkspaceManager.updateMeta(any()) } coAnswers {
+			firstArg<suspend () -> WorkspaceMeta>()()
+			Unit
+		}
 		
-		assertFailsWith<IllegalStateException> {
+		assertFailsWith<WorkspaceNotFoundException> {
 			WorkspaceAPI.rename(UUID.randomUUID(), "x")
 		}
 	}
@@ -147,26 +155,20 @@ class WorkspaceAPITest {
 	
 	@Test
 	fun `delete returns false for missing workspace`() = runTest {
-		coEvery { WorkspaceManager.getData(any()) } returns null
+		coEvery { WorkspaceManager.delete(any()) } returns false
 		
 		assertFalse(WorkspaceAPI.delete(UUID.randomUUID()))
 	}
 	
 	@Test
-	fun `delete removes sessions and workspace`() = runTest {
-		val sessionId = UUID.randomUUID()
-		val data = workspaceData(sessionIds = listOf(sessionId))
-		coEvery { WorkspaceManager.getData(data.meta.id) } returns data
+	fun `delete delegates to workspace manager`() = runTest {
+		val data = workspaceData(sessionIds = setOf(UUID.randomUUID()))
 		coEvery { WorkspaceManager.delete(data.meta.id) } returns true
-		mockkObject(SessionManager)
-		coEvery { SessionManager.delete(sessionId) } returns true
 		
 		val deleted = WorkspaceAPI.delete(data.meta.id)
 		
 		assertTrue(deleted)
-		coVerify { SessionManager.delete(sessionId) }
 		coVerify { WorkspaceManager.delete(data.meta.id) }
-		unmockkObject(SessionManager)
 	}
 	
 	// endregion

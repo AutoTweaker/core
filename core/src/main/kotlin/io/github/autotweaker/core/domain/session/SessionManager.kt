@@ -22,11 +22,14 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
 import io.github.autotweaker.api.types.agent.ModelConfig
+import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.model.Model
@@ -43,7 +46,6 @@ import kotlinx.coroutines.launch
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-
 
 object SessionManager : Loggable, Traceable {
 	private val systemPrompt = SystemPrompt().get()
@@ -86,6 +88,10 @@ object SessionManager : Loggable, Traceable {
 		val data = store.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
 		sessions[id]?.shutdown()
 		listener[id]?.cancel()
+		trace.catching { wsm.updateSessions(data.workspaceId) { it - id } }
+			.recoverException { e: WorkspaceNotFoundException ->
+				log.warn("Workspace not found while deleting session  sessionId={}  workspaceId={}", id, e.id)
+			}.getOrThrow()
 		sessions.remove(id)
 		store.deleteSessions(setOf(id))
 		data.agentIndex.getAll().forEach { store.deleteAgent(it) }
@@ -106,9 +112,8 @@ object SessionManager : Loggable, Traceable {
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
-		val workspaceData = wsm.getData(workspaceId) ?: error("Workspace not found: $workspaceId")
-		if (!Files.isDirectory(workspaceData.meta.path))
-			error("Workspace directory does not exist: ${workspaceData.meta.path}")
+		val workspace = wsm.getData(workspaceId)?.meta?.path ?: throw WorkspaceNotFoundException(workspaceId)
+		if (!Files.isDirectory(workspace)) throw InvalidWorkspacePathException(workspace)
 		
 		val data = SessionData(
 			id = UUID.randomUUID(),
@@ -121,19 +126,38 @@ object SessionManager : Loggable, Traceable {
 			data = data,
 			store = store,
 			resolveModel = ::resolveModel,
-			workspace = workspaceData.meta
+			workspace = workspace
 		).init(
 			Session.SessionInit.New(
 				model = model,
 				systemPrompt = systemPrompt,
 				activeTools = emptySet()
 			)
-		).listen().andSave()
-		wsm.updateSessions(
-			workspaceData.meta.id, sessionIds = workspaceData.sessionIds.orEmpty() + data.id
-		)
-		log.info("Created session  sessionId={}  workspaceId={}", data.id, workspaceData.meta.id)
+		).andSave().listen()
+		trace.catching { wsm.updateSessions(workspaceId) { it + data.id } }
+			.onException { e: WorkspaceNotFoundException ->
+				sessions[data.id]?.shutdown()
+				listener[data.id]?.cancel()
+				sessions.remove(data.id)
+				store.deleteSessions(setOf(data.id))
+				data.agentIndex.getAll().forEach { store.deleteAgent(it) }
+				log.warn(
+					"Workspace deleted while creating session  sessionId={}  workspaceId={}",
+					data.id, e.id
+				)
+			}.getOrThrow()
+		log.info("Created session  sessionId={}  workspaceId={}", data.id, workspaceId)
 		return@withLock data.id
+	}
+	
+	private suspend fun Session.andSave(): Session = also {
+		trace.catching { store.saveSessions(listOf(data.value)) }
+			.onFailure {
+				log.error("Failed to save session  sessionId={}", data.value.id, it)
+				shutdown()
+				store.deleteSessions(setOf(data.value.id))
+				data.value.agentIndex.getAll().forEach { store.deleteAgent(it) }
+			}.getOrThrow()
 	}
 	
 	private suspend fun getOrRestore(id: UUID): Session = lock.withLock {
@@ -142,16 +166,16 @@ object SessionManager : Loggable, Traceable {
 	
 	private suspend fun restore(id: UUID): Session = lock.withLock {
 		secretStore.requireUnlocked()
-		val data = store.loadSessions(setOf(id)).firstOrNull() ?: error("Session not found: $id")
+		val data = store.loadSessions(setOf(id)).firstOrNull() ?: throw SessionNotFoundException(id)
 		val workspaceId = data.workspaceId
-		val workspaceMeta = wsm.getData(workspaceId)?.meta ?: error("Workspace not found: $workspaceId")
-		if (!Files.isDirectory(workspaceMeta.path))
-			error("Workspace directory does not exist: ${workspaceMeta.path}")
+		val workspace = wsm.getData(workspaceId)?.meta?.path ?: throw WorkspaceNotFoundException(workspaceId)
+		if (!Files.isDirectory(workspace))
+			throw InvalidWorkspacePathException(workspace)
 		return@withLock Session(
 			data = data,
 			store = store,
 			resolveModel = ::resolveModel,
-			workspace = workspaceMeta
+			workspace = workspace
 		).init(Session.SessionInit.Restore)
 			.listen()
 			.also { sessions[data.id] = it }
@@ -173,12 +197,8 @@ object SessionManager : Loggable, Traceable {
 		}
 	}
 	
-	private suspend fun Session.andSave(): Session = also {
-		store.saveSessions(listOf(data.value))
-	}
-	
 	private suspend fun resolveModel(id: UUID): Model =
-		modelRepo.resolve(id) ?: error("Unknown model: $id")
+		modelRepo.resolve(id)
 	
 	@AutoService(SettingDef::class)
 	class SystemPrompt : PromptSetting(

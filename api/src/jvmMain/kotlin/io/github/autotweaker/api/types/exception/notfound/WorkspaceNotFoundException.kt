@@ -19,9 +19,10 @@
 package io.github.autotweaker.api.types.exception.notfound
 
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.types.exception.ExceptionI18n
+import io.github.autotweaker.api.types.exception.*
 import java.util.*
 
-class WorkspaceNotFoundException(override val id: UUID) : NotFoundException("Workspace not found", id) {
+class WorkspaceNotFoundException(override val id: UUID) :
+	NotFoundException("Workspace not found", id) {
 	override fun message() = i18n(ExceptionI18n.WorkspaceNotFoundException(), id)
 }

@@ -31,9 +31,8 @@ import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
@@ -41,6 +40,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -48,7 +48,7 @@ class Session(
 	data: SessionData,
 	private val store: SessionRepository,
 	private val resolveModel: suspend (UUID) -> Model,
-	private val workspace: WorkspaceMeta,
+	private val workspace: Path,
 ) : Loggable {
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
@@ -57,7 +57,7 @@ class Session(
 	
 	private val lock = ReentrantMutex()
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
-	val agents: Map<UUID, AgentAPI> = bridges.toMap()
+	val agents: Map<UUID, AgentAPI> get() = bridges.toMap()
 	
 	suspend fun init(init: SessionInit) = also {
 		lock.withLock {
@@ -76,9 +76,9 @@ class Session(
 					)
 				).andLog(log) {
 					info(
-						"Initialized session  sessionId={}  workspace={}",
+						"Initialized session  sessionId={}  path={}",
 						it.id,
-						workspace.displayName
+						workspace
 					)
 				}
 			}
