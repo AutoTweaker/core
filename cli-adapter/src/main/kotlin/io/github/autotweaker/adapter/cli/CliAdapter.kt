@@ -39,12 +39,12 @@ class CliAdapter : Adapter, Loggable {
 	
 	private lateinit var core: CoreAPI
 	
-	override val isRunning: Boolean get() = CliServer.isRunning
+	override val isRunning get() = CliServer.isRunning
 	
 	override suspend fun init(core: CoreAPI) = info.also { this.core = core }
 	
 	override suspend fun start() {
-		val router = CommandRouter.fromServiceLoader(core)
+		val router = CommandRouter(core)
 		CliServer.start(router)
 		log.info("Started CliAdapter  version={}", info.version)
 	}

@@ -36,12 +36,9 @@ class KeyManager(
 		val key = secret(KeyI18n.PromptInputApiKey())
 		
 		if (key.isBlank()) error(KeyI18n.EmptyKeyError())
-		if (core.config.listApiKey().any { it == name }) error(KeyI18n.KeyExistsError(), name)
 		
 		core.config.addApiKey(
-			CoreConfig.ProviderConfig.ApiKey(
-				name, key
-			)
+			CoreConfig.ProviderConfig.ApiKey(name, key)
 		)
 	}
 	

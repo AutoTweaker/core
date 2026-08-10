@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.DoneException
 import io.github.autotweaker.adapter.cli.commands.help.Help
+import io.github.autotweaker.adapter.cli.console.Ansi
 import io.github.autotweaker.adapter.cli.console.CmdOutput
 import io.github.autotweaker.adapter.cli.console.ConsoleImpl
 import io.github.autotweaker.adapter.cli.console.Request
@@ -35,7 +36,15 @@ import io.github.autotweaker.api.config.SettingDef
 import java.util.*
 
 
-class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggable, I18nable {
+class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
+	Loggable, I18nable {
+	constructor(core: CoreAPI) : this(
+		core, ServiceLoader.load(
+			Command::class.java,
+			CliAdapter::class.java.classLoader
+		).toList()
+	)
+	
 	private val help = Help(commands)
 	private val handlers: Map<String, Command> = commands.associateBy { it.name }
 	
@@ -53,17 +62,21 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		log.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
-	companion object {
-		fun fromServiceLoader(core: CoreAPI): CommandRouter = CommandRouter(
-			core, ServiceLoader.load(Command::class.java, CliAdapter::class.java.classLoader).toList()
-		)
-	}
-	
 	suspend fun dispatch(
 		request: CliMessage.Command,
 		prompt: suspend (echo: Boolean) -> String,
 		output: suspend (CmdOutput) -> Unit
 	): Int = try {
+		suspend fun String.error() = output(
+			CmdOutput(
+				"${
+					if (request.isTty) Ansi.styled(this, Ansi.RED)
+					else this
+				}\n",
+				OutputChannel.STDERR
+			)
+		)
+		
 		//取子命令
 		val cmd = request.command()
 		//无参at
@@ -85,12 +98,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		
 		//找子命令
 		var command = handlers[cmd] ?: run {
-			output(
-				CmdOutput(
-					i18n(CmdI18n.UnknownHint(), cmd, request.prog) + '\n',
-					OutputChannel.STDERR
-				)
-			)
+			i18n(CmdI18n.UnknownHint(), cmd, request.prog).error()
 			log.warn("Received unknown command  command={}  args={}", cmd, request.args)
 			return 1
 		}
@@ -104,7 +112,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		val conflicts = SyntaxValidator.checkConflicts(command.syntax)
 		if (conflicts.isNotEmpty()) {
 			conflicts.forEach {
-				output(CmdOutput("Error: $it\n", OutputChannel.STDERR))
+				"Error: $it".error()
 			}
 			log.warn("Detected param name conflict in command  command={}  conflicts={}", command.name, conflicts)
 			return 1
@@ -114,24 +122,14 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) : Loggab
 		val parsed = argParser.parse(args, command.syntax)
 			?: run {
 				log.debug("Rejected invalid arguments for command  command={}", command.name)
-				output(
-					CmdOutput(
-						i18n(CmdI18n.InvalidArgs(), command.name, request.prog) + '\n',
-						OutputChannel.STDERR
-					)
-				)
+				i18n(CmdI18n.InvalidArgs(), command.name, request.prog).error()
 				return 1
 			}
 		
 		if (command.requiresKeystore && !core.secret.isUnlocked.value) {
 			log.debug("Rejected command, keystore locked  command={}", command.name)
 			
-			output(
-				CmdOutput(
-					i18n(CmdI18n.KeystoreLocked(), request.prog) + '\n',
-					OutputChannel.STDERR
-				)
-			)
+			i18n(CmdI18n.KeystoreLocked(), request.prog).error()
 			return 1
 		}
 		

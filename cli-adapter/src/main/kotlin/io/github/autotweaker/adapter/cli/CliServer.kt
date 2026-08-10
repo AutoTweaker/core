@@ -19,10 +19,12 @@
 package io.github.autotweaker.adapter.cli
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.adapter.cli.console.Ansi
 import io.github.autotweaker.adapter.cli.console.CmdOutput
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.types.exception.AutoTweakerException
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -30,7 +32,6 @@ import io.ktor.utils.io.charsets.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.json.Json
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
@@ -135,7 +136,7 @@ object CliServer : Loggable, Traceable {
 						"Client disconnected during command  command={}  reason=connection closed by peer",
 						cmdName
 					)
-					parentJob?.cancel(CancellationException("Client disconnected"))
+					parentJob?.cancel(ClientDisconnectedException())
 				}
 			}
 			
@@ -145,7 +146,7 @@ object CliServer : Loggable, Traceable {
 					sendChannel.writeResponse(CliResponse.Prompt(echo))
 					
 					val line = receiveChannel.readCliLine()
-						?: throw CancellationException("Client disconnected")
+						?: throw ClientDisconnectedException()
 					json.decodeFromString<CliMessage.PromptResponse>(line).text
 				}
 			}
@@ -164,33 +165,52 @@ object CliServer : Loggable, Traceable {
 				responseLock.withLock {
 					sendChannel.writeResponse(CliResponse.Done(exitCode))
 				}
-			}.rethrowCancellation()
-				.recoverException { e: IOException ->
-					if (disconnected.compareAndSet(false, true))
-						log.warn(
-							"Disconnected client during command  command={}  reason={}",
-							cmdName, e.message
-						)
-				}.onFailure { e ->
-					log.error("Command failed  command={}", cmdName, e)
-					responseLock.withLock {
-						trace.catching {
-							sendChannel.writeResponse(
-								CliResponse.Data("Error: ${e.message()}\n", OutputChannel.STDERR)
-							)
-							sendChannel.writeResponse(CliResponse.Done(1))
-						}
+			}.recoverException { e: ClientDisconnectedException ->
+				if (disconnected.compareAndSet(false, true))
+					log.warn(
+						"Disconnected client during command  command={}  reason={}",
+						cmdName, e.cause?.message ?: e.message
+					)
+			}.rethrowCancellation().onFailure { e ->
+				if (e is AutoTweakerException)
+					log.warn(
+						"Command failed  command={}  exception={}  reason={}",
+						cmdName,
+						e::class.simpleName,
+						e.message,
+					)
+				else log.error("Command failed  command={}", cmdName, e)
+				done.set(true)
+				responseLock.withLock {
+					trace.catching {
+						sendChannel.writeResponse(e.message().error(command.isTty))
+						sendChannel.writeResponse(CliResponse.Done(1))
 					}
 				}
+			}
 		}
 	
 	
 	private suspend fun ByteReadChannel.readCliLine(): String? =
 		trace.catching { readLineStrict(limit = maxLineLength.toLong()) }
-			.onException<TooLongLineException> {
+			.rethrowCancellation()
+			.rethrow<TooLongLineException> {
 				log.warn("Exceeded line max length  limit={}", maxLineLength)
-			}.getOrNull()
+			}.getOrElse { throw ClientDisconnectedException(it) }
 	
 	private suspend fun ByteWriteChannel.writeResponse(response: CliResponse) =
-		writeStringUtf8(json.encodeToString(response) + "\n")
+		trace.catching { writeStringUtf8(json.encodeToString(response) + '\n') }
+			.rethrowCancellation()
+			.getOrElse { throw ClientDisconnectedException(it) }
+	
+	private fun String.error(isTty: Boolean) = CliResponse.Data(
+		"${
+			if (isTty) Ansi.styled(this, Ansi.RED)
+			else this
+		}\n",
+		OutputChannel.STDERR
+	)
+	
+	private class ClientDisconnectedException(override val cause: Throwable? = null) :
+		CancellationException("Client disconnected")
 }

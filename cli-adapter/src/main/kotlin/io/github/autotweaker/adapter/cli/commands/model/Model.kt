@@ -25,6 +25,7 @@ import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.Price
 import java.util.*
@@ -83,7 +84,6 @@ class Model : Command, Traceable {
 		
 		handleFlag("remove") {
 			val id = findModel(core)
-			if (id == core.config.getDefaultModel()) error(ModelI18n.RemoveDefaultError())
 			core.config.removeModel(id)
 		}
 		
@@ -117,7 +117,7 @@ class Model : Command, Traceable {
 	}
 	
 	private suspend fun Console.printModel(id: UUID, core: CoreAPI) {
-		val model = core.config.getModel(id) ?: error(id.toString())
+		val model = core.config.getModel(id) ?: throw ModelNotFoundException(id)
 		val providerName = core.config.getProvider(model.data.providerId)?.displayName ?: i18n(ModelI18n.Unknown())
 		out("[$providerName] ${model.data.displayName}")
 	}

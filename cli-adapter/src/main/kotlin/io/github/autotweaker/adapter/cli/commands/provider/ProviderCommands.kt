@@ -84,9 +84,6 @@ class ProviderCommands(
 		val provider = core.config.listProviders().find { it.displayName == name }
 			?: error(ProvI18n.ProviderNotFound(), name)
 		
-		if (core.config.listProviders().any { it.displayName == new })
-			error(ProvCommandsI18n.ProviderExistsError(), new)
-		
 		core.config.setProvider(
 			provider.copy(displayName = new)
 		)

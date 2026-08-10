@@ -27,12 +27,7 @@ import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.exception.PasswordInvalidException
 
 @AutoService(Command::class)
 class Secret : Command, Traceable {
@@ -73,10 +68,7 @@ class Secret : Command, Traceable {
 		if (!core.secret.isUnlocked.value) {
 			val password = secret(SecretI18n.UnlockPrompt())
 			
-			trace.catching { core.secret.unlock(password) }
-				.recoverException { _: PasswordInvalidException ->
-					error(SecretI18n.InvalidPasswd())
-				}.getOrThrow()
+			core.secret.unlock(password)
 		} else if (core.secret.isPasswordEmpty()) {
 			out(SecretI18n.UnlockNoPassword())
 		} else {
@@ -87,23 +79,15 @@ class Secret : Command, Traceable {
 	private suspend fun Console.handleRemove(core: CoreAPI) {
 		val password = secret(SecretI18n.UnlockPrompt())
 		
-		trace.catching {
-			if (!core.secret.isUnlocked.value) core.secret.unlock(password)
-			core.secret.changePassword(password, "")
-		}.getOrElse {
-			error(SecretI18n.InvalidPasswd())
-		}
+		if (!core.secret.isUnlocked.value) core.secret.unlock(password)
+		core.secret.changePassword(password, "")
 	}
 	
 	private suspend fun Console.handleChange(core: CoreAPI) {
 		val oldPassword = if (core.secret.isUnlocked.value && core.secret.isPasswordEmpty()) ""
 		else secret(SecretI18n.UnlockPrompt())
 		
-		if (!core.secret.isUnlocked.value)
-			trace.catching { core.secret.unlock(oldPassword) }
-				.recoverException { _: PasswordInvalidException ->
-					error(SecretI18n.InvalidPasswd())
-				}.getOrThrow()
+		if (!core.secret.isUnlocked.value) core.secret.unlock(oldPassword)
 		
 		val newPassword = secret(PasswdI18n.PromptNew())
 		if (oldPassword == newPassword) error(PasswdI18n.SameAsOld())
@@ -111,10 +95,6 @@ class Secret : Command, Traceable {
 		val confirm = secret(PasswdI18n.PromptConfirm())
 		if (newPassword != confirm) error(PasswdI18n.Mismatch())
 		
-		trace.catching {
-			core.secret.changePassword(oldPassword, newPassword)
-		}.recoverException { _: PasswordInvalidException ->
-			error(SecretI18n.InvalidPasswd())
-		}.getOrThrow()
+		core.secret.changePassword(oldPassword, newPassword)
 	}
 }

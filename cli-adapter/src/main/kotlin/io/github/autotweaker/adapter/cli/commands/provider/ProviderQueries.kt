@@ -55,9 +55,6 @@ class ProviderQueries(private val core: CoreAPI) : I18nable {
 	}
 	
 	suspend fun Console.info(name: String) {
-		if (!core.config.listAvailableProviderTypes().any { it == name })
-			error(ProvI18n.ProviderNotFound(), name)
-		
 		val meta = core.config.getProviderMeta(name)
 		out(ProvQueriesI18n.Name(), meta.name)
 		out(ProvQueriesI18n.Url(), meta.baseUrl.value)

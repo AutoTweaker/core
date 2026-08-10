@@ -40,11 +40,6 @@ object KeyI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class KeyExistsError : I18nBase(
-		zh("名为 '%s' 的密钥已存在")
-	)
-	
-	@AutoService(I18nDef::class)
 	class KeyNotFoundError : I18nBase(
 		zh("不存在名为 '%s' 的密钥")
 	)

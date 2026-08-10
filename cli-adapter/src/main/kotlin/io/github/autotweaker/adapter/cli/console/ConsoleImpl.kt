@@ -120,7 +120,7 @@ class ConsoleImpl(
 		throw DoneException(exitCode)
 	
 	override suspend fun error(text: String, style: StyleBuilder.() -> Unit): Nothing {
-		err(text, style)
+		stderr(buildStyle(text, style, red = true))
 		done(1)
 	}
 	
@@ -170,8 +170,14 @@ class ConsoleImpl(
 		return readLine(echo)
 	}
 	
-	private fun buildStyle(text: String, style: StyleBuilder.() -> Unit, newline: Boolean? = null): String {
+	private fun buildStyle(
+		text: String,
+		style: StyleBuilder.() -> Unit,
+		newline: Boolean? = null,
+		red: Boolean = false
+	): String {
 		val style = StyleBuilderImpl(newline ?: defaultNewline).apply(style)
+		if (red) style.red()
 		val string = if (style.newline) text + '\n' else text
 		return if (isTty) Ansi.styled(string, *style.codes.toTypedArray())
 		else string

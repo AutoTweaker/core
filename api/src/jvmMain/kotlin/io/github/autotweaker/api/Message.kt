@@ -19,10 +19,11 @@
 package io.github.autotweaker.api
 
 import io.github.autotweaker.api.types.exception.AutoTweakerException
+import io.github.autotweaker.api.types.exception.I18nableException
 
 /**
  * 格式化异常信息，包括类名、message、cause。
  *
  * 如果为 [AutoTweakerException] 会直接使用其本地化字符串。
  */
-fun Throwable.message(): String = if (this is AutoTweakerException) message() else buildMessage()
+fun Throwable.message(): String = if (this is I18nableException) message() else buildMessage()
