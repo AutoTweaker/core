@@ -28,8 +28,9 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.InvalidWorkspacePathException
+import io.github.autotweaker.api.types.exception.notfound.SessionNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.model.Model
@@ -169,8 +170,20 @@ object SessionManager : Loggable, Traceable {
 		val data = store.loadSessions(setOf(id)).firstOrNull() ?: throw SessionNotFoundException(id)
 		val workspaceId = data.workspaceId
 		val workspace = wsm.getData(workspaceId)?.meta?.path ?: throw WorkspaceNotFoundException(workspaceId)
+			.andLog(log) {
+				warn(
+					"Workspace not found while restoring session  sessionId={}  workspaceId={}",
+					id, workspaceId
+				)
+			}
 		if (!Files.isDirectory(workspace))
-			throw InvalidWorkspacePathException(workspace)
+			throw InvalidWorkspacePathException(workspace).andLog(log) {
+				warn(
+					"Invalid workspace path while restoring session  sessionId={}  path={}",
+					id, workspace
+				)
+			}
+		
 		return@withLock Session(
 			data = data,
 			store = store,

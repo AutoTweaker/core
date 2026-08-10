@@ -18,11 +18,18 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
+import io.github.autotweaker.api.andLog
+import io.github.autotweaker.api.log
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 
 abstract class EnvStore : SecretMapStore() {
 	suspend fun listEnv() = listSecrets()
 	suspend fun getEnv(id: String) = getSecret(id)
-	suspend fun setEnv(id: String, value: String) = putSecret(id, value)
-	suspend fun removeEnv(id: String) = removeSecret(id)
+	suspend fun setEnv(id: String, value: String) = putSecret(id, value).andLog(log) {
+		info("Set env  name={}", id)
+	}
+	
+	suspend fun removeEnv(id: String) = removeSecret(id).andLog(log) {
+		if (it) info("Removed env  name={}", id)
+	}
 }

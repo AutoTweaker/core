@@ -31,7 +31,7 @@ import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.model.Model
@@ -64,7 +64,12 @@ class Session(
 			val mainId = index.main.id
 			when (init) {
 				is SessionInit.Restore -> restoreOrNull(mainId)
-					?: throw AgentNotFoundException(mainId, _data.value.id)
+					?: throw AgentNotFoundException(mainId, _data.value.id).andLog(log) {
+						warn(
+							"Main agent not found while restoring session  sessionId={}  agentId={}",
+							_data.value.id, mainId
+						)
+					}
 				
 				is SessionInit.New -> createAgent(
 					AgentData(

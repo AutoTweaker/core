@@ -22,7 +22,8 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.store.ImmutableStore
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
@@ -47,6 +48,7 @@ object ModelResolverImpl : ImmutableStore<UUID?>(), ModelResolver, Loggable {
 	suspend fun setDefaultModel(id: UUID?) {
 		if (id == null) {
 			cache.set(null)
+			log.info("Cleared default model")
 			return
 		}
 		cache.update {

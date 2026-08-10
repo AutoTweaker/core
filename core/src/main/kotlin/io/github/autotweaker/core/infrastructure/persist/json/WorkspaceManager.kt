@@ -20,12 +20,13 @@ package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.api.CONFIG_PATH
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.store.MutableStore
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.duplicate.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.DefaultWorkspaceMutationException
+import io.github.autotweaker.api.types.exception.WorkspaceNotEmptyException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceIdException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceNameException
+import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.WorkspaceData
@@ -81,7 +82,7 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 		if (workspaces.values.any { it.meta.displayName == meta.displayName })
 			throw DuplicateWorkspaceNameException(meta.displayName)
 		WorkspaceData(meta = meta).also { workspaces[meta.id] = it }
-	}.andLog(log) { info("Created workspace  id={}  name={}", it.meta.id, it.meta.displayName) }
+	}
 	
 	suspend fun getData(id: UUID): WorkspaceData? = transform { workspaces ->
 		ensureDefault()
