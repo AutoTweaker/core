@@ -153,8 +153,8 @@ object SessionManager : Loggable, Traceable {
 	
 	private suspend fun Session.andSave(): Session = also {
 		trace.catching { store.saveSessions(listOf(data.value)) }
-			.onFailure {
-				log.error("Failed to save session  sessionId={}", data.value.id, it)
+			.onFailure { e ->
+				log.error("Failed to save session  sessionId={}", data.value.id, e)
 				shutdown()
 				store.deleteSessions(setOf(data.value.id))
 				data.value.agentIndex.getAll().forEach { store.deleteAgent(it) }

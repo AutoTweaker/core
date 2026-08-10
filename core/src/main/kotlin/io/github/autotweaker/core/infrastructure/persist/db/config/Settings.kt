@@ -27,8 +27,8 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.SettingTypeMismatchException
+import io.github.autotweaker.api.types.exception.notfound.SettingNotFoundException
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import kotlinx.serialization.json.Json
@@ -116,12 +116,17 @@ object Settings : SettingService, Loggable, Traceable {
 	}
 	
 	private fun upsertValue(id: String, value: SettingValue<*>) {
-		transaction(db) {
-			ConfigTable.upsert {
-				it[keyName] = id
-				fillColumn(it, value)
+		trace.catching {
+			transaction(db) {
+				ConfigTable.upsert {
+					it[keyName] = id
+					fillColumn(it, value)
+				}
 			}
-		}
+		}.rethrowCancellation()
+			.onFailure { e ->
+				log.error("Failed setting upsert  id={}", id, e)
+			}.getOrThrow()
 	}
 	
 	fun getAllEntries(): List<SettingEntry> = transaction(db) {

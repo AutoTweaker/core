@@ -21,7 +21,7 @@ package io.github.autotweaker.core.infrastructure.persist.json.base
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.store.MutableStore
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -33,7 +33,13 @@ abstract class SecretMapStore : MutableStore<MutableMap<String, UUID>>(), Loggab
 	override fun default() = mutableMapOf<String, UUID>()
 	
 	protected suspend fun putSecret(name: String, value: String) = transform {
-		it.put(name, secretStore.set(value)).also { old ->
+		val id = trace.catching { secretStore.set(value) }
+			.rethrowCancellation()
+			.rethrow<SecretStoreLockedException>()
+			.onFailure { e ->
+				log.warn("Failed secret set  name={}  reason={}", name, e.message)
+			}.getOrThrow()
+		it.put(name, id).also { old ->
 			old ?: return@also
 			secretStore.remove(old)
 		}.discard()

@@ -19,7 +19,10 @@
 package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
@@ -33,7 +36,7 @@ import kotlinx.coroutines.flow.*
 import java.util.*
 import kotlin.time.Clock
 
-object ChatService : Loggable {
+object ChatService : Loggable, Traceable {
 	private lateinit var modelRepo: ModelResolver
 	private lateinit var sessionRepository: SessionRepository
 	
@@ -79,8 +82,13 @@ object ChatService : Loggable {
 						val record = AgentMessage.UsageRecord(
 							UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, resolvedModel.modelInfo)
 						)
-						sessionRepository.saveMessages(listOf(record))
-						UsageStore.collect(listOf(record))
+						trace.catching {
+							sessionRepository.saveMessages(listOf(record))
+							UsageStore.collect(listOf(record))
+						}.rethrowCancellation()
+							.onFailure { e ->
+								log.error("Failed usage record save  recordId={}", record.id, e)
+							}
 					}
 				}
 			})

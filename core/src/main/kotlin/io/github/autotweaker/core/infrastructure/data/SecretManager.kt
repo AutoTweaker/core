@@ -23,8 +23,10 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.GpgException
+import io.github.autotweaker.api.types.exception.PasswordInvalidException
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -147,7 +149,10 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	private suspend fun verifyPassword(password: String) {
 		val result = trace.catching {
 			gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
-		}.getOrElse { throw PasswordInvalidException() }
+		}.rethrowCancellation()
+			.onException { e: GpgException ->
+				log.warn("Failed marker decryption  reason={}", e.message)
+			}.getOrElse { throw PasswordInvalidException() }
 		if (result != "ok") throw PasswordInvalidException()
 	}
 	
@@ -160,14 +165,19 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		if (newPassword == current) return@withLock
 		val cache = list().associateWith { get(it) }
 		log.info("Started password change  secretCount={}", cache.size)
-		deleteKey()
-		Files.deleteIfExists(markerFile)
-		setPassword(newPassword)
-		generateKey()
-		cache.forEachParallel(4) { (id, secret) ->
-			encryptTo(secret, secretsDir.resolve("$id.gpg"))
-		}
-		createMarker()
+		trace.catching {
+			deleteKey()
+			Files.deleteIfExists(markerFile)
+			setPassword(newPassword)
+			generateKey()
+			cache.forEachParallel(4) { (id, secret) ->
+				encryptTo(secret, secretsDir.resolve("$id.gpg"))
+			}
+			createMarker()
+		}.rethrowCancellation()
+			.onFailure { e ->
+				log.error("Failed password change  secretCount={}", cache.size, e)
+			}.getOrThrow()
 		log.info("Changed password  secretCount={}", cache.size)
 	}
 	
@@ -228,11 +238,10 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		_isUnlocked.value = passphrase != null
 	}
 	
-	private fun getPassword(): CharArray {
-		val passphrase = password
-		if (passphrase == null) throw SecretStoreLockedException()
-		else return passphrase
-	}
+	private fun getPassword(): CharArray = password
+		?: throw SecretStoreLockedException().andLog(log) {
+			warn("Secret store locked  operation=secret-access")
+		}
 	
 	
 	// region 实现接口
@@ -282,7 +291,10 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	}
 	
 	override fun requireUnlocked() {
-		if (password == null) throw SecretStoreLockedException()
+		if (password == null)
+			throw SecretStoreLockedException().andLog(log) {
+				warn("Secret store locked  operation=require-unlocked")
+			}
 	}
 	// endregion
 }
