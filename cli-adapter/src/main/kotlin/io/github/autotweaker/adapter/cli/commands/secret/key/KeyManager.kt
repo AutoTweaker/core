@@ -33,7 +33,7 @@ class KeyManager(
 	suspend fun Console.add(name: String) {
 		if (name.isBlank()) error(KeyI18n.EmptyNameError())
 		
-		val key = secret(KeyI18n.PromptInputApiKey())
+		val key = promptOrStdin(KeyI18n.PromptInputApiKey(), echo = false)
 		
 		if (key.isBlank()) error(KeyI18n.EmptyKeyError())
 		

@@ -26,6 +26,8 @@ package io.github.autotweaker.api
  * 除非 [strict] 否则将在遇到未知转义标记或不合法的 Unicode 转义时抛出 [IllegalStateException]，包含可读的 message。
  */
 fun String.unescapeUnicode(strict: Boolean = true): String {
+	if (isBlank()) return this
+	
 	val out = StringBuilder()
 	
 	var i = 0

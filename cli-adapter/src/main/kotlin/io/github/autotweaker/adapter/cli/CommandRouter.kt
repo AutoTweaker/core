@@ -64,7 +64,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 	
 	suspend fun dispatch(
 		request: CliMessage.Command,
-		prompt: suspend (echo: Boolean) -> String,
+		prompt: suspend (echo: Boolean) -> String?,
 		output: suspend (CmdOutput) -> Unit
 	): Int = try {
 		suspend fun String.error() = output(
@@ -88,8 +88,9 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 			val console = ConsoleImpl(
 				isTty = request.isTty,
 				request = Request(emptyMap(), emptyList(), emptyMap()),
+				stdin = request.stdin,
 				output = output,
-				readLine = prompt
+				readInput = prompt
 			)
 			with(help) {
 				console.executePath(request.args.drop(1))
@@ -122,7 +123,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		val parsed = argParser.parse(args, command.syntax)
 			?: run {
 				log.debug("Rejected invalid arguments for command  command={}", command.name)
-				i18n(CmdI18n.InvalidArgs(), command.name, request.prog).error()
+				i18n(CmdI18n.InvalidArgs(), request.command(), request.prog).error()
 				return 1
 			}
 		
@@ -136,8 +137,9 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		val console = ConsoleImpl(
 			isTty = request.isTty,
 			request = parsed,
+			stdin = request.stdin,
 			output = output,
-			readLine = prompt
+			readInput = prompt
 		)
 		
 		with(command) {

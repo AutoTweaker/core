@@ -141,7 +141,7 @@ object CliServer : Loggable, Traceable {
 			}
 			
 			val responseLock = ReentrantMutex()
-			val prompt: suspend (echo: Boolean) -> String = { echo ->
+			val prompt: suspend (echo: Boolean) -> String? = { echo ->
 				responseLock.withLock {
 					sendChannel.writeResponse(CliResponse.Prompt(echo))
 					

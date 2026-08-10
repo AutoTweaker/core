@@ -88,7 +88,7 @@ class CommandRouterTest {
 	private fun dispatch(vararg args: String): Pair<Int, List<CmdOutput>> = runBlocking {
 		val outputs = mutableListOf<CmdOutput>()
 		val exitCode = router.dispatch(
-			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false),
+			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false, stdin = null),
 			prompt = { "" },
 			output = { outputs.add(it) },
 		)

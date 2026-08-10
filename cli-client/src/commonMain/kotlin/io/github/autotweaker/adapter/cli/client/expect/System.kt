@@ -22,7 +22,11 @@ import io.github.autotweaker.adapter.cli.client.CommandResult
 
 expect fun exec(vararg args: String): CommandResult
 
-expect fun promptOrStdin(echo: Boolean): String
+expect fun readPrompt(echo: Boolean): String?
+
+expect fun stdinIsTty(): Boolean
+
+expect fun readAllStdin(): String
 
 expect fun env(name: String): String
 

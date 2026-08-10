@@ -27,47 +27,34 @@ object InputReader {
 	private const val MAX_PASSWORD_BYTES = 1024
 	private const val ESC_TIMEOUT_MS = 300
 	
-	var stdinExhausted = false
-	
 	@OptIn(ExperimentalForeignApi::class)
-	fun readTtyLine(fd: Int): String {
+	fun readTtyLine(fd: Int): String? {
+		if (fd < 0) return null
 		val bytes = mutableListOf<Byte>()
+		var eof = false
 		
 		memScoped {
 			val buf = allocArray<ByteVar>(1)
 			while (true) {
 				val n = read(fd, buf, 1U)
 				if (n < 0 && errno == EINTR) continue
-				if (n <= 0) break
+				if (n < 0) return null
+				if (n <= 0) {
+					eof = true
+					break
+				}
 				val byte = buf[0]
 				if (byte == '\n'.code.toByte() || byte == '\r'.code.toByte()) break
 				bytes.add(byte)
 			}
 		}
+		if (bytes.isEmpty() && eof) return null
 		return stripIncompleteUtf8(bytes).toByteArray().decodeToString()
 	}
 	
-	fun readTtyFallback(): String {
-		val fd = Terminal.ensureTty()
-		if (fd >= 0) return readTtyLine(fd)
-		printErr("\n")
-		return ""
-	}
-	
-	fun readPasswordFallback(): String {
-		val fd = Terminal.ensureTty()
-		if (fd >= 0) return readPasswordTty(fd)
-		printErr("\n")
-		return ""
-	}
-	
 	@OptIn(ExperimentalForeignApi::class)
-	fun readPasswordTty(fd: Int): String {
-		val session = Terminal.beginRaw(fd)
-		if (session == null) {
-			printErr("\n")
-			return ""
-		}
+	fun readPasswordTty(fd: Int): String? {
+		val session = Terminal.beginRaw(fd) ?: return null
 		return memScoped {
 			val buf = allocArray<ByteVar>(1)
 			val pollFds = alloc<pollfd>()
@@ -77,7 +64,7 @@ object InputReader {
 				if (n <= 0) return ByteResult.Eof
 				return ByteResult.Ok(buf[0].toInt() and 0xFF)
 			}
-			val (bytes, _) = try {
+			val (bytes, hitEof) = try {
 				readPasswordByteLoop(
 					nextByte = { readByte() },
 					awaitByte = {
@@ -89,22 +76,11 @@ object InputReader {
 				)
 			} finally {
 				Terminal.endRaw(session)
-				printErr("\n")
 			}
+			if (hitEof) return null
+			printErr("\n")
 			bytes.toByteArray().decodeToString()
 		}
-	}
-	
-	fun readPasswordPipe(): Pair<String, Boolean> {
-		val (bytes, hitEof) = readPasswordByteLoop(nextByte = {
-			val ch = getchar()
-			if (ch == -1) ByteResult.Eof
-			else ByteResult.Ok(ch)
-		})
-		if (!hitEof) {
-			printErr("\n")
-		}
-		return Pair(bytes.toByteArray().decodeToString(), hitEof)
 	}
 	
 	private sealed class ByteResult {

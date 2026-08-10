@@ -24,6 +24,8 @@ import platform.posix.*
 
 actual fun stdoutIsTty() = isatty(STDOUT_FILENO) == 1
 
+actual fun stdinIsTty() = isatty(STDIN_FILENO) == 1
+
 actual fun beginNoEcho() = Terminal.beginNoEcho()
 
 actual fun endNoEcho() = Terminal.endNoEcho()
@@ -85,48 +87,31 @@ actual fun exec(vararg args: String): CommandResult {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun promptOrStdin(echo: Boolean): String {
+actual fun readAllStdin(): String {
+	var buffer = ByteArray(8192)
+	var size = 0
+	while (true) {
+		if (size == buffer.size) buffer = buffer.copyOf(buffer.size * 2)
+		val n = read(STDIN_FILENO, buffer.refTo(size), (buffer.size - size).toULong())
+		if (n < 0 && errno == EINTR) continue
+		if (n <= 0) break
+		size += n.toInt()
+	}
+	return buffer.decodeToString(0, size)
+}
+
+actual fun readPrompt(echo: Boolean): String? {
 	Terminal.flushStdin()
-	val stdinTty = isatty(STDIN_FILENO) == 1
-	
+	val fd = Terminal.interactiveFd()
 	if (echo) {
-		Terminal.setEcho(Terminal.interactiveFd(), true)
+		Terminal.setEcho(fd, true)
 		try {
-			if (!InputReader.stdinExhausted || stdinTty) {
-				var readErr = false
-				val input = try {
-					readlnOrNull()
-				} catch (_: Exception) {
-					clearerr(stdin)
-					readErr = true
-					null
-				}
-				if (input != null) {
-					if (!stdinTty) printErr("$input\n")
-					return input
-				}
-				if (readErr) return InputReader.readTtyFallback()
-				if (!stdinTty) InputReader.stdinExhausted = true
-				if (stdinTty) {
-					clearerr(stdin)
-					return ""
-				}
-			}
-			return InputReader.readTtyFallback()
+			return InputReader.readTtyLine(fd)
 		} finally {
-			Terminal.setEcho(Terminal.interactiveFd(), false)
+			Terminal.setEcho(fd, false)
 		}
 	}
-	
-	if (!InputReader.stdinExhausted || stdinTty) {
-		if (stdinTty) return InputReader.readPasswordTty(STDIN_FILENO)
-		
-		val (password, hitEof) = InputReader.readPasswordPipe()
-		if (!hitEof) return password
-		
-		InputReader.stdinExhausted = true
-	}
-	return InputReader.readPasswordFallback()
+	return InputReader.readPasswordTty(fd)
 }
 
 @OptIn(ExperimentalForeignApi::class)

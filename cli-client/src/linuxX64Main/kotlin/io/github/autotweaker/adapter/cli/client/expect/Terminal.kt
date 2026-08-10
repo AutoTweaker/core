@@ -117,6 +117,7 @@ object Terminal {
 		signal(SIGINT, SIG_DFL)
 		signal(SIGTSTP, SIG_DFL)
 		fatalSignals.forEach { signal(it, SIG_DFL) }
+		flushStdin()
 	}
 	
 	@OptIn(ExperimentalForeignApi::class)

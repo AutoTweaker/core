@@ -68,14 +68,14 @@ class ModelAdd(
 			error(ModelI18n.ModelDuplicateError(), name)
 		
 		if (modelInfo == null) {
-			val id = prompt((ModelI18n.PromptId()))
+			val id = promptOrStdin((ModelI18n.PromptId()))
 			if (id.isBlank()) invalidValue()
 			
 			val contextWindow: Int =
-				prompt(ModelI18n.PromptContextWindow()).toIntOrNull()
+				promptOrStdin(ModelI18n.PromptContextWindow()).toIntOrNull()
 					?: invalidValue()
 			val maxOutputTokens =
-				prompt(ModelI18n.PromptMaxOutputTokens()).toIntOrNull()
+				promptOrStdin(ModelI18n.PromptMaxOutputTokens()).toIntOrNull()
 					?: invalidValue()
 			val price = promptTokenPrice()
 			
@@ -142,7 +142,7 @@ class ModelAdd(
 		val fromTokens: Int
 		val toTokens: Int?
 		if (tieredPrice) {
-			val result = prompt(ModelI18n.PromptPriceRange())
+			val result = promptOrStdin(ModelI18n.PromptPriceRange())
 				.split("-", limit = 2).map { it.trim() }
 			fromTokens = result[0].toIntOrNull() ?: invalidValue()
 			val rawTo = result.getOrNull(1)
@@ -160,15 +160,15 @@ class ModelAdd(
 	}
 	
 	private suspend fun Console.promptPrice(): Price {
-		val tokenUnit = prompt(ModelI18n.PromptTokenUnit()).toIntOrNull() ?: invalidValue()
+		val tokenUnit = promptOrStdin(ModelI18n.PromptTokenUnit()).toIntOrNull() ?: invalidValue()
 		val currency = trace.catching {
 			Currency.getInstance(
-				prompt(ModelI18n.PromptPriceCurrency()).uppercase()
+				promptOrStdin(ModelI18n.PromptPriceCurrency()).uppercase()
 			)
 		}.getOrElse { invalidValue() }
 		val price = trace.catching {
 			BigDecimal(
-				prompt(ModelI18n.PromptPrice(), currency.getDisplayName(i18n.getLanguage()))
+				promptOrStdin(ModelI18n.PromptPrice(), currency.getDisplayName(i18n.getLanguage()))
 			)
 		}.getOrElse { invalidValue() }
 		return Price(price, currency, tokenUnit)

@@ -35,7 +35,7 @@ class EnvManager(
 	}
 	
 	suspend fun Console.add(type: EnvType, name: String) {
-		val value = secret(EnvI18n.PromptInputEnv(), name)
+		val value = promptOrStdin(EnvI18n.PromptInputEnv(), name, echo = false)
 		core.config.setEnv(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig()))
 	}
 	

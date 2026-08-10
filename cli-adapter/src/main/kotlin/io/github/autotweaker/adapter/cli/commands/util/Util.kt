@@ -16,36 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.console
+package io.github.autotweaker.adapter.cli.commands.util
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.commands.util.unicode.Unicode
+import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.base.zh
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
 
-object ConsoleI18n {
-	@AutoService(I18nDef::class)
-	class MissingValue : I18nBase(
-		zh("无效的参数，缺失 '%s'"),
+@AutoService(Command::class)
+class Util : Command {
+	override val name = "util"
+	override val description = i18n(Desc())
+	override val syntax = Syntax.EMPTY
+	override val requiresKeystore = false
+	override val children: List<Command> = listOf(
+		Unicode()
 	)
 	
-	@AutoService(I18nDef::class)
-	class MissingPos : I18nBase(
-		zh("无效的参数，缺失第 %s 个位置参数"),
-	)
+	override suspend fun Console.execute(core: CoreAPI): Nothing {
+		children.forEach {
+			out("${it.name}: ${it.description}")
+		}
+		done()
+	}
 	
 	@AutoService(I18nDef::class)
-	class InvalidConfirm : I18nBase(
-		zh("无效的值 '%s'，请输入 y/n 或类似值"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class PromptError : I18nBase(
-		zh("无法读取交互式输入"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class PromptOrStdinError : I18nBase(
-		zh("无法读取交互式输入，请通过stdin提供结果，每行一条"),
+	class Desc : I18nBase(
+		zh("杂项命令"),
 	)
 }

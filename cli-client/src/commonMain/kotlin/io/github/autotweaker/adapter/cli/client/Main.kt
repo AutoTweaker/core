@@ -28,9 +28,12 @@ import io.github.autotweaker.adapter.cli.client.FsService.fs
 import io.github.autotweaker.adapter.cli.client.FsService.syncPlugins
 import io.github.autotweaker.adapter.cli.client.FsService.writeProxyEnv
 import io.github.autotweaker.adapter.cli.client.expect.printErr
+import io.github.autotweaker.adapter.cli.client.expect.readAllStdin
+import io.github.autotweaker.adapter.cli.client.expect.stdinIsTty
 import io.github.autotweaker.adapter.cli.client.expect.stdoutIsTty
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.buildMessage
+import io.github.autotweaker.api.orNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import kotlinx.serialization.json.Json
@@ -58,7 +61,12 @@ fun main(args: Array<String>) {
 		val prog = APP_NAME_LOWERCASE
 		val cmdArgs = args.toList()
 		return Json.encodeToString<CliMessage>(
-			CliMessage.Command(args = cmdArgs, prog = prog, isTty = stdoutIsTty())
+			CliMessage.Command(
+				args = cmdArgs,
+				prog = prog,
+				isTty = stdoutIsTty(),
+				stdin = if (stdinIsTty()) null else readAllStdin().orNull(),
+			)
 		)
 	}
 	

@@ -54,7 +54,7 @@ object Protocol {
 					
 					is CliResponse.Done -> return response.exitCode
 					is CliResponse.Prompt -> {
-						val answer = promptOrStdin(response.echo)
+						val answer = readPrompt(response.echo)
 						transport.sendLine(json.encodeToString<CliMessage>(CliMessage.PromptResponse(answer)))
 					}
 				}

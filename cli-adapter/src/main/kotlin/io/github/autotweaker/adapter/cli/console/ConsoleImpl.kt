@@ -22,19 +22,23 @@ import io.github.autotweaker.adapter.cli.OutputChannel
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.commands.DoneException
 import io.github.autotweaker.adapter.cli.commands.StyleBuilder
-import io.github.autotweaker.api.SPACE
-import io.github.autotweaker.api.discard
-import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.i18n.I18nDef
 import kotlinx.coroutines.flow.Flow
 
 class ConsoleImpl(
 	private val isTty: Boolean,
 	private val request: Request,
-	private val readLine: suspend (echo: Boolean) -> String,
+	override val stdin: String?,
+	private val readInput: suspend (echo: Boolean) -> String?,
 	private val output: suspend (CmdOutput) -> Unit
 ) : Console {
 	override var defaultNewline = true
+	
+	private val stdinIterator = stdin?.lineSequence()?.iterator()
+	override suspend fun stdinLine(): String? = stdinIterator?.let {
+		if (it.hasNext()) it.next() else null
+	}
 	
 	override suspend fun hasArg(name: String): Boolean =
 		request.has(name)
@@ -87,16 +91,22 @@ class ConsoleImpl(
 	
 	override suspend fun prompt(
 		text: String,
-		style: StyleBuilder.() -> Unit
-	): String = prompt(text, style, echo = true)
+		echo: Boolean,
+		style: StyleBuilder.() -> Unit,
+	): String = tryPrompt(text, echo, style) ?: error(ConsoleI18n.PromptError())
 	
-	override suspend fun secret(
-		text: String,
-		style: StyleBuilder.() -> Unit
-	): String = prompt(text, style, echo = false)
+	override suspend fun promptOrNull(
+		text: String, echo: Boolean, style: StyleBuilder.() -> Unit
+	): String? = tryPrompt(text, echo, style).also { if (it == null) ln() }
+	
+	override suspend fun promptOrStdin(
+		text: String, echo: Boolean, style: StyleBuilder.() -> Unit
+	): String = tryPrompt(text, echo, style)
+		?: stdinLine()?.also { if (echo) err(it) else err(MASK_CHAR * it.length) }
+		?: error(ConsoleI18n.PromptOrStdinError())
 	
 	override suspend fun confirm(text: String, style: StyleBuilder.() -> Unit): Boolean =
-		when (val result = prompt(text, style).trim().lowercase()) {
+		when (val result = promptOrStdin(text, true, style).trim().lowercase()) {
 			"y", "t", "a", "1", "yes", "true", "approve" -> true
 			"n", "f", "r", "0", "no", "false", "reject" -> false
 			else -> error(ConsoleI18n.InvalidConfirm(), result)
@@ -139,14 +149,23 @@ class ConsoleImpl(
 	override suspend fun prompt(
 		def: I18nDef,
 		vararg args: Any?,
+		echo: Boolean,
 		style: StyleBuilder.() -> Unit
-	): String = prompt(i18n(def, *args), style)
+	): String = prompt(i18n(def, *args), echo, style)
 	
-	override suspend fun secret(
+	override suspend fun promptOrNull(
 		def: I18nDef,
 		vararg args: Any?,
+		echo: Boolean,
 		style: StyleBuilder.() -> Unit
-	): String = secret(i18n(def, *args), style)
+	): String? = promptOrNull(i18n(def, *args), echo, style)
+	
+	override suspend fun promptOrStdin(
+		def: I18nDef,
+		vararg args: Any?,
+		echo: Boolean,
+		style: StyleBuilder.() -> Unit
+	): String = promptOrStdin(i18n(def, *args), echo, style)
 	
 	override suspend fun confirm(
 		def: I18nDef, vararg args: Any?, style: StyleBuilder.() -> Unit
@@ -161,13 +180,11 @@ class ConsoleImpl(
 		style: StyleBuilder.() -> Unit
 	): Nothing = error(i18n(def, *args), style)
 	
-	private suspend fun prompt(
-		text: String,
-		style: StyleBuilder.() -> Unit,
-		echo: Boolean
-	): String {
+	private suspend fun tryPrompt(
+		text: String, echo: Boolean, style: StyleBuilder.() -> Unit
+	): String? {
 		stderr(buildStyle(text + SPACE, style, newline = false))
-		return readLine(echo)
+		return readInput(echo)
 	}
 	
 	private fun buildStyle(

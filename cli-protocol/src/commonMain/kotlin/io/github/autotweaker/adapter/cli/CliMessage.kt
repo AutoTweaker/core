@@ -27,10 +27,11 @@ sealed class CliMessage {
 		val args: List<String>,
 		val prog: String,
 		val isTty: Boolean,
+		val stdin: String?,
 	) : CliMessage() {
 		fun command(): String? = args.firstOrNull()
 	}
 	
 	@Serializable
-	data class PromptResponse(val text: String) : CliMessage()
+	data class PromptResponse(val text: String?) : CliMessage()
 }

@@ -91,9 +91,7 @@ class ProviderCommands(
 	
 	private suspend fun Console.promptOrError(
 		def: I18nDef, defOnEmpty: I18nDef
-	): String = promptOrNull(def) ?: error(defOnEmpty)
+	): String = prompt(def).orNull() ?: error(defOnEmpty)
 	
-	private suspend fun Console.promptOrNull(
-		def: I18nDef
-	): String? = prompt(def).ifBlank { null }
+	private fun String.orNull() = ifBlank { null }
 }

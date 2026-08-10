@@ -28,6 +28,7 @@ import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.i18n.I18nDef
 
 @AutoService(Command::class)
 class Secret : Command, Traceable {
@@ -97,4 +98,7 @@ class Secret : Command, Traceable {
 		
 		core.secret.changePassword(oldPassword, newPassword)
 	}
+	
+	private suspend fun Console.secret(def: I18nDef) =
+		promptOrStdin(def, echo = false)
 }
