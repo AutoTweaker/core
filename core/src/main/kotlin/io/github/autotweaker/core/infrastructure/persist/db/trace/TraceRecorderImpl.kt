@@ -22,6 +22,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.UpperSnakeCase
+import io.ktor.utils.io.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -38,8 +39,14 @@ object TraceRecorderImpl : Loggable {
 	
 	fun init() {
 		scope.launch {
-			for (entry in queue) {
-				TraceStore.insert(entry.origin, entry.namespace, entry.content)
+			for ((origin, namespace, content) in queue) {
+				try { // 不能用 trace.catching，会循环
+					TraceStore.insert(origin, namespace, content)
+				} catch (e: CancellationException) {
+					throw e
+				} catch (e: Exception) {
+					log.error("Failed to insert", e)
+				}
 			}
 		}
 		

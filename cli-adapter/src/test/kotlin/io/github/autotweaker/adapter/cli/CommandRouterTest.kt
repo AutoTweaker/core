@@ -30,6 +30,7 @@ import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.config.SettingValue
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
@@ -88,7 +89,9 @@ class CommandRouterTest {
 	private fun dispatch(vararg args: String): Pair<Int, List<CmdOutput>> = runBlocking {
 		val outputs = mutableListOf<CmdOutput>()
 		val exitCode = router.dispatch(
-			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false, stdin = null),
+			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false),
+			requestId = "test",
+			stdin = Channel(),
 			prompt = { "" },
 			output = { outputs.add(it) },
 		)

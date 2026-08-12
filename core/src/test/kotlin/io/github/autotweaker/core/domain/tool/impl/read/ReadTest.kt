@@ -146,10 +146,10 @@ class ReadTest {
 	
 	@Test
 	fun `resolve too many lines rejected for file`() = runTest {
-		val result = read.coreResolve(container(mockFs()), fileArgs(startLine = 1, endLine = 501))
-		
+		val result = read.coreResolve(container(mockFs()), fileArgs(startLine = 1, endLine = 2001))
+
 		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("读取的行数过多，上限为500", result.reason)
+		assertEquals("读取的行数过多，上限为2000", result.reason)
 	}
 	
 	@Test
@@ -305,13 +305,13 @@ class ReadTest {
 	@Test
 	fun `exec summarize output truncated`() = runTest {
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
-		c.register(SummarizeService::class, summarizeService("y".repeat(6000)))
+		c.register(SummarizeService::class, summarizeService("y".repeat(12000)))
 		val result = read.coreExec(c, request(ReadRequest.Summarize(path, 1, 1, null)), Channel(Channel.UNLIMITED))
-		
+
 		assertTrue(result.success)
-		assertTrue(result.result.startsWith("y".repeat(5000)))
+		assertTrue(result.result.startsWith("y".repeat(10000)))
 		assertTrue(
-			result.result.endsWith("[总结器输出内容过多，后续内容已被截断（共6000字符），请尝试修改总结器提示词]")
+			result.result.endsWith("[总结器输出内容过多，后续内容已被截断（共12000字符），请尝试修改总结器提示词]")
 		)
 	}
 	

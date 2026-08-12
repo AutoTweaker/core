@@ -23,7 +23,7 @@ systemctl daemon-reload 2>/dev/null || true
 
 mkdir -p /etc/autotweaker
 
-if [ -z "$2" ]; then
+if [ -z "$2" ] || [ ! -f /etc/autotweaker/jvm.options ]; then
     MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     MEM_MB=$((MEM_KB / 1024))
 
@@ -43,8 +43,7 @@ if [ -z "$2" ]; then
 
     cat > /etc/autotweaker/jvm.options << EOF
 -Xmx${XMX}
--XX:+HeapDumpOnOutOfMemoryError
--XX:HeapDumpPath=/var/log/autotweaker
+-XX:+DisableAttachMechanism
 --enable-native-access=ALL-UNNAMED
 EOF
     [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options

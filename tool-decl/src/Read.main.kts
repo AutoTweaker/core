@@ -24,16 +24,16 @@ import io.github.autotweaker.toolgen.tool
 tool("read") {
 	function("file") {
 		string("file_path")
-		int("start_line")
-		int("end_line")
+		int("start_line") { required = false }
+		int("end_line") { required = false }
 		boolean("line_number") { required = false }
 		boolean("unicode_escape") { required = false }
 	}
 	
 	function("summarize") {
 		string("file_path")
-		int("start_line")
-		int("end_line")
+		int("start_line") { required = false }
+		int("end_line") { required = false }
 		string("prompt") { required = false }
 	}
 }.gen(

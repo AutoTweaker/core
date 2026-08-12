@@ -24,21 +24,17 @@ import io.github.autotweaker.adapter.cli.commands.DoneException
 import io.github.autotweaker.adapter.cli.commands.StyleBuilder
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.i18n.I18nDef
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
 
 class ConsoleImpl(
 	private val isTty: Boolean,
 	private val request: Request,
-	override val stdin: String?,
+	private val stdin: ReceiveChannel<String>,
 	private val readInput: suspend (echo: Boolean) -> String?,
 	private val output: suspend (CmdOutput) -> Unit
 ) : Console {
 	override var defaultNewline = true
-	
-	private val stdinIterator = stdin?.lineSequence()?.iterator()
-	override suspend fun stdinLine(): String? = stdinIterator?.let {
-		if (it.hasNext()) it.next() else null
-	}
 	
 	override suspend fun hasArg(name: String): Boolean =
 		request.has(name)
@@ -86,6 +82,23 @@ class ConsoleImpl(
 	
 	override suspend fun ln() = stdout("\n")
 	
+	val stdinBuffer = StringBuilder()
+	
+	override suspend fun readLine(): String? {
+		while (true) {
+			val line = stdinBuffer.popLine()
+			if (line != null) return line // 有一行
+			val chunk = readChunk() // null == closed
+				?: return if (stdinBuffer.isNotEmpty())
+					stdinBuffer.toString() // 存在残缺块
+				else null // 已清空
+			stdinBuffer.append(chunk) // 有数据，累加
+		}
+	}
+	
+	override suspend fun readChunk(): String? =
+		stdin.receiveCatching().getOrNull()
+	
 	override suspend fun <T> stream(flow: Flow<T>, render: suspend (T) -> Unit) =
 		flow.collect { render(it) }
 	
@@ -102,7 +115,7 @@ class ConsoleImpl(
 	override suspend fun promptOrStdin(
 		text: String, echo: Boolean, style: StyleBuilder.() -> Unit
 	): String = tryPrompt(text, echo, style)
-		?: stdinLine()?.also { if (echo) err(it) else err(MASK_CHAR * it.length) }
+		?: readLine()?.also { if (echo) err(it) else err(MASK_CHAR * it.length) }
 		?: error(ConsoleI18n.PromptOrStdinError())
 	
 	override suspend fun confirm(text: String, style: StyleBuilder.() -> Unit): Boolean =

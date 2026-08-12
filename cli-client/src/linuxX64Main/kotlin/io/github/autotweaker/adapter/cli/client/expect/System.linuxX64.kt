@@ -87,17 +87,10 @@ actual fun exec(vararg args: String): CommandResult {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun readAllStdin(): String {
-	var buffer = ByteArray(8192)
-	var size = 0
-	while (true) {
-		if (size == buffer.size) buffer = buffer.copyOf(buffer.size * 2)
-		val n = read(STDIN_FILENO, buffer.refTo(size), (buffer.size - size).toULong())
-		if (n < 0 && errno == EINTR) continue
-		if (n <= 0) break
-		size += n.toInt()
-	}
-	return buffer.decodeToString(0, size)
+actual fun readStdinChunk(buffer: ByteArray): Int {
+	val n = read(STDIN_FILENO, buffer.refTo(0), buffer.size.toULong())
+	if (n < 0 && errno == EINTR) return readStdinChunk(buffer)
+	return n.toInt()
 }
 
 actual fun readPrompt(echo: Boolean): String? {

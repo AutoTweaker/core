@@ -26,7 +26,7 @@ expect fun readPrompt(echo: Boolean): String?
 
 expect fun stdinIsTty(): Boolean
 
-expect fun readAllStdin(): String
+expect fun readStdinChunk(buffer: ByteArray): Int
 
 expect fun env(name: String): String
 

@@ -43,6 +43,7 @@ import kotlin.time.Instant
 class Logs : Command {
 	override val name = "logs"
 	override val description = i18n(Desc())
+	override val requiresKeystore: Boolean = false
 	override val syntax = buildSyntax(ALL) {
 		value("filter", Filter()) { required = false }
 	}

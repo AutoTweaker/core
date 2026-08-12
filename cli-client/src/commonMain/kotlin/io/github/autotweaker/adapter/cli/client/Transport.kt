@@ -22,7 +22,11 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.io.bytestring.ByteString
 import kotlinx.io.files.Path
+import kotlinx.io.readByteArray
 
 class Transport private constructor(
 	private val selectorManager: SelectorManager,
@@ -30,10 +34,17 @@ class Transport private constructor(
 ) : AutoCloseable {
 	private val readChannel: ByteReadChannel = socket.openReadChannel()
 	private val writeChannel: ByteWriteChannel = socket.openWriteChannel(autoFlush = true)
+	private val writeLock = Mutex()
 	
-	suspend fun readLine(): String? = readChannel.readLineStrict()
+	suspend fun readLine(): String? {
+		val collected = ByteChannel(false)
+		val count = readChannel.readUntil(ByteString('\n'.code.toByte()), collected, ignoreMissing = true)
+		if (count == 0L) return null
+		collected.close()
+		return collected.readRemaining().readByteArray().decodeToString()
+	}
 	
-	suspend fun sendLine(line: String) {
+	suspend fun sendLine(line: String) = writeLock.withLock {
 		writeChannel.writeStringUtf8(line + "\n")
 	}
 	

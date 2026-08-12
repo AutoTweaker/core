@@ -29,9 +29,6 @@ import kotlin.coroutines.cancellation.CancellationException
 interface Console : I18nable {
 	var defaultNewline: Boolean // 默认 true
 	
-	val stdin: String? // 完整 stdin 原始数据
-	suspend fun stdinLine(): String? // 每次从 stdin 读取一行
-	
 	suspend fun hasArg(name: String): Boolean
 	suspend fun getValue(name: String): String
 	suspend fun getValueOrNull(name: String): String?
@@ -45,6 +42,9 @@ interface Console : I18nable {
 	suspend fun out(text: String, style: StyleBuilder.() -> Unit = {})
 	suspend fun err(text: String, style: StyleBuilder.() -> Unit = {})
 	suspend fun ln()
+	
+	suspend fun readLine(): String?
+	suspend fun readChunk(): String?
 	
 	suspend fun <T> stream(flow: Flow<T>, render: suspend (T) -> Unit)
 	

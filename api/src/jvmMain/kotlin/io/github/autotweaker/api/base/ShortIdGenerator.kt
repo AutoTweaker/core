@@ -16,27 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
+package io.github.autotweaker.api.base
 
-import kotlinx.serialization.Serializable
+import java.util.concurrent.atomic.AtomicLong
 
-@Serializable
-sealed class CliMessage {
-	@Serializable
-	data class Command(
-		val args: List<String>,
-		val prog: String,
-		val isTty: Boolean,
-	) : CliMessage() {
-		fun command(): String? = args.firstOrNull()
+/**
+ * 生成一个自增短 id，用于日志记录。
+ *
+ * 从 0 开始，程序重启后会归零。
+ */
+object ShortIdGenerator {
+	private val counter = AtomicLong(0)
+	
+	/**
+	 * 获取数字 id。
+	 */
+	fun nextLong(): Long = counter.incrementAndGet()
+	
+	/**
+	 * 获取 36 进制的字符串 id。
+	 */
+	fun nextString(): String {
+		return counter.incrementAndGet().toString(36)
 	}
-	
-	@Serializable
-	data class Stdin(val chunk: String) : CliMessage()
-	
-	@Serializable
-	data object StdinEnd : CliMessage()
-	
-	@Serializable
-	data class PromptResponse(val text: String?) : CliMessage()
 }

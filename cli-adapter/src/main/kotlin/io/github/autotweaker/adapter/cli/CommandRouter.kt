@@ -33,6 +33,8 @@ import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import java.util.*
 
 
@@ -59,11 +61,13 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 	private val argParser = ArgParser(maxArgsCount)
 	
 	init {
-		log.debug("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
+		log.info("Loaded CommandRouter  commandCount={}  commands={}", handlers.size, handlers.keys)
 	}
 	
 	suspend fun dispatch(
 		request: CliMessage.Command,
+		requestId: String,
+		stdin: ReceiveChannel<String>,
 		prompt: suspend (echo: Boolean) -> String?,
 		output: suspend (CmdOutput) -> Unit
 	): Int = try {
@@ -88,7 +92,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 			val console = ConsoleImpl(
 				isTty = request.isTty,
 				request = Request(emptyMap(), emptyList(), emptyMap()),
-				stdin = request.stdin,
+				stdin = Channel(),
 				output = output,
 				readInput = prompt
 			)
@@ -100,7 +104,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		//找子命令
 		var command = handlers[cmd] ?: run {
 			i18n(CmdI18n.UnknownHint(), cmd, request.prog).error()
-			log.warn("Received unknown command  command={}  args={}", cmd, request.args)
+			log.warn("Received unknown command  command={}  requestId={}  args={}", cmd, requestId, request.args)
 			return 1
 		}
 		
@@ -115,20 +119,25 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 			conflicts.forEach {
 				"Error: $it".error()
 			}
-			log.warn("Detected param name conflict in command  command={}  conflicts={}", command.name, conflicts)
+			log.warn(
+				"Detected param name conflict in command  command={}  requestId={}  conflicts={}",
+				command.name,
+				requestId,
+				conflicts
+			)
 			return 1
 		}
 		
-		log.debug("Dispatched command  command={}  args={}", command.name, args)
+		log.debug("Dispatched command  command={} requestId={}  args={}", command.name, requestId, args)
 		val parsed = argParser.parse(args, command.syntax)
 			?: run {
-				log.debug("Rejected invalid arguments for command  command={}", command.name)
+				log.debug("Rejected invalid arguments for command  command={} requestId={}", requestId, command.name)
 				i18n(CmdI18n.InvalidArgs(), request.command(), request.prog).error()
 				return 1
 			}
 		
 		if (command.requiresKeystore && !core.secret.isUnlocked.value) {
-			log.debug("Rejected command, keystore locked  command={}", command.name)
+			log.debug("Rejected command, keystore locked  command={} requestId={}", requestId, command.name)
 			
 			i18n(CmdI18n.KeystoreLocked(), request.prog).error()
 			return 1
@@ -137,7 +146,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		val console = ConsoleImpl(
 			isTty = request.isTty,
 			request = parsed,
-			stdin = request.stdin,
+			stdin = stdin,
 			output = output,
 			readInput = prompt
 		)

@@ -16,27 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli
+package io.github.autotweaker.api
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-sealed class CliMessage {
-	@Serializable
-	data class Command(
-		val args: List<String>,
-		val prog: String,
-		val isTty: Boolean,
-	) : CliMessage() {
-		fun command(): String? = args.firstOrNull()
-	}
+/**
+ * 从 [StringBuffer] 中取出一行，找不到换行符返回 null。
+ */
+fun StringBuilder.popLine(): String? {
+	val index = indexOf('\n')
+	if (index == -1) return null
 	
-	@Serializable
-	data class Stdin(val chunk: String) : CliMessage()
-	
-	@Serializable
-	data object StdinEnd : CliMessage()
-	
-	@Serializable
-	data class PromptResponse(val text: String?) : CliMessage()
+	val line = substring(0, index).trimEnd('\r')
+	delete(0, index + 1)
+	return line
 }

@@ -50,14 +50,14 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class StartLineDesc : StringSetting(
-		"读取文件的开始行号，从1开始", zh(
+		"读取文件的开始行号，从1开始，默认1", zh(
 			"read工具start_line参数的描述"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class EndLineDesc : StringSetting(
-		"读取文件的结束行号，不能小于开始行号，可以大于文件总行数", zh(
+		"读取文件的结束行号，不能小于开始行号，可以大于文件总行数，不填则读取到行数上限", zh(
 			"read工具end_line参数的描述"
 		)
 	)
@@ -197,7 +197,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MaxReadLines : IntSetting(
-		500, zh(
+		2000, zh(
 			"read-file工具最大允许行数"
 		)
 	)
@@ -232,7 +232,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMaxOutputChars : IntSetting(
-		5000, zh(
+		10000, zh(
 			"read-summarize工具最大输出字符数，超出会截断"
 		)
 	)

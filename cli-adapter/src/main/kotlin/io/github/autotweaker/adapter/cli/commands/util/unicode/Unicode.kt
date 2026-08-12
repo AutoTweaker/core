@@ -30,6 +30,7 @@ import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.toUnicodeEscape
 import io.github.autotweaker.api.unescapeUnicode
+import io.github.autotweaker.api.unreachable
 
 class Unicode : Command {
 	override val name = "unicode"
@@ -41,17 +42,59 @@ class Unicode : Command {
 	override val requiresKeystore = false
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
-		val string = stdin ?: prompt(">")
-		handleFlag("escape") {
-			out(string.toUnicodeEscape())
+		defaultNewline = false
+		val firstChunk = readChunk()
+		val stdin = firstChunk != null
+		var string = firstChunk ?: prompt(">")
+		var tail = ""
+		var pendingHigh: Char? = null
+		
+		while (true) {
+			if (hasArg("escape")) out(string.toUnicodeEscape())
+			else if (hasArg("unescape")) {
+				val text = tail + string
+				tail = text.incompleteUnicodeTail()
+				var head = text.substring(0, text.length - tail.length).unescapeUnicode(strict = false)
+				if (pendingHigh != null) {
+					head = pendingHigh + head
+					pendingHigh = null
+				}
+				if (head.isNotEmpty() && head.last().isHighSurrogate()) {
+					pendingHigh = head.last()
+					head = head.dropLast(1)
+				}
+				out(head)
+			} else unreachable()
+			
+			if (stdin) string = readChunk() ?: break
+			else break
 		}
-		handleFlag("unescape") {
-			out(string.unescapeUnicode(strict = false)) {
-				newline = false
-			}
+		if (hasArg("unescape")) {
+			if (pendingHigh != null) out(pendingHigh.toString())
+			if (tail.isNotEmpty()) out(tail.unescapeUnicode(strict = false))
 		}
-		done(1)
+		if (hasArg("escape")) ln()
+		done()
 	}
+	
+	private fun String.incompleteUnicodeTail(): String {
+		var p = lastIndexOf('\\')
+		while (p >= 0) {
+			var n = 0
+			var j = p - 1
+			while (j >= 0 && this[j] == '\\') {
+				n++; j--
+			}
+			if (n % 2 == 0) break
+			p = j
+		}
+		if (p < 0 || this[p] != '\\') return ""
+		val rest = substring(p)
+		if (rest.length == 1) return rest
+		if (rest.length in 2..5 && rest[1] == 'u' && rest.drop(2).all { it.digitToIntOrNull(16) != null }) return rest
+		return ""
+	}
+	
 	
 	@AutoService(I18nDef::class)
 	class Desc : I18nBase(

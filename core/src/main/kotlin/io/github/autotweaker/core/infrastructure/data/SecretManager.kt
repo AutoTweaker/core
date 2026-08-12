@@ -172,6 +172,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 			generateKey()
 			cache.forEachParallel(4) { (id, secret) ->
 				encryptTo(secret, secretsDir.resolve("$id.gpg"))
+				log.debug("Encrypted secret  id={}", id)
 			}
 			createMarker()
 		}.rethrowCancellation()

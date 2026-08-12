@@ -28,9 +28,11 @@ import io.github.autotweaker.api.types.exception.AutoTweakerException
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
-import io.ktor.utils.io.charsets.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.io.bytestring.ByteString
+import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
@@ -39,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.path.deleteIfExists
+import kotlin.time.Duration.Companion.seconds
 
 object CliServer : Loggable, Traceable {
 	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
@@ -49,6 +52,13 @@ object CliServer : Loggable, Traceable {
 			"CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
 		)
 	)
+	
+	@AutoService(SettingDef::class)
+	class ReadTimeout : IntSetting(
+		15,
+		zh("读取stdin输入时，首块数据到达前的等待时间（秒）")
+	)
+	
 	
 	private val maxLineLength = MaxLineLength().get()
 	
@@ -79,20 +89,21 @@ object CliServer : Loggable, Traceable {
 		
 		scope.launch {
 			while (!serverSocket.isClosed) {
+				val requestId = ShortIdGenerator.nextString()
 				val client = trace.catching { serverSocket.accept() }
 					.onFailure {
 						log.warn(
-							"Failed connection acceptance  socketPath={}  reason={}",
-							socketPath,
+							"Failed connection acceptance  requestId={}  reason={}",
+							requestId,
 							it.message
 						)
 					}.getOrNull() ?: break
-				log.info("Client connected  socketPath={}", socketPath)
+				log.info("Client connected  requestId={}", requestId)
 				connectionLimit.acquire()
 				activeClients.add(client)
 				scope.launch {
 					trace.catching {
-						handle(client, router)
+						handle(client, requestId, router)
 					}.also {
 						activeClients.remove(client)
 						connectionLimit.release()
@@ -112,7 +123,7 @@ object CliServer : Loggable, Traceable {
 		log.info("Stopped CliServer  socketPath={}", socketPath)
 	}
 	
-	private suspend fun handle(socket: Socket, router: CommandRouter) =
+	private suspend fun handle(socket: Socket, requestId: String, router: CommandRouter) =
 		socket.use {
 			val readChannel = ByteChannel(false)
 			val readerJob = socket.attachForReading(readChannel)
@@ -120,11 +131,16 @@ object CliServer : Loggable, Traceable {
 			val sendChannel = socket.openWriteChannel(autoFlush = true)
 			
 			val line = receiveChannel.readCliLine() ?: run {
-				log.warn("Client sent no data"); return@use
+				log.warn("Client sent no data  requestId={}", requestId); return@use
 			}
 			val command = json.decodeFromString<CliMessage.Command>(line)
 			
-			log.debug("Received CliMessage  command={}  argCount={}", command.command(), command.args.size)
+			log.debug(
+				"Received CliMessage  command={}  requestId={}  argCount={}",
+				command.command(),
+				requestId,
+				command.args.size
+			)
 			
 			val cmdName = command.command()
 			val done = AtomicBoolean(false)
@@ -133,58 +149,88 @@ object CliServer : Loggable, Traceable {
 			readerJob.invokeOnCompletion {
 				if (!done.get() && disconnected.compareAndSet(false, true)) {
 					log.warn(
-						"Client disconnected during command  command={}  reason=connection closed by peer",
-						cmdName
+						"Client disconnected during command  command={}  requestId={}",
+						cmdName, requestId
 					)
 					parentJob?.cancel(ClientDisconnectedException())
 				}
 			}
 			
 			val responseLock = ReentrantMutex()
-			val prompt: suspend (echo: Boolean) -> String? = { echo ->
-				responseLock.withLock {
-					sendChannel.writeResponse(CliResponse.Prompt(echo))
-					
-					val line = receiveChannel.readCliLine()
-						?: throw ClientDisconnectedException()
-					json.decodeFromString<CliMessage.PromptResponse>(line).text
+			
+			coroutineScope {
+				val stdinChannel = Channel<String>(Channel.BUFFERED)
+				val promptChannel = Channel<String?>(Channel.UNLIMITED)
+				
+				val timeoutJob = launch {
+					delay(ReadTimeout().get().seconds)
+					stdinChannel.close()
 				}
-			}
-			val output: suspend (CmdOutput) -> Unit = { (text, channel) ->
-				responseLock.withLock {
-					text.chunked(MAX_RESPONSE_CHUNK).ifEmpty { listOf("") }.forEach { part ->
-						sendChannel.writeResponse(CliResponse.Data(part, channel))
+				val messageJob = launch {
+					while (true) {
+						val line = receiveChannel.readCliLine() ?: break
+						when (val msg = json.decodeFromString<CliMessage>(line)) {
+							is CliMessage.Stdin -> {
+								timeoutJob.cancel()
+								trace.catching { stdinChannel.send(msg.chunk) }
+							}
+							
+							is CliMessage.StdinEnd -> {
+								log.debug("Received stdin EOF  command={}  requestId={}", cmdName, requestId)
+								timeoutJob.cancel()
+								stdinChannel.close()
+							}
+							
+							is CliMessage.PromptResponse -> promptChannel.send(msg.text)
+							is CliMessage.Command -> log.warn(
+								"Unexpected Command message  command={}  requestId={}  received={}",
+								cmdName, requestId, msg.command()
+							)
+						}
 					}
 				}
-			}
-			
-			trace.catching {
-				val exitCode = router.dispatch(command, prompt, output)
-				done.set(true)
-				log.debug("Command finished  exitCode={}", exitCode)
-				responseLock.withLock {
-					sendChannel.writeResponse(CliResponse.Done(exitCode))
+				val prompt: suspend (echo: Boolean) -> String? = { echo ->
+					responseLock.withLock {
+						sendChannel.writeResponse(CliResponse.Prompt(echo))
+						promptChannel.receive()
+					}
 				}
-			}.recoverException { e: ClientDisconnectedException ->
-				if (disconnected.compareAndSet(false, true))
-					log.warn(
-						"Disconnected client during command  command={}  reason={}",
-						cmdName, e.cause?.message ?: e.message
-					)
-			}.rethrowCancellation().onFailure { e ->
-				if (e is AutoTweakerException)
-					log.warn(
-						"Command failed  command={}  exception={}  reason={}",
-						cmdName,
-						e::class.simpleName,
-						e.message,
-					)
-				else log.error("Command failed  command={}", cmdName, e)
-				done.set(true)
-				responseLock.withLock {
-					trace.catching {
-						sendChannel.writeResponse(e.message().error(command.isTty))
-						sendChannel.writeResponse(CliResponse.Done(1))
+				val output: suspend (CmdOutput) -> Unit = { (text, channel) ->
+					responseLock.withLock {
+						text.chunked(MAX_RESPONSE_CHUNK).forEach { part ->
+							sendChannel.writeResponse(CliResponse.Data(part, channel))
+						}
+					}
+				}
+				
+				trace.catching {
+					val exitCode = router.dispatch(command, requestId, stdinChannel, prompt, output)
+					done.set(true)
+					log.info("Command finished  command={}  requestId={}  exitCode={}", cmdName, requestId, exitCode)
+					responseLock.withLock {
+						sendChannel.writeResponse(CliResponse.Done(exitCode))
+					}
+				}.also { messageJob.cancel() }.recoverException { e: ClientDisconnectedException ->
+					if (disconnected.compareAndSet(false, true))
+						log.warn(
+							"Disconnected client during command  command={}  requestId={}  reason={}",
+							cmdName, requestId, e.cause?.message ?: e.message
+						)
+				}.rethrowCancellation().onFailure { e ->
+					if (e is AutoTweakerException)
+						log.warn(
+							"Command failed  command={}  requestId={}  exception={}  reason={}",
+							cmdName, requestId,
+							e::class.simpleName,
+							e.message,
+						)
+					else log.error("Command failed  command={}  requestId={}", cmdName, requestId, e)
+					done.set(true)
+					responseLock.withLock {
+						trace.catching {
+							sendChannel.writeResponse(e.message().error(command.isTty))
+							sendChannel.writeResponse(CliResponse.Done(1))
+						}
 					}
 				}
 			}
@@ -192,11 +238,21 @@ object CliServer : Loggable, Traceable {
 	
 	
 	private suspend fun ByteReadChannel.readCliLine(): String? =
-		trace.catching { readLineStrict(limit = maxLineLength.toLong()) }
-			.rethrowCancellation()
-			.rethrow<TooLongLineException> {
-				log.warn("Exceeded line max length  limit={}", maxLineLength)
-			}.getOrElse { throw ClientDisconnectedException(it) }
+		trace.catching {
+			val collected = ByteChannel(false)
+			val count = readUntil(
+				ByteString('\n'.code.toByte()),
+				collected,
+				limit = maxLineLength.toLong(),
+				ignoreMissing = true
+			)
+			if (count == 0L) null
+			else {
+				collected.close()
+				collected.readRemaining().readByteArray().decodeToString()
+			}
+		}.rethrowCancellation()
+			.getOrElse { throw ClientDisconnectedException(it) }
 	
 	private suspend fun ByteWriteChannel.writeResponse(response: CliResponse) =
 		trace.catching { writeStringUtf8(json.encodeToString(response) + '\n') }

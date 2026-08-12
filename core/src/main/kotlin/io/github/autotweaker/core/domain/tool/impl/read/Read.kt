@@ -93,20 +93,28 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		}
 		
 		val request = when (args) {
-			is ReadArgs.File -> ReadRequest.File(
-				path = filePath,
-				startLine = args.startLine,
-				endLine = args.endLine,
-				lineNumber = args.lineNumber ?: true,
-				unicodeEscape = args.unicodeEscape ?: false
-			)
+			is ReadArgs.File -> {
+				val startLine = args.startLine ?: 1
+				val endLine = args.endLine ?: (startLine + ReadSettings.MaxReadLines().get())
+				ReadRequest.File(
+					path = filePath,
+					startLine = startLine,
+					endLine = endLine,
+					lineNumber = args.lineNumber ?: true,
+					unicodeEscape = args.unicodeEscape ?: false
+				)
+			}
 			
-			is ReadArgs.Summarize -> ReadRequest.Summarize(
-				path = filePath,
-				startLine = args.startLine,
-				endLine = args.endLine,
-				prompt = args.prompt
-			)
+			is ReadArgs.Summarize -> {
+				val startLine = args.startLine ?: 1
+				val endLine = args.endLine ?: (startLine + ReadSettings.SummarizeMaxLines().get())
+				ReadRequest.Summarize(
+					path = filePath,
+					startLine = startLine,
+					endLine = endLine,
+					prompt = args.prompt
+				)
+			}
 		}
 		
 		if (request.startLine < 1) return Rejected(ReadSettings.MessageStartLineError())
