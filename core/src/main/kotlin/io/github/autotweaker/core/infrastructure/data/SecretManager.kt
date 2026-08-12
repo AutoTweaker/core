@@ -150,9 +150,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		val result = trace.catching {
 			gpg("--batch", "--yes", "--pinentry-mode", "loopback", "-d", markerFile.toString(), passphrase = password)
 		}.rethrowCancellation()
-			.onException { e: GpgException ->
-				log.warn("Failed marker decryption  reason={}", e.message)
-			}.getOrElse { throw PasswordInvalidException() }
+			.getOrElse { throw PasswordInvalidException() }
 		if (result != "ok") throw PasswordInvalidException()
 	}
 	
@@ -240,10 +238,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	}
 	
 	private fun getPassword(): CharArray = password
-		?: throw SecretStoreLockedException().andLog(log) {
-			warn("Secret store locked  operation=secret-access")
-		}
-	
+		?: throw SecretStoreLockedException()
 	
 	// region 实现接口
 	override suspend fun set(secret: String, id: UUID): UUID = lock.withLock {
@@ -292,10 +287,7 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	}
 	
 	override fun requireUnlocked() {
-		if (password == null)
-			throw SecretStoreLockedException().andLog(log) {
-				warn("Secret store locked  operation=require-unlocked")
-			}
+		if (password == null) throw SecretStoreLockedException()
 	}
 	// endregion
 }
