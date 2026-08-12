@@ -34,7 +34,7 @@ fun String.toMasked(
 	
 	return buildString(length) {
 		this@toMasked.forEachIndexed { index, char ->
-			if (index < prefixKeep || index > lastIndex - suffixKeep)
+			if (index < prefixKeep || index > this@toMasked.lastIndex - suffixKeep)
 				append(char)
 			else
 				append(MASK_CHAR)

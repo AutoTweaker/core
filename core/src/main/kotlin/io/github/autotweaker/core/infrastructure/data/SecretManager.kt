@@ -63,9 +63,9 @@ object SecretManager : SecretStore, Loggable, Traceable {
 	suspend fun init() = trace.catching {
 		unlock("")
 	}.onFailure { e ->
-		if (hasSecretKey()) {
+		if (hasSecretKey())
 			log.info("Skipped SecretManager auto-unlock  reason=password-required")
-		} else throw e
+		else throw e
 	}.discard()
 	
 	suspend fun unlock(passphrase: String) = lock.withLock {

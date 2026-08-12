@@ -82,15 +82,15 @@ class ConsoleImpl(
 	
 	override suspend fun ln() = stdout("\n")
 	
-	val stdinBuffer = StringBuilder()
+	private val stdinBuffer = StringBuilder()
 	
 	override suspend fun readLine(): String? {
 		while (true) {
 			val line = stdinBuffer.popLine()
 			if (line != null) return line // 有一行
 			val chunk = readChunk() // null == closed
-				?: return if (stdinBuffer.isNotEmpty())
-					stdinBuffer.toString() // 存在残缺块
+				?: return if (stdinBuffer.isNotEmpty()) // 存在残缺块
+					stdinBuffer.toString().also { stdinBuffer.clear() }
 				else null // 已清空
 			stdinBuffer.append(chunk) // 有数据，累加
 		}

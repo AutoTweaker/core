@@ -16,40 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.util
+package io.github.autotweaker.adapter.cli.commands.util.mask
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
-import io.github.autotweaker.adapter.cli.commands.util.mask.Mask
-import io.github.autotweaker.adapter.cli.commands.util.unicode.Unicode
 import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.toMasked
 
-@AutoService(Command::class)
-class Util : Command {
-	override val name = "util"
+class Mask : Command {
+	override val name = "mask"
 	override val description = i18n(Desc())
 	override val syntax = Syntax.EMPTY
 	override val requiresKeystore = false
-	override val children: List<Command> = listOf(
-		Unicode(),
-		Mask()
-	)
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
-		children.forEach {
-			out("${it.name}: ${it.description}")
+		while (true) {
+			val line = readLine() ?: done()
+			out(line.toMasked())
 		}
-		done()
 	}
 	
 	@AutoService(I18nDef::class)
 	class Desc : I18nBase(
-		zh("杂项命令"),
+		zh("对stdin输入的信息进行脱敏，逐行处理"),
 	)
 }

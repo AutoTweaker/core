@@ -32,4 +32,4 @@ fun <T> T.discard(): Unit = Unit
  * 常用于链式调用末尾吞掉返回值并返回 `null`。
  */
 @Suppress("UnusedReceiverParameter")
-fun <T, R> T.discard(result: R?): R? = result
+fun <T, R> T.discard(result: R): R = result
