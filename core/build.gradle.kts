@@ -53,11 +53,11 @@ dependencies {
 	implementation(project(":api"))
 	compileOnly(project(":tool-gen"))
 	
-	implementation("io.ktor:ktor-client-core:3.5.1")
-	implementation("io.ktor:ktor-client-java:3.5.1")
-	implementation("io.ktor:ktor-client-cio:3.5.1")
-	implementation("io.ktor:ktor-client-content-negotiation:3.5.1")
-	implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.1")
+	implementation("io.ktor:ktor-client-core:3.5.2")
+	implementation("io.ktor:ktor-client-java:3.5.2")
+	implementation("io.ktor:ktor-client-cio:3.5.2")
+	implementation("io.ktor:ktor-client-content-negotiation:3.5.2")
+	implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.2")
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	
@@ -66,7 +66,7 @@ dependencies {
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 	testImplementation(kotlin("test"))
 	testImplementation("io.mockk:mockk:1.14.11")
-	testImplementation("io.ktor:ktor-client-mock:3.5.1")
+	testImplementation("io.ktor:ktor-client-mock:3.5.2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
