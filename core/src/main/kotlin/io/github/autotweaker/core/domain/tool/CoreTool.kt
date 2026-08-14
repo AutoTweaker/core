@@ -18,28 +18,29 @@
 
 package io.github.autotweaker.core.domain.tool
 
+import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
 
-interface CoreTool<Args : ToolArgs> : Tool<Args> {
-	suspend fun coreResolve(dependency: DependencyProvider, args: Args): Tool.ResolveResult
+interface CoreTool<Args : ToolArgs> : Tool<Args>, I18nable {
+	suspend fun resolve(dependency: DependencyProvider, args: Args): Tool.ResolveResult
 	
-	override suspend fun resolve(args: Args, cwd: Path): Tool.ResolveResult =
-		throw UnsupportedOperationException("Use coreResolve")
+	override suspend fun resolve(args: Args, cwd: Path): Nothing =
+		throw UnsupportedOperationException()
 	
-	suspend fun coreExec(
+	suspend fun execute(
 		dependency: DependencyProvider,
 		request: JsonElement,
-		outputChannel: Channel<Tool.RuntimeOutput>
+		outputChannel: SendChannel<Tool.RuntimeOutput>
 	): Tool.ToolOutput
 	
 	override suspend fun execute(
 		request: JsonElement,
 		cwd: Path,
-		outputChannel: Channel<Tool.RuntimeOutput>
-	): Tool.ToolOutput =
-		throw UnsupportedOperationException("Use coreExec")
+		outputChannel: SendChannel<Tool.RuntimeOutput>
+	): Nothing =
+		throw UnsupportedOperationException()
 }

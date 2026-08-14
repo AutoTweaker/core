@@ -23,6 +23,7 @@ import java.nio.file.Path
 
 interface FileSystemService {
 	fun normalize(filePath: String): Path
+	fun relativize(path: Path): Path // 解析相对路径
 	suspend fun exists(path: Path): Boolean
 	suspend fun isRegularFile(path: Path): Boolean
 	suspend fun readAllLines(path: Path): List<String>

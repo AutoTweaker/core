@@ -29,6 +29,7 @@ import io.github.autotweaker.api.tool.*
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.read.ReadRequest
+import io.github.autotweaker.api.types.tool.text
 import io.github.autotweaker.core.domain.port.FileAccessDeniedException
 import io.github.autotweaker.core.domain.port.FileNotFoundException
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -38,7 +39,7 @@ import io.github.autotweaker.core.domain.tool.impl.ToolSettings
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
@@ -55,7 +56,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					endLine = ReadSettings.EndLineDesc().get(),
 					lineNumber = ReadSettings.LineNumberDesc().get(),
 					unicodeEscape = ReadSettings.UnicodeEscapeDesc().get()
-				) to ReadSettings.ReadFileDescription().get().format(
+				) to ReadSettings.ReadFileDescription().format(
 					ReadSettings.MaxReadChars().get(),
 					ReadSettings.MaxReadLines().get()
 				
@@ -65,7 +66,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					startLine = ReadSettings.StartLineDesc().get(),
 					endLine = ReadSettings.EndLineDesc().get(),
 					prompt = ReadSettings.SummarizePromptDesc().get(),
-				) to ReadSettings.ReadSummarizeDescription().get().format(
+				) to ReadSettings.ReadSummarizeDescription().format(
 					ReadSettings.SummarizeMaxInputChars().get(),
 					ReadSettings.SummarizeMinChars().get(),
 					ReadSettings.SummarizeMaxLines().get()
@@ -76,28 +77,31 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	
 	val requestSerializer = ReadRequest.serializer()
 	
-	override suspend fun coreResolve(
+	override suspend fun resolve(
 		dependency: DependencyProvider, args: ReadArgs
 	): Tool.ResolveResult {
 		val fs = dependency.get<FileSystemService>()
 		
+		val requestPath = when (args) {
+			is ReadArgs.File -> args.filePath
+			is ReadArgs.Summarize -> args.filePath
+		}
 		val filePath = trace.catching {
-			fs.normalize(
-				when (args) {
-					is ReadArgs.File -> args.filePath
-					is ReadArgs.Summarize -> args.filePath
-				}
-			)
+			fs.normalize(requestPath)
 		}.rethrowCancellation().getOrElse {
-			return Rejected(ToolSettings.PathErrorMessage())
+			return Rejected(ToolSettings.PathErrorMessage().get()) {
+				text(i18n(ReadI18n.InvalidPath(), requestPath))
+			}
 		}
 		
+		val relativePath = fs.relativize(filePath)
 		val request = when (args) {
 			is ReadArgs.File -> {
 				val startLine = args.startLine ?: 1
 				val endLine = args.endLine ?: (startLine + ReadSettings.MaxReadLines().get())
 				ReadRequest.File(
 					path = filePath,
+					relativePath = relativePath,
 					startLine = startLine,
 					endLine = endLine,
 					lineNumber = args.lineNumber ?: true,
@@ -110,6 +114,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				val endLine = args.endLine ?: (startLine + ReadSettings.SummarizeMaxLines().get())
 				ReadRequest.Summarize(
 					path = filePath,
+					relativePath = relativePath,
 					startLine = startLine,
 					endLine = endLine,
 					prompt = args.prompt
@@ -117,30 +122,73 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			}
 		}
 		
-		if (request.startLine < 1) return Rejected(ReadSettings.MessageStartLineError())
-		if (request.endLine < request.startLine) return Rejected(ReadSettings.MessageStartLineBiggerThanEnd())
+		if (request.startLine < 1)
+			return Rejected(ReadSettings.MessageStartLineError().get()) {
+				text(i18n(ReadI18n.InvalidArg()))
+			}
+		if (request.endLine < request.startLine)
+			return Rejected(ReadSettings.MessageStartLineBiggerThanEnd().get()) {
+				text(i18n(ReadI18n.InvalidArg()))
+			}
 		
 		val maxLines = when (request) {
 			is ReadRequest.File -> ReadSettings.MaxReadLines()
 			is ReadRequest.Summarize -> ReadSettings.SummarizeMaxLines()
 		}.get()
-		if (request.endLine - request.startLine + 1 > maxLines)
-			return Rejected(ReadSettings.MessageTooManyLines(), maxLines)
+		val requestLines = request.endLine - request.startLine + 1
+		if (requestLines > maxLines)
+			return Rejected(ReadSettings.MessageTooManyLines().format(maxLines)) {
+				text(i18n(ReadI18n.TooManyLines(), relativePath, requestLines))
+			}
 		
 		trace.catching {
 			if (!fs.exists(filePath))
-				return Rejected(ReadSettings.MessageFileNotFound(), filePath)
+				return Rejected(ReadSettings.MessageFileNotFound().format(relativePath)) {
+					text(i18n(ReadI18n.FileNotFound(), relativePath))
+				}
 			if (!fs.isRegularFile(filePath))
-				return Rejected(ReadSettings.MessageNotRegularFile(), filePath)
+				return Rejected(ReadSettings.MessageNotRegularFile().format(relativePath)) {
+					text(i18n(ReadI18n.FileNotRegular(), relativePath))
+				}
 		}.rethrowCancellation().recoverException { _: PathOutsideWorkspaceException ->
-			return Rejected(ReadSettings.MessagePathOutsideWorkspace())
+			return Rejected(ReadSettings.MessagePathOutsideWorkspace().get()) {
+				text(i18n(ReadI18n.PathOutsideWorkspace(), filePath))
+			}
 		}
 		
-		return Ready(requestSerializer, request)
+		return Ready(
+			requestSerializer,
+			request,
+			request = { reason ->
+				when (request) {
+					is ReadRequest.File -> text(i18n(ReadI18n.Request(), relativePath, reason))
+					is ReadRequest.Summarize -> text(i18n(ReadI18n.RequestSummary(), relativePath, reason))
+				}
+			},
+			executing = {
+				when (request) {
+					is ReadRequest.File -> text(i18n(ReadI18n.Executing(), relativePath))
+					is ReadRequest.Summarize -> text(i18n(ReadI18n.ExecutingSummary(), relativePath))
+				}
+			},
+			cancelled = {
+				text(i18n(ReadI18n.Cancelled(), relativePath))
+			},
+			rejected = {
+				if (it == null) text(i18n(ReadI18n.Rejected(), relativePath))
+				else text(i18n(ReadI18n.RejectedWithReason(), relativePath, it))
+			},
+			failed = {
+				text(i18n(ReadI18n.Failed(), relativePath, it.message()))
+			},
+			timeout = {
+				text(i18n(ReadI18n.Timeout(), relativePath, it))
+			},
+		)
 	}
 	
-	override suspend fun coreExec(
-		dependency: DependencyProvider, request: JsonElement, outputChannel: Channel<Tool.RuntimeOutput>
+	override suspend fun execute(
+		dependency: DependencyProvider, request: JsonElement, outputChannel: SendChannel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
 		//准备
 		val fs = dependency.get<FileSystemService>()
@@ -165,7 +213,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 							&& it.request.endLine >= request.endLine
 				}
 			
-			if (duplicate) return ReadSettings.DuplicateMessage().get().format(sha256).toolSuccess()
+			if (duplicate) return ReadSettings.DuplicateMessage().format(sha256).toolSuccess {
+				text(i18n(ReadI18n.Executed(), request.relativePath))
+			}
 		}
 		
 		//读内容
@@ -190,29 +240,38 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		
 		when (request) {
 			//read-file直接返回
-			is ReadRequest.File -> return "$sha256\n$fileContent".toolSuccess()
+			is ReadRequest.File -> return "$sha256\n$fileContent".toolSuccess {
+				text(i18n(ReadI18n.Executed(), request.relativePath))
+			}
+			
 			is ReadRequest.Summarize -> {
 				//最小字符数检查
 				val summarizeMinChars = ReadSettings.SummarizeMinChars().get()
 				if (fileContent.length < summarizeMinChars)
-					return ReadSettings.MessageTooFew().get().format(
+					return ReadSettings.MessageTooFew().format(
 						fileContent.length, summarizeMinChars
-					).toolFail()
+					).toolFail {
+						text(i18n(ReadI18n.TooFewChars(), request.relativePath, fileContent.length))
+					}
 				//提示词构造
 				val summarizePrompt = ReadSettings.SummarizePrompt().get()
 				val prompt = request.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
 				//运行总结
 				val summarize = dependency.get<SummarizeService>()
 				val output = trace.catching { summarize(fileContent, prompt) }.getOrElse { e ->
-					return ReadSettings.MessageSummarizeFailed().get().format(e.message()).toolFail()
+					return ReadSettings.MessageSummarizeFailed().format(e.message()).toolFail {
+						text(i18n(ReadI18n.SummaryFailed(), request.relativePath, e.message()))
+					}
 				}
 				//输出截断
 				val summarizeMaxOutputChars = ReadSettings.SummarizeMaxOutputChars().get()
 				val result = if (output.length > summarizeMaxOutputChars)
 					output.take(summarizeMaxOutputChars) +
-							ReadSettings.SummarizeOutputTruncationMessage().get().format(output.length)
+							ReadSettings.SummarizeOutputTruncationMessage().format(output.length)
 				else output
-				return result.toolSuccess()
+				return result.toolSuccess {
+					text(i18n(ReadI18n.ExecutedSummary(), request.relativePath))
+				}
 			}
 		}
 	}
@@ -225,7 +284,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			fs.readAllLines(path)
 		}.getOrThrow()
 		val lineCount = allLines.size
-		if (lineCount < startLine) throw StartLineException(lineCount)
+		if (lineCount < startLine) throw StartLineException(startLine, lineCount)
 		val actualEndLine = minOf(endLine, lineCount)
 		val selectedLines = allLines.subList(startLine - 1, actualEndLine)
 		val sb = StringBuilder()
@@ -245,28 +304,38 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	}
 	
 	private inline fun <T> CatchingResult<T>.onFsException(
-		path: Path, output: (Tool.ToolOutput) -> Unit
+		relativePath: Path, output: (Tool.ToolOutput) -> Unit
 	) = rethrowCancellation()
-		.onException { _: PathOutsideWorkspaceException ->
-			output(ReadSettings.MessagePathOutsideWorkspace().get().toolFail())
+		.onException { e: PathOutsideWorkspaceException ->
+			output(ReadSettings.MessagePathOutsideWorkspace().get().toolFail {
+				text(i18n(ReadI18n.PathOutsideWorkspace(), e.path))
+			})
 		}
 		.onException { e: StartLineException ->
 			output(
 				ReadSettings.MessageStartLineBiggerThanFile().get()
-					.format(e.lineCount).toolFail()
+					.format(e.lineCount).toolFail {
+						text(i18n(ReadI18n.StartLineError(), relativePath, e.request, e.lineCount))
+					}
 			)
 		}.onException { _: FileAccessDeniedException ->
-			output(ReadSettings.MessageFileAccessDenied().get().toolFail())
+			output(ReadSettings.MessageFileAccessDenied().get().toolFail {
+				text(i18n(ReadI18n.AccessDenied(), relativePath))
+			})
 		}.onException { _: FileNotFoundException ->
-			output(ReadSettings.MessageFileNotFound().get().format(path).toolFail())
+			output(ReadSettings.MessageFileNotFound().format(relativePath).toolFail {
+				text(i18n(ReadI18n.FileNotFound(), relativePath))
+			})
 		}.getOrElse { e ->
 			output(
 				ReadSettings.MessageFileCannotRead().get()
-					.format(path, e.message()).toolFail()
+					.format(relativePath, e.message()).toolFail {
+						text(i18n(ReadI18n.Failed(), relativePath, e.message()))
+					}
 			)
 			unreachable()
 		}
 	
-	private class StartLineException(val lineCount: Int) :
+	private class StartLineException(val request: Int, val lineCount: Int) :
 		IllegalStateException("Start line bigger than file size")
 }

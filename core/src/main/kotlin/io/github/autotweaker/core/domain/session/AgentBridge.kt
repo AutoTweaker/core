@@ -28,6 +28,7 @@ import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.tool.ToolApprove
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.agent.*
 import io.github.autotweaker.core.domain.agent.tool.MetaCache
@@ -78,7 +79,7 @@ class AgentBridge(
 	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
 	override val activeTools: StateFlow<Set<String>> get() = _agent.activeTools
-	override val toolCalling: StateFlow<String?> get() = _agent.toolCalling
+	override val toolCalling: StateFlow<Pair<String, ToolPresentation>?> get() = _agent.toolCalling
 	
 	override val model: ModelConfig
 		get() = _agent.model
@@ -220,7 +221,7 @@ class AgentBridge(
 	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
 		is RuntimeOutput.LlmDelta -> AgentOutput.LlmDelta(delta)
 		is RuntimeOutput.LlmError -> AgentOutput.LlmError(
-			error.content, error.statusCode, error.model, error.timestamp
+			error.error, error.statusCode, error.model, error.timestamp
 		)
 		
 		is RuntimeOutput.Compact -> AgentOutput.Compact(output)

@@ -40,16 +40,12 @@ sealed class AgentChatStreamResult {
 	) : AgentChatStreamResult()
 	
 	data class Failing(
-		val errors: List<Error>
-	) : AgentChatStreamResult() {
-		data class Error(
-			val content: String?,
-			val statusCode: Int?,
-			val model: UUID,
-			val timestamp: Instant,
-			val usage: Usage? = null,
-		)
-	}
+		val error: String?,
+		val statusCode: Int?,
+		val model: UUID,
+		val timestamp: Instant,
+		val usage: Usage? = null,
+	) : AgentChatStreamResult()
 	
 	data class Assembled(
 		val message: RuntimeContext.Message.Assistant,

@@ -30,7 +30,6 @@ import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
@@ -38,6 +37,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.*
 
 @Suppress("UNCHECKED_CAST")
@@ -119,7 +119,7 @@ class ToolsTest {
 		assertFalse("bash" in tools.activeTools.value)
 		val result = tools.resolveToolCall(toolCall(name = "bash"), ServiceContainer())
 		
-		assertIs<ToolCallResolveResult.Activation>(result)
+		assertIs<ResolveResult.Activation>(result)
 		assertFalse("bash" in tools.activeTools.value)
 	}
 	
@@ -131,7 +131,7 @@ class ToolsTest {
 		
 		val result = tools.resolveToolCall(toolCall(name = "bash-run"), ServiceContainer())
 		
-		assertIs<ToolCallResolveResult.NeedsApproval>(result)
+		assertIs<ResolveResult.NeedsApproval>(result)
 	}
 	
 	@Test
@@ -141,7 +141,7 @@ class ToolsTest {
 		tools.assembleTools()
 		val result = tools.resolveToolCall(toolCall(name = "unknown-run"), ServiceContainer())
 		
-		assertIs<ToolCallResolveResult.ParseFailure>(result)
+		assertIs<ResolveResult.ParseFailure>(result)
 	}
 	// endregion
 	

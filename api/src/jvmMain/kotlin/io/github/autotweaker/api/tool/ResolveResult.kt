@@ -16,18 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:Suppress("FunctionName")
-
 package io.github.autotweaker.api.tool
 
-import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.get
-import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.api.types.tool.UiBlock
+import io.github.autotweaker.api.types.tool.buildPresentation
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration
 
-fun <T> Ready(serializer: KSerializer<T>, result: T) =
-	Tool.ResolveResult.Ready(Json.encodeToJsonElement(serializer, result))
+fun Rejected(reason: String, presentation: MutableList<UiBlock>.() -> Unit) =
+	Tool.ResolveResult.Rejected(reason, buildPresentation(presentation))
 
-fun Rejected(message: SettingDef<SettingValue.ValString>, vararg args: Any?) =
-	Tool.ResolveResult.Rejected(message.get().format(*args))
+
+inline fun <T> Ready(
+	serializer: KSerializer<T>, result: T,
+	crossinline request: MutableList<UiBlock>.(reason: String) -> Unit,
+	crossinline executing: MutableList<UiBlock>.() -> Unit,
+	crossinline cancelled: MutableList<UiBlock>.() -> Unit,
+	crossinline rejected: MutableList<UiBlock>.(reason: String?) -> Unit,
+	crossinline failed: MutableList<UiBlock>.(e: Throwable) -> Unit,
+	crossinline timeout: MutableList<UiBlock>.(elapsed: Duration) -> Unit,
+) = Tool.ResolveResult.Ready(
+	Json.encodeToJsonElement(serializer, result),
+	{ mutableListOf<UiBlock>().apply { request(it) } },
+	{ mutableListOf<UiBlock>().apply(executing) },
+	{ mutableListOf<UiBlock>().apply(cancelled) },
+	{ mutableListOf<UiBlock>().apply { rejected(it) } },
+	{ mutableListOf<UiBlock>().apply { failed(it) } },
+	{ mutableListOf<UiBlock>().apply { timeout(it) } }
+)

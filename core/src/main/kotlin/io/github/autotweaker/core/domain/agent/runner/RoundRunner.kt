@@ -22,21 +22,22 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall
 import io.github.autotweaker.core.domain.agent.AgentCommand
-import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
-import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.compact.CompactSettings
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
+import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -45,6 +46,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 
 class RoundRunner(
 	private val ctx: AgentContextManager,
@@ -172,49 +174,61 @@ class RoundRunner(
 			val result = trace.catching {
 				deferred.await()
 			}.rethrow<SecretStoreLockedException>()
-				.getOrElse { ThinkingStage.Result.Failed }
+				.onExceptionExcept<CancellationException> { e ->
+					log.error("Failed thinking  agentId={}", agentId, e)
+				}.getOrNull()
 			thinkJob = null
 			
-			if (shouldBreak.value || result is ThinkingStage.Result.Failed) break
+			if (shouldBreak.value || result == null) break
 			
-			if (result is ThinkingStage.Result.Done) {
-				roundCtx.applyDone(result)
-				
-				if (result.activations.isEmpty()
-					&& result.parseFailures.isEmpty()
-					&& result.resolveFailures.isEmpty()
-				) {
-					messages.drain()?.let {
-						ctx.archiveCurrentRound()
-						ctx.beginRound(it)
-						continue
-					}
-					
-					if (result.assistantMessage.content.isNullOrBlank()
-						&& EmptyResponseFeedback().get()
-						&& emptyResponseRetries <= EmptyResponseFeedbackRetries().get()
-					) {
-						messages.send(
-							ContextInjection(
-								"system_reminder",
-								EmptyResponseFeedbackPrompt().get()
-							)
-						)
-						ctx.archiveCurrentRound()
-						ctx.beginRound(messages.receive())
-						emptyResponseRetries++
-						continue
-					}
-					
-					break
-				}
-				activeAll(result.activations)
+			roundCtx.applyThinking(result)
+			result.activations?.let { activeAll(it) }
+			
+			suspend fun cancelPending() = ctx.cancelPending { callId ->
+				// pending 必然校验成功，而校验成功必然有 resolveResult
+				requireNotNull(result.needsApproval?.find {
+					it.first.callId == callId
+				}).second.cancelled()
 			}
 			
-			if (result is ThinkingStage.Result.HasPending) {
-				roundCtx.applyHasPending(result)
-				activeAll(result.activations)
+			if (shouldBreak.value) {
+				cancelPending()
+				break
+			}
+			
+			if (allNull(
+					result.activations,
+					result.parseFailures,
+					result.resolveFailures,
+					result.needsApproval
+				)
+			) { // 无 tool call
+				messages.drain()?.let { // 尝试消费消息，若有直接继续，防止闪FREE
+					ctx.archiveCurrentRound()
+					ctx.beginRound(it)
+					continue
+				}
 				
+				if (result.assistantMessage.content.isNullOrBlank()
+					&& EmptyResponseFeedback().get()
+					&& ++emptyResponseRetries <= EmptyResponseFeedbackRetries().get()
+				) {
+					messages.send(
+						ContextInjection(
+							"system_reminder",
+							EmptyResponseFeedbackPrompt().get()
+						)
+					)
+					ctx.archiveCurrentRound()
+					ctx.beginRound(messages.receive())
+					continue
+				}
+				
+				break // round 结束
+			}
+			
+			
+			if (result.needsApproval != null) { // 开始审批
 				val reasons = approval.process(
 					result.needsApproval,
 					currentModel,
@@ -225,14 +239,21 @@ class RoundRunner(
 			
 			ctx.finalizeToolTurn()
 			
-			if (shouldBreak.value) break
+			if (shouldBreak.value) {
+				cancelPending()
+				break
+			}
 			
 			autoDeactivate()
 			autoCompact()
 			
-			if (shouldBreak.value) break
+			if (shouldBreak.value) {
+				cancelPending()
+				break
+			}
 			
 			messages.drain()?.let {
+				cancelPending()
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it)
 			}
@@ -241,7 +262,7 @@ class RoundRunner(
 	}
 	
 	private suspend fun autoDeactivate() {
-		val threshold = AgentToolSettings.DeactivationThreshold().get()
+		val threshold = ToolSettings.DeactivationThreshold().get()
 		if (threshold <= 0) return
 		val history = ctx.get().let { context ->
 			context.historyRounds.orEmpty() + context.compactedRounds?.completedRounds().orEmpty()
@@ -296,8 +317,8 @@ class RoundRunner(
 			}
 	}
 	
-	private fun activeAll(activations: List<ToolActivation>) =
-		activations.forEach { tools.activate(it.toolCall.name, true) }
+	private fun activeAll(activations: PairList<ToolCall, ResolveResult.Activation>) =
+		activations.forEach { tools.activate(it.first.name, true) }
 	
 	private suspend fun launchCompact() = compactLock.withLock {
 		if (compactJob?.isActive == true) return@withLock

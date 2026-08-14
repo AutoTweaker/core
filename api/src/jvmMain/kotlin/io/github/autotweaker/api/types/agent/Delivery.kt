@@ -33,7 +33,7 @@ interface Delivery {
 	 * 等待消息被消费，并得到消息的 id。
 	 *
 	 * @return 如果消息为空而被丢弃，返回 null。
-	 * @throws kotlinx.coroutines.CancellationException 消息被取消
+	 * @throws kotlin.coroutines.cancellation.CancellationException 消息被取消
 	 */
 	suspend fun await(): UUID?
 	

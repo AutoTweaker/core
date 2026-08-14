@@ -18,20 +18,30 @@
 
 package io.github.autotweaker.api.tool
 
+import io.github.autotweaker.api.types.tool.UiBlock
+import io.github.autotweaker.api.types.tool.buildPresentation
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
-fun String.toolFail() = toolResult(false)
+fun String.toolFail(presentation: MutableList<UiBlock>.() -> Unit) = toolResult(false, presentation)
 
-fun String.toolSuccess() = toolResult(true)
+fun String.toolSuccess(presentation: MutableList<UiBlock>.() -> Unit) = toolResult(true, presentation)
 
-fun String.toolResult(success: Boolean) = Tool.ToolOutput(this, null, success)
+fun String.toolResult(success: Boolean, presentation: MutableList<UiBlock>.() -> Unit) =
+	Tool.ToolOutput(this, buildPresentation(presentation), null, success)
 
-fun <T> String.toolFail(data: T?, serializer: KSerializer<T>) =
-	toolResult(data, serializer, false)
+fun <T> String.toolFail(serializer: KSerializer<T>, data: T, presentation: MutableList<UiBlock>.() -> Unit) =
+	toolResult(serializer, data, false, presentation)
 
-fun <T> String.toolSuccess(data: T?, serializer: KSerializer<T>) =
-	toolResult(data, serializer, true)
+fun <T> String.toolSuccess(serializer: KSerializer<T>, data: T, presentation: MutableList<UiBlock>.() -> Unit) =
+	toolResult(serializer, data, true, presentation)
 
-fun <T> String.toolResult(data: T?, serializer: KSerializer<T>, success: Boolean) =
-	Tool.ToolOutput(this, data?.let { Json.encodeToJsonElement(serializer, it) }, success)
+fun <T> String.toolResult(
+	serializer: KSerializer<T>,
+	data: T,
+	success: Boolean,
+	presentation: MutableList<UiBlock>.() -> Unit
+) = Tool.ToolOutput(
+	this, buildPresentation(presentation),
+	Json.encodeToJsonElement(serializer, data), success
+)

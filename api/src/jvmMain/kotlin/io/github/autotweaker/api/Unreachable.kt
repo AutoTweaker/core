@@ -20,4 +20,4 @@ package io.github.autotweaker.api
 
 import io.github.autotweaker.api.types.exception.UnreachableException
 
-fun unreachable(): Nothing = throw UnreachableException()
+fun unreachable(message: String? = null): Nothing = throw UnreachableException(message)

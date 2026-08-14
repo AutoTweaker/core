@@ -112,7 +112,8 @@ class AgentContextBuilder(
 			reason = call.reason,
 			validatedToolName = call.validatedToolName,
 			validatedArgs = call.validatedArgs,
-			resolvedRequest = call.resolvedRequest
+			resolvedRequest = call.resolvedRequest,
+			presentation = call.presentation
 		).add()
 	
 	private fun RuntimeContext.Message.Tool.result(): UUID =
@@ -122,6 +123,7 @@ class AgentContextBuilder(
 			callId = callId,
 			content = result.content,
 			data = result.data,
+			presentation = result.presentation,
 			status = result.status,
 		).add()
 	
@@ -135,7 +137,8 @@ class AgentContextBuilder(
 			reason = reason,
 			validatedToolName = validatedToolName,
 			validatedArgs = validatedArgs,
-			resolvedRequest = resolvedRequest
+			resolvedRequest = resolvedRequest,
+			presentation = presentation
 		).add()
 	
 	private fun AgentMessage.add(): UUID = id.also {

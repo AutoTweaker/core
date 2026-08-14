@@ -37,6 +37,11 @@ class PathResolverImpl(
 		return base.resolve(path).normalize()
 	}
 	
+	override fun toRelativePath(workspace: Path, path: Path): Path {
+		val base = if (inContainer(workspace)) toContainerPath(workspace) else workspace
+		return base.relativize(toAbsolutePath(workspace, path))
+	}
+	
 	override fun toContainerPath(path: Path): Path {
 		val normalized = path.normalize()
 		if (normalized.startsWith(hostWorkspace))

@@ -30,18 +30,18 @@ import kotlin.time.Duration
 class ContainerShellExecutor : Loggable {
 	fun exec(command: String, workDir: Path, env: Map<String, String>, timeout: Duration): Flow<ShellEvent> = flow {
 		log.debug(
-			"Started container shell command  command={}  workDir={}  timeout={}s",
+			"Started container shell command  command={}  workDir={}  timeout={}",
 			command,
 			workDir,
-			timeout.inWholeSeconds
+			timeout
 		)
 		ContainerManager.execShellStream(command, workDir, timeout, env).collect { event ->
 			if (event is ShellEvent.Exit) {
 				log.debug(
-					"Completed container shell command  command={}  exitCode={}  duration={}s",
+					"Completed container shell command  command={}  exitCode={}  duration={}",
 					command,
 					event.result.exitCode,
-					event.result.duration.inWholeSeconds
+					event.result.duration
 				)
 			}
 			emit(event)

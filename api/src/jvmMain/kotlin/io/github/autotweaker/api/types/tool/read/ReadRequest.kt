@@ -26,6 +26,9 @@ import java.nio.file.Path
 sealed interface ReadRequest {
 	@Serializable(with = PathSerializer::class)
 	val path: Path
+	
+	@Serializable(with = PathSerializer::class)
+	val relativePath: Path
 	val startLine: Int
 	val endLine: Int
 	val lineNumber: Boolean
@@ -35,6 +38,8 @@ sealed interface ReadRequest {
 	data class File(
 		@Serializable(with = PathSerializer::class)
 		override val path: Path,
+		@Serializable(with = PathSerializer::class)
+		override val relativePath: Path,
 		override val startLine: Int,
 		override val endLine: Int,
 		override val lineNumber: Boolean,
@@ -45,6 +50,8 @@ sealed interface ReadRequest {
 	data class Summarize(
 		@Serializable(with = PathSerializer::class)
 		override val path: Path,
+		@Serializable(with = PathSerializer::class)
+		override val relativePath: Path,
 		override val startLine: Int,
 		override val endLine: Int,
 		val prompt: String?

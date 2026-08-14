@@ -29,7 +29,7 @@ import kotlin.time.Instant
 
 sealed class RuntimeOutput {
 	data class LlmDelta(val delta: StreamDelta) : RuntimeOutput()
-	data class LlmError(val error: AgentChatStreamResult.Failing.Error) : RuntimeOutput()
+	data class LlmError(val error: AgentChatStreamResult.Failing) : RuntimeOutput()
 	
 	data class Compact(
 		val output: CompactOutput

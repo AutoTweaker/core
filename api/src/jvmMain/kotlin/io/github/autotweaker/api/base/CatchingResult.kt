@@ -20,7 +20,7 @@
 
 package io.github.autotweaker.api.base
 
-import kotlinx.coroutines.CancellationException
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * [Result] 的包装，泛型 [T] 在类级别，提供成员函数来弥补 [Result] 错误处理方面的缺陷，并转发 [Result] 的标准 API。
@@ -37,8 +37,7 @@ value class CatchingResult<out T> @PublishedApi internal constructor(@PublishedA
 	/**
 	 * 重新抛出类型为 [CancellationException] 的异常
 	 */
-	fun rethrowCancellation() =
-		rethrow<CancellationException>()
+	fun rethrowCancellation() = rethrow<CancellationException>()
 	
 	/**
 	 * 如果异常为 [E]，执行 [on] 并抛出异常。请使用 [rethrowCancellation] 替代 `rethrow<CancellationException>()`

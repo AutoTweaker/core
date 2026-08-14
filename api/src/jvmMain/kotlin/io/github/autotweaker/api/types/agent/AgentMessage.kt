@@ -21,6 +21,7 @@ package io.github.autotweaker.api.types.agent
 import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -146,7 +147,13 @@ sealed class AgentMessage {
 			 *
 			 * @see io.github.autotweaker.api.tool.Tool.ResolveResult
 			 */
-			val resolvedRequest: JsonElement?
+			val resolvedRequest: JsonElement?,
+			/**
+			 * 用于展示给用户并请求审批的消息，当工具无需被审批或解析失败时此字段为 null。
+			 *
+			 * @see io.github.autotweaker.api.types.tool.UiBlock
+			 */
+			val presentation: ToolPresentation?,
 		) : Tool()
 		
 		/**
@@ -163,7 +170,14 @@ sealed class AgentMessage {
 			 * 响应内容，不一定是结构化数据。
 			 */
 			val content: String,
+			/**
+			 * 结构化的响应数据，如 [io.github.autotweaker.api.types.tool.bash.BashOutput]。
+			 */
 			val data: JsonElement?,
+			/**
+			 * 用于展示给用户的工具执行记录。
+			 */
+			val presentation: ToolPresentation,
 			/**
 			 * 工具调用的结果（状态），前端可以据此调整显示。
 			 *

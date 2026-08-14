@@ -22,21 +22,24 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.tool.ToolPresentation
+import io.github.autotweaker.api.types.tool.UiBlock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-class ToolCallParser : Loggable, Traceable {
-	sealed class ValidationResult<out Args : ToolArgs> {
-		data class Success<Args : ToolArgs>(
+class ToolCallParser : Loggable, Traceable, I18nable {
+	sealed class ValidationResult {
+		data class Success(
 			val toolName: String,
 			val reason: String,
-			val args: Args,
-		) : ValidationResult<Args>()
+			val args: ToolArgs,
+		) : ValidationResult()
 		
 		data class Failure(
 			val errorMessage: String,
-		) : ValidationResult<ToolArgs>()
+			val presentation: ToolPresentation,
+		) : ValidationResult()
 	}
 	
 	fun validate(
@@ -44,29 +47,34 @@ class ToolCallParser : Loggable, Traceable {
 		argumentsJson: String,
 		callId: String,
 		metaCache: MetaCache,
-	): ValidationResult<*> {
+	): ValidationResult {
 		val (toolName, functionName) = resolveCallName(toolCallName)
 			?.takeIf { result ->
 				metaCache[result.first]?.first?.functions?.any { function ->
 					function.name == result.second
 				} == true
-			}
-			?: return ValidationResult.Failure(
-				AgentToolSettings.FunctionNameError().get().format(toolCallName)
-			).andLog(log) {
-				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
-			}
+			} ?: return ValidationResult.Failure(
+			ToolSettings.FunctionNameError().format(toolCallName),
+			listOf(UiBlock.Text(i18n(ToolI18n.NotFoundError(), toolCallName)))
+		).andLog(log) {
+			debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
+		}
 		
 		val arguments = trace.catching {
-			Json.parseToJsonElement(argumentsJson) as? JsonObject
+			Json.parseToJsonElement(argumentsJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				AgentToolSettings.JsonError().get().format(e.message ?: "Unknown error")
+				ToolSettings.JsonError().format(e.message ?: e.message()),
+				listOf(UiBlock.Text(i18n(ToolI18n.JsonParseError(), toolName)))
 			).andLog(log) {
 				debug("Failed tool call JSON parsing  callId={}  name={}", callId, toolCallName)
 			}
-		} ?: return ValidationResult.Failure(
-			AgentToolSettings.JsonError().get().format("Invalid JSON object")
+		}
+		
+		if (arguments !is JsonObject) return ValidationResult.Failure(
+			ToolSettings.JsonError()
+				.format("Expected JSON object, got ${arguments::class.simpleName ?: "Unknown"}"),
+			listOf(UiBlock.Text(i18n(ToolI18n.JsonParseError(), toolName)))
 		).andLog(log) {
 			debug("Failed tool call JSON validation  callId={}  name={}", callId, toolCallName)
 		}
@@ -74,7 +82,8 @@ class ToolCallParser : Loggable, Traceable {
 		val reasonElement = arguments["reason"]
 		if (reasonElement == null || reasonElement !is JsonPrimitive) {
 			return ValidationResult.Failure(
-				AgentToolSettings.PropertyMissing().get().format(toolCallName, "reason")
+				ToolSettings.PropertyMissing().format(toolCallName, "reason"),
+				listOf(UiBlock.Text(i18n(ToolI18n.ArgumentsError(), toolName)))
 			).andLog(log) {
 				debug(
 					"Failed tool call validation reason  callId={}  name={}  tool={}", callId, toolCallName, toolName
@@ -83,8 +92,11 @@ class ToolCallParser : Loggable, Traceable {
 		}
 		val reason = reasonElement.content
 		
-		if (reason.isBlank() || reason.length < AgentToolSettings.ReasonLength().get())
-			return ValidationResult.Failure(AgentToolSettings.ReasonEmptyError().get())
+		if (reason.isBlank() || reason.length < ToolSettings.ReasonLength().get())
+			return ValidationResult.Failure(
+				ToolSettings.ReasonEmptyError().get(),
+				listOf(UiBlock.Text(i18n(ToolI18n.ArgumentsError(), toolName)))
+			)
 		
 		val argsSerializer = checkNotNull(metaCache[toolName]).second
 		val deserializationJson = JsonObject(
@@ -95,7 +107,8 @@ class ToolCallParser : Loggable, Traceable {
 			Json.decodeFromJsonElement(argsSerializer, deserializationJson)
 		}.getOrElse { e ->
 			return ValidationResult.Failure(
-				AgentToolSettings.DeserializationError().get().format(toolCallName, e.message)
+				ToolSettings.DeserializationError().format(toolCallName, e.message ?: e.message()),
+				listOf(UiBlock.Text(i18n(ToolI18n.ArgumentsError(), toolName)))
 			).andLog(log) {
 				debug(
 					"Failed tool call arg deserialization  callId={}  name={}  tool={}  error={}",

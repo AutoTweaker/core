@@ -18,18 +18,22 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
 import io.github.autotweaker.core.domain.agent.compact.CompactService
+import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.*
+import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
+import io.github.autotweaker.core.domain.agent.tool.ToolMap
+import io.github.autotweaker.core.domain.agent.tool.Tools
+import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.session.AgentHost
 import kotlinx.coroutines.flow.*
 import java.nio.file.Path
@@ -48,7 +52,7 @@ class Agent(
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
 	
-	private val _toolCalling = MutableStateFlow<String?>(null)
+	private val _toolCalling = MutableStateFlow<Pair<String, ToolPresentation>?>(null)
 	val toolCalling = _toolCalling.asStateFlow()
 	
 	private val _output = MutableSharedFlow<RuntimeOutput>()
@@ -58,7 +62,6 @@ class Agent(
 	
 	private val ctx = AgentContextManager(
 		context.copy(currentRound = null),
-		AgentToolSettings.Cancelled().get()
 	)
 	val context: StateFlow<RuntimeContext> = ctx.context
 	
@@ -77,7 +80,7 @@ class Agent(
 			workspace = workspace,
 			truncation = truncation,
 			onOutput = onOutput,
-			onToolCall = { _toolCalling.update { it } })
+			onToolCall = { _toolCalling.value = it })
 	}
 	private val compact = CompactService(agentId, onOutput)
 	

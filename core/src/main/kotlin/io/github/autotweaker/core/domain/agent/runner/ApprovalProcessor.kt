@@ -21,12 +21,13 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.tool.ToolApprove
-import io.github.autotweaker.core.domain.agent.AgentContextManager
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.think.ThinkingStage
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -45,20 +46,22 @@ class ApprovalProcessor(
 	val approvalChannel = Channel<ToolApprove>(Channel.UNLIMITED)
 	
 	suspend fun process(
-		needsApproval: List<ThinkingStage.ResolvedToolCall>,
+		needsApproval: PairList<RuntimeContext.CurrentRound.PendingToolCall, Tool.ResolveResult.Ready>,
 		model: AgentModel,
 		statusFlow: MutableStateFlow<AgentStatus>,
 	): List<String> {
 		val reasons = mutableListOf<String>()
 		val stashed = mutableMapOf<String, ToolApprove>()
 		
-		for (call in needsApproval) {
+		for ((call, resolved) in needsApproval) {
 			if (shouldBreak.value) break
 			
 			statusFlow.value = AgentStatus.WAITING
-			var approval = stashed.remove(call.pendingCall.callId)
+			var approval = stashed.remove(call.callId)
 			while (approval == null) {
-				val deferred = scope.async { approvalChannel.receive() }
+				val deferred = scope.async {
+					approvalChannel.receive()
+				}
 				val watcher = scope.launch {
 					shouldBreak.first { it }
 					deferred.cancel()
@@ -69,7 +72,7 @@ class ApprovalProcessor(
 					watcher.cancel()
 				}.getOrElse { return reasons }
 				
-				if (next.callId == call.pendingCall.callId)
+				if (next.callId == call.callId)
 					approval = next
 				else stashed[next.callId] = next
 			}
@@ -80,12 +83,17 @@ class ApprovalProcessor(
 				approval.reason?.let { reasons.add(it) }
 				statusFlow.value = AgentStatus.TOOL_CALLING
 				val deferred = scope.async {
-					tool.execute(call, model, ctx.get())
+					tool.execute(call, resolved, model, ctx.get())
 				}
 				val toolResult = deferred.await()
-				ctx.recordToolResult(ToolResultFactory.buildToolMessage(call.pendingCall, toolResult))
-			} else
-				ctx.recordToolResult(ToolResultFactory.buildRejected(call.pendingCall, approval.reason))
+				ctx.recordToolMessage(ToolMessageFactory.buildToolMessage(call, toolResult))
+			} else ctx.recordToolMessage(
+				ToolMessageFactory.buildRejected(
+					call,
+					approval.reason,
+					resolved.rejected(approval.reason)
+				)
+			)
 		}
 		return reasons
 	}

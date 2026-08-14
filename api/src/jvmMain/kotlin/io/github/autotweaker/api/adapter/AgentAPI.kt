@@ -21,6 +21,7 @@ package io.github.autotweaker.api.adapter
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.tool.ToolApprove
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
@@ -81,11 +82,13 @@ interface AgentAPI {
 	val context: StateFlow<AgentContext>
 	
 	/**
-	 * agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.agent.AgentMessage.Tool.Call.callId]。
+	 * first 为 agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.agent.AgentMessage.Tool.Call.callId]。
+	 *
+	 * second 为用于调用过程中展示的 i18n 信息。
 	 *
 	 * 当没有正在进行的工具调用时，此属性为 null。
 	 */
-	val toolCalling: StateFlow<String?>
+	val toolCalling: StateFlow<Pair<String, ToolPresentation>?>
 	
 	/**
 	 * 实时的已激活工具名称列表，未激活的工具可能被 agent 激活，已激活的工具也可能被 AutoTweaker 取消激活。

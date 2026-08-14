@@ -18,22 +18,20 @@
 
 package io.github.autotweaker.core.domain.agent.think
 
-import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeContext.CurrentRound.PendingToolCall
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.ToolActivation
-import io.github.autotweaker.core.domain.agent.tool.ToolCallParser
-import io.github.autotweaker.core.domain.agent.tool.ToolCallResolveResult
+import io.github.autotweaker.core.domain.agent.runner.ToolMessageFactory.buildPending
+import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.tool.port.TruncationService
-import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
-import java.util.*
+import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall as RawCall
 
 class ThinkingStage(
 	private val llmService: LlmService,
@@ -46,24 +44,18 @@ class ThinkingStage(
 		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
 		context: RuntimeContext,
-	): Result = when (val callResult = llmService.execute(model, assembledTools, context)) {
-		is LlmService.CallResult.Failed -> Result.Failed
+	): Result? = when (val callResult = llmService.execute(model, assembledTools, context)) {
+		is LlmService.CallResult.Failed -> null
 		is LlmService.CallResult.Success -> {
 			val rawCalls = callResult.toolCalls
-			if (rawCalls.isNullOrEmpty()) return Result.Done(
+			if (rawCalls.isNullOrEmpty()) return Result(
 				assistantMessage = callResult.assistantMessage,
-				activations = emptyList(),
-				parseFailures = emptyList(),
-				resolveFailures = emptyList()
+				activations = null,
+				parseFailures = null,
+				resolveFailures = null,
+				needsApproval = null
 			)
 			
-			
-			val activations = mutableListOf<ToolActivation>()
-			val parseFailures = mutableListOf<ParseFailure>()
-			val resolveFailures = mutableListOf<ResolveFailure>()
-			val needsApproval = mutableListOf<ResolvedToolCall>()
-			
-			val timestamp = callResult.assistantMessage.timestamp
 			val provider = ToolProvider.buildToolProvider(
 				workspace = workspace,
 				onOutput = onOutput,
@@ -71,94 +63,39 @@ class ThinkingStage(
 				context = context,
 				truncation = truncation,
 			)
-			rawCalls.forEach { rawCall ->
-				when (val result = tools.resolveToolCall(rawCall, provider)) {
-					is ToolCallResolveResult.Activation ->
-						activations.add(ToolActivation(rawCall, result.message))
-					
-					is ToolCallResolveResult.ParseFailure ->
-						parseFailures.add(ParseFailure(rawCall, result.errorMessage))
-					
-					is ToolCallResolveResult.ResolveFailure -> resolveFailures.add(
-						ResolveFailure(
-							rawCall,
-							result.result.reason,
-							result.result.toolName,
-							Tools.serializeValidatedArgs(result.result.toolName, result.result.args),
-							result.errorMessage
-						)
-					)
-					
-					is ToolCallResolveResult.NeedsApproval -> {
-						val validatedArgs =
-							Tools.serializeValidatedArgs(result.result.toolName, result.result.args)
-						val pendingCall = PendingToolCall(
-							id = UUID.randomUUID(),
-							timestamp = timestamp,
-							callId = rawCall.id,
-							callName = rawCall.name,
-							arguments = rawCall.arguments,
-							reason = result.result.reason,
-							validatedToolName = result.result.toolName,
-							validatedArgs = validatedArgs,
-							resolvedRequest = result.request
-						)
-						needsApproval.add(ResolvedToolCall(pendingCall, result.result))
-					}
+			val calls = buildList {
+				rawCalls.forEach { rawCall ->
+					val result = tools.resolveToolCall(rawCall, provider)
+					add(rawCall to result)
 				}
 			}
 			
-			if (needsApproval.isNotEmpty()) Result.HasPending(
+			Result(
 				assistantMessage = callResult.assistantMessage,
-				activations = activations,
-				parseFailures = parseFailures,
-				resolveFailures = resolveFailures,
-				needsApproval = needsApproval,
-			)
-			else Result.Done(
-				assistantMessage = callResult.assistantMessage,
-				activations = activations,
-				parseFailures = parseFailures,
-				resolveFailures = resolveFailures
+				activations = calls.ofType(),
+				parseFailures = calls.ofType(),
+				resolveFailures = calls.ofType(),
+				needsApproval = calls.mapNotNull { (call, resolved) ->
+					if (resolved !is ResolveResult.NeedsApproval) return@mapNotNull null
+					buildPending(
+						callResult.assistantMessage.timestamp,
+						call, resolved
+					) to resolved.resolveResult
+				}.orNull()
 			)
 		}
 	}
 	
+	private inline fun <reified T : ResolveResult> PairList<RawCall, ResolveResult>.ofType(): PairList<RawCall, T>? =
+		mapNotNull { (call, resolved) ->
+			(resolved as? T)?.let { call to it }
+		}.orNull()
 	
-	sealed class Result {
-		data class Done(
-			val assistantMessage: RuntimeContext.Message.Assistant,
-			val activations: List<ToolActivation>,
-			val parseFailures: List<ParseFailure>,
-			val resolveFailures: List<ResolveFailure>,
-		) : Result()
-		
-		data class HasPending(
-			val assistantMessage: RuntimeContext.Message.Assistant,
-			val activations: List<ToolActivation>,
-			val parseFailures: List<ParseFailure>,
-			val resolveFailures: List<ResolveFailure>,
-			val needsApproval: List<ResolvedToolCall>,
-		) : Result()
-		
-		data object Failed : Result()
-	}
-	
-	class ParseFailure(
-		val toolCall: ChatMessage.AssistantMessage.ToolCall,
-		val errorMessage: String,
-	)
-	
-	class ResolveFailure(
-		val toolCall: ChatMessage.AssistantMessage.ToolCall,
-		val reason: String,
-		val validatedToolName: String,
-		val validatedArgs: JsonElement,
-		val errorMessage: String,
-	)
-	
-	class ResolvedToolCall(
-		val pendingCall: PendingToolCall,
-		val validated: ToolCallParser.ValidationResult.Success<out ToolArgs>,
+	data class Result(
+		val assistantMessage: RuntimeContext.Message.Assistant,
+		val activations: PairList<RawCall, ResolveResult.Activation>?,
+		val parseFailures: PairList<RawCall, ResolveResult.ParseFailure>?,
+		val resolveFailures: PairList<RawCall, ResolveResult.ResolveFailure>?,
+		val needsApproval: PairList<RuntimeContext.CurrentRound.PendingToolCall, Tool.ResolveResult.Ready>?,
 	)
 }

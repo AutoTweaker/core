@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.adapter
 
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import java.nio.file.Path
 
 /**
@@ -46,8 +46,17 @@ interface PathResolver {
 	fun toAbsolutePath(workspace: Path, path: Path): Path
 	
 	/**
+	 * 基于绝对路径解析相对路径，不会进行转换，与 [toAbsolutePath] 互逆且行为相似。
+	 *
+	 * @param path 容器内或宿主绝对路径，相对路径同时允许，会基于工作区路径解析。
+	 * @param workspace 工作区的路径，工作区路径始终为宿主路径，如果需要解析容器内路径，AutoTweaker 会自动映射挂载关系。
+	 */
+	fun toRelativePath(workspace: Path, path: Path): Path
+	
+	/**
 	 * 将宿主路径转换为容器内路径，适用于保存文件后提供给 LLM 路径，或在容器内执行命令的场景。
 	 *
+	 * @param path 应为宿主绝对路径，可由 [toAbsolutePath] 解析。
 	 * @throws PathOutsideWorkspaceException 提供的路径未被挂载到容器内。
 	 */
 	fun toContainerPath(path: Path): Path
@@ -55,6 +64,7 @@ interface PathResolver {
 	/**
 	 * 将容器内路径转换为宿主路径，适用于根据 LLM 的请求读写宿主文件系统。
 	 *
+	 * @param path 应为容器内绝对路径，可由 [toAbsolutePath] 解析。
 	 * @throws PathOutsideWorkspaceException 提供的路径超出了宿主挂载范围。
 	 */
 	fun toHostPath(path: Path): Path

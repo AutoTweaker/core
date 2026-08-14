@@ -19,10 +19,12 @@
 package io.github.autotweaker.api.tool
 
 import io.github.autotweaker.api.types.tool.ToolMeta
-import kotlinx.coroutines.channels.Channel
+import io.github.autotweaker.api.types.tool.ToolPresentation
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
+import kotlin.time.Duration
 
 /**
  * 实现此接口并打上 `@AutoService(Tool::class)` 来注册成为 agent 的一个工具。
@@ -63,8 +65,7 @@ interface Tool<Args : ToolArgs> {
 	 * @param outputChannel 工具的实时输出，如命令的实时响应，这些信息不会传递给 LLM，只给用户看。
 	 * @return 不同于 [outputChannel]，这些内容直接返回给 LLM。
 	 */
-	suspend fun execute(request: JsonElement, cwd: Path, outputChannel: Channel<RuntimeOutput>):
-			ToolOutput
+	suspend fun execute(request: JsonElement, cwd: Path, outputChannel: SendChannel<RuntimeOutput>): ToolOutput
 	
 	/**
 	 * 预处理的结果，决定直接生成工具响应还是等待用户审批调用。
@@ -74,15 +75,35 @@ interface Tool<Args : ToolArgs> {
 		 * 参数解析成功，接下来会由程序或用户进行审批，审批通过后会使用 [result] 作为 [execute] 的 `request`。
 		 *
 		 * @param result 建议反序列化自数据类，数据格式可以自由决定。
+		 * @param request 用于请求用户审批的 i18n 消息，格式应如 '请求读取 README.md（$reason）'，中文文案应以 '请求' 开头。
+		 * @param executing 用于工具执行过程中为用户显示的状态信息，应类似 '正在读取 README.md'，中文文案应以 '正在' 开头。
+		 * @param cancelled 如果工具被取消，为用户显示的消息，例如 '读取 README.md 被取消'。
+		 * @param rejected 如果工具被拒绝，为用户显示的消息，例如 '读取 README.md 被拒绝'，或 '读取 README.md 被拒绝：$reason'。
+		 * @param failed 如果工具执行中抛出异常，为用户显示的消息，例如 '读取 README.md 失败：${e.message()}'。
+		 * @param timeout 如果工具执行超时，为用户显示的消息，例如 '读取 README.md 超时：$elapsed'
 		 */
-		data class Ready(val result: JsonElement) : ResolveResult
+		data class Ready(
+			val result: JsonElement,
+			
+			val request: (reason: String) -> ToolPresentation,
+			val executing: () -> ToolPresentation,
+			val cancelled: () -> ToolPresentation,
+			val rejected: (reason: String?) -> ToolPresentation,
+			val failed: (e: Throwable) -> ToolPresentation,
+			val timeout: (elapsed: Duration) -> ToolPresentation,
+		) : ResolveResult
 		
 		/**
 		 * 参数存在问题，驳回工具调用并使用 [reason] 作为工具消息。
 		 *
 		 * 工具不应该自行实现鉴权，可以在参数错误、目标不可访问等场景驳回调用。
+		 *
+		 * @param presentation 为用户显示的工具执行消息，例如 '读取文件失败，找不到 README.md'。
 		 */
-		data class Rejected(val reason: String) : ResolveResult
+		data class Rejected(
+			val reason: String,
+			val presentation: ToolPresentation,
+		) : ResolveResult
 	}
 	
 	/**
@@ -119,17 +140,23 @@ interface Tool<Args : ToolArgs> {
 	}
 	
 	/**
-	 * 工具响应，[result] 给 LLM 看，[success] 给用户看，[data] 给程序读。
+	 * 工具响应，[result] 给 LLM 看，[success] / [presentation] 给用户看，[data] 给程序读。
 	 */
 	data class ToolOutput(
 		/**
 		 * 返回给 LLM 的内容，超出阈值部分会被截断，完整内容存入文件。
 		 *
-		 * 阈值由用户配置，默认 50 万字符，“字符”的语义是 [String.length]。
+		 * 阈值由用户配置，默认 50 万字符，“字符”的语义是 [Char]。
 		 */
 		val result: String,
 		/**
+		 * 用于前端显示会话中的已执行工具，格式应如 '读取了 README.md'。
+		 */
+		val presentation: ToolPresentation,
+		/**
 		 * 结构化的数据，便于程序解析。
+		 *
+		 * @see io.github.autotweaker.api.types.tool.bash.BashOutput
 		 */
 		val data: JsonElement?,
 		/**

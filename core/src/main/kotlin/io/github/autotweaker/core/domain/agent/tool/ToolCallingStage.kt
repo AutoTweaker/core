@@ -21,16 +21,23 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.base.recoverException
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeout
 import java.nio.file.Path
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
@@ -41,7 +48,7 @@ class ToolCallingStage(
 	private val workspace: () -> Path,
 	private val truncation: TruncationService,
 	private val onOutput: (RuntimeOutput) -> Unit,
-	private val onToolCall: (String?) -> Unit
+	private val onToolCall: (Pair<String, List<UiBlock>>?) -> Unit
 ) : Loggable, Traceable {
 	@Volatile
 	private var toolJob: Job? = null
@@ -52,19 +59,18 @@ class ToolCallingStage(
 	}
 	
 	suspend fun execute(
-		call: ThinkingStage.ResolvedToolCall,
+		call: RuntimeContext.CurrentRound.PendingToolCall,
+		resolved: Tool.ResolveResult.Ready,
 		model: AgentModel,
 		context: RuntimeContext,
-	): RuntimeContext.Message.Tool.Result {
-		val timeoutSeconds = AgentToolSettings.TimeoutSeconds().get()
-		val timeoutMessage = AgentToolSettings.TimeoutMessage().get()
-		val cancelledMessage = AgentToolSettings.Cancelled().get()
+	): Result {
+		val timeoutSeconds = ToolSettings.TimeoutSeconds().get()
 		
 		val startTime = TimeSource.Monotonic.markNow()
 		return trace.catching {
 			coroutineScope {
 				toolJob = coroutineContext[Job]
-				onToolCall(call.pendingCall.callId)
+				onToolCall(call.callId to resolved.executing())
 				withTimeout(timeoutSeconds.seconds) {
 					val provider = ToolProvider.buildToolProvider(
 						workspace = workspace,
@@ -75,16 +81,16 @@ class ToolCallingStage(
 					)
 					
 					tools.executeTool(
-						toolName = call.validated.toolName,
-						callId = call.pendingCall.callId,
-						request = call.pendingCall.resolvedRequest,
+						toolName = call.validatedToolName,
+						callId = call.callId,
+						request = resolved.result,
 						provider = provider,
 						onToolOutput = onOutput,
 						truncation = truncation,
 					).andLog(log) {
 						info(
 							"Called tool  agentId={}  tool={}  status={}",
-							agentId, call.validated.toolName, it.status
+							agentId, call.validatedToolName, it.status
 						)
 					}
 				}
@@ -92,51 +98,53 @@ class ToolCallingStage(
 		}.also {
 			toolJob = null
 			onToolCall(null)
-		}.rethrow<SecretStoreLockedException>()
-			.getOrElse { e ->
-				when (e) {
-					is TimeoutCancellationException -> {
-						val elapsed = startTime.elapsedNow().inWholeSeconds
-						log.warn(
-							"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}s",
-							agentId, call.pendingCall.validatedToolName, elapsed
-						)
-						buildToolResult(timeoutMessage.format(elapsed), ToolResultStatus.TIMEOUT)
-					}
-					
-					is CancellationException -> {
-						log.debug(
-							"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
-							agentId,
-							call.pendingCall.validatedToolName
-						)
-						buildToolResult(cancelledMessage, ToolResultStatus.CANCELLED)
-					}
-					
-					else -> {
-						log.error(
-							"Failed tool execution  agentId={}  tool={}",
-							agentId,
-							call.pendingCall.validatedToolName,
-							e
-						)
-						buildToolResult(
-							AgentToolSettings.ToolExecutionError().get().format(e.message()),
-							ToolResultStatus.FAILURE
-						)
-					}
-				}
-			}
+		}.recoverException { _: TimeoutCancellationException ->
+			val elapsed = startTime.elapsedNow()
+			log.warn(
+				"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}",
+				agentId, call.validatedToolName, elapsed
+			)
+			buildToolResult(
+				ToolSettings.TimeoutMessage().format(elapsed),
+				resolved.timeout(elapsed),
+				ToolResultStatus.TIMEOUT
+			)
+		}.recoverException { _: CancellationException ->
+			log.debug(
+				"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
+				agentId,
+				call.validatedToolName
+			)
+			buildToolResult(
+				ToolSettings.CancelledExecuting().get(),
+				resolved.cancelled(),
+				ToolResultStatus.CANCELLED
+			)
+		}.getOrElse { e ->
+			log.error(
+				"Failed tool execution  agentId={}  tool={}",
+				agentId,
+				call.validatedToolName,
+				e
+			)
+			buildToolResult(
+				ToolSettings.ToolExecutionError().format(e.message()),
+				resolved.failed(e),
+				ToolResultStatus.FAILURE
+			)
+		}
 	}
 	
 	private fun buildToolResult(
 		content: String,
+		presentation: ToolPresentation,
 		status: ToolResultStatus,
-	): RuntimeContext.Message.Tool.Result = RuntimeContext.Message.Tool.Result(
+	): Result = Result(
 		id = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
 		content = content,
 		data = null,
+		presentation = presentation,
 		status = status
 	)
 }

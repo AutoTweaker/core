@@ -40,7 +40,7 @@ class LocalShellExecutor : Loggable, Traceable {
 		command: String, workDir: Path, env: Map<String, String>, timeout: Duration
 	): Flow<ShellEvent> = channelFlow {
 		log.debug(
-			"Started shell command  command={}  workDir={}  timeout={}s", command, workDir, timeout.inWholeSeconds
+			"Started shell command  command={}  workDir={}  timeout={}", command, workDir, timeout
 		)
 		val process = withContext(Dispatchers.IO) {
 			ProcessBuilder("bash", "-lc", command)
@@ -78,7 +78,7 @@ class LocalShellExecutor : Loggable, Traceable {
 					process.destroyForcibly()
 					//确保彻底停
 					withContext(Dispatchers.IO) { process.waitFor(2, TimeUnit.SECONDS) }
-					log.warn("Timed out shell command  command={}  timeout={}s", command, timeout.inWholeSeconds)
+					log.warn("Timed out shell command  command={}  timeout={}", command, timeout)
 				}
 				
 				stdoutJob.join()
@@ -88,10 +88,10 @@ class LocalShellExecutor : Loggable, Traceable {
 			}
 			val (finished, exitCode) = execDuration.value
 			log.debug(
-				"Completed shell command  command={}  exitCode={}  duration={}s",
+				"Completed shell command  command={}  exitCode={}  duration={}",
 				command,
 				exitCode,
-				execDuration.duration.inWholeSeconds
+				execDuration.duration
 			)
 			send(
 				ShellEvent.Exit(

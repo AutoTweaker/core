@@ -22,10 +22,10 @@ import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.core.TestServices
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import java.util.*
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.*
 
 class MessageQueueTest {

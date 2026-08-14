@@ -18,11 +18,14 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.format
 import io.github.autotweaker.api.get
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
-import io.github.autotweaker.core.domain.agent.ToolActivation
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.AgentToolSettings
+import io.github.autotweaker.core.domain.agent.tool.ResolveResult
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import kotlinx.serialization.json.JsonElement
 import java.util.*
 import kotlin.time.Clock
@@ -33,30 +36,60 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as To
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Call as ToolCall
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result as ToolResult
 
-object ToolResultFactory {
+object ToolMessageFactory {
+	fun buildPending(
+		timestamp: Instant,
+		call: RawToolCall,
+		resolved: ResolveResult.NeedsApproval
+	) = RuntimeContext.CurrentRound.PendingToolCall(
+		id = UUID.randomUUID(),
+		timestamp = timestamp,
+		callId = call.id,
+		callName = call.name,
+		arguments = call.arguments,
+		reason = resolved.reason,
+		validatedToolName = resolved.toolName,
+		validatedArgs = resolved.validatedArgs,
+		resolvedRequest = resolved.resolveResult.result,
+		presentation = resolved.resolveResult.request(resolved.reason),
+	)
 	
 	//错误/激活
 	
 	fun buildImmediateResults(
-		timestamp: Instant,
-		activations: List<ToolActivation>,
-		parseFailures: List<ThinkingStage.ParseFailure>,
-		resolveFailures: List<ThinkingStage.ResolveFailure>
+		result: ThinkingStage.Result
 	): List<ToolMessage> = buildList {
-		parseFailures.forEach { add(buildError(timestamp, it.toolCall, it.errorMessage)) }
-		resolveFailures.forEach {
+		result.parseFailures?.forEach {
 			add(
-				buildError(
-					timestamp = timestamp,
-					call = it.toolCall,
-					reason = it.reason,
-					validatedToolName = it.validatedToolName,
-					validatedArgs = it.validatedArgs,
-					message = it.errorMessage
+				buildParseError(
+					timestamp = result.assistantMessage.timestamp,
+					call = it.first,
+					message = it.second.errorMessage,
+					presentation = it.second.presentation
 				)
 			)
 		}
-		activations.forEach { add(buildActivation(timestamp, it)) }
+		result.resolveFailures?.forEach {
+			add(
+				buildResolveError(
+					timestamp = result.assistantMessage.timestamp,
+					call = it.first,
+					reason = it.second.reason,
+					validatedToolName = it.second.toolName,
+					validatedArgs = it.second.validatedArgs,
+					message = it.second.errorMessage,
+					presentation = it.second.presentation
+				)
+			)
+		}
+		result.activations?.forEach {
+			add(
+				buildActivation(
+					timestamp = result.assistantMessage.timestamp,
+					activation = it
+				)
+			)
+		}
 	}
 	
 	//拒绝/错误/激活
@@ -64,45 +97,67 @@ object ToolResultFactory {
 	fun buildRejected(
 		call: PendingCall,
 		reason: String?,
+		presentation: ToolPresentation
 	) = buildToolMessage(
 		call, ToolResult(
 			id = UUID.randomUUID(),
-			content = if (reason != null) AgentToolSettings.RejectedWithFeedback().get().format(reason)
-			else AgentToolSettings.Rejected().get(),
+			content = if (reason != null) ToolSettings.RejectedWithFeedback().format(reason)
+			else ToolSettings.Rejected().get(),
 			data = null,
+			presentation = presentation,
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.REJECTED,
 		)
 	)
 	
-	fun buildError(
+	fun buildCancelled(
+		call: PendingCall,
+		message: String,
+		presentation: ToolPresentation
+	) = buildToolMessage(
+		call = call,
+		ToolResult(
+			id = UUID.randomUUID(),
+			content = message,
+			data = null,
+			presentation = presentation,
+			timestamp = Clock.System.now(),
+			status = ToolResultStatus.CANCELLED
+		)
+	)
+	
+	fun buildParseError(
 		timestamp: Instant,
 		call: RawToolCall,
 		message: String,
+		presentation: ToolPresentation
 	) = buildToolMessage(
 		timestamp, call,
 		ToolResult(
 			id = UUID.randomUUID(),
 			content = message,
 			data = null,
+			presentation = presentation,
 			timestamp = timestamp,
 			status = ToolResultStatus.FAILURE,
 		)
 	)
 	
-	fun buildError(
+	fun buildResolveError(
 		timestamp: Instant,
 		call: RawToolCall,
 		reason: String,
 		validatedToolName: String,
 		validatedArgs: JsonElement,
 		message: String,
+		presentation: ToolPresentation
 	) = buildToolMessage(
 		timestamp, call, reason, validatedToolName, validatedArgs,
 		ToolResult(
 			id = UUID.randomUUID(),
 			content = message,
 			data = null,
+			presentation = presentation,
 			timestamp = timestamp,
 			status = ToolResultStatus.FAILURE,
 		)
@@ -110,20 +165,22 @@ object ToolResultFactory {
 	
 	fun buildActivation(
 		timestamp: Instant,
-		activation: ToolActivation,
+		activation: Pair<RawToolCall, ResolveResult.Activation>,
 	) = buildToolMessage(
-		timestamp, activation.toolCall,
+		timestamp, activation.first,
 		ToolResult(
 			id = UUID.randomUUID(),
-			content = activation.message,
+			content = activation.second.message,
 			data = null,
+			presentation = activation.second.presentation,
 			timestamp = timestamp,
 			status = ToolResultStatus.SUCCESS,
-		)
+		),
 	)
 	
 	//buildToolMessage
 	
+	// 完整的
 	fun buildToolMessage(
 		call: PendingCall,
 		result: ToolResult,
@@ -133,6 +190,7 @@ object ToolResultFactory {
 		result = result,
 	)
 	
+	// 没有解析出 ToolArgs 的
 	fun buildToolMessage(
 		timestamp: Instant,
 		call: RawToolCall,
@@ -143,6 +201,7 @@ object ToolResultFactory {
 		result = result,
 	)
 	
+	// resolve 失败的
 	fun buildToolMessage(
 		timestamp: Instant,
 		call: RawToolCall,
@@ -152,7 +211,9 @@ object ToolResultFactory {
 		result: ToolResult,
 	) = ToolMessage(
 		callId = call.id,
-		call = buildToolCall(timestamp, call, reason, validatedToolName, validatedArgs),
+		call = buildToolCall(
+			timestamp, call, reason, validatedToolName, validatedArgs
+		),
 		result = result,
 	)
 	
@@ -160,7 +221,7 @@ object ToolResultFactory {
 	
 	fun buildToolCall(
 		call: PendingCall,
-	) = ToolCall(
+	) = ToolCall( // 完全解析成功的
 		id = UUID.randomUUID(),
 		timestamp = call.timestamp,
 		callName = call.callName,
@@ -168,13 +229,14 @@ object ToolResultFactory {
 		reason = call.reason,
 		validatedToolName = call.validatedToolName,
 		validatedArgs = call.validatedArgs,
-		resolvedRequest = call.resolvedRequest
+		resolvedRequest = call.resolvedRequest,
+		presentation = call.presentation
 	)
 	
 	fun buildToolCall(
 		timestamp: Instant,
 		call: RawToolCall,
-	) = ToolCall(
+	) = ToolCall( // 没有解析出 ToolArgs 的
 		id = UUID.randomUUID(),
 		timestamp = timestamp,
 		callName = call.name,
@@ -182,7 +244,8 @@ object ToolResultFactory {
 		reason = null,
 		validatedToolName = null,
 		validatedArgs = null,
-		resolvedRequest = null
+		resolvedRequest = null,
+		presentation = null // call的presentation是审批用的，解析失败自然没法审批
 	)
 	
 	fun buildToolCall(
@@ -191,7 +254,7 @@ object ToolResultFactory {
 		reason: String,
 		validatedToolName: String,
 		validatedArgs: JsonElement,
-	) = ToolCall(
+	) = ToolCall( // resolve 失败的
 		id = UUID.randomUUID(),
 		timestamp = timestamp,
 		callName = call.name,
@@ -199,6 +262,7 @@ object ToolResultFactory {
 		reason = reason,
 		validatedToolName = validatedToolName,
 		validatedArgs = validatedArgs,
-		resolvedRequest = null
+		resolvedRequest = null,
+		presentation = null // call的presentation是审批用的，解析失败自然没法审批
 	)
 }

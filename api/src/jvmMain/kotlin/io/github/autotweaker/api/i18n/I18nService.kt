@@ -29,6 +29,8 @@ import java.util.*
 interface I18nService {
 	/**
 	 * 用法：`override val description get() = i18n(Description())`。
+	 *
+	 * @param args 通过 [format] 填充字符串模板。
 	 */
 	operator fun invoke(def: I18nDef, vararg args: Any?): String
 	

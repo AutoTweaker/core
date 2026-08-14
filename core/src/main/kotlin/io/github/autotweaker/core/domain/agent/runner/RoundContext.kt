@@ -18,31 +18,17 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
-import io.github.autotweaker.core.domain.agent.AgentContextManager
-import io.github.autotweaker.core.domain.agent.runner.ToolResultFactory.buildImmediateResults
+import io.github.autotweaker.core.domain.agent.runner.ToolMessageFactory.buildImmediateResults
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 
 class RoundContext(
 	private val ctx: AgentContextManager,
 ) {
-	suspend fun applyDone(result: ThinkingStage.Result.Done) =
-		ctx.applyThinking(
-			assistant = result.assistantMessage,
-			pendingCalls = emptyList(),
-			immediateResults = buildImmediateResults(
-				result.assistantMessage.timestamp,
-				result.activations, result.parseFailures, result.resolveFailures
-			),
-		)
-	
-	
-	suspend fun applyHasPending(result: ThinkingStage.Result.HasPending) =
-		ctx.applyThinking(
-			assistant = result.assistantMessage,
-			pendingCalls = result.needsApproval.map { it.pendingCall },
-			immediateResults = buildImmediateResults(
-				result.assistantMessage.timestamp,
-				result.activations, result.parseFailures, result.resolveFailures
-			),
-		)
+	suspend fun applyThinking(
+		result: ThinkingStage.Result,
+	) = ctx.applyThinking(
+		assistant = result.assistantMessage,
+		pendingCalls = result.needsApproval?.map { it.first },
+		immediateResults = buildImmediateResults(result),
+	)
 }

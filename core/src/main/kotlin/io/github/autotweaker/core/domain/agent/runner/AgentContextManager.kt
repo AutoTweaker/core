@@ -16,21 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.agent
+package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.get
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.ToolPresentation
+import io.github.autotweaker.api.types.tool.UiBlock
+import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.runner.ToolMessageFactory.buildCancelled
+import io.github.autotweaker.core.domain.agent.tool.ToolI18n
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.util.*
-import kotlin.time.Clock
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as ToolMessage
 
-class AgentContextManager(initial: RuntimeContext, private val cancelledMessage: String) {
+class AgentContextManager(initial: RuntimeContext) : I18nable {
 	private val _context = MutableStateFlow(initial)
 	val context: StateFlow<RuntimeContext> = _context.asStateFlow()
 	
@@ -54,7 +60,7 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 	
 	suspend fun applyThinking(
 		assistant: RuntimeContext.Message.Assistant,
-		pendingCalls: List<RuntimeContext.CurrentRound.PendingToolCall>,
+		pendingCalls: List<RuntimeContext.CurrentRound.PendingToolCall>?,
 		immediateResults: List<ToolMessage>,
 	) = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
@@ -69,10 +75,25 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 		}
 	}
 	
-	suspend fun recordToolResult(tool: ToolMessage) = lock.withLock {
+	suspend fun cancelPending(presentation: (callId: String) -> ToolPresentation) = lock.withLock {
+		val current = _context.value.currentRound ?: return@withLock
+		current.pendingToolCalls ?: return@withLock
+		val processedIds = pendingToolResults.map { it.callId }.toSet()
+		val remaining = current.pendingToolCalls.filter { it.callId !in processedIds }
+		remaining.forEach {
+			recordToolMessage(
+				buildCancelled(
+					it,
+					ToolSettings.CancelledPending().get(),
+					presentation(it.callId),
+				)
+			)
+		}
+	}
+	
+	suspend fun recordToolMessage(tool: ToolMessage) = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
-		check(current.assistantMessage != null)
-		check(current.pendingToolCalls != null)
+		checkNotNull(current.pendingToolCalls)
 		check(current.pendingToolCalls.any { it.callId == tool.callId })
 		pendingToolResults.add(tool)
 	}
@@ -81,13 +102,15 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 		val current = requireNotNull(_context.value.currentRound)
 		val assistant = requireNotNull(current.assistantMessage)
 		val turn = RuntimeContext.Turn(assistantMessage = assistant, tools = pendingToolResults.toList())
+		val processedIds = pendingToolResults.map { it.callId }.toSet()
+		val remaining = current.pendingToolCalls.orEmpty().filter { it.callId !in processedIds }
 		pendingToolResults.clear()
 		_context.update {
 			it.copy(
 				currentRound = current.copy(
 					turns = current.turns.orEmpty() + turn,
 					assistantMessage = null,
-					pendingToolCalls = null,
+					pendingToolCalls = remaining.orNull(),
 				)
 			)
 		}
@@ -95,7 +118,6 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 	
 	suspend fun archiveCurrentRound() = lock.withLock {
 		val round = _context.value.currentRound ?: return@withLock
-		
 		
 		//丢弃空round
 		if (round.assistantMessage == null
@@ -112,24 +134,16 @@ class AgentContextManager(initial: RuntimeContext, private val cancelledMessage:
 			val processedIds = pendingToolResults.map { it.callId }.toSet()
 			round.pendingToolCalls.filter { it.callId !in processedIds }.forEach { call ->
 				pendingToolResults.add(
-					ToolMessage(
-						callId = call.callId,
-						call = ToolMessage.Call(
-							id = UUID.randomUUID(),
-							timestamp = call.timestamp,
-							callName = call.callName,
-							arguments = call.arguments,
-							reason = call.reason,
-							validatedToolName = call.validatedToolName,
-							validatedArgs = call.validatedArgs,
-							resolvedRequest = call.resolvedRequest
-						),
-						result = ToolMessage.Result(
-							id = UUID.randomUUID(),
-							timestamp = Clock.System.now(),
-							content = cancelledMessage,
-							data = null,
-							status = ToolResultStatus.CANCELLED,
+					buildCancelled(
+						call = call,
+						message = ToolSettings.CancelledPending().get(),
+						presentation = listOf(
+							UiBlock.Text(
+								i18n(
+									ToolI18n.Cancelled(),
+									call.validatedToolName
+								)
+							)
 						),
 					)
 				)

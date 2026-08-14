@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.I18nable
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -61,17 +58,15 @@ object AgentChat : Loggable, I18nable {
 			thinking = request.model.thinking,
 		)
 		
-		val errors = mutableListOf<AgentChatStreamResult.Failing.Error>()
-		
-		results.collect { resilientResult ->
-			when (val result = resilientResult.result) {
+		results.collect {
+			when (val result = it.result) {
 				is ChatResult.Chunk -> {
 					val msg = result.message
-					if (msg != null) emit(
+					emit(
 						AgentChatStreamResult.Delta(
 							StreamDelta(
-								content = msg.content,
-								reasoningContent = msg.reasoningContent,
+								content = msg?.content,
+								reasoningContent = msg?.reasoningContent,
 								toolCallFragments = result.toolCalls,
 							)
 						)
@@ -82,24 +77,24 @@ object AgentChat : Loggable, I18nable {
 					when (val msg = result.message) {
 						is ChatMessage.ErrorMessage -> {
 							log.debug(
-								"Received agent chat error  agentId={}  model={}  statusCode={}  errorCount={}",
+								"Received agent chat error  agentId={}  model={}  statusCode={}",
 								agentId,
-								resilientResult.model,
+								it.model,
 								msg.statusCode,
-								errors.size + 1
 							)
-							errors += AgentChatStreamResult.Failing.Error(
-								content = msg.content,
-								statusCode = msg.statusCode,
-								model = resilientResult.model,
-								timestamp = msg.createdAt,
-								usage = result.usage,
+							emit(
+								AgentChatStreamResult.Failing(
+									error = msg.content,
+									statusCode = msg.statusCode,
+									model = it.model,
+									timestamp = msg.createdAt,
+									usage = result.usage,
+								)
 							)
-							emit(AgentChatStreamResult.Failing(errors = errors.toList()))
 						}
 						
 						is ChatMessage.AssistantMessage -> {
-							val resultModel = modelById[resilientResult.model] ?: request.model.model
+							val resultModel = modelById[it.model] ?: request.model.model
 							val snapshot = result.usage?.let { usage ->
 								UsageSnapshot(usage, resultModel.modelInfo)
 							}
@@ -108,7 +103,7 @@ object AgentChat : Loggable, I18nable {
 								timestamp = msg.createdAt,
 								reasoning = msg.reasoningContent,
 								content = msg.content,
-								modelId = resilientResult.model,
+								modelId = it.model,
 								usageSnapshot = snapshot,
 							)
 							emit(
@@ -120,7 +115,7 @@ object AgentChat : Loggable, I18nable {
 							)
 						}
 						
-						else -> return@collect
+						else -> unreachable()
 					}
 				}
 			}

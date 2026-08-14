@@ -67,6 +67,12 @@ fun <V : SettingValue<T>, T> SettingDef<V>.get(): T =
 	ServiceRegistry.servicesOrError().setting.get(this)
 
 /**
+ * 获取一个字符串 [SettingDef] 的当前值，并通过 [java.lang.String.format] 填充字符串占位符。
+ */
+fun SettingDef<SettingValue.ValString>.format(vararg args: Any?): String =
+	ServiceRegistry.servicesOrError().setting.get(this).format(*args)
+
+/**
  * 对一个 [SettingDef] 调用 [set] 可以更新配置值。
  *
  * 用法：`SystemPrompt().set("你是一袋猫粮")`。

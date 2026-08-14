@@ -48,7 +48,7 @@ object BashMessage {
 	@AutoService(SettingDef::class)
 	class ToolResult : StringSetting(
 		"""
-			命令已执行，退出码：%s，执行时间：%s秒
+			命令已执行，退出码：%s，执行时间：%s
 			
 			标准输出：
 			<stdout>

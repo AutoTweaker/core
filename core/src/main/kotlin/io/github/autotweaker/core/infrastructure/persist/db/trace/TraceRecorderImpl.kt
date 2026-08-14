@@ -22,13 +22,13 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.UpperSnakeCase
-import io.ktor.utils.io.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.minutes
 

@@ -23,7 +23,7 @@ import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.get
+import io.github.autotweaker.api.format
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import java.nio.file.Path
@@ -37,7 +37,7 @@ class TruncationImpl(
 		val inContainer = pathResolver.inContainer(workspace())
 		val (_, hostPath) = temporaryStorage.save(content, inContainer)
 		val filePath = if (inContainer) pathResolver.toContainerPath(hostPath) else hostPath
-		val prompt = TruncatedPrompt().get().format(content.length, filePath)
+		val prompt = TruncatedPrompt().format(content.length, filePath)
 		return if (keepTail) prompt + content.takeLast(threshold) else content.take(threshold) + prompt
 	}
 	

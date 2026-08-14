@@ -18,4 +18,4 @@
 
 package io.github.autotweaker.api.types.exception
 
-class UnreachableException : IllegalStateException("unreachable")
+class UnreachableException(message: String? = null) : IllegalStateException(message ?: "Unreachable")

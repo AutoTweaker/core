@@ -35,6 +35,9 @@ class FileSystemServiceImpl(
 			Path.of(filePath)
 		)
 	
+	override fun relativize(path: Path): Path =
+		pathResolver.toRelativePath(workspace(), path)
+	
 	override suspend fun exists(path: Path): Boolean =
 		fs.exists(resolve(path))
 	

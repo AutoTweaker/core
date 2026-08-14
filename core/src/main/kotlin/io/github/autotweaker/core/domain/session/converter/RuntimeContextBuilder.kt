@@ -124,6 +124,7 @@ class RuntimeContextBuilder(
 			validatedToolName = it?.validatedToolName.orEmpty(),
 			validatedArgs = it?.validatedArgs ?: JsonNull,
 			resolvedRequest = it?.resolvedRequest ?: JsonNull,
+			presentation = it?.presentation.orEmpty()
 		)
 	}
 	
@@ -136,7 +137,8 @@ class RuntimeContextBuilder(
 			timestamp = it?.timestamp.orNow(),
 			validatedToolName = it?.validatedToolName.orEmpty(),
 			validatedArgs = it?.validatedArgs,
-			resolvedRequest = it?.resolvedRequest
+			resolvedRequest = it?.resolvedRequest,
+			presentation = it?.presentation
 		)
 	}
 	
@@ -145,6 +147,7 @@ class RuntimeContextBuilder(
 			id = id,
 			content = it?.content.orEmpty(),
 			data = it?.data,
+			presentation = it?.presentation.orEmpty(),
 			timestamp = it?.timestamp.orNow(),
 			status = it?.status ?: ToolResultStatus.FAILURE
 		)

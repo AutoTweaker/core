@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.serialization.json.JsonElement
 import java.util.*
@@ -70,12 +71,14 @@ data class RuntimeContext(
 				val validatedToolName: String?,
 				val validatedArgs: JsonElement?,
 				val resolvedRequest: JsonElement?,
+				val presentation: ToolPresentation?,
 			)
 			
 			data class Result(
 				val id: UUID,
 				val content: String,
 				val data: JsonElement?,
+				val presentation: ToolPresentation,
 				val timestamp: Instant,
 				val status: ToolResultStatus,
 			)
@@ -117,6 +120,7 @@ data class RuntimeContext(
 			val validatedToolName: String,
 			val validatedArgs: JsonElement,
 			val resolvedRequest: JsonElement,
+			val presentation: ToolPresentation,
 		)
 	}
 	

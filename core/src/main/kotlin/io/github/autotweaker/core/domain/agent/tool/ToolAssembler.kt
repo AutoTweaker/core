@@ -35,8 +35,8 @@ object ToolAssembler : Loggable {
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription = AgentToolSettings.ReasonEmptyError().get()
-		val enableDesc = AgentToolSettings.EnableDescription().get()
+		val reasonDescription = ToolSettings.ReasonEmptyError().get()
+		val enableDesc = ToolSettings.EnableDescription().get()
 		
 		return tools.flatMap {
 			val meta = it.value.first

@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
@@ -184,7 +185,7 @@ class AgentContextManagerTest {
 		manager.applyThinking(assistant(), listOf(pendingCall()), emptyList())
 		val result = toolResult()
 		
-		manager.recordToolResult(result)
+		manager.recordToolMessage(result)
 		manager.finalizeToolTurn()
 		
 		val round = manager.context.value.currentRound
@@ -201,7 +202,7 @@ class AgentContextManagerTest {
 		manager.beginRound(user())
 		manager.applyThinking(assistant(), listOf(pendingCall("c1")), emptyList())
 		
-		assertFailsWith<IllegalStateException> { manager.recordToolResult(toolResult("c9")) }
+		assertFailsWith<IllegalStateException> { manager.recordToolMessage(toolResult("c9")) }
 	}
 	
 	@Test
@@ -209,7 +210,7 @@ class AgentContextManagerTest {
 		val manager = ctx()
 		manager.beginRound(user())
 		
-		assertFailsWith<IllegalStateException> { manager.recordToolResult(toolResult()) }
+		assertFailsWith<IllegalStateException> { manager.recordToolMessage(toolResult()) }
 	}
 	
 	// endregion
@@ -221,10 +222,10 @@ class AgentContextManagerTest {
 		val manager = ctx()
 		manager.beginRound(user())
 		manager.applyThinking(assistant("first"), listOf(pendingCall("c1")), emptyList())
-		manager.recordToolResult(toolResult("c1", "one"))
+		manager.recordToolMessage(toolResult("c1", "one"))
 		manager.finalizeToolTurn()
 		manager.applyThinking(assistant("second"), listOf(pendingCall("c2")), emptyList())
-		manager.recordToolResult(toolResult("c2", "two"))
+		manager.recordToolMessage(toolResult("c2", "two"))
 		manager.finalizeToolTurn()
 		
 		val round = manager.context.value.currentRound
@@ -291,7 +292,7 @@ class AgentContextManagerTest {
 		val manager = ctx()
 		manager.beginRound(user())
 		manager.applyThinking(assistant(), listOf(pendingCall("c1"), pendingCall("c2")), emptyList())
-		manager.recordToolResult(toolResult("c1", "done"))
+		manager.recordToolMessage(toolResult("c1", "done"))
 		
 		manager.archiveCurrentRound()
 		
@@ -325,7 +326,7 @@ class AgentContextManagerTest {
 		
 		manager.beginRound(userMsg)
 		manager.applyThinking(asst, listOf(pendingCall("c1")), emptyList())
-		manager.recordToolResult(toolResult("c1", "result"))
+		manager.recordToolMessage(toolResult("c1", "result"))
 		manager.finalizeToolTurn()
 		manager.archiveCurrentRound()
 		

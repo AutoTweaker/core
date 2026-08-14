@@ -22,6 +22,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentModel
@@ -49,20 +50,21 @@ class LlmService(
 		
 		return trace.catching {
 			runStream(request)
-		}.rethrowCancellation {
-			log.debug("Cancelled LLM call  agentId={}", agentId)
-		}.getOrElse { e ->
-			log.error("Failed LLM call  agentId={}", agentId, e)
-			onOutput(
-				RuntimeOutput.Error(
-					AgentError(
-						e.message(),
-						AgentError.Type.LLM,
+		}.rethrow<SecretStoreLockedException>()
+			.rethrowCancellation {
+				log.debug("Cancelled LLM call  agentId={}", agentId)
+			}.getOrElse { e ->
+				log.error("Failed LLM call  agentId={}", agentId, e)
+				onOutput(
+					RuntimeOutput.Error(
+						AgentError(
+							e.message(),
+							AgentError.Type.LLM,
+						)
 					)
 				)
-			)
-			CallResult.Failed
-		}
+				CallResult.Failed
+			}
 	}
 	
 	private suspend fun runStream(request: AgentChatRequest): CallResult {
@@ -75,9 +77,7 @@ class LlmService(
 				}
 				
 				is AgentChatStreamResult.Failing -> {
-					val lastError = result.errors.lastOrNull()
-						?: error("Failing event with empty error list")
-					onOutput(RuntimeOutput.LlmError(lastError))
+					onOutput(RuntimeOutput.LlmError(result))
 				}
 				
 				is AgentChatStreamResult.Assembled -> {
@@ -86,8 +86,7 @@ class LlmService(
 			}
 		}
 		
-		val final = assembled
-			?: error("Stream ended without assembled result")
+		val final = assembled ?: error("Stream ended without assembled result")
 		
 		log.info(
 			"Completed LLM call  agentId={}  model={}  charCount={}",

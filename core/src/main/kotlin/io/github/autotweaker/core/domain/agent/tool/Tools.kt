@@ -24,14 +24,11 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
-import io.github.autotweaker.api.tool.toolFail
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.notfound.ToolNotFoundException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.tool.ToolMeta
-import io.github.autotweaker.api.types.tool.ToolOutput
-import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.*
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -58,7 +55,7 @@ class Tools(
 	private val tools: ToolMap,
 	activeTools: Set<String>,
 	private val agentId: UUID,
-) : Loggable, Traceable {
+) : Loggable, Traceable, I18nable {
 	private val _activeTools = MutableStateFlow(activeTools)
 	val activeTools: StateFlow<Set<String>> = _activeTools.asStateFlow()
 	
@@ -66,7 +63,7 @@ class Tools(
 	
 	fun activate(toolName: String, active: Boolean) {
 		_activeTools.update { all ->
-			if (active) all + toolName else all.filterNot { it == toolName }.toSet()
+			if (active) all + toolName else all - toolName
 		}
 		log.debug("Changed tool activation  tool={}  activeTools={}  agentId={}", toolName, _activeTools.value, agentId)
 	}
@@ -75,48 +72,67 @@ class Tools(
 	suspend fun resolveToolCall(
 		call: ChatMessage.AssistantMessage.ToolCall,
 		provider: DependencyProvider,
-	): ToolCallResolveResult {
+	): ResolveResult {
 		val meta = metaCache[call.name]?.first
-		if (meta != null && !active(call.name)) {
-			val message = AgentToolSettings.ActiveMessage().get().format(
+		if (meta != null && !active(meta.name)) {
+			val message = ToolSettings.ActiveMessage().format(
 				meta.functions.joinToString(", ") { "${meta.name}-${it.name}" },
 				meta.name
 			)
+			val presentation = listOf(UiBlock.Text(i18n(ToolI18n.Activation(), meta.name)))
 			
-			return ToolCallResolveResult.Activation(message).andLog(log) {
-				debug(
-					"Resolved tool activation  agentId={}  callId={}  tool={}", agentId, call.id, call.name
-				)
-			}
+			return ResolveResult.Activation(message, presentation)
+				.andLog(log) {
+					debug(
+						"Resolved tool activation  agentId={}  callId={}  tool={}", agentId, call.id, call.name
+					)
+				}
 		}
 		val result = validator.validate(
-			call.name, call.arguments, call.id, metaCache
+			call.name, call.arguments,
+			call.id, metaCache.filterKeys { active(it) }
 		)
 		return when (result) {
+			is ToolCallParser.ValidationResult.Failure -> ResolveResult.ParseFailure(
+				errorMessage = result.errorMessage,
+				presentation = result.presentation
+			)
+			
 			is ToolCallParser.ValidationResult.Success -> {
 				val resolveResult = trace.catching {
-					val tool = requireNotNull(tools[result.toolName]) {
-						"Tool '${result.toolName}' not found"
-					}
+					val tool = tools[result.toolName] ?: unreachable("Tool '${result.toolName}' not found")
 					when (tool) {
-						is CoreTool<ToolArgs> -> tool.coreResolve(provider, result.args)
+						is CoreTool<ToolArgs> -> tool.resolve(provider, result.args)
 						is Tool<ToolArgs> -> tool.resolve(result.args, workspace())
 					}
 				}.rethrow<SecretStoreLockedException>().rethrowCancellation()
 					.getOrElse { e ->
 						log.error("Failed tool call resolve  agentId={}  tool={}", agentId, result.toolName, e)
-						Rejected(AgentToolSettings.ToolResolveError(), e.message())
+						Rejected(
+							ToolSettings.ToolResolveError().format(e.message())
+						) {
+							text(i18n(ToolI18n.ResolveError(), result.toolName, e.message()))
+						}
 					}
 				when (resolveResult) {
 					is Tool.ResolveResult.Ready ->
-						ToolCallResolveResult.NeedsApproval(result, resolveResult.result)
+						ResolveResult.NeedsApproval(
+							toolName = result.toolName,
+							reason = result.reason,
+							validatedArgs = serializeValidatedArgs(result.toolName, result.args),
+							resolveResult = resolveResult
+						)
 					
 					is Tool.ResolveResult.Rejected ->
-						ToolCallResolveResult.ResolveFailure(result, resolveResult.reason)
+						ResolveResult.ResolveFailure(
+							toolName = result.toolName,
+							reason = result.reason,
+							validatedArgs = serializeValidatedArgs(result.toolName, result.args),
+							errorMessage = resolveResult.reason,
+							presentation = resolveResult.presentation
+						)
 				}
 			}
-			
-			is ToolCallParser.ValidationResult.Failure -> ToolCallResolveResult.ParseFailure(result.errorMessage)
 		}
 	}
 	
@@ -148,21 +164,18 @@ class Tools(
 			}
 			trace.catching {
 				when (tool) {
-					is CoreTool<ToolArgs> -> tool.coreExec(provider, request, outputChannel)
+					is CoreTool<ToolArgs> -> tool.execute(provider, request, outputChannel)
 					is Tool<ToolArgs> -> tool.execute(request, workspace(), outputChannel)
 				}
-			}.also { outputChannel.close() }.rethrow<SecretStoreLockedException>().rethrowCancellation()
-				.getOrElse { e ->
-					log.error("Failed tool execution  agentId={}  tool={}", agentId, toolName, e)
-					AgentToolSettings.ToolExecutionError().get().format(e.message()).toolFail()
-				}
+			}.also { outputChannel.close() }.getOrThrow()
 		}
 		
 		return RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			timestamp = Clock.System.now(),
-			content = truncation(output.result, AgentToolSettings.MaxOutput().get()),
+			content = truncation(output.result, ToolSettings.MaxOutput().get()),
 			data = output.data,
+			presentation = output.presentation,
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,
 		).andLog(log) {
 			debug(
