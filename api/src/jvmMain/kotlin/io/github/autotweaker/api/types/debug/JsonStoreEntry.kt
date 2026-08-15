@@ -21,4 +21,4 @@ package io.github.autotweaker.api.types.debug
 data class JsonStoreEntry(
 	override val key: String,
 	val content: String
-) : DbEntry()
+) : DbEntry<String>()

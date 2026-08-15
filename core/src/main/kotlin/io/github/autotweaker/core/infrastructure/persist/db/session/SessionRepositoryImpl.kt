@@ -50,10 +50,10 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		db.transaction {
 			sessionData.forEach { data ->
 				SessionDataTable.upsert {
-					it[id] = data.id.toString()
+					it[id] = data.id
 					it[title] = data.title
 					it[overview] = data.overview
-					it[workspaceId] = data.workspaceId.toString()
+					it[workspaceId] = data.workspaceId
 					SessionDataTable.fillAgentIndex(it, data.agentIndex)
 				}
 			}
@@ -62,9 +62,8 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	
 	override suspend fun loadSessions(ids: Set<UUID>): List<SessionData> =
 		db.transaction {
-			val idStrings = ids.map { it.toString() }
 			SessionDataTable.selectAll()
-				.where { SessionDataTable.id inList idStrings }
+				.where { SessionDataTable.id inList ids }
 				.map { it.toSessionData() }
 		}
 	
@@ -75,18 +74,17 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		}
 	
 	override suspend fun deleteSessions(id: Set<UUID>) {
-		val idStrings = id.map { it.toString() }
 		db.transaction {
-			SessionDataTable.deleteWhere { SessionDataTable.id inList idStrings }
+			SessionDataTable.deleteWhere { SessionDataTable.id inList id }
 		}
 	}
 	
 	private fun ResultRow.toSessionData(): SessionData =
 		SessionData(
-			id = UUID.fromString(this[SessionDataTable.id]),
+			id = this[SessionDataTable.id],
 			title = this[SessionDataTable.title],
 			overview = this[SessionDataTable.overview],
-			workspaceId = UUID.fromString(this[SessionDataTable.workspaceId]),
+			workspaceId = this[SessionDataTable.workspaceId],
 			agentIndex = SessionDataTable.readAgentIndex(this),
 		)
 	
@@ -97,7 +95,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	override suspend fun saveAgent(agentData: AgentData) {
 		db.transaction {
 			AgentDataTable.upsert {
-				it[id] = agentData.id.toString()
+				it[id] = agentData.id
 				it[name] = agentData.name.value
 				AgentDataTable.fillModel(it, agentData.model)
 				AgentDataTable.fillContext(it, agentData.context)
@@ -109,20 +107,20 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	override suspend fun loadAgent(agentId: UUID): AgentData? =
 		db.transaction {
 			AgentDataTable.selectAll()
-				.where { AgentDataTable.id eq agentId.toString() }
+				.where { AgentDataTable.id eq agentId }
 				.singleOrNull()
 				?.toAgentData()
 		}
 	
 	override suspend fun deleteAgent(agentId: UUID) {
 		db.transaction {
-			AgentDataTable.deleteWhere { AgentDataTable.id eq agentId.toString() }
+			AgentDataTable.deleteWhere { AgentDataTable.id eq agentId }
 		}
 	}
 	
 	private fun ResultRow.toAgentData(): AgentData =
 		AgentData(
-			id = UUID.fromString(this[AgentDataTable.id]),
+			id = this[AgentDataTable.id],
 			name = this[AgentDataTable.name].toKebab(),
 			model = AgentDataTable.readModel(this),
 			context = AgentDataTable.readContext(this),
@@ -137,7 +135,7 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 		db.transaction {
 			messages.forEach { msg ->
 				SessionMessageTable.upsert {
-					it[id] = msg.id.toString()
+					it[id] = msg.id
 					it[type] = SessionMessageTable.typeOf(msg)
 					it[timestamp] = msg.timestamp.toEpochMilliseconds()
 					SessionMessageTable.fillContent(it, msg)
@@ -148,16 +146,14 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	
 	override suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage> =
 		db.transaction {
-			val idStrings = ids.map { it.toString() }
 			SessionMessageTable.selectAll()
-				.where { SessionMessageTable.id inList idStrings }
+				.where { SessionMessageTable.id inList ids }
 				.map { it.toSessionMessage() }
 		}
 	
 	override suspend fun deleteMessages(ids: Set<UUID>) {
-		val idStrings = ids.map { it.toString() }
 		db.transaction {
-			SessionMessageTable.deleteWhere { SessionMessageTable.id inList idStrings }
+			SessionMessageTable.deleteWhere { SessionMessageTable.id inList ids }
 		}
 	}
 	

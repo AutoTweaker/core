@@ -18,10 +18,6 @@
 
 package io.github.autotweaker.api.types.debug
 
-data class SessionDataEntry(
-	override val key: String,
-	val title: String?,
-	val overview: String?,
-	val workspaceId: String,
-	val agentIndex: String
-) : DbEntry()
+sealed class DbEntry<out PK> {
+	abstract val key: PK
+}

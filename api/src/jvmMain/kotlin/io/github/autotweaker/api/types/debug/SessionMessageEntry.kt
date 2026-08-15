@@ -18,9 +18,11 @@
 
 package io.github.autotweaker.api.types.debug
 
+import java.util.*
+
 data class SessionMessageEntry(
-	override val key: String,
+	override val key: UUID,
 	val type: String,
 	val timestamp: Long,
 	val content: String
-) : DbEntry()
+) : DbEntry<UUID>()

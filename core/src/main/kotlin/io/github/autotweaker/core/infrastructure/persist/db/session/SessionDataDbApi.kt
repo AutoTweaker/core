@@ -23,8 +23,9 @@ import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
+import java.util.*
 
-object SessionDataDbApi : AbstractDbApi<SessionDataEntry>() {
+object SessionDataDbApi : AbstractDbApi<SessionDataEntry, UUID>() {
 	fun init(databaseStore: DatabaseStore) {
 		super.init(databaseStore.connect("Sessions"), SessionDataTable, SessionDataTable.id)
 	}

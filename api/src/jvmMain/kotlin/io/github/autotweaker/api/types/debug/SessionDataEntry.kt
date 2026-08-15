@@ -18,6 +18,12 @@
 
 package io.github.autotweaker.api.types.debug
 
-sealed class DbEntry {
-	abstract val key: String
-}
+import java.util.*
+
+data class SessionDataEntry(
+	override val key: UUID,
+	val title: String?,
+	val overview: String?,
+	val workspaceId: UUID,
+	val agentIndex: String
+) : DbEntry<UUID>()

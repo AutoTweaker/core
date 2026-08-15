@@ -30,6 +30,7 @@ import kotlinx.serialization.serializer
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 
 private val sessionJson = Json {
@@ -54,10 +55,10 @@ private inline fun <reified T> readJson(row: ResultRow, column: Column<String>):
 	sessionJson.decodeFromString(serializer<T>(), row[column])
 
 object SessionDataTable : Table("session_data") {
-	val id = varchar("id", 36)
+	val id = javaUUID("id")
 	val title = varchar("title", 512).nullable()
 	val overview = varchar("overview", 512).nullable()
-	val workspaceId = varchar("workspace_id", 36)
+	val workspaceId = javaUUID("workspace_id")
 	val agentIndexJson = text("agent_index_json")
 	
 	override val primaryKey = PrimaryKey(id)
@@ -67,7 +68,7 @@ object SessionDataTable : Table("session_data") {
 }
 
 object AgentDataTable : Table("agent_data") {
-	val id = varchar("id", 36)
+	val id = javaUUID("id")
 	val name = varchar("name", 128)
 	val modelJson = text("model_json")
 	val contextJson = text("context_json")
@@ -89,7 +90,7 @@ object AgentDataTable : Table("agent_data") {
 }
 
 object SessionMessageTable : Table("session_message") {
-	val id = varchar("id", 36)
+	val id = javaUUID("id")
 	val type = varchar("type", 32)
 	val timestamp = long("timestamp")
 	val contentJson = text("content_json")

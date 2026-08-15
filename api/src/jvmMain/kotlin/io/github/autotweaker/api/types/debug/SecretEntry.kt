@@ -16,13 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.debug
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.types.debug.DbEntry
+import java.util.*
 
-interface DbAPI<Entry : DbEntry> {
-	suspend fun list(range: UIntRange): List<Entry>
-	suspend fun get(key: String): Entry?
-	suspend fun put(content: Entry)
-	suspend fun delete(key: String)
-}
+data class SecretEntry(
+	override val key: UUID,
+	val content: String
+) : DbEntry<UUID>()

@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.debug
+package io.github.autotweaker.api.debug
 
-data class AgentDataEntry(
-	override val key: String,
-	val name: String,
-	val model: String,
-	val context: String,
-	val activeTools: String
-) : DbEntry()
+import io.github.autotweaker.api.types.debug.DbEntry
+
+interface DbAPI<Entry : DbEntry<PK>, PK> {
+	suspend fun list(range: UIntRange): List<Entry>
+	suspend fun get(key: PK): Entry?
+	suspend fun put(content: Entry)
+	suspend fun delete(key: PK)
+}

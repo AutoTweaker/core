@@ -22,6 +22,7 @@ import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.types.debug.*
+import java.util.*
 
 class DebugHandler(private val debug: DbDebugAPI) {
 	companion object {
@@ -29,6 +30,7 @@ class DebugHandler(private val debug: DbDebugAPI) {
 			"setting", "jsonStore", "sessionData",
 			"agentData", "sessionMessage", "secrets"
 		)
+		private val UUID_TABLES = setOf("sessionData", "agentData", "sessionMessage", "secrets")
 	}
 	
 	suspend fun Console.handle(): Nothing {
@@ -47,7 +49,7 @@ class DebugHandler(private val debug: DbDebugAPI) {
 	
 	private suspend fun Console.getEntry(key: String) {
 		val table = table()
-		val entry = entryApi(table).get(key) ?: error("Entry not found: $key")
+		val entry = entryApi(table).get(keyOf(table, key)) ?: error("Entry not found: $key")
 		out(entry.toString())
 	}
 	
@@ -58,12 +60,15 @@ class DebugHandler(private val debug: DbDebugAPI) {
 	
 	private suspend fun Console.deleteEntry(key: String) {
 		val table = table()
-		entryApi(table).delete(key)
+		entryApi(table).delete(keyOf(table, key))
 	}
+	
+	private fun keyOf(table: String, key: String): Any =
+		if (table in UUID_TABLES) UUID.fromString(key) else key
 	
 	private suspend fun Console.table() = TABLES.first { hasArg(it) }
 	
-	private fun api(table: String): DbAPI<*> = when (table) {
+	private fun api(table: String): DbAPI<*, *> = when (table) {
 		"setting" -> debug.setting
 		"jsonStore" -> debug.jsonStore
 		"sessionData" -> debug.sessionData
@@ -74,9 +79,9 @@ class DebugHandler(private val debug: DbDebugAPI) {
 	}
 	
 	@Suppress("UNCHECKED_CAST")
-	private fun entryApi(table: String) = api(table) as DbAPI<DbEntry>
+	private fun entryApi(table: String) = api(table) as DbAPI<DbEntry<Any>, Any>
 	
-	private suspend fun Console.promptEntry(table: String, key: String): DbEntry =
+	private suspend fun Console.promptEntry(table: String, key: String): DbEntry<Any> =
 		when (table) {
 			"setting" -> SettingEntry(
 				key,
@@ -89,15 +94,15 @@ class DebugHandler(private val debug: DbDebugAPI) {
 			)
 			
 			"sessionData" -> SessionDataEntry(
-				key,
+				UUID.fromString(key),
 				prompt("title:"),
 				prompt("overview:"),
-				prompt("model:"),
-				prompt("workspaceId:"),
+				UUID.fromString(prompt("workspaceId:")),
+				prompt("agentIndex:"),
 			)
 			
 			"agentData" -> AgentDataEntry(
-				key,
+				UUID.fromString(key),
 				prompt("name:"),
 				prompt("model:"),
 				prompt("context:"),
@@ -105,14 +110,14 @@ class DebugHandler(private val debug: DbDebugAPI) {
 			)
 			
 			"sessionMessage" -> SessionMessageEntry(
-				key,
+				UUID.fromString(key),
 				prompt("type:"),
 				prompt("timestamp:").toLong(),
 				prompt("content:")
 			)
 			
 			"secrets" -> SecretEntry(
-				key,
+				UUID.fromString(key),
 				prompt("content:")
 			)
 			

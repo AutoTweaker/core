@@ -24,7 +24,7 @@ import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
 
-object SettingDbApi : AbstractDbApi<SettingEntry>() {
+object SettingDbApi : AbstractDbApi<SettingEntry, String>() {
 	fun init(databaseStore: DatabaseStore) {
 		super.init(databaseStore.connect("AppConfig"), ConfigTable, ConfigTable.keyName)
 	}

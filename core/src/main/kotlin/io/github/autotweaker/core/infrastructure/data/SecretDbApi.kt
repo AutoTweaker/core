@@ -23,11 +23,11 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.debug.SecretEntry
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
 import io.github.autotweaker.core.domain.port.SecretStore
 import java.util.*
 
-object SecretDbApi : DbAPI<SecretEntry>, Traceable {
+object SecretDbApi : DbAPI<SecretEntry, UUID>, Traceable {
 	private lateinit var secretStore: SecretStore
 	
 	fun init(secretStore: SecretStore) {
@@ -38,22 +38,21 @@ object SecretDbApi : DbAPI<SecretEntry>, Traceable {
 		val all = secretStore.list()
 		val count = (range.last - range.first + 1u).toInt()
 		return all.drop(range.first.toInt()).take(count).map { id ->
-			SecretEntry(key = id.toString(), content = secretStore.get(id))
+			SecretEntry(key = id, content = secretStore.get(id))
 		}
 	}
 	
-	override suspend fun get(key: String): SecretEntry? {
-		val id = UUID.fromString(key)
-		return trace.catching { SecretEntry(key = key, content = secretStore.get(id)) }
+	override suspend fun get(key: UUID): SecretEntry? {
+		return trace.catching { SecretEntry(key = key, content = secretStore.get(key)) }
 			.rethrowNot<SecretNotFoundException>()
 			.getOrNull()
 	}
 	
 	override suspend fun put(content: SecretEntry) {
-		secretStore.set(content.content, UUID.fromString(content.key))
+		secretStore.set(content.content, content.key)
 	}
 	
-	override suspend fun delete(key: String) {
-		secretStore.remove(UUID.fromString(key))
+	override suspend fun delete(key: UUID) {
+		secretStore.remove(key)
 	}
 }

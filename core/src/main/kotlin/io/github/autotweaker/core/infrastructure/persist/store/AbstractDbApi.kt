@@ -31,12 +31,12 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 
-abstract class AbstractDbApi<Entry : DbEntry> : DbAPI<Entry> {
+abstract class AbstractDbApi<Entry : DbEntry<PK>, PK> : DbAPI<Entry, PK> {
 	private lateinit var db: Database
 	private lateinit var table: Table
-	private lateinit var pkColumn: Column<String>
+	private lateinit var pkColumn: Column<PK>
 	
-	fun init(db: Database, table: Table, pkColumn: Column<String>) {
+	fun init(db: Database, table: Table, pkColumn: Column<PK>) {
 		this.db = db
 		this.table = table
 		this.pkColumn = pkColumn
@@ -54,11 +54,11 @@ abstract class AbstractDbApi<Entry : DbEntry> : DbAPI<Entry> {
 		table.selectAll().limit(count).offset(range.first.toLong()).map { it.toEntry() }
 	}
 	
-	override suspend fun get(key: String): Entry? = db.transaction {
+	override suspend fun get(key: PK): Entry? = db.transaction {
 		table.selectAll().where { pkColumn eq key }.firstOrNull()?.toEntry()
 	}
 	
-	override suspend fun delete(key: String): Unit = db.transaction {
+	override suspend fun delete(key: PK): Unit = db.transaction {
 		table.deleteWhere { pkColumn eq key }
 	}
 }

@@ -33,6 +33,7 @@ import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreTab
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import java.util.*
 
 object DbDebugAPIImpl : DbDebugAPI {
 	private lateinit var configDb: Database
@@ -45,12 +46,12 @@ object DbDebugAPIImpl : DbDebugAPI {
 		this.secretStore = secretStore
 	}
 	
-	override val setting: DbAPI<SettingEntry> get() = SettingDbApi
-	override val jsonStore: DbAPI<JsonStoreEntry> get() = JsonStoreDbApi
-	override val sessionData: DbAPI<SessionDataEntry> get() = SessionDataDbApi
-	override val agentData: DbAPI<AgentDataEntry> get() = AgentDataDbApi
-	override val sessionMessage: DbAPI<SessionMessageEntry> get() = SessionMessageDbApi
-	override val secrets: DbAPI<SecretEntry> get() = SecretDbApi
+	override val setting: DbAPI<SettingEntry, String> get() = SettingDbApi
+	override val jsonStore: DbAPI<JsonStoreEntry, String> get() = JsonStoreDbApi
+	override val sessionData: DbAPI<SessionDataEntry, UUID> get() = SessionDataDbApi
+	override val agentData: DbAPI<AgentDataEntry, UUID> get() = AgentDataDbApi
+	override val sessionMessage: DbAPI<SessionMessageEntry, UUID> get() = SessionMessageDbApi
+	override val secrets: DbAPI<SecretEntry, UUID> get() = SecretDbApi
 	
 	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
 		"AppConfig" to configDb.transaction {

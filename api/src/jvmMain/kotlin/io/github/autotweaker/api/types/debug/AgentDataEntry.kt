@@ -16,17 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.debug
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.types.debug.*
+import java.util.*
 
-interface DbDebugAPI {
-	val setting: DbAPI<SettingEntry>
-	val jsonStore: DbAPI<JsonStoreEntry>
-	val sessionData: DbAPI<SessionDataEntry>
-	val sessionMessage: DbAPI<SessionMessageEntry>
-	val agentData: DbAPI<AgentDataEntry>
-	val secrets: DbAPI<SecretEntry>
-	
-	suspend fun tables(): Map<String, Map<String, Long>>
-}
+data class AgentDataEntry(
+	override val key: UUID,
+	val name: String,
+	val model: String,
+	val context: String,
+	val activeTools: String
+) : DbEntry<UUID>()
