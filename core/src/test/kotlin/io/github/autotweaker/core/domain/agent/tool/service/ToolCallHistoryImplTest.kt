@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.serialization.Serializable
@@ -56,11 +57,13 @@ class ToolCallHistoryImplTest {
 			validatedToolName = "bash",
 			validatedArgs = JsonPrimitive("{}"),
 			resolvedRequest = resolvedRequest,
+			presentation = null,
 		),
 		result = RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			content = content,
 			data = null,
+			presentation = listOf(UiBlock.Text("执行了命令")),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.SUCCESS,
 		),

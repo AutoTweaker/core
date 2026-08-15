@@ -162,6 +162,7 @@ class RuntimeContextBuilderTest {
 			validatedToolName = null,
 			validatedArgs = null,
 			resolvedRequest = null,
+			presentation = null,
 		)
 		val context = AgentContext.emptyContext("prompt").copy(
 			index = AgentContextIndex(

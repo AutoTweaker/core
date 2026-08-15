@@ -18,16 +18,15 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
-import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.ToolCallParser
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -54,7 +53,6 @@ class ApprovalProcessorTest {
 	
 	private fun manager() = AgentContextManager(
 		initial = RuntimeContext(null, null, null, null, null),
-		cancelledMessage = "已取消",
 	).also { manager ->
 		runBlocking {
 			manager.beginRound(
@@ -87,21 +85,24 @@ class ApprovalProcessorTest {
 		validatedToolName = "bash",
 		validatedArgs = JsonPrimitive("{}"),
 		resolvedRequest = JsonPrimitive("{}"),
+		presentation = listOf(UiBlock.Text("请求执行命令")),
 	)
 	
-	private fun resolvedCall(callId: String) = ThinkingStage.ResolvedToolCall(
-		pendingCall = pendingCall(callId),
-		validated = ToolCallParser.ValidationResult.Success(
-			toolName = "bash",
-			reason = "because",
-			args = mockk<ToolArgs>(),
-		),
+	private fun resolvedCall(callId: String) = pendingCall(callId) to Tool.ResolveResult.Ready(
+		result = JsonPrimitive("{}"),
+		request = { listOf(UiBlock.Text("请求执行命令")) },
+		executing = { listOf(UiBlock.Text("正在执行命令")) },
+		cancelled = { listOf(UiBlock.Text("执行命令被取消")) },
+		rejected = { listOf(UiBlock.Text("执行命令被拒绝")) },
+		failed = { listOf(UiBlock.Text("执行命令失败")) },
+		timeout = { listOf(UiBlock.Text("执行命令超时")) },
 	)
 	
 	private fun toolResult(content: String = "tool done") = RuntimeContext.Message.Tool.Result(
 		id = UUID.randomUUID(),
 		content = content,
 		data = null,
+		presentation = listOf(UiBlock.Text("执行了命令")),
 		timestamp = Clock.System.now(),
 		status = ToolResultStatus.SUCCESS,
 	)
@@ -112,14 +113,14 @@ class ApprovalProcessorTest {
 	fun `approved call executes tool and returns reason`() = runTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any()) } returns toolResult()
+		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
 		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
 		
 		processor.approvalChannel.send(ToolApprove("c1", reason = "go ahead"))
 		val reasons = processor.process(listOf(resolvedCall("c1")), model, MutableStateFlow(AgentStatus.FREE))
 		
 		assertEquals(listOf("go ahead"), reasons)
-		coVerify(exactly = 1) { tool.execute(any(), any(), any()) }
+		coVerify(exactly = 1) { tool.execute(any(), any(), any(), any()) }
 		
 		ctx.finalizeToolTurn()
 		val tools = ctx.context.value.currentRound?.turns?.single()?.tools
@@ -132,7 +133,7 @@ class ApprovalProcessorTest {
 	fun `approved call without reason returns empty reasons`() = runTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any()) } returns toolResult()
+		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
 		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
 		
 		processor.approvalChannel.send(ToolApprove("c1", reason = null))
@@ -149,14 +150,14 @@ class ApprovalProcessorTest {
 	fun `rejected call records rejected result without executing`() = runTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any()) } returns toolResult()
+		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
 		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
 		
 		processor.approvalChannel.send(ToolApprove("c1", reason = "no thanks", approved = false))
 		val reasons = processor.process(listOf(resolvedCall("c1")), model, MutableStateFlow(AgentStatus.FREE))
 		
 		assertTrue(reasons.isEmpty())
-		coVerify(exactly = 0) { tool.execute(any(), any(), any()) }
+		coVerify(exactly = 0) { tool.execute(any(), any(), any(), any()) }
 		
 		ctx.finalizeToolTurn()
 		val result = ctx.context.value.currentRound?.turns?.single()?.tools?.single()?.result
@@ -172,7 +173,7 @@ class ApprovalProcessorTest {
 	fun `out-of-order approvals are stashed until their turn`() = runTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any()) } returns toolResult()
+		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
 		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
 		
 		processor.approvalChannel.send(ToolApprove("c2", reason = "second first"))
@@ -184,7 +185,7 @@ class ApprovalProcessorTest {
 		)
 		
 		assertEquals(listOf("first", "second first"), reasons)
-		coVerify(exactly = 2) { tool.execute(any(), any(), any()) }
+		coVerify(exactly = 2) { tool.execute(any(), any(), any(), any()) }
 		
 		ctx.finalizeToolTurn()
 		assertEquals(2, ctx.context.value.currentRound?.turns?.single()?.tools?.size)
@@ -198,7 +199,7 @@ class ApprovalProcessorTest {
 	fun `shouldBreak stops processing without executing`() = runTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any()) } returns toolResult()
+		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
 		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(true))
 		
 		val reasons = processor.process(
@@ -208,7 +209,7 @@ class ApprovalProcessorTest {
 		)
 		
 		assertTrue(reasons.isEmpty())
-		coVerify(exactly = 0) { tool.execute(any(), any(), any()) }
+		coVerify(exactly = 0) { tool.execute(any(), any(), any(), any()) }
 	}
 	
 	// endregion

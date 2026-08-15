@@ -26,11 +26,14 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.agent.*
+import io.github.autotweaker.core.domain.agent.AgentCommand
+import io.github.autotweaker.core.domain.agent.AgentModel
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.ToolCallParser
+import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.mockk.coEvery
@@ -114,28 +117,36 @@ class RoundRunnerTest {
 		usageSnapshot = null,
 	)
 	
-	private fun done(content: String? = "ok", activations: List<ToolActivation> = emptyList()) =
-		ThinkingStage.Result.Done(assistant(content), activations, emptyList(), emptyList())
+	private fun done(
+		content: String? = "ok",
+		activations: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.Activation>>? = null,
+	) = ThinkingStage.Result(assistant(content), activations, null, null, null)
 	
-	private fun hasPending(callId: String = "c1") = ThinkingStage.Result.HasPending(
+	private fun hasPending(callId: String = "c1") = ThinkingStage.Result(
 		assistantMessage = assistant("calling"),
-		activations = emptyList(),
-		parseFailures = emptyList(),
-		resolveFailures = emptyList(),
+		activations = null,
+		parseFailures = null,
+		resolveFailures = null,
 		needsApproval = listOf(
-			ThinkingStage.ResolvedToolCall(
-				pendingCall = RuntimeContext.CurrentRound.PendingToolCall(
-					id = UUID.randomUUID(),
-					timestamp = Clock.System.now(),
-					callId = callId,
-					callName = "bash-run",
-					arguments = """{"cmd":"echo"}""",
-					reason = "because",
-					validatedToolName = "bash",
-					validatedArgs = JsonPrimitive("{}"),
-					resolvedRequest = JsonPrimitive("{}"),
-				),
-				validated = ToolCallParser.ValidationResult.Success("bash", "because", BashArgs("echo")),
+			RuntimeContext.CurrentRound.PendingToolCall(
+				id = UUID.randomUUID(),
+				timestamp = Clock.System.now(),
+				callId = callId,
+				callName = "bash-run",
+				arguments = """{"cmd":"echo"}""",
+				reason = "because",
+				validatedToolName = "bash",
+				validatedArgs = JsonPrimitive("{}"),
+				resolvedRequest = JsonPrimitive("{}"),
+				presentation = listOf(UiBlock.Text("请求执行命令")),
+			) to Tool.ResolveResult.Ready(
+				result = JsonPrimitive("{}"),
+				request = { listOf(UiBlock.Text("请求执行命令")) },
+				executing = { listOf(UiBlock.Text("正在执行命令")) },
+				cancelled = { listOf(UiBlock.Text("执行命令被取消")) },
+				rejected = { listOf(UiBlock.Text("执行命令被拒绝")) },
+				failed = { listOf(UiBlock.Text("执行命令失败")) },
+				timeout = { listOf(UiBlock.Text("执行命令超时")) },
 			)
 		),
 	)
@@ -144,14 +155,15 @@ class RoundRunnerTest {
 		tools: Tools,
 		thinking: ThinkingStage,
 	): Harness {
-		val ctx = AgentContextManager(RuntimeContext(null, null, null, null, null), "已取消")
+		val ctx = AgentContextManager(RuntimeContext(null, null, null, null, null))
 		val status = MutableStateFlow(AgentStatus.FREE)
 		val toolCalling = mockk<ToolCallingStage>()
 		every { toolCalling.cancelToolJob() } returns Unit
-		coEvery { toolCalling.execute(any(), any(), any()) } returns RuntimeContext.Message.Tool.Result(
+		coEvery { toolCalling.execute(any(), any(), any(), any()) } returns RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			content = "tool result",
 			data = null,
+			presentation = listOf(UiBlock.Text("执行了命令")),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.SUCCESS,
 		)
@@ -203,7 +215,7 @@ class RoundRunnerTest {
 	fun `llm failure ends round with empty history`() = runTest {
 		val tools = makeTools()
 		val thinking = mockk<ThinkingStage>()
-		coEvery { thinking.execute(any(), any(), any()) } returns ThinkingStage.Result.Failed
+		coEvery { thinking.execute(any(), any(), any()) } returns null
 		val h = harness(tools, thinking)
 		
 		// 等待消息被消费，确保回合已开始；THINKING 是瞬态，回合可能在轮询开始前已完成
@@ -223,16 +235,18 @@ class RoundRunnerTest {
 		val tools = makeTools()
 		val thinking = mockk<ThinkingStage>()
 		coEvery { thinking.execute(any(), any(), any()) } returnsMany listOf(
-			ThinkingStage.Result.Done(
-				assistant("bad call"),
-				emptyList(),
-				listOf(
-					ThinkingStage.ParseFailure(
-						ChatMessage.AssistantMessage.ToolCall("c1", "bash-run", "{}"),
-						"missing reason",
-					)
+			ThinkingStage.Result(
+				assistantMessage = assistant("bad call"),
+				activations = null,
+				parseFailures = listOf(
+					ChatMessage.AssistantMessage.ToolCall("c1", "bash-run", "{}") to
+							ResolveResult.ParseFailure(
+								errorMessage = "missing reason",
+								presentation = listOf(UiBlock.Text("调用 bash 工具失败")),
+							)
 				),
-				emptyList(),
+				resolveFailures = null,
+				needsApproval = null,
 			),
 			done("answer"),
 		)
@@ -242,6 +256,10 @@ class RoundRunnerTest {
 		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 }
 		
 		coVerify(exactly = 2) { thinking.execute(any(), any(), any()) }
+		assertEquals(
+			ToolResultStatus.FAILURE,
+			h.ctx.context.value.historyRounds!!.single().turns!!.single().tools.single().result.status
+		)
 		h.runner.shutdown()
 	}
 	
@@ -251,7 +269,15 @@ class RoundRunnerTest {
 		val activationCall = ChatMessage.AssistantMessage.ToolCall("c1", "bash", """{}""")
 		val thinking = mockk<ThinkingStage>()
 		coEvery { thinking.execute(any(), any(), any()) } returnsMany listOf(
-			done("activate", activations = listOf(ToolActivation(activationCall, "activate me"))),
+			done(
+				"activate",
+				activations = listOf(
+					activationCall to ResolveResult.Activation(
+						message = "activate me",
+						presentation = listOf(UiBlock.Text("激活了 bash 工具")),
+					)
+				)
+			),
 			done("answer"),
 		)
 		val h = harness(tools, thinking)

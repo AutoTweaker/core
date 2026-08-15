@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.session.converter
 
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.coroutines.runBlocking
@@ -61,6 +62,7 @@ class AgentContextBuilderTest {
 		validatedToolName = "bash",
 		validatedArgs = JsonPrimitive("{}"),
 		resolvedRequest = JsonPrimitive("""{"cmd":"echo"}"""),
+		presentation = listOf(UiBlock.Text("请求执行命令")),
 	)
 	
 	private fun tool(callId: String = "c1") = RuntimeContext.Message.Tool(
@@ -74,11 +76,13 @@ class AgentContextBuilderTest {
 			validatedToolName = "bash",
 			validatedArgs = JsonPrimitive("{}"),
 			resolvedRequest = JsonPrimitive("""{"cmd":"echo"}"""),
+			presentation = null,
 		),
 		result = RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			content = "done",
 			data = JsonPrimitive("""{"exit":0}"""),
+			presentation = listOf(UiBlock.Text("执行了命令")),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.SUCCESS,
 		),

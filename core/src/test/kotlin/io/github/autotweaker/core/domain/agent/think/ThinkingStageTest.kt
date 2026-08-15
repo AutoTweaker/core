@@ -23,6 +23,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -37,6 +38,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import java.nio.file.Path
 import java.util.*
@@ -83,9 +85,25 @@ class ThinkingStageTest {
 		val type: String = "run",
 	) : ToolArgs
 	
+	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
+	
+	private fun ready(result: JsonElement = JsonPrimitive("{}")) = Tool.ResolveResult.Ready(
+		result = result,
+		request = { presentation("请求执行命令") },
+		executing = { presentation("正在执行命令") },
+		cancelled = { presentation("执行命令被取消") },
+		rejected = { presentation("执行命令被拒绝") },
+		failed = { presentation("执行命令失败") },
+		timeout = { presentation("执行命令超时") },
+	)
+	
+	private fun rejected(reason: String) = Tool.ResolveResult.Rejected(
+		reason, presentation("执行命令被拒绝")
+	)
+	
 	private fun mockTool(
 		name: String = "bash",
-		resolve: Tool.ResolveResult = Tool.ResolveResult.Ready(JsonPrimitive("{}"))
+		resolve: Tool.ResolveResult = ready()
 	): Tool<ToolArgs> {
 		val tool = mockk<Tool<BashArgs>>()
 		coEvery { tool.meta() } returns Pair(
@@ -146,33 +164,33 @@ class ThinkingStageTest {
 	// region 无工具调用
 	
 	@Test
-	fun `llm failure returns Failed`() = runTest {
+	fun `llm failure returns null`() = runTest {
 		val tools = makeTools(emptyList(), emptySet())
 		val result = stage(llmService(LlmService.CallResult.Failed), tools)
 			.execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Failed>(result)
+		assertNull(result)
 	}
 	
 	@Test
-	fun `success without tool calls returns Done with empty lists`() = runTest {
+	fun `success without tool calls returns Result with empty buckets`() = runTest {
 		val tools = makeTools(emptyList(), emptySet())
 		val result = stage(llmService(success(null)), tools).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Done>(result)
+		assertNotNull(result)
 		assertEquals(assistant, result.assistantMessage)
-		assertTrue(result.activations.isEmpty())
-		assertTrue(result.parseFailures.isEmpty())
-		assertTrue(result.resolveFailures.isEmpty())
+		assertTrue(result.activations.isNullOrEmpty())
+		assertTrue(result.parseFailures.isNullOrEmpty())
+		assertTrue(result.resolveFailures.isNullOrEmpty())
 	}
 	
 	@Test
-	fun `success with empty tool call list returns Done`() = runTest {
+	fun `success with empty tool call list returns Result`() = runTest {
 		val tools = makeTools(emptyList(), emptySet())
 		val result = stage(llmService(success(emptyList())), tools).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Done>(result)
-		assertTrue(result.activations.isEmpty())
+		assertNotNull(result)
+		assertTrue(result.activations.isNullOrEmpty())
 	}
 	
 	// endregion
@@ -186,12 +204,12 @@ class ThinkingStageTest {
 		val result = stage(llmService(success(listOf(call("c1", name = "bash")))), tools)
 			.execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Done>(result)
-		assertEquals(1, result.activations.size)
-		assertEquals("c1", result.activations[0].toolCall.id)
-		assertTrue(result.activations[0].message.contains("工具已激活"))
-		assertTrue(result.parseFailures.isEmpty())
-		assertTrue(result.resolveFailures.isEmpty())
+		assertNotNull(result)
+		assertEquals(1, result.activations!!.size)
+		assertEquals("c1", result.activations[0].first.id)
+		assertTrue(result.activations[0].second.message.contains("工具已激活"))
+		assertTrue(result.parseFailures.isNullOrEmpty())
+		assertTrue(result.resolveFailures.isNullOrEmpty())
 	}
 	
 	@Test
@@ -201,30 +219,30 @@ class ThinkingStageTest {
 		val rawCall = call("c1", arguments = """{"cmd":"echo"}""")
 		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Done>(result)
-		assertEquals(1, result.parseFailures.size)
-		assertEquals(rawCall, result.parseFailures[0].toolCall)
-		assertTrue(result.parseFailures[0].errorMessage.contains("reason"))
-		assertTrue(result.activations.isEmpty())
-		assertTrue(result.resolveFailures.isEmpty())
+		assertNotNull(result)
+		assertEquals(1, result.parseFailures!!.size)
+		assertEquals(rawCall, result.parseFailures[0].first)
+		assertTrue(result.parseFailures[0].second.errorMessage.contains("reason"))
+		assertTrue(result.activations.isNullOrEmpty())
+		assertTrue(result.resolveFailures.isNullOrEmpty())
 	}
 	
 	@Test
 	fun `rejected resolve becomes ResolveFailure`() = runTest {
-		val tool = mockTool("bash", Tool.ResolveResult.Rejected("文件test.txt不存在或访问被拒绝"))
+		val tool = mockTool("bash", rejected("文件test.txt不存在或访问被拒绝"))
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		val rawCall = call("c1")
 		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Done>(result)
-		assertEquals(1, result.resolveFailures.size)
+		assertNotNull(result)
+		assertEquals(1, result.resolveFailures!!.size)
 		val failure = result.resolveFailures[0]
-		assertEquals(rawCall, failure.toolCall)
-		assertEquals("tests", failure.reason)
-		assertEquals("bash", failure.validatedToolName)
-		assertEquals("文件test.txt不存在或访问被拒绝", failure.errorMessage)
-		assertNotNull(failure.validatedArgs)
-		assertTrue(result.activations.isEmpty())
+		assertEquals(rawCall, failure.first)
+		assertEquals("tests", failure.second.reason)
+		assertEquals("bash", failure.second.toolName)
+		assertEquals("文件test.txt不存在或访问被拒绝", failure.second.errorMessage)
+		assertNotNull(failure.second.validatedArgs)
+		assertTrue(result.activations.isNullOrEmpty())
 	}
 	
 	@Test
@@ -234,24 +252,24 @@ class ThinkingStageTest {
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		val result = stage(llmService(success(listOf(call("c1")))), tools).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.Done>(result)
-		assertEquals(1, result.resolveFailures.size)
+		assertNotNull(result)
+		assertEquals(1, result.resolveFailures!!.size)
 		val failure = result.resolveFailures[0]
-		assertTrue(failure.errorMessage.contains("调用参数在解析时出错"))
-		assertTrue(failure.errorMessage.contains("RuntimeException: boom"))
+		assertTrue(failure.second.errorMessage.contains("调用参数在解析时出错"))
+		assertTrue(failure.second.errorMessage.contains("RuntimeException: boom"))
 	}
 	
 	@Test
-	fun `ready resolve becomes HasPending with mapped pending call`() = runTest {
+	fun `ready resolve becomes needsApproval with mapped pending call`() = runTest {
 		val tool = mockTool("bash")
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		val rawCall = call("c1")
 		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.HasPending>(result)
-		assertEquals(1, result.needsApproval.size)
+		assertNotNull(result)
+		assertEquals(1, result.needsApproval!!.size)
 		val resolved = result.needsApproval[0]
-		val pending = resolved.pendingCall
+		val pending = resolved.first
 		assertEquals("c1", pending.callId)
 		assertEquals("bash-run", pending.callName)
 		assertEquals(rawCall.arguments, pending.arguments)
@@ -259,7 +277,7 @@ class ThinkingStageTest {
 		assertEquals("bash", pending.validatedToolName)
 		assertEquals(JsonPrimitive("{}"), pending.resolvedRequest)
 		assertEquals(assistant.timestamp, pending.timestamp)
-		assertEquals("bash", resolved.validated.toolName)
+		assertEquals(JsonPrimitive("{}"), resolved.second.result)
 	}
 	
 	// endregion
@@ -269,7 +287,7 @@ class ThinkingStageTest {
 	@Test
 	fun `mixed calls route to correct buckets`() = runTest {
 		val bash = mockTool("bash")
-		val read = mockTool("read", Tool.ResolveResult.Rejected("文件不存在"))
+		val read = mockTool("read", rejected("文件不存在"))
 		val edit = mockTool("edit")
 		val tools = makeTools(listOf(bash, read, edit), setOf("bash", "read"))
 		
@@ -283,16 +301,16 @@ class ThinkingStageTest {
 			tools
 		).execute(model, emptyList(), context)
 		
-		assertIs<ThinkingStage.Result.HasPending>(result)
-		assertEquals(1, result.activations.size)
-		assertEquals("c1", result.activations[0].toolCall.id)
-		assertEquals(1, result.parseFailures.size)
-		assertEquals("c2", result.parseFailures[0].toolCall.id)
-		assertEquals(1, result.resolveFailures.size)
-		assertEquals("c4", result.resolveFailures[0].toolCall.id)
-		assertEquals("read", result.resolveFailures[0].validatedToolName)
-		assertEquals(1, result.needsApproval.size)
-		assertEquals("c3", result.needsApproval[0].pendingCall.callId)
+		assertNotNull(result)
+		assertEquals(1, result.activations!!.size)
+		assertEquals("c1", result.activations[0].first.id)
+		assertEquals(1, result.parseFailures!!.size)
+		assertEquals("c2", result.parseFailures[0].first.id)
+		assertEquals(1, result.resolveFailures!!.size)
+		assertEquals("c4", result.resolveFailures[0].first.id)
+		assertEquals("read", result.resolveFailures[0].second.toolName)
+		assertEquals(1, result.needsApproval!!.size)
+		assertEquals("c3", result.needsApproval[0].first.callId)
 	}
 	
 	// endregion

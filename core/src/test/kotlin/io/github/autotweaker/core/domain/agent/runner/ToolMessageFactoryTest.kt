@@ -20,10 +20,11 @@ package io.github.autotweaker.core.domain.agent.runner
 
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.ToolActivation
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
+import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
@@ -42,8 +43,25 @@ class ToolMessageFactoryTest {
 	
 	private val timestamp = Clock.System.now()
 	
+	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
+	
 	private fun rawCall(id: String = "c1", name: String = "bash-run") =
 		ChatMessage.AssistantMessage.ToolCall(id = id, name = name, arguments = """{"cmd":"echo"}""")
+	
+	private fun assistant() = RuntimeContext.Message.Assistant(
+		id = UUID.randomUUID(),
+		reasoning = null,
+		content = "calling tools",
+		modelId = UUID.randomUUID(),
+		timestamp = timestamp,
+		usageSnapshot = null,
+	)
+	
+	private fun result(
+		parseFailures: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.ParseFailure>> = emptyList(),
+		resolveFailures: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.ResolveFailure>> = emptyList(),
+		activations: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.Activation>> = emptyList(),
+	) = ThinkingStage.Result(assistant(), activations, parseFailures, resolveFailures, null)
 	
 	private fun pendingCall(
 		callId: String = "c1",
@@ -60,13 +78,14 @@ class ToolMessageFactoryTest {
 		validatedToolName = "bash",
 		validatedArgs = validatedArgs,
 		resolvedRequest = resolvedRequest,
+		presentation = presentation(),
 	)
 	
 	// region buildImmediateResults
 	
 	@Test
 	fun `buildImmediateResults with empty inputs returns empty list`() {
-		val results = ToolMessageFactory.buildImmediateResults(timestamp, emptyList(), emptyList(), emptyList())
+		val results = ToolMessageFactory.buildImmediateResults(result())
 		
 		assertTrue(results.isEmpty())
 	}
@@ -74,9 +93,11 @@ class ToolMessageFactoryTest {
 	@Test
 	fun `buildImmediateResults parse failure keeps raw call fields`() {
 		val call = rawCall()
-		val failure = ThinkingStage.ParseFailure(call, "missing reason")
+		val failure = call to ResolveResult.ParseFailure("missing reason", presentation())
 		
-		val results = ToolMessageFactory.buildImmediateResults(timestamp, emptyList(), listOf(failure), emptyList())
+		val results = ToolMessageFactory.buildImmediateResults(
+			result(parseFailures = listOf(failure))
+		)
 		
 		assertEquals(1, results.size)
 		val message = results[0]
@@ -95,11 +116,17 @@ class ToolMessageFactoryTest {
 	@Test
 	fun `buildImmediateResults resolve failure carries validated fields`() {
 		val call = rawCall()
-		val failure = ThinkingStage.ResolveFailure(
-			call, "no such file", "bash", JsonPrimitive("{}"), "文件test.txt不存在或访问被拒绝"
+		val failure = call to ResolveResult.ResolveFailure(
+			toolName = "bash",
+			reason = "no such file",
+			validatedArgs = JsonPrimitive("{}"),
+			errorMessage = "文件test.txt不存在或访问被拒绝",
+			presentation = presentation(),
 		)
 		
-		val results = ToolMessageFactory.buildImmediateResults(timestamp, emptyList(), emptyList(), listOf(failure))
+		val results = ToolMessageFactory.buildImmediateResults(
+			result(resolveFailures = listOf(failure))
+		)
 		
 		assertEquals(1, results.size)
 		val message = results[0]
@@ -114,9 +141,11 @@ class ToolMessageFactoryTest {
 	@Test
 	fun `buildImmediateResults activation returns success with message`() {
 		val call = rawCall()
-		val activation = ToolActivation(call, "tool activated")
+		val activation = call to ResolveResult.Activation("tool activated", presentation())
 		
-		val results = ToolMessageFactory.buildImmediateResults(timestamp, listOf(activation), emptyList(), emptyList())
+		val results = ToolMessageFactory.buildImmediateResults(
+			result(activations = listOf(activation))
+		)
 		
 		assertEquals(1, results.size)
 		val message = results[0]
@@ -130,14 +159,14 @@ class ToolMessageFactoryTest {
 		val call1 = rawCall("c1")
 		val call2 = rawCall("c2")
 		val call3 = rawCall("c3")
-		val parse = ThinkingStage.ParseFailure(call1, "parse error")
-		val resolve = ThinkingStage.ResolveFailure(
-			call2, "rejected", "bash", JsonPrimitive("{}"), "resolve error"
+		val parse = call1 to ResolveResult.ParseFailure("parse error", presentation())
+		val resolve = call2 to ResolveResult.ResolveFailure(
+			"bash", "rejected", JsonPrimitive("{}"), "resolve error", presentation()
 		)
-		val activation = ToolActivation(call3, "activated")
+		val activation = call3 to ResolveResult.Activation("activated", presentation())
 		
 		val results = ToolMessageFactory.buildImmediateResults(
-			timestamp, listOf(activation), listOf(parse), listOf(resolve)
+			result(parseFailures = listOf(parse), resolveFailures = listOf(resolve), activations = listOf(activation))
 		)
 		
 		assertEquals(3, results.size)
@@ -157,7 +186,7 @@ class ToolMessageFactoryTest {
 	fun `buildRejected with reason formats feedback message`() {
 		val call = pendingCall(reason = "invalid path")
 		
-		val message = ToolMessageFactory.buildRejected(call, "invalid path")
+		val message = ToolMessageFactory.buildRejected(call, "invalid path", presentation())
 		
 		assertEquals(ToolResultStatus.REJECTED, message.result.status)
 		assertTrue(message.result.content.contains("invalid path"))
@@ -166,7 +195,7 @@ class ToolMessageFactoryTest {
 	
 	@Test
 	fun `buildRejected without reason uses default message`() {
-		val message = ToolMessageFactory.buildRejected(pendingCall(), null)
+		val message = ToolMessageFactory.buildRejected(pendingCall(), null, presentation())
 		
 		assertEquals(ToolResultStatus.REJECTED, message.result.status)
 		assertTrue(message.result.content.contains("工具调用已被用户拒绝"))
@@ -175,7 +204,7 @@ class ToolMessageFactoryTest {
 	@Test
 	fun `buildRejected maps pending call fields`() {
 		val call = pendingCall()
-		val message = ToolMessageFactory.buildRejected(call, null)
+		val message = ToolMessageFactory.buildRejected(call, null, presentation())
 		
 		assertEquals(call.callId, message.callId)
 		assertEquals(call.callName, message.call.callName)
@@ -185,17 +214,18 @@ class ToolMessageFactoryTest {
 		assertEquals(call.validatedArgs, message.call.validatedArgs)
 		assertEquals(call.resolvedRequest, message.call.resolvedRequest)
 		assertEquals(call.timestamp, message.call.timestamp)
+		assertEquals(call.presentation, message.call.presentation)
 	}
 	
 	// endregion
 	
-	// region buildError
+	// region buildParseError/buildResolveError
 	
 	@Test
-	fun `buildError simple overload produces raw failure call`() {
+	fun `buildParseError produces raw failure call`() {
 		val call = rawCall()
 		
-		val message = ToolMessageFactory.buildError(timestamp, call, "boom")
+		val message = ToolMessageFactory.buildParseError(timestamp, call, "boom", presentation())
 		
 		assertEquals(ToolResultStatus.FAILURE, message.result.status)
 		assertEquals("boom", message.result.content)
@@ -205,11 +235,11 @@ class ToolMessageFactoryTest {
 	}
 	
 	@Test
-	fun `buildError validated overload carries validation info`() {
+	fun `buildResolveError carries validation info`() {
 		val call = rawCall()
 		
-		val message = ToolMessageFactory.buildError(
-			timestamp, call, "no such file", "bash", JsonPrimitive("{}"), "boom"
+		val message = ToolMessageFactory.buildResolveError(
+			timestamp, call, "no such file", "bash", JsonPrimitive("{}"), "boom", presentation()
 		)
 		
 		assertEquals(ToolResultStatus.FAILURE, message.result.status)
@@ -227,7 +257,9 @@ class ToolMessageFactoryTest {
 	@Test
 	fun `buildActivation returns success with activation message`() {
 		val call = rawCall()
-		val message = ToolMessageFactory.buildActivation(timestamp, ToolActivation(call, "please activate"))
+		val message = ToolMessageFactory.buildActivation(
+			timestamp, call to ResolveResult.Activation("please activate", presentation())
+		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, message.result.status)
 		assertEquals("please activate", message.result.content)

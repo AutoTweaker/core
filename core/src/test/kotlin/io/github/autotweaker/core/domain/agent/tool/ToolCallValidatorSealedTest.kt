@@ -183,7 +183,7 @@ class ToolCallValidatorSealedTest {
 			"""{"name":"test","inner":{"type":"a","x":42},"reason":"tests"}""", "",
 			toolMetaCache(mockNestedSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as NestedSealedArgs.Process
 		assertEquals("test", args.name)
 		assertEquals(42, (args.inner as InnerChoice.A).x)
@@ -197,7 +197,7 @@ class ToolCallValidatorSealedTest {
 			"""{"name":"test","inner":{"type":"b","y":"hello"},"reason":"tests"}""", "",
 			toolMetaCache(mockNestedSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		assertEquals("hello", ((result.args as NestedSealedArgs.Process).inner as InnerChoice.B).y)
 	}
 	
@@ -215,7 +215,7 @@ class ToolCallValidatorSealedTest {
 			"",
 			toolMetaCache(mockListSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as ListSealedArgs.Run
 		assertEquals(2, args.items.size)
 		assertIs<InnerChoice.A>(args.items[0])
@@ -231,7 +231,7 @@ class ToolCallValidatorSealedTest {
 			"",
 			toolMetaCache(mockListSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as ListSealedArgs.Run
 		assertEquals(3, args.items.size)
 		assertEquals(10, (args.items[0] as InnerChoice.A).x)
@@ -252,7 +252,7 @@ class ToolCallValidatorSealedTest {
 			"",
 			toolMetaCache(mockMapSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as MapSealedArgs.Configure
 		assertEquals(2, args.config.size)
 		assertIs<InnerChoice.A>(args.config["rule1"])
@@ -271,7 +271,7 @@ class ToolCallValidatorSealedTest {
 			"""{"wrapper":{"inner":{"type":"a","x":42}},"reason":"tests"}""", "",
 			toolMetaCache(mockDeepNestedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		assertEquals(42, ((result.args as DeepNestedArgs.Process).wrapper.inner as InnerChoice.A).x)
 	}
 	

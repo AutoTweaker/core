@@ -112,7 +112,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate(
 			"bash-run", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		assertEquals("bash", result.toolName)
 	}
 	
@@ -208,7 +208,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate(
 			"bash-run", """{"command":"echo","reason":"testing"}""", "", toolMetaCache(mockSimpleTool())
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		assertEquals("testing", result.reason)
 	}
 	
@@ -217,7 +217,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate(
 			"bash-run", """{"command":"echo","reason":"testing"}""", "", toolMetaCache(mockSimpleTool())
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as SimpleArgs.Run
 		assertEquals("echo", args.command)
 	}
@@ -234,7 +234,7 @@ class ToolCallValidatorTest {
 			"",
 			toolMetaCache(mockSimpleTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as SimpleArgs.Run
 		assertEquals("echo hello", args.command)
 		assertEquals(30, args.timeoutSeconds)
@@ -245,7 +245,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate(
 			"bash-run", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as SimpleArgs.Run
 		assertEquals("echo", args.command)
 		assertEquals(60, args.timeoutSeconds)
@@ -266,7 +266,7 @@ class ToolCallValidatorTest {
 			"bash-run", """{"command":"echo","timeout_seconds":15,"reason":"tests"}""", "",
 			toolMetaCache(mockSimpleTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as SimpleArgs.Run
 		assertEquals(15, args.timeoutSeconds)
 	}
@@ -302,7 +302,7 @@ class ToolCallValidatorTest {
 			"",
 			toolMetaCache(mockSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		val args = result.args as SealedArgs.File
 		assertEquals("/tmp/test.txt", args.filePath)
 		assertEquals(1, args.startLine)
@@ -318,7 +318,7 @@ class ToolCallValidatorTest {
 			"",
 			toolMetaCache(mockSealedTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 		assertIs<SealedArgs.Unicode>(result.args)
 	}.discard()
 	
@@ -353,13 +353,13 @@ class ToolCallValidatorTest {
 		val cache = toolMetaCache(mockSimpleTool(), mockSealedTool())
 		
 		val bashResult = validator.validate("bash-run", """{"command":"echo","reason":"tests"}""", "", cache)
-		assertIs<ValidationResult.Success<*>>(bashResult)
+		assertIs<ValidationResult.Success>(bashResult)
 		assertEquals("bash", bashResult.toolName)
 		
 		val readResult = validator.validate(
 			"read-file", """{"file_path":"/tmp/test.txt","start_line":1,"end_line":5,"reason":"reads"}""", "", cache
 		)
-		assertIs<ValidationResult.Success<*>>(readResult)
+		assertIs<ValidationResult.Success>(readResult)
 		assertEquals("read", readResult.toolName)
 	}
 	
@@ -383,7 +383,7 @@ class ToolCallValidatorTest {
 			"my-call-123",
 			toolMetaCache(mockSimpleTool()),
 		)
-		assertIs<ValidationResult.Success<*>>(result)
+		assertIs<ValidationResult.Success>(result)
 	}.discard()
 	
 	// endregion

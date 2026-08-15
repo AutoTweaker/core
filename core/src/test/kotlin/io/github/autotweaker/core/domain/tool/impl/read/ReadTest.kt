@@ -78,6 +78,7 @@ class ReadTest {
 	): FileSystemService {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } returns path
+		every { fs.relativize(any()) } returns path
 		coEvery { fs.exists(path) } returns exists
 		coEvery { fs.isRegularFile(path) } returns isRegularFile
 		coEvery { fs.sha256(path) } returns sha
@@ -104,7 +105,7 @@ class ReadTest {
 	
 	@Test
 	fun `resolve valid file request returns Ready`() = runTest {
-		val result = read.coreResolve(container(mockFs()), fileArgs())
+		val result = read.resolve(container(mockFs()), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Ready>(result)
 		val resolved = Json.decodeFromJsonElement(ReadRequest.serializer(), result.result)
@@ -118,7 +119,7 @@ class ReadTest {
 	
 	@Test
 	fun `resolve valid summarize request returns Ready`() = runTest {
-		val result = read.coreResolve(container(mockFs()), summarizeArgs(prompt = "focus on errors"))
+		val result = read.resolve(container(mockFs()), summarizeArgs(prompt = "focus on errors"))
 		
 		assertIs<Tool.ResolveResult.Ready>(result)
 		val resolved = Json.decodeFromJsonElement(ReadRequest.serializer(), result.result)
@@ -130,7 +131,7 @@ class ReadTest {
 	
 	@Test
 	fun `resolve start line below 1 rejected`() = runTest {
-		val result = read.coreResolve(container(mockFs()), fileArgs(startLine = 0))
+		val result = read.resolve(container(mockFs()), fileArgs(startLine = 0))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("start_line必须大于或等于1", result.reason)
@@ -138,7 +139,7 @@ class ReadTest {
 	
 	@Test
 	fun `resolve end line smaller than start line rejected`() = runTest {
-		val result = read.coreResolve(container(mockFs()), fileArgs(startLine = 3, endLine = 2))
+		val result = read.resolve(container(mockFs()), fileArgs(startLine = 3, endLine = 2))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("start_line不能大于end_line", result.reason)
@@ -146,15 +147,15 @@ class ReadTest {
 	
 	@Test
 	fun `resolve too many lines rejected for file`() = runTest {
-		val result = read.coreResolve(container(mockFs()), fileArgs(startLine = 1, endLine = 2001))
-
+		val result = read.resolve(container(mockFs()), fileArgs(startLine = 1, endLine = 2001))
+		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("读取的行数过多，上限为2000", result.reason)
 	}
 	
 	@Test
 	fun `resolve too many lines rejected for summarize`() = runTest {
-		val result = read.coreResolve(container(mockFs()), summarizeArgs(startLine = 1, endLine = 5001))
+		val result = read.resolve(container(mockFs()), summarizeArgs(startLine = 1, endLine = 5001))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("读取的行数过多，上限为5000", result.reason)
@@ -162,7 +163,7 @@ class ReadTest {
 	
 	@Test
 	fun `resolve non-existent file rejected`() = runTest {
-		val result = read.coreResolve(container(mockFs(exists = false)), fileArgs())
+		val result = read.resolve(container(mockFs(exists = false)), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("文件test.txt不存在或访问被拒绝", result.reason)
@@ -170,7 +171,7 @@ class ReadTest {
 	
 	@Test
 	fun `resolve non-regular file rejected`() = runTest {
-		val result = read.coreResolve(container(mockFs(isRegularFile = false)), fileArgs())
+		val result = read.resolve(container(mockFs(isRegularFile = false)), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("文件test.txt不是一个可读取的普通文件", result.reason)
@@ -180,8 +181,9 @@ class ReadTest {
 	fun `resolve path outside workspace rejected`() = runTest {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } returns path
+		every { fs.relativize(any()) } returns path
 		coEvery { fs.exists(path) } throws PathOutsideWorkspaceException(path)
-		val result = read.coreResolve(container(fs), fileArgs())
+		val result = read.resolve(container(fs), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("错误：请求的文件路径在工作目录外部", result.reason)
@@ -191,7 +193,7 @@ class ReadTest {
 	fun `resolve normalize failure rejected`() = runTest {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } throws IllegalArgumentException("bad path")
-		val result = read.coreResolve(container(fs), fileArgs())
+		val result = read.resolve(container(fs), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("提供的路径不合法，请检查提供的路径参数", result.reason)
@@ -205,7 +207,8 @@ class ReadTest {
 	fun `exec file returns content with sha256 prefix and line numbers`() = runTest {
 		val c = container(mockFs(lines = listOf("line1", "line2")))
 		c.register(ToolCallHistory::class, history())
-		val result = read.coreExec(c, request(ReadRequest.File(path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		assertEquals("$sha\n1\tline1\n2\tline2\n", result.result)
@@ -215,7 +218,8 @@ class ReadTest {
 	fun `exec file without line numbers`() = runTest {
 		val c = container(mockFs(lines = listOf("line1", "line2")))
 		c.register(ToolCallHistory::class, history())
-		val result = read.coreExec(c, request(ReadRequest.File(path, 1, 2, false, false)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 1, 2, false, false)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		assertEquals("$sha\nline1\nline2\n", result.result)
@@ -225,7 +229,8 @@ class ReadTest {
 	fun `exec file with unicode escape`() = runTest {
 		val c = container(mockFs(lines = listOf("中")))
 		c.register(ToolCallHistory::class, history())
-		val result = read.coreExec(c, request(ReadRequest.File(path, 1, 1, false, true)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 1, 1, false, true)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		assertEquals("$sha\n\\u4E2D\n", result.result)
@@ -236,9 +241,10 @@ class ReadTest {
 		val c = container(mockFs(lines = listOf("line1", "line2")))
 		c.register(
 			ToolCallHistory::class,
-			history(ToolCallHistory.Entry(ReadRequest.File(path, 1, 2, true, false), "$sha\nold"))
+			history(ToolCallHistory.Entry(ReadRequest.File(path, path, 1, 2, true, false), "$sha\nold"))
 		)
-		val result = read.coreExec(c, request(ReadRequest.File(path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		assertEquals("读取的文件内容与文件哈希${sha}时的读取相同", result.result)
@@ -248,7 +254,8 @@ class ReadTest {
 	fun `exec file start line beyond file size returns error`() = runTest {
 		val c = container(mockFs(lines = listOf("a", "b", "c")))
 		c.register(ToolCallHistory::class, history())
-		val result = read.coreExec(c, request(ReadRequest.File(path, 5, 5, true, false)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 5, 5, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		assertEquals("start_line超出了文件可读行数（3）", result.result)
@@ -260,7 +267,8 @@ class ReadTest {
 		coEvery { fs.sha256(path) } throws FileNotFoundException(NoSuchFileException(path.toFile()))
 		val c = container(fs)
 		c.register(ToolCallHistory::class, history())
-		val result = read.coreExec(c, request(ReadRequest.File(path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		assertEquals("文件test.txt不存在或访问被拒绝", result.result)
@@ -272,7 +280,8 @@ class ReadTest {
 		coEvery { fs.readAllLines(path) } throws FileAccessDeniedException(IllegalStateException())
 		val c = container(fs)
 		c.register(ToolCallHistory::class, history())
-		val result = read.coreExec(c, request(ReadRequest.File(path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
+		val result =
+			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		assertEquals("当前用户没有权限读取这个文件", result.result)
@@ -286,7 +295,7 @@ class ReadTest {
 	fun `exec summarize returns summary`() = runTest {
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
 		c.register(SummarizeService::class, summarizeService("summary result"))
-		val result = read.coreExec(c, request(ReadRequest.Summarize(path, 1, 1, null)), Channel(Channel.UNLIMITED))
+		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		assertEquals("summary result", result.result)
@@ -296,7 +305,7 @@ class ReadTest {
 	fun `exec summarize too few chars returns error`() = runTest {
 		val c = container(mockFs(lines = listOf("short")))
 		c.register(SummarizeService::class, summarizeService("unused"))
-		val result = read.coreExec(c, request(ReadRequest.Summarize(path, 1, 1, null)), Channel(Channel.UNLIMITED))
+		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		assertTrue(result.result.contains("必须大于500"))
@@ -306,8 +315,8 @@ class ReadTest {
 	fun `exec summarize output truncated`() = runTest {
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
 		c.register(SummarizeService::class, summarizeService("y".repeat(12000)))
-		val result = read.coreExec(c, request(ReadRequest.Summarize(path, 1, 1, null)), Channel(Channel.UNLIMITED))
-
+		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
+		
 		assertTrue(result.success)
 		assertTrue(result.result.startsWith("y".repeat(10000)))
 		assertTrue(
@@ -321,7 +330,7 @@ class ReadTest {
 		coEvery { s.invoke(any(), any()) } throws RuntimeException("boom")
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
 		c.register(SummarizeService::class, s)
-		val result = read.coreExec(c, request(ReadRequest.Summarize(path, 1, 1, null)), Channel(Channel.UNLIMITED))
+		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		assertEquals("总结器出错，请及时告知用户：RuntimeException: boom", result.result)

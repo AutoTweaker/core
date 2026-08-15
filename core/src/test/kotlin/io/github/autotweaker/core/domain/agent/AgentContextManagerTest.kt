@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import kotlinx.coroutines.test.runTest
@@ -35,11 +36,10 @@ class AgentContextManagerTest {
 		}
 	}
 	
-	private val cancelledMessage = "调用已被取消"
+	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
 	
 	private fun ctx() = AgentContextManager(
 		initial = RuntimeContext(null, null, null, null, null),
-		cancelledMessage = cancelledMessage,
 	)
 	
 	private fun user(content: String = "hello") = RuntimeContext.Message.User(
@@ -67,6 +67,7 @@ class AgentContextManagerTest {
 		validatedToolName = "bash",
 		validatedArgs = JsonPrimitive("{}"),
 		resolvedRequest = JsonPrimitive("{}"),
+		presentation = presentation(),
 	)
 	
 	private fun toolResult(callId: String = "c1", content: String = "done") = RuntimeContext.Message.Tool(
@@ -80,11 +81,13 @@ class AgentContextManagerTest {
 			validatedToolName = "bash",
 			validatedArgs = JsonPrimitive("{}"),
 			resolvedRequest = JsonPrimitive("{}"),
+			presentation = null,
 		),
 		result = RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			content = content,
 			data = null,
+			presentation = presentation(),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.SUCCESS,
 		),
@@ -281,7 +284,7 @@ class AgentContextManagerTest {
 		val turn = completed.turns!!.single()
 		assertEquals(1, turn.tools.size)
 		assertEquals(ToolResultStatus.CANCELLED, turn.tools[0].result.status)
-		assertEquals(cancelledMessage, turn.tools[0].result.content)
+		assertTrue(turn.tools[0].result.content.contains("取消"))
 		assertEquals(pending.callId, turn.tools[0].callId)
 		assertEquals(pending.callName, turn.tools[0].call.callName)
 		assertEquals(pending.resolvedRequest, turn.tools[0].call.resolvedRequest)

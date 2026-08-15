@@ -192,7 +192,7 @@ class BashTest {
 		
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(container(bashService), bashArgs("echo hi", envIds = listOf("MY_VAR")))
+		val result = bash.resolve(container(bashService), bashArgs("echo hi", envIds = listOf("MY_VAR")))
 		
 		assertIs<Tool.ResolveResult.Ready>(result)
 		val request = Json.decodeFromJsonElement(BashRequest.serializer(), result.result)
@@ -205,7 +205,7 @@ class BashTest {
 	fun `resolve missing timeout uses default from settings`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(
+		val result = bash.resolve(
 			container(bashService),
 			BashArgs.Run(command = "echo hi", timeoutSeconds = null, envIds = emptyList())
 		)
@@ -223,7 +223,7 @@ class BashTest {
 	fun `blank command returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(container(bashService), bashArgs("   "))
+		val result = bash.resolve(container(bashService), bashArgs("   "))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("command参数不能为空", result.reason)
@@ -233,7 +233,7 @@ class BashTest {
 	fun `empty command returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(container(bashService), bashArgs(""))
+		val result = bash.resolve(container(bashService), bashArgs(""))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("command参数不能为空", result.reason)
@@ -247,7 +247,7 @@ class BashTest {
 	fun `timeout zero returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(container(bashService), bashArgs("echo hello", timeoutSeconds = 0))
+		val result = bash.resolve(container(bashService), bashArgs("echo hello", timeoutSeconds = 0))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("timeout_seconds必须大于0", result.reason)
@@ -257,7 +257,7 @@ class BashTest {
 	fun `negative timeout returns error`() = runTest {
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(container(bashService), bashArgs("echo hello", timeoutSeconds = -5))
+		val result = bash.resolve(container(bashService), bashArgs("echo hello", timeoutSeconds = -5))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("timeout_seconds必须大于0", result.reason)
@@ -275,11 +275,11 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("echo hello")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		assertTrue(result.result.contains("退出码：0"))
-		assertTrue(result.result.contains("0.123"))
+		assertTrue(result.result.contains("123ms"))
 		assertTrue(result.result.contains("hello"))
 	}
 	
@@ -291,7 +291,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("echo hello")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		val data = Json.decodeFromJsonElement(BashResult.serializer(), requireNotNull(result.data))
@@ -309,7 +309,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("sleep 100", timeoutSeconds = 1)
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		val data = Json.decodeFromJsonElement(BashResult.serializer(), requireNotNull(result.data))
@@ -326,7 +326,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("false")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 		assertTrue(result.result.contains("退出码：1"))
@@ -340,7 +340,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("sleep 100", timeoutSeconds = 1)
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
 	}
@@ -353,7 +353,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("echo hi", timeoutSeconds = 60)
-		bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		coVerify { bashService.run("echo hi", 60.seconds, emptyMap()) }
 	}
@@ -366,7 +366,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("echo hi")
-		bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		coVerify { bashService.run("echo hi", 60.seconds, emptyMap()) }
 	}
@@ -383,7 +383,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("cmd")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.result.contains("[empty]"))
 		assertTrue(result.result.contains("some error"))
@@ -397,23 +397,23 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("cmd")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.result.contains("[empty]"))
 		assertTrue(result.result.contains("out"))
 	}
 	
 	@Test
-	fun `output contains duration formatted to 3 decimal places`() = runTest {
+	fun `output contains duration`() = runTest {
 		val bashService = mockk<BashService>()
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", durationSeconds = 2.5
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("cmd")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
-		assertTrue(result.result.contains("2.500"))
+		assertTrue(result.result.contains("2.5s"))
 	}
 	
 	@Test
@@ -424,7 +424,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("cmd")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.result.contains("标准输出："))
 		assertTrue(result.result.contains("标准错误："))
@@ -445,7 +445,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs($$"echo $MY_VAR", envIds = listOf("MY_VAR"))
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 		coVerify { bashService.run($$"echo $MY_VAR", 60.seconds, mapOf("MY_VAR" to "my_value")) }
@@ -460,7 +460,7 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(exitCode = 0, stdout = "")
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("cmd", envIds = listOf("A", "B"))
-		bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		coVerify { bashService.run("cmd", 60.seconds, mapOf("A" to "1", "B" to "2")) }
 	}
@@ -471,7 +471,7 @@ class BashTest {
 		
 		val bashService = mockk<BashService>()
 		SecretMapStore.init(secretStore)
-		val result = bash.coreResolve(
+		val result = bash.resolve(
 			container(bashService), bashArgs("cmd", envIds = listOf("EXISTING", "MISSING"))
 		)
 		
@@ -491,7 +491,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs("echo \"hello world\"")
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 	}
@@ -505,7 +505,7 @@ class BashTest {
 		)
 		SecretMapStore.init(secretStore)
 		val args = toolArgs(longCmd)
-		val result = bash.coreExec(container(bashService), args, Channel(Channel.UNLIMITED))
+		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
 	}

@@ -66,7 +66,7 @@ class CompactServiceTest {
 		CompactService(agentId, onOutput)
 	
 	private fun managerWithHistory(): AgentContextManager {
-		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null), "已取消")
+		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null))
 		runBlocking {
 			manager.beginRound(
 				RuntimeContext.Message.User(
@@ -130,7 +130,7 @@ class CompactServiceTest {
 	@Test
 	fun `no history rounds returns without calling llm`() = runTest {
 		val callCount = mockResilientChat()
-		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null), "已取消")
+		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null))
 		
 		compactService().execute(model, manager)
 		

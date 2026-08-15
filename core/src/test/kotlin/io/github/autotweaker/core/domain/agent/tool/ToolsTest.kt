@@ -23,6 +23,7 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.ServiceContainer
@@ -53,6 +54,7 @@ class ToolsTest {
 		every { it.invoke(any(), any(), any()) } answers { firstArg() }
 	}
 	private val bashRequest = Json.encodeToJsonElement(BashArgs.serializer(), BashArgs(cmd = "echo"))
+	private val presentation = listOf(UiBlock.Text("执行了命令"))
 	
 	// region helpers
 	
@@ -68,7 +70,15 @@ class ToolsTest {
 		description: String = "a tool",
 	): Tool<ToolArgs> {
 		val tool = mockk<Tool<BashArgs>>()
-		coEvery { tool.resolve(any(), any()) } returns Tool.ResolveResult.Ready(JsonPrimitive("{}"))
+		coEvery { tool.resolve(any(), any()) } returns Tool.ResolveResult.Ready(
+			result = JsonPrimitive("{}"),
+			request = { presentation },
+			executing = { presentation },
+			cancelled = { presentation },
+			rejected = { presentation },
+			failed = { presentation },
+			timeout = { presentation },
+		)
 		coEvery { tool.meta() } returns Pair(
 			ToolMeta(
 				name, description, listOf(
@@ -152,6 +162,7 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
 			"output ok",
+			presentation,
 			null,
 			true
 		)
@@ -168,6 +179,7 @@ class ToolsTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
 			"error happened",
+			presentation,
 			null,
 			false
 		)
@@ -180,15 +192,14 @@ class ToolsTest {
 	}
 	
 	@Test
-	fun `executeTool handles exception from tool`() = runTest {
+	fun `executeTool rethrows exception from tool`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } throws RuntimeException("crash!")
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
-		val result = tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
-		
-		assertEquals(ToolResultStatus.FAILURE, result.status)
-		assertEquals("工具执行时出错：RuntimeException: crash!", result.content)
+		assertFailsWith<RuntimeException> {
+			tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
+		}
 	}
 	
 	@Test
@@ -209,7 +220,7 @@ class ToolsTest {
 			val channel = thirdArg<Channel<Tool.RuntimeOutput>>()
 			channel.send(Tool.RuntimeOutput("progress 1", Tool.RuntimeOutput.OutputType.INFO))
 			channel.send(Tool.RuntimeOutput("progress 2", Tool.RuntimeOutput.OutputType.INFO))
-			Tool.ToolOutput("done", null, true)
+			Tool.ToolOutput("done", presentation, null, true)
 		}
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		

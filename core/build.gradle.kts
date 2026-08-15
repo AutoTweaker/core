@@ -106,6 +106,7 @@ val inDocker = System.getenv("DOCKER_TEST") == "true"
 if (inDocker) {
 	tasks.test {
 		useJUnitPlatform()
+		maxHeapSize = "2g"
 		jvmArgs(
 			"-Dnet.bytebuddy.experimental=true",
 			"-Djava.security.egd=file:/dev/./urandom",

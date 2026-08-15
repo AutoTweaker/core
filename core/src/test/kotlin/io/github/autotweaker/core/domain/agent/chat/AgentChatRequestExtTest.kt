@@ -27,6 +27,7 @@ import io.github.autotweaker.api.types.llm.ModelData.*
 import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
 import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -98,12 +99,14 @@ class AgentChatRequestExtTest {
 				validatedToolName = null,
 				validatedArgs = JsonPrimitive("{}"),
 				resolvedRequest = null,
+				presentation = null,
 			),
 			callId = "call-1",
 			result = RuntimeContext.Message.Tool.Result(
 				id = UUID.randomUUID(),
 				content = "file content",
 				data = null,
+				presentation = listOf(UiBlock.Text("读取了文件")),
 				timestamp = Clock.System.now(),
 				status = ToolResultStatus.SUCCESS
 			),
@@ -271,6 +274,7 @@ class AgentChatRequestExtTest {
 				validatedToolName = "read",
 				validatedArgs = JsonPrimitive("{}"),
 				resolvedRequest = JsonPrimitive("{}"),
+				presentation = listOf(UiBlock.Text("请求读取文件")),
 			)
 		)
 		val round = RuntimeContext.CurrentRound(user, null, null, pending)

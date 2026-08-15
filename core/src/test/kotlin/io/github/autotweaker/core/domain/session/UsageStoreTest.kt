@@ -194,5 +194,6 @@ class UsageStoreTest {
 		validatedToolName = null,
 		validatedArgs = null,
 		resolvedRequest = null,
+		presentation = null,
 	)
 }

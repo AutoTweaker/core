@@ -198,7 +198,7 @@ class AgentChatTest {
 	}
 	
 	@Test
-	fun `accumulates multiple errors and emits Failing`() = runTest {
+	fun `emits Failing for error message`() = runTest {
 		val now = Clock.System.now()
 		val errorChatResult = ChatResult.Assembled(
 			message = ChatMessage.ErrorMessage("service down", now, 503),
@@ -218,9 +218,8 @@ class AgentChatTest {
 		
 		val failings = results.filterIsInstance<AgentChatStreamResult.Failing>()
 		assertEquals(1, failings.size)
-		assertEquals(1, failings[0].errors.size)
-		assertEquals("service down", failings[0].errors[0].content)
-		assertEquals(503, failings[0].errors[0].statusCode)
+		assertEquals("service down", failings[0].error)
+		assertEquals(503, failings[0].statusCode)
 	}
 	
 	@Test
