@@ -136,7 +136,7 @@ class ThinkingStageTest {
 		).also { it.assembleTools() }
 	}
 	
-	private fun llmService(result: LlmService.CallResult): LlmService {
+	private fun llmService(result: LlmService.CallResult?): LlmService {
 		val service = mockk<LlmService>()
 		coEvery { service.execute(model, any(), any()) } returns result
 		return service
@@ -156,7 +156,7 @@ class ThinkingStageTest {
 		onOutput = {},
 	)
 	
-	private fun success(toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?) = LlmService.CallResult.Success(
+	private fun success(toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?) = LlmService.CallResult(
 		assistantMessage = assistant,
 		toolCalls = toolCalls,
 	)
@@ -166,7 +166,7 @@ class ThinkingStageTest {
 	@Test
 	fun `llm failure returns null`() = runTest {
 		val tools = makeTools(emptyList(), emptySet())
-		val result = stage(llmService(LlmService.CallResult.Failed), tools)
+		val result = stage(llmService(null), tools)
 			.execute(model, emptyList(), context)
 		
 		assertNull(result)

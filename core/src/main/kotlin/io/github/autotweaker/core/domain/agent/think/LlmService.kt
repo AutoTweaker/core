@@ -41,7 +41,7 @@ class LlmService(
 		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
 		context: RuntimeContext,
-	): CallResult {
+	): CallResult? { // null == failed
 		val request = AgentChatRequest(
 			model = model,
 			tools = assembledTools,
@@ -63,7 +63,7 @@ class LlmService(
 						)
 					)
 				)
-				CallResult.Failed
+				return@getOrElse null
 			}
 	}
 	
@@ -93,18 +93,14 @@ class LlmService(
 			agentId, final.message.modelId, final.message.content?.length ?: 0
 		)
 		
-		return CallResult.Success(
+		return CallResult(
 			assistantMessage = final.message,
 			toolCalls = final.toolCalls,
 		)
 	}
 	
-	sealed class CallResult {
-		data class Success(
-			val assistantMessage: RuntimeContext.Message.Assistant,
-			val toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
-		) : CallResult()
-		
-		data object Failed : CallResult()
-	}
+	data class CallResult(
+		val assistantMessage: RuntimeContext.Message.Assistant,
+		val toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
+	)
 }

@@ -44,47 +44,46 @@ class ThinkingStage(
 		model: AgentModel,
 		assembledTools: List<ChatRequest.Tool>?,
 		context: RuntimeContext,
-	): Result? = when (val callResult = llmService.execute(model, assembledTools, context)) {
-		is LlmService.CallResult.Failed -> null
-		is LlmService.CallResult.Success -> {
-			val rawCalls = callResult.toolCalls
-			if (rawCalls.isNullOrEmpty()) return Result(
-				assistantMessage = callResult.assistantMessage,
-				activations = null,
-				parseFailures = null,
-				resolveFailures = null,
-				needsApproval = null
-			)
-			
-			val provider = ToolProvider.buildToolProvider(
-				workspace = workspace,
-				onOutput = onOutput,
-				model = model,
-				context = context,
-				truncation = truncation,
-			)
-			val calls = buildList {
-				rawCalls.forEach { rawCall ->
-					val result = tools.resolveToolCall(rawCall, provider)
-					add(rawCall to result)
-				}
+	): Result? {
+		val callResult = llmService.execute(model, assembledTools, context) ?: return null
+		val rawCalls = callResult.toolCalls
+		if (rawCalls.isNullOrEmpty()) return Result(
+			assistantMessage = callResult.assistantMessage,
+			activations = null,
+			parseFailures = null,
+			resolveFailures = null,
+			needsApproval = null
+		)
+		
+		val provider = ToolProvider.buildToolProvider(
+			workspace = workspace,
+			onOutput = onOutput,
+			model = model,
+			context = context,
+			truncation = truncation,
+		)
+		val calls = buildList {
+			rawCalls.forEach { rawCall ->
+				val result = tools.resolveToolCall(rawCall, provider)
+				add(rawCall to result)
 			}
-			
-			Result(
-				assistantMessage = callResult.assistantMessage,
-				activations = calls.ofType(),
-				parseFailures = calls.ofType(),
-				resolveFailures = calls.ofType(),
-				needsApproval = calls.mapNotNull { (call, resolved) ->
-					if (resolved !is ResolveResult.NeedsApproval) return@mapNotNull null
-					buildPending(
-						callResult.assistantMessage.timestamp,
-						call, resolved
-					) to resolved.resolveResult
-				}.orNull()
-			)
 		}
+		
+		return Result(
+			assistantMessage = callResult.assistantMessage,
+			activations = calls.ofType(),
+			parseFailures = calls.ofType(),
+			resolveFailures = calls.ofType(),
+			needsApproval = calls.mapNotNull { (call, resolved) ->
+				if (resolved !is ResolveResult.NeedsApproval) return@mapNotNull null
+				buildPending(
+					callResult.assistantMessage.timestamp,
+					call, resolved
+				) to resolved.resolveResult
+			}.orNull()
+		)
 	}
+	
 	
 	private inline fun <reified T : ResolveResult> PairList<RawCall, ResolveResult>.ofType(): PairList<RawCall, T>? =
 		mapNotNull { (call, resolved) ->
