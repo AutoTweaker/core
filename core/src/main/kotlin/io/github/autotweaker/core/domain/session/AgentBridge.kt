@@ -26,6 +26,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.PluginLoader
@@ -36,6 +37,7 @@ import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.cacheMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextBuilder
 import io.github.autotweaker.core.domain.session.converter.RuntimeContextBuilder
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -50,7 +52,8 @@ import java.util.*
 
 class AgentBridge(
 	private val host: AgentHost,
-	private val store: SessionRepository,
+	private val sessionRepo: SessionRepository,
+	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	workspace: Path,
 ) : AgentAPI, Loggable, Traceable {
@@ -228,16 +231,16 @@ class AgentBridge(
 		is RuntimeOutput.Tool -> AgentOutput.Tool(output)
 		is RuntimeOutput.UsageConsumed -> {
 			val record = AgentMessage.UsageRecord(
-				id = UUID.randomUUID(),
-				timestamp = timestamp,
-				usage = usage,
+				id = usage.id,
+				timestamp = usage.timestamp,
+				model = usage.modelId,
+				usage = usage.usage,
 			)
-			listOf(record).save()
-			contextLock.withLock {
-				val ctx = _context.value
-				updateContext(
-					ctx.copy(droppedMessages = ctx.droppedMessages.orEmpty() + record.id)
-				)
+			sessionRepo.saveMessages(listOf(record))
+			usageRepo.save(listOf(usage))
+			
+			updateContext {
+				it.copy(droppedMessages = it.droppedMessages.orEmpty() + record.id)
 			}.discard(null)
 		}
 	}
@@ -246,7 +249,7 @@ class AgentBridge(
 	private suspend fun createAgent() {
 		_agent = Agent(
 			agentId = initialData.id,
-			context = RuntimeContextBuilder(_context.value, store::loadMessages)().let {
+			context = RuntimeContextBuilder(_context.value, sessionRepo::loadMessages)().let {
 				droppedCompacted = it.second
 				return@let it.first
 			},
@@ -264,21 +267,36 @@ class AgentBridge(
 		val (context, messages) = builder()
 		
 		messages.save()
-		updateContext(context)
+		updateContext { context }
 	}
 	
-	private suspend fun updateContext(context: AgentContext) {
-		_context.update { context }
+	private suspend fun updateContext(function: (AgentContext) -> AgentContext) {
+		_context.update(function)
 		saveAgent()
 	}
 	
 	private suspend fun List<AgentMessage>.save() {
-		store.saveMessages(this)
-		UsageStore.collect(this)
+		sessionRepo.saveMessages(this)
+		usageRepo.save(mapNotNull { message ->
+			when (message) {
+				is AgentMessage.Assistant -> message.usage?.let {
+					UsageEntry(message.id, message.model, message.timestamp, it)
+				}
+				
+				is AgentMessage.Compact -> message.usage?.let {
+					UsageEntry(message.id, message.model, message.timestamp, it)
+				}
+				
+				is AgentMessage.UsageRecord ->
+					UsageEntry(message.id, message.model, message.timestamp, message.usage)
+				
+				else -> null
+			}
+		})
 	}
 	
 	private suspend fun saveAgent() = contextLock.withLock {
-		store.saveAgent(agentData)
+		sessionRepo.saveAgent(agentData)
 	}
 	
 	private suspend fun ModelConfig.toAgentModel() = AgentModel(

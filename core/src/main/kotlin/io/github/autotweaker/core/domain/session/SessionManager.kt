@@ -37,6 +37,7 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
@@ -53,14 +54,16 @@ object SessionManager : Loggable, Traceable {
 	
 	private val wsm = WorkspaceManager
 	
-	private lateinit var store: SessionRepository
+	private lateinit var sessionRepo: SessionRepository
+	private lateinit var usageRepository: UsageRepository
 	private lateinit var modelRepo: ModelResolver
 	private lateinit var secretStore: SecretStore
 	
-	fun init(store: SessionRepository, modelRepo: ModelResolver, secretStore: SecretStore) {
-		this.store = store
-		this.modelRepo = modelRepo
-		this.secretStore = secretStore
+	fun init(session: SessionRepository, usage: UsageRepository, model: ModelResolver, secret: SecretStore) {
+		sessionRepo = session
+		usageRepository = usage
+		modelRepo = model
+		secretStore = secret
 	}
 	
 	private val scope = scope()
@@ -86,7 +89,7 @@ object SessionManager : Loggable, Traceable {
 	suspend fun get(id: UUID): SessionHandle = getOrRestore(id).toHandle()
 	
 	suspend fun delete(id: UUID): Boolean = lock.withLock {
-		val data = store.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
+		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
 		sessions[id]?.shutdown()
 		listener[id]?.cancel()
 		trace.catching { wsm.updateSessions(data.workspaceId) { it - id } }
@@ -94,8 +97,8 @@ object SessionManager : Loggable, Traceable {
 				log.warn("Workspace not found while deleting session  sessionId={}  workspaceId={}", id, e.id)
 			}.getOrThrow()
 		sessions.remove(id)
-		store.deleteSessions(setOf(id))
-		data.agentIndex.getAll().forEach { store.deleteAgent(it) }
+		sessionRepo.deleteSessions(setOf(id))
+		data.agentIndex.getAll().forEach { sessionRepo.deleteAgent(it) }
 		log.info("Deleted session  id={}", id)
 		return@withLock true
 	}
@@ -107,9 +110,9 @@ object SessionManager : Loggable, Traceable {
 	
 	suspend fun create(model: ModelConfig) = create(wsm.defaultWorkspaceId, model)
 	
-	suspend fun loadData(ids: Set<UUID>) = store.loadSessions(ids)
-	suspend fun loadMessages(ids: Set<UUID>) = store.loadMessages(ids)
-	suspend fun loadAgent(id: UUID) = store.loadAgent(id)
+	suspend fun loadData(ids: Set<UUID>) = sessionRepo.loadSessions(ids)
+	suspend fun loadMessages(ids: Set<UUID>) = sessionRepo.loadMessages(ids)
+	suspend fun loadAgent(id: UUID) = sessionRepo.loadAgent(id)
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
@@ -125,7 +128,8 @@ object SessionManager : Loggable, Traceable {
 		)
 		sessions[data.id] = Session(
 			data = data,
-			store = store,
+			sessionRepo = sessionRepo,
+			usageRepo = usageRepository,
 			resolveModel = ::resolveModel,
 			workspace = workspace
 		).init(
@@ -140,8 +144,8 @@ object SessionManager : Loggable, Traceable {
 				sessions[data.id]?.shutdown()
 				listener[data.id]?.cancel()
 				sessions.remove(data.id)
-				store.deleteSessions(setOf(data.id))
-				data.agentIndex.getAll().forEach { store.deleteAgent(it) }
+				sessionRepo.deleteSessions(setOf(data.id))
+				data.agentIndex.getAll().forEach { sessionRepo.deleteAgent(it) }
 				log.warn(
 					"Workspace deleted while creating session  sessionId={}  workspaceId={}",
 					data.id, e.id
@@ -152,12 +156,12 @@ object SessionManager : Loggable, Traceable {
 	}
 	
 	private suspend fun Session.andSave(): Session = also {
-		trace.catching { store.saveSessions(listOf(data.value)) }
+		trace.catching { sessionRepo.saveSessions(listOf(data.value)) }
 			.onFailure { e ->
 				log.error("Failed to save session  sessionId={}", data.value.id, e)
 				shutdown()
-				store.deleteSessions(setOf(data.value.id))
-				data.value.agentIndex.getAll().forEach { store.deleteAgent(it) }
+				sessionRepo.deleteSessions(setOf(data.value.id))
+				data.value.agentIndex.getAll().forEach { sessionRepo.deleteAgent(it) }
 			}.getOrThrow()
 	}
 	
@@ -167,7 +171,7 @@ object SessionManager : Loggable, Traceable {
 	
 	private suspend fun restore(id: UUID): Session = lock.withLock {
 		secretStore.requireUnlocked()
-		val data = store.loadSessions(setOf(id)).firstOrNull() ?: throw SessionNotFoundException(id)
+		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: throw SessionNotFoundException(id)
 		val workspaceId = data.workspaceId
 		val workspace = wsm.getData(workspaceId)?.meta?.path ?: throw WorkspaceNotFoundException(workspaceId)
 			.andLog(log) {
@@ -186,7 +190,8 @@ object SessionManager : Loggable, Traceable {
 		
 		return@withLock Session(
 			data = data,
-			store = store,
+			sessionRepo = sessionRepo,
+			usageRepo = usageRepository,
 			resolveModel = ::resolveModel,
 			workspace = workspace
 		).init(Session.SessionInit.Restore)
@@ -205,7 +210,7 @@ object SessionManager : Loggable, Traceable {
 		val id = data.value.id
 		listener[id] = scope.launch {
 			data.collectLatest {
-				store.saveSessions(listOf(it))
+				sessionRepo.saveSessions(listOf(it))
 			}
 		}
 	}

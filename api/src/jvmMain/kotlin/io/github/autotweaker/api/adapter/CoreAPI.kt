@@ -33,10 +33,7 @@ import io.github.autotweaker.api.types.exception.*
 import io.github.autotweaker.api.types.exception.duplicate.*
 import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmRequest
-import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.SessionData
@@ -418,7 +415,7 @@ interface CoreAPI {
 		 * @see setDefaultModel
 		 * @see getDefaultModel
 		 */
-		suspend fun removeModel(id: UUID)
+		suspend fun removeModel(id: UUID): Boolean
 		
 		/**
 		 * 获取一个模型的数据。
@@ -506,11 +503,37 @@ interface CoreAPI {
 		suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage>
 		
 		/**
-		 * 获取历史的全部 Usage。
+		 * 从数据库加载 Usage 数据，用于统计。
 		 *
-		 * @return key 为消息 id，value 为 [Usage]，可以通过 [loadMessages] 反查对应消息。
+		 * @param before 加载比这更早的 Usage 数据，不包含 [before]。
+		 * @see UsageEntry
 		 */
-		suspend fun getAllUsage(): Map<UUID, Usage>
+		suspend fun loadUsage(limit: Int, before: UsageCursor?): List<UsageEntry>
+		
+		/**
+		 * 从数据库加载 Usage 数据，用于统计。
+		 *
+		 * 适用于从 [io.github.autotweaker.api.types.agent.AgentContextIndex.ids] 加载 Usage 数据。
+		 *
+		 * @see UsageEntry
+		 */
+		suspend fun loadUsage(ids: Set<UUID>): List<UsageEntry>
+		
+		/**
+		 * 从数据库获取合并后的 Usage 数据（[Usage.plus] 语义），无匹配项时返回 null。
+		 *
+		 * 三个字段均为 null 时返回历史的全部 Usage 数据之和。
+		 *
+		 * @param modelId 按模型过滤 Usage。
+		 */
+		suspend fun mergeUsage(modelId: UUID?, from: Instant?, to: Instant?): Usage?
+		
+		/**
+		 * 从数据库获取合并后的 Usage 数据（[Usage.plus] 语义），无匹配项时返回 null。
+		 *
+		 * 适用于从 [io.github.autotweaker.api.types.agent.AgentContextIndex.ids] 统计 Usage 而无需加载消息内容。
+		 */
+		suspend fun mergeUsage(ids: Set<UUID>): Usage?
 	}
 	
 	/**

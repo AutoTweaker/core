@@ -99,6 +99,7 @@ class AgentContextBuilder(
 			id = id,
 			timestamp = timestamp,
 			content = content,
+			model = modelId,
 			usage = usage
 		).add()
 	

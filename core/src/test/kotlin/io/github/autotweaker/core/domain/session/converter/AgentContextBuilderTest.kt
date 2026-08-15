@@ -102,7 +102,7 @@ class AgentContextBuilderTest {
 			compactedRounds = null,
 			rounds = listOf(completedRound(user(content = "compacted question"))),
 			summarizedMessage = RuntimeContext.SummarizedMessage(
-				UUID.randomUUID(), Clock.System.now(), "compacted summary", null
+				UUID.randomUUID(), Clock.System.now(), "compacted summary", UUID.randomUUID(), null
 			),
 		),
 		historyRounds = listOf(completedRound()),
@@ -264,6 +264,7 @@ class AgentContextBuilderTest {
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
 				content = "summary $i",
+				model = UUID.randomUUID(),
 				usage = null,
 			)
 		}

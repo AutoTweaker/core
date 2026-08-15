@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.agent.CompactOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
@@ -68,7 +69,7 @@ class CompactService(
 		) + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
 		
 		var attempt = 0
-		var finalResult: Pair<String, Usage?>?
+		var finalResult: SummarizedMessage?
 		do {
 			finalResult = runCompactRequest(
 				model, processedMessages, thinkingEnabled
@@ -92,26 +93,19 @@ class CompactService(
 		
 		log.info(
 			"Completed compact  agentId={}  roundCount={}  attempts={}  summaryLength={}",
-			agentId, rounds.size, attempt, finalResult.first.length
+			agentId, rounds.size, attempt, finalResult.content.length
 		)
 		
-		val compactMsg = SummarizedMessage(
-			id = UUID.randomUUID(),
-			timestamp = Clock.System.now(),
-			content = finalResult.first,
-			usage = finalResult.second,
-		)
-		
-		ctx.applyCompact(compactMsg, rounds)
+		ctx.applyCompact(finalResult, rounds)
 	}
 	
 	private suspend fun runCompactRequest(
 		model: AgentModel,
 		messages: List<ChatMessage>,
 		thinkingEnabled: Boolean,
-	): Pair<String, Usage?>? {
+	): SummarizedMessage? {
 		var streamContent = ""
-		var lastResult: ChatMessage.AssistantMessage? = null
+		var lastResult: Pair<UUID, ChatMessage.AssistantMessage>? = null
 		var lastUsage: Usage? = null
 		trace.catching {
 			val results = ResilientChat.execute(
@@ -143,7 +137,7 @@ class CompactService(
 					is ChatResult.Assembled -> {
 						result.usage?.let { lastUsage = it }
 						val assistantMsg = result.message as? ChatMessage.AssistantMessage
-						assistantMsg?.let { lastResult = it }
+						assistantMsg?.let { lastResult = resilientResult.model to it }
 					}
 				}
 			}
@@ -155,7 +149,7 @@ class CompactService(
 			return null
 		}
 		
-		val extracted = lastResult?.content?.extractSummary()
+		val extracted = lastResult?.second?.content?.extractSummary()
 		val minSummaryLength = CompactSettings.MinSummaryLength().get()
 		val valid = extracted?.let { it.length >= minSummaryLength } ?: false
 		
@@ -170,10 +164,25 @@ class CompactService(
 				)
 			
 			)
-			return extracted to lastUsage
+			return SummarizedMessage(
+				id = UUID.randomUUID(),
+				timestamp = lastResult.second.createdAt,
+				content = extracted,
+				modelId = lastResult.first,
+				usage = lastUsage
+			)
 		} else {
 			log.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted?.length ?: 0)
-			lastUsage?.let { onOutput(RuntimeOutput.UsageConsumed(Clock.System.now(), it)) }
+			if (lastUsage != null && lastResult != null)
+				onOutput(
+					RuntimeOutput.UsageConsumed(
+						UsageEntry(
+							modelId = lastResult.first,
+							timestamp = lastResult.second.createdAt,
+							usage = lastUsage
+						)
+					)
+				)
 			onOutput(
 				RuntimeOutput.Compact(
 					CompactOutput(
@@ -280,7 +289,7 @@ class CompactService(
 	): String = if (content.length > maxChars)
 		summarizeMessage(content, prompt, model, thinking).also {
 			it.second?.let { usage ->
-				onOutput(RuntimeOutput.UsageConsumed(Clock.System.now(), usage))
+				onOutput(RuntimeOutput.UsageConsumed(usage))
 			}
 		}.first
 	else content

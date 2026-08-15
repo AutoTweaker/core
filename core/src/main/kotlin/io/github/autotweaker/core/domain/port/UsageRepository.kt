@@ -26,6 +26,8 @@ import kotlin.time.Instant
 
 interface UsageRepository {
 	suspend fun save(usages: List<UsageEntry>)
+	suspend fun load(ids: Set<UUID>): List<UsageEntry>
 	suspend fun load(limit: Int, before: UsageCursor?): List<UsageEntry>
-	suspend fun summarize(modelId: UUID?, from: Instant?, to: Instant?): Usage
+	suspend fun summarize(ids: Set<UUID>): Usage?
+	suspend fun summarize(modelId: UUID?, from: Instant?, to: Instant?): Usage?
 }

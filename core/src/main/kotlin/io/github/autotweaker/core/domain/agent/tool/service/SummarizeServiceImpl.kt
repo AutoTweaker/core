@@ -22,7 +22,6 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
-import kotlin.time.Clock
 
 class SummarizeServiceImpl(
 	private val model: AgentModel,
@@ -35,7 +34,7 @@ class SummarizeServiceImpl(
 			model = model,
 			thinkingEnabled = false,
 		)
-		usage?.let { onOutput(RuntimeOutput.UsageConsumed(Clock.System.now(), it)) }
+		usage?.let { onOutput(RuntimeOutput.UsageConsumed(it)) }
 		return result
 	}
 }

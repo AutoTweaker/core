@@ -164,6 +164,7 @@ class AgentChatRequestExtTest {
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
 				content = "previous summary",
+				modelId = UUID.randomUUID(),
 				usage = null,
 			)
 		)
@@ -192,6 +193,7 @@ class AgentChatRequestExtTest {
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
 				content = "compacted summary of old rounds",
+				modelId = UUID.randomUUID(),
 				usage = null,
 			)
 		)

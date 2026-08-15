@@ -38,6 +38,7 @@ data class RuntimeContext(
 		val id: UUID,
 		val timestamp: Instant,
 		val content: String,
+		val modelId: UUID,
 		val usage: Usage?,
 	)
 	

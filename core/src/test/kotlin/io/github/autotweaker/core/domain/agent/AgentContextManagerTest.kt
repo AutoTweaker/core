@@ -356,6 +356,7 @@ class AgentContextManagerTest {
 			id = UUID.randomUUID(),
 			timestamp = Clock.System.now(),
 			content = "summary",
+			modelId = UUID.randomUUID(),
 			usage = null,
 		)
 		
@@ -376,7 +377,7 @@ class AgentContextManagerTest {
 		
 		assertFailsWith<IllegalStateException> {
 			manager.applyCompact(
-				RuntimeContext.SummarizedMessage(UUID.randomUUID(), Clock.System.now(), "s", null),
+				RuntimeContext.SummarizedMessage(UUID.randomUUID(), Clock.System.now(), "s", UUID.randomUUID(), null),
 				listOf(foreign),
 			)
 		}
@@ -386,7 +387,7 @@ class AgentContextManagerTest {
 	fun `applyCompact without history fails`() = runTest {
 		val manager = ctx()
 		val summarized = RuntimeContext.SummarizedMessage(
-			UUID.randomUUID(), Clock.System.now(), "s", null
+			UUID.randomUUID(), Clock.System.now(), "s", UUID.randomUUID(), null
 		)
 		
 		assertFailsWith<IllegalArgumentException> { manager.applyCompact(summarized, emptyList()) }

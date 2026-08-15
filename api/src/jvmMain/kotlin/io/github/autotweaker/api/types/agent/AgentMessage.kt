@@ -19,7 +19,6 @@
 package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -44,7 +43,6 @@ sealed class AgentMessage {
 	/**
 	 * 消息时间戳，每种消息都有。
 	 */
-	@Serializable(with = InstantLongSerializer::class)
 	abstract val timestamp: Instant
 	
 	/**
@@ -54,7 +52,6 @@ sealed class AgentMessage {
 	data class User(
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
-		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
 		/**
 		 * 用户消息的内容，也可能包含系统注入。
@@ -71,7 +68,6 @@ sealed class AgentMessage {
 	data class Assistant(
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
-		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
 		/**
 		 * LLM 思维链。
@@ -109,7 +105,6 @@ sealed class AgentMessage {
 		data class Call(
 			@Serializable(with = UuidSerializer::class)
 			override val id: UUID,
-			@Serializable(with = InstantLongSerializer::class)
 			override val timestamp: Instant,
 			override val callId: String,
 			/**
@@ -161,7 +156,6 @@ sealed class AgentMessage {
 		data class Result(
 			@Serializable(with = UuidSerializer::class)
 			override val id: UUID,
-			@Serializable(with = InstantLongSerializer::class)
 			override val timestamp: Instant,
 			override val callId: String,
 			/**
@@ -192,12 +186,16 @@ sealed class AgentMessage {
 	data class Compact(
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
-		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
 		/**
 		 * 上下文压缩的结果，不同于 [AgentOutput.Compact]，这里没有 XML 标签，是纯净的总结内容。
 		 */
 		val content: String,
+		/**
+		 * 生成 [content] 的模型。
+		 */
+		@Serializable(with = UuidSerializer::class)
+		val model: UUID,
 		/**
 		 * 上下文压缩的用量信息。
 		 */
@@ -207,14 +205,15 @@ sealed class AgentMessage {
 	/**
 	 * 用于跟踪不属于任何 [AgentMessage] 的 LLM 开销，例如 Agent 调用的工具调用了 LLM，或最终失败的上下文压缩（不会产生 [AgentMessage.Compact] 来跟踪开销）。
 	 *
-	 * 这并非能够索引所有类型的未跟踪开销，例如 [io.github.autotweaker.api.adapter.CoreAPI.chat] 就会直接存储到全局的 Usage 跟踪器。
+	 * 这并非能够索引所有类型的未跟踪开销，例如 [io.github.autotweaker.api.adapter.CoreAPI.chat] 就会直接存储到全局的 Usage 数据库。
 	 */
 	@Serializable
 	data class UsageRecord(
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
-		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
+		@Serializable(with = UuidSerializer::class)
+		val model: UUID,
 		val usage: Usage,
 	) : AgentMessage()
 }

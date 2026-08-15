@@ -31,17 +31,14 @@ import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.UsageCursor
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.port.ApiKeyRepository
-import io.github.autotweaker.core.domain.port.EnvRepository
-import io.github.autotweaker.core.domain.port.ModelConfigRepository
-import io.github.autotweaker.core.domain.port.ProviderRepository
+import io.github.autotweaker.core.domain.port.*
 import io.github.autotweaker.core.domain.session.SessionManager
-import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
@@ -62,6 +59,7 @@ class CoreAPIImpl(
 	private val envRepo: EnvRepository,
 	private val providerRepo: ProviderRepository,
 	private val modelRepo: ModelConfigRepository,
+	private val usageRepo: UsageRepository,
 	private val apiKeyRepo: ApiKeyRepository,
 	override val adapter: CoreAPI.AdapterAPI,
 	override val pathResolver: PathResolver,
@@ -109,9 +107,7 @@ class CoreAPIImpl(
 		override suspend fun setModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.set(model)
 		override suspend fun getModel(id: UUID) = modelRepo.get(id)
 		override suspend fun listModels() = modelRepo.list()
-		override suspend fun removeModel(id: UUID) {
-			modelRepo.remove(id)
-		}
+		override suspend fun removeModel(id: UUID) = modelRepo.remove(id)
 		
 		override fun getDefaultModel(): UUID? = ModelResolverImpl.getDefaultModel()
 		override suspend fun setDefaultModel(id: UUID?) = ModelResolverImpl.setDefaultModel(id)
@@ -127,7 +123,11 @@ class CoreAPIImpl(
 		override suspend fun loadData(ids: Set<UUID>) = SessionManager.loadData(ids)
 		override suspend fun loadMessages(ids: Set<UUID>) = SessionManager.loadMessages(ids)
 		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
-		override suspend fun getAllUsage() = UsageStore.getAll()
+		override suspend fun loadUsage(ids: Set<UUID>) = usageRepo.load(ids)
+		override suspend fun loadUsage(limit: Int, before: UsageCursor?) = usageRepo.load(limit, before)
+		override suspend fun mergeUsage(ids: Set<UUID>) = usageRepo.summarize(ids)
+		override suspend fun mergeUsage(modelId: UUID?, from: Instant?, to: Instant?) =
+			usageRepo.summarize(modelId, from, to)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {

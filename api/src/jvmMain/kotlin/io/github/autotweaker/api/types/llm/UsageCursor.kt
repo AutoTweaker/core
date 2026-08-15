@@ -21,7 +21,12 @@ package io.github.autotweaker.api.types.llm
 import java.util.*
 import kotlin.time.Instant
 
+/**
+ * 用于分页查询 Usage 数据的指针，[timestamp] 与 [id] 共同表示同一行数据。
+ */
 data class UsageCursor(
 	val timestamp: Instant,
 	val id: UUID,
 )
+
+fun UsageEntry.toCursor() = UsageCursor(timestamp, id)

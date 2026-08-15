@@ -59,6 +59,13 @@ object UsageRepositoryImpl : UsageRepository, Loggable {
 		}
 	}
 	
+	override suspend fun load(ids: Set<UUID>): List<UsageEntry> =
+		db.transaction {
+			UsageTable.selectAll()
+				.where { UsageTable.id inList ids }
+				.map { it.toUsageEntry() }
+		}
+	
 	override suspend fun load(limit: Int, before: UsageCursor?): List<UsageEntry> =
 		db.transaction {
 			UsageTable.selectAll()
@@ -71,29 +78,35 @@ object UsageRepositoryImpl : UsageRepository, Loggable {
 				.map { it.toUsageEntry() }
 		}
 	
-	override suspend fun summarize(modelId: UUID?, from: Instant?, to: Instant?): Usage =
-		db.transaction {
-			val prompt = UsageTable.promptTokens.sum()
-			val completion = UsageTable.completionTokens.sum()
-			val reasoning = UsageTable.reasoningTokens.sum()
-			val cacheHit = UsageTable.cacheHitTokens.sum()
-			val image = UsageTable.imageTokens.sum()
-			val row = UsageTable.select(prompt, completion, reasoning, cacheHit, image)
-				.where {
-					buildList {
-						modelId?.let { add(UsageTable.modelId eq it) }
-						from?.let { add(UsageTable.timestamp greaterEq it) }
-						to?.let { add(UsageTable.timestamp lessEq it) }
-					}.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
-				}.single()
-			Usage(
-				promptTokens = row[prompt] ?: 0,
-				completionTokens = row[completion] ?: 0,
-				reasoningTokens = row[reasoning],
-				cacheHitTokens = row[cacheHit],
-				imageTokens = row[image],
-			)
-		}
+	override suspend fun summarize(ids: Set<UUID>): Usage? = aggregate(UsageTable.id inList ids)
+	
+	override suspend fun summarize(modelId: UUID?, from: Instant?, to: Instant?): Usage? = aggregate(
+		buildList {
+			modelId?.let { add(UsageTable.modelId eq it) }
+			from?.let { add(UsageTable.timestamp greaterEq it) }
+			to?.let { add(UsageTable.timestamp lessEq it) }
+		}.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
+	)
+	
+	private suspend fun aggregate(condition: Op<Boolean>): Usage? = db.transaction {
+		val prompt = UsageTable.promptTokens.sum()
+		val completion = UsageTable.completionTokens.sum()
+		val reasoning = UsageTable.reasoningTokens.sum()
+		val cacheHit = UsageTable.cacheHitTokens.sum()
+		val image = UsageTable.imageTokens.sum()
+		val count = UsageTable.id.count()
+		val row = UsageTable.select(prompt, completion, reasoning, cacheHit, image, count)
+			.where { condition }
+			.single()
+		if (row[count] == 0L) return@transaction null
+		Usage(
+			promptTokens = row[prompt] ?: 0,
+			completionTokens = row[completion] ?: 0,
+			reasoningTokens = row[reasoning],
+			cacheHitTokens = row[cacheHit],
+			imageTokens = row[image],
+		)
+	}
 	
 	private fun ResultRow.toUsageEntry(): UsageEntry = UsageEntry(
 		id = this[UsageTable.id],

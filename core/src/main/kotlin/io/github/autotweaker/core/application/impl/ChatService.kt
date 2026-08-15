@@ -23,25 +23,24 @@ import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.session.UsageStore
+import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.coroutines.flow.*
-import java.util.*
-import kotlin.time.Clock
 
 object ChatService : Loggable, Traceable {
 	private lateinit var modelRepo: ModelResolver
-	private lateinit var sessionRepository: SessionRepository
+	private lateinit var sessionRepo: SessionRepository
+	private lateinit var usageRepo: UsageRepository
 	
-	fun init(modelRepo: ModelResolver, sessionRepository: SessionRepository) {
-		this.modelRepo = modelRepo
-		this.sessionRepository = sessionRepository
+	fun init(model: ModelResolver, session: SessionRepository) {
+		modelRepo = model
+		sessionRepo = session
 	}
 	
 	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = flow {
@@ -55,7 +54,7 @@ object ChatService : Loggable, Traceable {
 			fallbacks?.size ?: 0,
 			request.stream
 		)
-		var lastUsage: Usage? = null
+		var lastUsage: UsageEntry? = null
 		emitAll(
 			ResilientChat.execute(
 				model = model,
@@ -66,23 +65,25 @@ object ChatService : Loggable, Traceable {
 				stream = request.stream,
 				thinking = request.thinking,
 				timeout = request.timeout
-			).onEach { result ->
-				result.result.usage?.let { lastUsage = it }
+			).onEach { chunk ->
+				val result = chunk.result as? ChatResult.Assembled ?: return@onEach
+				result.usage?.let {
+					lastUsage = UsageEntry(
+						modelId = chunk.model,
+						timestamp = result.message.createdAt,
+						usage = it
+					)
+				}
 			}.onCompletion { cause ->
-				if (cause == null) {
-					lastUsage?.let { usage ->
-						val record = AgentMessage.UsageRecord(
-							UUID.randomUUID(), Clock.System.now(), usage
-						)
+				if (cause == null)
+					lastUsage?.let {
 						trace.catching {
-							sessionRepository.saveMessages(listOf(record))
-							UsageStore.collect(listOf(record))
+							usageRepo.save(listOf(it))
 						}.rethrowCancellation()
 							.onFailure { e ->
-								log.error("Failed usage record save  recordId={}", record.id, e)
+								log.error("Failed usage record save  recordId={}", it.id, e)
 							}
 					}
-				}
 			})
 	}
 }

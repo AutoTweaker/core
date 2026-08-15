@@ -36,6 +36,7 @@ import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,7 +47,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 class Session(
 	data: SessionData,
-	private val store: SessionRepository,
+	private val sessionRepo: SessionRepository,
+	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: Path,
 ) : Loggable {
@@ -130,7 +132,7 @@ class Session(
 	}
 	
 	private suspend fun restoreOrNull(id: UUID): AgentBridge? = lock.withLock {
-		store.loadAgent(id)?.let {
+		sessionRepo.loadAgent(id)?.let {
 			createAgent(it)
 		}
 	}
@@ -154,7 +156,8 @@ class Session(
 		data: AgentData,
 	) = AgentBridge(
 		host = getHost(data.id),
-		store = store,
+		sessionRepo = sessionRepo,
+		usageRepo = usageRepo,
 		resolveModel = resolveModel,
 		workspace = workspace
 	).init(data).also { bridges[data.id] = it }

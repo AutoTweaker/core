@@ -158,6 +158,7 @@ class RuntimeContextBuilder(
 			id = id,
 			timestamp = it?.timestamp.orNow(),
 			content = it?.content.orEmpty(),
+			modelId = it?.model ?: UUID.randomUUID(),
 			usage = it?.usage
 		)
 	}

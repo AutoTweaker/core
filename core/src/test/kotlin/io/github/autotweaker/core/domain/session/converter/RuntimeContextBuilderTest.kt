@@ -243,6 +243,7 @@ class RuntimeContextBuilderTest {
 				id = UUID.randomUUID(),
 				timestamp = Instant.fromEpochMilliseconds(1000L * i),
 				content = "summary $i",
+				model = UUID.randomUUID(),
 				usage = null,
 			)
 		}

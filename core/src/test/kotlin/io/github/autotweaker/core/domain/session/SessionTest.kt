@@ -23,6 +23,7 @@ import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.port.UsageRepository
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Path
@@ -47,7 +48,8 @@ class SessionTest {
 			workspaceId = UUID.randomUUID(),
 			agentIndex = AgentIndex.new(),
 		),
-		store = mockk<SessionRepository>(),
+		sessionRepo = mockk<SessionRepository>(),
+		usageRepo = mockk<UsageRepository>(),
 		resolveModel = { mockk<Model>() },
 		workspace = Path.of("/tmp"),
 	)

@@ -41,6 +41,7 @@ import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
@@ -63,7 +64,7 @@ object Wiring : Loggable {
 		ChatService.init(
 			ModelResolverImpl, SessionRepositoryImpl
 		)
-		SessionManager.init(SessionRepositoryImpl, ModelResolverImpl, SecretManager)
+		SessionManager.init(SessionRepositoryImpl, UsageRepositoryImpl, ModelResolverImpl, SecretManager)
 		TruncationImpl.init(pathResolver, TemporaryStorageImpl)
 		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver, TemporaryStorageImpl)
 		
@@ -74,6 +75,7 @@ object Wiring : Loggable {
 		envRepo = EnvConfigAPI,
 		providerRepo = ProviderConfigAPI,
 		modelRepo = ModelConfigAPI,
+		usageRepo = UsageRepositoryImpl,
 		apiKeyRepo = ApiKeyConfigAPI,
 		adapter = adapterAPI,
 		pathResolver = pathResolver,

@@ -21,8 +21,15 @@ package io.github.autotweaker.api.types.llm
 import java.util.*
 import kotlin.time.Instant
 
+/**
+ * 表示 Usage 数据库中的一条记录。
+ *
+ * @param id 产生这条 Usage 的消息 id，除非 Usage 不属于任何会话中的消息。
+ * @param modelId 产生这条 Usage 的模型 id，模型可能已被删除。
+ * @param timestamp 产生这条 Usage 的时间戳。
+ */
 data class UsageEntry(
-	val id: UUID,
+	val id: UUID = UUID.randomUUID(),
 	val modelId: UUID,
 	val timestamp: Instant,
 	val usage: Usage,
