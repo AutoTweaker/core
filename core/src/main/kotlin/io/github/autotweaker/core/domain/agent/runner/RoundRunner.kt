@@ -291,8 +291,8 @@ class RoundRunner(
 				?: context.currentRound?.turns?.lastOrNull()?.assistantMessage
 				?: context.historyRounds?.lastOrNull()?.finalAssistantMessage
 		} ?: return@withLock
-		val usage = assistantMessage.usageSnapshot?.usage ?: return@withLock
-		val contextWindow = assistantMessage.usageSnapshot.model.contextWindow
+		val usage = assistantMessage.usage ?: return@withLock
+		val contextWindow = currentModel.model.modelInfo.contextWindow
 		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
 		
 		val contextUsageThreshold = config?.compactContextUsage

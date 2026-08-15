@@ -72,7 +72,7 @@ class ApprovalProcessorTest {
 		content = "calling tools",
 		modelId = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	private fun pendingCall(callId: String) = RuntimeContext.CurrentRound.PendingToolCall(

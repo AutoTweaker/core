@@ -114,7 +114,7 @@ class RoundRunnerTest {
 		content = content,
 		modelId = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	private fun done(

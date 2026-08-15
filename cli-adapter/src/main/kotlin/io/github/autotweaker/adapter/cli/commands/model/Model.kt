@@ -23,11 +23,13 @@ import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
-import io.github.autotweaker.api.*
+import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.SPACE
+import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
 import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.Price
 import java.util.*
 
 @AutoService(Command::class)
@@ -147,48 +149,6 @@ class Model : Command, Traceable {
 			out(ModelI18n.ContextWindow(), formatUnit(info.contextWindow))
 			out(ModelI18n.MaxOutput(), formatUnit(info.maxOutputTokens))
 			out(ModelI18n.ModelFeature(), feature)
-			printTokenPrice(info.price)
-		}
-		
-		private suspend fun Console.printTokenPrice(price: ModelData.TokenPrice) {
-			suspend fun formatPrice(price: List<ModelData.TokenPrice.PriceTier>) {
-				price.forEach {
-					val from = it.fromTokens
-					val to = it.toTokens
-					out(
-						INDENT + when {
-							from == 0 && to == null -> buildPrice(it.price, it.cachedPrice)
-							to == null -> "[${formatUnit(from)}+] ${
-								buildPrice(
-									it.price, it.cachedPrice
-								)
-							}"
-							
-							else -> "[${formatUnit(from)} - ${formatUnit(to)}] ${
-								buildPrice(
-									it.price, it.cachedPrice
-								)
-							}"
-						}
-					)
-				}
-			}
-			
-			out(ModelI18n.InputPrice())
-			formatPrice(price.inputPrice)
-			out(ModelI18n.OutputPrice())
-			formatPrice(price.outputPrice)
-		}
-		
-		
-		private fun buildPrice(price: Price, cached: Price?): String {
-			fun formatPrice(price: Price) =
-				"${price.amount.toPlainString()} ${price.currency} / ${formatUnit(price.tokenUnit)} tokens"
-			
-			if (cached == null) return formatPrice(price)
-			return "${formatPrice(price)} ${i18n(ModelI18n.Or())} ${formatPrice(cached)} ${
-				i18n(ModelI18n.CachedPrice())
-			}"
 		}
 		
 		private fun formatUnit(number: Int): String = when {

@@ -20,12 +20,10 @@ package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.types.Url.Companion.toUrl
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -37,7 +35,6 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
-import java.math.BigDecimal
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.test.*
@@ -69,10 +66,6 @@ class ModelResolverImplTest {
 		modelId = "test-model",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
-		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000))),
-			outputPrice = listOf(PriceTier(0, null, Price(BigDecimal("0.02"), Currency.getInstance("USD"), 1_000_000))),
-		),
 		supportsStreaming = true,
 		supportsToolCalls = true,
 		supportsReasoning = true,

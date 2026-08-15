@@ -19,12 +19,10 @@
 package io.github.autotweaker.core.domain.model
 
 import io.github.autotweaker.api.types.Url.Companion.toUrl
-import io.github.autotweaker.api.types.llm.ModelData.*
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.llm.Price
+import io.github.autotweaker.api.types.llm.ModelData.Config
+import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
-import java.math.BigDecimal
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,15 +32,10 @@ import kotlin.test.assertTrue
 class ModelTest {
 	
 	private val testUrl = "https://api.test.com/v1".toUrl()
-	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
 		modelId = "test-model-id",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
-		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, testPrice)),
-			outputPrice = listOf(PriceTier(0, null, testPrice))
-		),
 		supportsStreaming = true,
 		supportsToolCalls = true,
 		supportsReasoning = true,

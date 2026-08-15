@@ -33,7 +33,10 @@ import io.github.autotweaker.api.types.exception.*
 import io.github.autotweaker.api.types.exception.duplicate.*
 import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.CoreLlmRequest
+import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.SessionData
@@ -82,7 +85,8 @@ interface CoreAPI {
 	/**
 	 * 调用 LLM，模型、提供商必须来自配置的模型和提供商。
 	 *
-	 * @return LLM 返回的流式数据（若有），请求结束后必然返回一次 [ChatResult.Assembled]，无论成功与失败（除非抛出异常）。
+	 * 请求结束后必然返回一次 [ChatResult.Assembled]。由于重试机制，即使请求仍未结束也有可能在中途返回失败的 [ChatResult.Assembled]。
+	 *
 	 * @throws ModelNotFoundException
 	 * @throws ProviderNotFoundException
 	 * @throws SecretStoreLockedException
@@ -502,25 +506,11 @@ interface CoreAPI {
 		suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage>
 		
 		/**
-		 * 获取一个消息的 LLM 用量信息。
-		 *
-		 * @see UsageSnapshot
-		 */
-		suspend fun getUsageSnapshot(id: UUID): UsageSnapshot?
-		
-		/**
 		 * 获取历史的全部 Usage。
 		 *
 		 * @return key 为消息 id，value 为 [Usage]，可以通过 [loadMessages] 反查对应消息。
 		 */
 		suspend fun getAllUsage(): Map<UUID, Usage>
-		
-		/**
-		 * 获取 [Usage] 对应的模型信息，用于计算价格花费。
-		 *
-		 * 类似 [UsageSnapshot]，为产生花费时的快照。
-		 */
-		suspend fun modelOfUsage(id: UUID): ModelData.ModelInfo?
 	}
 	
 	/**

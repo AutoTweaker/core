@@ -21,12 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.llm.Price
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every
@@ -34,7 +29,6 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
-import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
@@ -47,23 +41,6 @@ class UsageStoreTest {
 		}
 	}
 	
-	private val modelInfo = ModelInfo(
-		modelId = "usage-model",
-		contextWindow = 128000,
-		maxOutputTokens = 4096,
-		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000))),
-			outputPrice = listOf(PriceTier(0, null, Price(BigDecimal("0.02"), Currency.getInstance("USD"), 1_000_000))),
-		),
-		supportsStreaming = true,
-		supportsToolCalls = true,
-		supportsReasoning = true,
-		supportsImage = false,
-		supportsJsonOutput = true,
-	)
-	
-	private fun snapshot(usage: Usage = Usage(100, 50, 50)) = UsageSnapshot(usage, modelInfo)
-	
 	private fun assistant(id: UUID = UUID.randomUUID(), usage: Usage? = Usage(100, 50, 50)) =
 		AgentMessage.Assistant(
 			id = id,
@@ -71,20 +48,20 @@ class UsageStoreTest {
 			reasoning = null,
 			content = "reply",
 			model = UUID.randomUUID(),
-			usageSnapshot = usage?.let { snapshot(it) },
+			usage = usage,
 		)
 	
 	private fun compact(id: UUID = UUID.randomUUID()) = AgentMessage.Compact(
 		id = id,
 		timestamp = Clock.System.now(),
 		content = "summary",
-		snapshots = mapOf(UUID.randomUUID() to snapshot(Usage(10, 5, 5))),
+		usage = Usage(10, 5, 5),
 	)
 	
 	private fun usageRecord(id: UUID = UUID.randomUUID()) = AgentMessage.UsageRecord(
 		id = id,
 		timestamp = Clock.System.now(),
-		snapshot = snapshot(Usage(7, 3, 4)),
+		usage = Usage(7, 3, 4),
 	)
 	
 	private fun user(id: UUID = UUID.randomUUID()) = AgentMessage.User(
@@ -110,7 +87,7 @@ class UsageStoreTest {
 	}
 	
 	@Test
-	fun `collect records assistant usage snapshots`() = runTest {
+	fun `collect records assistant usage`() = runTest {
 		val id = UUID.randomUUID()
 		
 		UsageStore.collect(listOf(assistant(id)))
@@ -119,13 +96,12 @@ class UsageStoreTest {
 	}
 	
 	@Test
-	fun `collect records compact snapshots`() = runTest {
+	fun `collect records compact usage`() = runTest {
 		val compactMsg = compact()
 		
 		UsageStore.collect(listOf(compactMsg))
 		
-		val snapshot = compactMsg.snapshots!!.keys.single()
-		assertEquals(Usage(10, 5, 5), UsageStore.getAll()[snapshot])
+		assertEquals(Usage(10, 5, 5), UsageStore.getAll()[compactMsg.id])
 	}
 	
 	@Test
@@ -147,7 +123,7 @@ class UsageStoreTest {
 	}
 	
 	@Test
-	fun `duplicate message id recorded once`() = runTest {
+	fun `duplicate message id uses latest usage`() = runTest {
 		val id = UUID.randomUUID()
 		
 		UsageStore.collect(listOf(assistant(id)))
@@ -155,33 +131,12 @@ class UsageStoreTest {
 		
 		val usage = UsageStore.getAll()[id]
 		assertNotNull(usage)
-		assertEquals(Usage(100, 50, 50), usage)
+		assertEquals(Usage(999, 1, 1), usage)
 	}
 	
 	@Test
-	fun `getSnapshot returns usage with model info`() = runTest {
-		val id = UUID.randomUUID()
-		UsageStore.collect(listOf(assistant(id)))
-		
-		val snapshot = UsageStore.getSnapshot(id)
-		
-		assertNotNull(snapshot)
-		assertEquals(Usage(100, 50, 50), snapshot.usage)
-		assertEquals(modelInfo, snapshot.model)
-	}
-	
-	@Test
-	fun `modelOf returns model info`() = runTest {
-		val id = UUID.randomUUID()
-		UsageStore.collect(listOf(assistant(id)))
-		
-		val expected = modelInfo
-		assertEquals(expected, UsageStore.modelOf(id))
-	}
-	
-	@Test
-	fun `getSnapshot for unknown id returns null`() = runTest {
-		assertNull(UsageStore.getSnapshot(UUID.randomUUID()))
+	fun `getAll for unknown id returns null`() = runTest {
+		assertNull(UsageStore.getAll()[UUID.randomUUID()])
 	}
 	
 	private fun agentTool() = AgentMessage.Tool.Call(

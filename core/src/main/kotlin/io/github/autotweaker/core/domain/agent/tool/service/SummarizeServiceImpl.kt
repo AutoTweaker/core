@@ -29,13 +29,13 @@ class SummarizeServiceImpl(
 	private val onOutput: (RuntimeOutput) -> Unit,
 ) : SummarizeService {
 	override suspend fun invoke(content: String, prompt: String): String {
-		val (result, snapshot) = SummaryService.summarizeMessage(
+		val (result, usage) = SummaryService.summarizeMessage(
 			content = content,
 			prompt = prompt,
 			model = model,
 			thinkingEnabled = false,
 		)
-		snapshot?.let { onOutput(RuntimeOutput.UsageConsumed(Clock.System.now(), it.usage, it.model)) }
+		usage?.let { onOutput(RuntimeOutput.UsageConsumed(Clock.System.now(), it)) }
 		return result
 	}
 }

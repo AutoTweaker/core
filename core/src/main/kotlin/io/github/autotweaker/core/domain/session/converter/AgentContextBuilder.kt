@@ -91,7 +91,7 @@ class AgentContextBuilder(
 			reasoning = reasoning,
 			content = content,
 			model = modelId,
-			usageSnapshot = usageSnapshot
+			usage = usage
 		).add()
 	
 	private fun RuntimeContext.SummarizedMessage.id(): UUID =
@@ -99,7 +99,7 @@ class AgentContextBuilder(
 			id = id,
 			timestamp = timestamp,
 			content = content,
-			snapshots = snapshots
+			usage = usage
 		).add()
 	
 	private fun RuntimeContext.Message.Tool.call(): UUID =

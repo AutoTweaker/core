@@ -26,8 +26,6 @@ import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
 import io.ktor.util.reflect.*
 import kotlinx.serialization.serializer
-import java.math.BigDecimal
-import java.util.*
 
 @AutoService(LlmClient::class)
 class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
@@ -41,30 +39,6 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				modelId = "deepseek-v4-flash",
 				contextWindow = 1_000_000,
 				maxOutputTokens = 384_000,
-				price = ModelData.TokenPrice(
-					inputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0, price = Price(
-								amount = BigDecimal("1"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							), cachedPrice = Price(
-								amount = BigDecimal("0.02"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							)
-						)
-					),
-					outputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0, price = Price(
-								amount = BigDecimal("2"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							)
-						)
-					),
-				),
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
@@ -74,30 +48,6 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				modelId = "deepseek-v4-pro",
 				contextWindow = 1_000_000,
 				maxOutputTokens = 384_000,
-				price = ModelData.TokenPrice(
-					inputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0, price = Price(
-								amount = BigDecimal("3"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							), cachedPrice = Price(
-								amount = BigDecimal("0.025"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							)
-						)
-					),
-					outputPrice = listOf(
-						ModelData.TokenPrice.PriceTier(
-							fromTokens = 0, price = Price(
-								amount = BigDecimal("6"),
-								currency = Currency.getInstance(Locale.CHINA),
-								tokenUnit = 1_000_000
-							)
-						)
-					),
-				),
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,

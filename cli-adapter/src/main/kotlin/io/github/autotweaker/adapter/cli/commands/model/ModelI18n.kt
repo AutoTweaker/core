@@ -74,50 +74,16 @@ object ModelI18n {
 	class PromptMaxOutputTokens : I18nBase(zh("请输入模型的最大输出长度 $TOKENS:"))
 	
 	@AutoService(I18nDef::class)
-	class PromptSetInputPrice : I18nBase(zh("是否开始设置模型输入价格 $YON:"))
-	
-	@AutoService(I18nDef::class)
-	class PromptSetOutputPrice : I18nBase(zh("是否开始设置模型输出价格 $YON:"))
-	
-	@AutoService(I18nDef::class)
-	class PromptTieredPrice : I18nBase(zh("是否为阶梯计费 $YON:"))
-	
-	@AutoService(I18nDef::class)
-	class PromptSetCachedPrice : I18nBase(zh("是否设置命中缓存的价格 $YON:"))
-	
-	@AutoService(I18nDef::class)
-	class PromptSetPrice : I18nBase(zh("是否要继续添加一个价格区间 $YON:"))
-	
-	@AutoService(I18nDef::class)
 	class PromptSetFeature : I18nBase(zh("模型是否支持[%s] $YON:"))
 	
 	@AutoService(I18nDef::class)
 	class InvalidValue : I18nBase(zh("无效的值"))
 	
 	@AutoService(I18nDef::class)
-	class PromptPriceRange : I18nBase(
-		zh("输入价格区间，格式为 [起始 $TOKENS + '-' + 结束 $TOKENS]，仅输入一个数将视为最后一个区间的开始值\n区间:"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class PromptTokenUnit : I18nBase(
-		zh("价格单位 (每多少 tokens)，例：每百万 tokens 10 美元，单位为 '1,000,000'\n单位:"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class ParamResetDefault : I18nBase(zh("重置默认模型"))
 	
 	@AutoService(I18nDef::class)
 	class ParamGetDefault : I18nBase(zh("获取当前默认模型"))
-	
-	@AutoService(I18nDef::class)
-	class RemoveDefaultError : I18nBase(zh("不能删除默认模型"))
-	
-	@AutoService(I18nDef::class)
-	class PromptPriceCurrency : I18nBase(zh("货币代码，必须为三位英文字母:"))
-	
-	@AutoService(I18nDef::class)
-	class PromptPrice : I18nBase(zh("输入价格 (%s):"))
 	
 	@AutoService(I18nDef::class)
 	class Unknown : I18nBase(zh("未知"))
@@ -154,30 +120,6 @@ object ModelI18n {
 	class ModelFeature : I18nBase(
 		en("Features: %s"),
 		zh("能力: %s"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class InputPrice : I18nBase(
-		en("Input price:"),
-		zh("输入价格:"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class CachedPrice : I18nBase(
-		en("(cached)"),
-		zh("(命中缓存)"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class OutputPrice : I18nBase(
-		en("Output price:"),
-		zh("输出价格:"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class Or : I18nBase(
-		en("or"),
-		zh("或"),
 	)
 	
 	const val TOKENS = "(tokens)"

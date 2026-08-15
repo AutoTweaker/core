@@ -23,9 +23,8 @@ import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ModelData.*
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.llm.Price
+import io.github.autotweaker.api.types.llm.ModelData.Config
+import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
@@ -35,7 +34,6 @@ import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.model.Provider
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
-import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
@@ -48,15 +46,10 @@ class AgentChatRequestExtTest {
 	}
 	
 	private val testUrl = "https://api.test.com/v1".toUrl()
-	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	private val testModelInfo = ModelInfo(
 		modelId = "test-model-id",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
-		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, testPrice)),
-			outputPrice = listOf(PriceTier(0, null, testPrice))
-		),
 		supportsStreaming = true,
 		supportsToolCalls = true,
 		supportsReasoning = true,
@@ -85,7 +78,7 @@ class AgentChatRequestExtTest {
 		content = content,
 		modelId = testModel.id,
 		timestamp = Clock.System.now(),
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	private fun toolResult() =
@@ -171,7 +164,7 @@ class AgentChatRequestExtTest {
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
 				content = "previous summary",
-				snapshots = null,
+				usage = null,
 			)
 		)
 		val ctx = RuntimeContext(null, null, compactedRounds, null, currentRound(user))
@@ -199,7 +192,7 @@ class AgentChatRequestExtTest {
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
 				content = "compacted summary of old rounds",
-				snapshots = null,
+				usage = null,
 			)
 		)
 		val ctx = RuntimeContext(

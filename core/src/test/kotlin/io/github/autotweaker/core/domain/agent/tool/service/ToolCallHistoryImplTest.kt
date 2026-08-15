@@ -86,7 +86,7 @@ class ToolCallHistoryImplTest {
 		content = "calling",
 		modelId = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	@Test

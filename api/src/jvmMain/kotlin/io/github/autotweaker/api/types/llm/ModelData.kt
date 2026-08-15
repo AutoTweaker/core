@@ -40,7 +40,6 @@ data class ModelData(
 		
 		val contextWindow: Int,
 		val maxOutputTokens: Int,
-		val price: TokenPrice,
 		
 		val supportsStreaming: Boolean,
 		val supportsToolCalls: Boolean,
@@ -52,41 +51,6 @@ data class ModelData(
 			require(modelId.isNotBlank()) { "modelId must not be blank" }
 			require(contextWindow > 0) { "contextWindow must be > 0, got $contextWindow" }
 			require(maxOutputTokens > 0) { "maxOutputTokens must be > 0, got $maxOutputTokens" }
-		}
-	}
-	
-	@Serializable
-	data class TokenPrice(
-		val inputPrice: List<PriceTier>,
-		val outputPrice: List<PriceTier>,
-	) {
-		init {
-			requireValidTiers(inputPrice, "inputPrice")
-			requireValidTiers(outputPrice, "outputPrice")
-		}
-		
-		companion object {
-			private fun requireValidTiers(tiers: List<PriceTier>, name: String) {
-				if (tiers.isEmpty()) return
-				val sorted = tiers.sortedBy { it.fromTokens }
-				require(sorted.first().fromTokens == 0) { "$name must start from 0, got fromTokens=${sorted.first().fromTokens}" }
-				require(sorted.last().toTokens == null) { "$name last tier must have no upper bound (toTokens=null)" }
-				sorted.zipWithNext().forEach { (prev, next) ->
-					require(prev.toTokens == next.fromTokens) {
-						"$name gap or overlap: tier ending at ${prev.toTokens} not connected to next tier starting at ${next.fromTokens}"
-					}
-				}
-			}
-		}
-		
-		@Serializable
-		data class PriceTier(
-			val fromTokens: Int, val toTokens: Int? = null, val price: Price, val cachedPrice: Price? = null
-		) {
-			init {
-				require(fromTokens >= 0) { "fromTokens must be >= 0, got $fromTokens" }
-				require(toTokens == null || toTokens > fromTokens) { "toTokens must be > fromTokens ($fromTokens), got $toTokens" }
-			}
 		}
 	}
 	

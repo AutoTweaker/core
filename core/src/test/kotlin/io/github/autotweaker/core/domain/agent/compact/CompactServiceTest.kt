@@ -82,7 +82,7 @@ class CompactServiceTest {
 					content = "answer",
 					modelId = UUID.randomUUID(),
 					timestamp = Clock.System.now(),
-					usageSnapshot = null,
+					usage = null,
 				),
 				emptyList(),
 				emptyList(),
@@ -181,7 +181,7 @@ class CompactServiceTest {
 	}
 	
 	@Test
-	fun `snapshots from llm are collected into summarized message`() = runTest {
+	fun `usage from llm is collected into summarized message`() = runTest {
 		mockkObject(ResilientChat)
 		val result = assembledResult("<summary>${longSummary()}</summary>", usage = Usage(100, 50, 50))
 		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns result
@@ -189,10 +189,8 @@ class CompactServiceTest {
 		
 		compactService().execute(model, manager)
 		
-		val snapshots = manager.context.value.compactedRounds?.summarizedMessage?.snapshots
-		assertNotNull(snapshots)
-		assertEquals(1, snapshots.size)
-		assertEquals(Usage(100, 50, 50), snapshots.values.single().usage)
+		val usage = manager.context.value.compactedRounds?.summarizedMessage?.usage
+		assertEquals(Usage(100, 50, 50), usage)
 	}
 	
 	// endregion

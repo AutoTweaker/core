@@ -54,7 +54,7 @@ class AgentContextManagerTest {
 		content = content,
 		modelId = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	private fun pendingCall(callId: String = "c1") = RuntimeContext.CurrentRound.PendingToolCall(
@@ -356,7 +356,7 @@ class AgentContextManagerTest {
 			id = UUID.randomUUID(),
 			timestamp = Clock.System.now(),
 			content = "summary",
-			snapshots = null,
+			usage = null,
 		)
 		
 		manager.applyCompact(summarized, history.take(1))

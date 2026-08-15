@@ -30,7 +30,6 @@ data class Usage(
 	@SerialName("i") val imageTokens: Int? = null,
 ) {
 	val totalTokens: Int get() = promptTokens + completionTokens
-	
 	val cacheMissTokens: Int get() = promptTokens - (cacheHitTokens ?: 0)
 	
 	operator fun plus(other: Usage): Usage = Usage(

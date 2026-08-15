@@ -54,7 +54,7 @@ class ToolMessageFactoryTest {
 		content = "calling tools",
 		modelId = UUID.randomUUID(),
 		timestamp = timestamp,
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	private fun result(

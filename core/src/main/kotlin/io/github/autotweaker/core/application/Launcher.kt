@@ -31,7 +31,6 @@ import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.application.Wiring.databaseStore
 import io.github.autotweaker.core.application.impl.DbDebugAPIImpl
 import io.github.autotweaker.core.domain.session.SessionManager
-import io.github.autotweaker.core.domain.session.UsageStore
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
@@ -137,8 +136,6 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed I18nServiceImpl shutdown") }
 		trace.catching { SessionManager.shutdown() }
 			.onFailure { log.warn("Failed SessionManager shutdown") }
-		trace.catching { UsageStore.shutdown() }
-			.onFailure { log.warn("Failed UsageStore shutdown") }
 		trace.catching { ContainerManager.stop() }
 			.onFailure { log.warn("Failed ContainerManager stop") }
 		trace.catching { TranslationManager.shutdown() }

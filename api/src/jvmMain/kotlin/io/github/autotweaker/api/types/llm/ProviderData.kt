@@ -33,6 +33,7 @@ data class ProviderData(
 	val errorHandlingRules: List<ErrorHandlingRule>
 ) {
 	init {
+		require(displayName.isNotBlank()) { "displayName must not be blank" }
 		val duplicateCodes = errorHandlingRules.groupBy { it.statusCode }.filter { it.value.size > 1 }.keys
 		require(duplicateCodes.isEmpty()) { "Duplicate errorHandlingRules status codes: $duplicateCodes" }
 	}

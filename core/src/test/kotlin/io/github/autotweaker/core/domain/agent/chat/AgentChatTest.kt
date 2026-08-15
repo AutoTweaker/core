@@ -20,9 +20,12 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.*
-import io.github.autotweaker.api.types.llm.ModelData.*
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.ModelData.Config
+import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -35,7 +38,6 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
 import kotlin.time.Clock
@@ -48,15 +50,11 @@ class AgentChatTest {
 	}
 	
 	private val testUrl = "https://api.test.com/v1".toUrl()
-	private val testPrice = Price(BigDecimal("0.01"), Currency.getInstance("USD"), 1_000_000)
 	
 	private val testModelInfo = ModelInfo(
 		modelId = "test-model",
 		contextWindow = 128000,
 		maxOutputTokens = 4096,
-		price = TokenPrice(
-			inputPrice = listOf(PriceTier(0, null, testPrice)), outputPrice = listOf(PriceTier(0, null, testPrice))
-		),
 		supportsStreaming = true,
 		supportsToolCalls = true,
 		supportsReasoning = true,
@@ -223,7 +221,7 @@ class AgentChatTest {
 	}
 	
 	@Test
-	fun `assembled message uses correct model info for usage snapshot`() = runTest {
+	fun `assembled message carries usage`() = runTest {
 		val now = Clock.System.now()
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.AssistantMessage("ok", now, null, null),
@@ -243,7 +241,7 @@ class AgentChatTest {
 		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
-		assertEquals(Usage(100, 50, 50), assembled.message.usageSnapshot?.usage)
+		assertEquals(Usage(100, 50, 50), assembled.message.usage)
 	}
 	
 	@Test

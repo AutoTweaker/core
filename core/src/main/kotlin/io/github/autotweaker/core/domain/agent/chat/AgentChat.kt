@@ -22,7 +22,6 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.Flow
@@ -43,11 +42,6 @@ object AgentChat : Loggable, I18nable {
 			request.model.thinking,
 			messages.size,
 		)
-		
-		val modelById = buildMap {
-			put(request.model.model.id, request.model.model)
-			request.model.fallback?.forEach { put(it.id, it) }
-		}
 		
 		val results = ResilientChat.execute(
 			model = request.model.model,
@@ -94,17 +88,13 @@ object AgentChat : Loggable, I18nable {
 						}
 						
 						is ChatMessage.AssistantMessage -> {
-							val resultModel = modelById[it.model] ?: request.model.model
-							val snapshot = result.usage?.let { usage ->
-								UsageSnapshot(usage, resultModel.modelInfo)
-							}
 							val assistantMessage = RuntimeContext.Message.Assistant(
 								id = UUID.randomUUID(),
 								timestamp = msg.createdAt,
 								reasoning = msg.reasoningContent,
 								content = msg.content,
 								modelId = it.model,
-								usageSnapshot = snapshot,
+								usage = result.usage
 							)
 							emit(
 								AgentChatStreamResult.Assembled(

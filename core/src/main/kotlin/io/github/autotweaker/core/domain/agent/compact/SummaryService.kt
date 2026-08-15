@@ -24,12 +24,10 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.toList
-import java.util.*
 import kotlin.time.Clock
 
 object SummaryService : Traceable {
@@ -38,7 +36,7 @@ object SummaryService : Traceable {
 		prompt: String,
 		model: AgentModel,
 		thinkingEnabled: Boolean,
-	): Pair<String, UsageSnapshot?> {
+	): Pair<String, Usage?> {
 		val results = trace.catching {
 			ResilientChat.execute(
 				model = model.model,
@@ -53,12 +51,6 @@ object SummaryService : Traceable {
 			.filter { it.result is ChatResult.Assembled }
 			.filter { it.result.message !is ChatMessage.ErrorMessage }
 		val lastest = success.lastOrNull() ?: return content to null
-		val snapshot = lastest.result.usage
-			?.let { UsageSnapshot(it, model.findModelInfo(lastest.model)) }
-		return (lastest.result.message?.content ?: content) to snapshot
+		return (lastest.result.message?.content ?: content) to lastest.result.usage
 	}
-	
-	fun AgentModel.findModelInfo(modelId: UUID) =
-		all().find { it.id == modelId }?.modelInfo
-			?: model.modelInfo
 }

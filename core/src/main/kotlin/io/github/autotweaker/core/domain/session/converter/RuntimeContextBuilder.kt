@@ -109,7 +109,7 @@ class RuntimeContextBuilder(
 			content = it?.content,
 			modelId = it?.model ?: UUID.randomUUID(),
 			timestamp = it?.timestamp.orNow(),
-			usageSnapshot = it?.usageSnapshot
+			usage = it?.usage
 		)
 	}
 	
@@ -158,7 +158,7 @@ class RuntimeContextBuilder(
 			id = id,
 			timestamp = it?.timestamp.orNow(),
 			content = it?.content.orEmpty(),
-			snapshots = it?.snapshots
+			usage = it?.usage
 		)
 	}
 	

@@ -21,16 +21,10 @@ package io.github.autotweaker.adapter.cli.commands.model
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.ModelData.TokenPrice.PriceTier
-import io.github.autotweaker.api.types.llm.Price
-import java.math.BigDecimal
 import java.util.*
 
 class ModelAdd(
@@ -77,7 +71,6 @@ class ModelAdd(
 			val maxOutputTokens =
 				promptOrStdin(ModelI18n.PromptMaxOutputTokens()).toIntOrNull()
 					?: invalidValue()
-			val price = promptTokenPrice()
 			
 			suspend fun promptFeature(featureI18n: I18nDef) =
 				confirm(ModelI18n.PromptSetFeature(), i18n(featureI18n))
@@ -92,7 +85,6 @@ class ModelAdd(
 				modelId = id,
 				contextWindow = contextWindow,
 				maxOutputTokens = maxOutputTokens,
-				price = price,
 				supportsStreaming = supportsStreaming,
 				supportsToolCalls = supportsToolCalls,
 				supportsReasoning = supportsReasoning,
@@ -115,66 +107,7 @@ class ModelAdd(
 		done()
 	}
 	
-	private suspend fun Console.promptTokenPrice(): ModelData.TokenPrice {
-		val inputPrice = if (confirm(ModelI18n.PromptSetInputPrice()))
-			promptPriceTierList()
-		else emptyList()
-		
-		val outputPrice = if (confirm(ModelI18n.PromptSetOutputPrice()))
-			promptPriceTierList()
-		else emptyList()
-		
-		return ModelData.TokenPrice(inputPrice, outputPrice)
-	}
-	
-	private suspend fun Console.promptPriceTierList(): List<PriceTier> {
-		val priceList = mutableListOf<PriceTier>()
-		priceList.add(promptPriceTier())
-		while (true) {
-			if (!confirm(ModelI18n.PromptSetPrice())) break
-			priceList.add(promptPriceTier())
-		}
-		return priceList.toList()
-	}
-	
-	private suspend fun Console.promptPriceTier(): PriceTier {
-		val tieredPrice: Boolean = confirm(ModelI18n.PromptTieredPrice())
-		val fromTokens: Int
-		val toTokens: Int?
-		if (tieredPrice) {
-			val result = promptOrStdin(ModelI18n.PromptPriceRange())
-				.split("-", limit = 2).map { it.trim() }
-			fromTokens = result[0].toIntOrNull() ?: invalidValue()
-			val rawTo = result.getOrNull(1)
-			toTokens = if (rawTo == null) rawTo else rawTo.toIntOrNull() ?: invalidValue()
-		} else {
-			fromTokens = 0
-			toTokens = null
-		}
-		val price = promptPrice()
-		val cachedPrice: Price? =
-			if (confirm(ModelI18n.PromptSetCachedPrice()))
-				promptPrice()
-			else null
-		return PriceTier(fromTokens, toTokens, price, cachedPrice)
-	}
-	
-	private suspend fun Console.promptPrice(): Price {
-		val tokenUnit = promptOrStdin(ModelI18n.PromptTokenUnit()).toIntOrNull() ?: invalidValue()
-		val currency = trace.catching {
-			Currency.getInstance(
-				promptOrStdin(ModelI18n.PromptPriceCurrency()).uppercase()
-			)
-		}.getOrElse { invalidValue() }
-		val price = trace.catching {
-			BigDecimal(
-				promptOrStdin(ModelI18n.PromptPrice(), currency.getDisplayName(i18n.getLanguage()))
-			)
-		}.getOrElse { invalidValue() }
-		return Price(price, currency, tokenUnit)
-	}
-	
-	suspend fun Console.invalidValue(): Nothing = error(ModelI18n.InvalidValue())
+	private suspend fun Console.invalidValue(): Nothing = error(ModelI18n.InvalidValue())
 	
 	//endregion
 }

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.serializer.InstantLongSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.tool.ToolPresentation
@@ -87,11 +87,9 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		val model: UUID,
 		/**
-		 * 用量信息，包含模型定价快照以防止价格变更导致计费不准确。
-		 *
-		 * @see UsageSnapshot
+		 * 用量信息。
 		 */
-		val usageSnapshot: UsageSnapshot?,
+		val usage: Usage?,
 	) : AgentMessage()
 	
 	/**
@@ -201,17 +199,15 @@ sealed class AgentMessage {
 		 */
 		val content: String,
 		/**
-		 * 用量信息，由于上下文压缩会由于响应无效而自动重试，可能产生多个 [io.github.autotweaker.api.types.llm.Usage]。
-		 *
-		 * 不同于普通的 LLM 消息，就算存在请求重试机制，失败的请求也根本不会拿到 [io.github.autotweaker.api.types.llm.Usage] 响应，它仅存在于已完成且技术上成功的消息，而这种消息会被算作一条单独的 [AgentMessage.Assistant]。
+		 * 上下文压缩的用量信息。
 		 */
-		val snapshots: Map<@Serializable(with = UuidSerializer::class) UUID, UsageSnapshot>?,
+		val usage: Usage?,
 	) : AgentMessage()
 	
 	/**
-	 * 用于跟踪不属于任何 [AgentMessage] 的 LLM 开销，例如 Agent 调用的工具调用了 LLM，或彻底失败的上下文压缩（不会产生 [AgentMessage.Compact] 来跟踪开销）。
+	 * 用于跟踪不属于任何 [AgentMessage] 的 LLM 开销，例如 Agent 调用的工具调用了 LLM，或最终失败的上下文压缩（不会产生 [AgentMessage.Compact] 来跟踪开销）。
 	 *
-	 * 这并非能够索引所有类型的未跟踪开销，例如 [io.github.autotweaker.api.adapter.CoreAPI.chat] 就会直接存储到全局的上下文跟踪器。
+	 * 这并非能够索引所有类型的未跟踪开销，例如 [io.github.autotweaker.api.adapter.CoreAPI.chat] 就会直接存储到全局的 Usage 跟踪器。
 	 */
 	@Serializable
 	data class UsageRecord(
@@ -219,9 +215,6 @@ sealed class AgentMessage {
 		override val id: UUID,
 		@Serializable(with = InstantLongSerializer::class)
 		override val timestamp: Instant,
-		/**
-		 * @see Assistant.usageSnapshot
-		 */
-		val snapshot: UsageSnapshot,
+		val usage: Usage,
 	) : AgentMessage()
 }

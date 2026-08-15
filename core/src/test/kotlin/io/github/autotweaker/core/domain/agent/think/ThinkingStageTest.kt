@@ -76,7 +76,7 @@ class ThinkingStageTest {
 		content = "I will call a tool",
 		modelId = UUID.randomUUID(),
 		timestamp = Clock.System.now(),
-		usageSnapshot = null,
+		usage = null,
 	)
 	
 	@Serializable

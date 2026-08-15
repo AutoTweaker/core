@@ -27,7 +27,6 @@ import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.llm.CoreLlmRequest
 import io.github.autotweaker.api.types.llm.CoreLlmResult
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SessionRepository
@@ -56,12 +55,7 @@ object ChatService : Loggable, Traceable {
 			fallbacks?.size ?: 0,
 			request.stream
 		)
-		val modelMap = buildMap {
-			put(model.id, model)
-			fallbacks?.forEach { put(it.id, it) }
-		}
 		var lastUsage: Usage? = null
-		var lastModelId: UUID? = null
 		emitAll(
 			ResilientChat.execute(
 				model = model,
@@ -74,13 +68,11 @@ object ChatService : Loggable, Traceable {
 				timeout = request.timeout
 			).onEach { result ->
 				result.result.usage?.let { lastUsage = it }
-				lastModelId = result.model
 			}.onCompletion { cause ->
 				if (cause == null) {
 					lastUsage?.let { usage ->
-						val resolvedModel = lastModelId?.let { modelMap[it] } ?: return@let
 						val record = AgentMessage.UsageRecord(
-							UUID.randomUUID(), Clock.System.now(), UsageSnapshot(usage, resolvedModel.modelInfo)
+							UUID.randomUUID(), Clock.System.now(), usage
 						)
 						trace.catching {
 							sessionRepository.saveMessages(listOf(record))

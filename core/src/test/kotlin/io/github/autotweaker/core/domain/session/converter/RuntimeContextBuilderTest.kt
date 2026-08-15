@@ -243,7 +243,7 @@ class RuntimeContextBuilderTest {
 				id = UUID.randomUUID(),
 				timestamp = Instant.fromEpochMilliseconds(1000L * i),
 				content = "summary $i",
-				snapshots = null,
+				usage = null,
 			)
 		}
 		var node: AgentContextIndex.CompactedRounds? = null

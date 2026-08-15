@@ -19,29 +19,19 @@
 package io.github.autotweaker.core
 
 import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.Price
-import java.math.BigDecimal
 import java.util.*
 import kotlin.test.*
 
 class ModelDataTest {
 	
-	private val testPrice = Price(BigDecimal("0.001"), Currency.getInstance("USD"), 1000)
-	
 	// region ModelInfo
 	
 	@Test
 	fun `ModelInfo constructs with all fields`() {
-		val defaultTier = listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-		val tokenPrice = ModelData.TokenPrice(
-			inputPrice = defaultTier,
-			outputPrice = defaultTier
-		)
 		val info = ModelData.ModelInfo(
 			modelId = "test-model",
 			contextWindow = 128000,
 			maxOutputTokens = 4096,
-			price = tokenPrice,
 			supportsStreaming = true,
 			supportsToolCalls = true,
 			supportsReasoning = true,
@@ -51,7 +41,6 @@ class ModelDataTest {
 		assertEquals("test-model", info.modelId)
 		assertEquals(128000, info.contextWindow)
 		assertEquals(4096, info.maxOutputTokens)
-		assertEquals(tokenPrice, info.price)
 		assertTrue(info.supportsStreaming)
 		assertTrue(info.supportsToolCalls)
 		assertTrue(info.supportsReasoning)
@@ -66,10 +55,6 @@ class ModelDataTest {
 				modelId = "   ",
 				contextWindow = 128000,
 				maxOutputTokens = 4096,
-				price = ModelData.TokenPrice(
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)),
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-				),
 				supportsStreaming = true,
 				supportsToolCalls = false,
 				supportsReasoning = false,
@@ -86,10 +71,6 @@ class ModelDataTest {
 				modelId = "",
 				contextWindow = 128000,
 				maxOutputTokens = 4096,
-				price = ModelData.TokenPrice(
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)),
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-				),
 				supportsStreaming = true,
 				supportsToolCalls = false,
 				supportsReasoning = false,
@@ -106,10 +87,6 @@ class ModelDataTest {
 				modelId = "test",
 				contextWindow = 0,
 				maxOutputTokens = 4096,
-				price = ModelData.TokenPrice(
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)),
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-				),
 				supportsStreaming = true,
 				supportsToolCalls = false,
 				supportsReasoning = false,
@@ -126,10 +103,6 @@ class ModelDataTest {
 				modelId = "test",
 				contextWindow = -1,
 				maxOutputTokens = 4096,
-				price = ModelData.TokenPrice(
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)),
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-				),
 				supportsStreaming = true,
 				supportsToolCalls = false,
 				supportsReasoning = false,
@@ -146,10 +119,6 @@ class ModelDataTest {
 				modelId = "test",
 				contextWindow = 128000,
 				maxOutputTokens = 0,
-				price = ModelData.TokenPrice(
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)),
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-				),
 				supportsStreaming = true,
 				supportsToolCalls = false,
 				supportsReasoning = false,
@@ -166,10 +135,6 @@ class ModelDataTest {
 				modelId = "test",
 				contextWindow = 128000,
 				maxOutputTokens = -100,
-				price = ModelData.TokenPrice(
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)),
-					listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-				),
 				supportsStreaming = true,
 				supportsToolCalls = false,
 				supportsReasoning = false,
@@ -177,149 +142,6 @@ class ModelDataTest {
 				supportsJsonOutput = false
 			)
 		}
-	}
-	
-	// endregion
-	
-	// region TokenPrice
-	
-	@Test
-	fun `TokenPrice constructs with single unbounded tier`() {
-		val tier = ModelData.TokenPrice.PriceTier(0, null, testPrice)
-		val tokenPrice = ModelData.TokenPrice(
-			inputPrice = listOf(tier),
-			outputPrice = listOf(tier)
-		)
-		assertEquals(1, tokenPrice.inputPrice.size)
-		assertEquals(1, tokenPrice.outputPrice.size)
-	}
-	
-	@Test
-	fun `TokenPrice constructs with connected tiers`() {
-		val tier1 = ModelData.TokenPrice.PriceTier(0, 256000, testPrice)
-		val tier2 = ModelData.TokenPrice.PriceTier(256000, null, testPrice)
-		val tokenPrice = ModelData.TokenPrice(
-			inputPrice = listOf(tier1, tier2),
-			outputPrice = listOf(tier1, tier2)
-		)
-		assertEquals(2, tokenPrice.inputPrice.size)
-	}
-	
-	@Test
-	fun `TokenPrice with empty inputPrice constructs`() {
-		val tokenPrice = ModelData.TokenPrice(emptyList(), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
-		assertTrue(tokenPrice.inputPrice.isEmpty())
-	}
-
-	@Test
-	fun `TokenPrice with empty outputPrice constructs`() {
-		val tokenPrice = ModelData.TokenPrice(listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)), emptyList())
-		assertTrue(tokenPrice.outputPrice.isEmpty())
-	}
-	
-	@Test
-	fun `TokenPrice with gap between tiers throws`() {
-		val tier1 = ModelData.TokenPrice.PriceTier(0, 100000, testPrice)
-		val tier2 = ModelData.TokenPrice.PriceTier(200000, null, testPrice)
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice(listOf(tier1, tier2), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
-		}
-	}
-	
-	@Test
-	fun `TokenPrice with overlap between tiers throws`() {
-		val tier1 = ModelData.TokenPrice.PriceTier(0, 300000, testPrice)
-		val tier2 = ModelData.TokenPrice.PriceTier(200000, null, testPrice)
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice(listOf(tier1, tier2), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
-		}
-	}
-	
-	@Test
-	fun `TokenPrice not starting from 0 throws`() {
-		val tier = ModelData.TokenPrice.PriceTier(100, null, testPrice)
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice(listOf(tier), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
-		}
-	}
-	
-	@Test
-	fun `TokenPrice last tier with toTokens set throws`() {
-		val tier = ModelData.TokenPrice.PriceTier(0, 1000000, testPrice)
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice(listOf(tier), listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice)))
-		}
-	}
-	
-	@Test
-	fun `TokenPrice tiers auto-sorted by fromTokens`() {
-		val tier1 = ModelData.TokenPrice.PriceTier(256000, null, testPrice)
-		val tier2 = ModelData.TokenPrice.PriceTier(0, 256000, testPrice)
-		val tokenPrice = ModelData.TokenPrice(
-			inputPrice = listOf(tier1, tier2),
-			outputPrice = listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
-		)
-		assertEquals(2, tokenPrice.inputPrice.size)
-	}
-	
-	// endregion
-	
-	// region PriceTier
-	
-	@Test
-	fun `PriceTier with all fields`() {
-		val cachedPrice = Price(BigDecimal("0.0005"), Currency.getInstance("USD"), 1000)
-		val tier = ModelData.TokenPrice.PriceTier(
-			fromTokens = 0,
-			toTokens = 1000000,
-			price = testPrice,
-			cachedPrice = cachedPrice
-		)
-		assertEquals(0, tier.fromTokens)
-		assertEquals(1000000, tier.toTokens)
-		assertEquals(testPrice, tier.price)
-		assertEquals(cachedPrice, tier.cachedPrice)
-	}
-	
-	@Test
-	fun `PriceTier with null cachedPrice and toTokens`() {
-		val tier = ModelData.TokenPrice.PriceTier(
-			fromTokens = 500000,
-			toTokens = null,
-			price = testPrice,
-			cachedPrice = null
-		)
-		assertEquals(500000, tier.fromTokens)
-		assertNull(tier.toTokens)
-		assertNull(tier.cachedPrice)
-	}
-	
-	@Test
-	fun `PriceTier with negative fromTokens throws`() {
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice.PriceTier(-1, null, testPrice)
-		}
-	}
-	
-	@Test
-	fun `PriceTier with toTokens equal to fromTokens throws`() {
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice.PriceTier(100, 100, testPrice)
-		}
-	}
-	
-	@Test
-	fun `PriceTier with toTokens less than fromTokens throws`() {
-		assertFailsWith<IllegalArgumentException> {
-			ModelData.TokenPrice.PriceTier(500, 100, testPrice)
-		}
-	}
-	
-	@Test
-	fun `PriceTier with fromTokens zero and toTokens null is valid`() {
-		val tier = ModelData.TokenPrice.PriceTier(0, null, testPrice)
-		assertEquals(0, tier.fromTokens)
-		assertNull(tier.toTokens)
 	}
 	
 	// endregion
@@ -454,12 +276,10 @@ class ModelDataTest {
 	
 	@Test
 	fun `Model constructs with all fields`() {
-		val defaultTier = listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
 		val modelInfo = ModelData.ModelInfo(
 			modelId = "m1",
 			contextWindow = 64000,
 			maxOutputTokens = 2048,
-			price = ModelData.TokenPrice(defaultTier, defaultTier),
 			supportsStreaming = true,
 			supportsToolCalls = false,
 			supportsReasoning = false,
@@ -481,12 +301,10 @@ class ModelDataTest {
 	
 	@Test
 	fun `Model with null config`() {
-		val defaultTier = listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
 		val modelInfo = ModelData.ModelInfo(
 			modelId = "m2",
 			contextWindow = 32000,
 			maxOutputTokens = 1024,
-			price = ModelData.TokenPrice(defaultTier, defaultTier),
 			supportsStreaming = false,
 			supportsToolCalls = false,
 			supportsReasoning = false,
@@ -505,12 +323,10 @@ class ModelDataTest {
 	
 	@Test
 	fun `Model with blank displayName throws`() {
-		val defaultTier = listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
 		val modelInfo = ModelData.ModelInfo(
 			modelId = "m1",
 			contextWindow = 64000,
 			maxOutputTokens = 2048,
-			price = ModelData.TokenPrice(defaultTier, defaultTier),
 			supportsStreaming = true,
 			supportsToolCalls = false,
 			supportsReasoning = false,
@@ -529,12 +345,10 @@ class ModelDataTest {
 	
 	@Test
 	fun `Model with empty displayName throws`() {
-		val defaultTier = listOf(ModelData.TokenPrice.PriceTier(0, null, testPrice))
 		val modelInfo = ModelData.ModelInfo(
 			modelId = "m1",
 			contextWindow = 64000,
 			maxOutputTokens = 2048,
-			price = ModelData.TokenPrice(defaultTier, defaultTier),
 			supportsStreaming = true,
 			supportsToolCalls = false,
 			supportsReasoning = false,

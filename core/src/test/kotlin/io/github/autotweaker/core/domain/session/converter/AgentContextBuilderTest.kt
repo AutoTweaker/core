@@ -49,7 +49,7 @@ class AgentContextBuilderTest {
 			content = content,
 			modelId = UUID.randomUUID(),
 			timestamp = Clock.System.now(),
-			usageSnapshot = null,
+			usage = null,
 		)
 	
 	private fun pendingCall(id: UUID = UUID.randomUUID()) = RuntimeContext.CurrentRound.PendingToolCall(
@@ -264,7 +264,7 @@ class AgentContextBuilderTest {
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
 				content = "summary $i",
-				snapshots = null,
+				usage = null,
 			)
 		}
 		var node: AgentContextIndex.CompactedRounds? = null

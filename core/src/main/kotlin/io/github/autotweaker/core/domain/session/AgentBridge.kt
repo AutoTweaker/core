@@ -26,7 +26,6 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
-import io.github.autotweaker.api.types.llm.UsageSnapshot
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.PluginLoader
@@ -231,7 +230,7 @@ class AgentBridge(
 			val record = AgentMessage.UsageRecord(
 				id = UUID.randomUUID(),
 				timestamp = timestamp,
-				snapshot = UsageSnapshot(usage, modelInfo),
+				usage = usage,
 			)
 			listOf(record).save()
 			contextLock.withLock {

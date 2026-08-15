@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.UsageSnapshot
+import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.serialization.json.JsonElement
@@ -38,7 +38,7 @@ data class RuntimeContext(
 		val id: UUID,
 		val timestamp: Instant,
 		val content: String,
-		val snapshots: Map<UUID, UsageSnapshot>?,
+		val usage: Usage?,
 	)
 	
 	sealed class Message {
@@ -54,7 +54,7 @@ data class RuntimeContext(
 			val content: String?,
 			val modelId: UUID,
 			val timestamp: Instant,
-			val usageSnapshot: UsageSnapshot?,
+			val usage: Usage?,
 		) : Message()
 		
 		data class Tool(
