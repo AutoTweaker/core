@@ -16,16 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.db
+package io.github.autotweaker.core.domain.port
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.UsageCursor
+import io.github.autotweaker.api.types.llm.UsageEntry
+import java.util.*
+import kotlin.time.Instant
 
-suspend fun <T> Database.transaction(
-	dispatcher: CoroutineDispatcher = Dispatchers.IO,
-	block: suspend JdbcTransaction.() -> T
-): T = withContext(dispatcher) { suspendTransaction(this@transaction) { this.block() } }
+interface UsageRepository {
+	suspend fun save(usages: List<UsageEntry>)
+	suspend fun load(limit: Int, before: UsageCursor?): List<UsageEntry>
+	suspend fun summarize(modelId: UUID?, from: Instant?, to: Instant?): Usage
+}
