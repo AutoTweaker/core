@@ -23,14 +23,15 @@ import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.types.debug.*
 import java.util.*
+import kotlin.time.Instant
 
 class DebugHandler(private val debug: DbDebugAPI) {
 	companion object {
 		private val TABLES = listOf(
 			"setting", "jsonStore", "sessionData",
-			"agentData", "sessionMessage", "secrets"
+			"agentData", "sessionMessage", "usage", "secrets"
 		)
-		private val UUID_TABLES = setOf("sessionData", "agentData", "sessionMessage", "secrets")
+		private val UUID_TABLES = setOf("sessionData", "agentData", "sessionMessage", "usage", "secrets")
 	}
 	
 	suspend fun Console.handle(): Nothing {
@@ -74,6 +75,7 @@ class DebugHandler(private val debug: DbDebugAPI) {
 		"sessionData" -> debug.sessionData
 		"agentData" -> debug.agentData
 		"sessionMessage" -> debug.sessionMessage
+		"usage" -> debug.usage
 		"secrets" -> debug.secrets
 		else -> error("Unknown table: $table")
 	}
@@ -114,6 +116,17 @@ class DebugHandler(private val debug: DbDebugAPI) {
 				prompt("type:"),
 				prompt("timestamp:").toLong(),
 				prompt("content:")
+			)
+			
+			"usage" -> UsageEntry(
+				UUID.fromString(key),
+				UUID.fromString(prompt("modelId:")),
+				Instant.parse(prompt("timestamp:")),
+				prompt("promptTokens:").toInt(),
+				prompt("completionTokens:").toInt(),
+				prompt("reasoningTokens:").toIntOrNull(),
+				prompt("cacheHitTokens:").toIntOrNull(),
+				prompt("imageTokens:").toIntOrNull(),
 			)
 			
 			"secrets" -> SecretEntry(

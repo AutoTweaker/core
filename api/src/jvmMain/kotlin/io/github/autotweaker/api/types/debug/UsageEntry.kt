@@ -16,19 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.debug
+package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.types.debug.*
 import java.util.*
+import kotlin.time.Instant
 
-interface DbDebugAPI {
-	val setting: DbAPI<SettingEntry, String>
-	val jsonStore: DbAPI<JsonStoreEntry, String>
-	val sessionData: DbAPI<SessionDataEntry, UUID>
-	val sessionMessage: DbAPI<SessionMessageEntry, UUID>
-	val agentData: DbAPI<AgentDataEntry, UUID>
-	val usage: DbAPI<UsageEntry, UUID>
-	val secrets: DbAPI<SecretEntry, UUID>
-	
-	suspend fun tables(): Map<String, Map<String, Long>>
-}
+data class UsageEntry(
+	override val key: UUID,
+	val modelId: UUID,
+	val timestamp: Instant,
+	val promptTokens: Int,
+	val completionTokens: Int,
+	val reasoningTokens: Int?,
+	val cacheHitTokens: Int?,
+	val imageTokens: Int?,
+) : DbEntry<UUID>()

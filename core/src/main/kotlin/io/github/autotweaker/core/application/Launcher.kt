@@ -45,6 +45,7 @@ import io.github.autotweaker.core.infrastructure.persist.db.session.SessionMessa
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
+import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
@@ -79,6 +80,7 @@ object Launcher : Loggable, Traceable {
 		SessionDataDbApi.init(databaseStore)
 		AgentDataDbApi.init(databaseStore)
 		SessionMessageDbApi.init(databaseStore)
+		UsageDbApi.init(databaseStore)
 		
 		
 		//密钥库

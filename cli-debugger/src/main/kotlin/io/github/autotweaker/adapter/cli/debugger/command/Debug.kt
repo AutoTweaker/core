@@ -51,6 +51,7 @@ class Debug : Command, I18nable {
 				flag("sessionData", Table()) { aliases() }
 				flag("agentData", Table()) { aliases() }
 				flag("sessionMessage", Table()) { aliases() }
+				flag("usage", Table()) { aliases() }
 				flag("secrets", Table()) { aliases() }
 			}
 		}

@@ -28,6 +28,8 @@ import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.*
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
+import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageTable
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreTable
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
@@ -38,11 +40,13 @@ import java.util.*
 object DbDebugAPIImpl : DbDebugAPI {
 	private lateinit var configDb: Database
 	private lateinit var sessionDb: Database
+	private lateinit var usageDb: Database
 	private lateinit var secretStore: SecretStore
 	
 	fun init(databaseStore: DatabaseStore, secretStore: SecretStore) {
 		configDb = databaseStore.connect("AppConfig")
 		sessionDb = databaseStore.connect("Sessions")
+		usageDb = databaseStore.connect("Usages")
 		this.secretStore = secretStore
 	}
 	
@@ -51,6 +55,7 @@ object DbDebugAPIImpl : DbDebugAPI {
 	override val sessionData: DbAPI<SessionDataEntry, UUID> get() = SessionDataDbApi
 	override val agentData: DbAPI<AgentDataEntry, UUID> get() = AgentDataDbApi
 	override val sessionMessage: DbAPI<SessionMessageEntry, UUID> get() = SessionMessageDbApi
+	override val usage: DbAPI<UsageEntry, UUID> get() = UsageDbApi
 	override val secrets: DbAPI<SecretEntry, UUID> get() = SecretDbApi
 	
 	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
@@ -65,6 +70,11 @@ object DbDebugAPIImpl : DbDebugAPI {
 				"session_data" to SessionDataTable.selectAll().count(),
 				"agent_data" to AgentDataTable.selectAll().count(),
 				"session_message" to SessionMessageTable.selectAll().count(),
+			)
+		},
+		"Usages" to usageDb.transaction {
+			mapOf(
+				"usage_record" to UsageTable.selectAll().count(),
 			)
 		},
 		"~/.config/$APP_NAME_LOWERCASE/secret" to mapOf(
