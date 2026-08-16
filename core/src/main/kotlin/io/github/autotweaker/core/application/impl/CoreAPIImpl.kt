@@ -78,10 +78,11 @@ class CoreAPIImpl(
 	}
 	
 	override val workspace = object : CoreAPI.WorkspaceAPI {
-		override suspend fun createWorkspace(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
-		override suspend fun renameWorkspace(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
-		override suspend fun deleteWorkspace(id: UUID) = WorkspaceAPI.delete(id)
-		override suspend fun listWorkspaces() = WorkspaceAPI.list()
+		override suspend fun create(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
+		override suspend fun rename(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
+		override suspend fun delete(id: UUID) = WorkspaceAPI.delete(id)
+		override suspend fun get(id: UUID) = WorkspaceAPI.get(id)
+		override suspend fun list() = WorkspaceAPI.list()
 	}
 	
 	override val tool = object : CoreAPI.ToolAPI {

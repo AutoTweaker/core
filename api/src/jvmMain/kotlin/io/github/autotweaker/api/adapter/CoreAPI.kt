@@ -240,7 +240,7 @@ interface CoreAPI {
 		 * @throws DuplicateWorkspaceIdException
 		 * @throws DuplicateWorkspaceNameException
 		 */
-		suspend fun createWorkspace(meta: WorkspaceMeta): WorkspaceData
+		suspend fun create(meta: WorkspaceMeta): WorkspaceData
 		
 		/**
 		 * 重命名一个工作区。
@@ -249,7 +249,7 @@ interface CoreAPI {
 		 * @throws WorkspaceNotFoundException
 		 * @throws DuplicateWorkspaceNameException
 		 */
-		suspend fun renameWorkspace(id: UUID, newName: String)
+		suspend fun rename(id: UUID, newName: String)
 		
 		/**
 		 * 删除工作区，请确保工作区内无会话。
@@ -258,12 +258,18 @@ interface CoreAPI {
 		 * @throws DefaultWorkspaceMutationException
 		 * @throws WorkspaceNotEmptyException
 		 */
-		suspend fun deleteWorkspace(id: UUID): Boolean
+		suspend fun delete(id: UUID): Boolean
+		
+		/**
+		 * 获取工作区数据。
+		 */
+		suspend fun get(id: UUID): WorkspaceData?
+		
 		
 		/**
 		 * 获取全部已有工作区的数据。
 		 */
-		suspend fun listWorkspaces(): List<WorkspaceData>
+		suspend fun list(): List<WorkspaceData>
 	}
 	
 	/**

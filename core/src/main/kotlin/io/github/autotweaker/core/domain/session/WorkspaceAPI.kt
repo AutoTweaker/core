@@ -18,24 +18,23 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.HOME
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.InvalidWorkspacePathException
+import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.*
 
 object WorkspaceAPI : Loggable {
 	private val wsm = WorkspaceManager
 	
 	suspend fun create(meta: WorkspaceMeta): WorkspaceData {
-		val home = Path.of(System.getProperty("user.home"))
-		val resolved = if (meta.path.isAbsolute) meta.path else home.resolve(meta.path)
+		val resolved = if (meta.path.isAbsolute) meta.path else HOME.resolve(meta.path)
 		val meta = meta.copy(path = resolved)
 		
 		if (!Files.isDirectory(meta.path)) throw InvalidWorkspacePathException(meta.path)
@@ -54,6 +53,8 @@ object WorkspaceAPI : Loggable {
 		}
 	
 	suspend fun delete(id: UUID): Boolean = wsm.delete(id)
+	
+	suspend fun get(id: UUID): WorkspaceData? = wsm.getData(id)
 	
 	suspend fun list() = wsm.getAll()
 }
