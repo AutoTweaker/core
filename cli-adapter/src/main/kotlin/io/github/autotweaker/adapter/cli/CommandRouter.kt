@@ -31,15 +31,17 @@ import io.github.autotweaker.adapter.cli.syntax.SyntaxValidator
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import java.nio.file.Path
 import java.util.*
 
 
 class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
-	Loggable, I18nable {
+	Loggable, I18nable, Traceable {
 	constructor(core: CoreAPI) : this(
 		core, ServiceLoader.load(
 			Command::class.java,
@@ -71,6 +73,10 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		prompt: suspend (echo: Boolean) -> String?,
 		output: suspend (CmdOutput) -> Unit
 	): Int = try {
+		val cwd = trace.catching { Path.of(request.cwd) }
+			.onFailure { log.error("Failed to converting cwd", it) }
+			.getOrDefault(HOME)
+		
 		suspend fun String.error() = output(
 			CmdOutput(
 				"${
@@ -90,9 +96,10 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		}
 		if (cmd == help.name) {
 			val console = ConsoleImpl(
+				cwd = cwd,
 				isTty = request.isTty,
 				request = Request(emptyMap(), emptyList(), emptyMap()),
-				stdin = Channel(),
+				stdin = stdin,
 				output = output,
 				readInput = prompt
 			)
@@ -144,6 +151,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		}
 		
 		val console = ConsoleImpl(
+			cwd = cwd,
 			isTty = request.isTty,
 			request = parsed,
 			stdin = stdin,

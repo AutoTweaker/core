@@ -16,17 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:Suppress("unused")
-
 package io.github.autotweaker.adapter.cli.commands
 
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.i18n.I18nDef
 import kotlinx.coroutines.flow.Flow
+import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
 @ConsoleDsl
 interface Console : I18nable {
+	val cwd: Path
+	
 	var defaultNewline: Boolean // 默认 true
 	
 	suspend fun hasArg(name: String): Boolean

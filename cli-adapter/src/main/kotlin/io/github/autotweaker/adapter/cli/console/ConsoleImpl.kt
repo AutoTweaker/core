@@ -26,8 +26,10 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.i18n.I18nDef
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
+import java.nio.file.Path
 
 class ConsoleImpl(
+	override val cwd: Path,
 	private val isTty: Boolean,
 	private val request: Request,
 	private val stdin: ReceiveChannel<String>,

@@ -21,11 +21,14 @@ package io.github.autotweaker.api
 import java.nio.file.Path
 
 /**
+ * 用户家目录。
+ */
+val HOME: Path = Path.of(System.getProperty("user.home"))
+
+/**
  * 存储配置及其他数据的目录，请使用提供的持久化 API 而不是直接在此路径下存放文件。
  */
-val CONFIG_PATH: Path = Path.of(
-	System.getProperty("user.home"), ".config", APP_NAME_LOWERCASE
-)
+val CONFIG_PATH: Path = HOME.resolve(".config", APP_NAME_LOWERCASE)
 
 /**
  * 用于加载插件 jar 的目录，此目录中只有以 `.jar` 结尾的文件会被加载，jar 或 class 损坏的文件不会被加载。

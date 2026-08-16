@@ -30,6 +30,8 @@ expect fun readStdinChunk(buffer: ByteArray): Int
 
 expect fun env(name: String): String
 
+expect fun cwd(): String
+
 expect fun stdoutIsTty(): Boolean
 
 expect fun flushOutput()

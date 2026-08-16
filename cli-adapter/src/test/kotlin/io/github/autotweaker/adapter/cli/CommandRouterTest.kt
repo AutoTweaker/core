@@ -47,7 +47,7 @@ class CommandRouterTest {
 			every { settingService.get<SettingValue.ValInt, Int>(any()) } returns 100_000
 			initServices(
 				ServiceRegistry(
-					mockk(relaxed = true),
+					{ mockk(relaxed = true) },
 					mockk(relaxed = true),
 					{ mockk(relaxed = true) },
 					{ settingService },
@@ -89,7 +89,7 @@ class CommandRouterTest {
 	private fun dispatch(vararg args: String): Pair<Int, List<CmdOutput>> = runBlocking {
 		val outputs = mutableListOf<CmdOutput>()
 		val exitCode = router.dispatch(
-			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false),
+			request = CliMessage.Command(args = args.toList(), prog = "at", isTty = false, cwd = ""),
 			requestId = "test",
 			stdin = Channel(),
 			prompt = { "" },
@@ -137,6 +137,30 @@ class CommandRouterTest {
 		}
 		dispatch("test", "--verbose")
 		assertTrue(captured!!)
+	}
+	
+	@Test
+	fun cwdForwardedToConsole() {
+		var captured: String? = null
+		registerCommand("test", Syntax.EMPTY) {
+			captured = cwd.toString()
+			done()
+		}
+		runBlocking {
+			router.dispatch(
+				request = CliMessage.Command(
+					args = listOf("test"),
+					prog = "at",
+					isTty = false,
+					cwd = "/home/user/project"
+				),
+				requestId = "test",
+				stdin = Channel(),
+				prompt = { "" },
+				output = {},
+			)
+		}
+		assertEquals("/home/user/project", captured)
 	}
 	
 	// ── keystore lock ─────────────────────────────────────────────

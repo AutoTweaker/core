@@ -114,6 +114,12 @@ actual fun env(name: String): String {
 }
 
 @OptIn(ExperimentalForeignApi::class)
+actual fun cwd(): String = memScoped {
+	val buffer = allocArray<ByteVar>(4096)
+	getcwd(buffer, 4096u.toULong())?.toKString() ?: env("HOME")
+}
+
+@OptIn(ExperimentalForeignApi::class)
 actual fun flushOutput() {
 	fflush(stdout)
 }
