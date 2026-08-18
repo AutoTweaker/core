@@ -16,19 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool
+package io.github.autotweaker.api.base.guava
 
-import io.github.autotweaker.api.base.guava.ClassToInstanceMap
-import kotlin.reflect.KClass
+import com.google.common.collect.ClassToInstanceMap
+import com.google.common.collect.MutableClassToInstanceMap
 
-class ServiceContainer : DependencyProvider {
-	private val services = ClassToInstanceMap<Any>()
-	
-	fun <T : Any> register(serviceClass: KClass<T>, instance: T) = also {
-		services.putInstance(serviceClass.java, instance)
-	}
-	
-	override fun <T : Any> get(serviceClass: KClass<T>): T =
-		services.getInstance(serviceClass.java)
-			?: throw NoSuchElementException("Service ${serviceClass.simpleName} not found.")
-}
+fun <B> ClassToInstanceMap(): ClassToInstanceMap<B> = MutableClassToInstanceMap.create()

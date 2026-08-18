@@ -47,6 +47,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.time.Clock
 
@@ -189,7 +190,7 @@ class Tools(
 	companion object {
 		@Volatile
 		private var metaCache: MetaCache = mapOf()
-		private val toolNameCache = mutableMapOf<KClass<*>, String>()
+		private val toolNameCache = ConcurrentHashMap<KClass<*>, String>()
 		
 		fun serializeValidatedArgs(toolName: String, args: ToolArgs): JsonElement =
 			Json.encodeToJsonElement(
