@@ -32,6 +32,7 @@ kotlin {
 }
 
 val sourcesJar = tasks.register<Jar>("sourcesJar") {
+	description = "打包源码 jar 用于发布"
 	archiveClassifier.set("sources")
 	from(sourceSets.main.get().allSource)
 }

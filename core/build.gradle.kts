@@ -25,6 +25,7 @@ plugins {
 }
 
 tasks.register<Sync>("syncGeneratedMeta") {
+	description = "同步 tool-decl 生成的 ToolMeta 源码到 core 模块"
 	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
 	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
 	dependsOn(":tool-decl:generateArgs")
