@@ -37,7 +37,7 @@ dependencies {
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	implementation("com.google.guava:guava:33.7.1-jre")
 	
-	testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
+	testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 	testImplementation(kotlin("test"))
 	testImplementation("io.mockk:mockk:1.14.11")
