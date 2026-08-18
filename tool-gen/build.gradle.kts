@@ -23,8 +23,8 @@ plugins {
 
 dependencies {
 	implementation("com.squareup:kotlinpoet:2.1.0")
-	runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-jsr223:2.4.0")
-	runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:2.4.0")
+	runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-jsr223:2.4.10")
+	runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:2.4.10")
 }
 
 kotlin {
