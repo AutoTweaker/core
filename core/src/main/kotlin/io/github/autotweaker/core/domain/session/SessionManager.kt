@@ -120,7 +120,7 @@ object SessionManager : Loggable, Traceable {
 		if (!Files.isDirectory(workspace)) throw InvalidWorkspacePathException(workspace)
 		
 		val data = SessionData(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			title = null,
 			overview = null,
 			workspaceId = workspaceId,

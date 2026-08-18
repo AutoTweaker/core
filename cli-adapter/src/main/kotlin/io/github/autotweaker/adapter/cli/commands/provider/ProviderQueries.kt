@@ -27,25 +27,23 @@ import io.github.autotweaker.api.types.llm.ProviderData
 class ProviderQueries(private val core: CoreAPI) : I18nable {
 	suspend fun Console.list() {
 		core.config.listProviders().forEachBetween({ provider ->
-			val modelCount = core.config.listModels().count { it.data.providerId == provider.id }
+			val modelCount = core.config.listModels().count { it.providerId == provider.id }
 			out(ProvQueriesI18n.Name(), provider.displayName)
-			out(ProvQueriesI18n.Type(), provider.type)
+			out(ProvQueriesI18n.Type(), provider.providerType)
 			out(ProvQueriesI18n.Model(), modelCount)
 		}, between = { out(LINE) })
 	}
 	
 	suspend fun Console.show(name: String) {
-		val provider = core.config.listProviders().firstOrNull { it.displayName == name }
+		val provider = core.config.listProviders().find { it.displayName == name }
 			?: error(ProvI18n.ProviderNotFound(), name)
+		val keyName = core.config.listApiKey()[provider.apiKey] ?: "UNKNOWN"
 		out(ProvQueriesI18n.Name(), provider.displayName)
-		out(ProvQueriesI18n.Type(), provider.type)
-		out(ProvQueriesI18n.Key(), provider.keyId)
-		out(ProvQueriesI18n.Url(), provider.baseUrl?.value ?: i18n(ProvQueriesI18n.Default()))
-		
-		provider.errorHandlingRules?.let {
-			out(ProvQueriesI18n.Rule())
-			printRules(it)
-		} ?: out(i18n(ProvQueriesI18n.Rule()) + SPACE + i18n(ProvQueriesI18n.Default()))
+		out(ProvQueriesI18n.Type(), provider.providerType)
+		out(ProvQueriesI18n.Key(), keyName)
+		out(ProvQueriesI18n.Url(), provider.baseUrl.value)
+		out(ProvQueriesI18n.Rule())
+		printRules(provider.errorHandlingRules)
 	}
 	
 	suspend fun Console.types() {

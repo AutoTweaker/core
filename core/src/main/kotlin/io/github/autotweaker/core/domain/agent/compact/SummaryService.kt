@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.trace
@@ -28,7 +29,6 @@ import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.toList
-import java.util.*
 import kotlin.time.Clock
 
 object SummaryService : Traceable {
@@ -54,7 +54,7 @@ object SummaryService : Traceable {
 		val lastest = success.lastOrNull() ?: return content to null
 		return (lastest.result.message?.content ?: content) to lastest.result.usage?.let {
 			UsageEntry(
-				UUID.randomUUID(),
+				UUID(),
 				lastest.model,
 				lastest.result.message!!.createdAt, // 已经过滤Assembled，而Assembled必然有message
 				it

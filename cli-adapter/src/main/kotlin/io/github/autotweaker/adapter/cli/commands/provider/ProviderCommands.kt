@@ -20,12 +20,11 @@ package io.github.autotweaker.adapter.cli.commands.provider
 
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.Url.Companion.toUrlOrNull
-import io.github.autotweaker.api.types.config.CoreConfig
-import java.util.*
+import io.github.autotweaker.api.types.llm.ProviderData
 
 class ProviderCommands(
 	private val core: CoreAPI
@@ -41,30 +40,30 @@ class ProviderCommands(
 			ProvCommandsI18n.PromptType(), ProvCommandsI18n.MissingType()
 		)
 		
-		if (core.config.listAvailableProviderTypes().find { it == type } == null)
-			error(ProvCommandsI18n.InvalidType())
+		val meta = core.config.getProviderMeta(type)
 		
 		val key = key ?: promptOrError(
 			ProvCommandsI18n.PromptKey(), ProvCommandsI18n.MissingKey()
 		)
 		
-		if (core.config.listApiKey().find { it == key } == null)
-			error(ProvCommandsI18n.InvalidKey())
+		val keyUUID = core.config.listApiKey().entries.find { it.value == key }?.key
+			?: error(ProvCommandsI18n.InvalidKey(), key)
 		
-		val baseUrl: Url = if (url != null) {
+		
+		val baseUrl = if (url != null) {
 			url.toUrlOrNull()
 		} else {
 			promptOrNull(ProvCommandsI18n.PromptUrl())?.toUrlOrNull()
-		} ?: core.config.getProviderMeta(type).baseUrl
+		}
 		
 		core.config.setProvider(
-			CoreConfig.ProviderConfig.Provider(
-				id = UUID.randomUUID(),
-				type = type,
-				keyId = key,
-				baseUrl = baseUrl,
+			ProviderData(
+				id = UUID(),
+				providerType = type,
+				apiKey = keyUUID,
+				baseUrl = baseUrl ?: meta.baseUrl,
 				displayName = name,
-				errorHandlingRules = core.config.getProviderMeta(type).errorHandlingRules,
+				errorHandlingRules = meta.errorHandlingRules,
 			)
 		)
 	}
@@ -72,7 +71,7 @@ class ProviderCommands(
 	suspend fun Console.remove(name: String, yes: Boolean) {
 		val id = core.config.listProviders().find { it.displayName == name }?.id
 			?: error(ProvI18n.ProviderNotFound(), name)
-		val models = core.config.listModels().filter { it.data.providerId == id }
+		val models = core.config.listModels().filter { it.providerId == id }
 		
 		if (!yes && !confirm(ProvCommandsI18n.RemoveConfirm(), name, models.count()))
 			done(1)

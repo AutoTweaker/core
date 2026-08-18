@@ -21,39 +21,30 @@ package io.github.autotweaker.adapter.cli.commands.secret.env
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.EnvType
 
 class EnvManager(
 	private val core: CoreAPI
 ) : I18nable {
 	suspend fun Console.list(type: EnvType) {
-		core.config.listEnv(
-			type.toCoreConfig()
-		).forEach {
+		core.config.listEnv(type).forEach {
 			out(it)
 		}
 	}
 	
 	suspend fun Console.add(type: EnvType, name: String) {
 		val value = promptOrStdin(EnvI18n.PromptInputEnv(), name, echo = false)
-		core.config.setEnv(CoreConfig.JsonConfig.Env(name, value, type.toCoreConfig()))
+		core.config.setEnv(type, name, value)
 	}
 	
 	suspend fun Console.get(type: EnvType, name: String) {
-		val value = core.config.getEnv(type.toCoreConfig(), name)
+		val value = core.config.getEnv(type, name)
 			?: error(EnvI18n.EnvNotFoundError(), name)
 		out(value)
 	}
 	
 	suspend fun Console.remove(type: EnvType, name: String) {
-		if (!core.config.removeEnv(type.toCoreConfig(), name))
+		if (!core.config.removeEnv(type, name))
 			error(EnvI18n.EnvNotFoundError(), name)
 	}
-	
-	private fun EnvType.toCoreConfig(): CoreConfig.JsonConfig.Env.Type = when (this) {
-		EnvType.BASH -> CoreConfig.JsonConfig.Env.Type.BASH_ENV
-		EnvType.CONTAINER -> CoreConfig.JsonConfig.Env.Type.CONTAINER_ENV
-	}
-	
-	enum class EnvType { BASH, CONTAINER }
 }

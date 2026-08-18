@@ -21,7 +21,7 @@ package io.github.autotweaker.core.infrastructure.llm
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.UnknownProviderTypeException
 import io.github.autotweaker.core.PluginLoader
 import java.util.*
 
@@ -33,7 +33,7 @@ object LlmClientLoader : Loggable, Traceable {
 	@Volatile
 	private var initialized = false
 	private val all: List<LlmClient> by lazy {
-		val external = PluginLoader.load<LlmClient>()
+		val external = PluginLoader.load<LlmClient>().distinctBy { it.providerInfo.name }
 		val externalNames = external.map { it.providerInfo.name }.toSet()
 		val result = external + builtIn.filter { it.providerInfo.name !in externalNames }
 		log.info(
@@ -49,10 +49,9 @@ object LlmClientLoader : Loggable, Traceable {
 	fun load(name: String): LlmClient =
 		all.find { it.providerInfo.name == name }
 			.orThrow { UnknownProviderTypeException(name) }
-			.andLog(log) { debug("Loaded LLM provider  name={}", name) }
 	
 	
-	fun available(): List<String> = all.map { it.providerInfo.name }
+	fun available(): Set<String> = all.map { it.providerInfo.name }.toSet()
 	
 	suspend fun shutdown() {
 		if (!initialized) return

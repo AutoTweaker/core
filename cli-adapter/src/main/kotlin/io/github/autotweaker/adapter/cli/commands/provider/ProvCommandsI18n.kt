@@ -44,15 +44,8 @@ object ProvCommandsI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class InvalidType : I18nBase(
-		en("Invalid provider type"),
-		zh("无效的提供商类型"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class InvalidKey : I18nBase(
-		en("The provided key does not exist"),
-		zh("提供的密钥不存在"),
+		zh("找不到密钥: '%s'"),
 	)
 	
 	@AutoService(I18nDef::class)

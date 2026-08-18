@@ -22,39 +22,38 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.duplicate.*
-import io.github.autotweaker.api.types.exception.notfound.*
-import io.github.autotweaker.core.domain.port.ModelConfigRepository
+import io.github.autotweaker.api.types.exception.DefaultModelDeletionException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateModelNameException
+import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
+import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelStore
 import java.util.*
-import io.github.autotweaker.api.types.config.CoreConfig.ProviderConfig.Model as ModelConfig
 
-object ModelConfigAPI : ModelConfigRepository, Loggable {
+object ModelConfigRepository : Loggable {
 	private val store = ModelStore
 	private val lock = ReentrantMutex()
 	
-	override suspend fun set(model: ModelConfig) = lock.withLock {
-		ProviderConfigAPI.lock.withLock {
-			ProviderConfigAPI.get(model.data.providerId)
-				?: throw ProviderNotFoundException(model.data.providerId)
+	suspend fun set(model: ModelData) = lock.withLock {
+		ProviderRepository.lock.withLock {
+			ProviderRepository.get(model.providerId)
+				?: throw ProviderNotFoundException(model.providerId)
 			val duplicate = store.getAll().values.any {
-				it.id != model.data.id
-						&& it.providerId == model.data.providerId
-						&& it.displayName == model.data.displayName
+				it.id != model.id
+						&& it.providerId == model.providerId
+						&& it.displayName == model.displayName
 			}
-			if (duplicate) throw DuplicateModelNameException(model.data.displayName)
-			store.set(model.data)
-			log.info("Added model  id={}  modelId={}", model.data.id, model.data.modelInfo.modelId)
+			if (duplicate) throw DuplicateModelNameException(model.displayName)
+			store.set(model)
+			log.info("Added model  id={}  modelId={}", model.id, model.modelInfo.modelId)
 		}
 	}
 	
-	override suspend fun list() = store.getAll().values.map { ModelConfig(it) }
+	suspend fun list(): List<ModelData> = store.getAll().values.toList()
 	
-	override suspend fun get(id: UUID) = store.get(id)?.let { ModelConfig(it) }
+	suspend fun get(id: UUID) = store.get(id)
 	
-	override suspend fun remove(id: UUID): Boolean =
+	suspend fun remove(id: UUID): Boolean =
 		ModelResolverImpl.getDefaultModel {
 			if (it == id) throw DefaultModelDeletionException(it)
 			store.delete(id).andLog(log) {

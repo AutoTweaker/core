@@ -18,12 +18,9 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
-import io.github.autotweaker.api.andLog
 import io.github.autotweaker.api.base.ReentrantMutex
-import io.github.autotweaker.api.forEachParallel
-import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentContext
@@ -112,7 +109,7 @@ class Session(
 	
 	private fun getHost(agentId: UUID) = object : AgentHost {
 		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent = lock.withLock {
-			val childId = UUID.randomUUID()
+			val childId = UUID()
 			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
 			val bridge = createAgent(childId, name, systemPrompt, model)
 			log.info("Created child agent  parentId={}  childId={}", agentId, childId)

@@ -28,10 +28,7 @@ import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
-import io.github.autotweaker.core.infrastructure.config.ApiKeyConfigAPI
-import io.github.autotweaker.core.infrastructure.config.EnvConfigAPI
-import io.github.autotweaker.core.infrastructure.config.ModelConfigAPI
-import io.github.autotweaker.core.infrastructure.config.ProviderConfigAPI
+import io.github.autotweaker.core.infrastructure.config.ApiKeyRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
@@ -42,8 +39,8 @@ import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationMan
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.store.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
@@ -57,7 +54,8 @@ object Wiring : Loggable {
 	 */
 	fun init() {
 		TranslationManager.init(ModelResolverImpl)
-		SecretMapStore.init(SecretManager)
+		EnvStore.init(SecretManager)
+		ApiKeyRepository.init(SecretManager)
 		SecretDbApi.init(SecretManager)
 		ModelResolverImpl.init(SecretManager)
 		ResilientChat.init(LlmGatewayImpl)
@@ -72,11 +70,7 @@ object Wiring : Loggable {
 	}
 	
 	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) = CoreAPIImpl(
-		envRepo = EnvConfigAPI,
-		providerRepo = ProviderConfigAPI,
-		modelRepo = ModelConfigAPI,
 		usageRepo = UsageRepositoryImpl,
-		apiKeyRepo = ApiKeyConfigAPI,
 		adapter = adapterAPI,
 		pathResolver = pathResolver,
 		appVersion = ResourcesLoader.version

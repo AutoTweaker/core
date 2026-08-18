@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.exception.*
@@ -335,7 +335,7 @@ interface CoreAPI {
 		 * @throws SecretStoreLockedException
 		 * @throws GpgException
 		 */
-		suspend fun setEnv(env: CoreConfig.JsonConfig.Env)
+		suspend fun setEnv(type: EnvType, id: String, value: String)
 		
 		/**
 		 * 删除一个环境变量。
@@ -343,7 +343,7 @@ interface CoreAPI {
 		 * @return 找不到环境变量返回 false，删除成功返回 true。
 		 * @throws SecretStoreLockedException
 		 */
-		suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): Boolean
+		suspend fun removeEnv(type: EnvType, id: String): Boolean
 		
 		/**
 		 * 获取一个环境变量的值。
@@ -351,21 +351,21 @@ interface CoreAPI {
 		 * @return 环境变量的 value，找不到返回 null。
 		 * @throws SecretStoreLockedException
 		 */
-		suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String): String?
+		suspend fun getEnv(type: EnvType, id: String): String?
 		
 		/**
 		 * 列出指定类型的环境变量。
 		 *
 		 * @return 环境变量的 key 列表，不包含值。
 		 */
-		suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type): List<String>
+		suspend fun listEnv(type: EnvType): List<String>
 		
 		/**
 		 * 列出可用的提供商类型，即 [LlmClient] 注册的 `name`。
 		 *
 		 * @see LlmClient.ProviderInfo
 		 */
-		fun listAvailableProviderTypes(): List<String>
+		fun listAvailableProviderTypes(): Set<String>
 		
 		/**
 		 * 获取指定类型提供商的元数据。可以用于展示或快速创建提供商配置。
@@ -380,9 +380,8 @@ interface CoreAPI {
 		 * @throws DuplicateProviderNameException
 		 * @throws UnknownProviderTypeException
 		 * @throws ApiKeyNotFoundException
-		 * @see CoreConfig.ProviderConfig.Provider
 		 */
-		suspend fun setProvider(provider: CoreConfig.ProviderConfig.Provider)
+		suspend fun setProvider(provider: ProviderData)
 		
 		/**
 		 * 删除提供商，同时删除提供商的所有模型。
@@ -397,14 +396,12 @@ interface CoreAPI {
 		/**
 		 * 获取指定提供商的数据，找不到返回 null。
 		 */
-		suspend fun getProvider(id: UUID): CoreConfig.ProviderConfig.Provider?
+		suspend fun getProvider(id: UUID): ProviderData?
 		
 		/**
 		 * 获取所有已配置提供商的数据。
-		 *
-		 * 密钥不存在时会给 `keyId` 填充 "UNKNOWN"。
 		 */
-		suspend fun listProviders(): List<CoreConfig.ProviderConfig.Provider>
+		suspend fun listProviders(): List<ProviderData>
 		
 		/**
 		 * 添加或更新一个模型。
@@ -412,7 +409,7 @@ interface CoreAPI {
 		 * @throws ProviderNotFoundException
 		 * @throws DuplicateModelNameException
 		 */
-		suspend fun setModel(model: CoreConfig.ProviderConfig.Model)
+		suspend fun setModel(model: ModelData)
 		
 		/**
 		 * 删除一个模型配置。
@@ -428,12 +425,12 @@ interface CoreAPI {
 		 *
 		 * @return 找不到模型返回 null
 		 */
-		suspend fun getModel(id: UUID): CoreConfig.ProviderConfig.Model?
+		suspend fun getModel(id: UUID): ModelData?
 		
 		/**
 		 * 获取所有模型的数据。
 		 */
-		suspend fun listModels(): List<CoreConfig.ProviderConfig.Model>
+		suspend fun listModels(): List<ModelData>
 		
 		/**
 		 * 获取默认模型的 id，关于默认模型，参见 [setDefaultModel]。
@@ -460,23 +457,23 @@ interface CoreAPI {
 		 * @throws SecretStoreLockedException
 		 * @throws GpgException
 		 */
-		suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey)
+		suspend fun addApiKey(name: String, key: String): UUID
 		
 		/**
 		 * 删除一个 api key。
-		 *
-		 * 删除前请先检查提供商数据，确保没有提供商正在使用这个 api key。
 		 *
 		 * @return 成功删除返回 true，找不到 key 返回 false。
 		 * @throws ApiKeyInUseException
 		 * @throws SecretStoreLockedException
 		 */
-		suspend fun removeApiKey(name: String): Boolean
+		suspend fun removeApiKey(id: UUID): Boolean
 		
 		/**
-		 * 列出所有 api key 的名称（不是值）。
+		 * 列出所有 api key。
+		 *
+		 * @return k 为 id，v 为 displayName（不是值）
 		 */
-		suspend fun listApiKey(): List<String>
+		suspend fun listApiKey(): Map<UUID, String>
 	}
 	
 	/**
@@ -640,7 +637,6 @@ interface CoreAPI {
 		 * 设置程序在国际化等场景下使用的语言。
 		 */
 		fun setLanguage(locale: Locale)
-		
 		
 		/**
 		 * 设置用于 i18n 自动翻译的大模型，请自行确认模型有效。

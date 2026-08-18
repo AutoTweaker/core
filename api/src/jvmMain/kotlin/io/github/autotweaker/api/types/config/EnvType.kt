@@ -18,39 +18,6 @@
 
 package io.github.autotweaker.api.types.config
 
-import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ModelData
-import io.github.autotweaker.api.types.llm.ProviderData
-import java.util.*
-
-sealed class CoreConfig {
-	sealed class JsonConfig {
-		data class Env(
-			val id: String, val value: String, val type: Type
-		) {
-			enum class Type {
-				BASH_ENV, CONTAINER_ENV
-			}
-		}
-	}
-	
-	sealed class ProviderConfig {
-		data class Provider(
-			val id: UUID = UUID.randomUUID(),
-			val type: String,
-			val keyId: String,
-			val baseUrl: Url?,
-			val displayName: String,
-			val errorHandlingRules: List<ProviderData.ErrorHandlingRule>?
-		)
-		
-		data class Model(
-			val data: ModelData,
-		)
-		
-		data class ApiKey(
-			val name: String,
-			val key: String,
-		)
-	}
+enum class EnvType {
+	BASH_ENV, CONTAINER_ENV
 }

@@ -20,7 +20,8 @@ package io.github.autotweaker.api.types.exception.notfound
 
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.exception.ExceptionI18n
+import java.util.*
 
-class ApiKeyNotFoundException(override val id: String) : NotFoundException("Api key not found", id) {
+class ApiKeyNotFoundException(override val id: UUID) : NotFoundException("Api key not found", id) {
 	override fun message() = i18n(ExceptionI18n.ApiKeyNotFoundException(), id)
 }

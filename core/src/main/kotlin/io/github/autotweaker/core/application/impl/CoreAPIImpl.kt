@@ -26,20 +26,22 @@ import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.config.CoreConfig
+import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
-import io.github.autotweaker.api.types.llm.CoreLlmRequest
-import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.llm.UsageCursor
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.port.*
+import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.domain.session.WorkspaceAPI
+import io.github.autotweaker.core.infrastructure.config.ApiKeyRepository
+import io.github.autotweaker.core.infrastructure.config.EnvRepository
+import io.github.autotweaker.core.infrastructure.config.ModelConfigRepository
+import io.github.autotweaker.core.infrastructure.config.ProviderRepository
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
@@ -56,11 +58,7 @@ import java.util.*
 import kotlin.time.Instant
 
 class CoreAPIImpl(
-	private val envRepo: EnvRepository,
-	private val providerRepo: ProviderRepository,
-	private val modelRepo: ModelConfigRepository,
 	private val usageRepo: UsageRepository,
-	private val apiKeyRepo: ApiKeyRepository,
 	override val adapter: CoreAPI.AdapterAPI,
 	override val pathResolver: PathResolver,
 	override val appVersion: SemVer
@@ -95,26 +93,26 @@ class CoreAPIImpl(
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
-		override suspend fun listEnv(type: CoreConfig.JsonConfig.Env.Type) = envRepo.list(type)
-		override suspend fun getEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.get(type, id)
-		override suspend fun setEnv(env: CoreConfig.JsonConfig.Env) = envRepo.set(env)
-		override suspend fun removeEnv(type: CoreConfig.JsonConfig.Env.Type, id: String) = envRepo.remove(type, id)
-		override suspend fun listProviders() = providerRepo.list()
-		override fun listAvailableProviderTypes() = providerRepo.listAvailable()
-		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = providerRepo.getMeta(type)
-		override suspend fun setProvider(provider: CoreConfig.ProviderConfig.Provider) = providerRepo.set(provider)
-		override suspend fun removeProvider(id: UUID) = providerRepo.remove(id)
-		override suspend fun getProvider(id: UUID) = providerRepo.get(id)
-		override suspend fun setModel(model: CoreConfig.ProviderConfig.Model) = modelRepo.set(model)
-		override suspend fun getModel(id: UUID) = modelRepo.get(id)
-		override suspend fun listModels() = modelRepo.list()
-		override suspend fun removeModel(id: UUID) = modelRepo.remove(id)
+		override suspend fun listEnv(type: EnvType) = EnvRepository.list(type)
+		override suspend fun getEnv(type: EnvType, id: String) = EnvRepository.get(type, id)
+		override suspend fun setEnv(type: EnvType, id: String, value: String) = EnvRepository.set(type, id, value)
+		override suspend fun removeEnv(type: EnvType, id: String) = EnvRepository.remove(type, id)
+		override suspend fun listProviders() = ProviderRepository.list()
+		override fun listAvailableProviderTypes() = ProviderRepository.listAvailable()
+		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = ProviderRepository.getMeta(type)
+		override suspend fun setProvider(provider: ProviderData) = ProviderRepository.set(provider)
+		override suspend fun removeProvider(id: UUID) = ProviderRepository.remove(id)
+		override suspend fun getProvider(id: UUID) = ProviderRepository.get(id)
+		override suspend fun setModel(model: ModelData) = ModelConfigRepository.set(model)
+		override suspend fun getModel(id: UUID) = ModelConfigRepository.get(id)
+		override suspend fun listModels() = ModelConfigRepository.list()
+		override suspend fun removeModel(id: UUID) = ModelConfigRepository.remove(id)
 		
 		override fun getDefaultModel(): UUID? = ModelResolverImpl.getDefaultModel()
 		override suspend fun setDefaultModel(id: UUID?) = ModelResolverImpl.setDefaultModel(id)
-		override suspend fun addApiKey(key: CoreConfig.ProviderConfig.ApiKey) = apiKeyRepo.add(key)
-		override suspend fun listApiKey() = apiKeyRepo.list()
-		override suspend fun removeApiKey(name: String) = apiKeyRepo.remove(name)
+		override suspend fun addApiKey(name: String, key: String) = ApiKeyRepository.add(name, key)
+		override suspend fun listApiKey() = ApiKeyRepository.list()
+		override suspend fun removeApiKey(id: UUID) = ApiKeyRepository.remove(id)
 		override fun getAllSettings() = Settings.getAllEntries()
 		override fun getSettingDef(id: String) = Settings.getDef(id)
 		override suspend fun setSetting(id: String, value: SettingValue<*>) = Settings.setById(id, value)

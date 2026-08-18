@@ -26,7 +26,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-class ProviderDataTest {
+class ProviderConfigDataTest {
 	companion object {
 		init {
 			TestServices.init()

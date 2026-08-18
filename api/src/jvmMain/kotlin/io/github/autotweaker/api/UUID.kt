@@ -16,13 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.port
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.types.config.CoreConfig
+import java.util.*
 
-interface ApiKeyRepository {
-	suspend fun add(key: CoreConfig.ProviderConfig.ApiKey)
-	suspend fun remove(name: String): Boolean
-	suspend fun get(name: String): String
-	suspend fun list(): List<String>
-}
+fun UUID(): UUID = UUID.randomUUID()

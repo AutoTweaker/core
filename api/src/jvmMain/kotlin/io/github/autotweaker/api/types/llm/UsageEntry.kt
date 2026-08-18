@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.llm
 
+import io.github.autotweaker.api.UUID
 import java.util.*
 import kotlin.time.Instant
 
@@ -29,7 +30,7 @@ import kotlin.time.Instant
  * @param timestamp 产生这条 Usage 的时间戳。
  */
 data class UsageEntry(
-	val id: UUID = UUID.randomUUID(),
+	val id: UUID = UUID(),
 	val modelId: UUID,
 	val timestamp: Instant,
 	val usage: Usage,

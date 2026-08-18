@@ -90,7 +90,7 @@ class Model : Command, Traceable {
 		}
 		
 		handleFlag("show") {
-			val model = core.config.getModel(findModel(core))?.data ?: done(1)
+			val model = core.config.getModel(findModel(core)) ?: done(1)
 			out(ModelI18n.ModelName(), model.displayName)
 			out(ModelI18n.ProviderName(), getPositional(0))
 			printModelInfo(model.modelInfo)
@@ -114,14 +114,14 @@ class Model : Command, Traceable {
 	
 	private suspend fun Console.list(core: CoreAPI) {
 		core.config.listModels().forEach { model ->
-			printModel(model.data.id, core)
+			printModel(model.id, core)
 		}
 	}
 	
 	private suspend fun Console.printModel(id: UUID, core: CoreAPI) {
 		val model = core.config.getModel(id) ?: throw ModelNotFoundException(id)
-		val providerName = core.config.getProvider(model.data.providerId)?.displayName ?: i18n(ModelI18n.Unknown())
-		out("[$providerName] ${model.data.displayName}")
+		val providerName = core.config.getProvider(model.providerId)?.displayName ?: i18n(ModelI18n.Unknown())
+		out("[$providerName] ${model.displayName}")
 	}
 	
 	companion object : I18nable {
@@ -131,7 +131,7 @@ class Model : Command, Traceable {
 			val providerId = core.config.listProviders().find { it.displayName == provider }?.id
 				?: error(ModelI18n.ProviderNotFound(), provider)
 			val modelId = core.config.listModels()
-				.find { it.data.displayName == model && it.data.providerId == providerId }?.data?.id
+				.find { it.displayName == model && it.providerId == providerId }?.id
 				?: error(ModelI18n.ModelNotFound(), model)
 			return modelId
 		}

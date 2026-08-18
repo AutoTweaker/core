@@ -28,7 +28,6 @@ import io.github.autotweaker.api.types.llm.ChatTimeout
 import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
-import java.util.*
 
 object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 	override suspend fun send(
@@ -38,7 +37,7 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 		providerType: String,
 		timeout: ChatTimeout,
 	): Flow<ChatResult> {
-		val chatId = UUID.randomUUID()
+		val chatId = UUID()
 		log.debug(
 			"Sent LLM request  providerType={}  model={}  stream={}  chatId={}",
 			providerType,

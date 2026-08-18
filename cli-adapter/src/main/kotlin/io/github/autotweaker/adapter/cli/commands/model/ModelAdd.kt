@@ -20,12 +20,11 @@ package io.github.autotweaker.adapter.cli.commands.model
 
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.config.CoreConfig
 import io.github.autotweaker.api.types.llm.ModelData
-import java.util.*
 
 class ModelAdd(
 	private val core: CoreAPI
@@ -33,32 +32,28 @@ class ModelAdd(
 	suspend fun Console.addAll(providerName: String): Nothing {
 		val provider = core.config.listProviders().find { it.displayName == providerName }
 			?: error(ModelI18n.ProviderNotFound(), providerName)
-		val providerMeta = core.config.getProviderMeta(provider.type)
+		val providerMeta = core.config.getProviderMeta(provider.providerType)
 		val modelList =
-			core.config.listModels().filter { it.data.providerId == provider.id }.map { it.data.displayName }
+			core.config.listModels().filter { it.providerId == provider.id }.map { it.displayName }
 		
 		providerMeta.models.map { it }.forEach {
 			if (it.modelId !in modelList) core.config.setModel(
-				CoreConfig.ProviderConfig.Model(
-					data = ModelData(
-						id = UUID.randomUUID(), displayName = it.modelId, modelInfo = it, providerId = provider.id
-					)
+				ModelData(
+					id = UUID(), displayName = it.modelId, modelInfo = it, providerId = provider.id
 				)
 			)
 		}
 		done()
 	}
 	
-	//region 一大坨add的和它的辅助方法
-	
 	suspend fun Console.add(name: String, provider: String, infoId: String?): Nothing {
 		val provider = core.config.listProviders().find { it.displayName == provider }
 			?: error(ModelI18n.ProviderNotFound(), provider)
 		
 		var modelInfo: ModelData.ModelInfo? = null
-		core.config.getProviderMeta(provider.type).models.find { it.modelId == infoId }?.let { modelInfo = it }
+		core.config.getProviderMeta(provider.providerType).models.find { it.modelId == infoId }?.let { modelInfo = it }
 		
-		if (core.config.listModels().any { it.data.displayName == name && it.data.providerId == provider.id })
+		if (core.config.listModels().any { it.displayName == name && it.providerId == provider.id })
 			error(ModelI18n.ModelDuplicateError(), name)
 		
 		if (modelInfo == null) {
@@ -94,13 +89,11 @@ class ModelAdd(
 		}
 		
 		core.config.setModel(
-			CoreConfig.ProviderConfig.Model(
-				ModelData(
-					id = UUID.randomUUID(),
-					displayName = name,
-					modelInfo = modelInfo,
-					providerId = provider.id
-				)
+			ModelData(
+				id = UUID(),
+				displayName = name,
+				modelInfo = modelInfo,
+				providerId = provider.id
 			)
 		)
 		
@@ -108,6 +101,4 @@ class ModelAdd(
 	}
 	
 	private suspend fun Console.invalidValue(): Nothing = error(ModelI18n.InvalidValue())
-	
-	//endregion
 }

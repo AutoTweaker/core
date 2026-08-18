@@ -18,13 +18,10 @@
 
 package io.github.autotweaker.core.infrastructure.tool
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.CatchingResult
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.recoverException
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.domain.port.*
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +37,6 @@ import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.attribute.UserDefinedFileAttributeView
 import java.security.MessageDigest
-import java.util.*
 import kotlin.time.toKotlinInstant
 
 object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
@@ -150,7 +146,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}.rethrowFileSystemException()
 	
 	private fun atomicReplace(path: Path, lines: List<String>) {
-		val tmp = path.resolveSibling(".${path.fileName}.${UUID.randomUUID()}.tmp")
+		val tmp = path.resolveSibling(".${path.fileName}.${UUID()}.tmp")
 		trace.catching {
 			FileChannel.open(tmp, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
 				.use { channel ->

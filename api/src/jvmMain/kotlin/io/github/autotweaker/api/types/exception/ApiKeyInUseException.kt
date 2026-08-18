@@ -19,7 +19,8 @@
 package io.github.autotweaker.api.types.exception
 
 import io.github.autotweaker.api.i18n
+import java.util.*
 
-class ApiKeyInUseException(val id: String) : AutoTweakerException("Api key '$id' is currently in use") {
-	override fun message() = i18n(ExceptionI18n.ApiKeyInUseException(), id)
+class ApiKeyInUseException(val id: UUID, val name: String) : AutoTweakerException("Api key '$id' is currently in use") {
+	override fun message() = i18n(ExceptionI18n.ApiKeyInUseException(), name)
 }

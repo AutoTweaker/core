@@ -171,7 +171,7 @@ class Tools(
 		}
 		
 		return RuntimeContext.Message.Tool.Result(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			timestamp = Clock.System.now(),
 			content = truncation(output.result, ToolSettings.MaxOutput().get()),
 			data = output.data,

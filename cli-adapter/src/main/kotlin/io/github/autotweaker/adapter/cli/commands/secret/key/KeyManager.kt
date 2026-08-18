@@ -21,13 +21,12 @@ package io.github.autotweaker.adapter.cli.commands.secret.key
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.types.config.CoreConfig
 
 class KeyManager(
 	private val core: CoreAPI
 ) : I18nable {
 	suspend fun Console.list() {
-		core.config.listApiKey().forEach { out(it) }
+		core.config.listApiKey().values.forEach { out(it) }
 	}
 	
 	suspend fun Console.add(name: String) {
@@ -37,12 +36,12 @@ class KeyManager(
 		
 		if (key.isBlank()) error(KeyI18n.EmptyKeyError())
 		
-		core.config.addApiKey(
-			CoreConfig.ProviderConfig.ApiKey(name, key)
-		)
+		core.config.addApiKey(name, key)
 	}
 	
 	suspend fun Console.remove(name: String) {
-		if (!core.config.removeApiKey(name)) error(KeyI18n.KeyNotFoundError(), name)
+		val id = core.config.listApiKey().entries.find { it.value == name }?.key
+			?: error(KeyI18n.KeyNotFoundError(), name)
+		core.config.removeApiKey(id)
 	}
 }

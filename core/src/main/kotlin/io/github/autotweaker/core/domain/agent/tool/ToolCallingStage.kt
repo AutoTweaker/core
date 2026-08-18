@@ -98,41 +98,42 @@ class ToolCallingStage(
 		}.also {
 			toolJob = null
 			onToolCall(null)
-		}.recoverException { _: TimeoutCancellationException ->
-			val elapsed = startTime.elapsedNow()
-			log.warn(
-				"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}",
-				agentId, call.validatedToolName, elapsed
-			)
-			buildToolResult(
-				ToolSettings.TimeoutMessage().format(elapsed),
-				resolved.timeout(elapsed),
-				ToolResultStatus.TIMEOUT
-			)
-		}.recoverException { _: CancellationException ->
-			log.debug(
-				"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
-				agentId,
-				call.validatedToolName
-			)
-			buildToolResult(
-				ToolSettings.CancelledExecuting().get(),
-				resolved.cancelled(),
-				ToolResultStatus.CANCELLED
-			)
-		}.getOrElse { e ->
-			log.error(
-				"Failed tool execution  agentId={}  tool={}",
-				agentId,
-				call.validatedToolName,
-				e
-			)
-			buildToolResult(
-				ToolSettings.ToolExecutionError().format(e.message()),
-				resolved.failed(e),
-				ToolResultStatus.FAILURE
-			)
-		}
+		}.ensureActive()
+			.recoverException { _: TimeoutCancellationException ->
+				val elapsed = startTime.elapsedNow()
+				log.warn(
+					"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}",
+					agentId, call.validatedToolName, elapsed
+				)
+				buildToolResult(
+					ToolSettings.TimeoutMessage().format(elapsed),
+					resolved.timeout(elapsed),
+					ToolResultStatus.TIMEOUT
+				)
+			}.recoverException { _: CancellationException ->
+				log.debug(
+					"Failed tool execution  agentId={}  tool={}  reason=CANCELLED",
+					agentId,
+					call.validatedToolName
+				)
+				buildToolResult(
+					ToolSettings.CancelledExecuting().get(),
+					resolved.cancelled(),
+					ToolResultStatus.CANCELLED
+				)
+			}.getOrElse { e ->
+				log.error(
+					"Failed tool execution  agentId={}  tool={}",
+					agentId,
+					call.validatedToolName,
+					e
+				)
+				buildToolResult(
+					ToolSettings.ToolExecutionError().format(e.message()),
+					resolved.failed(e),
+					ToolResultStatus.FAILURE
+				)
+			}
 	}
 	
 	private fun buildToolResult(
@@ -140,7 +141,7 @@ class ToolCallingStage(
 		presentation: ToolPresentation,
 		status: ToolResultStatus,
 	): Result = Result(
-		id = UUID.randomUUID(),
+		id = UUID(),
 		timestamp = Clock.System.now(),
 		content = content,
 		data = null,

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.format
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.tool.ToolPresentation
@@ -27,7 +28,6 @@ import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import kotlinx.serialization.json.JsonElement
-import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Instant
 import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall as RawToolCall
@@ -42,7 +42,7 @@ object ToolMessageFactory {
 		call: RawToolCall,
 		resolved: ResolveResult.NeedsApproval
 	) = RuntimeContext.CurrentRound.PendingToolCall(
-		id = UUID.randomUUID(),
+		id = UUID(),
 		timestamp = timestamp,
 		callId = call.id,
 		callName = call.name,
@@ -100,7 +100,7 @@ object ToolMessageFactory {
 		presentation: ToolPresentation
 	) = buildToolMessage(
 		call, ToolResult(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			content = if (reason != null) ToolSettings.RejectedWithFeedback().format(reason)
 			else ToolSettings.Rejected().get(),
 			data = null,
@@ -117,7 +117,7 @@ object ToolMessageFactory {
 	) = buildToolMessage(
 		call = call,
 		ToolResult(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			content = message,
 			data = null,
 			presentation = presentation,
@@ -134,7 +134,7 @@ object ToolMessageFactory {
 	) = buildToolMessage(
 		timestamp, call,
 		ToolResult(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			content = message,
 			data = null,
 			presentation = presentation,
@@ -154,7 +154,7 @@ object ToolMessageFactory {
 	) = buildToolMessage(
 		timestamp, call, reason, validatedToolName, validatedArgs,
 		ToolResult(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			content = message,
 			data = null,
 			presentation = presentation,
@@ -169,7 +169,7 @@ object ToolMessageFactory {
 	) = buildToolMessage(
 		timestamp, activation.first,
 		ToolResult(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			content = activation.second.message,
 			data = null,
 			presentation = activation.second.presentation,
@@ -222,7 +222,7 @@ object ToolMessageFactory {
 	fun buildToolCall(
 		call: PendingCall,
 	) = ToolCall( // 完全解析成功的
-		id = UUID.randomUUID(),
+		id = UUID(),
 		timestamp = call.timestamp,
 		callName = call.callName,
 		arguments = call.arguments,
@@ -237,7 +237,7 @@ object ToolMessageFactory {
 		timestamp: Instant,
 		call: RawToolCall,
 	) = ToolCall( // 没有解析出 ToolArgs 的
-		id = UUID.randomUUID(),
+		id = UUID(),
 		timestamp = timestamp,
 		callName = call.name,
 		arguments = call.arguments,
@@ -255,7 +255,7 @@ object ToolMessageFactory {
 		validatedToolName: String,
 		validatedArgs: JsonElement,
 	) = ToolCall( // resolve 失败的
-		id = UUID.randomUUID(),
+		id = UUID(),
 		timestamp = timestamp,
 		callName = call.name,
 		arguments = call.arguments,

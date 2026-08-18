@@ -26,6 +26,7 @@ import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.types.config.EnvType
 
 class Env : Command, Traceable {
 	override val name = "env"
@@ -45,8 +46,8 @@ class Env : Command, Traceable {
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		val type = when (getValue("type").lowercase()) {
-			"bash" -> EnvManager.EnvType.BASH
-			"container" -> EnvManager.EnvType.CONTAINER
+			"bash" -> EnvType.BASH_ENV
+			"container" -> EnvType.CONTAINER_ENV
 			else -> error(SecretI18n.InvalidArg())
 		}
 		with(EnvManager(core)) {

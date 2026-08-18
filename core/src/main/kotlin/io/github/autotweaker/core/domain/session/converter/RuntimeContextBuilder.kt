@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.session.converter
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.base.IntSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
@@ -107,7 +108,7 @@ class RuntimeContextBuilder(
 			id = id,
 			reasoning = it?.reasoning,
 			content = it?.content,
-			modelId = it?.model ?: UUID.randomUUID(),
+			modelId = it?.model ?: UUID(),
 			timestamp = it?.timestamp.orNow(),
 			usage = it?.usage
 		)
@@ -158,7 +159,7 @@ class RuntimeContextBuilder(
 			id = id,
 			timestamp = it?.timestamp.orNow(),
 			content = it?.content.orEmpty(),
-			modelId = it?.model ?: UUID.randomUUID(),
+			modelId = it?.model ?: UUID(),
 			usage = it?.usage
 		)
 	}

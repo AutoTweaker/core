@@ -241,12 +241,11 @@ object SecretManager : SecretStore, Loggable, Traceable {
 		?: throw SecretStoreLockedException()
 	
 	// region 实现接口
-	override suspend fun set(secret: String, id: UUID): UUID = lock.withLock {
+	override suspend fun set(secret: String, id: UUID) = lock.withLock {
 		getPassword()
 		val file = secretsDir.resolve("$id.gpg")
 		encryptTo(secret, file)
 		log.debug("Added secret  id={}", id)
-		return@withLock id
 	}
 	
 	override suspend fun get(id: UUID): String = lock.withLock {

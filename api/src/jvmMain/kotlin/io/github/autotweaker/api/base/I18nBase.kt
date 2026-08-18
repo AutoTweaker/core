@@ -36,8 +36,8 @@ import java.util.*
  *
  * @see I18nDef
  */
-abstract class I18nBase(vararg pairs: Pair<Locale, String>) : I18nDef {
-	override val localizations = pairs.toMap()
+abstract class I18nBase(first: Pair<Locale, String>, vararg more: Pair<Locale, String>) : I18nDef {
+	override val localizations = mapOf(first, *more)
 }
 
 /**

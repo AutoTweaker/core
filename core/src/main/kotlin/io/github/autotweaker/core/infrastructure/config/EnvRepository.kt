@@ -19,21 +19,19 @@
 package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.types.config.CoreConfig
-import io.github.autotweaker.api.types.config.CoreConfig.JsonConfig.Env.Type
-import io.github.autotweaker.core.domain.port.EnvRepository
+import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 
-object EnvConfigAPI : EnvRepository, Loggable {
-	override suspend fun list(type: Type): List<String> = store(type).listEnv()
-	override suspend fun set(env: CoreConfig.JsonConfig.Env) = store(env.type).setEnv(env.id, env.value)
-	override suspend fun get(type: Type, id: String): String? = store(type).getEnv(id)
-	override suspend fun remove(type: Type, id: String) = store(type).removeEnv(id)
+object EnvRepository : Loggable {
+	suspend fun list(type: EnvType): List<String> = getStore(type).listEnv()
+	suspend fun set(type: EnvType, id: String, value: String) = getStore(type).setEnv(id, value)
+	suspend fun get(type: EnvType, id: String): String? = getStore(type).getEnv(id)
+	suspend fun remove(type: EnvType, id: String) = getStore(type).removeEnv(id)
 	
-	private fun store(type: Type): EnvStore = when (type) {
-		Type.BASH_ENV -> Bash.Companion
-		Type.CONTAINER_ENV -> ContainerManager
+	private fun getStore(type: EnvType): EnvStore = when (type) {
+		EnvType.BASH_ENV -> Bash.Companion
+		EnvType.CONTAINER_ENV -> ContainerManager
 	}
 }

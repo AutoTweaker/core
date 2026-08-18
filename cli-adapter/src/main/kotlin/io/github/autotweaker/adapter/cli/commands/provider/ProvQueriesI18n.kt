@@ -62,12 +62,6 @@ object ProvQueriesI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class Default : I18nBase(
-		en("[default]"),
-		zh("[默认]"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class StatusCode : I18nBase(
 		en("Status code: %s"),
 		zh("状态码: %s"),

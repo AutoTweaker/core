@@ -20,6 +20,8 @@
 
 package io.github.autotweaker.api.base
 
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -50,6 +52,15 @@ value class CatchingResult<out T> @PublishedApi internal constructor(@PublishedA
 	 */
 	fun rethrowCancellation(on: (CancellationException) -> Unit) =
 		rethrow<CancellationException>(on)
+	
+	/**
+	 * 调用 `currentCoroutineContext().ensureActive()`。
+	 *
+	 * 不同于 [rethrowCancellation]，[ensureActive] 既不会吞掉 [CancellationException]，也不会意外抛出来自外部协程的 [CancellationException]。
+	 */
+	suspend fun ensureActive() = also {
+		currentCoroutineContext().ensureActive()
+	}
 	
 	/**
 	 * 如果异常不是 [E]，重新抛出
@@ -85,17 +96,6 @@ value class CatchingResult<out T> @PublishedApi internal constructor(@PublishedA
 	 */
 	inline fun onFailureIf(test: (Throwable) -> Boolean, action: (Throwable) -> Unit) =
 		onFailure { if (test(it)) action(it) }
-	
-	/**
-	 * 如果 [test]，对 [T] 进行 [transform]，返回新的成功 [CatchingResult]
-	 */
-	inline fun <R, T : R> CatchingResult<T>.recoverIf(
-		test: (Throwable) -> Boolean, transform: (Throwable) -> R
-	): CatchingResult<R> = when (val exception = exceptionOrNull()) {
-		null -> this
-		else -> if (test(exception)) CatchingResult(Result.success(transform(exception))) else this
-	}
-	
 	
 	//region Result 的 API 转发
 	
@@ -156,6 +156,16 @@ value class CatchingResult<out T> @PublishedApi internal constructor(@PublishedA
 }
 
 /* 涉及 T : R 的，无法作为成员函数 */
+
+/**
+ * 如果 [test]，对 [T] 进行 [transform]，返回新的成功 [CatchingResult]
+ */
+inline fun <R, T : R> CatchingResult<T>.recoverIf(
+	test: (Throwable) -> Boolean, transform: (Throwable) -> R
+): CatchingResult<R> = when (val exception = exceptionOrNull()) {
+	null -> this
+	else -> if (test(exception)) CatchingResult(Result.success(transform(exception))) else this
+}
 
 /**
  * 如果异常为 [E]，对 [T] 进行 [transform]，返回新的成功 [CatchingResult]。

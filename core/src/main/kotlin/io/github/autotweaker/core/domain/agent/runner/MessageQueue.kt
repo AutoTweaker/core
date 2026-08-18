@@ -91,7 +91,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			return null
 		}
 		return RuntimeContext.Message.User(
-			id = UUID.randomUUID(),
+			id = UUID(),
 			content = MessageContent(
 				injections, content, images
 			),
@@ -116,7 +116,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	)
 	
 	fun send(msg: MessageContent): Delivery {
-		val token = UUID.randomUUID()
+		val token = UUID()
 		val deferred = CompletableDeferred<UUID?>()
 		deliveries[token] = deferred
 		channel.trySend(token to msg)

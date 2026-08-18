@@ -22,7 +22,7 @@ import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import java.util.*
 
 interface SecretStore {
-	suspend fun set(secret: String, id: UUID = UUID.randomUUID()): UUID
+	suspend fun set(secret: String, id: UUID)
 	suspend fun remove(id: UUID): Boolean
 	suspend fun get(id: UUID): String
 	suspend fun list(): List<UUID>

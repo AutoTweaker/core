@@ -48,7 +48,9 @@ class ModelResolverImplTest {
 	
 	private val secretMap = mutableMapOf<UUID, String>()
 	private val secretStore = object : SecretStore {
-		override suspend fun set(secret: String, id: UUID): UUID = id.also { secretMap[it] = secret }
+		override suspend fun set(secret: String, id: UUID) {
+			secretMap[id] = secret
+		}
 		override suspend fun get(id: UUID): String = secretMap[id]!!
 		override suspend fun list(): List<UUID> = secretMap.keys.toList()
 		override suspend fun remove(id: UUID): Boolean = secretMap.remove(id) != null

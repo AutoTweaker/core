@@ -165,7 +165,7 @@ class CompactService(
 			
 			)
 			return SummarizedMessage(
-				id = UUID.randomUUID(),
+				id = UUID(),
 				timestamp = lastResult.second.createdAt,
 				content = extracted,
 				modelId = lastResult.first,

@@ -18,12 +18,9 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.TMP_PATH
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import java.io.IOException
@@ -42,7 +39,7 @@ object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
 		val base = baseDir(container)
 		createDir()
 		
-		val id = UUID.randomUUID()
+		val id = UUID()
 		val path = base.resolve(id.toString())
 		path.writeText(content)
 		

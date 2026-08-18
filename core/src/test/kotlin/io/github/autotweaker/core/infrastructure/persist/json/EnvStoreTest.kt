@@ -21,7 +21,6 @@ package io.github.autotweaker.core.infrastructure.persist.json
 import io.github.autotweaker.api.storage.JsonStore
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persist.json.base.SecretMapStore
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
@@ -45,7 +44,9 @@ class EnvStoreTest {
 	private val secretMap = mutableMapOf<UUID, String>()
 	private val removedSecrets = mutableListOf<UUID>()
 	private val secretStore = object : SecretStore {
-		override suspend fun set(secret: String, id: UUID): UUID = id.also { secretMap[it] = secret }
+		override suspend fun set(secret: String, id: UUID) {
+			secretMap[id] = secret
+		}
 		override suspend fun get(id: UUID): String = secretMap[id]!!
 		override suspend fun list(): List<UUID> = secretMap.keys.toList()
 		override suspend fun remove(id: UUID): Boolean = removedSecrets.add(id).let { secretMap.remove(id) != null }
@@ -66,7 +67,7 @@ class EnvStoreTest {
 		removedSecrets.clear()
 		mockkObject(JsonStoreImpl)
 		every { JsonStoreImpl.namespace(any()) } answers { entryFor(firstArg<KClass<*>>()) }
-		SecretMapStore.init(secretStore)
+		EnvStore.init(secretStore)
 	}
 	
 	@AfterTest

@@ -89,7 +89,7 @@ object AgentChat : Loggable, I18nable {
 						
 						is ChatMessage.AssistantMessage -> {
 							val assistantMessage = RuntimeContext.Message.Assistant(
-								id = UUID.randomUUID(),
+								id = UUID(),
 								timestamp = msg.createdAt,
 								reasoning = msg.reasoningContent,
 								content = msg.content,

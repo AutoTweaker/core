@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.types.agent.AgentIndex.AgentNode.Companion.findNode
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
@@ -70,6 +71,6 @@ data class AgentIndex(
 			return all
 		}
 		
-		fun new() = AgentIndex(AgentNode(UUID.randomUUID(), emptyList()))
+		fun new() = AgentIndex(AgentNode(UUID(), emptyList()))
 	}
 }

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -36,7 +37,7 @@ data class ContextInjection(
 	 * @see io.github.autotweaker.api.adapter.AgentAPI.removeInjection
 	 */
 	@Serializable(with = UuidSerializer::class)
-	val id: UUID = UUID.randomUUID(),
+	val id: UUID = UUID(),
 	/**
 	 * XML 标签的名称。
 	 */
