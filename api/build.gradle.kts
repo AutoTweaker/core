@@ -58,6 +58,7 @@ kotlin {
 		jvmMain.dependencies {
 			implementation("org.slf4j:slf4j-api:2.0.18")
 			implementation("com.google.auto.service:auto-service-annotations:1.1.1")
+			implementation("com.google.guava:guava:33.7.1-jre")
 		}
 		jvmMain {
 			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))

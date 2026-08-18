@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.adapter
 
+import com.google.common.collect.ImmutableBiMap
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.tool.ToolArgs
@@ -469,11 +470,20 @@ interface CoreAPI {
 		suspend fun removeApiKey(id: UUID): Boolean
 		
 		/**
+		 * 删除一个 api key。
+		 *
+		 * @return 成功删除返回 true，找不到 key 返回 false。
+		 * @throws ApiKeyInUseException
+		 * @throws SecretStoreLockedException
+		 */
+		suspend fun removeApiKey(name: String): Boolean
+		
+		/**
 		 * 列出所有 api key。
 		 *
-		 * @return k 为 id，v 为 displayName（不是值）
+		 * @return K、V 分别为 id 和 displayName（不是值）
 		 */
-		suspend fun listApiKey(): Map<UUID, String>
+		suspend fun listApiKey(): ImmutableBiMap<UUID, String>
 	}
 	
 	/**

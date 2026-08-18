@@ -26,7 +26,7 @@ class KeyManager(
 	private val core: CoreAPI
 ) : I18nable {
 	suspend fun Console.list() {
-		core.config.listApiKey().values.forEach { out(it) }
+		core.config.listApiKey().values.sorted().forEach { out(it) }
 	}
 	
 	suspend fun Console.add(name: String) {
@@ -40,8 +40,7 @@ class KeyManager(
 	}
 	
 	suspend fun Console.remove(name: String) {
-		val id = core.config.listApiKey().entries.find { it.value == name }?.key
-			?: error(KeyI18n.KeyNotFoundError(), name)
-		core.config.removeApiKey(id)
+		val success = core.config.removeApiKey(name)
+		if (!success) error(KeyI18n.KeyNotFoundError(), name)
 	}
 }

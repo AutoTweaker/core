@@ -61,9 +61,15 @@ object ProviderRepository : Loggable, Traceable {
 		if (store.getAll().values.any { it.id != provider.id && it.displayName == provider.displayName })
 			throw DuplicateProviderNameException(provider.displayName)
 		if (provider.providerType !in LlmClientLoader.available()) throw UnknownProviderTypeException(provider.providerType)
-		ApiKeyRepository.checkExists(provider.apiKey)
-		store.set(provider).andLog(log) {
-			info("Created provider  id={}  type={}  name={}", provider.id, provider.providerType, provider.displayName)
+		ApiKeyRepository.ensure(provider.apiKey) {
+			store.set(provider).andLog(log) {
+				info(
+					"Created provider  id={}  type={}  name={}",
+					provider.id,
+					provider.providerType,
+					provider.displayName
+				)
+			}
 		}
 	}
 }

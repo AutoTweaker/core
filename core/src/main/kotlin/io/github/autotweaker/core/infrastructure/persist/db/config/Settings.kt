@@ -67,7 +67,7 @@ object Settings : SettingService, Loggable, Traceable {
 		log.info("Initialized settings  count={}", cache.size)
 	}
 	
-	private fun loadAll(): Map<String, SettingValue<*>> = transaction(db) {
+	private suspend fun loadAll(): Map<String, SettingValue<*>> = db.transaction {
 		val map = mutableMapOf<String, SettingValue<*>>()
 		ConfigTable.selectAll().forEach { row ->
 			getValueFromRow(row)?.let { map[row[ConfigTable.keyName]] = it }

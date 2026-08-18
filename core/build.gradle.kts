@@ -94,6 +94,8 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1")
 	implementation("tools.jackson.core:jackson-core:3.2.1")
 	implementation("tools.jackson.core:jackson-databind:3.2.1")
+	
+	implementation("com.google.guava:guava:33.7.1-jre")
 }
 afterEvaluate {
 	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {

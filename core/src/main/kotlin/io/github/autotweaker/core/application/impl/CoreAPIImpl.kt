@@ -113,6 +113,7 @@ class CoreAPIImpl(
 		override suspend fun addApiKey(name: String, key: String) = ApiKeyRepository.add(name, key)
 		override suspend fun listApiKey() = ApiKeyRepository.list()
 		override suspend fun removeApiKey(id: UUID) = ApiKeyRepository.remove(id)
+		override suspend fun removeApiKey(name: String) = ApiKeyRepository.remove(name)
 		override fun getAllSettings() = Settings.getAllEntries()
 		override fun getSettingDef(id: String) = Settings.getDef(id)
 		override suspend fun setSetting(id: String, value: SettingValue<*>) = Settings.setById(id, value)
