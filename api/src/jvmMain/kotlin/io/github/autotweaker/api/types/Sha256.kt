@@ -18,57 +18,78 @@
 
 package io.github.autotweaker.api.types
 
-import kotlinx.serialization.KSerializer
+import com.google.common.hash.HashCode
+import com.google.common.hash.Hashing
+import io.github.autotweaker.api.types.serializer.HashCodeSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import java.security.MessageDigest
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
 /**
  * 表示一个 32 字节的 SHA-256 哈希值。
  */
+@JvmInline
 @Serializable
-class Sha256(val bytes: ByteArray) {
+value class Sha256(@Serializable(with = HashCodeSerializer::class) val hash: HashCode) {
 	init {
+		require(hash.bits() == 256) { "SHA256 hash must be 256 bits, got ${hash.bits()}" }
+	}
+	
+	/**
+	 * @see HashCode.fromString
+	 */
+	constructor(hex: String) : this(HashCode.fromString(hex)) {
+		require(hex.length == 64 && hex.all { it in '0'..'9' || it in 'a'..'f' })
+		{ "Invalid SHA256 hex: $hex" }
+	}
+	
+	/**
+	 * @see HashCode.fromBytes
+	 */
+	constructor(bytes: ByteArray) : this(HashCode.fromBytes(bytes)) {
 		require(bytes.size == 32) { "SHA256 hash must be 32 bytes, got ${bytes.size}" }
 	}
 	
-	override fun equals(other: Any?): Boolean {
-		if (this === other) return true
-		if (other !is Sha256) return false
-		return bytes.contentEquals(other.bytes)
-	}
+	val bytes: ByteArray get() = hash.asBytes()
 	
-	override fun hashCode(): Int = bytes.contentHashCode()
+	override fun toString(): String = hash.toString()
 	
-	override fun toString(): String = bytes.joinToString("") { "%02x".format(it) }
-	
-	companion object : KSerializer<Sha256> {
-		override val descriptor = PrimitiveSerialDescriptor("Sha256", PrimitiveKind.STRING)
-		
-		override fun serialize(encoder: Encoder, value: Sha256) =
-			encoder.encodeString(value.toString())
-		
-		override fun deserialize(decoder: Decoder): Sha256 =
-			fromString(decoder.decodeString())
-		
-		/**
-		 * 从十六进制哈希值字符串构造 [Sha256]。
-		 */
-		fun fromString(hex: String): Sha256 {
-			require(hex.length == 64 && hex.all { it in '0'..'9' || it in 'a'..'f' })
-			{ "Invalid SHA256 hex: $hex" }
-			return Sha256(hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
-		}
-		
+	companion object {
 		/**
 		 * 计算一个二进制数据的 SHA-256 哈希值。
 		 */
-		fun hash(content: ByteArray): Sha256 {
-			val digest = MessageDigest.getInstance("SHA-256").digest(content)
-			return Sha256(digest)
-		}
+		fun hash(input: ByteArray): Sha256 = Sha256(Hashing.sha256().hashBytes(input))
+		
+		/**
+		 * 计算 [input] 中从 [off] 开始 [len] 字节的 SHA-256 哈希值。
+		 */
+		fun hash(input: ByteArray, off: Int, len: Int): Sha256 =
+			Sha256(Hashing.sha256().hashBytes(input, off, len))
+		
+		/**
+		 * 计算 [input] 剩余字节的 SHA-256 哈希值。
+		 */
+		fun hash(input: ByteBuffer): Sha256 = Sha256(Hashing.sha256().hashBytes(input))
+		
+		/**
+		 * 计算 [input] 的 SHA-256 哈希值，按小端序解释。
+		 */
+		fun hash(input: Int): Sha256 = Sha256(Hashing.sha256().hashInt(input))
+		
+		/**
+		 * 计算 [input] 的 SHA-256 哈希值，按小端序解释。
+		 */
+		fun hash(input: Long): Sha256 = Sha256(Hashing.sha256().hashLong(input))
+		
+		/**
+		 * 计算 [input] 的 SHA-256 哈希值，每个 char 直接哈希，不做字符编码。
+		 */
+		fun hash(input: CharSequence): Sha256 = Sha256(Hashing.sha256().hashUnencodedChars(input))
+		
+		/**
+		 * 计算 [input] 按 [charset] 编码后的 SHA-256 哈希值。
+		 */
+		fun hash(input: CharSequence, charset: Charset): Sha256 =
+			Sha256(Hashing.sha256().hashString(input, charset))
 	}
 }

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.tool
 
+import com.google.common.hash.Hashing
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.CatchingResult
 import io.github.autotweaker.api.base.catching
@@ -36,7 +37,6 @@ import java.nio.file.attribute.AclFileAttributeView
 import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.attribute.UserDefinedFileAttributeView
-import java.security.MessageDigest
 import kotlin.time.toKotlinInstant
 
 object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
@@ -102,18 +102,19 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		Truncated(limited.content.lines(), limited.truncated)
 	}
 	
+	@Suppress("UnstableApiUsage")
 	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
 		trace.catching {
-			val digest = MessageDigest.getInstance("SHA-256")
+			val hasher = Hashing.sha256().newHasher()
 			Files.newInputStream(path).use { input ->
 				val buffer = ByteArray(BUFFER_SIZE)
 				while (true) {
 					val read = input.read(buffer)
 					if (read < 0) break
-					digest.update(buffer, 0, read)
+					hasher.putBytes(buffer, 0, read)
 				}
 			}
-			Sha256(digest.digest())
+			Sha256(hasher.hash())
 		}.rethrowFileSystemException()
 	}
 	
