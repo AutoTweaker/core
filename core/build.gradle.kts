@@ -87,8 +87,8 @@ dependencies {
 	
 	implementation("com.github.docker-java:docker-java-core:3.7.1")
 	implementation("com.github.docker-java:docker-java-transport-httpclient5:3.7.1")
-	implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
-	implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+	implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
+	implementation("org.bouncycastle:bcprov-jdk18on:1.85")
 	implementation("org.ow2.asm:asm:9.10.1")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.22.1")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1")
