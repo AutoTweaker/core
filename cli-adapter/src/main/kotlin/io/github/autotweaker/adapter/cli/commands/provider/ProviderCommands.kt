@@ -22,6 +22,7 @@ import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.base.guava.inverse
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.types.Url.Companion.toUrlOrNull
 import io.github.autotweaker.api.types.llm.ProviderData
@@ -46,7 +47,7 @@ class ProviderCommands(
 			ProvCommandsI18n.PromptKey(), ProvCommandsI18n.MissingKey()
 		)
 		
-		val keyUUID = core.config.listApiKey().entries.find { it.value == key }?.key
+		val keyUUID = core.config.listApiKey().inverse[key]
 			?: error(ProvCommandsI18n.InvalidKey(), key)
 		
 		
