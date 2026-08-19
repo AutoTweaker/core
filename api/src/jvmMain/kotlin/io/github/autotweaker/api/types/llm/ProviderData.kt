@@ -25,10 +25,12 @@ import java.util.*
 
 @Serializable
 data class ProviderData(
-	@Serializable(with = UuidSerializer::class) val id: UUID,
+	@Serializable(with = UuidSerializer::class)
+	val id: UUID,
 	val displayName: String,
 	val providerType: String,
-	@Serializable(with = UuidSerializer::class) val apiKey: UUID,
+	@Serializable(with = UuidSerializer::class)
+	val apiKey: UUID,
 	val baseUrl: Url,
 	val errorHandlingRules: List<ErrorHandlingRule>
 ) {

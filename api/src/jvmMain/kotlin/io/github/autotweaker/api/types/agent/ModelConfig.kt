@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.serializer.UuidListSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -32,6 +31,5 @@ data class ModelConfig(
 	val summarize: UUID,
 	@Serializable(with = UuidSerializer::class)
 	val compact: UUID,
-	@Serializable(with = UuidListSerializer::class)
-	val fallback: List<UUID>,
+	val fallback: List<@Serializable(with = UuidSerializer::class) UUID>,
 )

@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.serializer.UuidListSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -73,12 +72,9 @@ data class AgentContextIndex(
 		@Serializable(with = UuidSerializer::class)
 		val userMessage: UUID,
 		val turns: List<Turn>?,
-		
 		@Serializable(with = UuidSerializer::class)
 		val assistantMessage: UUID?,
-		
-		@Serializable(with = UuidListSerializer::class)
-		val pendingToolCalls: List<UUID>?,
+		val pendingToolCalls: List<@Serializable(with = UuidSerializer::class) UUID>?,
 	) : UuidIndex {
 		override fun ids(): Set<UUID> =
 			setOf(userMessage) +
