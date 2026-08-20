@@ -96,8 +96,8 @@ dependencies {
 	implementation("org.ow2.asm:asm:9.10.1")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.22.1")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1")
-	implementation("tools.jackson.core:jackson-core:3.2.1")
-	implementation("tools.jackson.core:jackson-databind:3.2.1")
+	implementation("tools.jackson.core:jackson-core:3.2.2")
+	implementation("tools.jackson.core:jackson-databind:3.2.2")
 	
 	implementation("com.google.guava:guava:33.7.1-jre")
 }
