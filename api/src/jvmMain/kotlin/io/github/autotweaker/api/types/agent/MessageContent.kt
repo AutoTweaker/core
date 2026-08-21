@@ -38,11 +38,11 @@ data class MessageContent(
 	 */
 	val content: String? = null,
 	/**
-	 * 用户发送的图片，请使用 [io.github.autotweaker.api.ObjectStorable] 获取 [io.github.autotweaker.api.storage.ObjectStorage]，并调用 [io.github.autotweaker.api.storage.ObjectStorage.put] 来存储用户提供的图片。
+	 * 用户发送的图片，请使用 [io.github.autotweaker.api.ObjectStorable] 获取 [io.github.autotweaker.api.store.ObjectStorage]，并调用 [io.github.autotweaker.api.store.ObjectStorage.put] 来存储用户提供的图片。
 	 *
 	 * 无效的 [Sha256] 无法保证行为，取决于 [io.github.autotweaker.api.llm.LlmClient]，请确保 [Sha256] 有效。
 	 *
-	 * [io.github.autotweaker.api.storage.ObjectStorage] 不具备自动清理机制，只要 [Sha256] 来自 [io.github.autotweaker.api.storage.ObjectStorage.put] 就不会出现问题。
+	 * [io.github.autotweaker.api.store.ObjectStorage] 不具备自动清理机制，只要 [Sha256] 来自 [io.github.autotweaker.api.store.ObjectStorage.put] 就不会出现问题。
 	 */
 	val images: List<Sha256>? = null,
 )

@@ -66,8 +66,8 @@ class CoreAPIImpl(
 	override val session = object : CoreAPI.SessionAPI {
 		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
 		override suspend fun create(model: ModelConfig) = SessionManager.create(model)
-		override suspend fun create(workspaceId: UUID, model: ModelConfig) =
-			SessionManager.create(workspaceId, model)
+		override suspend fun create(workspace: UUID, model: ModelConfig) =
+			SessionManager.create(workspace, model)
 		
 		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
 		override suspend fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)

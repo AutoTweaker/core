@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * 使用 [AtomicReference] 为缓存，[io.github.autotweaker.api.storage.JsonStore] 为持久化服务的存储基类。
+ * 使用 [AtomicReference] 为缓存，[io.github.autotweaker.api.store.JsonStore] 为持久化服务的存储基类。
  *
  * [AtomicStore] 的优点是无锁，缺点是 [update] 块内不能挂起、不能有副作用。
  *

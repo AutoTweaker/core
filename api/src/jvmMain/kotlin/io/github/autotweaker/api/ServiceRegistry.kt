@@ -21,8 +21,8 @@ package io.github.autotweaker.api
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
-import io.github.autotweaker.api.storage.JsonStore
-import io.github.autotweaker.api.storage.ObjectStorage
+import io.github.autotweaker.api.store.JsonStore
+import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.config.SettingValue
 import kotlin.reflect.KClass

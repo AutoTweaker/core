@@ -19,8 +19,8 @@
 package io.github.autotweaker.api
 
 import io.github.autotweaker.api.i18n.I18nService
-import io.github.autotweaker.api.storage.JsonStore
-import io.github.autotweaker.api.storage.ObjectStorage
+import io.github.autotweaker.api.store.JsonStore
+import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.api.trace.TraceRecorder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

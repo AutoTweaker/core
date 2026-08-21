@@ -16,29 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.storage
+package io.github.autotweaker.adapter.cli.commands.session.model
 
-import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.adapter.cli.commands.Command
+import io.github.autotweaker.adapter.cli.commands.Console
+import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.i18n
 
-/**
- * 基于 H2 数据库，内容寻址的对象存储服务，适用于存储二进制数据。
- *
- * 所有数据都会被存储到 `Objects` 数据库的 `objects` 表，并通过 SHA-256 去重。
- *
- * 不具备自动清理机制，也不支持删除数据。
- */
-interface ObjectStorage {
-	/**
-	 * 保存一个二进制数据到数据库。
-	 *
-	 * @return [bytes] 的 SHA-256，作为数据的标识符。
-	 */
-	suspend fun put(bytes: ByteArray): Sha256
+class SessionModel : Command {
+	override val name = "model"
+	override val description = i18n(SessionModelI18n.Desc())
+	override val syntax = Syntax.EMPTY
+	override val children = listOf(ModelSet(), ModelGet())
 	
-	/**
-	 * 通过数据的 SHA-256 获取二进制内容。
-	 *
-	 * @return 找不到数据返回 null。
-	 */
-	suspend fun get(sha256: Sha256): ByteArray?
+	override suspend fun Console.execute(core: CoreAPI): Nothing {
+		error(SessionModelI18n.UseGetOrSet())
+	}
 }

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.storage
+package io.github.autotweaker.api.store
 
 import kotlinx.serialization.json.JsonElement
 

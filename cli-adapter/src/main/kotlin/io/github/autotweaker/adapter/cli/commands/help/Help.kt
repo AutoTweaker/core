@@ -24,6 +24,7 @@ import io.github.autotweaker.adapter.cli.syntax.POSITIONAL
 import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.adapter.cli.syntax.buildLeaf
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
+import io.github.autotweaker.api.SPACE
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.i18n.I18nDef
@@ -49,7 +50,7 @@ class Help(private val loaded: List<Command>) : Command {
 			done()
 		}
 		val target = findPath(path) ?: error(HelpI18n.Unknown(), path.joinToString(" "))
-		renderDetail(target)
+		renderDetail(target, path)
 		done()
 	}
 	
@@ -74,7 +75,7 @@ class Help(private val loaded: List<Command>) : Command {
 		}
 	}
 	
-	private suspend fun Console.renderDetail(cmd: Command) {
+	private suspend fun Console.renderDetail(cmd: Command, path: List<String>) {
 		out("${cmd.name}  —  ${cmd.description}")
 		val lines = formatSyntax(cmd.syntax)
 		if (lines.isNotEmpty()) {
@@ -88,7 +89,10 @@ class Help(private val loaded: List<Command>) : Command {
 			ln()
 			renderList(HelpI18n.Subcommands(), cmd.children)
 			ln()
-			out(HelpI18n.HelpHint(), "$APP_NAME_LOWERCASE help ${cmd.name} <command>")
+			out(
+				HelpI18n.HelpHint(),
+				"$APP_NAME_LOWERCASE help ${path.joinToString(separator = SPACE.toString())} <command>"
+			)
 		}
 	}
 	
@@ -114,7 +118,7 @@ class Help(private val loaded: List<Command>) : Command {
 				val childNodes = children.flatMap { it.toContent(isOptional) }
 				if (childNodes.isEmpty()) return emptyList()
 				
-				listOf(ContentNode("◉", children = childNodes))
+				listOf(ContentNode(i18n(HelpI18n.SyntaxAllLabel()), children = childNodes))
 			}
 		}
 	}

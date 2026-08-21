@@ -26,67 +26,114 @@ import io.github.autotweaker.api.i18n.I18nDef
 
 object ModelI18n {
 	@AutoService(I18nDef::class)
-	class Description : I18nBase(zh("管理模型配置"))
+	class Description : I18nBase(
+		zh("管理模型配置")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamList : I18nBase(zh("列出所有模型"))
+	class ParamList : I18nBase(
+		zh("列出所有模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamAdd : I18nBase(zh("添加模型"))
+	class ParamAdd : I18nBase(
+		zh("添加模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamName : I18nBase(zh("模型的显示名称"))
+	class ParamName : I18nBase(
+		zh("模型的显示名称")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamProvider : I18nBase(zh("模型的提供商名称"))
+	class ParamProvider : I18nBase(
+		zh("模型的提供商名称")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamAddInfo : I18nBase(zh("使用指定模型ID的默认元数据"))
+	class ParamAddInfo : I18nBase(
+		zh("使用指定模型ID的默认元数据")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamAddAll : I18nBase(zh("添加指定提供商下的所有模型"))
+	class ParamAddAll : I18nBase(
+		zh("添加指定提供商下的所有模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamRemove : I18nBase(zh("删除指定模型"))
+	class ParamRemove : I18nBase(
+		zh("删除指定模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamShow : I18nBase(zh("显示模型信息"))
+	class ParamShow : I18nBase(
+		zh("显示模型信息")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamDefault : I18nBase(zh("设置指定模型为一些模型无法解析时的回退模型"))
+	class ParamDefault : I18nBase(
+		zh("设置指定模型为默认模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ProviderNotFound : I18nBase(zh("未找到名为 %s 的提供商"))
+	class ProviderNotFound : I18nBase(
+		zh("未找到名为 %s 的提供商")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ModelNotFound : I18nBase(zh("未找到名为 %s 的模型"))
+	class ModelNotFound : I18nBase(
+		zh("未找到名为 %s 的模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ModelDuplicateError : I18nBase(zh("相同提供商下已经存在名称为 %s 的模型了"))
+	class ModelDuplicateError : I18nBase(
+		zh("相同提供商下已经存在名称为 %s 的模型了")
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptId : I18nBase(zh("请输入模型ID (如deepseek-v4-pro):"))
+	class PromptId : I18nBase(
+		zh("请输入模型ID (如deepseek-v4-pro):")
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptContextWindow : I18nBase(zh("请输入模型的上下文窗口 $TOKENS:"))
+	class PromptContextWindow : I18nBase(
+		zh("请输入模型的上下文窗口 $TOKENS:")
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptMaxOutputTokens : I18nBase(zh("请输入模型的最大输出长度 $TOKENS:"))
+	class PromptMaxOutputTokens : I18nBase(
+		zh("请输入模型的最大输出长度 $TOKENS:")
+	)
 	
 	@AutoService(I18nDef::class)
-	class PromptSetFeature : I18nBase(zh("模型是否支持[%s] $YON:"))
+	class PromptSetFeature : I18nBase(
+		zh("模型是否支持[%s] $YON:")
+	)
 	
 	@AutoService(I18nDef::class)
-	class InvalidValue : I18nBase(zh("无效的值"))
+	class InvalidValue : I18nBase(
+		zh("无效的值")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamResetDefault : I18nBase(zh("重置默认模型"))
+	class ParamResetDefault : I18nBase(
+		zh("重置默认模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class ParamGetDefault : I18nBase(zh("获取当前默认模型"))
+	class ParamGetDefault : I18nBase(
+		zh("获取当前默认模型")
+	)
 	
 	@AutoService(I18nDef::class)
-	class Unknown : I18nBase(zh("未知"))
+	class Unknown : I18nBase(
+		zh("未知")
+	)
+	
+	@AutoService(I18nDef::class)
+	class NotSet : I18nBase(
+		zh("未设置")
+	)
 	
 	@AutoService(I18nDef::class)
 	class ModelName : I18nBase(

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
@@ -47,6 +47,7 @@ class EnvStoreTest {
 		override suspend fun set(secret: String, id: UUID) {
 			secretMap[id] = secret
 		}
+		
 		override suspend fun get(id: UUID): String = secretMap[id]!!
 		override suspend fun list(): List<UUID> = secretMap.keys.toList()
 		override suspend fun remove(id: UUID): Boolean = removedSecrets.add(id).let { secretMap.remove(id) != null }

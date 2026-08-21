@@ -52,8 +52,10 @@ class Model : Command, Traceable {
 				flag("show", ModelI18n.ParamShow())
 				flag("set-default", ModelI18n.ParamDefault()) { aliases() }
 			}
-			positional("provider", ModelI18n.ParamProvider())
-			positional("model", ModelI18n.ParamName())
+			all {
+				positional("provider", ModelI18n.ParamProvider())
+				positional("model", ModelI18n.ParamName())
+			}
 		}
 		
 		xor {
@@ -102,7 +104,7 @@ class Model : Command, Traceable {
 		}
 		
 		handleFlag("get-default") {
-			core.config.getDefaultModel()?.let { printModel(it, core) } ?: out("null")
+			core.config.getDefaultModel()?.let { printModel(it, core) } ?: out(ModelI18n.NotSet())
 		}
 		
 		handleFlag("reset-default") {
@@ -118,32 +120,33 @@ class Model : Command, Traceable {
 		}
 	}
 	
-	private suspend fun Console.printModel(id: UUID, core: CoreAPI) {
-		val model = core.config.getModel(id) ?: throw ModelNotFoundException(id)
-		val providerName = core.config.getProvider(model.providerId)?.displayName ?: i18n(ModelI18n.Unknown())
-		out("[$providerName] ${model.displayName}")
-	}
-	
 	companion object : I18nable {
-		suspend fun Console.findModel(core: CoreAPI): UUID {
-			val provider = getPositional(0)
-			val model = getPositional(1)
+		suspend fun Console.findModel(core: CoreAPI) =
+			findModel(core, getPositional(0), getPositional(1))
+		
+		suspend fun Console.findModel(core: CoreAPI, provider: String, model: String): UUID {
 			val providerId = core.config.listProviders().find { it.displayName == provider }?.id
 				?: error(ModelI18n.ProviderNotFound(), provider)
 			val modelId = core.config.listModels()
-				.find { it.displayName == model && it.providerId == providerId }?.id
+				.find { it.providerId == providerId && it.displayName == model }?.id
 				?: error(ModelI18n.ModelNotFound(), model)
 			return modelId
 		}
 		
+		suspend fun Console.printModel(id: UUID, core: CoreAPI) {
+			val model = core.config.getModel(id) ?: throw ModelNotFoundException(id)
+			val providerName = core.config.getProvider(model.providerId)?.displayName ?: i18n(ModelI18n.Unknown())
+			out("[$providerName] ${model.displayName}")
+		}
+		
 		suspend fun Console.printModelInfo(info: ModelData.ModelInfo) {
 			val feature = buildList {
-				if (info.supportsStreaming) add(i18n(ModelFeature.StreamingFeature()))
-				if (info.supportsToolCalls) add(i18n(ModelFeature.ToolCallFeature()))
-				if (info.supportsReasoning) add(i18n(ModelFeature.ReasoningFeature()))
-				if (info.supportsImage) add(i18n(ModelFeature.ImageFeature()))
-				if (info.supportsJsonOutput) add(i18n(ModelFeature.JsonOutputFeature()))
-			}.joinToString(separator = SPACE.toString()) { "[${it}]" }
+				if (info.supportsStreaming) add(ModelFeature.StreamingFeature())
+				if (info.supportsToolCalls) add(ModelFeature.ToolCallFeature())
+				if (info.supportsReasoning) add(ModelFeature.ReasoningFeature())
+				if (info.supportsImage) add(ModelFeature.ImageFeature())
+				if (info.supportsJsonOutput) add(ModelFeature.JsonOutputFeature())
+			}.joinToString(separator = SPACE.toString()) { "[${i18n(it)}]" }
 			
 			out(ModelI18n.ModelId(), info.modelId)
 			out(ModelI18n.ContextWindow(), formatUnit(info.contextWindow))

@@ -19,9 +19,9 @@
 package io.github.autotweaker.core.infrastructure.i18n
 
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.Localizations
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.I18nEntryNotFoundException
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.every

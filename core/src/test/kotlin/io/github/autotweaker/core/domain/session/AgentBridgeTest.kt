@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.ChatMessage

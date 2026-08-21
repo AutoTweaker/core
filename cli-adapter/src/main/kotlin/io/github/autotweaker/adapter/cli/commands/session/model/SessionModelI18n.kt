@@ -16,71 +16,81 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.adapter.cli.commands.help
+package io.github.autotweaker.adapter.cli.commands.session.model
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
-import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
 
-object HelpI18n {
+object SessionModelI18n {
 	@AutoService(I18nDef::class)
-	class HelpDesc : I18nBase(
-		en("Show available commands and their usage"),
-		zh("列出可用命令"),
+	class Desc : I18nBase(
+		zh("管理新会话使用的模型"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class HelpParamCommand : I18nBase(
-		en("Show help for a specific command"),
-		zh("查看指定命令的用法"),
+	class GetDesc : I18nBase(
+		zh("获取当前的新会话模型配置"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class Unknown : I18nBase(
-		en("Unknown command: '%s'"),
-		zh("未知的命令: %s"),
+	class SetDesc : I18nBase(
+		zh("设置新会话使用的模型，无-s等flag时设置主模型"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class Available : I18nBase(
-		en("Available commands:"),
-		zh("可用命令:"),
+	class UseGetOrSet : I18nBase(
+		zh("请使用 get / set"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class HelpHint : I18nBase(
-		en("Run '%s' for detailed usage."),
-		zh("运行 %s 查看用法"),
+	class MainModel : I18nBase(
+		zh("主模型: "),
 	)
 	
 	@AutoService(I18nDef::class)
-	class Params : I18nBase(
-		en("Parameters:"),
-		zh("参数:"),
+	class Thinking : I18nBase(
+		zh("推理: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class Subcommands : I18nBase(
-		en("Subcommands:"),
-		zh("子命令:"),
+	class SummarizeModel : I18nBase(
+		zh("总结模型: "),
 	)
 	
 	@AutoService(I18nDef::class)
-	class ParamOptional : I18nBase(
-		en("(optional)"),
-		zh("(可选)"),
+	class CompactModel : I18nBase(
+		zh("压缩模型: "),
 	)
 	
 	@AutoService(I18nDef::class)
-	class SyntaxXorLabel : I18nBase(
-		en("[choose one]"),
-		zh("[任选其一]"),
+	class FallbackModel : I18nBase(
+		zh("回退模型: ====="),
 	)
 	
 	@AutoService(I18nDef::class)
-	class SyntaxAllLabel : I18nBase(
-		zh("[所有]"),
+	class ThinkingParam : I18nBase(
+		zh("传递1或true启用思考，反之禁用"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SummarizeParam : I18nBase(
+		zh("设置总结模型"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CompactParam : I18nBase(
+		zh("设置上下文压缩模型"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class AddFallbackParam : I18nBase(
+		zh("添加一个回退模型"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class RemoveFallbackParam : I18nBase(
+		zh("移除一个回退模型"),
 	)
 }

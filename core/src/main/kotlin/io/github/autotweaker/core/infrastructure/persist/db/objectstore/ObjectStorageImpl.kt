@@ -20,7 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.db.objectstore
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.storage.ObjectStorage
+import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
@@ -49,7 +49,6 @@ object ObjectStorageImpl : ObjectStorage, Loggable {
 				}
 			}
 		}
-	
 	
 	override suspend fun get(sha256: Sha256): ByteArray? = db.transaction {
 		ObjectStoreTable.selectAll().where { ObjectStoreTable.hash eq sha256.bytes }

@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
 import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
@@ -51,6 +51,7 @@ class ModelResolverImplTest {
 		override suspend fun set(secret: String, id: UUID) {
 			secretMap[id] = secret
 		}
+		
 		override suspend fun get(id: UUID): String = secretMap[id]!!
 		override suspend fun list(): List<UUID> = secretMap.keys.toList()
 		override suspend fun remove(id: UUID): Boolean = secretMap.remove(id) != null

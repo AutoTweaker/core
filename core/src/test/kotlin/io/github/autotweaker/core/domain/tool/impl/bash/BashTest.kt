@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.tool.impl.bash
 
 import io.github.autotweaker.api.generated.tool.args.BashArgs
-import io.github.autotweaker.api.storage.JsonStore
+import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
@@ -75,6 +75,7 @@ class BashTest {
 			override suspend fun set(secret: String, id: UUID) {
 				secretMap[id] = secret
 			}
+			
 			override suspend fun get(id: UUID): String = secretMap[id]!!
 			override suspend fun list(): List<UUID> = secretMap.keys.toList()
 			override suspend fun remove(id: UUID): Boolean = secretMap.remove(id) != null

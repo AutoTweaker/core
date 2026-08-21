@@ -173,7 +173,7 @@ interface CoreAPI {
 		/**
 		 * 在指定工作区内创建新会话。
 		 *
-		 * @param workspaceId 工作区的 id，传 [defaultWorkspaceId] 也允许。
+		 * @param workspace 工作区的 id，传 [defaultWorkspaceId] 也允许。
 		 * @param model 用于 main Agent 的模型配置。
 		 * @return 新会话的 id。
 		 * @throws SecretStoreLockedException
@@ -183,7 +183,7 @@ interface CoreAPI {
 		 * @throws ProviderNotFoundException
 		 * @throws SecretNotFoundException
 		 */
-		suspend fun create(workspaceId: UUID, model: ModelConfig): UUID
+		suspend fun create(workspace: UUID, model: ModelConfig): UUID
 		
 		/**
 		 * 删除一个会话，删除前会先 Stop 所有的 Agent。
@@ -709,7 +709,7 @@ interface CoreAPI {
 		/**
 		 * 删除指定记录者指定命名空间下指定时间戳的条目。
 		 *
-		 * @return 是否成功删除了大于或等于 1 条数据，正常情况下也只会删除一条。
+		 * 无匹配条目返回 false。
 		 */
 		suspend fun remove(origin: String, namespace: KebabCase, timestamp: Instant): Boolean
 	}
