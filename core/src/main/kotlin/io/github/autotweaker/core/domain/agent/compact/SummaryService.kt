@@ -23,9 +23,7 @@ import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.UsageEntry
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.toList
@@ -36,27 +34,31 @@ object SummaryService : Traceable {
 		content: String,
 		prompt: String,
 		model: AgentModel,
-		thinkingEnabled: Boolean,
+		thinking: Boolean,
 	): Pair<String, UsageEntry?> {
 		val results = trace.catching {
 			ResilientChat.execute(
 				model = model.model,
 				fallbackModels = model.fallback,
-				messages = listOf(ChatMessage.UserMessage(prompt.format(content), Clock.System.now())),
-				thinking = thinkingEnabled,
+				messages = listOf(
+					ChatMessage.User(
+						prompt.format(content).textPart(),
+						Clock.System.now()
+					)
+				),
+				reasoning = ReasoningEffort(thinking)
 			).toList()
 		}.rethrowCancellation()
 			.getOrElse { return content to null }
 		
-		val success = results
-			.filter { it.result is ChatResult.Assembled }
-			.filter { it.result.message !is ChatMessage.ErrorMessage }
-		val lastest = success.lastOrNull() ?: return content to null
-		return (lastest.result.message?.content ?: content) to lastest.result.usage?.let {
+		val (lastResult, lastModel) = results.mapNotNull {
+			(it.result as? ChatResult.Assembled ?: return@mapNotNull null) to it.model
+		}.lastOrNull() ?: return content to null
+		return (lastResult.message.content ?: content) to lastResult.usage?.let {
 			UsageEntry(
 				UUID(),
-				lastest.model,
-				lastest.result.message!!.createdAt, // 已经过滤Assembled，而Assembled必然有message
+				lastModel,
+				lastResult.message.timestamp,
 				it
 			)
 		}

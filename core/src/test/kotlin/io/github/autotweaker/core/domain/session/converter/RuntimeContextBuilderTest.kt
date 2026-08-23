@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -235,7 +236,7 @@ class RuntimeContextBuilderTest {
 			AgentMessage.User(
 				id = UUID.randomUUID(),
 				timestamp = Instant.fromEpochMilliseconds(1000L * i),
-				content = MessageContent(content = "question $i"),
+				content = MessageContent(content = "question $i".textPart()),
 			)
 		}
 		val compacts = List(depth) { i ->

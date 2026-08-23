@@ -40,12 +40,12 @@ object WorkspaceAPI : Loggable {
 		if (!Files.isDirectory(meta.path)) throw InvalidWorkspacePathException(meta.path)
 		
 		return wsm.create(meta).andLog(log) {
-			info("Created workspace  id={}  name={}  path={}", it.meta.id, it.meta.displayName, it.meta.path)
+			info("Created workspace  id={}  name={}  path={}", it.id, it.meta.displayName, it.meta.path)
 		}
 	}
 	
 	suspend fun rename(id: UUID, newName: String) =
-		wsm.updateMeta {
+		wsm.updateMeta(id) {
 			val data = wsm.getData(id) ?: throw WorkspaceNotFoundException(id)
 			data.meta.copy(displayName = newName)
 		}.andLog(log) {

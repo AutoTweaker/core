@@ -23,7 +23,6 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.datetime.TimeZone
 import java.util.*
-import kotlin.time.Clock
 
 fun AgentChatRequest.toChatMessages(language: Locale): List<ChatMessage> {
 	val current = checkNotNull(context.currentRound) { "No current round available" }
@@ -44,11 +43,6 @@ fun AgentChatRequest.toChatMessages(language: Locale): List<ChatMessage> {
 	{ "Pending tool calls exist, cannot send request" }
 	
 	return buildList {
-		//系统提示
-		context.systemPrompt?.let {
-			add(ChatMessage.SystemMessage(it, Clock.System.now()))
-		}
-		
 		//历史轮次
 		for (round in context.historyRounds.orEmpty()) {
 			addAll(round.toChatMessages(language))
@@ -68,7 +62,7 @@ fun RuntimeContext.CompletedRound.toChatMessages(language: Locale): List<ChatMes
 
 private fun MutableList<ChatMessage>.addTurn(turn: RuntimeContext.Turn) {
 	val toolCalls = turn.tools.orNull()?.map { tool ->
-		ChatMessage.AssistantMessage.ToolCall(
+		ChatMessage.Assistant.ToolCall(
 			id = tool.callId,
 			name = tool.call.callName,
 			arguments = tool.call.arguments,
@@ -83,25 +77,24 @@ private fun MutableList<ChatMessage>.addTurn(turn: RuntimeContext.Turn) {
 private fun RuntimeContext.Message.User.toChatMessage(language: Locale) = content
 	.injectContext(timestamp, TimeZone.currentSystemDefault(), language)
 	.inject()
-	.let { text ->
-		ChatMessage.UserMessage(
-			content = text,
-			createdAt = timestamp,
-			pictures = content.images,
+	.let { content ->
+		ChatMessage.User(
+			content = content,
+			timestamp = timestamp,
 		)
 	}
 
 private fun RuntimeContext.Message.Assistant.toChatMessage(
-	toolCalls: List<ChatMessage.AssistantMessage.ToolCall>? = null,
-) = ChatMessage.AssistantMessage(
+	toolCalls: List<ChatMessage.Assistant.ToolCall>? = null,
+) = ChatMessage.Assistant(
 	content = content,
-	createdAt = timestamp,
+	timestamp = timestamp,
 	reasoningContent = reasoning,
 	toolCalls = toolCalls,
 )
 
-private fun RuntimeContext.Message.Tool.toChatMessage() = ChatMessage.ToolMessage(
+private fun RuntimeContext.Message.Tool.toChatMessage() = ChatMessage.ToolResult(
 	content = result.content,
-	createdAt = result.timestamp,
+	timestamp = result.timestamp,
 	toolCallId = callId,
 )

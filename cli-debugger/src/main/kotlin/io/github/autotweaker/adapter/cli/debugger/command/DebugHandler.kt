@@ -126,7 +126,6 @@ class DebugHandler(private val debug: DbDebugAPI) {
 				prompt("completionTokens:").toInt(),
 				prompt("reasoningTokens:").toIntOrNull(),
 				prompt("cacheHitTokens:").toIntOrNull(),
-				prompt("imageTokens:").toIntOrNull(),
 			)
 			
 			"secrets" -> SecretEntry(

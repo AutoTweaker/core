@@ -40,7 +40,7 @@ class ModelGet : Command {
 		removeInvalid()
 		with(getConfig()) {
 			out(SessionModelI18n.MainModel()) { newline = false }; model.print()
-			out(SessionModelI18n.Thinking(), thinking)
+			out(SessionModelI18n.Reasoning(), reasoning)
 			out(SessionModelI18n.SummarizeModel()) { newline = false }; summarize.print()
 			out(SessionModelI18n.CompactModel()) { newline = false }; compact.print()
 			if (fallback.isNotEmpty()) {

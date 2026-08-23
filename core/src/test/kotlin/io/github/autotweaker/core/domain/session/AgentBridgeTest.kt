@@ -23,8 +23,10 @@ import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.LlmResult
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
@@ -57,7 +59,7 @@ class AgentBridgeTest {
 	
 	private fun modelConfig() = ModelConfig(
 		model = UUID.randomUUID(),
-		thinking = false,
+		reasoning = null,
 		summarize = UUID.randomUUID(),
 		compact = UUID.randomUUID(),
 		fallback = emptyList(),
@@ -156,11 +158,13 @@ class AgentBridgeTest {
 	@Test
 	fun `send message drives round and persists messages`() = runTest {
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns flow {
+		coEvery {
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+		} returns flow {
 			emit(
-				CoreLlmResult(
+				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.AssistantMessage("answer", Clock.System.now()),
+						message = ChatMessage.Assistant("answer", Clock.System.now()),
 					),
 					model = UUID.randomUUID(),
 				)
@@ -168,11 +172,11 @@ class AgentBridgeTest {
 		}
 		val b = bridge()
 		
-		b.send(MessageContent(content = "hello"))
+		b.send(MessageContent(content = "hello".textPart()))
 		awaitUntil { b.agent.context.value.historyRounds?.size == 1 }
 		
 		val completed = b.agent.context.value.historyRounds!!.single()
-		assertEquals("hello", completed.userMessage.content.content)
+		assertEquals("hello\n", completed.userMessage.content.content?.merge())
 		assertEquals("answer", completed.finalAssistantMessage?.content)
 		coVerify(atLeast = 1) { store.saveMessages(any()) }
 		

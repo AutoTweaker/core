@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -67,17 +67,8 @@ class MiMoDataClassCoverageTest {
 	}
 	
 	@Test
-	fun `MiMoFinishReason enum values`() {
-		assertEquals("stop", MiMoFinishReason.STOP.value)
-		assertEquals("length", MiMoFinishReason.LENGTH.value)
-		assertEquals("tool_calls", MiMoFinishReason.TOOL_CALLS.value)
-		assertEquals("content_filter", MiMoFinishReason.CONTENT_FILTER.value)
-		assertEquals("repetition_truncation", MiMoFinishReason.REPETITION_TRUNCATION.value)
-	}
-	
-	@Test
-	fun `MiMoToolCall create`() {
-		val tc = MiMoToolCall("tc1", function = MiMoToolCall.Function("read", "{}"))
+	fun `OpenAiToolCall create`() {
+		val tc = OpenAiToolCall("tc1", function = OpenAiToolCall.Function("read", "{}"))
 		assertEquals("tc1", tc.id)
 		assertEquals("read", tc.function.name)
 		assertEquals("{}", tc.function.arguments)
@@ -89,8 +80,7 @@ class MiMoDataClassCoverageTest {
 			"""{
             "model":"mimo-v2-pro","messages":[{"role":"user","content":[{"type":"text","text":"hi"}]}],
             "stream":true,"temperature":0.7,"max_completion_tokens":500,
-            "top_p":0.9,"frequency_penalty":0.1,"presence_penalty":0.2,
-            "tool_choice":"auto"
+            "thinking":null,"response_format":null,"tools":null
         }"""
 		)
 		assertEquals("mimo-v2-pro", req.model)
@@ -126,11 +116,10 @@ class MiMoDataClassCoverageTest {
 		assertEquals("c1", chunk.id)
 		assertEquals("partial", chunk.choices[0].delta.content)
 		assertEquals("thinking", chunk.choices[0].delta.reasoningContent)
-		assertNull(chunk.choices[0].finishReason)
 	}
 	
 	@Test
-	fun `MiMoStreamChunk with finish reason`() {
+	fun `MiMoStreamChunk with usage details`() {
 		val chunk = json.decodeFromString<MiMoStreamChunk>(
 			"""{
             "id":"c1","created":1715678901,"model":"mimo",
@@ -140,7 +129,6 @@ class MiMoDataClassCoverageTest {
                 "prompt_tokens_details":{"cached_tokens":2}}
         }"""
 		)
-		assertEquals(MiMoFinishReason.STOP, chunk.choices[0].finishReason)
 		assertEquals(3, chunk.usage!!.completionTokensDetails?.reasoningTokens)
 		assertEquals(2, chunk.usage.promptTokensDetails?.cachedTokens)
 	}
@@ -162,31 +150,18 @@ class MiMoDataClassCoverageTest {
 	}
 	
 	@Test
-	fun `MiMoFinishReason deserialize from JSON`() {
-		assertEquals(MiMoFinishReason.STOP, json.decodeFromString<MiMoFinishReason>("\"stop\""))
-		assertEquals(MiMoFinishReason.LENGTH, json.decodeFromString<MiMoFinishReason>("\"length\""))
-		assertEquals(MiMoFinishReason.TOOL_CALLS, json.decodeFromString<MiMoFinishReason>("\"tool_calls\""))
-		assertEquals(MiMoFinishReason.CONTENT_FILTER, json.decodeFromString<MiMoFinishReason>("\"content_filter\""))
-		assertEquals(
-			MiMoFinishReason.REPETITION_TRUNCATION,
-			json.decodeFromString<MiMoFinishReason>("\"repetition_truncation\"")
-		)
-	}
-	
-	@Test
 	fun `MiMoMessage Content types`() {
 		val text = MiMoMessage.Content.TextPart("hello")
 		assertEquals("hello", text.text)
 		
-		val image =
-			MiMoMessage.Content.ImagePart(MiMoMessage.Content.ImagePart.Url("https://example.com/img.png".toByteArray()))
-		assertContentEquals("https://example.com/img.png".toByteArray(), image.imageUrl.url)
+		val image = MiMoMessage.Content.ImagePart(MiMoMessage.Content.Url("https://example.com/img.png"))
+		assertEquals("https://example.com/img.png", image.imageUrl.url)
 		
 		val audio = MiMoMessage.Content.AudioPart(MiMoMessage.Content.AudioPart.Data("base64data"))
 		assertEquals("base64data", audio.inputAudio.data)
 		
 		val video = MiMoMessage.Content.VideoPart(
-			MiMoMessage.Content.VideoPart.Url("https://example.com/video.mp4"),
+			MiMoMessage.Content.Url("https://example.com/video.mp4"),
 			fps = 30
 		)
 		assertEquals("https://example.com/video.mp4", video.videoUrl.url)

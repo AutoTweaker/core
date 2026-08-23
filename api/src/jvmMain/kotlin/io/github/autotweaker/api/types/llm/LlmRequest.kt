@@ -16,19 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.llm.provider.mimo
+package io.github.autotweaker.api.types.llm
 
-import kotlinx.serialization.Serializable
+import java.util.*
 
-@Serializable
-data class MiMoToolCall(
-	val id: String,
-	val type: String = "function",
-	val function: Function
-) {
-	@Serializable
-	data class Function(
-		val name: String,
-		val arguments: String
-	)
-}
+data class LlmRequest(
+	val model: UUID,
+	val fallbackModels: List<UUID>?,
+	val timeout: ChatTimeout? = null,
+	
+	val instructions: String? = null,
+	val messages: List<ChatMessage>,
+	val reasoning: ReasoningEffort? = null,
+	val stream: Boolean = false,
+	
+	val maxTokens: Int? = null,
+	val tools: List<ChatRequest.Tool>? = null,
+	
+	val temperature: Double? = null,
+	val jsonOutput: Boolean? = null,
+)

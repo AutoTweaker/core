@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
@@ -44,7 +45,7 @@ class AgentContextManagerTest {
 	
 	private fun user(content: String = "hello") = RuntimeContext.Message.User(
 		id = UUID.randomUUID(),
-		content = MessageContent(content = content),
+		content = MessageContent(content = content.textPart()),
 		timestamp = Clock.System.now(),
 	)
 	

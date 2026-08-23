@@ -19,8 +19,6 @@
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
 import io.github.autotweaker.core.infrastructure.llm.openai.InstantAsLongSerializer
-import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiResponse
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -28,16 +26,12 @@ import kotlin.time.Instant
 data class DeepSeekResponse(
 	val choices: List<Choice>,
 	val usage: DeepSeekUsage,
-	override val id: String,
 	@Serializable(with = InstantAsLongSerializer::class)
-	override val created: Instant,
-	override val model: String
-) : OpenAiResponse() {
+	val created: Instant,
+) {
 	@Serializable
 	data class Choice(
 		val index: Int,
 		val message: DeepSeekMessage.AssistantMessage,
-		@SerialName("finish_reason")
-		val finishReason: DeepSeekFinishReason,
 	)
 }

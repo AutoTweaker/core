@@ -31,7 +31,7 @@ import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import java.nio.file.Path
-import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall as RawCall
+import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall as RawCall
 
 class ThinkingStage(
 	private val llmService: LlmService,

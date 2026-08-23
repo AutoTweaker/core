@@ -24,8 +24,8 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmRequest
-import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.LlmRequest
+import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelResolver
@@ -43,7 +43,7 @@ object ChatService : Loggable, Traceable {
 		sessionRepo = session
 	}
 	
-	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = flow {
+	fun chat(request: LlmRequest): Flow<LlmResult> = flow {
 		val model = modelRepo.resolve(request.model)
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it)
@@ -59,18 +59,22 @@ object ChatService : Loggable, Traceable {
 			ResilientChat.execute(
 				model = model,
 				fallbackModels = fallbacks,
+				timeout = request.timeout,
+				
+				instructions = request.instructions,
 				messages = request.messages,
-				tools = request.tools,
-				responseFormat = request.responseFormat,
+				reasoning = request.reasoning,
 				stream = request.stream,
-				thinking = request.thinking,
-				timeout = request.timeout
+				maxTokens = request.maxTokens,
+				tools = request.tools,
+				temperature = request.temperature,
+				jsonOutput = request.jsonOutput
 			).onEach { chunk ->
 				val result = chunk.result as? ChatResult.Assembled ?: return@onEach
 				result.usage?.let {
 					lastUsage = UsageEntry(
 						modelId = chunk.model,
-						timestamp = result.message.createdAt,
+						timestamp = result.message.timestamp,
 						usage = it
 					)
 				}

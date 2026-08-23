@@ -76,8 +76,8 @@ class Workspace : Command, Traceable {
 		}
 		handleValue("rename") { displayName ->
 			var data = findWorkspace(core, displayName)
-			core.workspace.rename(data.meta.id, getPositional(0))
-			data = core.workspace.get(data.meta.id) ?: throw WorkspaceNotFoundException(data.meta.id)
+			core.workspace.rename(data.id, getPositional(0))
+			data = core.workspace.get(data.id) ?: throw WorkspaceNotFoundException(data.id)
 			out(WorkspaceI18n.Name(), data.meta.displayName)
 			out(WorkspaceI18n.Path(), data.meta.path)
 		}
@@ -85,7 +85,7 @@ class Workspace : Command, Traceable {
 			val data = findWorkspace(core, displayName)
 			if (!hasArg("yes") && !confirm(WorkspaceI18n.Confirm(), displayName, data.meta.path))
 				done(1)
-			core.workspace.delete(data.meta.id)
+			core.workspace.delete(data.id)
 		}
 		done(1)
 	}

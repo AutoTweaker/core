@@ -63,10 +63,10 @@ class ThinkingStageTest {
 	private val truncation = mockk<TruncationService>()
 	private val model = AgentModel(
 		model = mockk<Model>(),
+		reasoning = null,
 		summarize = mockk<Model>(),
 		compact = mockk<Model>(),
 		fallback = null,
-		thinking = false,
 	)
 	private val context = RuntimeContext(null, null, null, null, null)
 	
@@ -146,7 +146,7 @@ class ThinkingStageTest {
 		id: String,
 		name: String = "bash-run",
 		arguments: String = """{"cmd":"echo","reason":"tests"}""",
-	) = ChatMessage.AssistantMessage.ToolCall(id = id, name = name, arguments = arguments)
+	) = ChatMessage.Assistant.ToolCall(id = id, name = name, arguments = arguments)
 	
 	private fun stage(llm: LlmService, tools: Tools) = ThinkingStage(
 		llmService = llm,
@@ -156,7 +156,7 @@ class ThinkingStageTest {
 		onOutput = {},
 	)
 	
-	private fun success(toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?) = LlmService.CallResult(
+	private fun success(toolCalls: List<ChatMessage.Assistant.ToolCall>?) = LlmService.CallResult(
 		assistantMessage = assistant,
 		toolCalls = toolCalls,
 	)

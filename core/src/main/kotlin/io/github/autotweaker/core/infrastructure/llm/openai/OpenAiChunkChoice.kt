@@ -18,49 +18,41 @@
 
 package io.github.autotweaker.core.infrastructure.llm.openai
 
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.ChatResult
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
-abstract class OpenAiRequest {
-	abstract val model: String?
-	abstract val thinking: Thinking?
-	abstract val frequencyPenalty: Double?
-	abstract val presencePenalty: Double?
-	abstract val responseFormat: ChatRequest.ResponseFormat?
-	abstract val stop: List<String>?
-	abstract val stream: Boolean?
-	abstract val temperature: Double?
-	abstract val topP: Double?
-	abstract val maxCompletionTokens: Int?
-	abstract val tools: List<Tool>?
+@Serializable
+data class OpenAiChunkChoice(
+	val index: Int,
+	val delta: Delta,
+) {
+	@Serializable
+	data class Delta(
+		val content: String? = null,
+		@SerialName("reasoning_content")
+		val reasoningContent: String? = null,
+		@SerialName("tool_calls")
+		val toolCalls: List<ChunkCall>? = null
+	)
 	
 	@Serializable
-	data class Thinking(
-		val type: Type
-	) {
-		@Serializable
-		enum class Type {
-			@SerialName("enabled")
-			ENABLED,
-			
-			@SerialName("disabled")
-			DISABLED
-		}
-	}
-	
-	@Serializable
-	data class Tool(
-		val type: String = "function",
-		val function: Function
+	data class ChunkCall(
+		val index: Int,
+		val id: String? = null,
+		val type: String? = null,
+		val function: Function? = null
 	) {
 		@Serializable
 		data class Function(
-			val name: String,
-			val description: String?,
-			val parameters: JsonElement,
-			val strict: Boolean? = null
+			val name: String? = null,
+			val arguments: String? = null
 		)
 	}
+}
+
+fun List<OpenAiChunkChoice.ChunkCall>.transform() = map {
+	ChatResult.ChunkToolCall(
+		index = it.index, id = it.id, name = it.function?.name, arguments = it.function?.arguments
+	)
 }

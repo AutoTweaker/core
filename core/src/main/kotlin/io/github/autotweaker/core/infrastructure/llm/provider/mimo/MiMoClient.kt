@@ -19,13 +19,13 @@
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.DataUrl
 import io.github.autotweaker.api.ObjectStorable
 import io.github.autotweaker.api.llm.LlmClient
-import io.github.autotweaker.api.objects
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
-import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
-import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
+import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.core.infrastructure.llm.openai.*
 import io.ktor.util.reflect.*
 import kotlinx.serialization.serializer
 
@@ -46,174 +46,131 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
-				supportsImage = false,
 				supportsJsonOutput = true
-			), ModelData.ModelInfo(
+			),
+			ModelData.ModelInfo(
 				modelId = "mimo-v2.5",
 				contextWindow = 1_000_000,
 				maxOutputTokens = 128_000,
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
+				supportsJsonOutput = true,
 				supportsImage = true,
-				supportsJsonOutput = true
-			), ModelData.ModelInfo(
-				modelId = "mimo-v2-flash",
-				contextWindow = 256_000,
-				maxOutputTokens = 64_000,
-				supportsStreaming = true,
-				supportsToolCalls = true,
-				supportsReasoning = true,
-				supportsImage = false,
-				supportsJsonOutput = true
-			)
+				supportsAudio = true,
+				supportsVideo = true
+			),
 		),
-		errorHandlingRules = listOf(
-			ProviderData.ErrorHandlingRule(
-				statusCode = 400, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 401, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 402, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 403, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 421, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 429, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 500, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK
-			), ProviderData.ErrorHandlingRule(
-				statusCode = 503, strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY
-			)
+		errorHandlingRules = ProviderData.ErrorHandlingRule.build(
+			400 to RecoveryStrategy.FALLBACK,
+			401 to RecoveryStrategy.PROVIDER_FALLBACK,
+			402 to RecoveryStrategy.PROVIDER_FALLBACK,
+			403 to RecoveryStrategy.PROVIDER_FALLBACK,
+			404 to RecoveryStrategy.FALLBACK,
+			421 to RecoveryStrategy.PROVIDER_FALLBACK,
+			429 to RecoveryStrategy.RETRY,
+			500 to RecoveryStrategy.PROVIDER_FALLBACK,
+			503 to RecoveryStrategy.RETRY
 		),
 	)
 	
-	override suspend fun createRequestBody(request: ChatRequest): MiMoRequest {
-		val mappedMessages = request.messages.mapNotNull { msg ->
+	override suspend fun ChatRequest.transform(): MiMoRequest {
+		var mappedMessages = messages.map { msg ->
 			when (msg) {
-				is ChatMessage.SystemMessage -> MiMoMessage.DeveloperMessage(
-					content = listOf(MiMoMessage.Content.TextPart(text = msg.content))
+				is ChatMessage.User -> MiMoMessage.UserMessage(
+					content = msg.content.mapNotNull {
+						when (it) {
+							is ContentPart.Text -> MiMoMessage.Content.TextPart(it.content)
+							is ContentPart.Audio -> MiMoMessage.Content.AudioPart(
+								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+							)
+							
+							is ContentPart.AudioUrl -> MiMoMessage.Content.AudioPart(it.url.toString())
+							is ContentPart.Image -> MiMoMessage.Content.ImagePart(
+								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+							)
+							
+							is ContentPart.ImageUrl -> MiMoMessage.Content.ImagePart(it.url.toString())
+							is ContentPart.Video -> MiMoMessage.Content.VideoPart(
+								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+							)
+							
+							is ContentPart.VideoUrl -> MiMoMessage.Content.VideoPart(it.url.toString())
+						}
+					}
 				)
 				
-				is ChatMessage.UserMessage -> MiMoMessage.UserMessage(
-					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)) + msg.pictures.orEmpty()
-						.mapNotNull { sha256 ->
-							MiMoMessage.Content.ImagePart(
-								imageUrl = MiMoMessage.Content.ImagePart.Url(
-									objects.get(sha256) ?: return@mapNotNull null
-								)
-							)
-						})
-				
-				is ChatMessage.AssistantMessage -> MiMoMessage.AssistantMessage(
-					content = msg.content?.let { listOf(MiMoMessage.Content.TextPart(text = it)) },
+				is ChatMessage.Assistant -> MiMoMessage.AssistantMessage(
+					content = msg.content,
 					reasoningContent = msg.reasoningContent,
-					toolCalls = msg.toolCalls?.map { tc ->
-						MiMoToolCall(
-							id = tc.id, function = MiMoToolCall.Function(
-								name = tc.name, arguments = tc.arguments
+					toolCalls = msg.toolCalls?.map {
+						OpenAiToolCall(
+							id = it.id, function = OpenAiToolCall.Function(
+								name = it.name, arguments = it.arguments
 							)
 						)
 					})
 				
-				is ChatMessage.ToolMessage -> MiMoMessage.ToolMessage(
-					content = listOf(MiMoMessage.Content.TextPart(text = msg.content)), toolCallId = msg.toolCallId
+				is ChatMessage.ToolResult -> MiMoMessage.ToolMessage(
+					content = msg.content, toolCallId = msg.toolCallId
 				)
-				
-				is ChatMessage.ErrorMessage -> null
 			}
 		}
 		
-		return MiMoRequest(
-			model = request.model,
-			messages = mappedMessages,
-			stream = request.stream,
-			tools = request.tools?.map { tool ->
-				OpenAiRequest.Tool(
-					function = OpenAiRequest.Tool.Function(
-						name = tool.name, description = tool.description, parameters = tool.parameters
-					)
+		instructions?.let {
+			mappedMessages = listOf(
+				MiMoMessage.DeveloperMessage(
+					content = it
 				)
-			},
-			thinking = when (request.thinking) {
-				true -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED)
-				false -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.DISABLED)
-				null -> null
-			},
-			temperature = request.temperature,
-			maxCompletionTokens = request.maxTokens,
-			topP = request.topP,
-			frequencyPenalty = request.frequencyPenalty,
-			presencePenalty = request.presencePenalty,
-			responseFormat = request.responseFormat,
-			toolChoice = "auto", // 截止26.7.1，mimo仍然仅支持auto
+			) + mappedMessages
+		}
+		
+		return MiMoRequest(
+			model = model,
+			messages = mappedMessages,
+			stream = stream,
+			tools = tools?.transform(),
+			thinking = reasoning?.let { OpenAiThinking(it) },
+			temperature = temperature,
+			maxCompletionTokens = maxTokens,
+			responseFormat = if (jsonOutput == true) OpenAiResponseFormat() else null,
 		)
 	}
 	
-	override fun mapToChatResult(response: MiMoResponse): ChatResult {
-		val choice = response.choices.firstOrNull()
+	override fun MiMoResponse.transform(): ChatResult {
+		val choice = choices.firstOrNull()
 		val msg = choice?.message
 		
 		return ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage(
+			message = ChatMessage.Assistant(
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
-				toolCalls = msg?.toolCalls?.map { tc ->
-					ChatMessage.AssistantMessage.ToolCall(
-						id = tc.id, name = tc.function.name, arguments = tc.function.arguments
-					)
-				},
-				createdAt = response.created,
-				model = response.model
-			), usage = response.usage.let { u ->
-				Usage(
-					promptTokens = u.promptTokens,
-					completionTokens = u.completionTokens,
-					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
-					cacheHitTokens = u.promptTokensDetails?.cachedTokens,
-					imageTokens = u.promptTokensDetails?.imageTokens
-				)
-			}, finishReason = choice?.finishReason?.toFinishReason()
+				toolCalls = msg?.toolCalls?.transform(),
+				timestamp = created,
+			),
+			usage = usage.transform(),
 		)
 	}
 	
-	override fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult.Chunk {
-		val choice = chunk.choices.firstOrNull()
+	override fun MiMoStreamChunk.transform(): ChatResult.Chunk {
+		val choice = choices.firstOrNull()
 		val delta = choice?.delta
 		
 		return ChatResult.Chunk(
-			message = ChatMessage.AssistantMessage(
-				content = delta?.content,
-				reasoningContent = delta?.reasoningContent,
-				createdAt = chunk.created,
-				model = chunk.model
-			), usage = chunk.usage?.let { u ->
-				Usage(
-					promptTokens = u.promptTokens,
-					completionTokens = u.completionTokens,
-					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
-					cacheHitTokens = u.promptTokensDetails?.cachedTokens,
-					imageTokens = u.promptTokensDetails?.imageTokens
-				)
-			}, finishReason = choice?.finishReason?.toFinishReason()
+			content = delta?.content,
+			reasoningContent = delta?.reasoningContent,
+			toolCalls = delta?.toolCalls?.transform()
 		)
 	}
 	
-	private fun MiMoFinishReason.toFinishReason() = ChatResult.FinishReason(
-		reason = value, type = when (this) {
-			MiMoFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
-			MiMoFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
-			MiMoFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
-			MiMoFinishReason.LENGTH -> ChatResult.FinishReason.Type.LENGTH
-			MiMoFinishReason.REPETITION_TRUNCATION -> ChatResult.FinishReason.Type.ERROR
-		}
-	)
+	override fun MiMoStreamChunk.timestamp() = created
 	
-	override fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? =
-		chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
-			ChatResult.ChunkToolCall(
-				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
-			)
-		}
+	override fun MiMoStreamChunk.usage() = usage?.transform()
+	
+	private fun MiMoUsage.transform() = Usage(
+		promptTokens = promptTokens,
+		completionTokens = completionTokens,
+		reasoningTokens = completionTokensDetails?.reasoningTokens,
+		cacheHitTokens = promptTokensDetails?.cachedTokens,
+	)
 }

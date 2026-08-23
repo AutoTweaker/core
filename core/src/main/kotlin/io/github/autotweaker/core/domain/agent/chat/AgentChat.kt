@@ -20,7 +20,6 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.StreamDelta
-import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -35,78 +34,69 @@ object AgentChat : Loggable, I18nable {
 		val messages = request.toChatMessages(i18n.getLanguage())
 		
 		log.debug(
-			"Agent chat started  agentId={}  model={}  fallbackModels={}  thinking={}  messages={}",
+			"Agent chat started  agentId={}  model={}  fallbackModels={}  reasoning={}  messages={}",
 			agentId,
 			request.model.model.modelInfo.modelId,
 			request.model.fallback?.size,
-			request.model.thinking,
+			request.model.reasoning,
 			messages.size,
 		)
 		
 		val results = ResilientChat.execute(
 			model = request.model.model,
 			fallbackModels = request.model.fallback,
+			instructions = request.context.systemPrompt,
 			messages = messages,
 			tools = request.tools,
 			stream = true,
-			thinking = request.model.thinking,
+			reasoning = request.model.reasoning
 		)
 		
 		results.collect {
 			when (val result = it.result) {
-				is ChatResult.Chunk -> {
-					val msg = result.message
-					emit(
-						AgentChatStreamResult.Delta(
-							StreamDelta(
-								content = msg?.content,
-								reasoningContent = msg?.reasoningContent,
-								toolCallFragments = result.toolCalls,
-							)
+				is ChatResult.Chunk -> emit(
+					AgentChatStreamResult.Delta(
+						StreamDelta(
+							content = result.content,
+							reasoningContent = result.reasoningContent,
+							toolCallFragments = result.toolCalls,
 						)
+					)
+				)
+				
+				is ChatResult.Failed -> emit(
+					AgentChatStreamResult.Failing(
+						error = result.message,
+						statusCode = result.statusCode,
+						exception = result.exception,
+						model = it.model,
+					)
+				).andLog(log) { _ ->
+					debug(
+						"Received agent chat error  agentId={}  model={}  statusCode={}",
+						agentId,
+						it.model,
+						result.statusCode,
 					)
 				}
 				
+				
 				is ChatResult.Assembled -> {
-					when (val msg = result.message) {
-						is ChatMessage.ErrorMessage -> {
-							log.debug(
-								"Received agent chat error  agentId={}  model={}  statusCode={}",
-								agentId,
-								it.model,
-								msg.statusCode,
-							)
-							emit(
-								AgentChatStreamResult.Failing(
-									error = msg.content,
-									statusCode = msg.statusCode,
-									model = it.model,
-									timestamp = msg.createdAt,
-									usage = result.usage,
-								)
-							)
-						}
-						
-						is ChatMessage.AssistantMessage -> {
-							val assistantMessage = RuntimeContext.Message.Assistant(
-								id = UUID(),
-								timestamp = msg.createdAt,
-								reasoning = msg.reasoningContent,
-								content = msg.content,
-								modelId = it.model,
-								usage = result.usage
-							)
-							emit(
-								AgentChatStreamResult.Assembled(
-									message = assistantMessage,
-									toolCalls = msg.toolCalls,
-									finishReason = result.finishReason,
-								)
-							)
-						}
-						
-						else -> unreachable()
-					}
+					val msg = result.message
+					val assistantMessage = RuntimeContext.Message.Assistant(
+						id = UUID(),
+						timestamp = msg.timestamp,
+						reasoning = msg.reasoningContent,
+						content = msg.content,
+						modelId = it.model,
+						usage = result.usage
+					)
+					emit(
+						AgentChatStreamResult.Assembled(
+							message = assistantMessage,
+							toolCalls = msg.toolCalls,
+						)
+					)
 				}
 			}
 		}

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -68,7 +69,7 @@ class DeepSeekDataClassCoverageTest {
 	}
 	
 	@Test
-	fun `deserialize StreamChunk Choice to cover getIndex`() {
+	fun `deserialize StreamChunk Choice to cover index`() {
 		val chunk = json.decodeFromString<DeepSeekStreamChunk>(
 			"""{
             "id":"c1","created":1715678901,"model":"m",
@@ -77,7 +78,6 @@ class DeepSeekDataClassCoverageTest {
 		)
 		assertEquals(5, chunk.choices[0].index)
 		assertEquals("test", chunk.choices[0].delta.content)
-		assertEquals(DeepSeekFinishReason.STOP, chunk.choices[0].finishReason)
 	}
 	
 	@Test
@@ -116,7 +116,6 @@ class DeepSeekDataClassCoverageTest {
             "usage":{"completion_tokens":10,"prompt_tokens":20,"total_tokens":30}
         }"""
 		)
-		assertEquals("r1", response.id)
 		assertEquals("ok", response.choices[0].message.content)
 		assertEquals("think", response.choices[0].message.reasoningContent)
 	}
@@ -125,8 +124,10 @@ class DeepSeekDataClassCoverageTest {
 	fun `deserialize Request`() {
 		val req = json.decodeFromString<DeepSeekRequest>(
 			"""{
-            "model":"m","messages":[{"role":"user","content":"hi"}],
-            "stream":true,"stream_options":{"include_usage":true}
+            "model":"m","messages":[{"role":"user","content":[{"type":"text","text":"hi"}]}],
+            "stream":true,"stream_options":{"include_usage":true},
+            "tools":null,"tool_choice":null,"thinking":null,"reasoning_effort":null,
+            "max_tokens":null,"response_format":null,"temperature":null
         }"""
 		)
 		assertEquals("m", req.model)
@@ -135,15 +136,19 @@ class DeepSeekDataClassCoverageTest {
 	
 	@Test
 	fun `deserialize DeepSeekMessage UserMessage`() {
-		val msg = json.decodeFromString<DeepSeekMessage>("""{"role":"user","content":"hello"}""")
-		assertEquals("hello", (msg as DeepSeekMessage.UserMessage).content)
+		val msg = json.decodeFromString<DeepSeekMessage>(
+			"""{"role":"user","content":[{"type":"text","text":"hello"}]}"""
+		)
+		assertEquals(
+			"hello",
+			((msg as DeepSeekMessage.UserMessage).content[0] as DeepSeekMessage.UserMessage.Part.Text).text
+		)
 	}
 	
 	@Test
-	fun `deserialize DeepSeekMessage SystemMessage with name`() {
+	fun `deserialize DeepSeekMessage SystemMessage`() {
 		val msg = json.decodeFromString<DeepSeekMessage>("""{"role":"system","content":"sys","name":"n1"}""")
 		assertEquals("sys", (msg as DeepSeekMessage.SystemMessage).content)
-		assertEquals("n1", msg.name)
 	}
 	
 	@Test
@@ -155,9 +160,9 @@ class DeepSeekDataClassCoverageTest {
 	
 	@Test
 	fun `serialize and deserialize ToolCall Function directly`() {
-		val func = DeepSeekStreamChunk.Choice.ToolCall.Function("read", "{}")
-		val jsonStr = json.encodeToString(DeepSeekStreamChunk.Choice.ToolCall.Function.serializer(), func)
-		val restored = json.decodeFromString(DeepSeekStreamChunk.Choice.ToolCall.Function.serializer(), jsonStr)
+		val func = OpenAiChunkChoice.ChunkCall.Function("read", "{}")
+		val jsonStr = json.encodeToString(OpenAiChunkChoice.ChunkCall.Function.serializer(), func)
+		val restored = json.decodeFromString(OpenAiChunkChoice.ChunkCall.Function.serializer(), jsonStr)
 		assertEquals("read", restored.name)
 		assertEquals("{}", restored.arguments)
 	}
@@ -165,14 +170,17 @@ class DeepSeekDataClassCoverageTest {
 	@Test
 	fun `deserialize ToolCall Function with null arguments`() {
 		val func =
-			json.decodeFromString(DeepSeekStreamChunk.Choice.ToolCall.Function.serializer(), """{"name":"read"}""")
+			json.decodeFromString(
+				OpenAiChunkChoice.ChunkCall.Function.serializer(),
+				"""{"name":"read"}"""
+			)
 		assertEquals("read", func.name)
 		assertEquals(null, func.arguments)
 	}
 	
 	@Test
 	fun `deserialize ToolCall Function with both null`() {
-		val func = json.decodeFromString(DeepSeekStreamChunk.Choice.ToolCall.Function.serializer(), """{}""")
+		val func = json.decodeFromString(OpenAiChunkChoice.ChunkCall.Function.serializer(), """{}""")
 		assertEquals(null, func.name)
 		assertEquals(null, func.arguments)
 	}
@@ -180,7 +188,7 @@ class DeepSeekDataClassCoverageTest {
 	@Test
 	fun `deserialize ToolCall Function with explicit null`() {
 		val func = json.decodeFromString(
-			DeepSeekStreamChunk.Choice.ToolCall.Function.serializer(),
+			OpenAiChunkChoice.ChunkCall.Function.serializer(),
 			"""{"name":"read","arguments":null}"""
 		)
 		assertEquals("read", func.name)
@@ -190,7 +198,7 @@ class DeepSeekDataClassCoverageTest {
 	@Test
 	fun `deserialize StreamChunk Choice directly`() {
 		val choice = json.decodeFromString(
-			DeepSeekStreamChunk.Choice.serializer(), """{
+			OpenAiChunkChoice.serializer(), """{
             "index":3,"delta":{"content":"x"},"finish_reason":"stop"
         }"""
 		)
@@ -199,14 +207,14 @@ class DeepSeekDataClassCoverageTest {
 	}
 	
 	@Test
-	fun `deserialize StreamChunk Choice without finishReason`() {
+	fun `deserialize StreamChunk Choice with empty delta`() {
 		val choice = json.decodeFromString(
-			DeepSeekStreamChunk.Choice.serializer(), """{
+			OpenAiChunkChoice.serializer(), """{
             "index":0,"delta":{}
         }"""
 		)
 		assertEquals(0, choice.index)
-		assertEquals(null, choice.finishReason)
+		assertEquals(null, choice.delta.content)
 	}
 	
 	@Test
@@ -221,11 +229,5 @@ class DeepSeekDataClassCoverageTest {
 	fun `deserialize PromptTokensDetails with null cachedTokens`() {
 		val details = json.decodeFromString(DeepSeekUsage.PromptTokensDetails.serializer(), """{}""")
 		assertEquals(null, details.cachedTokens)
-	}
-	
-	@Test
-	fun `access ToolChoice Serializer descriptor`() {
-		val desc = ToolChoice.Serializer.descriptor
-		assertEquals("ToolChoice", desc.serialName)
 	}
 }

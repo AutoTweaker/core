@@ -29,6 +29,7 @@ import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.types.agent.ModelConfig
+import io.github.autotweaker.api.types.llm.ReasoningEffort
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -106,7 +107,7 @@ object ModelManager : ImmutableStore<ModelManager.SessionModelConfig>() {
 			?: error(ModelNotSet())
 		ModelConfig(
 			model = it.model.orDefault(),
-			thinking = it.thinking,
+			reasoning = ReasoningEffort(it.thinking),
 			summarize = it.summarize.orDefault(),
 			compact = it.compact.orDefault(),
 			fallback = it.fallback.toList()

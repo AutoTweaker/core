@@ -99,7 +99,7 @@ class ToolsTest {
 		id: String = "c1",
 		name: String = "bash-run",
 		arguments: String = """{"cmd":"echo","reason":"tests"}""",
-	) = ChatMessage.AssistantMessage.ToolCall(
+	) = ChatMessage.Assistant.ToolCall(
 		id = id, name = name, arguments = arguments,
 	)
 	

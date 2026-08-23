@@ -16,17 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.llm
+package io.github.autotweaker.core.infrastructure.llm.openai
 
-import java.util.*
+import kotlinx.serialization.Serializable
 
-data class CoreLlmRequest(
-	val model: UUID,
-	val fallbackModels: List<UUID>?,
-	val messages: List<ChatMessage>,
-	val tools: List<ChatRequest.Tool>? = null,
-	val responseFormat: ChatRequest.ResponseFormat? = null,
-	val stream: Boolean = false,
-	val thinking: Boolean? = null,
-	val timeout: ChatTimeout? = null,
+@Serializable
+data class OpenAiResponseFormat(
+	val type: String = "json_object"
 )

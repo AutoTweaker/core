@@ -53,7 +53,6 @@ object UsageRepositoryImpl : UsageRepository, Loggable {
 					it[completionTokens] = entry.usage.completionTokens
 					it[reasoningTokens] = entry.usage.reasoningTokens
 					it[cacheHitTokens] = entry.usage.cacheHitTokens
-					it[imageTokens] = entry.usage.imageTokens
 				}
 			}
 		}
@@ -93,9 +92,8 @@ object UsageRepositoryImpl : UsageRepository, Loggable {
 		val completion = UsageTable.completionTokens.sum()
 		val reasoning = UsageTable.reasoningTokens.sum()
 		val cacheHit = UsageTable.cacheHitTokens.sum()
-		val image = UsageTable.imageTokens.sum()
 		val count = UsageTable.id.count()
-		val row = UsageTable.select(prompt, completion, reasoning, cacheHit, image, count)
+		val row = UsageTable.select(prompt, completion, reasoning, cacheHit, count)
 			.where { condition }
 			.single()
 		if (row[count] == 0L) return@transaction null
@@ -104,7 +102,6 @@ object UsageRepositoryImpl : UsageRepository, Loggable {
 			completionTokens = row[completion] ?: 0,
 			reasoningTokens = row[reasoning],
 			cacheHitTokens = row[cacheHit],
-			imageTokens = row[image],
 		)
 	}
 	
@@ -117,7 +114,6 @@ object UsageRepositoryImpl : UsageRepository, Loggable {
 			completionTokens = this[UsageTable.completionTokens],
 			reasoningTokens = this[UsageTable.reasoningTokens],
 			cacheHitTokens = this[UsageTable.cacheHitTokens],
-			imageTokens = this[UsageTable.imageTokens],
 		),
 	)
 }

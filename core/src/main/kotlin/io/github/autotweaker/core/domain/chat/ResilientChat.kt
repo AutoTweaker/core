@@ -22,8 +22,9 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.ChatRetriesExhaustedException
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.llm.ChatRequest.Tool
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.LlmGateway
@@ -44,13 +45,19 @@ object ResilientChat : Loggable {
 	fun execute(
 		model: Model,
 		fallbackModels: List<Model>?,
-		messages: List<ChatMessage>,
-		tools: List<ChatRequest.Tool>? = null,
-		responseFormat: ChatRequest.ResponseFormat? = null,
-		stream: Boolean = false,
-		thinking: Boolean? = null,
 		timeout: ChatTimeout? = null,
-	): Flow<CoreLlmResult> = flow {
+		
+		instructions: String? = null,
+		messages: List<ChatMessage>,
+		reasoning: ReasoningEffort? = null,
+		stream: Boolean = false,
+		
+		maxTokens: Int? = null,
+		tools: List<Tool>? = null,
+		
+		temperature: Double? = null,
+		jsonOutput: Boolean? = null,
+	): Flow<LlmResult> = flow {
 		val maxRetries = ResilientChatSettings.MaxRetries().get()
 		val llmChatRetries = ResilientChatSettings.LlmChatRetries().get()
 		val effectiveTimeout = timeout ?: ChatTimeout(
@@ -68,12 +75,49 @@ object ResilientChat : Loggable {
 			llmChatRetries
 		)
 		
-		val userMsg = messages.filterIsInstance<ChatMessage.UserMessage>()
+		fun buildRequest(model: Model): ChatRequest {
+			val info = model.modelInfo
+			val thinkingDisabled = !info.supportsReasoning || reasoning == ReasoningEffort.NONE
+			
+			return ChatRequest(
+				model = info.modelId,
+				instructions = instructions,
+				messages = messages.map { msg ->
+					when (msg) {
+						is ChatMessage.User ->
+							if (info.supportsImage && info.supportsAudio && info.supportsVideo) msg
+							else msg.copy(
+								content = msg.content.filter { part ->
+									when (part) {
+										is ContentPart.Image, is ContentPart.ImageUrl -> info.supportsImage
+										is ContentPart.Audio, is ContentPart.AudioUrl -> info.supportsAudio
+										is ContentPart.Video, is ContentPart.VideoUrl -> info.supportsVideo
+										else -> true
+									}
+								}
+							)
+						
+						is ChatMessage.Assistant ->
+							if (thinkingDisabled) msg.copy(reasoningContent = null)
+							else if (msg.reasoningContent == null) msg.copy(reasoningContent = "")
+							else msg
+						
+						else -> msg
+					}
+				},
+				tools = tools,
+				stream = stream && info.supportsStreaming,
+				reasoning = if (info.supportsReasoning) reasoning else null,
+				temperature = temperature ?: model.config?.temperature,
+				maxTokens = maxTokens ?: model.config?.maxOutputTokens,
+				jsonOutput = jsonOutput
+			)
+		}
 		
 		var attempts = 0
 		
 		suspend fun attempt(target: Model): Pair<Int?, Boolean> {
-			val chatRequest = buildRequest(target, messages, tools, responseFormat, stream, thinking)
+			val chatRequest = buildRequest(target)
 			val results = gateway.send(
 				request = chatRequest,
 				apiKey = target.provider.apiKey,
@@ -86,12 +130,11 @@ object ResilientChat : Loggable {
 			var hasError = false
 			
 			results.collect { result ->
-				val msg = result.message
-				if (msg is ChatMessage.ErrorMessage) {
-					emit(CoreLlmResult(result, model = target.id))
-					statusCode = msg.statusCode
+				if (result is ChatResult.Failed) {
+					emit(LlmResult(result, model = target.id))
+					statusCode = result.statusCode
 					hasError = true
-				} else emit(CoreLlmResult(result.normalizeEmptyStrings(), model = target.id))
+				} else emit(LlmResult(result.normalizeEmptyStrings(), model = target.id))
 			}
 			attempts++
 			
@@ -103,9 +146,6 @@ object ResilientChat : Loggable {
 				add(model)
 				addAll(fallbackModels.orEmpty())
 			}
-			if (userMsg.any { !it.pictures.isNullOrEmpty() } && candidates.any { it.modelInfo.supportsImage })
-				candidates = candidates.filter { it.modelInfo.supportsImage } +
-						candidates.filter { !it.modelInfo.supportsImage }
 			
 			while (candidates.isNotEmpty()) {
 				val current = candidates.first()
@@ -189,55 +229,14 @@ object ResilientChat : Loggable {
 		throw ChatRetriesExhaustedException(attempts)
 	}
 	
-	private fun ChatResult.normalizeEmptyStrings(): ChatResult {
-		val msg = message
-		if (msg !is ChatMessage.AssistantMessage) return this
-		val content = msg.content
-		val reasoningContent = msg.reasoningContent
-		val normalized = msg.copy(
-			content = content?.orNull(),
-			reasoningContent = reasoningContent?.orNull()
+	private fun ChatResult.normalizeEmptyStrings(): ChatResult = when (this) {
+		is ChatResult.Assembled -> copy(
+			message = message.copy(
+				reasoningContent = message.reasoningContent?.orNull(),
+				content = message.content?.orNull()
+			)
 		)
-		return when (this) {
-			is ChatResult.Chunk -> copy(message = normalized)
-			is ChatResult.Assembled -> copy(message = normalized)
-		}
-	}
-	
-	private fun buildRequest(
-		model: Model,
-		messages: List<ChatMessage>,
-		tools: List<ChatRequest.Tool>?,
-		responseFormat: ChatRequest.ResponseFormat?,
-		stream: Boolean,
-		thinking: Boolean?,
-	): ChatRequest {
-		val stripPictures = !model.modelInfo.supportsImage
-		val stripThinking = !model.modelInfo.supportsReasoning && thinking == true
-		val shouldStripReasoning = !model.modelInfo.supportsReasoning || thinking != true
 		
-		return ChatRequest(
-			model = model.modelInfo.modelId,
-			messages = messages.map { msg ->
-				var result = msg
-				if (stripPictures && result is ChatMessage.UserMessage) {
-					result = result.copy(pictures = null)
-				}
-				if (result is ChatMessage.AssistantMessage) {
-					result = when {
-						shouldStripReasoning -> result.copy(reasoningContent = null)
-						!shouldStripReasoning && result.reasoningContent == null -> result.copy(reasoningContent = "<think />")
-						else -> result
-					}
-				}
-				return@map result
-			},
-			tools = tools,
-			responseFormat = responseFormat,
-			stream = stream && model.modelInfo.supportsStreaming,
-			thinking = if (stripThinking) null else thinking,
-			temperature = model.config?.temperature,
-			maxTokens = model.config?.maxTokens,
-		)
+		else -> this
 	}
 }

@@ -16,25 +16,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.llm.provider.mimo
+package io.github.autotweaker.core.infrastructure.llm.openai
 
-import kotlinx.serialization.SerialName
+import io.github.autotweaker.api.types.llm.ChatMessage
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class MiMoFinishReason(val value: String) {
-	@SerialName("stop")
-	STOP("stop"),
-	
-	@SerialName("length")
-	LENGTH("length"),
-	
-	@SerialName("tool_calls")
-	TOOL_CALLS("tool_calls"),
-	
-	@SerialName("content_filter")
-	CONTENT_FILTER("content_filter"),
-	
-	@SerialName("repetition_truncation")
-	REPETITION_TRUNCATION("repetition_truncation")
+data class OpenAiToolCall(
+	val id: String,
+	val type: String = "function",
+	val function: Function
+) {
+	@Serializable
+	data class Function(
+		val name: String,
+		val arguments: String
+	)
+}
+
+@JvmName("toOpenAiToolCalls")
+fun List<ChatMessage.Assistant.ToolCall>.transform() = map {
+	OpenAiToolCall(
+		id = it.id, function = OpenAiToolCall.Function(
+			name = it.name, arguments = it.arguments
+		)
+	)
+}
+
+@JvmName("toChatToolCalls")
+fun List<OpenAiToolCall>.transform() = map {
+	ChatMessage.Assistant.ToolCall(
+		id = it.id, name = it.function.name, arguments = it.function.arguments
+	)
 }

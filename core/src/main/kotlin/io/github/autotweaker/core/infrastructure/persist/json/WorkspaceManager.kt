@@ -24,7 +24,6 @@ import io.github.autotweaker.api.base.store.MutableStore
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.exception.DefaultWorkspaceMutationException
 import io.github.autotweaker.api.types.exception.WorkspaceNotEmptyException
-import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceIdException
 import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceNameException
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
@@ -41,17 +40,17 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 	
 	override fun default() = mutableMapOf<UUID, WorkspaceData>()
 	
-	suspend fun updateMeta(function: suspend () -> WorkspaceMeta) = transform { workspaces ->
+	suspend fun updateMeta(id: UUID, function: suspend () -> WorkspaceMeta) = transform { workspaces ->
 		val meta = function()
-		if (meta.id == defaultWorkspaceId) throw DefaultWorkspaceMutationException()
+		if (id == defaultWorkspaceId) throw DefaultWorkspaceMutationException()
 		ensureDefault()
-		if (!workspaces.containsKey(meta.id)) throw WorkspaceNotFoundException(meta.id)
-		if (workspaces.values.any { it.meta.displayName == meta.displayName })
+		if (!workspaces.containsKey(id)) throw WorkspaceNotFoundException(id)
+		if (workspaces.values.any { it.id != id && it.meta.displayName == meta.displayName })
 			throw DuplicateWorkspaceNameException(meta.displayName)
-		workspaces.computeIfPresent(meta.id) { _, old ->
+		workspaces.computeIfPresent(id) { _, old ->
 			old.copy(meta = meta)
 		}
-		log.debug("Updated workspace meta  id={}", meta.id)
+		log.debug("Updated workspace meta  id={}", id)
 	}
 	
 	suspend fun updateSessions(id: UUID, function: (Set<UUID>) -> Set<UUID>) =
@@ -78,10 +77,9 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 	
 	suspend fun create(meta: WorkspaceMeta): WorkspaceData = transform { workspaces ->
 		ensureDefault()
-		if (workspaces.containsKey(meta.id)) throw DuplicateWorkspaceIdException(meta.id)
 		if (workspaces.values.any { it.meta.displayName == meta.displayName })
 			throw DuplicateWorkspaceNameException(meta.displayName)
-		WorkspaceData(meta = meta).also { workspaces[meta.id] = it }
+		WorkspaceData(meta = meta).also { workspaces[it.id] = it }
 	}
 	
 	suspend fun getData(id: UUID): WorkspaceData? = transform { workspaces ->
@@ -101,13 +99,13 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 		Files.createDirectories(defaultPath)
 		
 		val meta = WorkspaceMeta(
-			id = defaultWorkspaceId, displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
+			displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
 		)
-		val data = WorkspaceData(meta = meta)
+		val data = WorkspaceData(id = defaultWorkspaceId, meta = meta)
 		
 		workspaces[defaultWorkspaceId] = data
 		
-		log.info("Created default workspace  id={}  path={}", data.meta.id, data.meta.path)
+		log.info("Created default workspace  id={}  path={}", data.id, data.meta.path)
 	}
 	
 	private const val DEFAULT_WORKSPACE_NAME = "default"

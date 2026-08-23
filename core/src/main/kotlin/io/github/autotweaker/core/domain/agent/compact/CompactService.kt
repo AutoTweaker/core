@@ -23,15 +23,13 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.CompactOutput
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.llm.UsageEntry
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
+import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -44,6 +42,11 @@ class CompactService(
 	private val agentId: UUID,
 	private val onOutput: (RuntimeOutput) -> Unit,
 ) : Loggable, Traceable {
+	private val thinking = CompactSettings.Thinking().get()
+	private val compactPrompt = CompactSettings.Prompt().get()
+	private val maxMessageChars = CompactSettings.MaxMessageChars().get()
+	private val messageSummarizePrompt = CompactSettings.MessageSummarizePrompt().get()
+	
 	suspend fun execute(
 		model: AgentModel,
 		ctx: AgentContextManager,
@@ -56,23 +59,22 @@ class CompactService(
 			agentId, rounds.size, model.summarize.id
 		)
 		
-		val compactPrompt = CompactSettings.Prompt().get()
-		val maxMessageChars = CompactSettings.MaxMessageChars().get()
-		val messageSummarizePrompt = CompactSettings.MessageSummarizePrompt().get()
-		val thinkingEnabled = CompactSettings.Thinking().get()
 		val maxRetries = CompactSettings.MaxCompactRetries().get()
 		
 		val processedMessages = preprocessMessages(
-			rounds, model, maxMessageChars, messageSummarizePrompt, thinkingEnabled
+			rounds, model, messageSummarizePrompt,
 		).inject(
 			context.injections, context.compactedRounds?.summarizedMessage?.content
-		) + ChatMessage.UserMessage(compactPrompt, Clock.System.now())
+		) + ChatMessage.User(
+			compactPrompt.textPart(),
+			Clock.System.now()
+		)
 		
 		var attempt = 0
 		var finalResult: SummarizedMessage?
 		do {
 			finalResult = runCompactRequest(
-				model, processedMessages, thinkingEnabled
+				model, processedMessages
 			)
 			attempt++
 		} while (finalResult == null && attempt < maxRetries)
@@ -102,10 +104,9 @@ class CompactService(
 	private suspend fun runCompactRequest(
 		model: AgentModel,
 		messages: List<ChatMessage>,
-		thinkingEnabled: Boolean,
 	): SummarizedMessage? {
 		var streamContent = ""
-		var lastResult: Pair<UUID, ChatMessage.AssistantMessage>? = null
+		var lastResult: Pair<UUID, ChatMessage.Assistant>? = null
 		var lastUsage: Usage? = null
 		trace.catching {
 			val results = ResilientChat.execute(
@@ -113,32 +114,30 @@ class CompactService(
 				fallbackModels = model.fallback,
 				messages = messages,
 				stream = true,
-				thinking = thinkingEnabled,
+				reasoning = ReasoningEffort(thinking)
 			)
 			results.collect { resilientResult ->
 				currentCoroutineContext().ensureActive()
 				when (val result = resilientResult.result) {
-					is ChatResult.Chunk -> {
-						val msg = result.message ?: return@collect
-						if (!msg.content.isNullOrEmpty()) {
-							streamContent += msg.content
-							onOutput(
-								RuntimeOutput.Compact(
-									CompactOutput(
-										CompactOutput.Status.OUTPUTTING,
-										streamContent,
-										null
-									)
+					is ChatResult.Chunk -> if (!result.content.isNullOrEmpty()) {
+						streamContent += result.content
+						onOutput(
+							RuntimeOutput.Compact(
+								CompactOutput(
+									CompactOutput.Status.OUTPUTTING,
+									streamContent,
+									null
 								)
 							)
-						}
+						)
 					}
 					
 					is ChatResult.Assembled -> {
 						result.usage?.let { lastUsage = it }
-						val assistantMsg = result.message as? ChatMessage.AssistantMessage
-						assistantMsg?.let { lastResult = resilientResult.model to it }
+						lastResult = resilientResult.model to result.message
 					}
+					
+					else -> {}
 				}
 			}
 		}.rethrowCancellation {
@@ -166,7 +165,7 @@ class CompactService(
 			)
 			return SummarizedMessage(
 				id = UUID(),
-				timestamp = lastResult.second.createdAt,
+				timestamp = lastResult.second.timestamp,
 				content = extracted,
 				modelId = lastResult.first,
 				usage = lastUsage
@@ -178,7 +177,7 @@ class CompactService(
 					RuntimeOutput.UsageConsumed(
 						UsageEntry(
 							modelId = lastResult.first,
-							timestamp = lastResult.second.createdAt,
+							timestamp = lastResult.second.timestamp,
 							usage = lastUsage
 						)
 					)
@@ -197,37 +196,32 @@ class CompactService(
 	private suspend fun preprocessMessages(
 		rounds: List<RuntimeContext.CompletedRound>,
 		model: AgentModel,
-		maxMessageChars: Int,
 		messageSummarizePrompt: String,
-		thinkingEnabled: Boolean,
 	): List<ChatMessage> = buildList {
 		rounds.forEach { round ->
 			add(
 				convertUserMessage(
 					round.userMessage,
-					maxMessageChars,
 					messageSummarizePrompt,
 					model,
-					thinkingEnabled
 				)
 			)
 			
 			round.turns?.forEach { turn ->
 				val toolCalls = turn.tools.map { tool ->
-					ChatMessage.AssistantMessage.ToolCall(
+					ChatMessage.Assistant.ToolCall(
 						id = tool.callId, name = tool.call.callName, arguments = tool.call.arguments
 					)
 				}
 				add(
 					convertAssistantMessage(
-						turn.assistantMessage, toolCalls, maxMessageChars, messageSummarizePrompt,
-						model, thinkingEnabled
+						turn.assistantMessage, toolCalls, messageSummarizePrompt, model
 					)
 				)
 				turn.tools.forEach {
 					add(
 						convertToolMessage(
-							it, maxMessageChars, messageSummarizePrompt, model, thinkingEnabled
+							it, messageSummarizePrompt, model
 						)
 					)
 				}
@@ -235,7 +229,7 @@ class CompactService(
 			round.finalAssistantMessage?.let {
 				add(
 					convertAssistantMessage(
-						it, null, maxMessageChars, messageSummarizePrompt, model, thinkingEnabled
+						it, null, messageSummarizePrompt, model
 					)
 				)
 			}
@@ -244,49 +238,41 @@ class CompactService(
 	
 	private suspend fun convertUserMessage(
 		msg: RuntimeContext.Message.User,
-		maxChars: Int,
 		prompt: String,
 		model: AgentModel,
-		thinking: Boolean,
-	): ChatMessage.UserMessage {
-		val content = msg.content.inject(true)
-		val final = maybeSummarize(content, maxChars, prompt, model, thinking)
-		return ChatMessage.UserMessage(final, msg.timestamp)
+	): ChatMessage.User {
+		val content = msg.content.inject().merge()
+		val final = maybeSummarize(content, prompt, model)
+		return ChatMessage.User(final.textPart(), msg.timestamp)
 	}
 	
 	private suspend fun convertAssistantMessage(
 		msg: RuntimeContext.Message.Assistant,
-		toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
-		maxChars: Int,
+		toolCalls: List<ChatMessage.Assistant.ToolCall>?,
 		prompt: String,
 		model: AgentModel,
-		thinking: Boolean,
-	) = ChatMessage.AssistantMessage(
-		content = maybeSummarize(msg.content.orEmpty(), maxChars, prompt, model, thinking),
-		createdAt = msg.timestamp,
-		reasoningContent = msg.reasoning, toolCalls = toolCalls, model = null,
+	) = ChatMessage.Assistant(
+		content = maybeSummarize(msg.content.orEmpty(), prompt, model),
+		timestamp = msg.timestamp,
+		reasoningContent = msg.reasoning, toolCalls = toolCalls,
 	)
 	
 	private suspend fun convertToolMessage(
 		msg: RuntimeContext.Message.Tool,
-		maxChars: Int,
 		prompt: String,
 		model: AgentModel,
-		thinking: Boolean,
-	) = ChatMessage.ToolMessage(
-		content = maybeSummarize(msg.result.content, maxChars, prompt, model, thinking),
-		createdAt = msg.result.timestamp,
+	) = ChatMessage.ToolResult(
+		content = maybeSummarize(msg.result.content, prompt, model),
+		timestamp = msg.result.timestamp,
 		toolCallId = msg.callId
 	)
 	
 	
 	private suspend fun maybeSummarize(
 		content: String,
-		maxChars: Int,
 		prompt: String,
 		model: AgentModel,
-		thinking: Boolean,
-	): String = if (content.length > maxChars)
+	): String = if (content.length > maxMessageChars)
 		summarizeMessage(content, prompt, model, thinking).also {
 			it.second?.let { usage ->
 				onOutput(RuntimeOutput.UsageConsumed(usage))

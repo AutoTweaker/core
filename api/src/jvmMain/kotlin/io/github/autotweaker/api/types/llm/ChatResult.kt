@@ -19,36 +19,27 @@
 package io.github.autotweaker.api.types.llm
 
 sealed class ChatResult {
-	abstract val message: ChatMessage?
-	abstract val finishReason: FinishReason?
-	abstract val usage: Usage?
-	
 	data class Chunk(
-		override val message: ChatMessage.AssistantMessage? = null,
-		val toolCalls: List<ChunkToolCall>? = null,
-		override val finishReason: FinishReason? = null,
-		override val usage: Usage? = null,
+		val content: String?,
+		val reasoningContent: String?,
+		val toolCalls: List<ChunkToolCall>?,
 	) : ChatResult()
 	
 	data class ChunkToolCall(
 		val index: Int,
-		val id: String? = null,
-		val name: String? = null,
-		val arguments: String? = null,
+		val id: String?,
+		val name: String?,
+		val arguments: String?,
 	)
 	
 	data class Assembled(
-		override val message: ChatMessage,
-		override val finishReason: FinishReason? = null,
-		override val usage: Usage? = null,
+		val message: ChatMessage.Assistant,
+		val usage: Usage? = null,
 	) : ChatResult()
 	
-	data class FinishReason(
-		val reason: String,
-		val type: Type
-	) {
-		enum class Type {
-			STOP, TOOL, ERROR, FILTER, LENGTH
-		}
-	}
+	data class Failed(
+		val message: String?,
+		val statusCode: Int?,
+		val exception: Throwable? = null
+	) : ChatResult()
 }

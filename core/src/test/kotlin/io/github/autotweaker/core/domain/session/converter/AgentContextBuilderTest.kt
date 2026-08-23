@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.session.converter
 
 import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
@@ -38,7 +39,7 @@ class AgentContextBuilderTest {
 	
 	private fun user(id: UUID = UUID.randomUUID(), content: String = "hello") = RuntimeContext.Message.User(
 		id = id,
-		content = MessageContent(content = content),
+		content = MessageContent(content = content.textPart()),
 		timestamp = Clock.System.now(),
 	)
 	
@@ -256,7 +257,7 @@ class AgentContextBuilderTest {
 			AgentMessage.User(
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
-				content = MessageContent(content = "question $i"),
+				content = MessageContent(content = "question $i".textPart()),
 			)
 		}
 		val compacts = List(depth) { i ->

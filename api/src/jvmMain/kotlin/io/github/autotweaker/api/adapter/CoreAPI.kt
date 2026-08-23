@@ -31,7 +31,10 @@ import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.duplicate.*
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateApiKeyException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateModelNameException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateProviderNameException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceNameException
 import io.github.autotweaker.api.types.exception.notfound.*
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
@@ -83,7 +86,7 @@ interface CoreAPI {
 	/**
 	 * 调用 LLM，模型、提供商必须来自配置的模型和提供商。
 	 *
-	 * 请求结束后必然返回一次 [ChatResult.Assembled]。由于重试机制，即使请求仍未结束也有可能在中途返回失败的 [ChatResult.Assembled]。
+	 * 请求结束后必然返回一次 [ChatResult.Assembled] 或 [ChatResult.Failed]。由于重试机制，即使请求仍未结束也有可能在中途返回 [ChatResult.Failed]。
 	 *
 	 * @throws ModelNotFoundException
 	 * @throws ProviderNotFoundException
@@ -92,7 +95,7 @@ interface CoreAPI {
 	 * @throws ChatRetriesExhaustedException
 	 * @throws UnknownProviderTypeException
 	 */
-	fun chat(request: CoreLlmRequest): Flow<CoreLlmResult>
+	fun chat(request: LlmRequest): Flow<LlmResult>
 	
 	/**
 	 * 执行一条 Bash 命令，支持在容器内执行。
@@ -151,11 +154,6 @@ interface CoreAPI {
 	 * @see AgentAPI
 	 */
 	interface SessionAPI {
-		/**
-		 * 默认工作区的 id，永不变化。
-		 */
-		val defaultWorkspaceId: UUID
-		
 		/**
 		 * 在默认工作区创建新会话。
 		 *
@@ -234,11 +232,15 @@ interface CoreAPI {
 	 */
 	interface WorkspaceAPI {
 		/**
+		 * 默认工作区的 id，永不变化。
+		 */
+		val defaultWorkspaceId: UUID
+		
+		/**
 		 * 创建一个新的工作区。
 		 *
 		 * @return 新工作区的数据。
 		 * @throws InvalidWorkspacePathException
-		 * @throws DuplicateWorkspaceIdException
 		 * @throws DuplicateWorkspaceNameException
 		 */
 		suspend fun create(meta: WorkspaceMeta): WorkspaceData

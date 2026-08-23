@@ -41,10 +41,10 @@ class DeepSeekMessageSerializerTest {
 	
 	@Test
 	fun `deserialize UserMessage by default`() {
-		val jsonStr = """{"role":"user","content":"hi"}"""
+		val jsonStr = """{"role":"user","content":[{"type":"text","text":"hi"}]}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.UserMessage>(msg)
-		assertEquals("hi", msg.content)
+		assertEquals("hi", (msg.content[0] as DeepSeekMessage.UserMessage.Part.Text).text)
 	}
 	
 	@Test
@@ -81,10 +81,10 @@ class DeepSeekMessageSerializerTest {
 	
 	@Test
 	fun `deserialize unknown role defaults to UserMessage`() {
-		val jsonStr = """{"role":"unknown","content":"test"}"""
+		val jsonStr = """{"role":"unknown","content":[{"type":"text","text":"test"}]}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.UserMessage>(msg)
-		assertEquals("test", msg.content)
+		assertEquals("test", (msg.content[0] as DeepSeekMessage.UserMessage.Part.Text).text)
 	}
 	
 	@Test
@@ -97,9 +97,9 @@ class DeepSeekMessageSerializerTest {
 	
 	@Test
 	fun `deserialize when role key is missing defaults to UserMessage`() {
-		val jsonStr = """{"content":"hi"}"""
+		val jsonStr = """{"content":[{"type":"text","text":"hi"}]}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.UserMessage>(msg)
-		assertEquals("hi", msg.content)
+		assertEquals("hi", (msg.content[0] as DeepSeekMessage.UserMessage.Part.Text).text)
 	}
 }

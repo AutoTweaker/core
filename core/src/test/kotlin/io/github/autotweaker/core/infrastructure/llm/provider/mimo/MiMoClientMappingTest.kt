@@ -18,10 +18,14 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
+import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -30,33 +34,88 @@ class MiMoClientMappingTest {
 	private val now = Clock.System.now()
 	private val client = MiMoClient()
 	
-	private fun <T> invokeProtected(name: String, vararg args: Any?): T {
+	// transform/usage 是 MiMoClient 的成员扩展，类外部不可见，通过反射调用编译后的实例方法
+	private fun <T> invokeProtected(name: String, receiver: Any): T {
 		val method = MiMoClient::class.java.declaredMethods
-			.first { it.name == name && (it.parameterTypes.size == args.size || it.parameterTypes.size == args.size + 1) }
+			.first {
+				it.name == name && it.parameterTypes.size == 1 && !it.isBridge && it.parameterTypes[0].isInstance(
+					receiver
+				)
+			}
 		method.isAccessible = true
-		val invokeArgs = if (method.parameterTypes.size == args.size) args else arrayOf(*args, null)
 		@Suppress("UNCHECKED_CAST")
-		return method.invoke(client, *invokeArgs) as T
+		return try {
+			method.invoke(client, receiver) as T
+		} catch (e: java.lang.reflect.InvocationTargetException) {
+			throw e.targetException
+		}
 	}
 	
+	// suspend 成员扩展编译后带 Continuation 参数；无挂起点时 invoke 直接返回结果，否则结果经 Continuation 传递
+	private fun <T> invokeSuspendProtected(name: String, receiver: Any): T {
+		val method = MiMoClient::class.java.declaredMethods
+			.first {
+				it.name == name && it.parameterTypes.size == 2 && !it.isBridge && it.parameterTypes[0].isInstance(
+					receiver
+				)
+			}
+		method.isAccessible = true
+		var result: T? = null
+		var failure: Throwable? = null
+		val continuation = object : Continuation<T> {
+			override val context: CoroutineContext = EmptyCoroutineContext
+			override fun resumeWith(r: Result<T>) {
+				r.onSuccess { result = it }.onFailure { failure = it }
+			}
+		}
+		val returned = try {
+			method.invoke(client, receiver, continuation)
+		} catch (e: java.lang.reflect.InvocationTargetException) {
+			throw e.targetException
+		}
+		@Suppress("UNCHECKED_CAST")
+		if (returned !== COROUTINE_SUSPENDED) return returned as T
+		failure?.let { throw it }
+		return result as T
+	}
+	
+	private fun chatRequest(
+		model: String = "test",
+		instructions: String? = null,
+		messages: List<ChatMessage> = emptyList(),
+		reasoning: ReasoningEffort? = null,
+		stream: Boolean = false,
+		maxTokens: Int? = null,
+		tools: List<ChatRequest.Tool>? = null,
+		temperature: Double? = null,
+		jsonOutput: Boolean? = null,
+	): ChatRequest = ChatRequest(
+		model = model, instructions = instructions, messages = messages,
+		reasoning = reasoning, stream = stream, maxTokens = maxTokens,
+		tools = tools, temperature = temperature, jsonOutput = jsonOutput
+	)
+	
 	private fun createRequestBody(request: ChatRequest): MiMoRequest =
-		invokeProtected("createRequestBody", request)
+		invokeSuspendProtected("transform", request)
 	
 	private fun mapToChatResult(response: MiMoResponse): ChatResult.Assembled =
-		invokeProtected("mapToChatResult", response)
+		invokeProtected("transform", response)
 	
 	private fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult.Chunk =
-		invokeProtected("mapChunkToChatResult", chunk)
+		invokeProtected("transform", chunk)
 	
-	private fun extractToolCalls(chunk: MiMoStreamChunk): List<*>? =
-		invokeProtected("extractToolCalls", chunk)
+	private fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? =
+		invokeProtected<ChatResult.Chunk>("transform", chunk).toolCalls
+	
+	private fun chunkUsage(chunk: MiMoStreamChunk): Usage? =
+		invokeProtected("usage", chunk)
 	
 	// region createRequestBody
 	
 	@Test
 	fun `createRequestBody maps messages correctly`() {
-		val userMsg = ChatMessage.UserMessage("hello", now)
-		val request = ChatRequest(model = "mimo-v2-pro", messages = listOf(userMsg))
+		val userMsg = ChatMessage.User("hello".textPart(), now)
+		val request = chatRequest(model = "mimo-v2-pro", messages = listOf(userMsg))
 		
 		val body = createRequestBody(request)
 		assertEquals("mimo-v2-pro", body.model)
@@ -65,80 +124,63 @@ class MiMoClientMappingTest {
 	}
 	
 	@Test
-	fun `createRequestBody maps SystemMessage to DeveloperMessage`() {
-		val sysMsg = ChatMessage.SystemMessage("system prompt", now)
-		val request = ChatRequest(model = "test", messages = listOf(sysMsg))
+	fun `createRequestBody maps instructions to DeveloperMessage`() {
+		val request = chatRequest(model = "test", instructions = "system prompt")
 		val body = createRequestBody(request)
 		assertIs<MiMoMessage.DeveloperMessage>(body.messages[0])
 	}
 	
 	@Test
 	fun `createRequestBody maps AssistantMessage with tool calls`() {
-		val assistant = ChatMessage.AssistantMessage(
-			content = "using tool", createdAt = now,
-			toolCalls = listOf(ChatMessage.AssistantMessage.ToolCall("id1", "func1", "{}"))
+		val assistant = ChatMessage.Assistant(
+			content = "using tool", timestamp = now,
+			toolCalls = listOf(ChatMessage.Assistant.ToolCall("id1", "func1", "{}"))
 		)
-		val request = ChatRequest(model = "test", messages = listOf(assistant))
+		val request = chatRequest(model = "test", messages = listOf(assistant))
 		val body = createRequestBody(request)
 		
 		val msg = body.messages[0] as MiMoMessage.AssistantMessage
-		assertEquals("using tool", (msg.content!![0] as MiMoMessage.Content.TextPart).text)
+		assertEquals("using tool", msg.content)
 		assertEquals(1, msg.toolCalls?.size)
 		assertEquals("id1", msg.toolCalls!![0].id)
 	}
 	
 	@Test
 	fun `createRequestBody maps ToolMessage`() {
-		val tool = ChatMessage.ToolMessage("result", now, "call-1")
-		val request = ChatRequest(model = "test", messages = listOf(tool))
+		val tool = ChatMessage.ToolResult("result", now, "call-1")
+		val request = chatRequest(model = "test", messages = listOf(tool))
 		val body = createRequestBody(request)
 		
 		val msg = body.messages[0] as MiMoMessage.ToolMessage
-		assertEquals("result", (msg.content[0] as MiMoMessage.Content.TextPart).text)
+		assertEquals("result", msg.content)
 		assertEquals("call-1", msg.toolCallId)
 	}
 	
 	@Test
-	fun `createRequestBody filters ErrorMessage`() {
-		val errorMsg = ChatMessage.ErrorMessage("error", now, null)
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(errorMsg, userMsg))
-		
-		val body = createRequestBody(request)
-		assertEquals(1, body.messages.size)
-		assertIs<MiMoMessage.UserMessage>(body.messages[0])
-	}
-	
-	@Test
 	fun `createRequestBody includes tools and thinking`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
+		val userMsg = ChatMessage.User("hi".textPart(), now)
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
-		val request = ChatRequest(
+		val request = chatRequest(
 			model = "test", messages = listOf(userMsg),
 			tools = listOf(ChatRequest.Tool("read_file", "read file", json)),
-			thinking = true, temperature = 0.7, maxTokens = 1000,
-			topP = 0.9, frequencyPenalty = 0.5, presencePenalty = 0.3,
-			toolCallRequired = true,
-			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
+			reasoning = ReasoningEffort(true), temperature = 0.7, maxTokens = 1000, jsonOutput = true
 		)
 		
 		val body = createRequestBody(request)
 		assertEquals(1, body.tools?.size)
 		assertEquals("read_file", body.tools!![0].function.name)
-		assertEquals(OpenAiRequest.Thinking.Type.ENABLED, body.thinking?.type)
+		assertEquals(OpenAiThinking.Type.ENABLED, body.thinking?.type)
 		assertEquals(0.7, body.temperature)
 		assertEquals(1000, body.maxCompletionTokens)
-		assertEquals(0.9, body.topP)
-		assertEquals(0.5, body.frequencyPenalty)
-		assertEquals(0.3, body.presencePenalty)
+		assertEquals("json_object", body.responseFormat?.type)
 	}
 	
 	@Test
 	fun `createRequestBody thinking false disabled`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(userMsg), thinking = false)
+		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val request = chatRequest(model = "test", messages = listOf(userMsg), reasoning = ReasoningEffort(false))
 		val body = createRequestBody(request)
-		assertEquals(OpenAiRequest.Thinking.Type.DISABLED, body.thinking?.type)
+		assertEquals(OpenAiThinking.Type.DISABLED, body.thinking?.type)
 	}
 	
 	// endregion
@@ -148,19 +190,18 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapToChatResult maps response correctly`() {
 		val response = MiMoResponse(
-			id = "resp-1", created = now, model = "mimo-v2-pro",
+			id = "resp-1", created = now,
 			choices = listOf(
 				MiMoResponse.Choice(
 					index = 0,
-					message = MiMoResponse.Choice.Message(
+					message = MiMoMessage.AssistantMessage(
 						content = "hello world", reasoningContent = "thinking...",
 						toolCalls = listOf(
-							MiMoToolCall(
-								id = "t1", function = MiMoToolCall.Function("read", "{}")
+							OpenAiToolCall(
+								id = "t1", function = OpenAiToolCall.Function("read", "{}")
 							)
 						)
-					),
-					finishReason = MiMoFinishReason.STOP
+					)
 				)
 			),
 			usage = MiMoUsage(
@@ -171,11 +212,9 @@ class MiMoClientMappingTest {
 		)
 		
 		val result = mapToChatResult(response)
-		assertIs<ChatMessage.AssistantMessage>(result.message)
+		assertIs<ChatMessage.Assistant>(result.message)
 		assertEquals("hello world", result.message.content)
-		assertEquals("thinking...", (result.message as ChatMessage.AssistantMessage).reasoningContent)
-		assertEquals("stop", result.finishReason?.reason)
-		assertEquals(ChatResult.FinishReason.Type.STOP, result.finishReason?.type)
+		assertEquals("thinking...", result.message.reasoningContent)
 		assertEquals(100, result.usage?.totalTokens)
 		assertEquals(20, result.usage?.reasoningTokens)
 		assertEquals(10, result.usage?.cacheHitTokens)
@@ -184,7 +223,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapToChatResult handles empty choices`() {
 		val response = MiMoResponse(
-			id = "r1", created = now, model = "m",
+			id = "r1", created = now,
 			choices = emptyList(),
 			usage = MiMoUsage(0, 0, 0)
 		)
@@ -193,37 +232,13 @@ class MiMoClientMappingTest {
 	}
 	
 	@Test
-	fun `mapToChatResult all finish reasons`() {
-		for ((reason, expectedType) in listOf(
-			MiMoFinishReason.TOOL_CALLS to ChatResult.FinishReason.Type.TOOL,
-			MiMoFinishReason.CONTENT_FILTER to ChatResult.FinishReason.Type.FILTER,
-			MiMoFinishReason.LENGTH to ChatResult.FinishReason.Type.LENGTH,
-			MiMoFinishReason.REPETITION_TRUNCATION to ChatResult.FinishReason.Type.ERROR
-		)) {
-			val response = MiMoResponse(
-				id = "r1", created = now, model = "m",
-				choices = listOf(
-					MiMoResponse.Choice(
-						index = 0,
-						message = MiMoResponse.Choice.Message(content = "x"),
-						finishReason = reason
-					)
-				),
-				usage = MiMoUsage(0, 0, 0)
-			)
-			assertEquals(expectedType, mapToChatResult(response).finishReason?.type)
-		}
-	}
-	
-	@Test
 	fun `mapToChatResult usage with null details`() {
 		val response = MiMoResponse(
-			id = "r1", created = now, model = "m",
+			id = "r1", created = now,
 			choices = listOf(
 				MiMoResponse.Choice(
 					index = 0,
-					message = MiMoResponse.Choice.Message(content = "ok"),
-					finishReason = MiMoFinishReason.STOP
+					message = MiMoMessage.AssistantMessage(content = "ok")
 				)
 			),
 			usage = MiMoUsage(totalTokens = 50, promptTokens = 30, completionTokens = 20)
@@ -241,32 +256,29 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapChunkToChatResult maps stream chunk`() {
 		val chunk = MiMoStreamChunk(
-			id = "chunk-1", created = now, model = "mimo",
+			id = "chunk-1", created = now,
 			choices = listOf(
-				MiMoStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = MiMoStreamChunk.Choice.Delta(
+					delta = OpenAiChunkChoice.Delta(
 						content = "partial", reasoningContent = "thinking..."
-					),
-					finishReason = null
+					)
 				)
 			)
 		)
 		val result = mapChunkToChatResult(chunk)
-		assertEquals("partial", result.message?.content)
-		assertEquals("thinking...", (result.message as ChatMessage.AssistantMessage).reasoningContent)
-		assertNull(result.finishReason)
+		assertEquals("partial", result.content)
+		assertEquals("thinking...", result.reasoningContent)
 	}
 	
 	@Test
 	fun `mapChunkToChatResult includes usage from chunk`() {
 		val chunk = MiMoStreamChunk(
-			id = "chunk-1", created = now, model = "mimo",
+			id = "chunk-1", created = now,
 			choices = listOf(
-				MiMoStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = MiMoStreamChunk.Choice.Delta(),
-					finishReason = MiMoFinishReason.STOP
+					delta = OpenAiChunkChoice.Delta()
 				)
 			),
 			usage = MiMoUsage(
@@ -275,10 +287,10 @@ class MiMoClientMappingTest {
 				promptTokensDetails = MiMoUsage.PromptTokensDetails(cachedTokens = 10)
 			)
 		)
-		val result = mapChunkToChatResult(chunk)
-		assertEquals(100, result.usage?.totalTokens)
-		assertEquals(20, result.usage?.reasoningTokens)
-		assertEquals(10, result.usage?.cacheHitTokens)
+		val usage = chunkUsage(chunk)
+		assertEquals(100, usage?.totalTokens)
+		assertEquals(20, usage?.reasoningTokens)
+		assertEquals(10, usage?.cacheHitTokens)
 	}
 	
 	// endregion
@@ -288,21 +300,20 @@ class MiMoClientMappingTest {
 	@Test
 	fun `extractToolCalls extracts fragments from chunk`() {
 		val chunk = MiMoStreamChunk(
-			id = "c1", created = now, model = "m",
+			id = "c1", created = now,
 			choices = listOf(
-				MiMoStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = MiMoStreamChunk.Choice.Delta(
+					delta = OpenAiChunkChoice.Delta(
 						toolCalls = listOf(
-							MiMoStreamChunk.Choice.ToolCall(
+							OpenAiChunkChoice.ChunkCall(
 								index = 0, id = "call-1",
-								function = MiMoStreamChunk.Choice.ToolCall.Function(
+								function = OpenAiChunkChoice.ChunkCall.Function(
 									name = "read_file", arguments = "{}"
 								)
 							)
 						)
-					),
-					finishReason = null
+					)
 				)
 			)
 		)
@@ -314,12 +325,11 @@ class MiMoClientMappingTest {
 	@Test
 	fun `extractToolCalls returns null for empty tool calls`() {
 		val chunk = MiMoStreamChunk(
-			id = "c1", created = now, model = "m",
+			id = "c1", created = now,
 			choices = listOf(
-				MiMoStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = MiMoStreamChunk.Choice.Delta(),
-					finishReason = null
+					delta = OpenAiChunkChoice.Delta()
 				)
 			)
 		)
@@ -329,7 +339,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `extractToolCalls returns null for empty choices`() {
 		val chunk = MiMoStreamChunk(
-			id = "c1", created = now, model = "m",
+			id = "c1", created = now,
 			choices = emptyList()
 		)
 		assertNull(extractToolCalls(chunk))

@@ -16,25 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
+package io.github.autotweaker.core.infrastructure.llm.openai
 
+import io.github.autotweaker.api.types.llm.ReasoningEffort
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class DeepSeekFinishReason(val value: String) {
-	@SerialName("stop")
-	STOP("stop"),
+data class OpenAiThinking(
+	val type: Type
+) {
+	constructor(effort: ReasoningEffort) : this(
+		if (effort == ReasoningEffort.NONE)
+			Type.DISABLED else Type.ENABLED
+	)
 	
-	@SerialName("length")
-	LENGTH("length"),
-	
-	@SerialName("content_filter")
-	CONTENT_FILTER("content_filter"),
-	
-	@SerialName("tool_calls")
-	TOOL_CALLS("tool_calls"),
-	
-	@SerialName("insufficient_system_resource")
-	INSUFFICIENT_SYSTEM_RESOURCE("insufficient_system_resource")
+	@Serializable
+	enum class Type {
+		@SerialName("enabled")
+		ENABLED,
+		
+		@SerialName("disabled")
+		DISABLED
+	}
 }

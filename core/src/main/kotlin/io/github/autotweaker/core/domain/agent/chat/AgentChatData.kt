@@ -21,12 +21,9 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.types.agent.StreamDelta
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import java.util.*
-import kotlin.time.Instant
 
 data class AgentChatRequest(
 	val model: AgentModel,
@@ -42,14 +39,12 @@ sealed class AgentChatStreamResult {
 	data class Failing(
 		val error: String?,
 		val statusCode: Int?,
+		val exception: Throwable?,
 		val model: UUID,
-		val timestamp: Instant,
-		val usage: Usage? = null,
 	) : AgentChatStreamResult()
 	
 	data class Assembled(
 		val message: RuntimeContext.Message.Assistant,
-		val toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
-		val finishReason: ChatResult.FinishReason?,
+		val toolCalls: List<ChatMessage.Assistant.ToolCall>?,
 	) : AgentChatStreamResult()
 }

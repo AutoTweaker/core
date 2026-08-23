@@ -20,10 +20,7 @@ package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.types.agent.AgentError
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmResult
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -54,10 +51,10 @@ class CompactServiceTest {
 	private val agentId = UUID.randomUUID()
 	private val model = AgentModel(
 		model = mockk<Model>(relaxed = true),
+		reasoning = null,
 		summarize = mockk<Model>(relaxed = true),
 		compact = mockk<Model>(relaxed = true),
 		fallback = null,
-		thinking = false,
 	)
 	
 	private fun longSummary(): String = "summary ".repeat(10).trim()  // 62 字符 > MinSummaryLength(50)
@@ -71,7 +68,7 @@ class CompactServiceTest {
 			manager.beginRound(
 				RuntimeContext.Message.User(
 					id = UUID.randomUUID(),
-					content = MessageContent(content = "question"),
+					content = MessageContent(content = "question".textPart()),
 					timestamp = Clock.System.now(),
 				)
 			)
@@ -95,9 +92,9 @@ class CompactServiceTest {
 	
 	private fun assembledResult(content: String, usage: Usage? = null) = flow {
 		emit(
-			CoreLlmResult(
+			LlmResult(
 				ChatResult.Assembled(
-					message = ChatMessage.AssistantMessage(content, Clock.System.now()),
+					message = ChatMessage.Assistant(content, Clock.System.now()),
 					usage = usage,
 				),
 				model = UUID.randomUUID(),
@@ -107,12 +104,14 @@ class CompactServiceTest {
 	
 	
 	private fun mockResilientChat(
-		vararg results: Flow<CoreLlmResult>,
+		vararg results: Flow<LlmResult>,
 		throwException: RuntimeException? = null,
 	): AtomicInteger {
 		val callCount = AtomicInteger(0)
 		mockkObject(ResilientChat)
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } answers {
+		coEvery {
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+		} answers {
 			callCount.incrementAndGet()
 			throwException?.let { throw it }
 			results[callCount.get() - 1]
@@ -141,7 +140,9 @@ class CompactServiceTest {
 	fun `successful compact applies summarized rounds`() = runTest {
 		mockkObject(ResilientChat)
 		val result = assembledResult("<summary>${longSummary()}</summary>")
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns result
+		coEvery {
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+		} returns result
 		val manager = managerWithHistory()
 		
 		compactService().execute(model, manager)
@@ -184,7 +185,9 @@ class CompactServiceTest {
 	fun `usage from llm is collected into summarized message`() = runTest {
 		mockkObject(ResilientChat)
 		val result = assembledResult("<summary>${longSummary()}</summary>", usage = Usage(100, 50, 50))
-		coEvery { ResilientChat.execute(any(), any(), any(), any(), any(), any(), any()) } returns result
+		coEvery {
+			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+		} returns result
 		val manager = managerWithHistory()
 		
 		compactService().execute(model, manager)

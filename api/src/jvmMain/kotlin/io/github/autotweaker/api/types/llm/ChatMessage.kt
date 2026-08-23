@@ -18,32 +18,22 @@
 
 package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.types.Sha256
-import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
-@Serializable
 sealed class ChatMessage {
-	abstract val content: String?
-	abstract val createdAt: Instant
+	abstract val content: Any?
+	abstract val timestamp: Instant
 	
-	data class SystemMessage(
-		override val content: String,
-		override val createdAt: Instant
+	data class User(
+		override val content: List<ContentPart>,
+		override val timestamp: Instant,
 	) : ChatMessage()
 	
-	data class UserMessage(
-		override val content: String,
-		override val createdAt: Instant,
-		val pictures: List<Sha256>? = null
-	) : ChatMessage()
-	
-	data class AssistantMessage(
+	data class Assistant(
 		override val content: String?,
-		override val createdAt: Instant,
+		override val timestamp: Instant,
 		val reasoningContent: String? = null,
 		val toolCalls: List<ToolCall>? = null,
-		val model: String? = null
 	) : ChatMessage() {
 		data class ToolCall(
 			val id: String,
@@ -52,15 +42,9 @@ sealed class ChatMessage {
 		)
 	}
 	
-	data class ToolMessage(
+	data class ToolResult(
 		override val content: String,
-		override val createdAt: Instant,
+		override val timestamp: Instant,
 		val toolCallId: String
-	) : ChatMessage()
-	
-	data class ErrorMessage(
-		override val content: String?,
-		override val createdAt: Instant,
-		val statusCode: Int?,
 	) : ChatMessage()
 }

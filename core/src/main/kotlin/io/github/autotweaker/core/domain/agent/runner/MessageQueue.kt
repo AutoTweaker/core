@@ -23,6 +23,7 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
@@ -53,10 +54,9 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			merge(all)?.let {
 				return it.andLog(log) { message ->
 					info(
-						"Received message  injections={}  images={}  length={}  agentId={}",
+						"Received message  injections={}  contents={}  agentId={}",
 						message.content.injections?.count(),
-						message.content.images?.count(),
-						message.content.content?.length,
+						message.content.content?.count(),
 						agentId
 					)
 				}
@@ -77,14 +77,12 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		}
 		val filtered = all.filterNot { it.key in cancelQueued }
 		val injections = filtered.values.flatMap { it.injections.orEmpty() }.orNull()
-		val images = filtered.values.flatMap { it.images.orEmpty() }.orNull()
-		val content = buildString {
-			val filtered = filtered.values.filterNot { it.content.isNullOrBlank() }
-			filtered.forEachBetween(
-				action = { append(it.content) },
-				between = { append("\n\n---\n\n") })
+		val content = buildList {
+			filtered.values.forEach { msg ->
+				msg.content?.let { addAll(it) }
+			}
 		}.orNull()
-		if (allNull(injections, images, content)) {
+		if (allNull(injections, content)) {
 			filtered.keys.forEach {
 				deliveries.remove(it)?.complete(null)
 			}
@@ -93,7 +91,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		return RuntimeContext.Message.User(
 			id = UUID(),
 			content = MessageContent(
-				injections, content, images
+				injections, content
 			),
 			timestamp = Clock.System.now()
 		).also { message ->
@@ -108,7 +106,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	}
 	
 	fun send(content: String) = send(
-		MessageContent(content = content)
+		MessageContent(content = content.textPart())
 	)
 	
 	fun send(injection: ContextInjection) = send(

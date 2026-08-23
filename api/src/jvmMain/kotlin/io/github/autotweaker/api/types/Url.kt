@@ -30,6 +30,8 @@ import java.net.URI
 @JvmInline
 @Serializable
 value class Url private constructor(val value: String) {
+	override fun toString() = value
+	
 	companion object : Traceable {
 		/**
 		 * 从 [String] 构造 url，自动 [trim] 并移除尾部 `/`。

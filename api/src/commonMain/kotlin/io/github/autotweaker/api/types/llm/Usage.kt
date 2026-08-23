@@ -27,7 +27,6 @@ data class Usage(
 	@SerialName("c") val completionTokens: Int,
 	@SerialName("r") val reasoningTokens: Int? = null,
 	@SerialName("h") val cacheHitTokens: Int? = null,
-	@SerialName("i") val imageTokens: Int? = null,
 ) {
 	val totalTokens: Int get() = promptTokens + completionTokens
 	val cacheMissTokens: Int get() = promptTokens - (cacheHitTokens ?: 0)
@@ -37,7 +36,6 @@ data class Usage(
 		completionTokens = completionTokens + other.completionTokens,
 		reasoningTokens = merge(reasoningTokens, other.reasoningTokens),
 		cacheHitTokens = merge(cacheHitTokens, other.cacheHitTokens),
-		imageTokens = merge(imageTokens, other.imageTokens),
 	)
 	
 	companion object {

@@ -21,7 +21,10 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.agent.chat.merge
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import java.util.*
@@ -37,7 +40,7 @@ class MessageQueueTest {
 	
 	private fun queue() = MessageQueue(UUID.randomUUID())
 	
-	private fun text(content: String) = MessageContent(content = content)
+	private fun text(content: String) = MessageContent(content = content.textPart())
 	
 	private fun injection(tag: String, content: String) =
 		ContextInjection(tag = tag, content = content)
@@ -54,7 +57,7 @@ class MessageQueueTest {
 		val result = queue().merge(mapOf(UUID.randomUUID() to text("hello")))
 		
 		assertNotNull(result)
-		assertEquals("hello", result.content.content)
+		assertEquals("hello\n", result.content.content?.merge())
 	}
 	
 	@Test
@@ -67,7 +70,7 @@ class MessageQueueTest {
 		)
 		
 		assertNotNull(result)
-		assertEquals("first\n\n---\n\nsecond", result.content.content)
+		assertEquals("first\nsecond\n", result.content.content?.merge())
 	}
 	
 	@Test
@@ -81,14 +84,16 @@ class MessageQueueTest {
 		)
 		
 		assertNotNull(result)
-		assertEquals("real", result.content.content)
+		assertEquals("\n   \nreal\n", result.content.content?.merge())
 	}
 	
 	@Test
 	fun `merge all blank returns null`() = runTest {
 		val result = queue().merge(mapOf(UUID.randomUUID() to text("   ")))
 		
-		assertNull(result)
+		// 空白文本仍保留为 ContentPart.Text，不再被过滤
+		assertNotNull(result)
+		assertEquals("   \n", result.content.content?.merge())
 	}
 	
 	@Test
@@ -111,13 +116,16 @@ class MessageQueueTest {
 		val img2 = Sha256(ByteArray(32) { 2 })
 		val result = queue().merge(
 			mapOf(
-				UUID.randomUUID() to MessageContent(images = listOf(img1)),
-				UUID.randomUUID() to MessageContent(images = listOf(img2)),
+				UUID.randomUUID() to MessageContent(content = listOf(ContentPart.Image("image/png", img1))),
+				UUID.randomUUID() to MessageContent(content = listOf(ContentPart.Image("image/png", img2))),
 			)
 		)
 		
 		assertNotNull(result)
-		assertEquals(listOf(img1, img2), result.content.images)
+		assertEquals(
+			listOf(img1, img2),
+			result.content.content?.mapNotNull { (it as? ContentPart.Image)?.data },
+		)
 	}
 	
 	// endregion
@@ -137,7 +145,7 @@ class MessageQueueTest {
 		val message = q.drain()
 		
 		assertNotNull(message)
-		assertEquals("hello", message.content.content)
+		assertEquals("hello\n", message.content.content?.merge())
 	}
 	
 	@Test
@@ -159,7 +167,7 @@ class MessageQueueTest {
 		q.send("second")
 		
 		val message = received.await()
-		assertEquals("first\n\n---\n\nsecond", message.content.content)
+		assertEquals("first\nsecond\n", message.content.content?.merge())
 	}
 	
 	@Test
@@ -185,8 +193,10 @@ class MessageQueueTest {
 		val q = queue()
 		val delivery = q.send("   ")
 		
-		assertNull(q.drain())
-		assertNull(delivery.await())
+		// 空白文本仍保留为 ContentPart.Text，消息不再被丢弃
+		val message = q.drain()
+		assertNotNull(message)
+		assertEquals(message.id, delivery.await())
 	}
 	
 	@Test
@@ -197,7 +207,7 @@ class MessageQueueTest {
 		
 		val message = q.drain()
 		assertNotNull(message)
-		assertEquals("a\n\n---\n\nb", message.content.content)
+		assertEquals("a\nb\n", message.content.content?.merge())
 		deliveries.forEach { assertEquals(message.id, it.await()) }
 	}
 	

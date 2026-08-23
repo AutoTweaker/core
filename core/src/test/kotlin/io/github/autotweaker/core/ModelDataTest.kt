@@ -152,12 +152,12 @@ class ModelDataTest {
 	fun `Config with all fields set`() {
 		val config = ModelData.Config(
 			temperature = 0.7,
-			maxTokens = 4096,
+			maxOutputTokens = 4096,
 			compactContextUsage = 0.8,
 			compactTotalTokens = 500000
 		)
 		assertEquals(0.7, config.temperature)
-		assertEquals(4096, config.maxTokens)
+		assertEquals(4096, config.maxOutputTokens)
 		assertEquals(0.8, config.compactContextUsage)
 		assertEquals(500000, config.compactTotalTokens)
 	}
@@ -166,7 +166,7 @@ class ModelDataTest {
 	fun `Config with null fields uses defaults`() {
 		val config = ModelData.Config(null, null, null, null)
 		assertNull(config.temperature)
-		assertNull(config.maxTokens)
+		assertNull(config.maxOutputTokens)
 		assertNull(config.compactContextUsage)
 		assertNull(config.compactTotalTokens)
 	}
@@ -174,14 +174,24 @@ class ModelDataTest {
 	@Test
 	fun `Config with temperature 0`() {
 		val config =
-			ModelData.Config(temperature = 0.0, maxTokens = null, compactContextUsage = null, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = 0.0,
+				maxOutputTokens = null,
+				compactContextUsage = null,
+				compactTotalTokens = null
+			)
 		assertEquals(0.0, config.temperature)
 	}
 	
 	@Test
 	fun `Config with temperature 2_0`() {
 		val config =
-			ModelData.Config(temperature = 2.0, maxTokens = null, compactContextUsage = null, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = 2.0,
+				maxOutputTokens = null,
+				compactContextUsage = null,
+				compactTotalTokens = null
+			)
 		assertEquals(2.0, config.temperature)
 	}
 	
@@ -190,7 +200,7 @@ class ModelDataTest {
 		assertFailsWith<IllegalArgumentException> {
 			ModelData.Config(
 				temperature = -0.1,
-				maxTokens = null,
+				maxOutputTokens = null,
 				compactContextUsage = null,
 				compactTotalTokens = null
 			)
@@ -200,42 +210,72 @@ class ModelDataTest {
 	@Test
 	fun `Config with temperature above 2_0 throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = 2.1, maxTokens = null, compactContextUsage = null, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = 2.1,
+				maxOutputTokens = null,
+				compactContextUsage = null,
+				compactTotalTokens = null
+			)
 		}
 	}
 	
 	@Test
 	fun `Config with zero maxTokens throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = null, maxTokens = 0, compactContextUsage = null, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = null,
+				maxOutputTokens = 0,
+				compactContextUsage = null,
+				compactTotalTokens = null
+			)
 		}
 	}
 	
 	@Test
 	fun `Config with negative maxTokens throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = null, maxTokens = -1, compactContextUsage = null, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = null,
+				maxOutputTokens = -1,
+				compactContextUsage = null,
+				compactTotalTokens = null
+			)
 		}
 	}
 	
 	@Test
 	fun `Config with zero compactContextUsage throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = null, maxTokens = null, compactContextUsage = 0.0, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = null,
+				maxOutputTokens = null,
+				compactContextUsage = 0.0,
+				compactTotalTokens = null
+			)
 		}
 	}
 	
 	@Test
 	fun `Config with compactContextUsage above 1 throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = null, maxTokens = null, compactContextUsage = 1.1, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = null,
+				maxOutputTokens = null,
+				compactContextUsage = 1.1,
+				compactTotalTokens = null
+			)
 		}
 	}
 	
 	@Test
 	fun `Config with compactContextUsage 1_0`() {
 		val config =
-			ModelData.Config(temperature = null, maxTokens = null, compactContextUsage = 1.0, compactTotalTokens = null)
+			ModelData.Config(
+				temperature = null,
+				maxOutputTokens = null,
+				compactContextUsage = 1.0,
+				compactTotalTokens = null
+			)
 		assertEquals(1.0, config.compactContextUsage)
 	}
 	
@@ -244,7 +284,7 @@ class ModelDataTest {
 		assertFailsWith<IllegalArgumentException> {
 			ModelData.Config(
 				temperature = null,
-				maxTokens = null,
+				maxOutputTokens = null,
 				compactContextUsage = -0.5,
 				compactTotalTokens = null
 			)
@@ -254,7 +294,12 @@ class ModelDataTest {
 	@Test
 	fun `Config with zero compactTotalTokens throws`() {
 		assertFailsWith<IllegalArgumentException> {
-			ModelData.Config(temperature = null, maxTokens = null, compactContextUsage = null, compactTotalTokens = 0)
+			ModelData.Config(
+				temperature = null,
+				maxOutputTokens = null,
+				compactContextUsage = null,
+				compactTotalTokens = 0
+			)
 		}
 	}
 	
@@ -263,7 +308,7 @@ class ModelDataTest {
 		assertFailsWith<IllegalArgumentException> {
 			ModelData.Config(
 				temperature = null,
-				maxTokens = null,
+				maxOutputTokens = null,
 				compactContextUsage = null,
 				compactTotalTokens = -100
 			)

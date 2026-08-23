@@ -22,7 +22,8 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.commands.session.model.SessionModel
-import io.github.autotweaker.adapter.cli.syntax.Syntax
+import io.github.autotweaker.adapter.cli.syntax.ALL
+import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.I18nBase
 import io.github.autotweaker.api.base.zh
@@ -33,10 +34,20 @@ import io.github.autotweaker.api.i18n.I18nDef
 class Session : Command {
 	override val name = "session"
 	override val description = i18n(Desc())
-	override val syntax = Syntax.EMPTY
+	override val syntax = buildSyntax(ALL) {
+		value("workspace", "工作区的名称，默认当前目录下的工作区，无可用则默认工作区") { required = false }
+		
+	}
 	override val children = listOf(SessionModel())
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
+		val workspace = getValueOrNull("workspace").let { workspaceName ->
+			val list = core.workspace.list()
+			list.find { it.meta.displayName == workspaceName }?.id
+				?: list.find { it.meta.path == cwd }?.id
+				?: core.workspace.defaultWorkspaceId
+		}
+		
 		done(1)
 	}
 	

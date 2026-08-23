@@ -71,7 +71,7 @@ class Tools(
 	
 	
 	suspend fun resolveToolCall(
-		call: ChatMessage.AssistantMessage.ToolCall,
+		call: ChatMessage.Assistant.ToolCall,
 		provider: DependencyProvider,
 	): ResolveResult {
 		val meta = metaCache[call.name]?.first

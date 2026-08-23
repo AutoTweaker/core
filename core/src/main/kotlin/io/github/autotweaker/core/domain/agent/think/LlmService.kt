@@ -101,6 +101,6 @@ class LlmService(
 	
 	data class CallResult(
 		val assistantMessage: RuntimeContext.Message.Assistant,
-		val toolCalls: List<ChatMessage.AssistantMessage.ToolCall>?,
+		val toolCalls: List<ChatMessage.Assistant.ToolCall>?,
 	)
 }

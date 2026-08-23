@@ -19,21 +19,25 @@
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
 import com.google.auto.service.AutoService
+import io.github.autotweaker.api.DataUrl
+import io.github.autotweaker.api.ObjectStorable
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
-import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiResponseFormat
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
+import io.github.autotweaker.core.infrastructure.llm.openai.transform
 import io.ktor.util.reflect.*
-import kotlinx.serialization.serializer
 
 @AutoService(LlmClient::class)
 class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, DeepSeekStreamChunk>(
 	requestTypeInfo = typeInfo<DeepSeekRequest>(),
 	responseTypeInfo = typeInfo<DeepSeekResponse>(),
-	chunkSerializer = serializer<DeepSeekStreamChunk>(),
-) {
-	override val providerInfo: LlmClient.ProviderInfo = LlmClient.ProviderInfo(
+	chunkSerializer = DeepSeekStreamChunk.serializer(),
+), ObjectStorable {
+	override val providerInfo = LlmClient.ProviderInfo(
 		name = "deepseek", baseUrl = "https://api.deepseek.com/v1".toUrl(), models = listOf(
 			ModelData.ModelInfo(
 				modelId = "deepseek-v4-flash",
@@ -42,8 +46,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
-				supportsImage = false,
-				supportsJsonOutput = true
+				supportsJsonOutput = true,
 			), ModelData.ModelInfo(
 				modelId = "deepseek-v4-pro",
 				contextWindow = 1_000_000,
@@ -51,165 +54,113 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
-				supportsImage = false,
-				supportsJsonOutput = true
+				supportsJsonOutput = true,
 			)
-		), errorHandlingRules = listOf(
-			ProviderData.ErrorHandlingRule(
-				statusCode = 400,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.FALLBACK,
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 401,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 402,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 422,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 429,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY,
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 500,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.PROVIDER_FALLBACK,
-			),
-			ProviderData.ErrorHandlingRule(
-				statusCode = 503,
-				strategy = ProviderData.ErrorHandlingRule.RecoveryStrategy.RETRY,
-			),
+		), errorHandlingRules = ProviderData.ErrorHandlingRule.build(
+			400 to RecoveryStrategy.FALLBACK,
+			401 to RecoveryStrategy.PROVIDER_FALLBACK,
+			402 to RecoveryStrategy.PROVIDER_FALLBACK,
+			422 to RecoveryStrategy.FALLBACK,
+			429 to RecoveryStrategy.RETRY,
+			500 to RecoveryStrategy.PROVIDER_FALLBACK,
+			503 to RecoveryStrategy.RETRY
 		)
 	)
 	
-	override suspend fun createRequestBody(request: ChatRequest): DeepSeekRequest {
-		val mappedMessages = request.messages.mapNotNull { msg ->
+	override suspend fun ChatRequest.transform(): DeepSeekRequest {
+		var mappedMessages = messages.map { msg ->
 			when (msg) {
-				is ChatMessage.SystemMessage -> DeepSeekMessage.SystemMessage(
-					content = msg.content
+				is ChatMessage.User -> DeepSeekMessage.UserMessage(
+					content = msg.content.mapNotNull {
+						when (it) {
+							is ContentPart.Text -> DeepSeekMessage.UserMessage.Part.Text(it.content)
+							is ContentPart.Image -> DeepSeekMessage.UserMessage.Part.Image(
+								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+							)
+							
+							is ContentPart.ImageUrl -> DeepSeekMessage.UserMessage.Part.Image(it.url.toString())
+							else -> null
+						}
+					}
 				)
 				
-				is ChatMessage.UserMessage -> DeepSeekMessage.UserMessage(
-					content = msg.content
-				)
-				
-				is ChatMessage.AssistantMessage -> DeepSeekMessage.AssistantMessage(
+				is ChatMessage.Assistant -> DeepSeekMessage.AssistantMessage(
 					content = msg.content,
 					reasoningContent = msg.reasoningContent,
-					toolCalls = msg.toolCalls?.map { tc ->
-						DeepSeekMessage.AssistantMessage.ToolCall(
-							id = tc.id, function = DeepSeekMessage.AssistantMessage.ToolCall.Function(
-								name = tc.name, arguments = tc.arguments
-							)
-						)
-					})
-				
-				is ChatMessage.ToolMessage -> DeepSeekMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.toolCallId
+					toolCalls = msg.toolCalls?.transform()
 				)
 				
-				is ChatMessage.ErrorMessage -> null
+				is ChatMessage.ToolResult -> DeepSeekMessage.ToolMessage(
+					content = msg.content, toolCallId = msg.toolCallId
+				)
 			}
 		}
 		
-		return DeepSeekRequest(
-			model = request.model,
-			messages = mappedMessages,
-			stream = request.stream,
-			streamOptions = if (request.stream) {
-				DeepSeekRequest.StreamOptions(includeUsage = true)
-			} else null,
-			tools = request.tools?.map { tool ->
-				OpenAiRequest.Tool(
-					function = OpenAiRequest.Tool.Function(
-						name = tool.name, description = tool.description, parameters = tool.parameters
-					)
+		instructions?.let {
+			mappedMessages = listOf(
+				DeepSeekMessage.SystemMessage(
+					content = it
 				)
-			},
-			thinking = when (request.thinking) {
-				true -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.ENABLED)
-				false -> OpenAiRequest.Thinking(OpenAiRequest.Thinking.Type.DISABLED)
+			) + mappedMessages
+		}
+		
+		return DeepSeekRequest(
+			model = model,
+			messages = mappedMessages,
+			stream = stream,
+			streamOptions = if (stream) DeepSeekRequest.StreamOptions() else null,
+			tools = tools?.transform(),
+			thinking = reasoning?.let { OpenAiThinking(it) },
+			reasoningEffort = when (reasoning) {
+				ReasoningEffort.NONE -> null
+				ReasoningEffort.MINIMAL -> DeepSeekRequest.Effort.LOW
+				ReasoningEffort.LOW -> DeepSeekRequest.Effort.LOW
+				ReasoningEffort.MEDIUM -> DeepSeekRequest.Effort.HIGH
+				ReasoningEffort.HIGH -> DeepSeekRequest.Effort.HIGH
+				ReasoningEffort.XHIGH -> DeepSeekRequest.Effort.MAX
 				null -> null
 			},
-			temperature = request.temperature,
-			maxCompletionTokens = request.maxTokens,
-			topP = request.topP,
-			frequencyPenalty = request.frequencyPenalty,
-			presencePenalty = request.presencePenalty,
-			responseFormat = request.responseFormat,
-			toolChoice = when (request.toolCallRequired) {
-				true -> ToolChoice.REQUIRED
-				false -> ToolChoice.NONE
-				null -> null
-			},
+			temperature = temperature,
+			maxTokens = maxTokens,
+			responseFormat = if (jsonOutput == true) OpenAiResponseFormat() else null,
+			toolChoice = null
 		)
 	}
 	
-	override fun mapToChatResult(response: DeepSeekResponse): ChatResult {
-		val choice = response.choices.firstOrNull()
+	override fun DeepSeekResponse.transform(): ChatResult {
+		val choice = choices.firstOrNull()
 		val msg = choice?.message
 		
 		return ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage(
+			message = ChatMessage.Assistant(
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
-				toolCalls = msg?.toolCalls?.map { tc ->
-					ChatMessage.AssistantMessage.ToolCall(
-						id = tc.id, name = tc.function.name, arguments = tc.function.arguments
-					)
-				},
-				createdAt = response.created,
-				model = response.model
-			), usage = response.usage.let { u ->
-				Usage(
-					promptTokens = u.promptTokens,
-					completionTokens = u.completionTokens,
-					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
-					cacheHitTokens = u.promptCacheHitTokens,
-				)
-			}, finishReason = choice?.finishReason?.toFinishReason()
+				toolCalls = msg?.toolCalls?.transform(),
+				timestamp = created,
+			),
+			usage = usage.transform()
 		)
 	}
 	
-	override fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult.Chunk {
-		val choice = chunk.choices.firstOrNull()
+	override fun DeepSeekStreamChunk.transform(): ChatResult.Chunk {
+		val choice = choices.firstOrNull()
 		val delta = choice?.delta
 		
 		return ChatResult.Chunk(
-			message = ChatMessage.AssistantMessage(
-				content = delta?.content,
-				reasoningContent = delta?.reasoningContent,
-				createdAt = chunk.created,
-				model = chunk.model
-			), usage = chunk.usage?.let { u ->
-				Usage(
-					promptTokens = u.promptTokens,
-					completionTokens = u.completionTokens,
-					reasoningTokens = u.completionTokensDetails?.reasoningTokens,
-					cacheHitTokens = u.promptCacheHitTokens,
-				)
-			}, finishReason = choice?.finishReason?.toFinishReason()
+			content = delta?.content,
+			reasoningContent = delta?.reasoningContent,
+			toolCalls = delta?.toolCalls?.transform()
 		)
 	}
 	
-	private fun DeepSeekFinishReason.toFinishReason() = ChatResult.FinishReason(
-		reason = value, type = when (this) {
-			DeepSeekFinishReason.STOP -> ChatResult.FinishReason.Type.STOP
-			DeepSeekFinishReason.TOOL_CALLS -> ChatResult.FinishReason.Type.TOOL
-			DeepSeekFinishReason.CONTENT_FILTER -> ChatResult.FinishReason.Type.FILTER
-			DeepSeekFinishReason.LENGTH -> ChatResult.FinishReason.Type.LENGTH
-			DeepSeekFinishReason.INSUFFICIENT_SYSTEM_RESOURCE -> ChatResult.FinishReason.Type.ERROR
-		}
-	)
+	override fun DeepSeekStreamChunk.timestamp() = created
 	
-	override fun extractToolCalls(chunk: DeepSeekStreamChunk): List<ChatResult.ChunkToolCall>? =
-		chunk.choices.firstOrNull()?.delta?.toolCalls?.map { tc ->
-			ChatResult.ChunkToolCall(
-				index = tc.index, id = tc.id, name = tc.function?.name, arguments = tc.function?.arguments
-			)
-		}
+	override fun DeepSeekStreamChunk.usage() = usage?.transform()
+	
+	private fun DeepSeekUsage.transform() = Usage(
+		promptTokens = promptTokens,
+		completionTokens = completionTokens,
+		reasoningTokens = completionTokensDetails?.reasoningTokens,
+		cacheHitTokens = promptCacheHitTokens ?: promptTokensDetails?.cachedTokens,
+	)
 }

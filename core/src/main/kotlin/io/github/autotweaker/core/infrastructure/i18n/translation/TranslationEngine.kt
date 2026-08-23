@@ -21,10 +21,7 @@ package io.github.autotweaker.core.infrastructure.i18n.translation
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmRequest
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.ModelResolver
@@ -98,25 +95,23 @@ object TranslationEngine : Loggable, Traceable {
 			"{{target_language}}", job.target.displayName
 		).replace("{{content_to_translate}}", contentJson)
 		
-		val request = CoreLlmRequest(
+		val request = LlmRequest(
 			model = job.model.id,
 			fallbackModels = null,
+			instructions = job.systemPrompt,
 			messages = listOf(
-				ChatMessage.SystemMessage(job.systemPrompt, Clock.System.now()),
-				ChatMessage.UserMessage(userPrompt, Clock.System.now()),
+				ChatMessage.User(userPrompt.textPart(), Clock.System.now()),
 			),
 			stream = false,
-			thinking = TranslateSettings.Thinking().get(),
-			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
+			reasoning = ReasoningEffort(TranslateSettings.Thinking().get()),
+			jsonOutput = true
 		)
 		val results = trace.catching { ChatService.chat(request).toList() }
 			.rethrowCancellation().getOrElse { return null }
 		
-		val finalResult = results.asSequence().filterNot {
-			it.result.message is ChatMessage.ErrorMessage
-		}.map { it.result }.lastOrNull() as? ChatResult.Assembled ?: return null
+		val finalResult = results.lastOrNull()?.result as? ChatResult.Assembled ?: return null
 		
-		val text = (finalResult.message as ChatMessage.AssistantMessage).content ?: return null
+		val text = finalResult.message.content ?: return null
 		return parseResponse(text)?.let { BatchResult(it, job.batch, job.target) }
 	}
 	

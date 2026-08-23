@@ -30,7 +30,6 @@ object UsageTable : Table("usage_record") {
 	val completionTokens = integer("completion_tokens")
 	val reasoningTokens = integer("reasoning_tokens").nullable()
 	val cacheHitTokens = integer("cache_hit_tokens").nullable()
-	val imageTokens = integer("image_tokens").nullable()
 	
 	override val primaryKey = PrimaryKey(id)
 	

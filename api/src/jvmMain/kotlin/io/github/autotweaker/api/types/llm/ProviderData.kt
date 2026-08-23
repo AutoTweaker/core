@@ -49,6 +49,12 @@ data class ProviderData(
 			{ "statusCode must be a valid HTTP status code (100-599), got $statusCode" }
 		}
 		
+		companion object {
+			fun build(vararg rules: Pair<Int, RecoveryStrategy>) = rules.map { (statusCode, strategy) ->
+				ErrorHandlingRule(statusCode, strategy)
+			}
+		}
+		
 		@Serializable
 		enum class RecoveryStrategy {
 			RETRY, FALLBACK, CONTEXT_FALLBACK, PROVIDER_FALLBACK,

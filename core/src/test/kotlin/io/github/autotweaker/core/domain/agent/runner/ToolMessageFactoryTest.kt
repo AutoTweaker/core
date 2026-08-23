@@ -46,7 +46,7 @@ class ToolMessageFactoryTest {
 	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
 	
 	private fun rawCall(id: String = "c1", name: String = "bash-run") =
-		ChatMessage.AssistantMessage.ToolCall(id = id, name = name, arguments = """{"cmd":"echo"}""")
+		ChatMessage.Assistant.ToolCall(id = id, name = name, arguments = """{"cmd":"echo"}""")
 	
 	private fun assistant() = RuntimeContext.Message.Assistant(
 		id = UUID.randomUUID(),
@@ -58,9 +58,9 @@ class ToolMessageFactoryTest {
 	)
 	
 	private fun result(
-		parseFailures: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.ParseFailure>> = emptyList(),
-		resolveFailures: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.ResolveFailure>> = emptyList(),
-		activations: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.Activation>> = emptyList(),
+		parseFailures: List<Pair<ChatMessage.Assistant.ToolCall, ResolveResult.ParseFailure>> = emptyList(),
+		resolveFailures: List<Pair<ChatMessage.Assistant.ToolCall, ResolveResult.ResolveFailure>> = emptyList(),
+		activations: List<Pair<ChatMessage.Assistant.ToolCall, ResolveResult.Activation>> = emptyList(),
 	) = ThinkingStage.Result(assistant(), activations, parseFailures, resolveFailures, null)
 	
 	private fun pendingCall(

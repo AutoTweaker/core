@@ -29,5 +29,4 @@ data class UsageEntry(
 	val completionTokens: Int,
 	val reasoningTokens: Int?,
 	val cacheHitTokens: Int?,
-	val imageTokens: Int?,
 ) : DbEntry<UUID>()

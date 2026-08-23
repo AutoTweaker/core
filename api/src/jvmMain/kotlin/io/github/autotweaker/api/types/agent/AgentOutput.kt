@@ -20,15 +20,14 @@ package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.tool.ToolOutput
 import java.util.*
-import kotlin.time.Instant
 
 sealed class AgentOutput {
 	data class LlmDelta(val delta: StreamDelta) : AgentOutput()
 	data class LlmError(
 		val content: String?,
 		val statusCode: Int?,
+		val exception: Throwable?,
 		val model: UUID,
-		val timestamp: Instant,
 	) : AgentOutput()
 	
 	data class Compact(

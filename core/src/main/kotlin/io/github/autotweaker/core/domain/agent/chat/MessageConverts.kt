@@ -21,15 +21,27 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ContentPart
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.*
 import kotlin.time.Instant
 
-fun MessageContent.inject(injectImageTag: Boolean = false): String = buildString {
-	injections?.forEach { appendLine(it.toXml()) }
-	if (injectImageTag) repeat(images?.size ?: 0) { appendLine("<image />") }
-	content?.let { append(it) }
+fun MessageContent.inject() = content.inject(injections)
+
+@JvmName("injectContentParts")
+fun List<ContentPart>?.inject(
+	injections: List<ContextInjection>?
+): List<ContentPart> = buildList {
+	injections?.forEach { add(ContentPart.Text(it.toXml())) }
+	this@inject?.let { addAll(it) }
+}
+
+fun List<ContentPart>.merge(): String = buildString {
+	this@merge.forEach {
+		if (it is ContentPart.Text) appendLine(it.content)
+		else appendLine("<media />")
+	}
 }
 
 fun MessageContent.injectContext(
@@ -37,15 +49,17 @@ fun MessageContent.injectContext(
 	timeZone: TimeZone,
 	language: Locale,
 ) = copy(
-	injections = injections.orEmpty() + ContextInjection(
-		"utc_time", timestamp
-	) + ContextInjection(
-		"local_time", timestamp.toLocalDateTime(timeZone)
-	) + ContextInjection(
-		"timezone", timeZone
-	) + ContextInjection(
-		"language", language
-	)
+	injections = listOf(
+		ContextInjection(
+			"utc_time", timestamp
+		), ContextInjection(
+			"local_time", timestamp.toLocalDateTime(timeZone)
+		), ContextInjection(
+			"timezone", timeZone
+		), ContextInjection(
+			"language", language
+		)
+	) + injections.orEmpty()
 )
 
 fun List<ChatMessage>.inject(
@@ -64,19 +78,15 @@ fun List<ChatMessage>.inject(
 	}
 })
 
+@JvmName("injectChatMessages")
 fun List<ChatMessage>.inject(injections: List<ContextInjection>?): List<ChatMessage> {
 	if (injections.isNullOrEmpty()) return this
-	val firstUserIndex = indexOfFirst { it is ChatMessage.UserMessage }
+	val firstUserIndex = indexOfFirst { it is ChatMessage.User }
 	if (firstUserIndex == -1) return this
 	val mutable = toMutableList()
-	val userMsg = mutable[firstUserIndex] as ChatMessage.UserMessage
+	val userMsg = mutable[firstUserIndex] as ChatMessage.User
 	mutable[firstUserIndex] = userMsg.copy(content = userMsg.content.inject(injections))
 	return mutable
-}
-
-fun String.inject(injections: List<ContextInjection>) = buildString {
-	injections.forEach { appendLine(it.toXml()) }
-	append(this@inject)
 }
 
 fun ContextInjection.toXml() = "<$tag>$content</$tag>"

@@ -16,23 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.serializer
+@file:Suppress("FunctionName")
 
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
+package io.github.autotweaker.api
+
+import io.github.autotweaker.api.types.Sha256
 import kotlin.io.encoding.Base64
 
-object ByteArraySerializer : KSerializer<ByteArray> {
-	override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ByteArray", PrimitiveKind.STRING)
-	
-	override fun serialize(encoder: Encoder, value: ByteArray) {
-		encoder.encodeString(Base64.encode(value))
+/**
+ * 生成一个符合 RFC 2397 的 data URL
+ */
+suspend fun ObjectStorable.DataUrl(mediatype: String, data: Sha256) =
+	objects.get(data)?.let {
+		DataUrl(mediatype, it)
 	}
-	
-	override fun deserialize(decoder: Decoder): ByteArray =
-		Base64.decode(decoder.decodeString())
-}
+
+/**
+ * 生成一个符合 RFC 2397 的 data URL
+ */
+fun DataUrl(mediatype: String, data: ByteArray) =
+	"data:${mediatype};base64,${Base64.encode(data)}"

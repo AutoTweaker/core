@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.types.llm.ReasoningEffort
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -26,7 +27,7 @@ import java.util.*
 data class ModelConfig(
 	@Serializable(with = UuidSerializer::class)
 	val model: UUID,
-	val thinking: Boolean,
+	val reasoning: ReasoningEffort?,
 	@Serializable(with = UuidSerializer::class)
 	val summarize: UUID,
 	@Serializable(with = UuidSerializer::class)

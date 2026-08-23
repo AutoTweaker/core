@@ -18,10 +18,14 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
+import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.test.*
 import kotlin.time.Clock
 
@@ -30,59 +34,113 @@ class DeepSeekClientMappingTest {
 	private val now = Clock.System.now()
 	private val client = DeepSeekClient()
 	
-	private fun <T> invokeProtected(name: String, vararg args: Any?): T {
+	// transform/usage 是 DeepSeekClient 的成员扩展，类外部不可见，通过反射调用编译后的实例方法
+	private fun <T> invokeProtected(name: String, receiver: Any): T {
 		val method = DeepSeekClient::class.java.declaredMethods
-			.first { it.name == name && (it.parameterTypes.size == args.size || it.parameterTypes.size == args.size + 1) }
+			.first {
+				it.name == name && it.parameterTypes.size == 1 && !it.isBridge && it.parameterTypes[0].isInstance(
+					receiver
+				)
+			}
 		method.isAccessible = true
-		val invokeArgs = if (method.parameterTypes.size == args.size) args else arrayOf(*args, null)
 		@Suppress("UNCHECKED_CAST")
-		return method.invoke(client, *invokeArgs) as T
+		return try {
+			method.invoke(client, receiver) as T
+		} catch (e: java.lang.reflect.InvocationTargetException) {
+			throw e.targetException
+		}
+	}
+	
+	// suspend 成员扩展编译后带 Continuation 参数；无挂起点时 invoke 直接返回结果，否则结果经 Continuation 传递
+	private fun <T> invokeSuspendProtected(name: String, receiver: Any): T {
+		val method = DeepSeekClient::class.java.declaredMethods
+			.first {
+				it.name == name && it.parameterTypes.size == 2 && !it.isBridge && it.parameterTypes[0].isInstance(
+					receiver
+				)
+			}
+		method.isAccessible = true
+		var result: T? = null
+		var failure: Throwable? = null
+		val continuation = object : Continuation<T> {
+			override val context: CoroutineContext = EmptyCoroutineContext
+			override fun resumeWith(r: Result<T>) {
+				r.onSuccess { result = it }.onFailure { failure = it }
+			}
+		}
+		val returned = try {
+			method.invoke(client, receiver, continuation)
+		} catch (e: java.lang.reflect.InvocationTargetException) {
+			throw e.targetException
+		}
+		@Suppress("UNCHECKED_CAST")
+		if (returned !== COROUTINE_SUSPENDED) return returned as T
+		failure?.let { throw it }
+		return result as T
 	}
 	
 	private fun createRequestBody(request: ChatRequest): DeepSeekRequest =
-		invokeProtected("createRequestBody", request)
+		invokeSuspendProtected("transform", request)
 	
 	private fun mapToChatResult(response: DeepSeekResponse): ChatResult.Assembled =
-		invokeProtected("mapToChatResult", response)
+		invokeProtected("transform", response)
 	
 	private fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult.Chunk =
-		invokeProtected("mapChunkToChatResult", chunk)
+		invokeProtected("transform", chunk)
 	
-	private fun extractToolCalls(chunk: DeepSeekStreamChunk): List<*>? =
-		invokeProtected("extractToolCalls", chunk)
+	private fun chunkUsage(chunk: DeepSeekStreamChunk): Usage? =
+		invokeProtected("usage", chunk)
+	
+	private fun request(
+		model: String = "test",
+		instructions: String? = null,
+		messages: List<ChatMessage> = emptyList(),
+		reasoning: ReasoningEffort? = null,
+		stream: Boolean = false,
+		maxTokens: Int? = null,
+		tools: List<ChatRequest.Tool>? = null,
+		temperature: Double? = null,
+		jsonOutput: Boolean? = null,
+	) = ChatRequest(
+		model = model, instructions = instructions, messages = messages, reasoning = reasoning,
+		stream = stream, maxTokens = maxTokens, tools = tools, temperature = temperature, jsonOutput = jsonOutput,
+	)
 	
 	// region createRequestBody
 	
 	@Test
 	fun `createRequestBody maps messages correctly`() {
-		val userMsg = ChatMessage.UserMessage("hello", now)
-		val request = ChatRequest(model = "deepseek-v4-pro", messages = listOf(userMsg))
+		val userMsg = ChatMessage.User("hello".textPart(), now)
+		val request = request(model = "deepseek-v4-pro", messages = listOf(userMsg))
 		
 		val body = createRequestBody(request)
 		assertEquals("deepseek-v4-pro", body.model)
 		assertEquals(1, body.messages.size)
 		assertIs<DeepSeekMessage.UserMessage>(body.messages[0])
-		assertEquals("hello", body.messages[0].content)
+		assertEquals(listOf(DeepSeekMessage.UserMessage.Part.Text("hello")), body.messages[0].content)
 	}
 	
 	@Test
 	fun `createRequestBody maps SystemMessage`() {
-		val sysMsg = ChatMessage.SystemMessage("system prompt", now)
-		val request = ChatRequest(model = "test", messages = listOf(sysMsg))
+		val request = request(
+			instructions = "system prompt",
+			messages = listOf(ChatMessage.User("hi".textPart(), now))
+		)
 		val body = createRequestBody(request)
 		assertIs<DeepSeekMessage.SystemMessage>(body.messages[0])
+		assertEquals("system prompt", (body.messages[0] as DeepSeekMessage.SystemMessage).content)
 	}
 	
 	@Test
 	fun `createRequestBody maps AssistantMessage with tool calls`() {
-		val assistant = ChatMessage.AssistantMessage(
+		val assistant = ChatMessage.Assistant(
 			content = "using tool",
-			createdAt = now,
+			timestamp = now,
 			toolCalls = listOf(
-				ChatMessage.AssistantMessage.ToolCall("id1", "func1", "{}")
+				ChatMessage.Assistant.ToolCall("id1", "func1", "{}")
 			)
 		)
-		val request = ChatRequest(model = "test", messages = listOf(assistant))
+		val request = request(messages = listOf(assistant))
 		val body = createRequestBody(request)
 		
 		val msg = body.messages[0] as DeepSeekMessage.AssistantMessage
@@ -94,8 +152,8 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps ToolMessage`() {
-		val tool = ChatMessage.ToolMessage("result", now, "call-1")
-		val request = ChatRequest(model = "test", messages = listOf(tool))
+		val tool = ChatMessage.ToolResult("result", now, "call-1")
+		val request = request(messages = listOf(tool))
 		val body = createRequestBody(request)
 		
 		val msg = body.messages[0] as DeepSeekMessage.ToolMessage
@@ -104,62 +162,29 @@ class DeepSeekClientMappingTest {
 	}
 	
 	@Test
-	fun `createRequestBody filters ErrorMessage`() {
-		val errorMsg = ChatMessage.ErrorMessage("error", now, null)
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(errorMsg, userMsg))
-		
-		val body = createRequestBody(request)
-		assertEquals(1, body.messages.size)
-		assertIs<DeepSeekMessage.UserMessage>(body.messages[0])
-	}
-	
-	@Test
 	fun `createRequestBody includes tools and thinking`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
+		val userMsg = ChatMessage.User("hi".textPart(), now)
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
-		val request = ChatRequest(
-			model = "test",
+		val request = request(
 			messages = listOf(userMsg),
 			tools = listOf(ChatRequest.Tool("read_file", "read file", json)),
-			thinking = true,
+			reasoning = ReasoningEffort.HIGH,
 			temperature = 0.7,
 			maxTokens = 1000,
-			topP = 0.9,
-			frequencyPenalty = 0.5,
-			presencePenalty = 0.3,
-			toolCallRequired = true,
 			stream = true,
-			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
+			jsonOutput = true,
 		)
 		
 		val body = createRequestBody(request)
 		assertEquals(1, body.tools?.size)
 		assertEquals("read_file", body.tools!![0].function.name)
-		assertEquals(OpenAiRequest.Thinking.Type.ENABLED, body.thinking?.type)
+		assertEquals(OpenAiThinking.Type.ENABLED, body.thinking?.type)
+		assertEquals(DeepSeekRequest.Effort.HIGH, body.reasoningEffort)
 		assertEquals(0.7, body.temperature)
-		assertEquals(1000, body.maxCompletionTokens)
-		assertEquals(0.9, body.topP)
-		assertEquals(0.5, body.frequencyPenalty)
-		assertEquals(0.3, body.presencePenalty)
+		assertEquals(1000, body.maxTokens)
 		assertNotNull(body.streamOptions)
 		assertEquals(true, body.streamOptions.includeUsage)
-		assertEquals(ToolChoice.REQUIRED, body.toolChoice)
-	}
-	
-	@Test
-	fun `createRequestBody toolCallRequired false sets NONE`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(userMsg), toolCallRequired = false)
-		val body = createRequestBody(request)
-		assertEquals(ToolChoice.NONE, body.toolChoice)
-	}
-	
-	@Test
-	fun `createRequestBody toolCallRequired null sets null`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(userMsg), toolCallRequired = null)
-		val body = createRequestBody(request)
+		assertNotNull(body.responseFormat)
 		assertNull(body.toolChoice)
 	}
 	
@@ -170,7 +195,7 @@ class DeepSeekClientMappingTest {
 	@Test
 	fun `mapToChatResult maps response correctly`() {
 		val response = DeepSeekResponse(
-			id = "resp-1", created = now, model = "deepseek-v4-pro",
+			created = now,
 			choices = listOf(
 				DeepSeekResponse.Choice(
 					index = 0,
@@ -178,13 +203,12 @@ class DeepSeekClientMappingTest {
 						content = "hello world",
 						reasoningContent = "thinking...",
 						toolCalls = listOf(
-							DeepSeekMessage.AssistantMessage.ToolCall(
+							OpenAiToolCall(
 								id = "t1",
-								function = DeepSeekMessage.AssistantMessage.ToolCall.Function("read", "{}")
+								function = OpenAiToolCall.Function("read", "{}")
 							)
 						)
-					),
-					finishReason = DeepSeekFinishReason.STOP
+					)
 				)
 			),
 			usage = DeepSeekUsage(
@@ -197,11 +221,10 @@ class DeepSeekClientMappingTest {
 		)
 		
 		val result = mapToChatResult(response)
-		assertIs<ChatMessage.AssistantMessage>(result.message)
+		assertIs<ChatMessage.Assistant>(result.message)
 		assertEquals("hello world", result.message.content)
-		assertEquals("thinking...", (result.message as ChatMessage.AssistantMessage).reasoningContent)
-		assertEquals(1, (result.message as ChatMessage.AssistantMessage).toolCalls?.size)
-		assertEquals(ChatResult.FinishReason.Type.STOP, result.finishReason?.type)
+		assertEquals("thinking...", result.message.reasoningContent)
+		assertEquals(1, result.message.toolCalls?.size)
 		assertEquals(100, result.usage?.totalTokens)
 		assertEquals(10, result.usage?.cacheHitTokens)
 		assertEquals(40, result.usage?.cacheMissTokens)
@@ -210,7 +233,7 @@ class DeepSeekClientMappingTest {
 	@Test
 	fun `mapToChatResult handles empty choices`() {
 		val response = DeepSeekResponse(
-			id = "r1", created = now, model = "m",
+			created = now,
 			choices = emptyList(),
 			usage = DeepSeekUsage(0, 0, 0)
 		)
@@ -219,78 +242,13 @@ class DeepSeekClientMappingTest {
 	}
 	
 	@Test
-	fun `mapToChatResult maps finish reason TOOL_CALLS`() {
-		val response = DeepSeekResponse(
-			id = "r1", created = now, model = "m",
-			choices = listOf(
-				DeepSeekResponse.Choice(
-					index = 0,
-					message = DeepSeekMessage.AssistantMessage(content = "calling"),
-					finishReason = DeepSeekFinishReason.TOOL_CALLS
-				)
-			),
-			usage = DeepSeekUsage(0, 0, 0)
-		)
-		assertEquals(ChatResult.FinishReason.Type.TOOL, mapToChatResult(response).finishReason?.type)
-	}
-	
-	@Test
-	fun `mapToChatResult maps finish reason FILTER`() {
-		val response = DeepSeekResponse(
-			id = "r1", created = now, model = "m",
-			choices = listOf(
-				DeepSeekResponse.Choice(
-					index = 0,
-					message = DeepSeekMessage.AssistantMessage(content = "blocked"),
-					finishReason = DeepSeekFinishReason.CONTENT_FILTER
-				)
-			),
-			usage = DeepSeekUsage(0, 0, 0)
-		)
-		assertEquals(ChatResult.FinishReason.Type.FILTER, mapToChatResult(response).finishReason?.type)
-	}
-	
-	@Test
-	fun `mapToChatResult maps finish reason LENGTH`() {
-		val response = DeepSeekResponse(
-			id = "r1", created = now, model = "m",
-			choices = listOf(
-				DeepSeekResponse.Choice(
-					index = 0,
-					message = DeepSeekMessage.AssistantMessage(content = "truncated"),
-					finishReason = DeepSeekFinishReason.LENGTH
-				)
-			),
-			usage = DeepSeekUsage(0, 0, 0)
-		)
-		assertEquals(ChatResult.FinishReason.Type.LENGTH, mapToChatResult(response).finishReason?.type)
-	}
-	
-	@Test
-	fun `mapToChatResult maps finish reason INSUFFICIENT_SYSTEM_RESOURCE to ERROR`() {
-		val response = DeepSeekResponse(
-			id = "r1", created = now, model = "m",
-			choices = listOf(
-				DeepSeekResponse.Choice(
-					index = 0,
-					message = DeepSeekMessage.AssistantMessage(content = "error"),
-					finishReason = DeepSeekFinishReason.INSUFFICIENT_SYSTEM_RESOURCE
-				)
-			),
-			usage = DeepSeekUsage(0, 0, 0)
-		)
-		assertEquals(ChatResult.FinishReason.Type.ERROR, mapToChatResult(response).finishReason?.type)
-	}
-	
-	@Test
 	fun `mapToChatResult includes reasoning tokens from details`() {
 		val response = DeepSeekResponse(
-			id = "r1", created = now, model = "m",
+			created = now,
 			choices = listOf(
 				DeepSeekResponse.Choice(
 					index = 0,
-					message = DeepSeekMessage.AssistantMessage(content = "ok"),
-					finishReason = DeepSeekFinishReason.STOP
+					message = DeepSeekMessage.AssistantMessage(content = "ok")
 				)
 			),
 			usage = DeepSeekUsage(
@@ -308,32 +266,30 @@ class DeepSeekClientMappingTest {
 	@Test
 	fun `mapChunkToChatResult maps stream chunk`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "chunk-1", created = now, model = "deepseek",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(
+					delta = OpenAiChunkChoice.Delta(
 						content = "partial", reasoningContent = "thinking..."
-					),
-					finishReason = null
+					)
 				)
 			)
 		)
 		val result = mapChunkToChatResult(chunk)
-		assertEquals("partial", result.message?.content)
-		assertEquals("thinking...", (result.message as ChatMessage.AssistantMessage).reasoningContent)
-		assertNull(result.finishReason)
+		assertEquals("partial", result.content)
+		assertEquals("thinking...", result.reasoningContent)
+		assertNull(result.toolCalls)
 	}
 	
 	@Test
-	fun `mapChunkToChatResult includes usage from chunk`() {
+	fun `chunk usage extension maps usage`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "chunk-1", created = now, model = "deepseek",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(),
-					finishReason = DeepSeekFinishReason.STOP
+					delta = OpenAiChunkChoice.Delta()
 				)
 			),
 			usage = DeepSeekUsage(
@@ -344,21 +300,20 @@ class DeepSeekClientMappingTest {
 				promptCacheMissTokens = 30
 			)
 		)
-		val result = mapChunkToChatResult(chunk)
-		assertEquals(100, result.usage?.totalTokens)
-		assertEquals(10, result.usage?.cacheHitTokens)
-		assertEquals(30, result.usage?.cacheMissTokens)
+		val result = chunkUsage(chunk)
+		assertEquals(100, result?.totalTokens)
+		assertEquals(10, result?.cacheHitTokens)
+		assertEquals(30, result?.cacheMissTokens)
 	}
 	
 	@Test
-	fun `mapChunkToChatResult includes reasoning tokens from chunk usage`() {
+	fun `chunk usage extension includes reasoning tokens`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "chunk-1", created = now, model = "deepseek",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(content = "ok"),
-					finishReason = DeepSeekFinishReason.STOP
+					delta = OpenAiChunkChoice.Delta(content = "ok")
 				)
 			),
 			usage = DeepSeekUsage(
@@ -366,7 +321,7 @@ class DeepSeekClientMappingTest {
 				completionTokensDetails = DeepSeekUsage.CompletionTokensDetails(reasoningTokens = 40)
 			)
 		)
-		assertEquals(40, mapChunkToChatResult(chunk).usage?.reasoningTokens)
+		assertEquals(40, chunkUsage(chunk)?.reasoningTokens)
 	}
 	
 	// endregion
@@ -374,76 +329,77 @@ class DeepSeekClientMappingTest {
 	// region extractToolCalls
 	
 	@Test
-	fun `extractToolCalls extracts fragments from chunk`() {
+	fun `transform extracts tool calls from chunk`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "c1", created = now, model = "m",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(
+					delta = OpenAiChunkChoice.Delta(
 						toolCalls = listOf(
-							DeepSeekStreamChunk.Choice.ToolCall(
+							OpenAiChunkChoice.ChunkCall(
 								index = 0, id = "call-1",
-								function = DeepSeekStreamChunk.Choice.ToolCall.Function(
+								function = OpenAiChunkChoice.ChunkCall.Function(
 									name = "read_file", arguments = "{\"path\":\"/tmp\"}"
 								)
 							)
 						)
-					),
-					finishReason = null
+					)
 				)
 			)
 		)
-		val fragments = extractToolCalls(chunk)
-		assertNotNull(fragments)
-		assertEquals(1, fragments.size)
+		val toolCalls = mapChunkToChatResult(chunk).toolCalls
+		assertNotNull(toolCalls)
+		assertEquals(1, toolCalls.size)
+		assertEquals("call-1", toolCalls[0].id)
+		assertEquals("read_file", toolCalls[0].name)
 	}
 	
 	@Test
-	fun `extractToolCalls returns null when empty`() {
+	fun `transform returns null tool calls when delta empty`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "c1", created = now, model = "m",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(),
-					finishReason = null
+					delta = OpenAiChunkChoice.Delta()
 				)
 			)
 		)
-		assertNull(extractToolCalls(chunk))
+		assertNull(mapChunkToChatResult(chunk).toolCalls)
 	}
 	
 	@Test
-	fun `extractToolCalls returns null for empty choices`() {
+	fun `transform returns null tool calls for empty choices`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "c1", created = now, model = "m",
+			created = now,
 			choices = emptyList()
 		)
-		assertNull(extractToolCalls(chunk))
+		assertNull(mapChunkToChatResult(chunk).toolCalls)
 	}
 	
 	@Test
-	fun `extractToolCalls handles null function`() {
+	fun `transform handles null function`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "c1", created = now, model = "m",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(
+					delta = OpenAiChunkChoice.Delta(
 						toolCalls = listOf(
-							DeepSeekStreamChunk.Choice.ToolCall(
+							OpenAiChunkChoice.ChunkCall(
 								index = 0, id = null, function = null
 							)
 						)
-					),
-					finishReason = null
+					)
 				)
 			)
 		)
-		val fragments = extractToolCalls(chunk)
-		assertNotNull(fragments)
-		assertEquals(1, fragments.size)
+		val toolCalls = mapChunkToChatResult(chunk).toolCalls
+		assertNotNull(toolCalls)
+		assertEquals(1, toolCalls.size)
+		assertNull(toolCalls[0].id)
+		assertNull(toolCalls[0].name)
 	}
 	
 	// endregion
@@ -452,24 +408,24 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody with thinking false`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(userMsg), thinking = false)
+		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val request = request(messages = listOf(userMsg), reasoning = ReasoningEffort(false))
 		val body = createRequestBody(request)
-		assertEquals(OpenAiRequest.Thinking.Type.DISABLED, body.thinking?.type)
+		assertEquals(OpenAiThinking.Type.DISABLED, body.thinking?.type)
 	}
 	
 	@Test
 	fun `createRequestBody with thinking null`() {
-		val userMsg = ChatMessage.UserMessage("hi", now)
-		val request = ChatRequest(model = "test", messages = listOf(userMsg), thinking = null)
+		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val request = request(messages = listOf(userMsg), reasoning = null)
 		val body = createRequestBody(request)
 		assertNull(body.thinking)
 	}
 	
 	@Test
 	fun `createRequestBody with AssistantMessage without tool calls`() {
-		val assistant = ChatMessage.AssistantMessage(content = "reply", createdAt = now)
-		val request = ChatRequest(model = "test", messages = listOf(assistant))
+		val assistant = ChatMessage.Assistant(content = "reply", timestamp = now)
+		val request = request(messages = listOf(assistant))
 		val body = createRequestBody(request)
 		val msg = body.messages[0] as DeepSeekMessage.AssistantMessage
 		assertEquals("reply", msg.content)
@@ -479,30 +435,29 @@ class DeepSeekClientMappingTest {
 	@Test
 	fun `mapChunkToChatResult with empty choices`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "chunk-1", created = now, model = "m",
+			created = now,
 			choices = emptyList()
 		)
 		val result = mapChunkToChatResult(chunk)
-		assertNull(result.message?.content)
+		assertNull(result.content)
 	}
 	
 	@Test
 	fun `mapChunkToChatResult with null delta content`() {
 		val chunk = DeepSeekStreamChunk(
-			id = "chunk-1", created = now, model = "m",
+			created = now,
 			choices = listOf(
-				DeepSeekStreamChunk.Choice(
+				OpenAiChunkChoice(
 					index = 0,
-					delta = DeepSeekStreamChunk.Choice.Delta(
+					delta = OpenAiChunkChoice.Delta(
 						content = null, reasoningContent = null
-					),
-					finishReason = null
+					)
 				)
 			)
 		)
 		val result = mapChunkToChatResult(chunk)
-		assertNull(result.message?.content)
-		assertNull((result.message as ChatMessage.AssistantMessage).reasoningContent)
+		assertNull(result.content)
+		assertNull(result.reasoningContent)
 	}
 	
 	// endregion

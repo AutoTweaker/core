@@ -44,8 +44,10 @@ data class ModelData(
 		val supportsStreaming: Boolean,
 		val supportsToolCalls: Boolean,
 		val supportsReasoning: Boolean,
-		val supportsImage: Boolean,
 		val supportsJsonOutput: Boolean,
+		val supportsImage: Boolean = false,
+		val supportsAudio: Boolean = false,
+		val supportsVideo: Boolean = false,
 	) {
 		init {
 			require(modelId.isNotBlank()) { "modelId must not be blank" }
@@ -57,13 +59,13 @@ data class ModelData(
 	@Serializable
 	data class Config(
 		val temperature: Double?,
-		val maxTokens: Int?,
+		val maxOutputTokens: Int?,
 		val compactContextUsage: Double?,
 		val compactTotalTokens: Int?,
 	) {
 		init {
 			require(temperature == null || temperature in 0.0..2.0) { "temperature must be in [0.0, 2.0], got $temperature" }
-			require(maxTokens == null || maxTokens > 0) { "maxTokens must be > 0, got $maxTokens" }
+			require(maxOutputTokens == null || maxOutputTokens > 0) { "maxTokens must be > 0, got $maxOutputTokens" }
 			require(compactContextUsage == null || compactContextUsage > 0.0 && compactContextUsage <= 1.0) { "compactContextUsage must be in (0.0, 1.0], got $compactContextUsage" }
 			require(compactTotalTokens == null || compactTotalTokens > 0) { "compactTotalTokens must be > 0, got $compactTotalTokens" }
 		}

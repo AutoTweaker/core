@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
@@ -28,21 +29,42 @@ import kotlinx.serialization.json.jsonPrimitive
 @Serializable(with = DeepSeekMessageSerializer::class)
 sealed class DeepSeekMessage {
 	abstract val role: String
-	abstract val content: String?
+	abstract val content: Any?
 	
 	@Serializable
 	data class SystemMessage(
 		override val role: String = "system",
 		override val content: String,
-		val name: String? = null
 	) : DeepSeekMessage()
 	
 	@Serializable
 	data class UserMessage(
 		override val role: String = "user",
-		override val content: String,
-		val name: String? = null
-	) : DeepSeekMessage()
+		override val content: List<Part>,
+	) : DeepSeekMessage() {
+		@Serializable
+		sealed class Part {
+			@Serializable
+			@SerialName("text")
+			data class Text(
+				val text: String,
+			) : Part()
+			
+			@Serializable
+			@SerialName("image_url")
+			data class Image(
+				@SerialName("image_url")
+				val imageUrl: ImageUrl,
+			) : Part() {
+				constructor(url: String) : this(ImageUrl(url))
+				
+				@Serializable
+				data class ImageUrl(
+					val url: String
+				)
+			}
+		}
+	}
 	
 	@Serializable
 	data class AssistantMessage(
@@ -50,23 +72,9 @@ sealed class DeepSeekMessage {
 		override val content: String?,
 		@SerialName("reasoning_content")
 		val reasoningContent: String? = null,
-		val name: String? = null,
 		@SerialName("tool_calls")
-		val toolCalls: List<ToolCall>? = null
-	) : DeepSeekMessage() {
-		@Serializable
-		data class ToolCall(
-			val id: String,
-			val type: String = "function",
-			val function: Function
-		) {
-			@Serializable
-			data class Function(
-				val name: String,
-				val arguments: String
-			)
-		}
-	}
+		val toolCalls: List<OpenAiToolCall>? = null
+	) : DeepSeekMessage()
 	
 	@Serializable
 	data class ToolMessage(

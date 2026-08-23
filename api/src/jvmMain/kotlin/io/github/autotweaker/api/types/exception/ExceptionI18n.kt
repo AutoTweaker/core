@@ -26,12 +26,6 @@ import io.github.autotweaker.api.i18n.I18nDef
 
 internal object ExceptionI18n {
 	@AutoService(I18nDef::class)
-	class DuplicateWorkspaceIdException : I18nBase(
-		zh("ID 为 '%s' 的工作区已存在"),
-		en("Workspace with ID '%s' already exists"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class DuplicateWorkspaceNameException : I18nBase(
 		zh("名为 '%s' 的工作区已存在"),
 		en("Workspace named '%s' already exists"),

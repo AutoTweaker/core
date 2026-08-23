@@ -32,7 +32,7 @@ class SummarizeServiceImpl(
 			content = content,
 			prompt = prompt,
 			model = model,
-			thinkingEnabled = false,
+			thinking = false,
 		)
 		usage?.let { onOutput(RuntimeOutput.UsageConsumed(it)) }
 		return result

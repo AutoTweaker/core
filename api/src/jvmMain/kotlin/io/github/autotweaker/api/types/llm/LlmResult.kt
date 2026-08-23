@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.llm.openai
+package io.github.autotweaker.api.types.llm
 
-import kotlin.time.Instant
+import java.util.*
 
-abstract class OpenAiResponse {
-	abstract val id: String?
-	abstract val created: Instant?
-	abstract val model: String?
-}
+data class LlmResult(
+	val result: ChatResult,
+	val model: UUID,
+)

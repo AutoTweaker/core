@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -58,7 +59,7 @@ class ApprovalProcessorTest {
 			manager.beginRound(
 				RuntimeContext.Message.User(
 					id = UUID.randomUUID(),
-					content = MessageContent(content = "hello"),
+					content = MessageContent(content = "hello".textPart()),
 					timestamp = Clock.System.now(),
 				)
 			)

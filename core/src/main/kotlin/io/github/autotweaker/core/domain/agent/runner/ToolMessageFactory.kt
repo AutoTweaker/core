@@ -30,7 +30,7 @@ import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
 import kotlin.time.Instant
-import io.github.autotweaker.api.types.llm.ChatMessage.AssistantMessage.ToolCall as RawToolCall
+import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall as RawToolCall
 import io.github.autotweaker.core.domain.agent.RuntimeContext.CurrentRound.PendingToolCall as PendingCall
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as ToolMessage
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Call as ToolCall

@@ -38,7 +38,6 @@ object UsageDbApi : AbstractDbApi<UsageEntry, UUID>() {
 		completionTokens = this[UsageTable.completionTokens],
 		reasoningTokens = this[UsageTable.reasoningTokens],
 		cacheHitTokens = this[UsageTable.cacheHitTokens],
-		imageTokens = this[UsageTable.imageTokens],
 	)
 	
 	override fun UpsertStatement<Long>.fill(content: UsageEntry) {
@@ -49,6 +48,5 @@ object UsageDbApi : AbstractDbApi<UsageEntry, UUID>() {
 		this[UsageTable.completionTokens] = content.completionTokens
 		this[UsageTable.reasoningTokens] = content.reasoningTokens
 		this[UsageTable.cacheHitTokens] = content.cacheHitTokens
-		this[UsageTable.imageTokens] = content.imageTokens
 	}
 }

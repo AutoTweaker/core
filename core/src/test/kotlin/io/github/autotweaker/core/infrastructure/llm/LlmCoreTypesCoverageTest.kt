@@ -19,10 +19,7 @@
 package io.github.autotweaker.core.infrastructure.llm
 
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.*
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
@@ -32,76 +29,89 @@ import kotlin.test.assertNull
 import kotlin.time.Clock
 
 class LlmCoreTypesCoverageTest {
-	
 	private val now = Clock.System.now()
 	
 	@Test
-	fun `ChatMessage SystemMessage all fields`() {
-		val msg = ChatMessage.SystemMessage("hello", now)
-		assertEquals("hello", msg.content)
-		assertEquals(now, msg.createdAt)
+	fun `ChatMessage sealed subtypes coverage`() {
+		val messages = listOf<ChatMessage>(
+			ChatMessage.User(listOf(ContentPart.Text("hi")), now),
+			ChatMessage.Assistant("reply", now),
+			ChatMessage.ToolResult("result", now, "call-1")
+		)
+		assertEquals(
+			listOf("user", "assistant", "tool"),
+			messages.map { msg ->
+				when (msg) {
+					is ChatMessage.User -> "user"
+					is ChatMessage.Assistant -> "assistant"
+					is ChatMessage.ToolResult -> "tool"
+				}
+			}
+		)
 	}
 	
 	@Test
-	fun `ChatMessage UserMessage with pictures`() {
+	fun `ChatMessage User with image part`() {
 		val pic = Sha256(ByteArray(32) { it.toByte() })
-		val msg = ChatMessage.UserMessage("hi", now, pictures = listOf(pic))
-		assertEquals("hi", msg.content)
-		assertEquals(1, msg.pictures?.size)
-		assertContentEquals(pic.bytes, msg.pictures!![0].bytes)
+		val msg = ChatMessage.User(listOf(ContentPart.Text("hi"), ContentPart.Image("image/jpeg", pic)), now)
+		assertEquals(2, msg.content.size)
+		val image = msg.content[1] as ContentPart.Image
+		assertEquals("image/jpeg", image.mimeType)
+		assertContentEquals(pic.bytes, image.data.bytes)
 	}
 	
 	@Test
-	fun `ChatMessage UserMessage without pictures`() {
-		val msg = ChatMessage.UserMessage("hi", now)
-		assertEquals("hi", msg.content)
-		assertNull(msg.pictures)
+	fun `ChatMessage User with text part`() {
+		val msg = ChatMessage.User(listOf(ContentPart.Text("hi")), now)
+		assertEquals(1, msg.content.size)
+		assertEquals(ContentPart.Text("hi"), msg.content[0])
 	}
 	
 	@Test
-	fun `ChatMessage AssistantMessage all fields`() {
-		val tc = ChatMessage.AssistantMessage.ToolCall("id1", "read", "{}")
-		val msg = ChatMessage.AssistantMessage(
+	fun `ChatMessage Assistant all fields`() {
+		val tc = ChatMessage.Assistant.ToolCall("id1", "read", "{}")
+		val msg = ChatMessage.Assistant(
 			content = "reply",
-			createdAt = now,
+			timestamp = now,
 			reasoningContent = "thinking",
-			toolCalls = listOf(tc),
-			model = "test-model"
+			toolCalls = listOf(tc)
 		)
 		assertEquals("reply", msg.content)
 		assertEquals("thinking", msg.reasoningContent)
 		assertEquals(1, msg.toolCalls?.size)
 		assertEquals("id1", msg.toolCalls!![0].id)
-		assertEquals("test-model", msg.model)
+		assertEquals("read", msg.toolCalls!![0].name)
+		assertEquals("{}", msg.toolCalls!![0].arguments)
 	}
 	
 	@Test
-	fun `ChatMessage AssistantMessage minimal fields`() {
-		val msg = ChatMessage.AssistantMessage(content = null, createdAt = now)
+	fun `ChatMessage Assistant minimal fields`() {
+		val msg = ChatMessage.Assistant(content = null, timestamp = now)
 		assertNull(msg.content)
 		assertNull(msg.reasoningContent)
 		assertNull(msg.toolCalls)
-		assertNull(msg.model)
 	}
 	
 	@Test
-	fun `ChatMessage ToolMessage all fields`() {
-		val msg = ChatMessage.ToolMessage("result", now, "call-1")
+	fun `ChatMessage ToolResult all fields`() {
+		val msg = ChatMessage.ToolResult("result", now, "call-1")
 		assertEquals("result", msg.content)
 		assertEquals("call-1", msg.toolCallId)
 	}
 	
 	@Test
-	fun `ChatMessage ErrorMessage with status`() {
-		val msg = ChatMessage.ErrorMessage("error", now, 500)
-		assertEquals("error", msg.content)
-		assertEquals(500, msg.statusCode)
+	fun `ChatResult Failed with status`() {
+		val result = ChatResult.Failed("error", 500)
+		assertEquals("error", result.message)
+		assertEquals(500, result.statusCode)
+		assertNull(result.exception)
 	}
 	
 	@Test
-	fun `ChatMessage ErrorMessage without status`() {
-		val msg = ChatMessage.ErrorMessage("error", now, null)
-		assertNull(msg.statusCode)
+	fun `ChatResult Failed without status`() {
+		val result = ChatResult.Failed("error", null)
+		assertEquals("error", result.message)
+		assertNull(result.statusCode)
 	}
 	
 	@Test
@@ -109,61 +119,65 @@ class LlmCoreTypesCoverageTest {
 		val params = buildJsonObject { put("key", JsonPrimitive("value")) }
 		val req = ChatRequest(
 			model = "test-model",
-			messages = listOf(ChatMessage.UserMessage("hi", now)),
-			thinking = true,
+			instructions = "be helpful",
+			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")), now)),
+			reasoning = ReasoningEffort.MEDIUM,
 			stream = true,
 			maxTokens = 500,
 			tools = listOf(ChatRequest.Tool("read", "desc", params)),
-			toolCallRequired = true,
 			temperature = 0.5,
-			topP = 0.8,
-			frequencyPenalty = 0.1,
-			presencePenalty = 0.2,
-			responseFormat = ChatRequest.ResponseFormat(ChatRequest.ResponseFormat.Type.JSON_OBJECT)
+			jsonOutput = true
 		)
 		assertEquals("test-model", req.model)
-		assertEquals(true, req.thinking)
+		assertEquals("be helpful", req.instructions)
+		assertEquals(ReasoningEffort.MEDIUM, req.reasoning)
 		assertEquals(true, req.stream)
 		assertEquals(500, req.maxTokens)
 		assertEquals(1, req.tools?.size)
 		assertEquals("read", req.tools!![0].name)
-		assertEquals(true, req.toolCallRequired)
 		assertEquals(0.5, req.temperature)
-		assertEquals(0.8, req.topP)
-		assertEquals(0.1, req.frequencyPenalty)
-		assertEquals(0.2, req.presencePenalty)
+		assertEquals(true, req.jsonOutput)
 	}
 	
 	@Test
 	fun `ChatRequest minimal fields`() {
 		val req = ChatRequest(
 			model = "m",
-			messages = listOf(ChatMessage.UserMessage("hi", now))
+			instructions = null,
+			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")), now)),
+			reasoning = null,
+			stream = false,
+			maxTokens = null,
+			tools = null,
+			temperature = null,
+			jsonOutput = null
 		)
 		assertEquals("m", req.model)
-		assertNull(req.thinking)
+		assertNull(req.instructions)
+		assertNull(req.reasoning)
 		assertEquals(false, req.stream)
+		assertNull(req.maxTokens)
 		assertNull(req.tools)
+		assertNull(req.temperature)
+		assertNull(req.jsonOutput)
 	}
 	
 	@Test
-	fun `ChatResult FinishReason all types`() {
-		for (type in ChatResult.FinishReason.Type.entries) {
-			val reason = ChatResult.FinishReason("reason", type)
-			assertEquals("reason", reason.reason)
-			assertEquals(type, reason.type)
-		}
+	fun `ChatResult ChunkToolCall all fields`() {
+		val call = ChatResult.ChunkToolCall(index = 0, id = "id1", name = "read", arguments = "{}")
+		assertEquals(0, call.index)
+		assertEquals("id1", call.id)
+		assertEquals("read", call.name)
+		assertEquals("{}", call.arguments)
 	}
 	
 	@Test
 	fun `ChatResult Assembled all fields`() {
 		val result = ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage("ok", now, model = "m"),
-			finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
+			message = ChatMessage.Assistant("ok", now),
 			usage = Usage(promptTokens = 40, completionTokens = 60, reasoningTokens = 10, cacheHitTokens = 5)
 		)
 		assertEquals("ok", result.message.content)
-		assertEquals(ChatResult.FinishReason.Type.STOP, result.finishReason?.type)
 		assertEquals(100, result.usage?.totalTokens)
 		assertEquals(10, result.usage?.reasoningTokens)
 		assertEquals(5, result.usage?.cacheHitTokens)
@@ -171,11 +185,10 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatResult Chunk minimal fields`() {
-		val result = ChatResult.Chunk()
-		assertNull(result.message)
+		val result = ChatResult.Chunk(content = null, reasoningContent = null, toolCalls = null)
+		assertNull(result.content)
+		assertNull(result.reasoningContent)
 		assertNull(result.toolCalls)
-		assertNull(result.finishReason)
-		assertNull(result.usage)
 	}
 	
 	@Test
@@ -184,8 +197,7 @@ class LlmCoreTypesCoverageTest {
 			promptTokens = 40,
 			completionTokens = 60,
 			reasoningTokens = 10,
-			cacheHitTokens = 20,
-			imageTokens = 5
+			cacheHitTokens = 20
 		)
 		assertEquals(100, usage.totalTokens)
 		assertEquals(40, usage.promptTokens)
@@ -193,7 +205,6 @@ class LlmCoreTypesCoverageTest {
 		assertEquals(10, usage.reasoningTokens)
 		assertEquals(20, usage.cacheHitTokens)
 		assertEquals(20, usage.cacheMissTokens)
-		assertEquals(5, usage.imageTokens)
 	}
 	
 	@Test

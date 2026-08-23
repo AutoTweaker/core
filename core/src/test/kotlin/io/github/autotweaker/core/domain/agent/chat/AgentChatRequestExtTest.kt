@@ -21,8 +21,7 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -63,12 +62,12 @@ class AgentChatRequestExtTest {
 		config = Config(0.7, 2048, null, null),
 		id = UUID.randomUUID()
 	)
-	private val agentModel = AgentModel(testModel, testModel, testModel, null, false)
+	private val agentModel = AgentModel(testModel, ReasoningEffort(false), testModel, testModel, null)
 	
 	private fun userMsg(content: String = "hello") =
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
-			content = MessageContent(content = content),
+			content = MessageContent(content = content.textPart()),
 			timestamp = Clock.System.now()
 		)
 	
@@ -122,10 +121,9 @@ class AgentChatRequestExtTest {
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(1, messages.size)
-		val msg = messages[0] as ChatMessage.UserMessage
-		assertTrue(msg.content.contains("hello world"))
-		assertTrue(msg.content.contains("<utc_time>"))
-		assertNull(msg.pictures)
+		val msg = messages[0] as ChatMessage.User
+		assertTrue(msg.content.merge().contains("hello world"))
+		assertTrue(msg.content.merge().contains("<utc_time>"))
 	}
 	
 	@Test
@@ -134,13 +132,13 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext("you are a helpful assistant", null, null, null, currentRound(user))
 		val req = request(context = ctx)
 		
+		// 系统提示现在通过 instructions 传给 provider，不再注入消息列表
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
-		assertEquals(2, messages.size)
-		val sysMsg = messages[0] as ChatMessage.SystemMessage
-		assertEquals("you are a helpful assistant", sysMsg.content)
-		val userMsg = messages[1] as ChatMessage.UserMessage
-		assertTrue(userMsg.content.contains("hello"))
+		assertEquals(1, messages.size)
+		val userMsg = messages[0] as ChatMessage.User
+		assertTrue(userMsg.content.merge().contains("hello"))
+		assertFalse(userMsg.content.merge().contains("you are a helpful assistant"))
 	}
 	
 	@Test
@@ -173,11 +171,11 @@ class AgentChatRequestExtTest {
 		
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
-		val msg = messages[0] as ChatMessage.UserMessage
-		assertTrue(msg.content.contains("<summary>"))
-		assertTrue(msg.content.contains("previous summary"))
-		assertTrue(msg.content.contains("</summary>"))
-		assertTrue(msg.content.contains("continue"))
+		val msg = messages[0] as ChatMessage.User
+		assertTrue(msg.content.merge().contains("<summary>"))
+		assertTrue(msg.content.merge().contains("previous summary"))
+		assertTrue(msg.content.merge().contains("</summary>"))
+		assertTrue(msg.content.merge().contains("continue"))
 	}
 	
 	@Test
@@ -206,14 +204,14 @@ class AgentChatRequestExtTest {
 		
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
-		val histUserMsg = messages[0] as ChatMessage.UserMessage
-		assertTrue(histUserMsg.content.contains("<summary>"))
-		assertTrue(histUserMsg.content.contains("compacted summary of old rounds"))
-		assertTrue(histUserMsg.content.contains("previous question"))
+		val histUserMsg = messages[0] as ChatMessage.User
+		assertTrue(histUserMsg.content.merge().contains("<summary>"))
+		assertTrue(histUserMsg.content.merge().contains("compacted summary of old rounds"))
+		assertTrue(histUserMsg.content.merge().contains("previous question"))
 		
-		val curUserMsg = messages[2] as ChatMessage.UserMessage
-		assertFalse(curUserMsg.content.contains("<summary>"))
-		assertTrue(curUserMsg.content.contains("current question"))
+		val curUserMsg = messages[2] as ChatMessage.User
+		assertFalse(curUserMsg.content.merge().contains("<summary>"))
+		assertTrue(curUserMsg.content.merge().contains("current question"))
 	}
 	
 	@Test
@@ -221,7 +219,9 @@ class AgentChatRequestExtTest {
 		val img = Sha256(ByteArray(32) { it.toByte() })
 		val user = RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
-			content = MessageContent(content = "look at this", images = listOf(img)),
+			content = MessageContent(
+				content = listOf(ContentPart.Text("look at this"), ContentPart.Image("image/png", img)),
+			),
 			timestamp = Clock.System.now()
 		)
 		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
@@ -229,9 +229,9 @@ class AgentChatRequestExtTest {
 		
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
-		val msg = messages[0] as ChatMessage.UserMessage
-		assertEquals(1, msg.pictures?.size)
-		assertContentEquals(img.bytes, msg.pictures!![0].bytes)
+		val msg = messages[0] as ChatMessage.User
+		assertTrue(msg.content.any { it is ContentPart.Image && it.data == img })
+		assertTrue(msg.content.merge().contains("look at this"))
 	}
 	
 	@Test
@@ -293,16 +293,16 @@ class AgentChatRequestExtTest {
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(3, messages.size)
-		val userChatMsg = messages[0] as ChatMessage.UserMessage
-		assertTrue(userChatMsg.content.contains("read file"))
+		val userChatMsg = messages[0] as ChatMessage.User
+		assertTrue(userChatMsg.content.merge().contains("read file"))
 		
-		val asstChatMsg = messages[1] as ChatMessage.AssistantMessage
+		val asstChatMsg = messages[1] as ChatMessage.Assistant
 		assertEquals("I will read it", asstChatMsg.content)
 		val toolCalls = assertNotNull(asstChatMsg.toolCalls)
 		assertEquals(1, toolCalls.size)
 		assertEquals("call-1", toolCalls[0].id)
 		
-		val toolChatMsg = messages[2] as ChatMessage.ToolMessage
+		val toolChatMsg = messages[2] as ChatMessage.ToolResult
 		assertEquals("file content", toolChatMsg.content)
 		assertEquals("call-1", toolChatMsg.toolCallId)
 	}
@@ -323,12 +323,12 @@ class AgentChatRequestExtTest {
 		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(3, messages.size)
-		val histUserMsg = messages[0] as ChatMessage.UserMessage
-		assertTrue(histUserMsg.content.contains("previous question"))
-		val histAsstMsg = messages[1] as ChatMessage.AssistantMessage
+		val histUserMsg = messages[0] as ChatMessage.User
+		assertTrue(histUserMsg.content.merge().contains("previous question"))
+		val histAsstMsg = messages[1] as ChatMessage.Assistant
 		assertEquals("previous answer", histAsstMsg.content)
-		val curUserMsg = messages[2] as ChatMessage.UserMessage
-		assertTrue(curUserMsg.content.contains("current question"))
+		val curUserMsg = messages[2] as ChatMessage.User
+		assertTrue(curUserMsg.content.merge().contains("current question"))
 	}
 	
 	@Test

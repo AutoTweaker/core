@@ -20,12 +20,9 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.CoreLlmResult
+import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
-import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -39,7 +36,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import java.util.*
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class AgentChatTest {
@@ -69,7 +69,7 @@ class AgentChatTest {
 		config = Config(0.7, 2048, null, null),
 		id = UUID.randomUUID()
 	)
-	private val agentModel = AgentModel(testModel, testModel, testModel, null, false)
+	private val agentModel = AgentModel(testModel, ReasoningEffort(false), testModel, testModel, null)
 	
 	@AfterTest
 	fun cleanup() {
@@ -79,7 +79,7 @@ class AgentChatTest {
 	private fun userMsg(content: String = "hello") =
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
-			content = MessageContent(content = content),
+			content = MessageContent(content = content.textPart()),
 			timestamp = Clock.System.now()
 		)
 	
@@ -89,15 +89,16 @@ class AgentChatTest {
 	@Test
 	fun `collects assembled message with content and finish reason`() = runTest {
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage("hello world", Clock.System.now(), null, null),
-			finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
+			message = ChatMessage.Assistant("hello world", Clock.System.now(), null, null),
 		)
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
-			emit(CoreLlmResult(chatResult, model = UUID.randomUUID()))
+			emit(LlmResult(chatResult, model = UUID.randomUUID()))
 		}
 		
 		val user = userMsg("hello")
@@ -109,25 +110,28 @@ class AgentChatTest {
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals("hello world", assembled.message.content)
-		assertNotNull(assembled.finishReason)
 	}
 	
 	@Test
 	fun `emits delta with reasoning when reasoning content arrives`() = runTest {
 		val now = Clock.System.now()
 		val chunkResult = ChatResult.Chunk(
-			message = ChatMessage.AssistantMessage("answer", now, reasoningContent = "let me think"),
+			content = "answer",
+			reasoningContent = "let me think",
+			toolCalls = null,
 		)
 		val assembledResult = ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage("answer", now, reasoningContent = "let me think"),
+			message = ChatMessage.Assistant("answer", now, reasoningContent = "let me think"),
 		)
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
-			emit(CoreLlmResult(chunkResult, model = UUID.randomUUID()))
-			emit(CoreLlmResult(assembledResult, model = UUID.randomUUID()))
+			emit(LlmResult(chunkResult, model = UUID.randomUUID()))
+			emit(LlmResult(assembledResult, model = UUID.randomUUID()))
 		}
 		
 		val user = userMsg("question")
@@ -150,30 +154,34 @@ class AgentChatTest {
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
 			emit(
-				CoreLlmResult(
+				LlmResult(
 					ChatResult.Chunk(
-						message = ChatMessage.AssistantMessage("hello ", now, null, null),
+						content = "hello ",
+						reasoningContent = null,
+						toolCalls = null,
 					),
 					UUID.randomUUID(),
 				)
 			)
 			emit(
-				CoreLlmResult(
+				LlmResult(
 					ChatResult.Chunk(
-						message = ChatMessage.AssistantMessage("world", now, null, null),
-						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
+						content = "world",
+						reasoningContent = null,
+						toolCalls = null,
 					),
 					UUID.randomUUID(),
 				)
 			)
 			emit(
-				CoreLlmResult(
+				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.AssistantMessage("hello world", now, null, null),
-						finishReason = ChatResult.FinishReason("stop", ChatResult.FinishReason.Type.STOP),
+						message = ChatMessage.Assistant("hello world", now, null, null),
 					),
 					UUID.randomUUID(),
 				)
@@ -192,21 +200,19 @@ class AgentChatTest {
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals("hello world", assembled.message.content)
-		assertNotNull(assembled.finishReason)
 	}
 	
 	@Test
 	fun `emits Failing for error message`() = runTest {
-		val now = Clock.System.now()
-		val errorChatResult = ChatResult.Assembled(
-			message = ChatMessage.ErrorMessage("service down", now, 503),
-		)
+		val errorChatResult = ChatResult.Failed("service down", 503)
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
-			emit(CoreLlmResult(errorChatResult, model = UUID.randomUUID()))
+			emit(LlmResult(errorChatResult, model = UUID.randomUUID()))
 		}
 		
 		val user = userMsg("help")
@@ -224,15 +230,17 @@ class AgentChatTest {
 	fun `assembled message carries usage`() = runTest {
 		val now = Clock.System.now()
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage("ok", now, null, null),
+			message = ChatMessage.Assistant("ok", now, null, null),
 			usage = Usage(100, 50, 50),
 		)
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
-			emit(CoreLlmResult(chatResult, model = UUID.randomUUID()))
+			emit(LlmResult(chatResult, model = UUID.randomUUID()))
 		}
 		
 		val user = userMsg("test")
@@ -248,14 +256,16 @@ class AgentChatTest {
 	fun `assembled message with reasoning content is included`() = runTest {
 		val now = Clock.System.now()
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage(null, now, "thinking...", null),
+			message = ChatMessage.Assistant(null, now, "thinking...", null),
 		)
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
-			emit(CoreLlmResult(chatResult, model = UUID.randomUUID()))
+			emit(LlmResult(chatResult, model = UUID.randomUUID()))
 		}
 		
 		val user = userMsg("question")
@@ -271,30 +281,31 @@ class AgentChatTest {
 	fun `assembled message with tool calls creates pending tool calls`() = runTest {
 		val now = Clock.System.now()
 		val toolCalls = listOf(
-			ChatMessage.AssistantMessage.ToolCall(
+			ChatMessage.Assistant.ToolCall(
 				id = "call1", name = "read_file",
 				arguments = """{"file":"/tmp/test"}"""
 			)
 		)
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.AssistantMessage("done", now, null, toolCalls),
-			finishReason = ChatResult.FinishReason("tool_calls", ChatResult.FinishReason.Type.TOOL),
+			message = ChatMessage.Assistant("done", now, null, toolCalls),
 		)
 		
 		mockkObject(ResilientChat)
 		every {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any())
+			ResilientChat.execute(
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+			)
 		} returns flow {
 			emit(
-				CoreLlmResult(
+				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.AssistantMessage(null, now, null, null),
+						message = ChatMessage.Assistant(null, now, null, null),
 					),
 					UUID.randomUUID(),
 				)
 			)
 			emit(
-				CoreLlmResult(
+				LlmResult(
 					chatResult,
 					UUID.randomUUID(),
 				)

@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.domain.session
 
-import io.github.autotweaker.api.types.exception.*
-import io.github.autotweaker.api.types.exception.duplicate.*
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.InvalidWorkspacePathException
+import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceNameException
+import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.core.TestServices
@@ -45,7 +45,8 @@ class WorkspaceAPITest {
 	private lateinit var dir: Path
 	
 	private fun workspaceData(id: UUID = UUID.randomUUID(), sessionIds: Set<UUID> = emptySet()) = WorkspaceData(
-		meta = WorkspaceMeta(displayName = "ws-$id", id = id, path = dir),
+		id = id,
+		meta = WorkspaceMeta(displayName = "ws-$id", path = dir),
 		sessionIds = sessionIds,
 	)
 	
@@ -114,33 +115,38 @@ class WorkspaceAPITest {
 	@Test
 	fun `rename updates workspace meta`() = runTest {
 		val data = workspaceData()
-		coEvery { WorkspaceManager.getData(data.meta.id) } returns data
-		coEvery { WorkspaceManager.updateMeta(any()) } coAnswers {
-			val meta = firstArg<suspend () -> WorkspaceMeta>()()
+		coEvery { WorkspaceManager.getData(data.id) } returns data
+		coEvery { WorkspaceManager.updateMeta(any(), any()) } coAnswers {
+			val meta = secondArg<suspend () -> WorkspaceMeta>()()
 			assertEquals("new name", meta.displayName)
 		}
 		
-		WorkspaceAPI.rename(data.meta.id, "new name")
+		WorkspaceAPI.rename(data.id, "new name")
 		
-		coVerify { WorkspaceManager.updateMeta(any()) }
+		coVerify { WorkspaceManager.updateMeta(any(), any()) }
 	}
 	
 	@Test
 	fun `rename duplicate name fails`() = runTest {
 		val data = workspaceData()
-		coEvery { WorkspaceManager.getData(data.meta.id) } returns data
-		coEvery { WorkspaceManager.updateMeta(any()) } throws DuplicateWorkspaceNameException(data.meta.displayName)
+		coEvery { WorkspaceManager.getData(data.id) } returns data
+		coEvery {
+			WorkspaceManager.updateMeta(
+				any(),
+				any()
+			)
+		} throws DuplicateWorkspaceNameException(data.meta.displayName)
 		
 		assertFailsWith<DuplicateWorkspaceNameException> {
-			WorkspaceAPI.rename(data.meta.id, data.meta.displayName)
+			WorkspaceAPI.rename(data.id, data.meta.displayName)
 		}
 	}
 	
 	@Test
 	fun `rename missing workspace fails`() = runTest {
 		coEvery { WorkspaceManager.getData(any()) } returns null
-		coEvery { WorkspaceManager.updateMeta(any()) } coAnswers {
-			firstArg<suspend () -> WorkspaceMeta>()()
+		coEvery { WorkspaceManager.updateMeta(any(), any()) } coAnswers {
+			secondArg<suspend () -> WorkspaceMeta>()()
 			Unit
 		}
 		
@@ -163,12 +169,12 @@ class WorkspaceAPITest {
 	@Test
 	fun `delete delegates to workspace manager`() = runTest {
 		val data = workspaceData(sessionIds = setOf(UUID.randomUUID()))
-		coEvery { WorkspaceManager.delete(data.meta.id) } returns true
+		coEvery { WorkspaceManager.delete(data.id) } returns true
 		
-		val deleted = WorkspaceAPI.delete(data.meta.id)
+		val deleted = WorkspaceAPI.delete(data.id)
 		
 		assertTrue(deleted)
-		coVerify { WorkspaceManager.delete(data.meta.id) }
+		coVerify { WorkspaceManager.delete(data.id) }
 	}
 	
 	// endregion

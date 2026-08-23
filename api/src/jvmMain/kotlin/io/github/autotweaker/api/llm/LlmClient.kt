@@ -53,7 +53,7 @@ interface LlmClient {
 	/**
 	 * 开始一次 LLM 请求。
 	 */
-	suspend fun chat(
+	fun chat(
 		request: ChatRequest,
 		apiKey: String,
 		baseUrl: Url? = null,

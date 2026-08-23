@@ -16,12 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.llm.openai
+package io.github.autotweaker.api.types.llm
 
-import kotlin.time.Instant
+import kotlinx.serialization.Serializable
 
-abstract class OpenAiStreamChunk {
-	abstract val id: String?
-	abstract val created: Instant?
-	abstract val model: String?
+@Serializable
+enum class ReasoningEffort {
+	NONE,
+	MINIMAL,
+	LOW,
+	MEDIUM,
+	HIGH,
+	XHIGH,
 }
+
+fun ReasoningEffort(thinking: Boolean) = if (thinking) ReasoningEffort.MEDIUM else ReasoningEffort.NONE

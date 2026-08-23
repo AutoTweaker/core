@@ -23,6 +23,7 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -31,6 +32,7 @@ import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ResolveResult
@@ -119,7 +121,7 @@ class RoundRunnerTest {
 	
 	private fun done(
 		content: String? = "ok",
-		activations: List<Pair<ChatMessage.AssistantMessage.ToolCall, ResolveResult.Activation>>? = null,
+		activations: List<Pair<ChatMessage.Assistant.ToolCall, ResolveResult.Activation>>? = null,
 	) = ThinkingStage.Result(assistant(content), activations, null, null, null)
 	
 	private fun hasPending(callId: String = "c1") = ThinkingStage.Result(
@@ -200,11 +202,11 @@ class RoundRunnerTest {
 		coEvery { thinking.execute(any(), any(), any()) } returns done("answer")
 		val h = harness(tools, thinking)
 		
-		h.runner.send(MessageContent(content = "hello"))
+		h.runner.send(MessageContent(content = "hello".textPart()))
 		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 && h.status.value == AgentStatus.FREE }
 		
 		val completed = h.ctx.context.value.historyRounds!!.single()
-		assertEquals("hello", completed.userMessage.content.content)
+		assertEquals("hello\n", completed.userMessage.content.content?.merge())
 		assertEquals("answer", completed.finalAssistantMessage?.content)
 		coVerify(exactly = 1) { thinking.execute(any(), any(), any()) }
 		
@@ -219,7 +221,7 @@ class RoundRunnerTest {
 		val h = harness(tools, thinking)
 		
 		// 等待消息被消费，确保回合已开始；THINKING 是瞬态，回合可能在轮询开始前已完成
-		h.runner.send(MessageContent(content = "hello")).await()
+		h.runner.send(MessageContent(content = "hello".textPart())).await()
 		awaitUntil { h.status.value == AgentStatus.FREE && h.ctx.context.value.currentRound == null }
 		
 		assertNull(h.ctx.context.value.historyRounds)
@@ -239,7 +241,7 @@ class RoundRunnerTest {
 				assistantMessage = assistant("bad call"),
 				activations = null,
 				parseFailures = listOf(
-					ChatMessage.AssistantMessage.ToolCall("c1", "bash-run", "{}") to
+					ChatMessage.Assistant.ToolCall("c1", "bash-run", "{}") to
 							ResolveResult.ParseFailure(
 								errorMessage = "missing reason",
 								presentation = listOf(UiBlock.Text("调用 bash 工具失败")),
@@ -252,7 +254,7 @@ class RoundRunnerTest {
 		)
 		val h = harness(tools, thinking)
 		
-		h.runner.send(MessageContent(content = "hello"))
+		h.runner.send(MessageContent(content = "hello".textPart()))
 		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 }
 		
 		coVerify(exactly = 2) { thinking.execute(any(), any(), any()) }
@@ -266,7 +268,7 @@ class RoundRunnerTest {
 	@Test
 	fun `done with activations activates tools`() = runTest {
 		val tools = makeTools("bash")
-		val activationCall = ChatMessage.AssistantMessage.ToolCall("c1", "bash", """{}""")
+		val activationCall = ChatMessage.Assistant.ToolCall("c1", "bash", """{}""")
 		val thinking = mockk<ThinkingStage>()
 		coEvery { thinking.execute(any(), any(), any()) } returnsMany listOf(
 			done(
@@ -282,7 +284,7 @@ class RoundRunnerTest {
 		)
 		val h = harness(tools, thinking)
 		
-		h.runner.send(MessageContent(content = "hello"))
+		h.runner.send(MessageContent(content = "hello".textPart()))
 		awaitUntil { "bash" in tools.activeTools.value }
 		
 		assertTrue("bash" in tools.activeTools.value)
@@ -299,7 +301,7 @@ class RoundRunnerTest {
 		)
 		val h = harness(tools, thinking)
 		
-		h.runner.send(MessageContent(content = "hello"))
+		h.runner.send(MessageContent(content = "hello".textPart()))
 		awaitUntil { h.ctx.context.value.historyRounds?.size == 2 }
 		
 		coVerify(exactly = 2) { thinking.execute(any(), any(), any()) }
@@ -320,7 +322,7 @@ class RoundRunnerTest {
 		)
 		val h = harness(tools, thinking)
 		
-		h.runner.send(MessageContent(content = "hello"))
+		h.runner.send(MessageContent(content = "hello".textPart()))
 		awaitUntil { h.status.value == AgentStatus.WAITING }
 		h.runner.execute(AgentCommand.ApproveTool(ToolApprove("c1", reason = null)))
 		awaitUntil { h.ctx.context.value.historyRounds?.size == 1 }

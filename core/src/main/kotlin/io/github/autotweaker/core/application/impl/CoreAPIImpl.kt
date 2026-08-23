@@ -64,7 +64,6 @@ class CoreAPIImpl(
 	override val appVersion: SemVer
 ) : CoreAPI {
 	override val session = object : CoreAPI.SessionAPI {
-		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
 		override suspend fun create(model: ModelConfig) = SessionManager.create(model)
 		override suspend fun create(workspace: UUID, model: ModelConfig) =
 			SessionManager.create(workspace, model)
@@ -76,6 +75,7 @@ class CoreAPIImpl(
 	}
 	
 	override val workspace = object : CoreAPI.WorkspaceAPI {
+		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
 		override suspend fun create(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun rename(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun delete(id: UUID) = WorkspaceAPI.delete(id)
@@ -170,6 +170,6 @@ class CoreAPIImpl(
 			LogStore.readLogs(start, end)
 	}
 	
-	override fun chat(request: CoreLlmRequest): Flow<CoreLlmResult> = ChatService.chat(request)
+	override fun chat(request: LlmRequest): Flow<LlmResult> = ChatService.chat(request)
 	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter.exec(arg)
 }

@@ -50,8 +50,8 @@ object SessionModelI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class Thinking : I18nBase(
-		zh("推理: %s"),
+	class Reasoning : I18nBase(
+		zh("推理强度: %s"),
 	)
 	
 	@AutoService(I18nDef::class)

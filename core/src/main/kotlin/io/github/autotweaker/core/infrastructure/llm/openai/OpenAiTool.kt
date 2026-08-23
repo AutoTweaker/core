@@ -16,11 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.llm
+package io.github.autotweaker.core.infrastructure.llm.openai
 
-import java.util.*
+import io.github.autotweaker.api.types.llm.ChatRequest
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
-data class CoreLlmResult(
-	val result: ChatResult,
-	val model: UUID,
-)
+@Serializable
+data class OpenAiTool(
+	val type: String = "function",
+	val function: Function
+) {
+	@Serializable
+	data class Function(
+		val name: String,
+		val description: String?,
+		val parameters: JsonElement,
+		val strict: Boolean? = null
+	)
+}
+
+fun List<ChatRequest.Tool>.transform() = map {
+	OpenAiTool(
+		function = OpenAiTool.Function(
+			name = it.name, description = it.description, parameters = it.parameters
+		)
+	)
+}

@@ -18,125 +18,46 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiRequest
-import kotlinx.serialization.KSerializer
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiResponseFormat
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiTool
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildClassSerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.JsonDecoder
-import kotlinx.serialization.json.JsonEncoder
-import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 data class DeepSeekRequest(
 	val messages: List<DeepSeekMessage>,
 	@SerialName("stream_options")
-	val streamOptions: StreamOptions? = null,
-	override val tools: List<Tool>? = null,
+	val streamOptions: StreamOptions?,
+	val tools: List<OpenAiTool>?,
 	@SerialName("tool_choice")
-	val toolChoice: ToolChoice? = null,
-	override val model: String,
-	override val thinking: Thinking? = null,
+	val toolChoice: String?,
+	val model: String,
+	val thinking: OpenAiThinking?,
+	@SerialName("reasoning_effort")
+	val reasoningEffort: Effort?,
 	@SerialName("max_tokens")
-	override val maxCompletionTokens: Int? = null,
-	@SerialName("frequency_penalty")
-	override val frequencyPenalty: Double? = null,
-	@SerialName("presence_penalty")
-	override val presencePenalty: Double? = null,
+	val maxTokens: Int?,
 	@SerialName("response_format")
-	override val responseFormat: ChatRequest.ResponseFormat? = null,
-	override val stop: List<String>? = null,
-	override val stream: Boolean? = null,
-	override val temperature: Double? = null,
-	@SerialName("top_p")
-	override val topP: Double? = null
-
-) : OpenAiRequest() {
+	val responseFormat: OpenAiResponseFormat?,
+	val stream: Boolean?,
+	val temperature: Double?,
+) {
 	@Serializable
 	data class StreamOptions(
 		@SerialName("include_usage")
-		val includeUsage: Boolean?
+		val includeUsage: Boolean = true
 	)
-}
-
-
-@Serializable(with = ToolChoice.Serializer::class)
-sealed class ToolChoice {
-	data class Simple(
-		val mode: Mode
-	) : ToolChoice() {
-		@Serializable
-		enum class Mode {
-			@SerialName("none")
-			NONE,
-			
-			@SerialName("auto")
-			AUTO,
-			
-			@SerialName("required")
-			REQUIRED
-		}
-	}
 	
 	@Serializable
-	data class Specific(
-		val type: String = "function",
-		val function: NamedFunction
-	) : ToolChoice() {
-		@Serializable
-		data class NamedFunction(
-			val name: String
-		)
-	}
-	
-	
-	companion object {
-		val NONE = Simple(Simple.Mode.NONE)
-		val AUTO = Simple(Simple.Mode.AUTO)
-		val REQUIRED = Simple(Simple.Mode.REQUIRED)
+	enum class Effort {
+		@SerialName("low")
+		LOW,
 		
-		fun function(name: String) = Specific(function = Specific.NamedFunction(name))
-	}
-	
-	object Serializer : KSerializer<ToolChoice> {
-		override val descriptor: SerialDescriptor =
-			buildClassSerialDescriptor("ToolChoice")
+		@SerialName("high")
+		HIGH,
 		
-		override fun serialize(encoder: Encoder, value: ToolChoice) {
-			val jsonEncoder = encoder as? JsonEncoder
-				?: throw SerializationException("Only JSON is supported")
-			
-			when (value) {
-				is Simple -> {
-					jsonEncoder.encodeJsonElement(
-						jsonEncoder.json.encodeToJsonElement(Simple.Mode.serializer(), value.mode)
-					)
-				}
-				
-				is Specific -> {
-					jsonEncoder.encodeJsonElement(
-						jsonEncoder.json.encodeToJsonElement(Specific.serializer(), value)
-					)
-				}
-			}
-		}
-		
-		override fun deserialize(decoder: Decoder): ToolChoice {
-			val jsonDecoder = decoder as? JsonDecoder
-				?: throw SerializationException("Only JSON is supported")
-			val element = jsonDecoder.decodeJsonElement()
-			
-			return if (element is JsonPrimitive) {
-				val mode = jsonDecoder.json.decodeFromJsonElement(Simple.Mode.serializer(), element)
-				Simple(mode)
-			} else {
-				jsonDecoder.json.decodeFromJsonElement(Specific.serializer(), element)
-			}
-		}
+		@SerialName("max")
+		MAX
 	}
 }

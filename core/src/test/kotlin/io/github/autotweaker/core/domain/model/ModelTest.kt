@@ -67,11 +67,12 @@ class ModelTest {
 	@Test
 	fun `construct model with config`() {
 		val provider = Provider(UUID.randomUUID(), "p", testUrl, "key", emptyList())
-		val config = Config(temperature = 0.7, maxTokens = 2048, compactContextUsage = 0.8, compactTotalTokens = 500000)
+		val config =
+			Config(temperature = 0.7, maxOutputTokens = 2048, compactContextUsage = 0.8, compactTotalTokens = 500000)
 		val model = Model(id = UUID.randomUUID(), provider = provider, modelInfo = testModelInfo, config = config)
 		assertEquals(config, model.config)
 		assertEquals(0.7, model.config?.temperature)
-		assertEquals(2048, model.config?.maxTokens)
+		assertEquals(2048, model.config?.maxOutputTokens)
 	}
 	
 	@Test

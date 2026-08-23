@@ -151,7 +151,7 @@ class AgentBridge(
 	override fun send(content: MessageContent) =
 		_agent.sendMessage(content)
 			.andLog(log) {
-				info("Sent user message  agentId={}  charCount={}", _agent.agentId, content.content?.length)
+				info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
 			}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
@@ -223,7 +223,7 @@ class AgentBridge(
 	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
 		is RuntimeOutput.LlmDelta -> AgentOutput.LlmDelta(delta)
 		is RuntimeOutput.LlmError -> AgentOutput.LlmError(
-			error.error, error.statusCode, error.model, error.timestamp
+			error.error, error.statusCode, error.exception, error.model
 		)
 		
 		is RuntimeOutput.Compact -> AgentOutput.Compact(output)
@@ -304,6 +304,6 @@ class AgentBridge(
 		summarize = resolveModel(summarize),
 		compact = resolveModel(compact),
 		fallback = fallback.map { resolveModel(it) },
-		thinking = thinking
+		reasoning = reasoning
 	)
 }

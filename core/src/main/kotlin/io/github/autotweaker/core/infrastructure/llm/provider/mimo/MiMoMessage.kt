@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
-import io.github.autotweaker.api.types.serializer.ByteArraySerializer
+import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
@@ -29,7 +29,7 @@ import kotlinx.serialization.json.jsonPrimitive
 @Serializable(with = MiMoMessageSerializer::class)
 sealed class MiMoMessage {
 	abstract val role: String
-	abstract val content: List<Content>?
+	abstract val content: Any?
 	
 	@Serializable
 	sealed class Content {
@@ -45,19 +45,7 @@ sealed class MiMoMessage {
 			@SerialName("image_url")
 			val imageUrl: Url
 		) : Content() {
-			@Serializable
-			data class Url(
-				@Serializable(with = ByteArraySerializer::class)
-				val url: ByteArray
-			) {
-				override fun equals(other: Any?): Boolean {
-					if (this === other) return true
-					if (other !is Url) return false
-					return url.contentEquals(other.url)
-				}
-				
-				override fun hashCode(): Int = url.contentHashCode()
-			}
+			constructor(url: String) : this(Url(url))
 		}
 		
 		@Serializable
@@ -66,6 +54,8 @@ sealed class MiMoMessage {
 			@SerialName("input_audio")
 			val inputAudio: Data
 		) : Content() {
+			constructor(url: String) : this(Data(url))
+			
 			@Serializable
 			data class Data(
 				val data: String
@@ -79,12 +69,9 @@ sealed class MiMoMessage {
 			val videoUrl: Url,
 			val fps: Int? = null,
 			@SerialName("media_resolution")
-			val mediaResolution: MediaResolution? = MediaResolution.DEFAULT
+			val mediaResolution: MediaResolution? = null
 		) : Content() {
-			@Serializable
-			data class Url(
-				val url: String
-			)
+			constructor(url: String) : this(Url(url))
 			
 			@Serializable
 			enum class MediaResolution {
@@ -95,44 +82,39 @@ sealed class MiMoMessage {
 				MAX
 			}
 		}
+		
+		@Serializable
+		data class Url(
+			val url: String
+		)
 	}
 	
 	@Serializable
 	data class DeveloperMessage(
-		override val role: String = "system",
-		override val content: List<Content>,
-		val name: String? = null
-	) : MiMoMessage()
-	
-	@Serializable
-	data class SystemMessage(
-		override val role: String = "system",
-		override val content: List<Content>,
-		val name: String? = null
+		override val role: String = "developer",
+		override val content: String,
 	) : MiMoMessage()
 	
 	@Serializable
 	data class UserMessage(
 		override val role: String = "user",
 		override val content: List<Content>,
-		val name: String? = null
 	) : MiMoMessage()
 	
 	@Serializable
 	data class AssistantMessage(
 		override val role: String = "assistant",
-		override val content: List<Content>?,
+		override val content: String?,
 		@SerialName("reasoning_content")
 		val reasoningContent: String? = null,
-		val name: String? = null,
 		@SerialName("tool_calls")
-		val toolCalls: List<MiMoToolCall>? = null
+		val toolCalls: List<OpenAiToolCall>? = null
 	) : MiMoMessage()
 	
 	@Serializable
 	data class ToolMessage(
 		override val role: String = "tool",
-		override val content: List<Content>,
+		override val content: String,
 		@SerialName("tool_call_id")
 		val toolCallId: String
 	) : MiMoMessage()
@@ -142,7 +124,6 @@ object MiMoMessageSerializer : JsonContentPolymorphicSerializer<MiMoMessage>(MiM
 	override fun selectDeserializer(element: JsonElement) = when {
 		"tool_call_id" in element.jsonObject -> MiMoMessage.ToolMessage.serializer()
 		element.jsonObject["role"]?.jsonPrimitive?.content == "assistant" -> MiMoMessage.AssistantMessage.serializer()
-		element.jsonObject["role"]?.jsonPrimitive?.content == "system" -> MiMoMessage.SystemMessage.serializer()
 		element.jsonObject["role"]?.jsonPrimitive?.content == "developer" -> MiMoMessage.DeveloperMessage.serializer()
 		else -> MiMoMessage.UserMessage.serializer()
 	}

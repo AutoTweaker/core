@@ -42,49 +42,26 @@ import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiResponse, Chunk : OpenAiStreamChunk>(
+abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	private val requestTypeInfo: TypeInfo,
 	private val responseTypeInfo: TypeInfo,
 	private val chunkSerializer: KSerializer<Chunk>,
 ) : LlmClient, Loggable, Traceable {
-	companion object {
-		private val json: Json = Json {
-			ignoreUnknownKeys = true
-			isLenient = true
-			explicitNulls = false
-			encodeDefaults = true
-			coerceInputValues = true
-		}
-		
-		private val sharedHttpClient: HttpClient = HttpClient {
-			install(ContentNegotiation) {
-				json(json)
-			}
-			install(HttpTimeout)
-		}
-		
-		private fun buildToolCalls(
-			pendingToolCalls: Map<Int, PendingToolCall>
-		): List<ChatMessage.AssistantMessage.ToolCall>? {
-			if (pendingToolCalls.isEmpty()) return null
-			return pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
-		}
-	}
-	
 	override suspend fun shutdown() = sharedHttpClient.close()
 	
 	private class PendingToolCall(
 		var id: String = "", var name: String = "", val arguments: StringBuilder = StringBuilder()
 	) {
-		fun toToolCall() = ChatMessage.AssistantMessage.ToolCall(id, name, arguments.toString())
+		fun toToolCall() = ChatMessage.Assistant.ToolCall(id, name, arguments.toString())
 	}
 	
-	protected abstract suspend fun createRequestBody(request: ChatRequest): Request
-	protected abstract fun mapToChatResult(response: Response): ChatResult
-	protected abstract fun mapChunkToChatResult(chunk: Chunk): ChatResult.Chunk
-	protected abstract fun extractToolCalls(chunk: Chunk): List<ChatResult.ChunkToolCall>?
+	protected abstract suspend fun ChatRequest.transform(): Request
+	protected abstract fun Response.transform(): ChatResult
+	protected abstract fun Chunk.transform(): ChatResult.Chunk
+	protected abstract fun Chunk.usage(): Usage?
+	protected abstract fun Chunk.timestamp(): Instant?
 	
-	override suspend fun chat(
+	override fun chat(
 		request: ChatRequest,
 		apiKey: String,
 		baseUrl: Url?,
@@ -102,10 +79,8 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		}.getOrElse { e ->
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
-				ChatResult.Assembled(
-					message = ChatMessage.ErrorMessage(
-						content = e.message(), createdAt = Clock.System.now(), statusCode = null
-					),
+				ChatResult.Failed(
+					message = e.message(), statusCode = null, exception = e
 				)
 			)
 		}
@@ -123,71 +98,61 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 			if (!response.status.isSuccess())
 				error("LLM Stream Error: ${response.status}")
 			
-			
 			val channel = response.bodyAsChannel()
 			val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
-			var accumulatedContent: String? = null
-			var accumulatedReasoning: String? = null
-			var lastFinishReason: ChatResult.FinishReason? = null
+			var content: String? = null
+			var reasoning: String? = null
 			var lastUsage: Usage? = null
-			var lastCreatedAt: Instant? = null
-			var lastModel: String? = null
+			var lastTimestamp: Instant? = null
 			
 			while (!channel.isClosedForRead) {
 				val line = channel.readLine() ?: break
 				
-				if (line.startsWith("data: ")) {
-					val data = line.removePrefix("data: ").trim()
+				if (line.startsWith("data:")) {
+					val data = line.removePrefix("data:").trim()
 					
 					if (data == "[DONE]") break
 					
 					if (data.isNotEmpty()) {
 						val chunk = json.decodeFromString(chunkSerializer, data)
 						
-						val fragments = extractToolCalls(chunk)
-						fragments?.forEach { fragment ->
+						val result = chunk.transform()
+						result.toolCalls?.forEach { fragment ->
 							val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
 							fragment.id?.let { pending.id = it }
 							fragment.name?.let { pending.name = it }
 							fragment.arguments?.let { pending.arguments.append(it) }
 						}
 						
-						val result = mapChunkToChatResult(chunk)
-						val msg = result.message
+						result.content?.let {
+							content = content.orEmpty() + it
+						}
 						
-						if (msg?.content != null)
-							accumulatedContent = accumulatedContent.orEmpty() + msg.content
+						result.reasoningContent?.let {
+							reasoning = reasoning.orEmpty() + it
+						}
 						
-						if (msg?.reasoningContent != null)
-							accumulatedReasoning = accumulatedReasoning.orEmpty() + msg.reasoningContent
-						
-						
-						result.finishReason?.let { lastFinishReason = it }
-						result.usage?.let { lastUsage = it }
-						msg?.createdAt?.let { lastCreatedAt = it }
-						msg?.model?.let { lastModel = it }
-						
-						emit(result.copy(toolCalls = fragments))
+						chunk.usage()?.let { lastUsage = it }
+						chunk.timestamp()?.let { lastTimestamp = it }
 					}
 				}
 			}
 			
-			val toolCalls = buildToolCalls(pendingToolCalls)
-			if (accumulatedContent != null || accumulatedReasoning != null || !toolCalls.isNullOrEmpty()) {
-				emit(
-					ChatResult.Assembled(
-						message = ChatMessage.AssistantMessage(
-							content = accumulatedContent,
-							reasoningContent = accumulatedReasoning,
-							toolCalls = toolCalls,
-							createdAt = lastCreatedAt ?: Clock.System.now(),
-							model = lastModel,
-						),
-						finishReason = lastFinishReason,
-						usage = lastUsage,
-					)
+			val toolCalls = if (pendingToolCalls.isEmpty()) null
+			else pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
+			
+			emit(
+				ChatResult.Assembled(
+					message = ChatMessage.Assistant(
+						content = content,
+						reasoningContent = reasoning,
+						toolCalls = toolCalls,
+						timestamp = lastTimestamp ?: Clock.System.now(),
+					),
+					usage = lastUsage,
 				)
-			}
+			)
+			
 		}
 	}
 	
@@ -201,19 +166,15 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		if (!response.status.isSuccess()) {
 			val errorBody = response.bodyAsText()
 			emit(
-				ChatResult.Assembled(
-					message = ChatMessage.ErrorMessage(
-						content = "LLM API Error (${response.status}): $errorBody",
-						createdAt = Clock.System.now(),
-						statusCode = response.status.value
-					),
-				)
+				ChatResult.Failed(
+					message = "LLM API Error (${response.status}): $errorBody",
+					statusCode = response.status.value
+				),
 			)
 			return
 		}
 		
-		val openAiResponse = response.body<Response>(responseTypeInfo)
-		emit(mapToChatResult(openAiResponse))
+		emit(response.body<Response>(responseTypeInfo).transform())
 	}
 	
 	
@@ -223,12 +184,29 @@ abstract class AbstractOpenAiClient<Request : OpenAiRequest, Response : OpenAiRe
 		url("${baseUrl.value}/chat/completions")
 		header(HttpHeaders.Authorization, "Bearer $apiKey")
 		contentType(ContentType.Application.Json)
-		setBody(createRequestBody(request), requestTypeInfo)
+		setBody(request.transform(), requestTypeInfo)
 		timeout?.let {
 			timeout {
 				connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
 				requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
 			}
+		}
+	}
+	
+	companion object {
+		private val json = Json {
+			ignoreUnknownKeys = true
+			isLenient = true
+			explicitNulls = false
+			encodeDefaults = true
+			coerceInputValues = true
+		}
+		
+		private val sharedHttpClient = HttpClient {
+			install(ContentNegotiation) {
+				json(json)
+			}
+			install(HttpTimeout)
 		}
 	}
 }

@@ -19,14 +19,15 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.ModelConfig
+import io.github.autotweaker.api.types.llm.ReasoningEffort
 import io.github.autotweaker.core.domain.model.Model
 
 data class AgentModel(
 	val model: Model,
+	val reasoning: ReasoningEffort?,
 	val summarize: Model,
 	val compact: Model,
 	val fallback: List<Model>?,
-	val thinking: Boolean,
 ) {
 	companion object {
 		fun AgentModel.all(): List<Model> = buildList {
@@ -41,7 +42,7 @@ data class AgentModel(
 			summarize = summarize.id,
 			compact = compact.id,
 			fallback = fallback?.map { it.id }.orEmpty(),
-			thinking = thinking
+			reasoning = reasoning
 		)
 	}
 }

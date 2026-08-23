@@ -18,12 +18,15 @@
 
 package io.github.autotweaker.api.types.session
 
+import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
 data class WorkspaceData(
+	@Serializable(with = UuidSerializer::class)
+	val id: UUID = UUID(),
 	val meta: WorkspaceMeta,
 	val sessionIds: Set<@Serializable(with = UuidSerializer::class) UUID> = emptySet()
 )
