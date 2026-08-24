@@ -171,7 +171,7 @@ interface CoreAPI {
 		/**
 		 * 在指定工作区内创建新会话。
 		 *
-		 * @param workspace 工作区的 id，传 [defaultWorkspaceId] 也允许。
+		 * @param workspace 工作区的 id。
 		 * @param model 用于 main Agent 的模型配置。
 		 * @return 新会话的 id。
 		 * @throws SecretStoreLockedException
@@ -208,6 +208,7 @@ interface CoreAPI {
 		/**
 		 * 更新会话标题。
 		 *
+		 * @param function 接收旧标题，返回新标题，可能被多次调用，不应有副作用。
 		 * @throws SecretStoreLockedException
 		 * @throws SessionNotFoundException
 		 * @throws WorkspaceNotFoundException
@@ -217,7 +218,7 @@ interface CoreAPI {
 		 * @throws ProviderNotFoundException
 		 * @throws SecretNotFoundException
 		 */
-		suspend fun updateTitle(sessionId: UUID, title: String)
+		suspend fun updateTitle(sessionId: UUID, function: (String?) -> String?)
 		
 		/**
 		 * 容器的启停由 AutoTweaker 内部管理，按需自动启动，不需要在调用 api 前检查此值。

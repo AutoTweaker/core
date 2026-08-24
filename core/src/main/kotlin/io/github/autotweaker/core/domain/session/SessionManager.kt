@@ -103,9 +103,11 @@ object SessionManager : Loggable, Traceable {
 		return@withLock true
 	}
 	
-	suspend fun updateTitle(session: UUID, title: String) =
-		getOrRestore(session).updateTitle(title).andLog(log)
-		{ debug("Updated session title  session={}  title={}", session, title) }.discard()
+	suspend fun updateTitle(session: UUID, function: (String?) -> String?) =
+		getOrRestore(session).updateTitle(function)
+			.andLog(log) {
+				debug("Updated session title  session={}", session)
+			}.discard()
 	
 	
 	suspend fun create(model: ModelConfig) = create(wsm.defaultWorkspaceId, model)

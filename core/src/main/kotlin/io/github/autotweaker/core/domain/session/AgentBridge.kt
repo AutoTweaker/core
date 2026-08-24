@@ -52,6 +52,7 @@ import java.util.*
 
 class AgentBridge(
 	private val host: AgentHost,
+	private val onSend: ((MessageContent) -> Unit)? = null,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> Model,
@@ -150,8 +151,9 @@ class AgentBridge(
 	
 	override fun send(content: MessageContent) =
 		_agent.sendMessage(content)
-			.andLog(log) {
-				info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
+			.also {
+				log.info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
+				onSend?.invoke(content)
 			}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
@@ -267,7 +269,12 @@ class AgentBridge(
 		val (context, messages) = builder()
 		
 		messages.save()
-		updateContext { context }
+		updateContext {
+			val droppedMessages = it.droppedMessages.orEmpty() + context.droppedMessages.orEmpty()
+			context.copy(
+				droppedMessages = droppedMessages.orNull()
+			)
+		}
 	}
 	
 	private suspend fun updateContext(function: (AgentContext) -> AgentContext) {

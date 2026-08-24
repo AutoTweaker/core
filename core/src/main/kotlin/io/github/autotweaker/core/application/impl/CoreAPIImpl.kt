@@ -70,7 +70,9 @@ class CoreAPIImpl(
 		
 		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
 		override suspend fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
-		override suspend fun updateTitle(sessionId: UUID, title: String) = SessionManager.updateTitle(sessionId, title)
+		override suspend fun updateTitle(sessionId: UUID, function: (String?) -> String?) =
+			SessionManager.updateTitle(sessionId, function)
+		
 		override fun isContainerRunning(): Boolean = SessionManager.isContainerRunning()
 	}
 	

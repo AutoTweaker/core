@@ -58,7 +58,7 @@ class SessionTest {
 	fun `updateTitle updates session data`() = runTest {
 		val s = session()
 		
-		s.updateTitle("new title")
+		s.updateTitle { "new title" }
 		
 		assertEquals("new title", s.data.value.title)
 	}

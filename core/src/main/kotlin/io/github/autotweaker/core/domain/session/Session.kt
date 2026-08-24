@@ -27,8 +27,10 @@ import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
+import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.model.Model
@@ -66,11 +68,11 @@ class Session(
 					?: throw AgentNotFoundException(mainId, _data.value.id).andLog(log) {
 						warn(
 							"Main agent not found while restoring session  sessionId={}  agentId={}",
-							_data.value.id, mainId
+							it.sessionId, it.id
 						)
 					}
 				
-				is SessionInit.New -> createAgent(
+				is SessionInit.New -> restoreAgent(
 					AgentData(
 						id = mainId,
 						name = MAIN_AGENT_NAME.toKebab(),
@@ -99,8 +101,8 @@ class Session(
 		data object Restore : SessionInit
 	}
 	
-	fun updateTitle(title: String) = also {
-		_data.update { it.copy(title = title) }
+	fun updateTitle(function: (String?) -> String?) = also {
+		_data.update { it.copy(title = function(it.title)) }
 	}
 	
 	suspend fun shutdown() = lock.withLock {
@@ -111,7 +113,7 @@ class Session(
 		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent = lock.withLock {
 			val childId = UUID()
 			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
-			val bridge = createAgent(childId, name, systemPrompt, model)
+			val bridge = newAgent(childId, name, systemPrompt, model)
 			log.info("Created child agent  parentId={}  childId={}", agentId, childId)
 			return@withLock bridge.agent
 		}
@@ -130,16 +132,16 @@ class Session(
 	
 	private suspend fun restoreOrNull(id: UUID): AgentBridge? = lock.withLock {
 		sessionRepo.loadAgent(id)?.let {
-			createAgent(it)
+			restoreAgent(it)
 		}
 	}
 	
-	private suspend fun createAgent(
+	private suspend fun newAgent(
 		id: UUID,
 		name: KebabCase,
 		systemPrompt: String,
 		model: ModelConfig,
-	): AgentBridge = createAgent(
+	): AgentBridge = restoreAgent(
 		AgentData(
 			id = id,
 			name = name,
@@ -149,15 +151,28 @@ class Session(
 		)
 	)
 	
-	private suspend fun createAgent(
+	private suspend fun restoreAgent(
 		data: AgentData,
 	) = AgentBridge(
 		host = getHost(data.id),
+		onSend = onSendIfMain(data.id),
 		sessionRepo = sessionRepo,
 		usageRepo = usageRepo,
 		resolveModel = resolveModel,
 		workspace = workspace
 	).init(data).also { bridges[data.id] = it }
+	
+	private fun onSendIfMain(id: UUID): ((MessageContent) -> Unit)? =
+		if (id == index.main.id) {
+			onSend@{
+				if (_data.value.title != null) return@onSend
+				val text = it.content?.filterIsInstance<ContentPart.Text>()?.firstOrNull()?.content
+					?: return@onSend
+				updateTitle { old ->
+					old ?: text.lines().firstOrNull()?.take(20)
+				}
+			}
+		} else null
 	
 	companion object {
 		const val MAIN_AGENT_NAME = "main"
