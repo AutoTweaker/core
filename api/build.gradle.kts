@@ -64,7 +64,27 @@ kotlin {
 		jvmMain {
 			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
 		}
+		jvmTest.dependencies {
+			implementation(kotlin("test"))
+			implementation("org.junit.jupiter:junit-jupiter:6.1.3")
+		}
 	}
+}
+
+tasks.register("test") {
+	description = "聚合 JVM 单元测试"
+	dependsOn("jvmTest")
+}
+
+val inDocker = System.getenv("DOCKER_TEST") == "true"
+
+if (inDocker) {
+	tasks.withType<Test> {
+		useJUnitPlatform()
+	}
+} else {
+	tasks.withType<Test> { enabled = false }
+	tasks.check { dependsOn(rootProject.tasks.named("testInDocker")) }
 }
 
 tasks.configureEach {

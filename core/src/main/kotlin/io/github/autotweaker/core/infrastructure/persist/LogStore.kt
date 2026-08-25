@@ -25,7 +25,6 @@ import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.log.LogLevel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.nio.file.Files
@@ -33,7 +32,6 @@ import java.nio.file.Path
 import kotlin.time.Instant
 
 object LogStore : Loggable, Traceable {
-	private val json = Json { ignoreUnknownKeys = true }
 	private val logDir: Path = CONFIG_PATH.resolve("logs")
 	
 	fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> {

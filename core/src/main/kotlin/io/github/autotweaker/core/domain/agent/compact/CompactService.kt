@@ -125,7 +125,7 @@ class CompactService(
 							RuntimeOutput.Compact(
 								CompactOutput(
 									CompactOutput.Status.OUTPUTTING,
-									streamContent,
+									result.content!!,
 									null
 								)
 							)

@@ -111,6 +111,7 @@ class AgentContextBuilderTest {
 			userMessage = user(content = "current"),
 			turns = listOf(RuntimeContext.Turn(assistant(content = "answer"), listOf(tool("c2")))),
 			assistantMessage = null,
+			finishedToolCalls = null,
 			pendingToolCalls = listOf(pendingCall()),
 		),
 	)
@@ -218,6 +219,7 @@ class AgentContextBuilderTest {
 				userMessage = user(content = "q"),
 				turns = null,
 				assistantMessage = assistant(content = "call"),
+				finishedToolCalls = null,
 				pendingToolCalls = listOf(pendingCall()),
 			),
 		)

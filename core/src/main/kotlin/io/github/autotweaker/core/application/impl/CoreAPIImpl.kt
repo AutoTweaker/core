@@ -77,7 +77,7 @@ class CoreAPIImpl(
 	}
 	
 	override val workspace = object : CoreAPI.WorkspaceAPI {
-		override val defaultWorkspaceId = WorkspaceManager.defaultWorkspaceId
+		override val default = WorkspaceManager.defaultWorkspaceId
 		override suspend fun create(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
 		override suspend fun rename(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
 		override suspend fun delete(id: UUID) = WorkspaceAPI.delete(id)

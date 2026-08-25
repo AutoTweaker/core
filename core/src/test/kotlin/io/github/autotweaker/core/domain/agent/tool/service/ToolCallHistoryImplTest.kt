@@ -105,6 +105,7 @@ class ToolCallHistoryImplTest {
 				),
 				turns = listOf(RuntimeContext.Turn(assistant(), listOf(currentTool))),
 				assistantMessage = null,
+				finishedToolCalls = null,
 				pendingToolCalls = null,
 			),
 		)

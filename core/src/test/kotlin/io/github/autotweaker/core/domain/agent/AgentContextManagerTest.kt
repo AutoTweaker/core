@@ -18,12 +18,14 @@
 
 package io.github.autotweaker.core.domain.agent
 
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.textPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
@@ -119,6 +121,7 @@ class AgentContextManagerTest {
 		assertEquals(userMsg, round.userMessage)
 		assertNull(round.turns)
 		assertNull(round.assistantMessage)
+		assertNull(round.finishedToolCalls)
 		assertNull(round.pendingToolCalls)
 	}
 	
@@ -148,14 +151,28 @@ class AgentContextManagerTest {
 		val manager = ctx()
 		val asst = assistant()
 		val pending = pendingCall()
+		val immediate = toolResult()
 		manager.beginRound(user())
 		
-		manager.applyThinking(asst, listOf(pending), listOf(toolResult()))
+		manager.applyThinking(asst, listOf(pending), listOf(immediate))
 		
 		val round = manager.context.value.currentRound
 		assertNotNull(round)
 		assertEquals(asst, round.assistantMessage)
+		assertEquals(listOf(immediate), round.finishedToolCalls)
 		assertEquals(listOf(pending), round.pendingToolCalls)
+	}
+	
+	@Test
+	fun `applyThinking with empty immediate results stores empty list`() = runTest {
+		val manager = ctx()
+		manager.beginRound(user())
+		
+		manager.applyThinking(assistant(), emptyList(), emptyList())
+		
+		val round = manager.context.value.currentRound
+		assertNotNull(round)
+		assertEquals(emptyList(), round.finishedToolCalls)
 	}
 	
 	@Test
@@ -215,6 +232,91 @@ class AgentContextManagerTest {
 		manager.beginRound(user())
 		
 		assertFailsWith<IllegalStateException> { manager.recordToolMessage(toolResult()) }
+	}
+	
+	@Test
+	fun `recordToolResult removes matching pending call only`() = runTest {
+		val manager = ctx()
+		manager.beginRound(user())
+		manager.applyThinking(assistant(), listOf(pendingCall("c1"), pendingCall("c2")), emptyList())
+		
+		manager.recordToolMessage(toolResult("c1"))
+		
+		val round = manager.context.value.currentRound
+		assertNotNull(round)
+		assertEquals(listOf("c1"), round.finishedToolCalls?.map { it.callId })
+		assertEquals(listOf("c2"), round.pendingToolCalls?.map { it.callId })
+	}
+	
+	// endregion
+	
+	// region cancelPending
+	
+	@Test
+	fun `cancelPending converts pending calls to cancelled results`() = runTest {
+		val manager = ctx()
+		manager.beginRound(user())
+		manager.applyThinking(assistant(), listOf(pendingCall("c1"), pendingCall("c2")), emptyList())
+		
+		manager.cancelPending { presentation() }
+		
+		val round = manager.context.value.currentRound
+		assertNotNull(round)
+		assertNull(round.pendingToolCalls)
+		val cancelled = round.finishedToolCalls!!
+		assertEquals(listOf("c1", "c2"), cancelled.map { it.callId })
+		assertTrue(cancelled.all { it.result.status == ToolResultStatus.CANCELLED })
+		assertTrue(cancelled.all { it.result.content == ToolSettings.CancelledPending().get() })
+	}
+	
+	@Test
+	fun `cancelPending keeps existing finished results`() = runTest {
+		val manager = ctx()
+		manager.beginRound(user())
+		val immediate = toolResult("c0", "done")
+		manager.applyThinking(assistant(), listOf(pendingCall("c1")), listOf(immediate))
+		
+		manager.cancelPending { presentation() }
+		
+		val round = manager.context.value.currentRound
+		assertNotNull(round)
+		assertEquals(listOf("c0", "c1"), round.finishedToolCalls?.map { it.callId })
+		assertEquals(ToolResultStatus.SUCCESS, round.finishedToolCalls!![0].result.status)
+		assertEquals(ToolResultStatus.CANCELLED, round.finishedToolCalls[1].result.status)
+	}
+	
+	@Test
+	fun `cancelPending uses provided presentation`() = runTest {
+		val manager = ctx()
+		manager.beginRound(user())
+		manager.applyThinking(assistant(), listOf(pendingCall("c1")), emptyList())
+		
+		manager.cancelPending { presentation("自定义取消") }
+		
+		val cancelled = manager.context.value.currentRound!!.finishedToolCalls!!.single()
+		assertEquals(listOf(UiBlock.Text("自定义取消")), cancelled.result.presentation)
+	}
+	
+	@Test
+	fun `cancelPending without round is no-op`() = runTest {
+		val manager = ctx()
+		
+		manager.cancelPending { presentation() }
+		
+		assertNull(manager.context.value.currentRound)
+	}
+	
+	@Test
+	fun `cancelPending without pending calls is no-op`() = runTest {
+		val manager = ctx()
+		manager.beginRound(user())
+		
+		manager.cancelPending { presentation() }
+		
+		val round = manager.context.value.currentRound
+		assertNotNull(round)
+		assertNull(round.finishedToolCalls)
+		assertNull(round.pendingToolCalls)
 	}
 	
 	// endregion
@@ -341,6 +443,22 @@ class AgentContextManagerTest {
 		assertEquals("result", completed.turns[0].tools[0].result.content)
 		assertNull(completed.finalAssistantMessage)
 		assertNull(manager.context.value.currentRound)
+	}
+	
+	@Test
+	fun `archive with assistant and finished calls archives turn`() = runTest {
+		val manager = ctx()
+		val asst = assistant("answer")
+		manager.beginRound(user("question"))
+		manager.applyThinking(asst, emptyList(), listOf(toolResult("c1", "result")))
+		
+		manager.archiveCurrentRound()
+		
+		val completed = manager.context.value.historyRounds!!.single()
+		assertEquals(1, completed.turns?.size)
+		assertEquals(asst, completed.turns!![0].assistantMessage)
+		assertEquals("result", completed.turns[0].tools[0].result.content)
+		assertNull(completed.finalAssistantMessage)
 	}
 	
 	// endregion

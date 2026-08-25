@@ -109,6 +109,7 @@ data class RuntimeContext(
 		val userMessage: Message.User,
 		val turns: List<Turn>?,
 		val assistantMessage: Message.Assistant?,
+		val finishedToolCalls: List<Message.Tool>?,
 		val pendingToolCalls: List<PendingToolCall>?,
 	) {
 		data class PendingToolCall(

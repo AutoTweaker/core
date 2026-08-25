@@ -16,25 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.base
+package io.github.autotweaker.api.types.agent
 
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
-/**
- * 生成一个自增短 id，用于日志记录。
- *
- * 从 0 开始，程序重启后会归零。
- */
-object ShortIdGenerator {
-	private val counter = AtomicLong(0)
+class AgentStatusTest {
 	
-	/**
-	 * 获取 36 进制的字符串 id。
-	 */
-	fun nextString(): String = nextLong().toString(36)
+	@Test
+	fun `all six status values exist`() {
+		assertEquals(4, AgentStatus.entries.size)
+	}
 	
-	/**
-	 * 获取数字 id。
-	 */
-	fun nextLong(): Long = counter.incrementAndGet()
+	@Test
+	fun `all values can be resolved by name`() {
+		for (status in AgentStatus.entries) {
+			assertEquals(status, AgentStatus.valueOf(status.name))
+		}
+	}
+	
+	@Test
+	fun `status values are distinct`() {
+		val names = AgentStatus.entries.map { it.name }.toSet()
+		assertEquals(AgentStatus.entries.size, names.size)
+	}
 }

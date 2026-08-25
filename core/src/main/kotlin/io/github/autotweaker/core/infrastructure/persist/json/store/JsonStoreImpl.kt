@@ -18,15 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json.store
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.log
 import io.github.autotweaker.api.store.JsonStore
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -39,7 +35,6 @@ import kotlin.reflect.KClass
 
 object JsonStoreImpl : Loggable, Traceable {
 	private val cache = ConcurrentHashMap<KClass<*>, JsonStore>()
-	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
 	suspend fun init(databaseStore: DatabaseStore) {
@@ -55,17 +50,16 @@ object JsonStoreImpl : Loggable, Traceable {
 		val namespace: String = kClass.java.name
 		override fun get(): JsonElement? =
 			transaction(db) {
-				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }.singleOrNull()?.let { row ->
-					trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
-						.onFailure {
-							log.warn(
-								"Failed JSON parsing  namespace={}  reason={}",
-								namespace,
-								it.message
-							)
-						}
-						.getOrNull()
-				}
+				JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }
+					.singleOrNull()?.let { row ->
+						trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
+							.onFailure { e ->
+								log.error(
+									"Failed JSON parsing  namespace={}",
+									namespace, e
+								)
+							}.getOrNull()
+					}
 			}
 		
 		override fun set(value: JsonElement) {

@@ -122,7 +122,7 @@ class RuntimeContextBuilderTest {
 		val context = AgentContext.emptyContext("prompt").copy(
 			index = AgentContextIndex(
 				null, null,
-				AgentContextIndex.CurrentRound(UUID.randomUUID(), null, null, listOf(id)),
+				AgentContextIndex.CurrentRound(UUID.randomUUID(), null, null, null, listOf(id)),
 			)
 		)
 		

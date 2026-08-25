@@ -18,20 +18,16 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.config
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.config.SettingEntry
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.exception.SettingTypeMismatchException
 import io.github.autotweaker.api.types.exception.notfound.SettingNotFoundException
 import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
-import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -42,7 +38,6 @@ import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.concurrent.ConcurrentHashMap
 
 object Settings : SettingService, Loggable, Traceable {
-	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var db: Database
 	
 	private val cache = ConcurrentHashMap<String, SettingValue<*>>()

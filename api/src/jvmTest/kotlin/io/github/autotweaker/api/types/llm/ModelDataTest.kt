@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.types.llm.ModelData
 import java.util.*
 import kotlin.test.*
 

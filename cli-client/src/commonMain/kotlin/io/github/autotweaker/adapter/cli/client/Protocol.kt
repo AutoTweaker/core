@@ -23,10 +23,9 @@ import io.github.autotweaker.adapter.cli.CliResponse
 import io.github.autotweaker.adapter.cli.OutputChannel
 import io.github.autotweaker.adapter.cli.client.expect.*
 import io.github.autotweaker.api.buildMessage
-import kotlinx.serialization.json.Json
+import io.github.autotweaker.api.json
 
 object Protocol {
-	private val json = Json { ignoreUnknownKeys = true }
 	suspend operator fun invoke(transport: Transport): Int {
 		beginNoEcho()
 		try {

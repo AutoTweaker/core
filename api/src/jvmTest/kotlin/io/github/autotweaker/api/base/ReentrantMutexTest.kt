@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.base
 
-import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.TestServices
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -203,10 +203,10 @@ class ReentrantMutexTest {
 	fun `cancellation while waiting releases nothing but does not corrupt`() = runBlocking {
 		TestServices.init()
 		withTimeout(5000.milliseconds) {
+			val job = launch(Dispatchers.Default) {
+				lock.withLock { fail("should not acquire") }
+			}
 			lock.withLock {
-				val job = launch(Dispatchers.Default) {
-					lock.withLock { fail("should not acquire") }
-				}
 				delay(10.milliseconds)
 				job.cancelAndJoin()
 			}

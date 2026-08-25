@@ -22,7 +22,7 @@ package io.github.autotweaker.adapter.cli.console
 @Suppress("unused")
 object Ansi {
 	/** ESC (U+001B)，所有 ANSI 控制序列的前缀字节。 */
-	private const val ESC = "\u001b"
+	private const val ESC = '\u001b'
 	
 	/** SCP &mdash; 保存当前光标位置。 */
 	const val SAVE = "$ESC[s"

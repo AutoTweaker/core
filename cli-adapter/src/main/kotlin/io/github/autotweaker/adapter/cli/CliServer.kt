@@ -33,7 +33,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.readByteArray
-import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
@@ -62,7 +61,6 @@ object CliServer : Loggable, Traceable {
 	
 	private val maxLineLength = MaxLineLength().get()
 	
-	private val json = Json { ignoreUnknownKeys = true }
 	private val scope = scope(IO)
 	
 	private val activeClients = ConcurrentHashMap.newKeySet<Socket>()

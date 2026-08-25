@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types
 
-import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -27,11 +26,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class UrlTest {
-	companion object {
-		init {
-			TestServices.init()
-		}
-	}
 	
 	// region construction & validation
 	

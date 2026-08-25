@@ -41,18 +41,17 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 	val context: StateFlow<RuntimeContext> = _context.asStateFlow()
 	
 	private val lock = ReentrantMutex()
-	
-	private val pendingToolResults = mutableListOf<ToolMessage>()
+	private val cancelledPending = ToolSettings.CancelledPending().get()
 	
 	suspend fun get(): RuntimeContext = lock.withLock { _context.value }
 	
 	suspend fun beginRound(userMessage: RuntimeContext.Message.User) = lock.withLock {
 		check(_context.value.currentRound == null)
-		check(pendingToolResults.isEmpty())
 		val round = RuntimeContext.CurrentRound(
 			userMessage = userMessage,
 			turns = null,
 			assistantMessage = null,
+			finishedToolCalls = null,
 			pendingToolCalls = null,
 		)
 		_context.update { it.copy(currentRound = round) }
@@ -66,11 +65,14 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		val current = requireNotNull(_context.value.currentRound)
 		check(current.assistantMessage == null)
 		check(current.pendingToolCalls == null)
-		check(pendingToolResults.isEmpty())
-		pendingToolResults.addAll(immediateResults)
+		check(current.finishedToolCalls == null)
 		_context.update {
 			it.copy(
-				currentRound = current.copy(assistantMessage = assistant, pendingToolCalls = pendingCalls)
+				currentRound = current.copy(
+					assistantMessage = assistant,
+					finishedToolCalls = immediateResults,
+					pendingToolCalls = pendingCalls
+				)
 			)
 		}
 	}
@@ -78,14 +80,17 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 	suspend fun cancelPending(presentation: (callId: String) -> ToolPresentation) = lock.withLock {
 		val current = _context.value.currentRound ?: return@withLock
 		current.pendingToolCalls ?: return@withLock
-		val processedIds = pendingToolResults.map { it.callId }.toSet()
-		val remaining = current.pendingToolCalls.filter { it.callId !in processedIds }
-		remaining.forEach {
-			recordToolMessage(
-				buildCancelled(
-					it,
-					ToolSettings.CancelledPending().get(),
-					presentation(it.callId),
+		_context.update { ctx ->
+			ctx.copy(
+				currentRound = current.copy(
+					finishedToolCalls = current.finishedToolCalls.orEmpty() + current.pendingToolCalls.map {
+						buildCancelled(
+							it,
+							cancelledPending,
+							presentation(it.callId),
+						)
+					},
+					pendingToolCalls = null
 				)
 			)
 		}
@@ -95,22 +100,29 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		val current = requireNotNull(_context.value.currentRound)
 		checkNotNull(current.pendingToolCalls)
 		check(current.pendingToolCalls.any { it.callId == tool.callId })
-		pendingToolResults.add(tool)
+		_context.update { ctx ->
+			ctx.copy(
+				currentRound = current.copy(
+					finishedToolCalls = current.finishedToolCalls.orEmpty() + tool,
+					pendingToolCalls = current.pendingToolCalls.filterNot { it.callId == tool.callId }
+				)
+			)
+		}
 	}
 	
 	suspend fun finalizeToolTurn() = lock.withLock {
 		val current = requireNotNull(_context.value.currentRound)
 		val assistant = requireNotNull(current.assistantMessage)
-		val turn = RuntimeContext.Turn(assistantMessage = assistant, tools = pendingToolResults.toList())
-		val processedIds = pendingToolResults.map { it.callId }.toSet()
-		val remaining = current.pendingToolCalls.orEmpty().filter { it.callId !in processedIds }
-		pendingToolResults.clear()
+		checkNotNull(current.finishedToolCalls)
+		val turn = RuntimeContext.Turn(assistantMessage = assistant, tools = current.finishedToolCalls)
+		
 		_context.update {
 			it.copy(
 				currentRound = current.copy(
 					turns = current.turns.orEmpty() + turn,
 					assistantMessage = null,
-					pendingToolCalls = remaining.orNull(),
+					finishedToolCalls = null,
+					pendingToolCalls = current.pendingToolCalls?.orNull(),
 				)
 			)
 		}
@@ -122,42 +134,34 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		//丢弃空round
 		if (round.assistantMessage == null
 			&& round.turns.isNullOrEmpty()
+			&& round.finishedToolCalls.isNullOrEmpty()
 			&& round.pendingToolCalls.isNullOrEmpty()
 		) {
-			check(pendingToolResults.isEmpty())
 			_context.update { it.copy(currentRound = null) }
 			return@withLock
 		}
 		
-		//生成CANCELLED消息
-		if (round.pendingToolCalls != null) {
-			val processedIds = pendingToolResults.map { it.callId }.toSet()
-			round.pendingToolCalls.filter { it.callId !in processedIds }.forEach { call ->
-				pendingToolResults.add(
-					buildCancelled(
-						call = call,
-						message = ToolSettings.CancelledPending().get(),
-						presentation = listOf(
-							UiBlock.Text(
-								i18n(
-									ToolI18n.Cancelled(),
-									call.validatedToolName
-								)
-							)
-						),
-					)
-				)
-			}
-		}
-		
 		val assistantMsg = round.assistantMessage
-		val archivedTurn =
-			if (assistantMsg != null && pendingToolResults.isNotEmpty())
-				RuntimeContext.Turn(assistantMsg, pendingToolResults.toList())
-			else null
-		pendingToolResults.clear()
+		val pendingTools = round.finishedToolCalls.orEmpty() + round.pendingToolCalls?.map { call ->
+			buildCancelled(
+				call = call,
+				message = cancelledPending,
+				presentation = listOf(
+					UiBlock.Text(
+						i18n(
+							ToolI18n.Cancelled(),
+							call.validatedToolName
+						)
+					)
+				),
+			)
+		}.orEmpty()
 		
-		val allTurns = buildList {
+		val archivedTurn = if (assistantMsg != null && pendingTools.isNotEmpty())
+			RuntimeContext.Turn(assistantMsg, pendingTools)
+		else null
+		
+		val allTurns = if (round.turns.isNullOrEmpty() && archivedTurn == null) null else buildList {
 			round.turns?.let { addAll(it) }
 			archivedTurn?.let { add(it) }
 		}.orNull()
@@ -165,7 +169,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		val completed = RuntimeContext.CompletedRound(
 			userMessage = round.userMessage,
 			turns = allTurns,
-			finalAssistantMessage = if (archivedTurn != null) null else assistantMsg,
+			finalAssistantMessage = if (archivedTurn != null) null else assistantMsg, // 如果没archivedTurn，assistantMsg才是真正的final
 		)
 		_context.update {
 			it.copy(

@@ -79,6 +79,7 @@ class RuntimeContextBuilder(
 		userMessage = userMessage(userMessage),
 		turns = turns?.map { it.transform() },
 		assistantMessage = assistantMessage?.let { assistantMessage(it) },
+		finishedToolCalls = finishedToolCalls?.map { it.transform() },
 		pendingToolCalls = pendingToolCalls?.map { pendingToolCall(it) }
 	)
 	

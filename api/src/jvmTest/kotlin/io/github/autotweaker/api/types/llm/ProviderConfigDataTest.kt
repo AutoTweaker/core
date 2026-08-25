@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types.llm
 
 import io.github.autotweaker.api.types.Url.Companion.toUrl
-import io.github.autotweaker.api.types.llm.ProviderData
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,11 +26,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ProviderConfigDataTest {
-	companion object {
-		init {
-			TestServices.init()
-		}
-	}
 	
 	private val testUrl = "https://api.example.com".toUrl()
 	

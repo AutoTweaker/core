@@ -18,9 +18,10 @@
 
 package io.github.autotweaker.api.base.store
 
+import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.store.JsonStore
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
 
 /**
  * 基于 JsonStore 的持久化工具类，处理序列化、反序列化、默认值、懒加载。
@@ -33,7 +34,7 @@ class JsonStoreAccessor<V>(
 	private val store: JsonStore,
 	private val serializer: KSerializer<V>,
 	private val default: () -> V,
-) {
+) : Traceable, Loggable {
 	/**
 	 * 初始值，仅在访问时加载一次，请自行在内存中维护当前值。
 	 */
@@ -43,8 +44,14 @@ class JsonStoreAccessor<V>(
 	 * 将数据序列化后存储到硬盘。
 	 */
 	fun save(value: V) =
-		store.set(Json.encodeToJsonElement(serializer, value))
+		store.set(json.encodeToJsonElement(serializer, value))
 	
 	private fun load(): V? =
-		store.get()?.let { Json.decodeFromJsonElement(serializer, it) }
+		store.get()?.let {
+			trace.catching { json.decodeFromJsonElement(serializer, it) }
+				.rethrowCancellation()
+				.onFailure { e ->
+					log.error("Failed to decode JSON element", e)
+				}.getOrNull()
+		}
 }

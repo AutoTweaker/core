@@ -84,7 +84,7 @@ class AgentChatTest {
 		)
 	
 	private fun ctx(user: RuntimeContext.Message.User) =
-		RuntimeContext(null, null, null, null, RuntimeContext.CurrentRound(user, null, null, null))
+		RuntimeContext(null, null, null, null, RuntimeContext.CurrentRound(user, null, null, null, null))
 	
 	@Test
 	fun `collects assembled message with content and finish reason`() = runTest {

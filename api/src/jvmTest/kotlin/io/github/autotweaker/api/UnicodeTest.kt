@@ -16,10 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api
 
-import io.github.autotweaker.api.toUnicodeEscape
-import io.github.autotweaker.api.unescapeUnicode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -215,12 +213,12 @@ class UnicodeTest {
 	fun `nonStrict trailing backslash skips backslash`() {
 		assertEquals("abc", "abc\\".unescapeUnicode(strict = false))
 	}
-
+	
 	@Test
 	fun `nonStrict incomplete unicode escape preserves backslash`() {
 		assertEquals("abc\\u12", "abc\\u12".unescapeUnicode(strict = false))
 	}
-
+	
 	@Test
 	fun `nonStrict unknown escape preserves backslash`() {
 		assertEquals("abc\\n", "abc\\n".unescapeUnicode(strict = false))

@@ -16,25 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.base
+package io.github.autotweaker.api
 
-import java.util.concurrent.atomic.AtomicLong
+import kotlinx.serialization.json.Json
 
-/**
- * 生成一个自增短 id，用于日志记录。
- *
- * 从 0 开始，程序重启后会归零。
- */
-object ShortIdGenerator {
-	private val counter = AtomicLong(0)
-	
-	/**
-	 * 获取 36 进制的字符串 id。
-	 */
-	fun nextString(): String = nextLong().toString(36)
-	
-	/**
-	 * 获取数字 id。
-	 */
-	fun nextLong(): Long = counter.incrementAndGet()
-}
+val json = Json { ignoreUnknownKeys = true }

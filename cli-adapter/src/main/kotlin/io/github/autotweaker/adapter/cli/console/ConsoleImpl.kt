@@ -136,9 +136,11 @@ class ConsoleImpl(
 	}
 	
 	override suspend fun altScreen(block: suspend () -> Unit) {
-		if (isTty) stdout(Ansi.ALT_SCREEN_ON + Ansi.HOME)
-		block()
-		if (isTty) stdout(Ansi.ALT_SCREEN_OFF)
+		if (isTty) {
+			stdout(Ansi.ALT_SCREEN_ON + Ansi.HOME)
+			block()
+			stdout(Ansi.ALT_SCREEN_OFF)
+		}
 	}
 	
 	override suspend fun done(exitCode: Int): Nothing =

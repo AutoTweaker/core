@@ -76,6 +76,8 @@ interface AgentAPI {
 	 *
 	 * 关于流式数据请见 [output]。
 	 *
+	 * [context] 的更新可能略微比 [output] 等数据迟缓，请注意时序。
+	 *
 	 * @see AgentContext
 	 * @see AgentContextIndex
 	 */
@@ -118,7 +120,7 @@ interface AgentAPI {
 	 *
 	 * “当前任务”包括 LLM 请求和工具调用（单个工具），未执行的工具调用将被取消。
 	 *
-	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact] api。
+	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact]。
 	 */
 	suspend fun pause(): AgentAPI
 	
@@ -129,7 +131,7 @@ interface AgentAPI {
 	 *
 	 * 请注意，终止正在进行的 LLM 请求将导致 Usage 无法被记录。
 	 *
-	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact] api。
+	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact]。
 	 */
 	suspend fun stop(): AgentAPI
 	

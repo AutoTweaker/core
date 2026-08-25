@@ -235,7 +235,7 @@ interface CoreAPI {
 		/**
 		 * 默认工作区的 id，永不变化。
 		 */
-		val defaultWorkspaceId: UUID
+		val default: UUID
 		
 		/**
 		 * 创建一个新的工作区。
@@ -268,7 +268,6 @@ interface CoreAPI {
 		 * 获取工作区数据。
 		 */
 		suspend fun get(id: UUID): WorkspaceData?
-		
 		
 		/**
 		 * 获取全部已有工作区的数据。

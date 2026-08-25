@@ -105,7 +105,7 @@ class AgentChatRequestExtTest {
 		)
 	
 	private fun currentRound(userMsg: RuntimeContext.Message.User) =
-		RuntimeContext.CurrentRound(userMsg, null, null, null)
+		RuntimeContext.CurrentRound(userMsg, null, null, null, null)
 	
 	private fun request(
 		context: RuntimeContext,
@@ -247,7 +247,7 @@ class AgentChatRequestExtTest {
 	fun `throws when current round has assistant message set`() {
 		val user = userMsg("hello")
 		val asst = assistantMsg("I replied")
-		val round = RuntimeContext.CurrentRound(user, null, asst, null)
+		val round = RuntimeContext.CurrentRound(user, null, asst, null, null)
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
@@ -272,7 +272,7 @@ class AgentChatRequestExtTest {
 				presentation = listOf(UiBlock.Text("请求读取文件")),
 			)
 		)
-		val round = RuntimeContext.CurrentRound(user, null, null, pending)
+		val round = RuntimeContext.CurrentRound(user, null, null, null, pending)
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
@@ -286,7 +286,7 @@ class AgentChatRequestExtTest {
 		val asst = assistantMsg("I will read it")
 		val tool = toolResult()
 		val turn = RuntimeContext.Turn(asst, listOf(tool))
-		val round = RuntimeContext.CurrentRound(user, listOf(turn), null, null)
+		val round = RuntimeContext.CurrentRound(user, listOf(turn), null, null, null)
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
@@ -356,7 +356,7 @@ class AgentChatRequestExtTest {
 		val asst = assistantMsg("calling tool")
 		val tool = toolResult()
 		val turn = RuntimeContext.Turn(asst, listOf(tool))
-		val round = RuntimeContext.CurrentRound(user, listOf(turn), null, null)
+		val round = RuntimeContext.CurrentRound(user, listOf(turn), null, null, null)
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		

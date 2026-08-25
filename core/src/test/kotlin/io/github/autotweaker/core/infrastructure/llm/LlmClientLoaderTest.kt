@@ -16,29 +16,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.agent
+package io.github.autotweaker.core.infrastructure.llm
 
-import io.github.autotweaker.api.types.agent.AgentStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class AgentStatusTest {
+class LlmClientLoaderTest {
 	
 	@Test
-	fun `all six status values exist`() {
-		assertEquals(4, AgentStatus.entries.size)
+	fun `load deepseek`() {
+		val client = LlmClientLoader.load("deepseek")
+		assertEquals("deepseek", client.providerInfo.name)
 	}
 	
 	@Test
-	fun `all values can be resolved by name`() {
-		for (status in AgentStatus.entries) {
-			assertEquals(status, AgentStatus.valueOf(status.name))
-		}
+	fun `load mimo`() {
+		val client = LlmClientLoader.load("mimo")
+		assertEquals("mimo", client.providerInfo.name)
 	}
 	
 	@Test
-	fun `status values are distinct`() {
-		val names = AgentStatus.entries.map { it.name }.toSet()
-		assertEquals(AgentStatus.entries.size, names.size)
+	fun `load invalid provider`() {
+		val result = runCatching { LlmClientLoader.load("nonexistent") }
+		assert(result.isFailure)
+	}
+	
+	@Test
+	fun `availableProviders returns registered providers`() {
+		val providers = LlmClientLoader.available()
+		assert(providers.contains("deepseek"))
+		assert(providers.contains("mimo"))
+		assert(providers.size >= 2)
 	}
 }

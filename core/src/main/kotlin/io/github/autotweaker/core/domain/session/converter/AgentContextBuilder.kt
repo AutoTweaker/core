@@ -64,6 +64,7 @@ class AgentContextBuilder(
 		userMessage = userMessage.id(),
 		turns = turns?.map { it.transform() },
 		assistantMessage = assistantMessage?.id(),
+		finishedToolCalls = finishedToolCalls?.map { it.transform() },
 		pendingToolCalls = pendingToolCalls?.map { it.id() }
 	)
 	

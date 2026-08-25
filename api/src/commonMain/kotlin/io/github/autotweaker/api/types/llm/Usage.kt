@@ -30,6 +30,8 @@ data class Usage(
 ) {
 	val totalTokens: Int get() = promptTokens + completionTokens
 	val cacheMissTokens: Int get() = promptTokens - (cacheHitTokens ?: 0)
+	val cacheHitRate: Double
+		get() = if (promptTokens == 0) 0.0 else (cacheHitTokens ?: 0).toDouble() / promptTokens
 	
 	operator fun plus(other: Usage): Usage = Usage(
 		promptTokens = promptTokens + other.promptTokens,

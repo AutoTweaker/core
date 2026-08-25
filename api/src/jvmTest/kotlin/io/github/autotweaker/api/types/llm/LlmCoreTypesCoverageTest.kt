@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.llm
+package io.github.autotweaker.api.types.llm
 
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.llm.*
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
@@ -80,8 +79,8 @@ class LlmCoreTypesCoverageTest {
 		assertEquals("thinking", msg.reasoningContent)
 		assertEquals(1, msg.toolCalls?.size)
 		assertEquals("id1", msg.toolCalls!![0].id)
-		assertEquals("read", msg.toolCalls!![0].name)
-		assertEquals("{}", msg.toolCalls!![0].arguments)
+		assertEquals("read", msg.toolCalls[0].name)
+		assertEquals("{}", msg.toolCalls[0].arguments)
 	}
 	
 	@Test
@@ -213,31 +212,5 @@ class LlmCoreTypesCoverageTest {
 		assertEquals(10, usage.totalTokens)
 		assertNull(usage.reasoningTokens)
 		assertNull(usage.cacheHitTokens)
-	}
-	
-	@Test
-	fun `LlmClientLoader load deepseek`() {
-		val client = LlmClientLoader.load("deepseek")
-		assertEquals("deepseek", client.providerInfo.name)
-	}
-	
-	@Test
-	fun `LlmClientLoader load mimo`() {
-		val client = LlmClientLoader.load("mimo")
-		assertEquals("mimo", client.providerInfo.name)
-	}
-	
-	@Test
-	fun `LlmClientLoader load invalid provider`() {
-		val result = runCatching { LlmClientLoader.load("nonexistent") }
-		assert(result.isFailure)
-	}
-	
-	@Test
-	fun `LlmClientLoader availableProviders returns registered providers`() {
-		val providers = LlmClientLoader.available()
-		assert(providers.contains("deepseek"))
-		assert(providers.contains("mimo"))
-		assert(providers.size >= 2)
 	}
 }

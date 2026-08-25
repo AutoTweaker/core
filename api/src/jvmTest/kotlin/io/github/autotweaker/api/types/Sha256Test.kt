@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.api.types
 
-import io.github.autotweaker.api.types.Sha256
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -34,11 +33,6 @@ private const val ABC_HEX = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb41
 private data class Sha256Holder(val hash: Sha256)
 
 class Sha256Test {
-	companion object {
-		init {
-			TestServices.init()
-		}
-	}
 	
 	// region serialization
 	
