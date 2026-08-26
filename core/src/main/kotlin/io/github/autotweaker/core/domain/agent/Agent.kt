@@ -55,10 +55,14 @@ class Agent(
 	private val _toolCalling = MutableStateFlow<Pair<String, ToolPresentation>?>(null)
 	val toolCalling = _toolCalling.asStateFlow()
 	
-	private val _output = MutableSharedFlow<RuntimeOutput>()
+	private val _output = MutableSharedFlow<RuntimeOutput>(
+		extraBufferCapacity = 64
+	)
 	val output: SharedFlow<RuntimeOutput> = _output.asSharedFlow()
 	
-	private val onOutput: (RuntimeOutput) -> Unit = { _output.tryEmit(it) }
+	private val onOutput: (RuntimeOutput) -> Unit = {
+		_output.tryEmit(it)
+	}
 	
 	private val ctx = AgentContextManager(
 		context.copy(currentRound = null),
@@ -69,9 +73,9 @@ class Agent(
 	val activeTools: StateFlow<Set<String>> = toolManager.activeTools
 	
 	private val truncation = TruncationImpl(workspace)
-	private val llmService = LlmService(agentId, onOutput)
+	private val llmService = LlmService(agentId, _status, onOutput)
 	private val thinkingStage by lazy {
-		ThinkingStage(llmService, toolManager, workspace, truncation, onOutput)
+		ThinkingStage(llmService, toolManager, workspace, truncation, _status, onOutput)
 	}
 	private val toolCallingStage by lazy {
 		ToolCallingStage(
@@ -79,6 +83,7 @@ class Agent(
 			tools = toolManager,
 			workspace = workspace,
 			truncation = truncation,
+			status = _status,
 			onOutput = onOutput,
 			onToolCall = { _toolCalling.value = it })
 	}
@@ -91,9 +96,11 @@ class Agent(
 		toolCalling = toolCallingStage,
 		compactService = compact,
 		agentModel = model,
-		statusFlow = _status,
+		status = _status,
 		agentId = agentId,
 	)
+	
+	val exception get() = runner.exception
 	
 	val model get() = runner.model.toModelConfig()
 	

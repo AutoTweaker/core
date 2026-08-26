@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.think
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.PairList
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -30,6 +31,7 @@ import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.file.Path
 import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall as RawCall
 
@@ -38,6 +40,7 @@ class ThinkingStage(
 	private val tools: Tools,
 	private val workspace: () -> Path,
 	private val truncation: TruncationService,
+	private val status: MutableStateFlow<AgentStatus>,
 	private val onOutput: (RuntimeOutput) -> Unit,
 ) {
 	suspend fun execute(
@@ -46,6 +49,8 @@ class ThinkingStage(
 		context: RuntimeContext,
 	): Result? {
 		val callResult = llmService.execute(model, assembledTools, context) ?: return null
+		status.value = AgentStatus.PROCESSING
+		
 		val rawCalls = callResult.toolCalls
 		if (rawCalls.isNullOrEmpty()) return Result(
 			assistantMessage = callResult.assistantMessage,

@@ -30,12 +30,12 @@ interface Delivery {
 	val isActive: Boolean
 	
 	/**
-	 * 等待消息被消费，并得到消息的 id。
+	 * 等待消息被消费，并得到消息的 id 和最终内容。
 	 *
 	 * @return 如果消息为空而被丢弃，返回 null。
 	 * @throws kotlin.coroutines.cancellation.CancellationException 消息被取消
 	 */
-	suspend fun await(): UUID?
+	suspend fun await(): Pair<UUID, MessageContent>?
 	
 	/**
 	 * 如果消息仍未被消费，取消消息处理。

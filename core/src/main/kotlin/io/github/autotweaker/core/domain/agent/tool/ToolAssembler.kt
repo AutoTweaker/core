@@ -35,7 +35,7 @@ object ToolAssembler : Loggable {
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription = ToolSettings.ReasonEmptyError().get()
+		val reasonDescription = ToolSettings.ReasonDescription().get()
 		val enableDesc = ToolSettings.EnableDescription().get()
 		
 		return tools.flatMap {

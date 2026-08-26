@@ -31,30 +31,29 @@ import kotlin.time.Clock
 
 object SummaryService : Traceable {
 	suspend fun summarizeMessage(
-		content: String,
-		prompt: String,
+		request: String,
 		model: AgentModel,
 		thinking: Boolean,
-	): Pair<String, UsageEntry?> {
+	): Pair<String?, UsageEntry?> {
 		val results = trace.catching {
 			ResilientChat.execute(
 				model = model.model,
 				fallbackModels = model.fallback,
 				messages = listOf(
 					ChatMessage.User(
-						prompt.format(content).textPart(),
+						request.toContentPart(),
 						Clock.System.now()
 					)
 				),
 				reasoning = ReasoningEffort(thinking)
 			).toList()
 		}.rethrowCancellation()
-			.getOrElse { return content to null }
+			.getOrElse { return null to null }
 		
 		val (lastResult, lastModel) = results.mapNotNull {
 			(it.result as? ChatResult.Assembled ?: return@mapNotNull null) to it.model
-		}.lastOrNull() ?: return content to null
-		return (lastResult.message.content ?: content) to lastResult.usage?.let {
+		}.lastOrNull() ?: return null to null
+		return lastResult.message.content to lastResult.usage?.let {
 			UsageEntry(
 				UUID(),
 				lastModel,

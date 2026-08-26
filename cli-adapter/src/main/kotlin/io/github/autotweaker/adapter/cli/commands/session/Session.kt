@@ -28,33 +28,45 @@ import io.github.autotweaker.adapter.cli.syntax.ALL
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.CoreAPI
-import io.github.autotweaker.api.base.I18nBase
+import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.ShortIdMapper
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.session.diff
-import io.github.autotweaker.api.base.zh
-import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.agent.AgentContext
-import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContextIndex.Turn
+import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.session.WorkspaceData
+import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.UiBlock
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.*
 
 @AutoService(Command::class)
-class Session : Command, Traceable {
+class Session : Command, Traceable, Loggable {
 	override val name = "session"
-	override val description = i18n(Desc())
+	override val description = i18n(SessionI18n.Desc())
 	override val syntax = buildSyntax(ALL) {
-		value("workspace", "工作区的名称，默认当前目录下的工作区，无可用则默认工作区") { required = false }
+		value("workspace", SessionI18n.WorkspaceParam()) { required = false }
 		xor {
-			flag("list", "列出工作区下的所有会话")
-			flag("new", "创建并进入一个新会话")
-			value("enter", "进入指定的会话")
-			value("send", "通过stdin向指定的会话发送消息")
-			value("view", "查看指定会话")
-			value("delete", "通过id删除一个会话")
+			flag("list", SessionI18n.ListFlag())
+			flag("new", SessionI18n.NewFlag())
+			value("send", SessionI18n.SendFlag())
+			all {
+				xor {
+					value("approve", SessionI18n.ApproveFlag())
+					value("reject", SessionI18n.RejectFlag())
+				}
+				positional("reason", SessionI18n.ReasonParam()) { required = false }
+			}
+			value("yolo", SessionI18n.YoloFlag()) { aliases() }
+			value("view", SessionI18n.ViewFlag())
+			value("delete", SessionI18n.DeleteFlag())
 		}
 	}
 	override val children = listOf(SessionModel())
@@ -69,10 +81,12 @@ class Session : Command, Traceable {
 				?: unreachable()
 		}
 		
-		err("工作区: ${workspace.meta.displayName} ('${workspace.meta.path}')") { white() }
+		if (core.pathResolver.inContainer(workspace.meta.path))
+			err(SessionI18n.ContainerWorkspaceFormat(), workspace.meta.displayName, workspace.meta.path) { white() }
+		else err(SessionI18n.WorkspaceFormat(), workspace.meta.displayName, workspace.meta.path) { white() }
 		handleFlag("list") {
 			val ids = workspace.sessionIds
-			if (ids.isEmpty()) error("当前工作区没有会话")
+			if (ids.isEmpty()) error(SessionI18n.NoSessions())
 			
 			ids.chunked(100).forEach { chunk ->
 				val unorderedSessions = core.persistence.loadData(chunk.toSet())
@@ -83,55 +97,290 @@ class Session : Command, Traceable {
 				sessions.forEachBetween(
 					action = { session ->
 						val agent = core.persistence.loadAgent(session.agentIndex.main.id)
-						out("会话 id: ${ShortIdMapper.shortString(session.id)}")
-						out("会话标题: ${session.title}")
-						out("消息数量: ${agent?.context?.index?.ids()?.count() ?: 0}")
+						out(SessionI18n.SessionId(), ShortIdMapper.shortString(session.id))
+						out(SessionI18n.SessionTitle(), session.title)
+						out(SessionI18n.MessageCount(), agent?.context?.index?.ids()?.count() ?: 0)
 					},
 					between = { out(LINE) }
 				)
 			}
-			err("会话与 id 的对应关系将会在程序重启后失效") { yellow() }
+			err(SessionI18n.IdRestartWarning()) { yellow() }
 		}
 		handleFlag("new") {
 			val newId = core.session.create(workspace.id, getConfig())
-			out(ShortIdMapper.shortString(newId))
+			out(SessionI18n.SessionCreated(), ShortIdMapper.shortString(newId)) { green() }
 		}
 		handleValue("delete") {
-			val id = sessionId(it)
+			val id = sessionId(it, workspace)
 			val success = core.session.delete(id)
-			if (!success) error("找不到会话 $it")
-			else out("删除了会话 $it") { green() }
+			if (!success) error(SessionI18n.SessionNotFound(), it)
+			else out(SessionI18n.SessionDeleted(), it) { green() }
 		}
 		handleValue("view") {
-			view(core, sessionId(it))
+			view(core, it, workspace)
+		}
+		handleValue("send") { value ->
+			val id = sessionId(value, workspace)
+			val session = core.session.getHandle(id)
+			val mainId = session.data.value.agentIndex.main.id
+			val agent = session.agents.find { it.id == mainId }
+				?: throw AgentNotFoundException(mainId, session.data.value.id)
+			val stdin = StringBuilder()
+			while (true) {
+				val input = readChunk() ?: break
+				stdin.append(input)
+			}
+			if (stdin.isEmpty()) stdin.append(promptOrStdin(">"))
+			val deferred = agent.send(
+				MessageContent(
+					injections = listOf(
+						ContextInjection(
+							"user_environment",
+							i18n(SessionI18n.UserEnvironment())
+						)
+					),
+					content = stdin.toString().toContentPart()
+				)
+			)
+			err(SessionI18n.MessageSent()) { white() }
+			val msg = deferred.await()?.second
+			msg ?: error(SessionI18n.MessageDropped())
+			out(SessionI18n.MessageReceived()) { green() }
+			msg.content?.filterIsInstance<ContentPart.Text>()?.forEach {
+				out("> ${it.content}")
+			}
+		}
+		handleValue("approve") {
+			approve(it, workspace, core)
+		}
+		handleValue("reject") {
+			approve(it, workspace, core)
+		}
+		handleValue("yolo") { value ->
+			if (!core.pathResolver.inContainer(workspace.meta.path))
+				error(SessionI18n.YoloContainerOnly())
+			
+			val id = sessionId(value, workspace)
+			val session = core.session.getHandle(id)
+			val agent = session.mainAgent()
+			out(SessionI18n.YoloStart(), value) { yellow() }
+			agent.context.collect {
+				agent.context.value.index.currentRound?.pendingToolCalls?.forEach { call ->
+					val msg = call.loadMessage<AgentMessage.Tool.Call>(core) ?: return@collect
+					agent.approve(
+						ToolApprove(
+							msg.callId,
+						)
+					)
+					out(SessionI18n.ToolApproved(), msg.validatedToolName) { green() }
+				}
+			}
 		}
 		
 		done(1)
 	}
 	
-	private suspend fun Console.sessionId(id: String) = trace.catching {
-		ShortIdMapper.uuid(id.trim())
-	}.getOrNull() ?: error("找不到会话 $id, 程序重启后需要重新运行 list 才能生成 id")
+	private suspend fun Console.approve(id: String, workspace: WorkspaceData, core: CoreAPI) {
+		val agent = core.session.getHandle(sessionId(id, workspace)).mainAgent()
+		val call = agent.context.value.index.currentRound?.pendingToolCalls?.firstOrNull()
+		val msg = call?.loadMessage<AgentMessage.Tool.Call>(core) ?: error(SessionI18n.NoPendingCalls())
+		val approved = when {
+			hasArg("approve") -> true
+			hasArg("reject") -> false
+			else -> unreachable()
+		}
+		agent.approve(
+			ToolApprove(
+				msg.callId,
+				getPositionalOrNull(0),
+				approved
+			)
+		)
+		out(
+			if (approved) SessionI18n.CallApproved() else SessionI18n.CallRejected(),
+			msg.validatedToolName
+		) { green() }
+	}
+	
+	private suspend fun Console.sessionId(id: String, workspace: WorkspaceData): UUID {
+		val uuid = trace.catching {
+			ShortIdMapper.uuid(id.trim())
+		}.getOrNull()
+		val session = if (uuid in workspace.sessionIds) uuid else null
+		return session ?: error(SessionI18n.SessionIdInvalid(), id)
+	}
 	
 	
-	private suspend fun Console.view(core: CoreAPI, id: UUID) {
-		val agent = core.session.getHandle(id).agents.firstOrNull() ?: done()
+	private suspend fun Console.view(core: CoreAPI, id: String, workspace: WorkspaceData) {
+		val session = core.session.getHandle(sessionId(id, workspace))
+		val agent = session.mainAgent()
+		val streaming = ReentrantMutex()
+		out(SessionI18n.SessionEntered(), id) { green() }
+		ln()
 		coroutineScope {
-			var lastest: AgentContext? = null
-			agent.context.collect { new ->
-				val old = lastest
-				if (old == null) {
-					printInitial(new)
-					return@collect
+			launch {
+				agent.status.collectLatest { state ->
+					if (state == AgentStatus.THINKING) streaming.withLock {
+						altScreen {
+							out(SessionI18n.Thinking()) { white() }
+							ln()
+							var lastReasoning: String? = null
+							agent.output.collect { output ->
+								if (output is AgentOutput.LlmDelta) {
+									output.reasoningContent?.let {
+										lastReasoning = it
+										out(it) {
+											newline = false
+											white(); italic()
+										}
+									}
+									if (lastReasoning != null && output.reasoningContent == null) {
+										ln(); ln()
+										lastReasoning = null
+									}
+									output.content?.let {
+										out(it) {
+											newline = false
+										}
+									}
+								}
+							}
+						}
+					}
 				}
-				lastest = new
-				val diff = old diff new
+			}
+			launch {
+				var lastest: AgentContext? = null
+				val showedMsg = mutableSetOf<UUID>()
+				suspend fun UUID.ifNew(block: suspend UUID.() -> Unit) {
+					if (this !in showedMsg) {
+						showedMsg.add(this)
+						block()
+					}
+				}
+				agent.context.collect { new ->
+					agent.status.first { it != AgentStatus.THINKING }
+					streaming.withLock {
+						val old = lastest
+						lastest = new
+						if (old == null) {
+							printInitial(core, new)
+							showedMsg.addAll(new.index.ids())
+							return@withLock
+						}
+						val diff = old diff new
+						diff ?: return@withLock
+						diff.addedMessages()?.loadToCache(core)
+						with(core) {
+							suspend fun List<Turn>.printIfNew() = forEach { turn ->
+								turn.assistantMessage.ifNew { printMsg<AgentMessage.Assistant>() }
+								turn.tools.forEach { tool ->
+									tool.result.ifNew { printMsg<AgentMessage.Tool.Result>() }
+								}
+							}
+							diff.addedHistoryRounds()?.forEach { round ->
+								round.userMessage.ifNew { printMsg<AgentMessage.User>() }
+								round.turns?.printIfNew()
+								round.finalAssistantMessage?.ifNew { printMsg<AgentMessage.Assistant>() }
+							}
+							diff.startedRound()?.let { current ->
+								current.userMessage.ifNew { printMsg<AgentMessage.User>() }
+								current.turns?.printIfNew()
+								current.assistantMessage?.ifNew { printMsg<AgentMessage.Assistant>() }
+								current.finishedToolCalls?.forEach {
+									it.result.ifNew { printMsg<AgentMessage.Tool.Result>() }
+								}
+								current.pendingToolCalls?.forEach {
+									it.ifNew { printMsg<AgentMessage.Tool.Call>() }
+								}
+							}
+							diff.updatedCurrent()?.let {
+								it.addedTurns()?.printIfNew()
+								it.newAssistantMessage()?.ifNew {
+									printMsg<AgentMessage.Assistant>()
+								}
+								it.addedFinishedCalls()?.forEach { tool ->
+									tool.result.ifNew { printMsg<AgentMessage.Tool.Result>() }
+								}
+								it.addedPendingCalls()?.forEach { tool ->
+									tool.ifNew { printMsg<AgentMessage.Tool.Call>() }
+								}
+							}
+						}
+					}
+				}
+			}
+			launch {
+				agent.toolCalling.collect { call ->
+					if (call == null) return@collect
+					call.second.print()
+				}
+			}
+			launch {
+				agent.output.collect { output ->
+					when (output) {
+						is AgentOutput.Error -> streaming.withLock {
+							err(SessionI18n.AgentError(), output.message) { red() }
+						}
+						
+						is AgentOutput.LlmError ->
+							err(
+								SessionI18n.LlmError(),
+								buildString {
+									if (allNull(output.content, output.statusCode, output.exception)) {
+										append(i18n(SessionI18n.UnknownException()))
+										return@buildString
+									}
+									output.statusCode?.let { append("[HTTP $it]") }
+									output.content?.let { append(it) }
+									output.exception?.let { append(it.message()) }
+								}
+							) { yellow() }
+						
+						else -> {}
+					}
+				}
 			}
 		}
 	}
 	
-	private fun Console.printInitial(context: AgentContext) {
-		TODO()
+	private suspend fun Console.printInitial(core: CoreAPI, context: AgentContext) = with(core) {
+		val ids = context.index.currentRound?.ids().orEmpty() +
+				context.index.historyRounds?.flatMap { it.ids() }.orEmpty()
+		ids.loadToCache(core)
+		
+		suspend fun List<Turn.Tool>.print() = forEach { tool ->
+			tool.result.printMsg<AgentMessage.Tool.Result>()
+		}
+		
+		suspend fun List<Turn>.print() = forEach { turn ->
+			turn.assistantMessage.printMsg<AgentMessage.Assistant>()
+			turn.tools.print()
+		}
+		context.index.historyRounds?.forEach { round ->
+			round.userMessage.printMsg<AgentMessage.User>()
+			round.turns?.print()
+			round.finalAssistantMessage?.printMsg<AgentMessage.Assistant>()
+		}
+		context.index.currentRound?.let { current ->
+			current.userMessage.printMsg<AgentMessage.User>()
+			current.turns?.print()
+			current.assistantMessage?.printMsg<AgentMessage.Assistant>()
+			current.finishedToolCalls?.print()
+			current.pendingToolCalls?.forEach { call ->
+				call.printMsg<AgentMessage.Tool.Call>()
+			}
+		}
+	}
+	
+	context(c: Console, core: CoreAPI)
+	private suspend inline fun <reified T : AgentMessage> UUID.printMsg() = with(c) {
+		val msg = loadMessage<T>(core)
+		if (msg == null) {
+			out(SessionI18n.CorruptMessage(), this) { red() }
+			return@with
+		}
+		msg.print()
 	}
 	
 	context(c: Console)
@@ -143,23 +392,32 @@ class Session : Command, Traceable {
 						white(); italic()
 					}
 				}
+				if (reasoning != null) ln()
 				content?.let {
 					out(it)
 				}
 				usage?.let {
-					out("输入 ${it.promptTokens} tokens | 输出 ${it.completionTokens} tokens | 缓存命中率 ${it.cacheHitRate * 100}%") {
+					out(
+						SessionI18n.Usage(),
+						it.promptTokens,
+						it.completionTokens,
+						"%.2f".format(it.cacheHitRate * 100) + "%"
+					) {
 						cyan()
 					}
 				}
+				ln()
 			}
 			
 			is AgentMessage.Compact -> {}
 			is AgentMessage.Tool.Call -> {
 				presentation?.print()
+				ln()
 			}
 			
 			is AgentMessage.Tool.Result -> {
 				presentation.print()
+				ln()
 			}
 			
 			is AgentMessage.UsageRecord -> {}
@@ -167,25 +425,45 @@ class Session : Command, Traceable {
 				content.content?.filterIsInstance<ContentPart.Text>()?.forEach {
 					out("> ${it.content}")
 				}
+				ln()
 			}
 		}
-	}
+	}.discard()
 	
 	context(c: Console)
 	private suspend fun ToolPresentation.print() = with(c) {
 		forEach {
 			when (it) {
-				is UiBlock.Text -> out(it.content) { cyan() }
-				is UiBlock.Command -> out(it.command) { cyan() }
+				is UiBlock.Text -> out(it.content) { yellow() }
+				is UiBlock.Command -> out(it.command) { blue() }
 				is UiBlock.Diff -> TODO("暂不可达")
-				is UiBlock.Error -> out(it.content) { red() }
-				is UiBlock.Output -> out(it.content)
+				is UiBlock.Error -> it.content.lines().let { lines ->
+					lines.take(5).forEach { line ->
+						out(line) { red() }
+					}
+					if (lines.count() > 5) out("...") { red() }
+				}
+				
+				is UiBlock.Output -> it.content.lines().let { lines ->
+					lines.take(5).forEach { line ->
+						out(line)
+					}
+					if (lines.count() > 5) out("...")
+				}
 			}
 		}
 	}
 	
-	@AutoService(I18nDef::class)
-	class Desc : I18nBase(
-		zh("管理和进入会话"),
-	)
+	private val messages = mutableMapOf<UUID, AgentMessage>()
+	
+	private suspend inline fun <reified T : AgentMessage> UUID.loadMessage(core: CoreAPI): T? =
+		getOrLoad(core) as? T
+	
+	private suspend fun UUID.getOrLoad(core: CoreAPI) =
+		messages[this] ?: run { setOf(this).loadToCache(core); messages[this] }
+	
+	private suspend fun Set<UUID>.loadToCache(core: CoreAPI) =
+		core.persistence.loadMessages(this).forEach {
+			messages[it.id] = it
+		}
 }

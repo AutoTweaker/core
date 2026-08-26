@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.think
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -36,6 +37,7 @@ import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -153,6 +155,7 @@ class ThinkingStageTest {
 		tools = tools,
 		workspace = workspace,
 		truncation = truncation,
+		status = MutableStateFlow(AgentStatus.FREE),
 		onOutput = {},
 	)
 	

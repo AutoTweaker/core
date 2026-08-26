@@ -55,7 +55,7 @@ class RoundRunner(
 	private val toolCalling: ToolCallingStage,
 	private val compactService: CompactService,
 	agentModel: AgentModel,
-	private val statusFlow: MutableStateFlow<AgentStatus>,
+	private val status: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
 ) : Loggable, Traceable {
 	private val scope = scope()
@@ -81,15 +81,32 @@ class RoundRunner(
 	
 	private val approval = ApprovalProcessor(
 		ctx, toolCalling,
-		scope, shouldBreak
+		scope, status, shouldBreak
 	)
 	private val roundCtx = RoundContext(ctx)
 	
+	@Volatile
+	var exception: Throwable? = null
+	
+	private fun throwFailure() {
+		exception?.let { throw it }
+	}
+	
 	init {
-		scope.launch { workLoop() }
+		scope.launch {
+			trace.catching {
+				workLoop()
+			}.ensureActive().onFailure { e ->
+				exception = e
+				status.value = AgentStatus.FAILED
+				compactJob?.cancel("workLoop failed", e)
+				log.error("Agent failed  agentId={}", agentId, e)
+			}
+		}
 	}
 	
 	suspend fun shutdown() {
+		throwFailure()
 		shutdownStarted = true
 		compactJob?.cancel()
 		execute(AgentCommand.Stop)
@@ -98,21 +115,24 @@ class RoundRunner(
 	}
 	
 	suspend fun execute(command: AgentCommand) = also {
+		throwFailure()
 		cmdLock.withLock {
 			if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
 			when (command) {
 				is AgentCommand.Stop -> {
-					if (statusFlow.value == AgentStatus.FREE) return@withLock
+					if (status.value == AgentStatus.FREE || status.value == AgentStatus.FAILED) return@withLock
 					markBreak()
 					thinkJob?.cancel()
 					toolCalling.cancelToolJob()
-					statusFlow.first { it == AgentStatus.FREE }
+					status.first { it == AgentStatus.FREE || it == AgentStatus.FAILED }
+					throwFailure()
 				}
 				
 				is AgentCommand.Pause -> {
-					if (statusFlow.value == AgentStatus.FREE) return@withLock
+					if (status.value == AgentStatus.FREE || status.value == AgentStatus.FAILED) return@withLock
 					markBreak()
-					statusFlow.first { it == AgentStatus.FREE }
+					status.first { it == AgentStatus.FREE || it == AgentStatus.FAILED }
+					throwFailure()
 				}
 				
 				is AgentCommand.CancelTool ->
@@ -132,8 +152,7 @@ class RoundRunner(
 				
 				
 				is AgentCommand.ApproveTool -> {
-					check(statusFlow.value == AgentStatus.WAITING)
-					approval.approvalChannel.send(command.approval)
+					approval.approvalChannel.trySend(command.approval)
 				}
 			}.andLog(log) {
 				debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
@@ -141,7 +160,10 @@ class RoundRunner(
 		}
 	}
 	
-	fun send(content: MessageContent): Delivery = messages.send(content)
+	fun send(content: MessageContent): Delivery {
+		throwFailure()
+		return messages.send(content)
+	}
 	
 	private suspend fun workLoop() {
 		log.info("Started workLoop  agentId={}", agentId)
@@ -149,18 +171,20 @@ class RoundRunner(
 			val msg = messages.receive()
 			shouldBreak.value = false
 			
+			status.value = AgentStatus.PROCESSING
 			ctx.beginRound(msg)
 			executeRound()
+			status.value = AgentStatus.PROCESSING
 			ctx.archiveCurrentRound()
 			
-			statusFlow.value = AgentStatus.FREE
+			status.value = AgentStatus.FREE
 		}
 	}
 	
 	private suspend fun executeRound() {
 		var emptyResponseRetries = 0
 		while (true) {
-			statusFlow.value = AgentStatus.THINKING
+			status.value = AgentStatus.PROCESSING
 			
 			val deferred = scope.async {
 				thinkingStage.execute(
@@ -180,6 +204,8 @@ class RoundRunner(
 			thinkJob = null
 			
 			if (shouldBreak.value || result == null) break
+			
+			status.value = AgentStatus.PROCESSING
 			
 			roundCtx.applyThinking(result)
 			result.activations?.let { activeAll(it) }
@@ -232,17 +258,18 @@ class RoundRunner(
 				val reasons = approval.process(
 					result.needsApproval,
 					currentModel,
-					statusFlow,
 				)
 				messages.send(reasons)
 			}
 			
-			ctx.finalizeToolTurn()
+			status.value = AgentStatus.PROCESSING
 			
 			if (shouldBreak.value) {
 				cancelPending()
 				break
 			}
+			
+			ctx.finalizeToolTurn()
 			
 			autoDeactivate()
 			autoCompact()
@@ -321,8 +348,10 @@ class RoundRunner(
 		activations.forEach { tools.activate(it.first.name, true) }
 	
 	private suspend fun launchCompact() = compactLock.withLock {
+		throwFailure()
 		if (compactJob?.isActive == true) return@withLock
 		compactJob = scope.launch {
+			throwFailure()
 			compactService.execute(currentModel, ctx)
 		}
 	}

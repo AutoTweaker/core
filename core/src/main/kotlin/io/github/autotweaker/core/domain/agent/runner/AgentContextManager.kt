@@ -104,7 +104,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 			ctx.copy(
 				currentRound = current.copy(
 					finishedToolCalls = current.finishedToolCalls.orEmpty() + tool,
-					pendingToolCalls = current.pendingToolCalls.filterNot { it.callId == tool.callId }
+					pendingToolCalls = current.pendingToolCalls.filterNot { it.callId == tool.callId }.orNull()
 				)
 			)
 		}
@@ -114,6 +114,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		val current = requireNotNull(_context.value.currentRound)
 		val assistant = requireNotNull(current.assistantMessage)
 		checkNotNull(current.finishedToolCalls)
+		check(current.pendingToolCalls.isNullOrEmpty())
 		val turn = RuntimeContext.Turn(assistantMessage = assistant, tools = current.finishedToolCalls)
 		
 		_context.update {
@@ -122,7 +123,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 					turns = current.turns.orEmpty() + turn,
 					assistantMessage = null,
 					finishedToolCalls = null,
-					pendingToolCalls = current.pendingToolCalls?.orNull(),
+					pendingToolCalls = null,
 				)
 			)
 		}
@@ -142,7 +143,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		}
 		
 		val assistantMsg = round.assistantMessage
-		val pendingTools = round.finishedToolCalls.orEmpty() + round.pendingToolCalls?.map { call ->
+		val toolMessages = round.finishedToolCalls.orEmpty() + round.pendingToolCalls?.map { call ->
 			buildCancelled(
 				call = call,
 				message = cancelledPending,
@@ -157,8 +158,8 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 			)
 		}.orEmpty()
 		
-		val archivedTurn = if (assistantMsg != null && pendingTools.isNotEmpty())
-			RuntimeContext.Turn(assistantMsg, pendingTools)
+		val archivedTurn = if (assistantMsg != null && toolMessages.isNotEmpty())
+			RuntimeContext.Turn(assistantMsg, toolMessages)
 		else null
 		
 		val allTurns = if (round.turns.isNullOrEmpty() && archivedTurn == null) null else buildList {

@@ -23,6 +23,7 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -31,10 +32,8 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.port.TruncationService
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
@@ -47,6 +46,7 @@ class ToolCallingStage(
 	private val tools: Tools,
 	private val workspace: () -> Path,
 	private val truncation: TruncationService,
+	private val status: MutableStateFlow<AgentStatus>,
 	private val onOutput: (RuntimeOutput) -> Unit,
 	private val onToolCall: (Pair<String, List<UiBlock>>?) -> Unit
 ) : Loggable, Traceable {
@@ -71,6 +71,7 @@ class ToolCallingStage(
 			coroutineScope {
 				toolJob = coroutineContext[Job]
 				onToolCall(call.callId to resolved.executing())
+				status.value = AgentStatus.TOOL_CALLING
 				withTimeout(timeoutSeconds.seconds) {
 					val provider = ToolProvider.buildToolProvider(
 						workspace = workspace,
@@ -96,8 +97,11 @@ class ToolCallingStage(
 				}
 			}
 		}.also {
-			toolJob = null
-			onToolCall(null)
+			withContext(NonCancellable) {
+				toolJob = null
+				onToolCall(null)
+				status.value = AgentStatus.PROCESSING
+			}
 		}.ensureActive()
 			.recoverException { _: TimeoutCancellationException ->
 				val elapsed = startTime.elapsedNow()

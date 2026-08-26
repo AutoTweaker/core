@@ -22,7 +22,7 @@ import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ContentPart
-import io.github.autotweaker.api.types.llm.textPart
+import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.chat.merge
 import kotlinx.coroutines.async
@@ -40,7 +40,7 @@ class MessageQueueTest {
 	
 	private fun queue() = MessageQueue(UUID.randomUUID())
 	
-	private fun text(content: String) = MessageContent(content = content.textPart())
+	private fun text(content: String) = MessageContent(content = content.toContentPart())
 	
 	private fun injection(tag: String, content: String) =
 		ContextInjection(tag = tag, content = content)
@@ -155,7 +155,7 @@ class MessageQueueTest {
 		
 		val message = q.drain()
 		assertNotNull(message)
-		assertEquals(message.id, delivery.await())
+		assertEquals(message.id, delivery.await()?.first)
 	}
 	
 	@Test
@@ -196,7 +196,7 @@ class MessageQueueTest {
 		// 空白文本仍保留为 ContentPart.Text，消息不再被丢弃
 		val message = q.drain()
 		assertNotNull(message)
-		assertEquals(message.id, delivery.await())
+		assertEquals(message.id, delivery.await()?.first)
 	}
 	
 	@Test
@@ -208,7 +208,7 @@ class MessageQueueTest {
 		val message = q.drain()
 		assertNotNull(message)
 		assertEquals("a\nb\n", message.content.content?.merge())
-		deliveries.forEach { assertEquals(message.id, it.await()) }
+		deliveries.forEach { assertEquals(message.id, it.await()?.first) }
 	}
 	
 	// endregion

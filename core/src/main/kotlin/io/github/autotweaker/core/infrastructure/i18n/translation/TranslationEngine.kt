@@ -100,7 +100,7 @@ object TranslationEngine : Loggable, Traceable {
 			fallbackModels = null,
 			instructions = job.systemPrompt,
 			messages = listOf(
-				ChatMessage.User(userPrompt.textPart(), Clock.System.now()),
+				ChatMessage.User(userPrompt.toContentPart(), Clock.System.now()),
 			),
 			stream = false,
 			reasoning = ReasoningEffort(TranslateSettings.Thinking().get()),

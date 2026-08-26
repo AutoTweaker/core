@@ -110,7 +110,7 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps messages correctly`() {
-		val userMsg = ChatMessage.User("hello".textPart(), now)
+		val userMsg = ChatMessage.User("hello".toContentPart(), now)
 		val request = request(model = "deepseek-v4-pro", messages = listOf(userMsg))
 		
 		val body = createRequestBody(request)
@@ -124,7 +124,7 @@ class DeepSeekClientMappingTest {
 	fun `createRequestBody maps SystemMessage`() {
 		val request = request(
 			instructions = "system prompt",
-			messages = listOf(ChatMessage.User("hi".textPart(), now))
+			messages = listOf(ChatMessage.User("hi".toContentPart(), now))
 		)
 		val body = createRequestBody(request)
 		assertIs<DeepSeekMessage.SystemMessage>(body.messages[0])
@@ -163,7 +163,7 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody includes tools and thinking`() {
-		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart(), now)
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
 		val request = request(
 			messages = listOf(userMsg),
@@ -408,7 +408,7 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody with thinking false`() {
-		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart(), now)
 		val request = request(messages = listOf(userMsg), reasoning = ReasoningEffort(false))
 		val body = createRequestBody(request)
 		assertEquals(OpenAiThinking.Type.DISABLED, body.thinking?.type)
@@ -416,7 +416,7 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody with thinking null`() {
-		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart(), now)
 		val request = request(messages = listOf(userMsg), reasoning = null)
 		val body = createRequestBody(request)
 		assertNull(body.thinking)

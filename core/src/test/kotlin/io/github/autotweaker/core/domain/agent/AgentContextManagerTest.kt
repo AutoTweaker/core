@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.textPart
+import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
@@ -47,7 +47,7 @@ class AgentContextManagerTest {
 	
 	private fun user(content: String = "hello") = RuntimeContext.Message.User(
 		id = UUID.randomUUID(),
-		content = MessageContent(content = content.textPart()),
+		content = MessageContent(content = content.toContentPart()),
 		timestamp = Clock.System.now(),
 	)
 	
@@ -102,7 +102,7 @@ class AgentContextManagerTest {
 		assistantMsg: RuntimeContext.Message.Assistant = assistant(),
 	) {
 		manager.beginRound(userMsg)
-		manager.applyThinking(assistantMsg, listOf(pendingCall()), listOf(toolResult()))
+		manager.applyThinking(assistantMsg, emptyList(), listOf(toolResult()))
 		manager.finalizeToolTurn()
 		manager.archiveCurrentRound()
 	}

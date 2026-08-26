@@ -41,14 +41,14 @@ class ApprovalProcessor(
 	private val ctx: AgentContextManager,
 	private val tool: ToolCallingStage,
 	private val scope: CoroutineScope,
+	private val status: MutableStateFlow<AgentStatus>,
 	private val shouldBreak: StateFlow<Boolean>,
 ) : Traceable {
-	val approvalChannel = Channel<ToolApprove>(Channel.UNLIMITED)
+	val approvalChannel = Channel<ToolApprove>(Channel.BUFFERED)
 	
 	suspend fun process(
 		needsApproval: PairList<RuntimeContext.CurrentRound.PendingToolCall, Tool.ResolveResult.Ready>,
 		model: AgentModel,
-		statusFlow: MutableStateFlow<AgentStatus>,
 	): List<String> {
 		val reasons = mutableListOf<String>()
 		val stashed = mutableMapOf<String, ToolApprove>()
@@ -56,7 +56,7 @@ class ApprovalProcessor(
 		for ((call, resolved) in needsApproval) {
 			if (shouldBreak.value) break
 			
-			statusFlow.value = AgentStatus.WAITING
+			status.value = AgentStatus.WAITING
 			var approval = stashed.remove(call.callId)
 			while (approval == null) {
 				val deferred = scope.async {
@@ -77,15 +77,17 @@ class ApprovalProcessor(
 				else stashed[next.callId] = next
 			}
 			
+			status.value = AgentStatus.PROCESSING
+			
 			if (shouldBreak.value) break
 			
 			if (approval.approved) {
 				approval.reason?.let { reasons.add(it) }
-				statusFlow.value = AgentStatus.TOOL_CALLING
 				val deferred = scope.async {
 					tool.execute(call, resolved, model, ctx.get())
 				}
 				val toolResult = deferred.await()
+				status.value = AgentStatus.PROCESSING
 				ctx.recordToolMessage(ToolMessageFactory.buildToolMessage(call, toolResult))
 			} else ctx.recordToolMessage(
 				ToolMessageFactory.buildRejected(

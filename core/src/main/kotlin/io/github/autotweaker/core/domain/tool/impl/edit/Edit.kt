@@ -63,7 +63,7 @@ class Edit : CoreTool<EditArgs> {
 	)
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: EditArgs): Tool.ResolveResult {
-		TODO("Not yet implemented")
+		TODO("暂未实现，请使用Bash来修改文件")
 	}
 	
 	override suspend fun execute(
@@ -71,6 +71,6 @@ class Edit : CoreTool<EditArgs> {
 		request: JsonElement,
 		outputChannel: SendChannel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
-		TODO("Not yet implemented")
+		TODO("暂未实现，请使用Bash来修改文件")
 	}
 }

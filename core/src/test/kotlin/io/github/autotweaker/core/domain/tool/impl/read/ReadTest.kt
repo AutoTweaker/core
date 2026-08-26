@@ -94,7 +94,7 @@ class ReadTest {
 	
 	private fun summarizeService(output: String): SummarizeService {
 		val s = mockk<SummarizeService>()
-		coEvery { s.invoke(any(), any()) } returns output
+		coEvery { s.invoke(any()) } returns output
 		return s
 	}
 	
@@ -150,7 +150,7 @@ class ReadTest {
 		val result = read.resolve(container(mockFs()), fileArgs(startLine = 1, endLine = 2001))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("读取的行数过多，上限为2000", result.reason)
+		assertEquals("读取的行数过多（2001），上限为2000", result.reason)
 	}
 	
 	@Test
@@ -158,7 +158,7 @@ class ReadTest {
 		val result = read.resolve(container(mockFs()), summarizeArgs(startLine = 1, endLine = 5001))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("读取的行数过多，上限为5000", result.reason)
+		assertEquals("读取的行数过多（5001），上限为5000", result.reason)
 	}
 	
 	@Test
@@ -314,20 +314,20 @@ class ReadTest {
 	@Test
 	fun `exec summarize output truncated`() = runTest {
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
-		c.register(SummarizeService::class, summarizeService("y".repeat(12000)))
+		c.register(SummarizeService::class, summarizeService("y".repeat(40000)))
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
-		assertTrue(result.result.startsWith("y".repeat(10000)))
+		assertTrue(result.result.startsWith("y".repeat(35000)))
 		assertTrue(
-			result.result.endsWith("[总结器输出内容过多，后续内容已被截断（共12000字符），请尝试修改总结器提示词]")
+			result.result.endsWith("[总结器输出内容过多，后续内容已被截断（共40000字符），请尝试修改总结器提示词]")
 		)
 	}
 	
 	@Test
 	fun `exec summarize failure returns error`() = runTest {
 		val s = mockk<SummarizeService>()
-		coEvery { s.invoke(any(), any()) } throws RuntimeException("boom")
+		coEvery { s.invoke(any()) } throws RuntimeException("boom")
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
 		c.register(SummarizeService::class, s)
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))

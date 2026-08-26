@@ -24,8 +24,10 @@ import io.github.autotweaker.adapter.cli.commands.DoneException
 import io.github.autotweaker.adapter.cli.commands.StyleBuilder
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.i18n.I18nDef
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import java.nio.file.Path
 
 class ConsoleImpl(
@@ -138,8 +140,13 @@ class ConsoleImpl(
 	override suspend fun altScreen(block: suspend () -> Unit) {
 		if (isTty) {
 			stdout(Ansi.ALT_SCREEN_ON + Ansi.HOME)
-			block()
-			stdout(Ansi.ALT_SCREEN_OFF)
+			try {
+				block()
+			} finally {
+				withContext(NonCancellable) {
+					stdout(Ansi.ALT_SCREEN_OFF)
+				}
+			}
 		}
 	}
 	

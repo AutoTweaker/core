@@ -19,7 +19,6 @@
 package io.github.autotweaker.api.base
 
 import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.trace
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
@@ -61,8 +60,10 @@ class ReentrantMutex : Traceable {
 		contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
 		if (currentCoroutineContext()[lockKey] === key) return block()
 		mutex.lock()
-		return trace.catching { withContext(key) { block() } }
-			.also { mutex.unlock() }
-			.getOrThrow()
+		return try {
+			withContext(key) { block() }
+		} finally {
+			mutex.unlock()
+		}
 	}
 }

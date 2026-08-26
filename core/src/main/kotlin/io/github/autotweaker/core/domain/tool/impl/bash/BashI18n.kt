@@ -35,8 +35,18 @@ object BashI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class RequestWithEnv : I18nBase(
+		zh("请求执行 Bash 命令（%s），携带环境变量 %s"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class Executing : I18nBase(
 		zh("正在执行 Bash 命令"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ExecutingWithEnv : I18nBase(
+		zh("正在执行 Bash 命令，携带环境变量 %s"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -67,5 +77,10 @@ object BashI18n {
 	@AutoService(I18nDef::class)
 	class Executed : I18nBase(
 		zh("执行了一条 Bash 命令"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ExecutedWithEnv : I18nBase(
+		zh("执行了一条 Bash 命令，携带环境变量 %s"),
 	)
 }

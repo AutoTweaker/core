@@ -104,7 +104,7 @@ class AbstractOpenAiClientChatTest {
 		
 		val client = DeepSeekClient()
 		val results = client.chat(userRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
-
+		
 		assertEquals(1, results.size)
 		val assembled = assertIs<ChatResult.Assembled>(results[0])
 		assertEquals("hello world", assembled.message.content)
@@ -140,8 +140,13 @@ class AbstractOpenAiClientChatTest {
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
-		assertEquals(1, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results[0])
+		assertEquals(4, results.size)
+		val chunks = results.filterIsInstance<ChatResult.Chunk>()
+		assertEquals(3, chunks.size)
+		assertEquals("hello", chunks[0].content)
+		assertEquals(" world", chunks[1].content)
+		assertEquals("", chunks[2].content)
+		val assembled = assertIs<ChatResult.Assembled>(results.last())
 		assertEquals("hello world", assembled.message.content)
 		assertEquals(30, assembled.usage?.totalTokens)
 	}
@@ -156,7 +161,8 @@ class AbstractOpenAiClientChatTest {
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
-		val assembled = assertIs<ChatResult.Assembled>(results.single())
+		assertEquals(2, results.size)
+		val assembled = assertIs<ChatResult.Assembled>(results.last())
 		val toolCalls = assembled.message.toolCalls
 		assertNotNull(toolCalls)
 		assertEquals(1, toolCalls.size)
@@ -213,8 +219,8 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
-		assertEquals(1, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results[0])
+		assertEquals(2, results.size)
+		val assembled = assertIs<ChatResult.Assembled>(results.last())
 		assertEquals("ok", assembled.message.content)
 	}
 	
@@ -251,8 +257,8 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
-		assertEquals(1, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results[0])
+		assertEquals(2, results.size)
+		val assembled = assertIs<ChatResult.Assembled>(results.last())
 		assertEquals("partial", assembled.message.content)
 	}
 	
@@ -265,7 +271,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
-		val assembled = assertIs<ChatResult.Assembled>(results.single())
+		val assembled = assertIs<ChatResult.Assembled>(results.last())
 		val tc = assembled.message.toolCalls
 		assertNotNull(tc)
 		assertEquals("f1", tc[0].name)
@@ -281,7 +287,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
-		val assembled = assertIs<ChatResult.Assembled>(results.single())
+		val assembled = assertIs<ChatResult.Assembled>(results.last())
 		val tc = assembled.message.toolCalls
 		assertNotNull(tc)
 		assertEquals("tc1", tc[0].id)

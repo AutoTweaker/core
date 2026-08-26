@@ -25,7 +25,7 @@ tool("bash") {
 	function("run") {
 		string("command")
 		int("timeout_seconds") { required = false }
-		stringList("env_ids")
+		stringList("env_ids") { required = false }
 	}
 }.gen(
 	"io.github.autotweaker.api.generated.tool.args",

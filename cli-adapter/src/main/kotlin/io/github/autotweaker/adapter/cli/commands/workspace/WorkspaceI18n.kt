@@ -93,4 +93,9 @@ object WorkspaceI18n {
 	class ListFormat : I18nBase(
 		zh("%s - %s (%s 个会话)"),
 	)
+	
+	@AutoService(I18nDef::class)
+	class ContainerWorkspace : I18nBase(
+		zh("[容器内工作区]"),
+	)
 }

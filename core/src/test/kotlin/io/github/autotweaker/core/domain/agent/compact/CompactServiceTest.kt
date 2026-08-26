@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.compact
 
-import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.TestServices
@@ -68,7 +68,7 @@ class CompactServiceTest {
 			manager.beginRound(
 				RuntimeContext.Message.User(
 					id = UUID.randomUUID(),
-					content = MessageContent(content = "question".textPart()),
+					content = MessageContent(content = "question".toContentPart()),
 					timestamp = Clock.System.now(),
 				)
 			)
@@ -164,7 +164,13 @@ class CompactServiceTest {
 		assertEquals(5, callCount.get())
 		assertNull(manager.context.value.compactedRounds)
 		assertEquals(1, manager.context.value.historyRounds?.size)
-		assertTrue(outputs.any { it is RuntimeOutput.Error && it.error.type == AgentError.Type.COMPACT })
+		assertTrue(
+			outputs.any {
+				it is RuntimeOutput.Output &&
+						it.output is AgentOutput.Error &&
+						it.output.type == AgentOutput.Error.Type.COMPACT
+			}
+		)
 	}
 	
 	@Test

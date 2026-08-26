@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
-import io.github.autotweaker.api.types.llm.textPart
+import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
@@ -74,7 +74,7 @@ class ToolCallHistoryImplTest {
 		RuntimeContext.CompletedRound(
 			userMessage = RuntimeContext.Message.User(
 				id = UUID.randomUUID(),
-				content = io.github.autotweaker.api.types.agent.MessageContent(content = "q".textPart()),
+				content = io.github.autotweaker.api.types.agent.MessageContent(content = "q".toContentPart()),
 				timestamp = Clock.System.now(),
 			),
 			turns = listOf(RuntimeContext.Turn(assistant(), tools)),
@@ -100,7 +100,7 @@ class ToolCallHistoryImplTest {
 			currentRound = RuntimeContext.CurrentRound(
 				userMessage = RuntimeContext.Message.User(
 					UUID.randomUUID(),
-					io.github.autotweaker.api.types.agent.MessageContent(content = "q".textPart()),
+					io.github.autotweaker.api.types.agent.MessageContent(content = "q".toContentPart()),
 					Clock.System.now(),
 				),
 				turns = listOf(RuntimeContext.Turn(assistant(), listOf(currentTool))),

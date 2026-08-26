@@ -88,4 +88,4 @@ sealed class ContentPart {
 	) : ContentPart()
 }
 
-fun String.textPart() = listOf(ContentPart.Text(this))
+fun String.toContentPart() = listOf(ContentPart.Text(this))

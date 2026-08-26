@@ -135,6 +135,11 @@ class AgentBridge(
 				}
 			}
 		}
+		scope.launch {
+			_agent.status.collect {
+				if (it == AgentStatus.FAILED) scope.cancel("Agent failed", _agent.exception)
+			}
+		}
 		log.info("Initialized agent bridge  agentId={}  cwd={}", _agent.agentId, cwd)
 	}
 	
@@ -223,14 +228,7 @@ class AgentBridge(
 	/* 内部工具 */
 	
 	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
-		is RuntimeOutput.LlmDelta -> AgentOutput.LlmDelta(delta)
-		is RuntimeOutput.LlmError -> AgentOutput.LlmError(
-			error.error, error.statusCode, error.exception, error.model
-		)
-		
-		is RuntimeOutput.Compact -> AgentOutput.Compact(output)
-		is RuntimeOutput.Error -> AgentOutput.Error(error)
-		is RuntimeOutput.Tool -> AgentOutput.Tool(output)
+		is RuntimeOutput.Output -> this.output
 		is RuntimeOutput.UsageConsumed -> {
 			val record = AgentMessage.UsageRecord(
 				id = usage.id,

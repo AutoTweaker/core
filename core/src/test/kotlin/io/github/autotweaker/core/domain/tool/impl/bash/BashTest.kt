@@ -164,10 +164,10 @@ class BashTest {
 	}
 	
 	@Test
-	fun `meta run function has required env_ids array parameter`() = runTest {
+	fun `meta run function has optional env_ids array parameter`() = runTest {
 		val (meta, _) = bash.meta()
 		val envIds = meta.functions.first().parameters.first { it.name == "env_ids" }
-		assertTrue(envIds.required)
+		assertFalse(envIds.required)
 		assertTrue(envIds.type is ToolMeta.Type.TList)
 	}
 	

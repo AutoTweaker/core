@@ -19,6 +19,7 @@
 package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.llm.toContentPart
 import kotlinx.serialization.Serializable
 
 /**
@@ -36,4 +37,9 @@ data class MessageContent(
 	 * 用户 prompt，请不要使用此字段发送系统指令。
 	 */
 	val content: List<ContentPart>? = null,
+)
+
+fun MessageContent(content: String) = MessageContent(
+	injections = null,
+	content = content.toContentPart()
 )

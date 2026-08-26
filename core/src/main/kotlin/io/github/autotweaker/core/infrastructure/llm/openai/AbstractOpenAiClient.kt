@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.llm.openai
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.*
@@ -76,6 +77,8 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			}
 		}.rethrowCancellation {
 			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
+		}.recoverException { e: LlmFailedException ->
+			emit(e.result)
 		}.getOrElse { e ->
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
 			emit(
@@ -95,8 +98,15 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 				timeout { socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds }
 			}
 		}.execute { response ->
-			if (!response.status.isSuccess())
-				error("LLM Stream Error: ${response.status}")
+			if (!response.status.isSuccess()) {
+				val errorBody = response.bodyAsText()
+				throw LlmFailedException(
+					ChatResult.Failed(
+						message = "LLM API Error (${response.status}): $errorBody",
+						statusCode = response.status.value
+					),
+				)
+			}
 			
 			val channel = response.bodyAsChannel()
 			val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
@@ -117,6 +127,8 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 						val chunk = json.decodeFromString(chunkSerializer, data)
 						
 						val result = chunk.transform()
+						emit(result)
+						
 						result.toolCalls?.forEach { fragment ->
 							val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
 							fragment.id?.let { pending.id = it }
@@ -165,13 +177,12 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		
 		if (!response.status.isSuccess()) {
 			val errorBody = response.bodyAsText()
-			emit(
+			throw LlmFailedException(
 				ChatResult.Failed(
 					message = "LLM API Error (${response.status}): $errorBody",
 					statusCode = response.status.value
 				),
 			)
-			return
 		}
 		
 		emit(response.body<Response>(responseTypeInfo).transform())
@@ -192,6 +203,8 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			}
 		}
 	}
+	
+	private class LlmFailedException(val result: ChatResult.Failed) : Exception()
 	
 	companion object {
 		private val json = Json {

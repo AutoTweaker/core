@@ -98,7 +98,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val request = when (args) {
 			is ReadArgs.File -> {
 				val startLine = args.startLine ?: 1
-				val endLine = args.endLine ?: (startLine + ReadSettings.MaxReadLines().get())
+				val endLine = args.endLine ?: (startLine + ReadSettings.MaxReadLines().get() - 1)
 				ReadRequest.File(
 					path = filePath,
 					relativePath = relativePath,
@@ -111,7 +111,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			
 			is ReadArgs.Summarize -> {
 				val startLine = args.startLine ?: 1
-				val endLine = args.endLine ?: (startLine + ReadSettings.SummarizeMaxLines().get())
+				val endLine = args.endLine ?: (startLine + ReadSettings.SummarizeMaxLines().get() - 1)
 				ReadRequest.Summarize(
 					path = filePath,
 					relativePath = relativePath,
@@ -137,7 +137,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		}.get()
 		val requestLines = request.endLine - request.startLine + 1
 		if (requestLines > maxLines)
-			return Rejected(ReadSettings.MessageTooManyLines().format(maxLines)) {
+			return Rejected(ReadSettings.MessageTooManyLines().format(requestLines, maxLines)) {
 				text(i18n(ReadI18n.TooManyLines(), relativePath, requestLines))
 			}
 		
@@ -255,14 +255,16 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					}
 				//提示词构造
 				val summarizePrompt = ReadSettings.SummarizePrompt().get()
-				val prompt = request.prompt?.let { "$summarizePrompt\n\n$it" } ?: summarizePrompt
+				val prompt = request.prompt?.let { "$summarizePrompt\n$it" } ?: summarizePrompt
 				//运行总结
 				val summarize = dependency.get<SummarizeService>()
-				val output = trace.catching { summarize(fileContent, prompt) }.getOrElse { e ->
+				val output = trace.catching { summarize(prompt + '\n' + fileContent) }.getOrElse { e ->
 					return ReadSettings.MessageSummarizeFailed().format(e.message()).toolFail {
 						text(i18n(ReadI18n.SummaryFailed(), request.relativePath, e.message()))
 					}
 				}
+				if (output == null) return ReadSettings.SummarizeOutputEmptyMessage().get()
+					.toolFail { text(i18n(ReadI18n.SummaryEmpty(), request.relativePath)) }
 				//输出截断
 				val summarizeMaxOutputChars = ReadSettings.SummarizeMaxOutputChars().get()
 				val result = if (output.length > summarizeMaxOutputChars)

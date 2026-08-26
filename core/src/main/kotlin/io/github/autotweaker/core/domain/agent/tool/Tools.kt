@@ -24,11 +24,15 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.exception.notfound.ToolNotFoundException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.tool.*
+import io.github.autotweaker.api.types.tool.ToolMeta
+import io.github.autotweaker.api.types.tool.ToolResultStatus
+import io.github.autotweaker.api.types.tool.UiBlock
+import io.github.autotweaker.api.types.tool.text
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -160,7 +164,7 @@ class Tools(
 		val output = supervisorScope {
 			launch {
 				outputChannel.consumeEach {
-					onToolOutput(RuntimeOutput.Tool(ToolOutput(toolName, callId, it.content, it.type)))
+					onToolOutput(RuntimeOutput.Output(AgentOutput.Tool(toolName, callId, it.content, it.type)))
 				}
 			}
 			trace.catching {

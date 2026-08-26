@@ -23,7 +23,7 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.textPart
+import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
@@ -33,7 +33,7 @@ import kotlin.time.Clock
 
 class MessageQueue(private val agentId: UUID) : Loggable {
 	private val channel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
-	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<UUID?>>()
+	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<Pair<UUID, MessageContent>?>>()
 	
 	private val cancelled = mutableSetOf<UUID>()
 	private val lock = ReentrantMutex()
@@ -96,7 +96,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			timestamp = Clock.System.now()
 		).also { message ->
 			filtered.keys.forEach {
-				deliveries.remove(it)?.complete(message.id)
+				deliveries.remove(it)?.complete(message.id to message.content)
 			}
 		}.andLog(log) { info("Merged queued messages  count={}  agentId={}", filtered.count(), agentId) }
 	}
@@ -106,7 +106,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	}
 	
 	fun send(content: String) = send(
-		MessageContent(content = content.textPart())
+		MessageContent(content = content.toContentPart())
 	)
 	
 	fun send(injection: ContextInjection) = send(
@@ -115,7 +115,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	
 	fun send(msg: MessageContent): Delivery {
 		val token = UUID()
-		val deferred = CompletableDeferred<UUID?>()
+		val deferred = CompletableDeferred<Pair<UUID, MessageContent>?>()
 		deliveries[token] = deferred
 		channel.trySend(token to msg)
 		return object : Delivery {

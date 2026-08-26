@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -56,7 +56,7 @@ object AgentChat : Loggable, I18nable {
 			when (val result = it.result) {
 				is ChatResult.Chunk -> emit(
 					AgentChatStreamResult.Delta(
-						StreamDelta(
+						AgentOutput.LlmDelta(
 							content = result.content,
 							reasoningContent = result.reasoningContent,
 							toolCallFragments = result.toolCalls,

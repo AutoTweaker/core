@@ -41,7 +41,7 @@ object ReadI18n {
 	
 	@AutoService(I18nDef::class)
 	class TooFewChars : I18nBase(
-		zh("读取文件 %s 失败，用于总结的字符数过少：%s"),
+		zh("读取并总结文件 %s 失败，用于总结的字符数过少：%s"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -117,6 +117,11 @@ object ReadI18n {
 	@AutoService(I18nDef::class)
 	class SummaryFailed : I18nBase(
 		zh("读取文件 %s 失败，总结器出错：%s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SummaryEmpty : I18nBase(
+		zh("读取并总结文件 %s 失败，总结器输出为空"),
 	)
 	
 	@AutoService(I18nDef::class)

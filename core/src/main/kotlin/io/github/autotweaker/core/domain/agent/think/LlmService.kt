@@ -21,7 +21,8 @@ package io.github.autotweaker.core.domain.agent.think
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.types.agent.AgentError
+import io.github.autotweaker.api.types.agent.AgentOutput
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
@@ -31,10 +32,12 @@ import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
 
 class LlmService(
 	private val agentId: UUID,
+	private val status: MutableStateFlow<AgentStatus>,
 	private val onOutput: (RuntimeOutput) -> Unit,
 ) : Loggable, Traceable {
 	suspend fun execute(
@@ -56,10 +59,10 @@ class LlmService(
 			}.getOrElse { e ->
 				log.error("Failed LLM call  agentId={}", agentId, e)
 				onOutput(
-					RuntimeOutput.Error(
-						AgentError(
+					RuntimeOutput.Output(
+						AgentOutput.Error(
 							e.message(),
-							AgentError.Type.LLM,
+							AgentOutput.Error.Type.LLM,
 						)
 					)
 				)
@@ -70,14 +73,24 @@ class LlmService(
 	private suspend fun runStream(request: AgentChatRequest): CallResult {
 		var assembled: AgentChatStreamResult.Assembled? = null
 		
+		status.value = AgentStatus.THINKING
 		AgentChat.execute(request, agentId).collect { result ->
 			when (result) {
 				is AgentChatStreamResult.Delta -> {
-					onOutput(RuntimeOutput.LlmDelta(result.delta))
+					onOutput(RuntimeOutput.Output(result.delta))
 				}
 				
 				is AgentChatStreamResult.Failing -> {
-					onOutput(RuntimeOutput.LlmError(result))
+					onOutput(
+						RuntimeOutput.Output(
+							AgentOutput.LlmError(
+								result.error,
+								result.statusCode,
+								result.exception,
+								result.model
+							)
+						)
+					)
 				}
 				
 				is AgentChatStreamResult.Assembled -> {

@@ -67,7 +67,7 @@ class AgentChatRequestExtTest {
 	private fun userMsg(content: String = "hello") =
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
-			content = MessageContent(content = content.textPart()),
+			content = MessageContent(content = content.toContentPart()),
 			timestamp = Clock.System.now()
 		)
 	

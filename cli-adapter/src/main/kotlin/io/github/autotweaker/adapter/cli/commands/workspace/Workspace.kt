@@ -23,6 +23,7 @@ import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
+import io.github.autotweaker.api.SPACE
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.catching
@@ -59,7 +60,12 @@ class Workspace : Command, Traceable {
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		handleFlag("list") {
 			core.workspace.list().forEach {
-				out(WorkspaceI18n.ListFormat(), it.meta.displayName, it.meta.path, it.sessionIds.count())
+				out(WorkspaceI18n.ListFormat(), it.meta.displayName, it.meta.path, it.sessionIds.count()) {
+					newline = false
+				}
+				if (core.pathResolver.inContainer(it.meta.path))
+					out(SPACE + i18n(WorkspaceI18n.ContainerWorkspace())) { green() }
+				else ln()
 			}
 		}
 		handleValue("create") { displayName ->

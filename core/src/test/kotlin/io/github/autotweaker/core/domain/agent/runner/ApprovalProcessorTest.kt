@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
-import io.github.autotweaker.api.types.llm.textPart
+import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -52,18 +52,18 @@ class ApprovalProcessorTest {
 	
 	private val model = mockk<AgentModel>()
 	
-	private fun manager() = AgentContextManager(
+	private fun manager(pendingCalls: List<String> = listOf("c1", "c2")) = AgentContextManager(
 		initial = RuntimeContext(null, null, null, null, null),
 	).also { manager ->
 		runBlocking {
 			manager.beginRound(
 				RuntimeContext.Message.User(
 					id = UUID.randomUUID(),
-					content = MessageContent(content = "hello".textPart()),
+					content = MessageContent(content = "hello".toContentPart()),
 					timestamp = Clock.System.now(),
 				)
 			)
-			manager.applyThinking(assistant(), listOf(pendingCall("c1"), pendingCall("c2")), emptyList())
+			manager.applyThinking(assistant(), pendingCalls.map { pendingCall(it) }, emptyList())
 		}
 	}
 	
@@ -112,13 +112,15 @@ class ApprovalProcessorTest {
 	
 	@Test
 	fun `approved call executes tool and returns reason`() = runTest {
-		val ctx = manager()
+		val ctx = manager(listOf("c1"))
 		val tool = mockk<ToolCallingStage>()
 		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
+		val processor = ApprovalProcessor(
+			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
+		)
 		
 		processor.approvalChannel.send(ToolApprove("c1", reason = "go ahead"))
-		val reasons = processor.process(listOf(resolvedCall("c1")), model, MutableStateFlow(AgentStatus.FREE))
+		val reasons = processor.process(listOf(resolvedCall("c1")), model)
 		
 		assertEquals(listOf("go ahead"), reasons)
 		coVerify(exactly = 1) { tool.execute(any(), any(), any(), any()) }
@@ -135,10 +137,12 @@ class ApprovalProcessorTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
 		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
+		val processor = ApprovalProcessor(
+			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
+		)
 		
 		processor.approvalChannel.send(ToolApprove("c1", reason = null))
-		val reasons = processor.process(listOf(resolvedCall("c1")), model, MutableStateFlow(AgentStatus.FREE))
+		val reasons = processor.process(listOf(resolvedCall("c1")), model)
 		
 		assertTrue(reasons.isEmpty())
 	}
@@ -149,13 +153,15 @@ class ApprovalProcessorTest {
 	
 	@Test
 	fun `rejected call records rejected result without executing`() = runTest {
-		val ctx = manager()
+		val ctx = manager(listOf("c1"))
 		val tool = mockk<ToolCallingStage>()
 		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
+		val processor = ApprovalProcessor(
+			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
+		)
 		
 		processor.approvalChannel.send(ToolApprove("c1", reason = "no thanks", approved = false))
-		val reasons = processor.process(listOf(resolvedCall("c1")), model, MutableStateFlow(AgentStatus.FREE))
+		val reasons = processor.process(listOf(resolvedCall("c1")), model)
 		
 		assertTrue(reasons.isEmpty())
 		coVerify(exactly = 0) { tool.execute(any(), any(), any(), any()) }
@@ -175,14 +181,15 @@ class ApprovalProcessorTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
 		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(false))
+		val processor = ApprovalProcessor(
+			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
+		)
 		
 		processor.approvalChannel.send(ToolApprove("c2", reason = "second first"))
 		processor.approvalChannel.send(ToolApprove("c1", reason = "first"))
 		val reasons = processor.process(
 			listOf(resolvedCall("c1"), resolvedCall("c2")),
 			model,
-			MutableStateFlow(AgentStatus.FREE),
 		)
 		
 		assertEquals(listOf("first", "second first"), reasons)
@@ -201,12 +208,13 @@ class ApprovalProcessorTest {
 		val ctx = manager()
 		val tool = mockk<ToolCallingStage>()
 		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(ctx, tool, this, MutableStateFlow(true))
+		val processor = ApprovalProcessor(
+			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(true)
+		)
 		
 		val reasons = processor.process(
 			listOf(resolvedCall("c1"), resolvedCall("c2")),
 			model,
-			MutableStateFlow(AgentStatus.FREE),
 		)
 		
 		assertTrue(reasons.isEmpty())

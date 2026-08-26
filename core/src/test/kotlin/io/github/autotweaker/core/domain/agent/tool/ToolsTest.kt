@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -227,7 +228,7 @@ class ToolsTest {
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
 			"bash", "c2", bashRequest, ServiceContainer(), truncation,
-			onToolOutput = { outputs.add((it as RuntimeOutput.Tool).output.content) },
+			onToolOutput = { outputs.add(((it as RuntimeOutput.Output).output as AgentOutput.Tool).content) },
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)

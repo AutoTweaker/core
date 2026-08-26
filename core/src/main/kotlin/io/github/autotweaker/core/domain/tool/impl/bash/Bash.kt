@@ -76,11 +76,13 @@ class Bash : CoreTool<BashArgs>, Loggable {
 			BashMessage.InvalidTimeout().get(),
 		) { text(i18n(BashI18n.InvalidArg())) }
 		
-		val envIds = request.envIds.toSet()
+		val envIds = request.envIds?.toSet().orEmpty()
 		val notFound = envIds - listEnv().toSet()
 		if (notFound.isNotEmpty()) return Rejected(
 			BashMessage.EnvNotFound().format(notFound)
 		) { text(i18n(BashI18n.InvalidArg())) }
+		
+		val envString = envIds.orNull()?.joinToString(SPACE.toString())
 		
 		return Ready(
 			BashRequest.serializer(),
@@ -90,24 +92,31 @@ class Bash : CoreTool<BashArgs>, Loggable {
 				envIds = envIds
 			),
 			request = { reason ->
-				text(i18n(BashI18n.Request(), reason))
+				if (envString == null) text(i18n(BashI18n.Request(), reason))
+				else text(i18n(BashI18n.RequestWithEnv(), reason, envString))
 				command(command)
 			},
 			executing = {
-				text(i18n(BashI18n.Executing()))
+				if (envString == null) text(i18n(BashI18n.Executing()))
+				else text(i18n(BashI18n.ExecutingWithEnv(), envString))
+				command(command)
 			},
 			cancelled = {
 				text(i18n(BashI18n.Cancelled()))
+				command(command)
 			},
 			rejected = {
 				if (it == null) text(i18n(BashI18n.Rejected()))
 				else text(i18n(BashI18n.RejectedWithReason(), it))
+				command(command)
 			},
 			failed = {
 				text(i18n(BashI18n.Failed(), it.message()))
+				command(command)
 			},
 			timeout = {
 				text(i18n(BashI18n.Timeout(), it))
+				command(command)
 			}
 		)
 	}
@@ -171,7 +180,14 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		return BashMessage.ToolResult().get()
 			.format(result.exitCode, result.duration, processOutput(stdout), processOutput(stderr))
 			.toolResult(BashResult.serializer(), output, success) {
-				text(i18n(BashI18n.Executed()))
+				if (request.envIds.isEmpty()) text(i18n(BashI18n.Executed()))
+				else text(
+					i18n(
+						BashI18n.ExecutedWithEnv(),
+						request.envIds.joinToString(SPACE.toString())
+					)
+				)
+				command(request.command)
 				output(stdout)
 				error(stderr)
 			}

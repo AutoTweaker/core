@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.core.domain.agent.AgentModel
@@ -33,7 +33,7 @@ data class AgentChatRequest(
 
 sealed class AgentChatStreamResult {
 	data class Delta(
-		val delta: StreamDelta
+		val delta: AgentOutput.LlmDelta
 	) : AgentChatStreamResult()
 	
 	data class Failing(

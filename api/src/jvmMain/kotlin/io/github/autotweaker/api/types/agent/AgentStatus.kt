@@ -16,13 +16,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.tool
+package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.tool.Tool.RuntimeOutput.OutputType
-
-data class ToolOutput(
-	val name: String,
-	val callId: String,
-	val content: String,
-	val type: OutputType
-)
+/**
+ * 表示 Agent 当前状态。
+ */
+enum class AgentStatus {
+	/**
+	 * Agent 主循环空闲，但上下文压缩可能正在进行。
+	 */
+	FREE,
+	
+	/**
+	 * Agent 主循环发生不可恢复错误，已经无法工作。
+	 */
+	FAILED,
+	
+	/**
+	 * Agent 正在调用 LLM，在此期间不会有上下文更新。
+	 */
+	THINKING,
+	
+	/**
+	 * Agent 正在执行工具，在此期间不会有上下文更新。
+	 */
+	TOOL_CALLING,
+	
+	/**
+	 * 短暂的瞬时状态，Agent 正在执行内部运算，如更新上下文或校验工具调用。
+	 */
+	PROCESSING,
+	
+	/**
+	 * Agent 正在等待工具审批。
+	 */
+	WAITING,
+}

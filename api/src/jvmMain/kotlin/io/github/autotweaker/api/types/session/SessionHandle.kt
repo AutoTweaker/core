@@ -19,9 +19,17 @@
 package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import kotlinx.coroutines.flow.StateFlow
 
 class SessionHandle(
 	val agents: List<AgentAPI>,
 	val data: StateFlow<SessionData>,
-)
+) {
+	fun mainAgent(): AgentAPI {
+		val mainId = data.value.agentIndex.main.id
+		return agents.find {
+			it.id == mainId
+		} ?: throw AgentNotFoundException(mainId, data.value.id)
+	}
+}

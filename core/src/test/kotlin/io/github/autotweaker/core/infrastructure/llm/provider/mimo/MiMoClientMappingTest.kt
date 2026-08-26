@@ -114,7 +114,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps messages correctly`() {
-		val userMsg = ChatMessage.User("hello".textPart(), now)
+		val userMsg = ChatMessage.User("hello".toContentPart(), now)
 		val request = chatRequest(model = "mimo-v2-pro", messages = listOf(userMsg))
 		
 		val body = createRequestBody(request)
@@ -158,7 +158,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody includes tools and thinking`() {
-		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart(), now)
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
 		val request = chatRequest(
 			model = "test", messages = listOf(userMsg),
@@ -177,7 +177,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody thinking false disabled`() {
-		val userMsg = ChatMessage.User("hi".textPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart(), now)
 		val request = chatRequest(model = "test", messages = listOf(userMsg), reasoning = ReasoningEffort(false))
 		val body = createRequestBody(request)
 		assertEquals(OpenAiThinking.Type.DISABLED, body.thinking?.type)

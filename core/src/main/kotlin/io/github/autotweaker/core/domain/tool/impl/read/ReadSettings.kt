@@ -28,7 +28,7 @@ import io.github.autotweaker.api.config.SettingDef
 object ReadSettings {
 	@AutoService(SettingDef::class)
 	class ToolDescription : StringSetting(
-		"读取一个文件，支持获取摘要以及Unicode代码", zh(
+		"读取一个文件，支持常规读取、对文件内容进行总结（用于较大的文件）以及Unicode转义（用于诊断特殊字符）", zh(
 			"read工具的描述，在read工具未激活时展示给llm"
 		)
 	)
@@ -43,7 +43,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class ReadSummarizeDescription : StringSetting(
-		"获取一个文件的摘要，最大字符数%s，最小字符数%s，最大行数%s，在文件较大时使用此工具很合适", zh(
+		"对一个文件的内容进行总结，最大字符数%s，最小字符数%s，最大行数%s，在文件较大时使用此工具很合适", zh(
 			"read-summarize工具的描述"
 		)
 	)
@@ -85,7 +85,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MessageTooManyLines : StringSetting(
-		"读取的行数过多，上限为%s", zh(
+		"读取的行数过多（%s），上限为%s", zh(
 			"read工具读取过多内容时的描述"
 		)
 	)
@@ -169,7 +169,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class SummarizePrompt : StringSetting(
-		"你是文件总结助手，请根据用户输入和以下指令生成关于文件内容的摘要", zh(
+		"你是文件总结助手，请生成关于以下文件内容的摘要", zh(
 			"summarize功能使用的系统提示词，这段文本被安置在llm自定义指令之前"
 		)
 	)
@@ -189,6 +189,13 @@ object ReadSettings {
 	)
 	
 	@AutoService(SettingDef::class)
+	class SummarizeOutputEmptyMessage : StringSetting(
+		"总结器没有输出有效内容，请尝试修改总结器提示词", zh(
+			"read-summarize工具截断位置的描述"
+		)
+	)
+	
+	@AutoService(SettingDef::class)
 	class SummarizeInputTruncationMessage : StringSetting(
 		"[字符数过多，后续内容已被截断（共%s字符）]", zh(
 			"read-summarize工具总结器输入内容截断位置的描述"
@@ -197,21 +204,21 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MaxReadLines : IntSetting(
-		2000, zh(
+		2_000, zh(
 			"read-file工具最大允许行数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxReadChars : IntSetting(
-		20000, zh(
+		50_000, zh(
 			"read-file工具最大允许字符数，超出会截断"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMaxLines : IntSetting(
-		5000, zh(
+		5_000, zh(
 			"read-summarize工具最大允许行数"
 		)
 	)
@@ -232,7 +239,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMaxOutputChars : IntSetting(
-		10000, zh(
+		35_000, zh(
 			"read-summarize工具最大输出字符数，超出会截断"
 		)
 	)

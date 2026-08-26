@@ -122,7 +122,7 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class EnableDescription : StringSetting(
-		"此工具未激活，不可用，请激活此工具以开始使用\n无论将此值设为true或false都将启用工具",
+		"请传递此参数来激活这个工具\n无论将此值设为true或false都将激活工具\n激活后工具将可用，工具列表将会更新",
 		zh("未激活工具的enable属性描述")
 	)
 	
@@ -141,7 +141,7 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class MaxOutput : IntSetting(
-		500_000, zh(
+		100_000, zh(
 			"工具输出的极限长度，单位字符数而非token，任何工具在输出超过此长度时都将被截断，完整输出会被存入临时文件。" +
 					"请不要设置较小的值，也不要比read等工具的上限更小，如果此值比read工具的字符数上限小，" +
 					"可能导致模型在读取完整输出时再次触发截断和保存"

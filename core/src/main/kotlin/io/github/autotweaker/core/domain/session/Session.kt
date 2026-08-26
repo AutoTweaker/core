@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentContext
@@ -50,7 +51,7 @@ class Session(
 	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> Model,
 	private val workspace: Path,
-) : Loggable {
+) : Loggable, Traceable {
 	private val _data = MutableStateFlow(data)
 	val data: StateFlow<SessionData> = _data.asStateFlow()
 	
@@ -106,7 +107,11 @@ class Session(
 	}
 	
 	suspend fun shutdown() = lock.withLock {
-		bridges.values.forEachParallel { it.shutdown() }
+		bridges.values.forEachParallel {
+			trace.catching { it.shutdown() }.onFailure { e ->
+				log.warn("Failed agent shutdown  sessionId={}  reason={}", it.id, e.message)
+			}
+		}
 	}
 	
 	private fun getHost(agentId: UUID) = object : AgentHost {
@@ -169,7 +174,7 @@ class Session(
 				val text = it.content?.filterIsInstance<ContentPart.Text>()?.firstOrNull()?.content
 					?: return@onSend
 				updateTitle { old ->
-					old ?: text.lines().firstOrNull()?.take(20)
+					old ?: text.lines().firstOrNull()?.take(100)
 				}
 			}
 		} else null

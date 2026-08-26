@@ -18,11 +18,18 @@
 
 package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.tool.ToolOutput
+import io.github.autotweaker.api.tool.Tool.RuntimeOutput.OutputType
+import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.Usage
 import java.util.*
 
 sealed class AgentOutput {
-	data class LlmDelta(val delta: StreamDelta) : AgentOutput()
+	data class LlmDelta(
+		val content: String?,
+		val reasoningContent: String?,
+		val toolCallFragments: List<ChatResult.ChunkToolCall>?,
+	) : AgentOutput()
+	
 	data class LlmError(
 		val content: String?,
 		val statusCode: Int?,
@@ -31,14 +38,28 @@ sealed class AgentOutput {
 	) : AgentOutput()
 	
 	data class Compact(
-		val output: CompactOutput
-	) : AgentOutput()
+		val status: Status,
+		val content: String,
+		val usage: Usage?,
+	) : AgentOutput() {
+		enum class Status {
+			OUTPUTTING, FINISHED, FAILED,
+		}
+	}
 	
 	data class Tool(
-		val output: ToolOutput
+		val name: String,
+		val callId: String,
+		val content: String,
+		val type: OutputType
 	) : AgentOutput()
 	
 	data class Error(
-		val error: AgentError
-	) : AgentOutput()
+		val message: String,
+		val type: Type,
+	) : AgentOutput() {
+		enum class Type {
+			LLM, COMPACT,
+		}
+	}
 }

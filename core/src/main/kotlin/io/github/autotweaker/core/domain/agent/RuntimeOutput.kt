@@ -18,27 +18,12 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.types.agent.AgentError
-import io.github.autotweaker.api.types.agent.CompactOutput
-import io.github.autotweaker.api.types.agent.StreamDelta
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.UsageEntry
-import io.github.autotweaker.api.types.tool.ToolOutput
-import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
 
 sealed class RuntimeOutput {
-	data class LlmDelta(val delta: StreamDelta) : RuntimeOutput()
-	data class LlmError(val error: AgentChatStreamResult.Failing) : RuntimeOutput()
-	
-	data class Compact(
-		val output: CompactOutput
-	) : RuntimeOutput()
-	
-	data class Tool(
-		val output: ToolOutput
-	) : RuntimeOutput()
-	
-	data class Error(
-		val error: AgentError
+	data class Output(
+		val output: AgentOutput
 	) : RuntimeOutput()
 	
 	data class UsageConsumed(

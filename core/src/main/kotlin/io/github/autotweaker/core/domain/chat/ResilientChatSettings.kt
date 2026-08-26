@@ -28,14 +28,14 @@ import io.github.autotweaker.api.config.SettingDef
 object ResilientChatSettings {
 	@AutoService(SettingDef::class)
 	class MaxRetries : IntSetting(
-		5, zh(
+		3, zh(
 			"单轮大模型请求的最大重试次数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class LlmChatRetries : IntSetting(
-		3, zh(
+		2, zh(
 			"大模型请求的重试/回退策略耗尽后重头开始的最大次数"
 		)
 	)
