@@ -70,8 +70,8 @@ class ToolCallingStage(
 		return trace.catching {
 			coroutineScope {
 				toolJob = coroutineContext[Job]
-				onToolCall(call.callId to resolved.executing())
 				status.value = AgentStatus.TOOL_CALLING
+				onToolCall(call.callId to resolved.executing())
 				withTimeout(timeoutSeconds.seconds) {
 					val provider = ToolProvider.buildToolProvider(
 						workspace = workspace,

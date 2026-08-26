@@ -214,13 +214,13 @@ class Session : Command, Traceable, Loggable {
 	private suspend fun Console.view(core: CoreAPI, id: String, workspace: WorkspaceData) {
 		val session = core.session.getHandle(sessionId(id, workspace))
 		val agent = session.mainAgent()
-		val streaming = ReentrantMutex()
+		val outputLock = ReentrantMutex()
 		out(SessionI18n.SessionEntered(), id) { green() }
 		ln()
 		coroutineScope {
 			launch {
 				agent.status.collectLatest { state ->
-					if (state == AgentStatus.THINKING) streaming.withLock {
+					if (state == AgentStatus.THINKING) outputLock.withLock {
 						altScreen {
 							out(SessionI18n.Thinking()) { white() }
 							ln()
@@ -260,7 +260,7 @@ class Session : Command, Traceable, Loggable {
 				}
 				agent.context.collect { new ->
 					agent.status.first { it != AgentStatus.THINKING }
-					streaming.withLock {
+					outputLock.withLock {
 						val old = lastest
 						lastest = new
 						if (old == null) {
@@ -313,13 +313,15 @@ class Session : Command, Traceable, Loggable {
 			launch {
 				agent.toolCalling.collect { call ->
 					if (call == null) return@collect
-					call.second.print()
+					outputLock.withLock {
+						call.second.print()
+					}
 				}
 			}
 			launch {
 				agent.output.collect { output ->
 					when (output) {
-						is AgentOutput.Error -> streaming.withLock {
+						is AgentOutput.Error -> outputLock.withLock {
 							err(SessionI18n.AgentError(), output.message) { red() }
 						}
 						
