@@ -91,6 +91,7 @@ class Agent(
 	
 	private val runner = RoundRunner(
 		ctx = ctx,
+		workspace = workspace,
 		tools = toolManager,
 		thinkingStage = thinkingStage,
 		toolCalling = toolCallingStage,

@@ -24,6 +24,7 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.application.impl.CoreAPIImpl
 import io.github.autotweaker.core.application.impl.ShellRouter
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -35,6 +36,7 @@ import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
+import io.github.autotweaker.core.infrastructure.git.GitStatusServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
@@ -43,6 +45,7 @@ import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.system.SystemInfoServiceImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
@@ -58,6 +61,7 @@ object Wiring : Loggable {
 		ApiKeyRepository.init(SecretManager)
 		SecretDbApi.init(SecretManager)
 		ModelResolverImpl.init(SecretManager)
+		MessageConverts.init(RawFileSystemImpl, pathResolver, SystemInfoServiceImpl, GitStatusServiceImpl)
 		ResilientChat.init(LlmGatewayImpl)
 		ChatService.init(
 			ModelResolverImpl, SessionRepositoryImpl

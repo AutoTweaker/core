@@ -23,8 +23,11 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts
+import io.github.autotweaker.core.domain.port.Truncated
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
+import io.mockk.coEvery
 import io.mockk.mockk
 
 object TestServices {
@@ -46,6 +49,14 @@ object TestServices {
 					{ settingService },
 					{ mockk(relaxed = true) }
 				)
+			)
+			MessageConverts.init(
+				fs = mockk(relaxed = true) {
+					coEvery { readString(any()) } returns Truncated(content = "", truncated = false)
+				},
+				path = mockk(relaxed = true),
+				system = mockk(relaxed = true),
+				git = mockk(relaxed = true)
 			)
 		} catch (_: IllegalStateException) {
 		}

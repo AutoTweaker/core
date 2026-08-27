@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.agent.chat.merge
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts.merge
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository

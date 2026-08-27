@@ -21,10 +21,11 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts.inject
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts.injectContext
 import kotlinx.datetime.TimeZone
-import java.util.*
 
-fun AgentChatRequest.toChatMessages(language: Locale): List<ChatMessage> {
+fun AgentChatRequest.toChatMessages(): List<ChatMessage> {
 	val current = checkNotNull(context.currentRound) { "No current round available" }
 	
 	val lastMessage = when {
@@ -45,17 +46,17 @@ fun AgentChatRequest.toChatMessages(language: Locale): List<ChatMessage> {
 	return buildList {
 		//历史轮次
 		for (round in context.historyRounds.orEmpty()) {
-			addAll(round.toChatMessages(language))
+			addAll(round.toChatMessages())
 		}
 		
 		//当前轮次
-		add(current.userMessage.toChatMessage(language))
+		add(current.userMessage.toChatMessage())
 		current.turns?.forEach { addTurn(it) }
 	}.inject(context.injections, context.compactedRounds?.summarizedMessage?.content)
 }
 
-fun RuntimeContext.CompletedRound.toChatMessages(language: Locale): List<ChatMessage> = buildList {
-	add(userMessage.toChatMessage(language))
+fun RuntimeContext.CompletedRound.toChatMessages(): List<ChatMessage> = buildList {
+	add(userMessage.toChatMessage())
 	turns?.forEach { addTurn(it) }
 	finalAssistantMessage?.let { add(it.toChatMessage()) }
 }
@@ -74,8 +75,8 @@ private fun MutableList<ChatMessage>.addTurn(turn: RuntimeContext.Turn) {
 	turn.tools.forEach { add(it.toChatMessage()) }
 }
 
-private fun RuntimeContext.Message.User.toChatMessage(language: Locale) = content
-	.injectContext(timestamp, TimeZone.currentSystemDefault(), language)
+private fun RuntimeContext.Message.User.toChatMessage() = content
+	.injectContext(timestamp, TimeZone.currentSystemDefault())
 	.inject()
 	.let { content ->
 		ChatMessage.User(

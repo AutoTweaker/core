@@ -200,7 +200,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 	}
 	
 	suspend fun updateInjections(
-		function: (List<ContextInjection>?) -> List<ContextInjection>?
+		function: suspend (List<ContextInjection>?) -> List<ContextInjection>?
 	) = lock.withLock {
 		_context.update {
 			val new = function(it.injections)

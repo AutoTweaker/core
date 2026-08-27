@@ -28,8 +28,8 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.chat.inject
-import io.github.autotweaker.core.domain.agent.chat.merge
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts.inject
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts.merge
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat

@@ -197,6 +197,12 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}.onFailure { log.warn("Failed to fsync directory  path={}  reason={}", dir, it.message) }
 	}
 	
+	override suspend fun list(path: Path): List<Path> = withContext(Dispatchers.IO) {
+		trace.catching {
+			Files.list(path).use { stream -> stream.toList() }
+		}.rethrowFileSystemException()
+	}
+
 	override suspend fun glob(pattern: String, cwd: Path): List<Path> =
 		withContext(Dispatchers.IO) {
 			val matcher = cwd.fileSystem.getPathMatcher("glob:$pattern")

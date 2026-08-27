@@ -32,6 +32,7 @@ import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.compact.CompactSettings
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
@@ -45,11 +46,13 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 
 class RoundRunner(
 	private val ctx: AgentContextManager,
+	private val workspace: () -> Path,
 	private val tools: Tools,
 	private val thinkingStage: ThinkingStage,
 	private val toolCalling: ToolCallingStage,
@@ -167,6 +170,12 @@ class RoundRunner(
 	
 	private suspend fun workLoop() {
 		log.info("Started workLoop  agentId={}", agentId)
+		val environment = MessageConverts.environmentInjection(workspace()).orNull()?.associateBy { it.id }
+		if (environment != null && ctx.get().injections.orEmpty().none { it.id in environment.keys })
+			ctx.updateInjections {
+				environment.values + it.orEmpty()
+			}
+		
 		while (true) {
 			val msg = messages.receive()
 			shouldBreak.value = false
