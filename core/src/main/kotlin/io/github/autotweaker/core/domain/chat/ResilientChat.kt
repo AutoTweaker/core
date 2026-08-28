@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.core.domain.chat
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.get
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.exception.ChatRetriesExhaustedException
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ChatRequest.Tool
@@ -131,6 +128,14 @@ object ResilientChat : Loggable {
 			
 			results.collect { result ->
 				if (result is ChatResult.Failed) {
+					log.warn(
+						"Failed LLM chat, maybe retry  provider={}  model={}  statusCode={}  reason={}  exception={}",
+						target.provider.name,
+						target.modelInfo.modelId,
+						result.statusCode,
+						result.message,
+						result.exception?.message()
+					)
 					emit(LlmResult(result, model = target.id))
 					statusCode = result.statusCode
 					hasError = true

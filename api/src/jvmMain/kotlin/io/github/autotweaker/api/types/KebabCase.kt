@@ -28,8 +28,9 @@ import kotlinx.serialization.Serializable
  */
 @JvmInline
 @Serializable
-value class KebabCase private constructor(val value: String) {
+value class KebabCase private constructor(val value: String) : Comparable<KebabCase> {
 	override fun toString(): String = value
+	override fun compareTo(other: KebabCase): Int = value.compareTo(other.value)
 	
 	companion object : Traceable {
 		/**

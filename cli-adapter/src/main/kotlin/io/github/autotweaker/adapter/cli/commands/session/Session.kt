@@ -55,17 +55,29 @@ class Session : Command, Traceable, Loggable {
 		value("workspace", SessionI18n.WorkspaceParam()) { required = false }
 		xor {
 			flag("list", SessionI18n.ListFlag())
-			flag("new", SessionI18n.NewFlag())
-			value("send", SessionI18n.SendFlag())
+			all {
+				flag("new", SessionI18n.NewFlag())
+				positional("message", SessionI18n.MessageParam()) { required = false }
+			}
+			all {
+				value("send", SessionI18n.SendFlag())
+				positional("message", SessionI18n.MessageParam()) { required = false }
+			}
 			all {
 				xor {
 					value("approve", SessionI18n.ApproveFlag())
 					value("reject", SessionI18n.RejectFlag())
 				}
+				flag("all", SessionI18n.AllFlag()) { required = false; aliases() }
 				positional("reason", SessionI18n.ReasonParam()) { required = false }
 			}
 			value("yolo", SessionI18n.YoloFlag()) { aliases() }
-			value("view", SessionI18n.ViewFlag())
+			all {
+				value("view", SessionI18n.ViewFlag())
+				flag("follow", SessionI18n.FollowFlag()) { required = false }
+			}
+			value("update-model", SessionI18n.UpdateModelFlag())
+			value("status", SessionI18n.StatusFlag()) { aliases() }
 			value("delete", SessionI18n.DeleteFlag())
 		}
 	}
@@ -109,9 +121,9 @@ class Session : Command, Traceable, Loggable {
 		handleFlag("new") {
 			val newId = core.session.create(workspace.id, getConfig())
 			out(SessionI18n.SessionCreated(), ShortIdMapper.shortString(newId)) { green() }
-			val stdin = readAll() ?: done()
+			val msg = getPositionalOrNull(0) ?: readAll() ?: done()
 			val agent = core.session.getHandle(newId).mainAgent()
-			send(agent, stdin)
+			send(agent, msg)
 		}
 		handleValue("delete") {
 			val id = sessionId(it, workspace)
@@ -120,12 +132,18 @@ class Session : Command, Traceable, Loggable {
 			else out(SessionI18n.SessionDeleted(), it) { green() }
 		}
 		handleValue("view") {
-			view(core, it, workspace)
+			val session = core.session.getHandle(sessionId(it, workspace))
+			val agent = session.mainAgent()
+			out(SessionI18n.SessionEntered(), it) { green() }
+			ln()
+			if (hasArg("follow"))
+				view(core, agent)
+			else printInitial(core, agent.context.value)
 		}
 		handleValue("send") { value ->
 			val id = sessionId(value, workspace)
 			val agent = core.session.getHandle(id).mainAgent()
-			var message = readAll()
+			var message = getPositionalOrNull(0) ?: readAll()
 			if (message.isNullOrBlank()) message = prompt(">")
 			send(agent, message)
 		}
@@ -155,6 +173,26 @@ class Session : Command, Traceable, Loggable {
 				}
 			}
 		}
+		handleValue("status") { value ->
+			val session = core.session.getHandle(sessionId(value, workspace))
+			out(SessionI18n.SessionId(), value)
+			out(SessionI18n.SessionTitle(), session.data.value.title)
+			session.agents.sortedBy { it.name }.forEach { agent ->
+				out(SessionI18n.AgentName(), agent.name)
+				out(SessionI18n.CurrentStatus(), agent.status.value)
+				out(SessionI18n.MessageCount(), agent.context.value.index.ids().count())
+				agent.context.value.droppedMessages?.let {
+					if (it.isNotEmpty()) out(SessionI18n.DroppedMessages(), it.count())
+				}
+				out(SessionI18n.Reasoning(), agent.model.reasoning)
+				agent.toolCalling.value?.second?.print()
+				out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString(", "))
+			}
+		}
+		handleValue("update-model") {
+			core.session.getHandle(sessionId(it, workspace)).mainAgent().setModel(getConfig())
+			out(SessionI18n.ModelUpdated(), it)
+		}
 		
 		done(1)
 	}
@@ -182,24 +220,50 @@ class Session : Command, Traceable, Loggable {
 	
 	private suspend fun Console.approve(id: String, workspace: WorkspaceData, core: CoreAPI) {
 		val agent = core.session.getHandle(sessionId(id, workspace)).mainAgent()
-		val call = agent.context.value.index.currentRound?.pendingToolCalls?.firstOrNull()
-		val msg = call?.loadMessage<AgentMessage.Tool.Call>(core) ?: error(SessionI18n.NoPendingCalls())
+		
+		val call = agent.context.value.index.currentRound?.pendingToolCalls?.let { calls ->
+			if (hasArg("all")) calls else calls.firstOrNull()?.let { first -> listOf(first) }
+		}
+		val msg = call?.mapNotNullTo(mutableListOf()) {
+			it.loadMessage<AgentMessage.Tool.Call>(core)
+		}
+		if (msg.isNullOrEmpty()) error(SessionI18n.NoPendingCalls())
 		val approved = when {
 			hasArg("approve") -> true
 			hasArg("reject") -> false
 			else -> unreachable()
 		}
-		agent.approve(
-			ToolApprove(
-				msg.callId,
-				getPositionalOrNull(0),
-				approved
+		
+		suspend fun AgentMessage.Tool.Call.approve(reason: String?) {
+			agent.approve(
+				ToolApprove(
+					callId,
+					reason,
+					approved
+				)
 			)
-		)
-		out(
-			if (approved) SessionI18n.CallApproved() else SessionI18n.CallRejected(),
-			msg.validatedToolName
-		) { green() }
+			
+			out(
+				if (approved) SessionI18n.CallApproved() else SessionI18n.CallRejected(),
+			) { green() }
+			printMsg()
+		}
+		
+		msg.removeFirst().approve(getPositionalOrNull(0))
+		
+		msg.forEach {
+			it.approve(null)
+		}
+		val processed = call.toSet()
+		val pending = agent.context.value.index.currentRound?.pendingToolCalls?.mapNotNull {
+			if (it in processed) return@mapNotNull null
+			it.loadMessage<AgentMessage.Tool.Call>(core)
+		}?.orNull()
+		
+		if (pending != null) out(SessionI18n.RemainingRequests())
+		pending?.forEach {
+			it.printMsg()
+		}
 	}
 	
 	private suspend fun Console.sessionId(id: String, workspace: WorkspaceData): UUID {
@@ -211,13 +275,9 @@ class Session : Command, Traceable, Loggable {
 	}
 	
 	
-	private suspend fun Console.view(core: CoreAPI, id: String, workspace: WorkspaceData) {
-		val session = core.session.getHandle(sessionId(id, workspace))
-		val agent = session.mainAgent()
-		val outputLock = ReentrantMutex()
-		out(SessionI18n.SessionEntered(), id) { green() }
-		ln()
+	private suspend fun Console.view(core: CoreAPI, agent: AgentAPI) =
 		coroutineScope {
+			val outputLock = ReentrantMutex()
 			launch {
 				agent.status.collectLatest { state ->
 					if (state == AgentStatus.THINKING) outputLock.withLock {
@@ -344,7 +404,6 @@ class Session : Command, Traceable, Loggable {
 				}
 			}
 		}
-	}
 	
 	private suspend fun Console.printInitial(core: CoreAPI, context: AgentContext) = with(core) {
 		val ids = context.index.currentRound?.ids().orEmpty() +
@@ -382,12 +441,12 @@ class Session : Command, Traceable, Loggable {
 			out(SessionI18n.CorruptMessage(), this) { red() }
 			return@with
 		}
-		msg.print()
+		msg.printMsg()
 	}
 	
 	context(c: Console)
-	private suspend fun AgentMessage.print() = with(c) {
-		when (this@print) {
+	private suspend fun AgentMessage.printMsg() = with(c) {
+		when (this@printMsg) {
 			is AgentMessage.Assistant -> {
 				reasoning?.let {
 					out(it) {

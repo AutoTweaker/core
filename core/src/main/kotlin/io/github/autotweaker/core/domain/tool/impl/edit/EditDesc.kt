@@ -65,7 +65,7 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class SingleOldString : StringSetting(
-		"要替换的内容，如果元素数量大于或等于1，那么在匹配时每个元素之间可以出现任意长度、种类的空白字符" +
+		"要替换的内容，必须为字符串数组，如果元素数量大于或等于1，那么在匹配时每个元素之间可以出现任意长度、种类的空白字符" +
 				"（但必须出现至少一个空白字符），" +
 				"所有元素作为一个整体匹配目标内容。\n" +
 				"示例：" + """["a","b"]可以匹配"a\n\tb"或"a b"而不能匹配"ab"""",
@@ -92,7 +92,7 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class BatchFiles : StringSetting(
-		"正则匹配的范围，可提供一个或多个文件路径，不支持glob",
+		"字符串数组，正则匹配的范围，可提供一个或多个文件路径，不支持glob",
 		zh("edit-batch工具files参数的描述")
 	)
 	

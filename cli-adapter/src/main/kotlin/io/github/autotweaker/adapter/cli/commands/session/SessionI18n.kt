@@ -51,6 +51,11 @@ object SessionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class MessageParam : I18nBase(
+		zh("要发送的消息内容，传递此将屏蔽stdin"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class ApproveFlag : I18nBase(
 		zh("批准指定会话的工具调用"),
 	)
@@ -58,6 +63,11 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class RejectFlag : I18nBase(
 		zh("拒绝指定会话的工具调用"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class AllFlag : I18nBase(
+		zh("一次性批准所有请求的工具调用"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -73,6 +83,21 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class ViewFlag : I18nBase(
 		zh("查看指定会话"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class FollowFlag : I18nBase(
+		zh("命令将永不退出，流式输出新的会话消息"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class StatusFlag : I18nBase(
+		zh("查看指定会话当前状态"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class UpdateModelFlag : I18nBase(
+		zh("更新指定会话的模型配置为当前新会话配置"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -111,6 +136,31 @@ object SessionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class AgentName : I18nBase(
+		zh("Agent 名称: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CurrentStatus : I18nBase(
+		zh("当前状态: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class DroppedMessages : I18nBase(
+		zh("丢弃消息: %s 条"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Reasoning : I18nBase(
+		zh("推理等级: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ActiveTools : I18nBase(
+		zh("已激活工具: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class IdRestartWarning : I18nBase(
 		zh("会话与 id 的对应关系将会在程序重启后失效"),
 	)
@@ -128,6 +178,11 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class SessionDeleted : I18nBase(
 		zh("删除了会话 %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class ModelUpdated : I18nBase(
+		zh("更新了会话 %s 的模型配置"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -172,12 +227,17 @@ object SessionI18n {
 	
 	@AutoService(I18nDef::class)
 	class CallApproved : I18nBase(
-		zh("批准了 %s 调用"),
+		zh("批准了调用:"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class CallRejected : I18nBase(
-		zh("拒绝了 %s 调用"),
+		zh("拒绝了调用:"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class RemainingRequests : I18nBase(
+		zh("剩余请求:"),
 	)
 	
 	@AutoService(I18nDef::class)

@@ -29,8 +29,9 @@ import java.net.URI
  */
 @JvmInline
 @Serializable
-value class Url private constructor(val value: String) {
+value class Url private constructor(val value: String) : Comparable<Url> {
 	override fun toString() = value
+	override fun compareTo(other: Url): Int = value.compareTo(other.value)
 	
 	companion object : Traceable {
 		/**

@@ -222,7 +222,7 @@ object ToolMessageFactory {
 	fun buildToolCall(
 		call: PendingCall,
 	) = ToolCall( // 完全解析成功的
-		id = UUID(),
+		id = call.id,
 		timestamp = call.timestamp,
 		callName = call.callName,
 		arguments = call.arguments,

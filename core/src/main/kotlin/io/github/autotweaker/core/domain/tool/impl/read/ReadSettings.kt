@@ -28,9 +28,8 @@ import io.github.autotweaker.api.config.SettingDef
 object ReadSettings {
 	@AutoService(SettingDef::class)
 	class ToolDescription : StringSetting(
-		"读取一个文件，支持常规读取、对文件内容进行总结（用于较大的文件）以及Unicode转义（用于诊断特殊字符）", zh(
-			"read工具的描述，在read工具未激活时展示给llm"
-		)
+		"读取一个文件，支持常规读取、对文件内容进行总结（用于较大的文件）以及Unicode转义（用于诊断特殊字符）。\n不要使用bash来运行cat，而是激活本工具并使用本工具来读取文件",
+		zh("read工具的描述，在read工具未激活时展示给llm")
 	)
 	
 	@AutoService(SettingDef::class)

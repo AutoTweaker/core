@@ -28,8 +28,9 @@ import kotlinx.serialization.Serializable
  */
 @JvmInline
 @Serializable
-value class UpperSnakeCase private constructor(val value: String) {
+value class UpperSnakeCase private constructor(val value: String) : Comparable<UpperSnakeCase> {
 	override fun toString(): String = value
+	override fun compareTo(other: UpperSnakeCase): Int = value.compareTo(other.value)
 	
 	companion object : Traceable {
 		/**

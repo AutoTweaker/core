@@ -28,9 +28,8 @@ import io.github.autotweaker.core.infrastructure.data.PromptSetting
 object BashDesc {
 	@AutoService(SettingDef::class)
 	class Tool : StringSetting(
-		"运行一条bash命令，可选设置超时时间并按id注入一次性环境变量", zh(
-			"bash工具的描述"
-		)
+		"运行一条bash命令，可选设置超时时间并按id注入一次性环境变量，使用read工具而不是激活本工具来读取文件",
+		zh("bash工具的未激活描述")
 	)
 	
 	@AutoService(SettingDef::class)
