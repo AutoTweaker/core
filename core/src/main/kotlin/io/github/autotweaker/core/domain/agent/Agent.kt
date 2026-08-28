@@ -113,9 +113,7 @@ class Agent(
 	
 	suspend fun updateInjections(
 		function: (List<ContextInjection>?) -> List<ContextInjection>?
-	) = also {
-		ctx.updateInjections(function)
-	}
+	) = ctx.updateInjections(function)
 	
 	suspend fun shutdown() {
 		runner.shutdown()
