@@ -74,7 +74,7 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ToolAlreadyActiveError : StringSetting(
-		"%s工具已经激活，请不要重复激活",
+		"%s工具已经激活，请不要重复激活，已展开的可用子函数：[%s]\n$TOOL_NOT_EXECUTED",
 		zh("激活已激活工具时的ToolResult")
 	)
 	
@@ -134,8 +134,8 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ActiveMessage : StringSetting(
-		"工具已激活，包含这些function：[%s]\n" +
-				"注意：名为[%s]的function已不再可用，检查你的工具列表来了解新的function和使用方法",
+		"工具已激活，包含这些子函数：[%s]\n" +
+				"注意：名为[%s]的函数已不再可用，检查你的工具列表来了解新的函数和使用方法",
 		zh("激活工具后的ToolResult")
 	)
 	

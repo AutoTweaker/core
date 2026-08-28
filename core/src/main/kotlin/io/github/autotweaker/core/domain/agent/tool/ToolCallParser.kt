@@ -48,9 +48,11 @@ class ToolCallParser : Loggable, Traceable, I18nable {
 		callId: String,
 		metaCache: MetaCache,
 	): ValidationResult {
-		if (metaCache.containsKey(toolCallName))
+		metaCache[toolCallName]?.let {
 			return ValidationResult.Failure(
-				ToolSettings.ToolAlreadyActiveError().format(toolCallName),
+				ToolSettings.ToolAlreadyActiveError().format(
+					toolCallName,
+					it.first.functions.joinToString { "$toolCallName-${it.name}" }),
 				listOf(UiBlock.Text(i18n(ToolI18n.AlreadyActive(), toolCallName)))
 			).andLog(log) {
 				debug(
@@ -59,6 +61,7 @@ class ToolCallParser : Loggable, Traceable, I18nable {
 					toolCallName
 				)
 			}
+		}
 		val (toolName, functionName) = resolveCallName(toolCallName)
 			?.takeIf { result ->
 				metaCache[result.first]?.first?.functions?.any { function ->
