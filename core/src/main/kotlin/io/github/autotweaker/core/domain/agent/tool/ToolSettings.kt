@@ -73,6 +73,12 @@ object ToolSettings {
 	)
 	
 	@AutoService(SettingDef::class)
+	class ToolAlreadyActiveError : StringSetting(
+		"%s工具已经激活，请不要重复激活",
+		zh("调用工具不存在时的ToolResult")
+	)
+	
+	@AutoService(SettingDef::class)
 	class JsonError : StringSetting(
 		"调用参数不是一个有效的JSON对象：%s\n\n$TOOL_NOT_EXECUTED",
 		zh("工具调用参数无法解析时的ToolResult")
@@ -131,6 +137,12 @@ object ToolSettings {
 		"工具已激活，包含这些function：[%s]\n" +
 				"注意：名为[%s]的function已不再可用，检查你的工具列表来了解新的function和使用方法",
 		zh("激活工具后的ToolResult")
+	)
+	
+	@AutoService(SettingDef::class)
+	class AutoDeactivateMessage : StringSetting(
+		"这些工具一段时间未被调用，被取消激活，请在需要时重新激活：%s",
+		zh("自动取消激活工具时发送的消息")
 	)
 	
 	@AutoService(SettingDef::class)

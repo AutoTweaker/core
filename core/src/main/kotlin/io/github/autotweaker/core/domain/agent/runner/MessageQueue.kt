@@ -38,6 +38,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	private val cancelled = mutableSetOf<UUID>()
 	private val lock = ReentrantMutex()
 	
+	
 	fun shutdown() {
 		channel.close()
 		deliveries.values.forEach { it.cancel() }

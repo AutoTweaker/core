@@ -63,21 +63,21 @@ object ResilientChatSettings {
 	
 	@AutoService(SettingDef::class)
 	class ChatRequestTimeout : IntSetting(
-		300, zh(
+		600, zh(
 			"大模型请求的默认总超时秒数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class ChatConnectTimeout : IntSetting(
-		20, zh(
+		10, zh(
 			"默认大模型请求建立连接的超时秒数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class ChatStreamChunkTimeout : IntSetting(
-		30, zh(
+		15, zh(
 			"大模型流式请求，两个数据块之间的默认最大等待秒数"
 		)
 	)

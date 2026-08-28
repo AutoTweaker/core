@@ -35,12 +35,15 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
@@ -51,9 +54,11 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	override suspend fun shutdown() = sharedHttpClient.close()
 	
 	private class PendingToolCall(
-		var id: String = "", var name: String = "", val arguments: StringBuilder = StringBuilder()
+		var id: StringBuilder = StringBuilder(),
+		var name: StringBuilder = StringBuilder(),
+		val arguments: StringBuilder = StringBuilder()
 	) {
-		fun toToolCall() = ChatMessage.Assistant.ToolCall(id, name, arguments.toString())
+		fun toToolCall() = ChatMessage.Assistant.ToolCall(id.toString(), name.toString(), arguments.toString())
 	}
 	
 	protected abstract suspend fun ChatRequest.transform(): Request
@@ -94,9 +99,6 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	) {
 		sharedHttpClient.preparePost {
 			configureRequest(request, apiKey, baseUrl, timeout)
-			timeout?.let {
-				timeout { socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds }
-			}
 		}.execute { response ->
 			if (!response.status.isSuccess()) {
 				val errorBody = response.bodyAsText()
@@ -110,13 +112,13 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			
 			val channel = response.bodyAsChannel()
 			val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
-			var content: String? = null
-			var reasoning: String? = null
+			val content: StringBuilder = StringBuilder()
+			val reasoning: StringBuilder = StringBuilder()
 			var lastUsage: Usage? = null
 			var lastTimestamp: Instant? = null
 			
 			while (!channel.isClosedForRead) {
-				val line = channel.readLine() ?: break
+				val line = readLineWithChunkTimeout(channel, timeout?.streamChunkTimeout) ?: break
 				
 				if (line.startsWith("data:")) {
 					val data = line.removePrefix("data:").trim()
@@ -131,17 +133,17 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 						
 						result.toolCalls?.forEach { fragment ->
 							val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
-							fragment.id?.let { pending.id = it }
-							fragment.name?.let { pending.name = it }
+							fragment.id?.let { pending.id.append(it) }
+							fragment.name?.let { pending.name.append(it) }
 							fragment.arguments?.let { pending.arguments.append(it) }
 						}
 						
 						result.content?.let {
-							content = content.orEmpty() + it
+							content.append(it)
 						}
 						
 						result.reasoningContent?.let {
-							reasoning = reasoning.orEmpty() + it
+							reasoning.append(it)
 						}
 						
 						chunk.usage()?.let { lastUsage = it }
@@ -156,8 +158,8 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			emit(
 				ChatResult.Assembled(
 					message = ChatMessage.Assistant(
-						content = content,
-						reasoningContent = reasoning,
+						content = content.toString(),
+						reasoningContent = reasoning.toString(),
 						toolCalls = toolCalls,
 						timestamp = lastTimestamp ?: Clock.System.now(),
 					),
@@ -189,6 +191,19 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	}
 	
 	
+	private suspend fun readLineWithChunkTimeout(channel: ByteReadChannel, timeout: Duration?): String? =
+		if (timeout == null) channel.readLine()
+		else trace.catching { withTimeout(timeout) { channel.readLine() } }
+			.recoverException { e: TimeoutCancellationException ->
+				throw LlmFailedException(
+					ChatResult.Failed(
+						message = "LLM stream chunk timeout after=${timeout.inWholeSeconds} seconds",
+						statusCode = null,
+						exception = e
+					)
+				)
+			}.getOrThrow()
+
 	private suspend fun HttpRequestBuilder.configureRequest(
 		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
@@ -200,6 +215,9 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			timeout {
 				connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
 				requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
+				if (request.stream) {
+					socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds
+				}
 			}
 		}
 	}

@@ -95,9 +95,20 @@ object ResilientChat : Loggable {
 							)
 						
 						is ChatMessage.Assistant ->
-							if (thinkingDisabled) msg.copy(reasoningContent = null)
-							else if (msg.reasoningContent == null) msg.copy(reasoningContent = "")
-							else msg
+							when {
+								thinkingDisabled && msg.reasoningContent != null -> msg.copy(
+									reasoningContent = null,
+									content = msg.content.orEmpty()
+								)
+								
+								!thinkingDisabled && msg.reasoningContent == null -> msg.copy(
+									reasoningContent = "",
+									content = msg.content.orEmpty()
+								)
+								
+								msg.content == null -> msg.copy(content = "")
+								else -> msg
+							}
 						
 						else -> msg
 					}
@@ -139,7 +150,7 @@ object ResilientChat : Loggable {
 					emit(LlmResult(result, model = target.id))
 					statusCode = result.statusCode
 					hasError = true
-				} else emit(LlmResult(result.normalizeEmptyStrings(), model = target.id))
+				} else emit(LlmResult(result.normalizeEmpty(), model = target.id))
 			}
 			attempts++
 			
@@ -234,7 +245,7 @@ object ResilientChat : Loggable {
 		throw ChatRetriesExhaustedException(attempts)
 	}
 	
-	private fun ChatResult.normalizeEmptyStrings(): ChatResult = when (this) {
+	private fun ChatResult.normalizeEmpty(): ChatResult = when (this) {
 		is ChatResult.Assembled -> copy(
 			message = message.copy(
 				reasoningContent = message.reasoningContent?.orNull(),

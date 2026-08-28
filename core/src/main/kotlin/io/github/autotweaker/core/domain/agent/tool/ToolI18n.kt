@@ -50,6 +50,11 @@ object ToolI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class AlreadyActive : I18nBase(
+		zh("激活 %s 工具失败，不能重复激活"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class Cancelled : I18nBase(
 		zh("调用 %s 工具被取消"),
 	)

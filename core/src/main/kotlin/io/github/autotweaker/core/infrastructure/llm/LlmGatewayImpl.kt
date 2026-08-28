@@ -19,6 +19,8 @@
 package io.github.autotweaker.core.infrastructure.llm
 
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.UpperSnakeCase.Companion.toUpperSnake
 import io.github.autotweaker.api.types.Url
@@ -27,10 +29,12 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ChatTimeout
 import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 
 object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
-	override suspend fun send(
+	override fun send(
 		request: ChatRequest,
 		apiKey: String,
 		baseUrl: Url,
@@ -56,15 +60,28 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 			)
 		
 		)
-		return LlmClientLoader.load(providerType)
-			.chat(request, apiKey, baseUrl, timeout)
-			.onEach { result ->
-				trace.add(
-					"response".toKebab(), mapOf(
-						"CHAT_ID".toUpperSnake() to chatId,
-						"RESULT".toUpperSnake() to result
+		return flow {
+			trace.catching {
+				emitAll(
+					LlmClientLoader.load(providerType)
+						.chat(request, apiKey, baseUrl, timeout)
+						.onEach { result ->
+							trace.add(
+								"response".toKebab(), mapOf(
+									"CHAT_ID".toUpperSnake() to chatId,
+									"RESULT".toUpperSnake() to result
+								)
+							)
+						})
+			}.ensureActive().getOrElse { e ->
+				emit(
+					ChatResult.Failed(
+						message = e.message(),
+						exception = e,
+						statusCode = null
 					)
 				)
 			}
+		}
 	}
 }

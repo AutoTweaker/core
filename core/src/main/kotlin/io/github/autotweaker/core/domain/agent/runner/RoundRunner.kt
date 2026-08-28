@@ -223,7 +223,7 @@ class RoundRunner(
 				// pending 必然校验成功，而校验成功必然有 resolveResult
 				requireNotNull(result.needsApproval?.find {
 					it.first.callId == callId
-				}).second.cancelled()
+				}) { "No needsApproval for cancelled callId: $callId" }.second.cancelled()
 			}
 			
 			if (shouldBreak.value) {
@@ -280,16 +280,14 @@ class RoundRunner(
 			
 			ctx.finalizeToolTurn()
 			
-			autoDeactivate()
-			autoCompact()
-			
 			if (shouldBreak.value) {
-				cancelPending()
 				break
 			}
 			
+			autoCompact()
+			autoDeactivate()
+			
 			messages.drain()?.let {
-				cancelPending()
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it)
 			}
@@ -300,22 +298,29 @@ class RoundRunner(
 	private suspend fun autoDeactivate() {
 		val threshold = ToolSettings.DeactivationThreshold().get()
 		if (threshold <= 0) return
-		val history = ctx.get().let { context ->
-			context.historyRounds.orEmpty() + context.compactedRounds?.completedRounds().orEmpty()
-		}
-		if (history.isEmpty()) return
-		val allCalls = history.flatMap { round ->
-			round.turns?.flatMap { turn ->
-				turn.tools.mapNotNull {
-					it.call.validatedToolName
-				}
-			}.orEmpty()
-		}
+		val context = ctx.get()
+		val history = context.compactedRounds?.completedRounds().orEmpty() + context.historyRounds.orEmpty()
+		val turns = history.flatMap {
+			it.turns.orEmpty()
+		} + context.currentRound?.turns.orEmpty()
+		val allCalls = turns.flatMap { turn ->
+			turn.tools.mapNotNull {
+				it.call.callName.substringBefore("-").orNull()
+			}
+		}.orNull() ?: return
 		if (allCalls.size < threshold) return
 		val recentNames = allCalls.takeLast(threshold).toSet()
 		
-		tools.activeTools.value.forEach {
-			if (it !in recentNames) tools.activate(it, false)
+		(tools.activeTools.value - recentNames).orNull()?.let { deactivate ->
+			deactivate.forEach {
+				tools.activate(it, false)
+			}
+			messages.send(
+				ContextInjection(
+					"system_reminder",
+					ToolSettings.AutoDeactivateMessage().format(deactivate.joinToString(", "))
+				)
+			)
 		}
 	}
 	

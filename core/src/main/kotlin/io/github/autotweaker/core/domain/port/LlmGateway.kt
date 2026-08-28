@@ -25,7 +25,7 @@ import io.github.autotweaker.api.types.llm.ChatTimeout
 import kotlinx.coroutines.flow.Flow
 
 interface LlmGateway {
-	suspend fun send(
+	fun send(
 		request: ChatRequest,
 		apiKey: String,
 		baseUrl: Url,

@@ -55,5 +55,9 @@ class ToolCallHistoryImpl(
 				it.tryDeserialize()
 			}
 		}
+		
+		context.currentRound?.finishedToolCalls?.forEach {
+			it.tryDeserialize()
+		}
 	}
 }

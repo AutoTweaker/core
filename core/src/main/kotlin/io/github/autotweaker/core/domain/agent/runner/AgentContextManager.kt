@@ -46,7 +46,7 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 	suspend fun get(): RuntimeContext = lock.withLock { _context.value }
 	
 	suspend fun beginRound(userMessage: RuntimeContext.Message.User) = lock.withLock {
-		check(_context.value.currentRound == null)
+		check(_context.value.currentRound == null) { "Current round must be null to begin a new round" }
 		val round = RuntimeContext.CurrentRound(
 			userMessage = userMessage,
 			turns = null,
@@ -62,10 +62,10 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		pendingCalls: List<RuntimeContext.CurrentRound.PendingToolCall>?,
 		immediateResults: List<ToolMessage>,
 	) = lock.withLock {
-		val current = requireNotNull(_context.value.currentRound)
-		check(current.assistantMessage == null)
-		check(current.pendingToolCalls == null)
-		check(current.finishedToolCalls == null)
+		val current = requireNotNull(_context.value.currentRound) { "No current round to apply thinking" }
+		check(current.assistantMessage == null) { "Assistant message already set" }
+		check(current.pendingToolCalls == null) { "Pending tool calls already set" }
+		check(current.finishedToolCalls == null) { "Finished tool calls already set" }
 		_context.update {
 			it.copy(
 				currentRound = current.copy(
@@ -97,9 +97,9 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 	}
 	
 	suspend fun recordToolMessage(tool: ToolMessage) = lock.withLock {
-		val current = requireNotNull(_context.value.currentRound)
-		checkNotNull(current.pendingToolCalls)
-		check(current.pendingToolCalls.any { it.callId == tool.callId })
+		val current = requireNotNull(_context.value.currentRound) { "No current round to record tool message" }
+		checkNotNull(current.pendingToolCalls) { "No pending tool calls to record" }
+		check(current.pendingToolCalls.any { it.callId == tool.callId }) { "Tool call id not found in pending: ${tool.callId}" }
 		_context.update { ctx ->
 			ctx.copy(
 				currentRound = current.copy(
@@ -111,10 +111,10 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 	}
 	
 	suspend fun finalizeToolTurn() = lock.withLock {
-		val current = requireNotNull(_context.value.currentRound)
-		val assistant = requireNotNull(current.assistantMessage)
-		checkNotNull(current.finishedToolCalls)
-		check(current.pendingToolCalls.isNullOrEmpty())
+		val current = requireNotNull(_context.value.currentRound) { "No current round to finalize tool turn" }
+		val assistant = requireNotNull(current.assistantMessage) { "No assistant message to finalize tool turn" }
+		checkNotNull(current.finishedToolCalls) { "No finished tool calls to finalize tool turn" }
+		check(current.pendingToolCalls.isNullOrEmpty()) { "Pending tool calls not empty" }
 		val turn = RuntimeContext.Turn(assistantMessage = assistant, tools = current.finishedToolCalls)
 		
 		_context.update {
@@ -184,8 +184,8 @@ class AgentContextManager(initial: RuntimeContext) : I18nable {
 		summarizedMessage: RuntimeContext.SummarizedMessage,
 		rounds: List<RuntimeContext.CompletedRound>,
 	) = lock.withLock {
-		val currentHistory = requireNotNull(_context.value.historyRounds)
-		check(rounds.all { it in currentHistory })
+		val currentHistory = requireNotNull(_context.value.historyRounds) { "No history rounds to compact" }
+		check(rounds.all { it in currentHistory }) { "Rounds not all in current history" }
 		val remaining = currentHistory.filterNot { it in rounds }
 		_context.update {
 			it.copy(
