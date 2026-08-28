@@ -32,7 +32,7 @@ sealed class Param {
 		override fun format(): String {
 			val all = listOf(name) + aliases
 			val parts = all.map { if (it.length == 1) "-$it" else "--$it" }
-			return parts.joinToString(", ")
+			return parts.joinToString()
 		}
 	}
 	
@@ -44,7 +44,7 @@ sealed class Param {
 		override fun format(): String {
 			val all = listOf(name) + aliases
 			val parts = all.map { if (it.length == 1) "-$it" else "--$it" }
-			return "${parts.joinToString(", ")} <value>"
+			return "${parts.joinToString()} <value>"
 		}
 	}
 	

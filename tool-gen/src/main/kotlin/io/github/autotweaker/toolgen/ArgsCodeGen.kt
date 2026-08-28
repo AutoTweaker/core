@@ -233,7 +233,7 @@ internal class ArgsCodeGen(
 		is ToolMeta.Type.OneOf -> oneOfBlock(this)
 		is ToolMeta.Type.Obj -> objBlock(this)
 		is ToolMeta.Type.Enum -> CodeBlock.of(
-			"%T.Enum(%S, setOf(${values.joinToString(", ") { "\"$it\"" }}))", runtimeType, name
+			"%T.Enum(%S, setOf(${values.joinToString { "\"$it\"" }}))", runtimeType, name
 		)
 	}
 	

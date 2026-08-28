@@ -70,8 +70,13 @@ object SessionModelI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class ThinkingParam : I18nBase(
-		zh("传递1或true启用思考，反之禁用"),
+	class ReasoningParam : I18nBase(
+		zh("设置推理等级"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Effort : I18nBase(
+		zh("指定推理等级 %s"),
 	)
 	
 	@AutoService(I18nDef::class)

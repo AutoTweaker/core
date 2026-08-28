@@ -51,10 +51,10 @@ object ModelManager : ImmutableStore<ModelManager.SessionModelConfig>() {
 			)
 		}.discard()
 	
-	suspend fun Console.setThinking(thinking: Boolean) =
+	suspend fun Console.setReasoning(reasoning: ReasoningEffort) =
 		cache.update {
 			it.copy(
-				thinking = thinking
+				reasoning = reasoning
 			)
 		}.discard()
 	
@@ -92,7 +92,7 @@ object ModelManager : ImmutableStore<ModelManager.SessionModelConfig>() {
 			fun UUID?.ifValid() = this?.takeIf { it in modelIds }
 			SessionModelConfig(
 				model = old.model.ifValid(),
-				thinking = old.thinking,
+				reasoning = old.reasoning,
 				summarize = old.summarize.ifValid(),
 				compact = old.compact.ifValid(),
 				fallback = old.fallback intersect modelIds
@@ -107,7 +107,7 @@ object ModelManager : ImmutableStore<ModelManager.SessionModelConfig>() {
 			?: error(ModelNotSet())
 		ModelConfig(
 			model = it.model.orDefault(),
-			reasoning = ReasoningEffort(it.thinking),
+			reasoning = it.reasoning,
 			summarize = it.summarize.orDefault(),
 			compact = it.compact.orDefault(),
 			fallback = it.fallback.toList()
@@ -118,7 +118,7 @@ object ModelManager : ImmutableStore<ModelManager.SessionModelConfig>() {
 	data class SessionModelConfig(
 		@Serializable(with = UuidSerializer::class)
 		val model: UUID? = null,
-		val thinking: Boolean = true,
+		val reasoning: ReasoningEffort = ReasoningEffort(true),
 		@Serializable(with = UuidSerializer::class)
 		val summarize: UUID? = null,
 		@Serializable(with = UuidSerializer::class)

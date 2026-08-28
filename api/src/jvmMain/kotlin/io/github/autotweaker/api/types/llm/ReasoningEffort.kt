@@ -30,4 +30,8 @@ enum class ReasoningEffort {
 	XHIGH,
 }
 
+fun ReasoningEffort(effort: String) = ReasoningEffort.entries.find {
+	it.name == effort.trim().uppercase()
+}
+
 fun ReasoningEffort(thinking: Boolean) = if (thinking) ReasoningEffort.MEDIUM else ReasoningEffort.NONE

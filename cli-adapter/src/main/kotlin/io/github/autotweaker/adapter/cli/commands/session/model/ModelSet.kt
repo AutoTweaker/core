@@ -26,18 +26,27 @@ import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.add
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.removeFallback
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.setCompact
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.setMain
+import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.setReasoning
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.setSummarize
-import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.setThinking
 import io.github.autotweaker.adapter.cli.syntax.XOR
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.types.llm.ReasoningEffort
 
 class ModelSet : Command {
 	override val name = "set"
 	override val description = i18n(SessionModelI18n.SetDesc())
 	override val syntax = buildSyntax(XOR) {
-		value("thinking", SessionModelI18n.ThinkingParam()) { aliases("t", "think", "reasoning") }
+		all {
+			flag("reasoning", SessionModelI18n.ReasoningParam()) { aliases("t", "think", "thinking") }
+			xor {
+				ReasoningEffort.entries.forEach {
+					flag(it.name.lowercase(), i18n(SessionModelI18n.Effort(), it.name)) { aliases() }
+				}
+			}
+		}
+		
 		all {
 			xor {
 				required = false // 设置主模型
@@ -55,14 +64,13 @@ class ModelSet : Command {
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		ModelManager.init(core)
-		handleValue("thinking") {
-			val value = it.trim().lowercase()
-			val enable = when (value) {
-				"1", "true", "enable", "on" -> true
-				"0", "false", "disable", "off" -> false
-				else -> error(ModelI18n.InvalidValue())
+		handleFlag("thinking") {
+			ReasoningEffort.entries.forEach {
+				handleFlag(it.name.lowercase()) {
+					setReasoning(it)
+				}
 			}
-			setThinking(enable)
+			done(1)
 		}
 		val providerName = getPositional(0)
 		val modelName = getPositional(1)

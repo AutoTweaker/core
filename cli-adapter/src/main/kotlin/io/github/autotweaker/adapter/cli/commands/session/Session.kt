@@ -188,7 +188,7 @@ class Session : Command, Traceable, Loggable {
 				}
 				out(SessionI18n.Reasoning(), agent.model.reasoning)
 				agent.toolCalling.value?.second?.print()
-				out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString(", "))
+				out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString())
 			}
 		}
 		handleValue("update-model") {

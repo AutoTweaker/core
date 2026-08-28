@@ -116,7 +116,11 @@ object Launcher : Loggable, Traceable {
 					info.version,
 					info.description
 				)
-				adapter.start()
+				trace.catching { adapter.start() }
+					.ensureActive()
+					.onFailure { e ->
+						log.error("Failed to start adapter  name={}", info.name, e)
+					}
 				log.info("Started adapter  name={}", info.name)
 			}
 		}

@@ -81,7 +81,7 @@ class Tools(
 		val meta = metaCache[call.name]?.first
 		if (meta != null && !active(meta.name)) {
 			val message = ToolSettings.ActiveMessage().format(
-				meta.functions.joinToString(", ") { "${meta.name}-${it.name}" },
+				meta.functions.joinToString { "${meta.name}-${it.name}" },
 				meta.name
 			)
 			val presentation = listOf(UiBlock.Text(i18n(ToolI18n.Activation(), meta.name)))

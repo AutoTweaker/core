@@ -321,7 +321,7 @@ class RoundRunner(
 			messages.send(
 				ContextInjection(
 					"system_reminder",
-					ToolSettings.AutoDeactivateMessage().format(deactivate.joinToString(", "))
+					ToolSettings.AutoDeactivateMessage().format(deactivate.joinToString())
 				)
 			)
 		}
