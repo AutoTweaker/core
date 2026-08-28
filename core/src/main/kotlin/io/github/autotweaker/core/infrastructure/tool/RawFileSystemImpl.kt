@@ -135,14 +135,21 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		trace.catching {
 			Files.newInputStream(path).use { input ->
 				val reader = InputStreamReader(input, Charsets.UTF_8)
-				val chars = CharArray(minOf(Files.size(path), MAX_READ_CHARS.toLong()).toInt())
+				val initialSize = minOf(
+					maxOf(Files.size(path), BUFFER_SIZE.toLong()),
+					MAX_READ_CHARS.toLong()
+				).toInt()
+				var chars = CharArray(initialSize)
 				var total = 0
 				while (total < chars.size) {
 					val read = reader.read(chars, total, chars.size - total)
 					if (read < 0) break
 					total += read
+					if (total == chars.size && total < MAX_READ_CHARS) {
+						chars = chars.copyOf(minOf(chars.size * 2, MAX_READ_CHARS))
+					}
 				}
-				Truncated(String(chars, 0, total), reader.read() != -1)
+				Truncated(String(chars, 0, total), total == MAX_READ_CHARS && reader.read() != -1)
 			}
 		}.rethrowFileSystemException()
 	

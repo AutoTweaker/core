@@ -246,6 +246,11 @@ object ResilientChat : Loggable {
 	}
 	
 	private fun ChatResult.normalizeEmpty(): ChatResult = when (this) {
+		is ChatResult.Chunk -> copy(
+			reasoningContent = reasoningContent?.orNull(),
+			content = content?.orNull()
+		)
+		
 		is ChatResult.Assembled -> copy(
 			message = message.copy(
 				reasoningContent = message.reasoningContent?.orNull(),

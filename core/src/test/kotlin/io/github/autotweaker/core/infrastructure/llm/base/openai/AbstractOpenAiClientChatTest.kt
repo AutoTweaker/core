@@ -234,7 +234,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		assertEquals(1, results.size)
 		val assembled = assertIs<ChatResult.Assembled>(results[0])
-		assertNull(assembled.message.content)
+		assertEquals("", assembled.message.content)
 	}
 	
 	@Test

@@ -161,6 +161,16 @@ class RawFileSystemImplTest {
 		assertFalse(result.truncated)
 	}
 	
+	@Test
+	fun `readString on procfs virtual file with zero stat size returns content`() = runTest {
+		val path = Path.of("/proc/self/status")
+		// procfs 文件 stat 恒为 0 但读取有内容（回归：此前会因 CharArray(0) 返回空字符串）
+		val result = RawFileSystemImpl.readString(path)
+		
+		assertTrue(result.content.isNotBlank())
+		assertFalse(result.truncated)
+	}
+	
 	// endregion
 	
 	// region lineCount

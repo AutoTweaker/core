@@ -290,17 +290,21 @@ class Session : Command, Traceable, Loggable {
 							agent.output.collect { output ->
 								if (output is AgentOutput.LlmDelta) {
 									output.reasoningContent?.let {
-										lastReasoning = it
+										lastReasoning = it.orNull()
 										out(it) {
 											newline = false
 											white(); italic()
 										}
 									}
-									if (lastReasoning != null && output.reasoningContent == null) {
-										ln(); ln()
-										lastReasoning = null
-									}
+									
 									output.content?.let {
+										if (lastReasoning != null) {
+											if (lastReasoning?.endsWith('\n') == false) {
+												ln()
+											}
+											ln()
+											lastReasoning = null
+										}
 										out(it) {
 											newline = false
 										}
@@ -455,7 +459,8 @@ class Session : Command, Traceable, Loggable {
 						white(); italic()
 					}
 				}
-				if (reasoning != null) ln()
+				
+				if (reasoning?.endsWith('\n') == false) ln()
 				content?.let {
 					out(it)
 				}

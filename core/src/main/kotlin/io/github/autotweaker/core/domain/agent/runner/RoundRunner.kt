@@ -239,6 +239,7 @@ class RoundRunner(
 				)
 			) { // 无 tool call
 				messages.drain()?.let { // 尝试消费消息，若有直接继续，防止闪FREE
+					status.value = AgentStatus.PROCESSING
 					ctx.archiveCurrentRound()
 					ctx.beginRound(it)
 					continue
@@ -248,6 +249,7 @@ class RoundRunner(
 					&& EmptyResponseFeedback().get()
 					&& ++emptyResponseRetries <= EmptyResponseFeedbackRetries().get()
 				) {
+					status.value = AgentStatus.PROCESSING
 					messages.send(
 						ContextInjection(
 							"system_reminder",
@@ -288,6 +290,7 @@ class RoundRunner(
 			autoDeactivate()
 			
 			messages.drain()?.let {
+				status.value = AgentStatus.PROCESSING
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it)
 			}
