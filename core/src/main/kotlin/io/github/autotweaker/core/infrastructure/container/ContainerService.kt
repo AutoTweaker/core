@@ -24,7 +24,7 @@ import java.nio.file.Path
 
 interface ContainerService {
 	suspend fun pullImage(image: String)
-	suspend fun start(image: String, config: ContainerConfig): String
+	suspend fun start(image: String, env: Map<String, String>): String
 	suspend fun stop(containerId: String)
 	fun shutdown() {}
 	fun checkAccess(): Boolean = true

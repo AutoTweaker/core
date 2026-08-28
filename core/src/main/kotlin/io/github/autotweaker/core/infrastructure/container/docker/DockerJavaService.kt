@@ -31,9 +31,7 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
-import io.github.autotweaker.core.infrastructure.container.ContainerOperationException
-import io.github.autotweaker.core.infrastructure.container.ContainerService
+import io.github.autotweaker.core.infrastructure.container.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -48,12 +46,6 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 		val unix = UnixSystem()
 		"${unix.uid}:${unix.gid}"
 	}
-	
-	@Volatile
-	private var workspaceHostPath: Path? = null
-	
-	@Volatile
-	private var containerWorkDir: Path? = null
 	
 	@Volatile
 	private var permissionFixJob: Job? = null
@@ -89,16 +81,13 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	}
 	
 	override suspend fun start(
-		image: String, config: ContainerConfig
+		image: String, env: Map<String, String>
 	): String = withContext(Dispatchers.IO) {
 		trace.catching {
-			val hostPath = config.workspaceHostPath
-			workspaceHostPath = hostPath
-			containerWorkDir = config.workDir
-			Files.createDirectories(hostPath)
-			Files.createDirectories(config.tmpHostPath)
+			Files.createDirectories(WORKSPACE_HOST_PATH)
+			Files.createDirectories(TMP_HOST_PATH)
 			
-			val existing = findContainerByName(config.name)
+			val existing = findContainerByName(CONTAINER_NAME)
 			if (existing != null) {
 				if (existing.state != "running") {
 					client.startContainerCmd(existing.id).exec()
@@ -110,14 +99,14 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 			}
 			
 			val hostConfig = HostConfig().withBinds(
-				Bind(hostPath.toString(), Volume(config.workDir.toString())),
-				Bind(config.tmpHostPath.toString(), Volume(config.containerTmpPath.toString()))
+				Bind(WORKSPACE_HOST_PATH.toString(), Volume(CONTAINER_WORK_PATH.toString())),
+				Bind(TMP_HOST_PATH.toString(), Volume(CONTAINER_TMP_PATH.toString()))
 			).withExtraHosts("host.docker.internal:host-gateway").withInit(true)
 			
 			val createResponse = client.createContainerCmd(image)
-				.withName(config.name)
-				.withWorkingDir(config.workDir.toString())
-				.withEnv(config.env.map { "${it.key}=${it.value}" })
+				.withName(CONTAINER_NAME)
+				.withWorkingDir(CONTAINER_WORK_PATH.toString())
+				.withEnv(env.map { "${it.key}=${it.value}" })
 				.withHostConfig(hostConfig)
 				.withEntrypoint("tail", "-f", "/dev/null")
 				.exec().andLog(log) { info("Created container  containerId={}", it.id) }
@@ -131,7 +120,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 				log.warn("Failed image pull  image={}", image)
 				throw ContainerOperationException("Image '$image' not found", e)
 			}.getOrElse { e ->
-				log.error("Failed container start  image={}  name={}", image, config.name, e)
+				log.error("Failed container start  image={}  name={}", image, CONTAINER_NAME, e)
 				throw ContainerOperationException("Failed to start container: ${e.message()}", e)
 			} as String
 	}
@@ -156,7 +145,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	}
 	
 	private fun fixWorkspacePermissions(containerId: String) {
-		val workDir = containerWorkDir ?: return
+		val workDir = CONTAINER_WORK_PATH
 		trace.catching {
 			val execId = client.execCreateCmd(containerId)
 				.withCmd("chown", "-R", uidGid, workDir.toString())

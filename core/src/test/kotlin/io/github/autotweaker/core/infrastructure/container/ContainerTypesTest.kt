@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.TMP_HOST_PATH
+import io.github.autotweaker.api.WORKSPACE_HOST_PATH
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import kotlinx.coroutines.flow.Flow
@@ -73,37 +75,21 @@ class CommandResultTest {
 	}
 }
 
-class ContainerConfigTest {
-	
+class ContainerConstantsTest {
+
 	@Test
-	fun `default values are correct`() {
-		val config = ContainerConfig()
-		assertEquals("autotweaker-workspace", config.name)
-		assertTrue(config.env.isEmpty())
-		assertEquals(Path.of("/workspace"), config.workDir)
+	fun `constants are correct`() {
+		assertEquals("autotweaker-workspace", CONTAINER_NAME)
+		assertEquals(Path.of("/workspace"), CONTAINER_WORK_PATH)
+		assertEquals(Path.of("/tmp", "autotweaker"), CONTAINER_TMP_PATH)
 		assertEquals(
 			Path.of(System.getProperty("user.home"), ".config", "autotweaker", "container", "workspace"),
-			config.workspaceHostPath
+			WORKSPACE_HOST_PATH
 		)
 		assertEquals(
 			Path.of(System.getProperty("java.io.tmpdir"), "autotweaker", "container"),
-			config.tmpHostPath
+			TMP_HOST_PATH
 		)
-		assertEquals(Path.of("/tmp", "autotweaker"), config.containerTmpPath)
-	}
-	
-	@Test
-	fun `custom values override defaults`() {
-		val config = ContainerConfig(
-			name = "custom",
-			env = mapOf("KEY" to "VALUE"),
-			workDir = Path.of("/tmp/work"),
-			workspaceHostPath = Path.of("/tmp/host"),
-		)
-		assertEquals("custom", config.name)
-		assertEquals(mapOf("KEY" to "VALUE"), config.env)
-		assertEquals(Path.of("/tmp/work"), config.workDir)
-		assertEquals(Path.of("/tmp/host"), config.workspaceHostPath)
 	}
 }
 
@@ -114,7 +100,7 @@ class ContainerServiceTest {
 		var capturedCommand: List<String>? = null
 		val impl = object : ContainerService {
 			override suspend fun pullImage(image: String) {}
-			override suspend fun start(image: String, config: ContainerConfig) = "test"
+			override suspend fun start(image: String, env: Map<String, String>) = "test"
 			override suspend fun stop(containerId: String) {}
 			override fun execStream(
 				containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,

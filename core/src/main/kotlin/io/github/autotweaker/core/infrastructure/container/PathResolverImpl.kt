@@ -18,19 +18,15 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.TMP_HOST_PATH
+import io.github.autotweaker.api.WORKSPACE_HOST_PATH
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import java.nio.file.Path
 
-class PathResolverImpl(
-	containerConfig: ContainerConfig
-) : PathResolver {
-	private val hostWorkspace = containerConfig.workspaceHostPath.normalize()
-	private val hostTmp = containerConfig.tmpHostPath.normalize()
-	private val containerWork = containerConfig.workDir.normalize()
-	private val containerTmp = containerConfig.containerTmpPath.normalize()
+object PathResolverImpl : PathResolver {
 	override fun inContainer(workspace: Path): Boolean =
-		workspace.normalize().startsWith(hostWorkspace)
+		workspace.normalize().startsWith(WORKSPACE_HOST_PATH)
 	
 	override fun toAbsolutePath(workspace: Path, path: Path): Path {
 		val base = if (inContainer(workspace)) toContainerPath(workspace) else workspace
@@ -44,19 +40,19 @@ class PathResolverImpl(
 	
 	override fun toContainerPath(path: Path): Path {
 		val normalized = path.normalize()
-		if (normalized.startsWith(hostWorkspace))
-			return containerWork.resolve(hostWorkspace.relativize(normalized))
-		if (normalized.startsWith(hostTmp))
-			return containerTmp.resolve(hostTmp.relativize(normalized))
+		if (normalized.startsWith(WORKSPACE_HOST_PATH))
+			return CONTAINER_WORK_PATH.resolve(WORKSPACE_HOST_PATH.relativize(normalized))
+		if (normalized.startsWith(TMP_HOST_PATH))
+			return CONTAINER_TMP_PATH.resolve(TMP_HOST_PATH.relativize(normalized))
 		throw PathOutsideWorkspaceException(path)
 	}
 	
 	override fun toHostPath(path: Path): Path {
 		val normalized = path.normalize()
-		if (normalized.startsWith(containerWork))
-			return hostWorkspace.resolve(containerWork.relativize(normalized))
-		if (normalized.startsWith(containerTmp))
-			return hostTmp.resolve(containerTmp.relativize(normalized))
+		if (normalized.startsWith(CONTAINER_WORK_PATH))
+			return WORKSPACE_HOST_PATH.resolve(CONTAINER_WORK_PATH.relativize(normalized))
+		if (normalized.startsWith(CONTAINER_TMP_PATH))
+			return TMP_HOST_PATH.resolve(CONTAINER_TMP_PATH.relativize(normalized))
 		throw PathOutsideWorkspaceException(path)
 	}
 }

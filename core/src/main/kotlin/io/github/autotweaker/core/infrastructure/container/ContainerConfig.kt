@@ -19,15 +19,8 @@
 package io.github.autotweaker.core.infrastructure.container
 
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
-import io.github.autotweaker.api.CONFIG_PATH
-import io.github.autotweaker.api.TMP_PATH
 import java.nio.file.Path
 
-data class ContainerConfig(
-	val name: String = "$APP_NAME_LOWERCASE-workspace",
-	val env: Map<String, String> = emptyMap(),
-	val workDir: Path = Path.of("/workspace"),
-	val workspaceHostPath: Path = CONFIG_PATH.resolve("container", "workspace"),
-	val tmpHostPath: Path = TMP_PATH.resolve("container"),
-	val containerTmpPath: Path = Path.of("/tmp", "autotweaker"),
-)
+val CONTAINER_NAME: String = "$APP_NAME_LOWERCASE-workspace"
+val CONTAINER_WORK_PATH: Path = Path.of("/workspace")
+val CONTAINER_TMP_PATH: Path = Path.of("/tmp", APP_NAME_LOWERCASE)

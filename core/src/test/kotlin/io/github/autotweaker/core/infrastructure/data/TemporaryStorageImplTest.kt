@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
+import io.github.autotweaker.api.TMP_HOST_PATH
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import java.nio.file.Files
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
@@ -50,7 +50,7 @@ class TemporaryStorageImplTest {
 		
 		assertEquals("hello content", path.readText())
 		assertEquals(id.toString(), path.fileName.toString())
-		assertTrue(path.startsWith(ContainerConfig().tmpHostPath))
+		assertTrue(path.startsWith(TMP_HOST_PATH))
 	}
 	
 	@Test
@@ -85,8 +85,8 @@ class TemporaryStorageImplTest {
 	
 	@Test
 	fun `list ignores non-uuid files`() {
-		Files.createDirectories(ContainerConfig().tmpHostPath)
-		val junk = ContainerConfig().tmpHostPath.resolve("not-a-uuid")
+		Files.createDirectories(TMP_HOST_PATH)
+		val junk = TMP_HOST_PATH.resolve("not-a-uuid")
 		junk.writeText("junk")
 		try {
 			TemporaryStorageImpl.save("real", container = true)
@@ -103,7 +103,7 @@ class TemporaryStorageImplTest {
 	@Test
 	fun `list on missing directory returns empty`() {
 		// 空目录时 base 目录被删除后 list 返回空
-		ContainerConfig().tmpHostPath.deleteIfExists()
+		TMP_HOST_PATH.deleteIfExists()
 		
 		assertTrue(TemporaryStorageImpl.list(container = true).isEmpty())
 	}

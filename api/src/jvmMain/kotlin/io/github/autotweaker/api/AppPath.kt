@@ -43,3 +43,13 @@ val PLUGIN_PATH: Path = CONFIG_PATH.resolve("plugins")
 val TMP_PATH: Path = Path.of(
 	System.getProperty("java.io.tmpdir"), APP_NAME_LOWERCASE
 )
+
+/**
+ * 容器内 `/tmp/autotweaker` 的挂载对象。
+ */
+val TMP_HOST_PATH: Path = TMP_PATH.resolve("container")
+
+/**
+ * 容器内 `/workspace` 的挂载对象，位于此路径下的工作区会被视为容器内工作区。
+ */
+val WORKSPACE_HOST_PATH: Path = CONFIG_PATH.resolve("container", "workspace")

@@ -57,7 +57,7 @@ object ContainerManager : Loggable, Traceable, EnvStore() {
 	fun init(secretStore: SecretStore) {
 		this.secretStore = secretStore
 		
-		Files.createDirectories(ContainerConfig().workspaceHostPath)
+		Files.createDirectories(WORKSPACE_HOST_PATH)
 		
 		if (service.checkAccess()) containerAccess = true
 		else log.warn("Denied container access, features disabled").also { return }
@@ -82,11 +82,9 @@ object ContainerManager : Loggable, Traceable, EnvStore() {
 		
 		log.debug("Initiated container start  image={}", image)
 		containerId = service.start(
-			image, ContainerConfig(
-				env = listEnv().mapNotNull {
-					it to (getEnv(it) ?: return@mapNotNull null)
-				}.toMap()
-			)
+			image, listEnv().mapNotNull {
+				it to (getEnv(it) ?: return@mapNotNull null)
+			}.toMap()
 		).andLog(log) { info("Started container  containerId={}", it) }
 	}
 	

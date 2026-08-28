@@ -18,41 +18,38 @@
 
 package io.github.autotweaker.core.infrastructure.container
 
+import io.github.autotweaker.api.CONFIG_PATH
+import io.github.autotweaker.api.TMP_HOST_PATH
+import io.github.autotweaker.api.WORKSPACE_HOST_PATH
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import java.nio.file.Path
 import kotlin.test.*
 
 class PathResolverTest {
-	private val config = ContainerConfig(
-		workspaceHostPath = Path.of("/home/user/.config/autotweaker/container/workspace"),
-		tmpHostPath = Path.of("/tmp/autotweaker/container"),
-		workDir = Path.of("/workspace"),
-		containerTmpPath = Path.of("/tmp/autotweaker"),
-	)
-	private val resolver = PathResolverImpl(config)
+	private val resolver = PathResolverImpl
 	
 	// region inContainer
 	
 	@Test
 	fun `inContainer returns true for workspace under hostWorkspace`() {
-		val workspace = Path.of("/home/user/.config/autotweaker/container/workspace/myproject")
+		val workspace = WORKSPACE_HOST_PATH.resolve("myproject")
 		assertTrue(resolver.inContainer(workspace))
 	}
 	
 	@Test
 	fun `inContainer returns true for hostWorkspace itself`() {
-		assertTrue(resolver.inContainer(config.workspaceHostPath))
+		assertTrue(resolver.inContainer(WORKSPACE_HOST_PATH))
 	}
 	
 	@Test
 	fun `inContainer returns false for host path`() {
-		val workspace = Path.of("/home/user/projects")
+		val workspace = Path.of(System.getProperty("user.home"), "projects")
 		assertFalse(resolver.inContainer(workspace))
 	}
 	
 	@Test
 	fun `inContainer normalizes path before checking`() {
-		val workspace = Path.of("/home/user/.config/autotweaker/container/../container/workspace/proj")
+		val workspace = CONFIG_PATH.resolve("container/../container/workspace/proj")
 		assertTrue(resolver.inContainer(workspace))
 	}
 	
@@ -62,28 +59,28 @@ class PathResolverTest {
 	
 	@Test
 	fun `toAbsolutePath resolves relative path against container workspace`() {
-		val workspace = Path.of("/home/user/.config/autotweaker/container/workspace/proj")
+		val workspace = WORKSPACE_HOST_PATH.resolve("proj")
 		val result = resolver.toAbsolutePath(workspace, Path.of("src/main.kt"))
 		assertEquals(Path.of("/workspace/proj/src/main.kt"), result)
 	}
 	
 	@Test
 	fun `toAbsolutePath resolves relative path against host workspace`() {
-		val workspace = Path.of("/home/user/projects/myproject")
+		val workspace = Path.of(System.getProperty("user.home"), "projects", "myproject")
 		val result = resolver.toAbsolutePath(workspace, Path.of("src/main.kt"))
-		assertEquals(Path.of("/home/user/projects/myproject/src/main.kt"), result)
+		assertEquals(Path.of(System.getProperty("user.home"), "projects", "myproject", "src", "main.kt"), result)
 	}
 	
 	@Test
 	fun `toAbsolutePath with dot-dot relative path`() {
-		val workspace = Path.of("/home/user/.config/autotweaker/container/workspace/proj/sub")
+		val workspace = WORKSPACE_HOST_PATH.resolve("proj/sub")
 		val result = resolver.toAbsolutePath(workspace, Path.of("../other/file.kt"))
 		assertEquals(Path.of("/workspace/proj/other/file.kt"), result)
 	}
 	
 	@Test
 	fun `toAbsolutePath with empty relative path returns base`() {
-		val workspace = Path.of("/home/user/.config/autotweaker/container/workspace/proj")
+		val workspace = WORKSPACE_HOST_PATH.resolve("proj")
 		val result = resolver.toAbsolutePath(workspace, Path.of(""))
 		assertEquals(Path.of("/workspace/proj"), result)
 	}
@@ -94,27 +91,27 @@ class PathResolverTest {
 	
 	@Test
 	fun `toContainerPath maps hostWorkspace to containerWork`() {
-		val host = Path.of("/home/user/.config/autotweaker/container/workspace/proj/src")
+		val host = WORKSPACE_HOST_PATH.resolve("proj/src")
 		val result = resolver.toContainerPath(host)
 		assertEquals(Path.of("/workspace/proj/src"), result)
 	}
 	
 	@Test
 	fun `toContainerPath maps hostWorkspace root to containerWork root`() {
-		val result = resolver.toContainerPath(config.workspaceHostPath)
+		val result = resolver.toContainerPath(WORKSPACE_HOST_PATH)
 		assertEquals(Path.of("/workspace"), result)
 	}
 	
 	@Test
 	fun `toContainerPath maps hostTmp to containerTmp`() {
-		val host = Path.of("/tmp/autotweaker/container/somefile.txt")
+		val host = TMP_HOST_PATH.resolve("somefile.txt")
 		val result = resolver.toContainerPath(host)
 		assertEquals(Path.of("/tmp/autotweaker/somefile.txt"), result)
 	}
 	
 	@Test
 	fun `toContainerPath throws for path outside both prefixes`() {
-		val host = Path.of("/home/user/other/file.txt")
+		val host = Path.of(System.getProperty("user.home"), "other", "file.txt")
 		assertFailsWith<PathOutsideWorkspaceException> {
 			resolver.toContainerPath(host)
 		}
@@ -122,7 +119,7 @@ class PathResolverTest {
 	
 	@Test
 	fun `toContainerPath normalizes before checking`() {
-		val host = Path.of("/home/user/.config/autotweaker/container/workspace/../workspace/proj")
+		val host = WORKSPACE_HOST_PATH.resolve("../workspace/proj")
 		val result = resolver.toContainerPath(host)
 		assertEquals(Path.of("/workspace/proj"), result)
 	}
@@ -135,23 +132,20 @@ class PathResolverTest {
 	fun `toHostPath maps containerWork to hostWorkspace`() {
 		val container = Path.of("/workspace/proj/src/Main.kt")
 		val result = resolver.toHostPath(container)
-		assertEquals(
-			Path.of("/home/user/.config/autotweaker/container/workspace/proj/src/Main.kt"),
-			result
-		)
+		assertEquals(WORKSPACE_HOST_PATH.resolve("proj/src/Main.kt"), result)
 	}
 	
 	@Test
 	fun `toHostPath maps containerWork root to hostWorkspace root`() {
 		val result = resolver.toHostPath(Path.of("/workspace"))
-		assertEquals(config.workspaceHostPath, result)
+		assertEquals(WORKSPACE_HOST_PATH, result)
 	}
 	
 	@Test
 	fun `toHostPath maps containerTmp to hostTmp`() {
 		val container = Path.of("/tmp/autotweaker/somefile.txt")
 		val result = resolver.toHostPath(container)
-		assertEquals(Path.of("/tmp/autotweaker/container/somefile.txt"), result)
+		assertEquals(TMP_HOST_PATH.resolve("somefile.txt"), result)
 	}
 	
 	@Test
@@ -166,10 +160,7 @@ class PathResolverTest {
 	fun `toHostPath normalizes before checking`() {
 		val container = Path.of("/workspace/../workspace/proj")
 		val result = resolver.toHostPath(container)
-		assertEquals(
-			Path.of("/home/user/.config/autotweaker/container/workspace/proj"),
-			result
-		)
+		assertEquals(WORKSPACE_HOST_PATH.resolve("proj"), result)
 	}
 	
 	// endregion
@@ -178,7 +169,7 @@ class PathResolverTest {
 	
 	@Test
 	fun `toContainerPath then toHostPath returns original path`() {
-		val original = Path.of("/home/user/.config/autotweaker/container/workspace/proj/src")
+		val original = WORKSPACE_HOST_PATH.resolve("proj/src")
 		val roundTrip = resolver.toHostPath(resolver.toContainerPath(original))
 		assertEquals(original, roundTrip)
 	}
@@ -192,7 +183,7 @@ class PathResolverTest {
 	
 	@Test
 	fun `round-trip works for tmp paths`() {
-		val hostTmp = Path.of("/tmp/autotweaker/container/data.json")
+		val hostTmp = TMP_HOST_PATH.resolve("data.json")
 		val roundTrip = resolver.toHostPath(resolver.toContainerPath(hostTmp))
 		assertEquals(hostTmp, roundTrip)
 	}

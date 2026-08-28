@@ -30,7 +30,6 @@ import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.config.ApiKeyRepository
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
@@ -49,7 +48,6 @@ import io.github.autotweaker.core.infrastructure.system.SystemInfoServiceImpl
 import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
-	private val pathResolver = PathResolverImpl(ContainerConfig())
 	val databaseStore: DatabaseStore = H2DatabaseStore
 	
 	/**
@@ -61,14 +59,14 @@ object Wiring : Loggable {
 		ApiKeyRepository.init(SecretManager)
 		SecretDbApi.init(SecretManager)
 		ModelResolverImpl.init(SecretManager)
-		MessageConverts.init(RawFileSystemImpl, pathResolver, SystemInfoServiceImpl, GitStatusServiceImpl)
+		MessageConverts.init(RawFileSystemImpl, PathResolverImpl, SystemInfoServiceImpl, GitStatusServiceImpl)
 		ResilientChat.init(LlmGatewayImpl)
 		ChatService.init(
 			ModelResolverImpl, SessionRepositoryImpl
 		)
 		SessionManager.init(SessionRepositoryImpl, UsageRepositoryImpl, ModelResolverImpl, SecretManager)
-		TruncationImpl.init(pathResolver, TemporaryStorageImpl)
-		ToolProvider.init(ShellRouter, RawFileSystemImpl, pathResolver, TemporaryStorageImpl)
+		TruncationImpl.init(PathResolverImpl, TemporaryStorageImpl)
+		ToolProvider.init(ShellRouter, RawFileSystemImpl, PathResolverImpl, TemporaryStorageImpl)
 		
 		log.info("Completed wiring")
 	}
@@ -76,7 +74,7 @@ object Wiring : Loggable {
 	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) = CoreAPIImpl(
 		usageRepo = UsageRepositoryImpl,
 		adapter = adapterAPI,
-		pathResolver = pathResolver,
+		pathResolver = PathResolverImpl,
 		appVersion = ResourcesLoader.version
 	)
 }

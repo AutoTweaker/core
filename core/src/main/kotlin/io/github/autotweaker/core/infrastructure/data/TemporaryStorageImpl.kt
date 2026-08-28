@@ -22,7 +22,6 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.core.domain.port.TemporaryStorage
-import io.github.autotweaker.core.infrastructure.container.ContainerConfig
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -32,8 +31,6 @@ import kotlin.io.path.writeText
 import kotlin.streams.asSequence
 
 object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
-	private val containerTmpPath: Path = ContainerConfig().tmpHostPath
-	
 	override fun save(content: String, container: Boolean): Pair<UUID, Path> {
 		require(content.isNotEmpty())
 		val base = baseDir(container)
@@ -76,8 +73,8 @@ object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
 		}.rethrowNot<IOException>().getOrNull()
 	}
 	
-	private fun baseDir(container: Boolean) = if (container) containerTmpPath else TMP_PATH
+	private fun baseDir(container: Boolean) = if (container) TMP_HOST_PATH else TMP_PATH
 	private fun createDir() {
-		if (!Files.exists(containerTmpPath)) Files.createDirectories(containerTmpPath)
+		if (!Files.exists(TMP_HOST_PATH)) Files.createDirectories(TMP_HOST_PATH)
 	}
 }
