@@ -75,7 +75,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		)
 	)
 	
-	val requestSerializer = ReadRequest.serializer()
+	private val requestSerializer = ReadRequest.serializer()
 	
 	override suspend fun resolve(
 		dependency: DependencyProvider, args: ReadArgs
@@ -95,13 +95,15 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		}
 		
 		val relativePath = fs.relativize(filePath)
+		val displayPath = if (filePath.length < relativePath.length) filePath else relativePath
+		
 		val request = when (args) {
 			is ReadArgs.File -> {
 				val startLine = args.startLine ?: 1
 				val endLine = args.endLine ?: (startLine + ReadSettings.MaxReadLines().get() - 1)
 				ReadRequest.File(
 					path = filePath,
-					relativePath = relativePath,
+					displayPath = displayPath,
 					startLine = startLine,
 					endLine = endLine,
 					lineNumber = args.lineNumber ?: true,
@@ -114,7 +116,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				val endLine = args.endLine ?: (startLine + ReadSettings.SummarizeMaxLines().get() - 1)
 				ReadRequest.Summarize(
 					path = filePath,
-					relativePath = relativePath,
+					displayPath = displayPath,
 					startLine = startLine,
 					endLine = endLine,
 					prompt = args.prompt
@@ -138,17 +140,17 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val requestLines = request.endLine - request.startLine + 1
 		if (requestLines > maxLines)
 			return Rejected(ReadSettings.MessageTooManyLines().format(requestLines, maxLines)) {
-				text(i18n(ReadI18n.TooManyLines(), relativePath, requestLines))
+				text(i18n(ReadI18n.TooManyLines(), displayPath, requestLines))
 			}
 		
 		trace.catching {
 			if (!fs.exists(filePath))
-				return Rejected(ReadSettings.MessageFileNotFound().format(relativePath)) {
-					text(i18n(ReadI18n.FileNotFound(), relativePath))
+				return Rejected(ReadSettings.MessageFileNotFound().format(displayPath)) {
+					text(i18n(ReadI18n.FileNotFound(), displayPath))
 				}
 			if (!fs.isRegularFile(filePath))
-				return Rejected(ReadSettings.MessageNotRegularFile().format(relativePath)) {
-					text(i18n(ReadI18n.FileNotRegular(), relativePath))
+				return Rejected(ReadSettings.MessageNotRegularFile().format(displayPath)) {
+					text(i18n(ReadI18n.FileNotRegular(), displayPath))
 				}
 		}.rethrowCancellation().recoverException { _: PathOutsideWorkspaceException ->
 			return Rejected(ReadSettings.MessagePathOutsideWorkspace().get()) {
@@ -161,28 +163,28 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			request,
 			request = { reason ->
 				when (request) {
-					is ReadRequest.File -> text(i18n(ReadI18n.Request(), relativePath, reason))
-					is ReadRequest.Summarize -> text(i18n(ReadI18n.RequestSummary(), relativePath, reason))
+					is ReadRequest.File -> text(i18n(ReadI18n.Request(), displayPath, reason))
+					is ReadRequest.Summarize -> text(i18n(ReadI18n.RequestSummary(), displayPath, reason))
 				}
 			},
 			executing = {
 				when (request) {
-					is ReadRequest.File -> text(i18n(ReadI18n.Executing(), relativePath))
-					is ReadRequest.Summarize -> text(i18n(ReadI18n.ExecutingSummary(), relativePath))
+					is ReadRequest.File -> text(i18n(ReadI18n.Executing(), displayPath))
+					is ReadRequest.Summarize -> text(i18n(ReadI18n.ExecutingSummary(), displayPath))
 				}
 			},
 			cancelled = {
-				text(i18n(ReadI18n.Cancelled(), relativePath))
+				text(i18n(ReadI18n.Cancelled(), displayPath))
 			},
 			rejected = {
-				if (it == null) text(i18n(ReadI18n.Rejected(), relativePath))
-				else text(i18n(ReadI18n.RejectedWithReason(), relativePath, it))
+				if (it == null) text(i18n(ReadI18n.Rejected(), displayPath))
+				else text(i18n(ReadI18n.RejectedWithReason(), displayPath, it))
 			},
 			failed = {
-				text(i18n(ReadI18n.Failed(), relativePath, it.message()))
+				text(i18n(ReadI18n.Failed(), displayPath, it.message()))
 			},
 			timeout = {
-				text(i18n(ReadI18n.Timeout(), relativePath, it))
+				text(i18n(ReadI18n.Timeout(), displayPath, it))
 			},
 		)
 	}
@@ -199,7 +201,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		if (request is ReadRequest.File) {
 			sha256 = trace.catching {
 				fs.sha256(request.path)
-			}.onFsException(request.path) { return it }
+			}.onFsException(request.displayPath) { return it }
 			
 			val history = dependency.get<ToolCallHistory>()
 			val duplicate = history.getAll(requestSerializer)
@@ -214,7 +216,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				}
 			
 			if (duplicate) return ReadSettings.DuplicateMessage().format(sha256).toolSuccess {
-				text(i18n(ReadI18n.Executed(), request.relativePath))
+				text(i18n(ReadI18n.Executed(), request.displayPath))
 			}
 		}
 		
@@ -236,12 +238,12 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				lineNumber = request.lineNumber,
 				unicodeEscape = request.unicodeEscape
 			)
-		}.onFsException(request.path) { return it }
+		}.onFsException(request.displayPath) { return it }
 		
 		when (request) {
 			//read-file直接返回
 			is ReadRequest.File -> return "$sha256\n$fileContent".toolSuccess {
-				text(i18n(ReadI18n.Executed(), request.relativePath))
+				text(i18n(ReadI18n.Executed(), request.displayPath))
 			}
 			
 			is ReadRequest.Summarize -> {
@@ -251,7 +253,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					return ReadSettings.MessageTooFew().format(
 						fileContent.length, summarizeMinChars
 					).toolFail {
-						text(i18n(ReadI18n.TooFewChars(), request.relativePath, fileContent.length))
+						text(i18n(ReadI18n.TooFewChars(), request.displayPath, fileContent.length))
 					}
 				//提示词构造
 				val summarizePrompt = ReadSettings.SummarizePrompt().get()
@@ -260,11 +262,11 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				val summarize = dependency.get<SummarizeService>()
 				val output = trace.catching { summarize(prompt + '\n' + fileContent) }.getOrElse { e ->
 					return ReadSettings.MessageSummarizeFailed().format(e.message()).toolFail {
-						text(i18n(ReadI18n.SummaryFailed(), request.relativePath, e.message()))
+						text(i18n(ReadI18n.SummaryFailed(), request.displayPath, e.message()))
 					}
 				}
 				if (output == null) return ReadSettings.SummarizeOutputEmptyMessage().get()
-					.toolFail { text(i18n(ReadI18n.SummaryEmpty(), request.relativePath)) }
+					.toolFail { text(i18n(ReadI18n.SummaryEmpty(), request.displayPath)) }
 				//输出截断
 				val summarizeMaxOutputChars = ReadSettings.SummarizeMaxOutputChars().get()
 				val result = if (output.length > summarizeMaxOutputChars)
@@ -272,7 +274,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 							ReadSettings.SummarizeOutputTruncationMessage().format(output.length)
 				else output
 				return result.toolSuccess {
-					text(i18n(ReadI18n.ExecutedSummary(), request.relativePath))
+					text(i18n(ReadI18n.ExecutedSummary(), request.displayPath))
 				}
 			}
 		}
@@ -306,7 +308,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	}
 	
 	private inline fun <T> CatchingResult<T>.onFsException(
-		relativePath: Path, output: (Tool.ToolOutput) -> Unit
+		displayPath: Path, output: (Tool.ToolOutput) -> Nothing
 	) = rethrowCancellation()
 		.onException { e: PathOutsideWorkspaceException ->
 			output(ReadSettings.MessagePathOutsideWorkspace().get().toolFail {
@@ -317,25 +319,24 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			output(
 				ReadSettings.MessageStartLineBiggerThanFile().get()
 					.format(e.lineCount).toolFail {
-						text(i18n(ReadI18n.StartLineError(), relativePath, e.request, e.lineCount))
+						text(i18n(ReadI18n.StartLineError(), displayPath, e.request, e.lineCount))
 					}
 			)
 		}.onException { _: FileAccessDeniedException ->
 			output(ReadSettings.MessageFileAccessDenied().get().toolFail {
-				text(i18n(ReadI18n.AccessDenied(), relativePath))
+				text(i18n(ReadI18n.AccessDenied(), displayPath))
 			})
 		}.onException { _: FileNotFoundException ->
-			output(ReadSettings.MessageFileNotFound().format(relativePath).toolFail {
-				text(i18n(ReadI18n.FileNotFound(), relativePath))
+			output(ReadSettings.MessageFileNotFound().format(displayPath).toolFail {
+				text(i18n(ReadI18n.FileNotFound(), displayPath))
 			})
 		}.getOrElse { e ->
 			output(
 				ReadSettings.MessageFileCannotRead().get()
-					.format(relativePath, e.message()).toolFail {
-						text(i18n(ReadI18n.Failed(), relativePath, e.message()))
+					.format(displayPath, e.message()).toolFail {
+						text(i18n(ReadI18n.Failed(), displayPath, e.message()))
 					}
 			)
-			unreachable()
 		}
 	
 	private class StartLineException(val request: Int, val lineCount: Int) :

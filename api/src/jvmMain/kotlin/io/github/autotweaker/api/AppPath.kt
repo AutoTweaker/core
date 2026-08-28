@@ -21,6 +21,11 @@ package io.github.autotweaker.api
 import java.nio.file.Path
 
 /**
+ * 路径字符串长度。
+ */
+val Path.length get() = toString().length
+
+/**
  * 用户家目录。
  */
 val HOME: Path = Path.of(System.getProperty("user.home"))

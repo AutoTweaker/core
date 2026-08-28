@@ -28,7 +28,7 @@ sealed interface ReadRequest {
 	val path: Path
 	
 	@Serializable(with = PathSerializer::class)
-	val relativePath: Path
+	val displayPath: Path
 	val startLine: Int
 	val endLine: Int
 	val lineNumber: Boolean
@@ -39,7 +39,7 @@ sealed interface ReadRequest {
 		@Serializable(with = PathSerializer::class)
 		override val path: Path,
 		@Serializable(with = PathSerializer::class)
-		override val relativePath: Path,
+		override val displayPath: Path,
 		override val startLine: Int,
 		override val endLine: Int,
 		override val lineNumber: Boolean,
@@ -51,7 +51,7 @@ sealed interface ReadRequest {
 		@Serializable(with = PathSerializer::class)
 		override val path: Path,
 		@Serializable(with = PathSerializer::class)
-		override val relativePath: Path,
+		override val displayPath: Path,
 		override val startLine: Int,
 		override val endLine: Int,
 		val prompt: String?
