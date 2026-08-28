@@ -75,7 +75,7 @@ object ToolSettings {
 	@AutoService(SettingDef::class)
 	class ToolAlreadyActiveError : StringSetting(
 		"%s工具已经激活，请不要重复激活",
-		zh("调用工具不存在时的ToolResult")
+		zh("激活已激活工具时的ToolResult")
 	)
 	
 	@AutoService(SettingDef::class)
