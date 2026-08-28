@@ -42,7 +42,7 @@ object SessionI18n {
 	
 	@AutoService(I18nDef::class)
 	class NewFlag : I18nBase(
-		zh("创建新会话"),
+		zh("创建新会话，如果stdin有内容会直接发送"),
 	)
 	
 	@AutoService(I18nDef::class)

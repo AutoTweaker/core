@@ -27,6 +27,7 @@ import io.github.autotweaker.adapter.cli.commands.session.model.SessionModel
 import io.github.autotweaker.adapter.cli.syntax.ALL
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.ShortIdMapper
@@ -34,7 +35,6 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.session.diff
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.agent.AgentContextIndex.Turn
-import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.session.WorkspaceData
@@ -109,6 +109,9 @@ class Session : Command, Traceable, Loggable {
 		handleFlag("new") {
 			val newId = core.session.create(workspace.id, getConfig())
 			out(SessionI18n.SessionCreated(), ShortIdMapper.shortString(newId)) { green() }
+			val stdin = readAll() ?: done()
+			val agent = core.session.getHandle(newId).mainAgent()
+			send(agent, stdin)
 		}
 		handleValue("delete") {
 			val id = sessionId(it, workspace)
@@ -121,34 +124,10 @@ class Session : Command, Traceable, Loggable {
 		}
 		handleValue("send") { value ->
 			val id = sessionId(value, workspace)
-			val session = core.session.getHandle(id)
-			val mainId = session.data.value.agentIndex.main.id
-			val agent = session.agents.find { it.id == mainId }
-				?: throw AgentNotFoundException(mainId, session.data.value.id)
-			val stdin = StringBuilder()
-			while (true) {
-				val input = readChunk() ?: break
-				stdin.append(input)
-			}
-			if (stdin.isEmpty()) stdin.append(promptOrStdin(">"))
-			val deferred = agent.send(
-				MessageContent(
-					injections = listOf(
-						ContextInjection(
-							"user_environment",
-							i18n(SessionI18n.UserEnvironment())
-						)
-					),
-					content = stdin.toString().toContentPart()
-				)
-			)
-			err(SessionI18n.MessageSent()) { white() }
-			val msg = deferred.await()?.second
-			msg ?: error(SessionI18n.MessageDropped())
-			out(SessionI18n.MessageReceived()) { green() }
-			msg.content?.filterIsInstance<ContentPart.Text>()?.forEach {
-				out("> ${it.content}")
-			}
+			val agent = core.session.getHandle(id).mainAgent()
+			var message = readAll()
+			if (message.isNullOrBlank()) message = prompt(">")
+			send(agent, message)
 		}
 		handleValue("approve") {
 			approve(it, workspace, core)
@@ -178,6 +157,27 @@ class Session : Command, Traceable, Loggable {
 		}
 		
 		done(1)
+	}
+	
+	private suspend fun Console.send(agent: AgentAPI, message: String) {
+		val deferred = agent.send(
+			MessageContent(
+				injections = listOf(
+					ContextInjection(
+						"user_environment",
+						i18n(SessionI18n.UserEnvironment())
+					)
+				),
+				content = message.toContentPart()
+			)
+		)
+		err(SessionI18n.MessageSent()) { white() }
+		val msg = deferred.await()?.second
+		msg ?: error(SessionI18n.MessageDropped())
+		out(SessionI18n.MessageReceived()) { green() }
+		msg.content?.filterIsInstance<ContentPart.Text>()?.forEach {
+			out("> ${it.content}")
+		}
 	}
 	
 	private suspend fun Console.approve(id: String, workspace: WorkspaceData, core: CoreAPI) {

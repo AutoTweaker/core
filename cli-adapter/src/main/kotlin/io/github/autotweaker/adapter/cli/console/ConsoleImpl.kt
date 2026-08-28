@@ -103,6 +103,16 @@ class ConsoleImpl(
 	override suspend fun readChunk(): String? =
 		stdin.receiveCatching().getOrNull()
 	
+	override suspend fun readAll(): String? {
+		val first = readChunk() ?: return null
+		val all = StringBuilder(first)
+		while (true) {
+			val input = readChunk() ?: break
+			all.append(input)
+		}
+		return all.toString()
+	}
+	
 	override suspend fun <T> stream(flow: Flow<T>, render: suspend (T) -> Unit) =
 		flow.collect { render(it) }
 	

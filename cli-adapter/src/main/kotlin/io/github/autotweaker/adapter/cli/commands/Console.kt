@@ -46,6 +46,7 @@ interface Console : I18nable {
 	
 	suspend fun readLine(): String?
 	suspend fun readChunk(): String?
+	suspend fun readAll(): String?
 	
 	suspend fun <T> stream(flow: Flow<T>, render: suspend (T) -> Unit)
 	
