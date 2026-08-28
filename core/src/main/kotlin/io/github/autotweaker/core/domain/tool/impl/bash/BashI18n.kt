@@ -76,11 +76,11 @@ object BashI18n {
 	
 	@AutoService(I18nDef::class)
 	class Executed : I18nBase(
-		zh("执行了一条 Bash 命令"),
+		zh("执行了一条 Bash 命令，用时 %s，退出码 %s"),
 	)
 	
 	@AutoService(I18nDef::class)
 	class ExecutedWithEnv : I18nBase(
-		zh("执行了一条 Bash 命令，携带环境变量 %s"),
+		zh("执行了一条 Bash 命令，携带环境变量 %s，用时 %s，退出码 %s"),
 	)
 }

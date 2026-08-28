@@ -180,11 +180,12 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		return BashMessage.ToolResult().get()
 			.format(result.exitCode, result.duration, processOutput(stdout), processOutput(stderr))
 			.toolResult(BashResult.serializer(), output, success) {
-				if (request.envIds.isEmpty()) text(i18n(BashI18n.Executed()))
+				if (request.envIds.isEmpty()) text(i18n(BashI18n.Executed(), result.duration, result.exitCode))
 				else text(
 					i18n(
 						BashI18n.ExecutedWithEnv(),
-						request.envIds.joinToString(SPACE.toString())
+						request.envIds.joinToString(SPACE.toString()),
+						result.duration, result.exitCode
 					)
 				)
 				command(request.command)
