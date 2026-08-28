@@ -178,6 +178,8 @@ interface AgentAPI {
 	 * 在 agent 的上下文中注入 XML 标签，相同 id 的标签会去重。
 	 *
 	 * XML 标签会被注入到当前上下文中的第一条用户消息中，此 api 用于注入不变的系统提示，如果要注入动态的实时信息，请使用 [send]。
+	 *
+	 * 请不要频繁使用此方法，这将导致模型 API 的硬盘缓存失效，并增加费用。
 	 */
 	suspend fun inject(injection: ContextInjection): AgentAPI
 	
@@ -185,6 +187,8 @@ interface AgentAPI {
 	 * 从 agent 的上下文中移除一条标签注入。
 	 * 
 	 * 如果请求移除一条不存在的标签，什么也不会发生。
+	 *
+	 * 请不要频繁使用此方法，这将导致模型 API 的硬盘缓存失效，并增加费用。
 	 */
 	suspend fun removeInjection(id: UUID): AgentAPI
 }
