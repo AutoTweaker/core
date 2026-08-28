@@ -96,8 +96,8 @@ class SyntaxValidatorTest {
 	}
 	
 	@Test
-	fun allOptionalGroupWithRequiredLeafFailsWhenLeafAbsent() {
-		assertFalse(validate(all(flag("must", required = true), required = false), emptySet()))
+	fun allOptionalGroupWithRequiredLeafPassesWhenLeafAbsent() {
+		assertTrue(validate(all(flag("must", required = true), required = false), emptySet()))
 	}
 	
 	@Test
@@ -196,6 +196,27 @@ class SyntaxValidatorTest {
 	@Test
 	fun requiredPositionalMissing() {
 		assertFalse(validate(all(positional("file", required = true)), emptySet(), posCount = 0))
+	}
+	
+	@Test
+	fun optionalGroupWithRequiredPositionalsPassesWithoutArgs() {
+		val syntax = all(
+			positional("provider", required = true),
+			positional("model", required = true),
+			required = false,
+		)
+		assertTrue(validate(syntax, emptySet()))
+	}
+	
+	@Test
+	fun optionalGroupWithRequiredPositionalsStillRequiresAllWhenUsed() {
+		val syntax = all(
+			positional("provider", required = true),
+			positional("model", required = true),
+			required = false,
+		)
+		assertFalse(validate(syntax, emptySet(), posCount = 1))
+		assertTrue(validate(syntax, emptySet(), posCount = 2))
 	}
 	
 	@Test

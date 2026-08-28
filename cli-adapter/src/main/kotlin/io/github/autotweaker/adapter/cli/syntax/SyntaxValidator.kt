@@ -54,6 +54,7 @@ object SyntaxValidator {
 		is Syntax.All -> {
 			val hasPos = positionalCount > 0
 			val anyActive = syntax.children.any { isActive(it, activeValues, hasPos) }
+			if (!syntax.required && !anyActive && !hasPos) return true
 			val hasRequired = syntax.children.any { it.required }
 			val requiredPos =
 				syntax.children.sumOf { if (it.required && it is Syntax.Leaf && it.param is Param.Positional) 1 else 0 }

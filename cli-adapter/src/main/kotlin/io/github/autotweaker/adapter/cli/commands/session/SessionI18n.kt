@@ -216,11 +216,6 @@ object SessionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class ToolApproved : I18nBase(
-		zh("批准了工具 %s 的调用请求"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class NoPendingCalls : I18nBase(
 		zh("没有待批准的工具调用"),
 	)

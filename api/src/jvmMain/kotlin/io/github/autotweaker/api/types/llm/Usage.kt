@@ -32,6 +32,7 @@ data class Usage(
 	val cacheMissTokens: Int get() = promptTokens - (cacheHitTokens ?: 0)
 	val cacheHitRate: Double
 		get() = if (promptTokens == 0) 0.0 else (cacheHitTokens ?: 0).toDouble() / promptTokens
+	val cacheHitRateStr: String get() = "%.2f".format(cacheHitRate * 100) + "%"
 	
 	operator fun plus(other: Usage): Usage = Usage(
 		promptTokens = promptTokens + other.promptTokens,

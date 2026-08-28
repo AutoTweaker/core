@@ -24,6 +24,7 @@ import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager.getConfig
 import io.github.autotweaker.adapter.cli.commands.session.model.SessionModel
+import io.github.autotweaker.adapter.cli.commands.session.usage.SessionUsage
 import io.github.autotweaker.adapter.cli.syntax.ALL
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.*
@@ -81,7 +82,7 @@ class Session : Command, Traceable, Loggable {
 			value("delete", SessionI18n.DeleteFlag())
 		}
 	}
-	override val children = listOf(SessionModel())
+	override val children = listOf(SessionModel(), SessionUsage())
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		ModelManager.init(core)
@@ -169,7 +170,8 @@ class Session : Command, Traceable, Loggable {
 							msg.callId,
 						)
 					)
-					out(SessionI18n.ToolApproved(), msg.validatedToolName) { green() }
+					out(SessionI18n.CallApproved()) { green() }
+					msg.printMsg()
 				}
 			}
 		}
@@ -462,7 +464,7 @@ class Session : Command, Traceable, Loggable {
 						SessionI18n.Usage(),
 						it.promptTokens,
 						it.completionTokens,
-						"%.2f".format(it.cacheHitRate * 100) + "%"
+						it.cacheHitRateStr
 					) {
 						cyan()
 					}
