@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.port
+package io.github.autotweaker.api.types.tool.read
 
-import io.github.autotweaker.api.types.PairList
-import kotlinx.serialization.KSerializer
+import io.github.autotweaker.api.types.Sha256
+import kotlinx.serialization.Serializable
 
-interface ToolCallHistory {
-	fun <Request, Result> getAll(
-		requestSerializer: KSerializer<Request>,
-		resultSerializer: KSerializer<Result>
-	): PairList<Request, Result>
-}
+@Serializable
+data class ReadResult(
+	val sha256: Sha256,
+	val content: String,
+	val truncated: Boolean
+)

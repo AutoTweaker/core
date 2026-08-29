@@ -19,3 +19,5 @@
 package io.github.autotweaker.core.domain.port
 
 data class Truncated<T>(val content: T, val truncated: Boolean)
+
+fun <T> T.truncated(truncated: Boolean) = Truncated(this, truncated)

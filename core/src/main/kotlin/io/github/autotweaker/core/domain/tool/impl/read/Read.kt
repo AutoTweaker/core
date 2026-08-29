@@ -29,9 +29,12 @@ import io.github.autotweaker.api.tool.*
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.read.ReadRequest
+import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.api.types.tool.text
 import io.github.autotweaker.core.domain.port.FileAccessDeniedException
 import io.github.autotweaker.core.domain.port.FileNotFoundException
+import io.github.autotweaker.core.domain.port.Truncated
+import io.github.autotweaker.core.domain.port.truncated
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
@@ -76,6 +79,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	)
 	
 	private val requestSerializer = ReadRequest.serializer()
+	private val resultSerializer = ReadResult.serializer()
 	
 	override suspend fun resolve(
 		dependency: DependencyProvider, args: ReadArgs
@@ -204,15 +208,16 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			}.onFsException(request.displayPath) { return it }
 			
 			val history = dependency.get<ToolCallHistory>()
-			val duplicate = history.getAll(requestSerializer)
-				.any {
-					it.request is ReadRequest.File
-							&& it.request.lineNumber == request.lineNumber
-							&& it.request.unicodeEscape == request.unicodeEscape
-							&& it.request.path == request.path
-							&& it.resultContent.substringBefore('\n') == sha256.toString()
-							&& it.request.startLine <= request.startLine
-							&& it.request.endLine >= request.endLine
+			val duplicate = history.getAll(requestSerializer, resultSerializer)
+				.any { (request, result) ->
+					request is ReadRequest.File
+							&& !result.truncated
+							&& request.lineNumber == request.lineNumber
+							&& request.unicodeEscape == request.unicodeEscape
+							&& request.path == request.path
+							&& result.sha256 == sha256
+							&& request.startLine <= request.startLine
+							&& request.endLine >= request.endLine
 				}
 			
 			if (duplicate) return ReadSettings.DuplicateMessage().format(sha256).toolSuccess {
@@ -242,25 +247,29 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		
 		when (request) {
 			//read-file直接返回
-			is ReadRequest.File -> return "$sha256\n$fileContent".toolSuccess {
+			is ReadRequest.File -> return "$sha256\n$fileContent".toolSuccess(
+				resultSerializer, ReadResult(
+					sha256!!, fileContent.content, fileContent.truncated
+				)
+			) {
 				text(i18n(ReadI18n.Executed(), request.displayPath))
 			}
 			
 			is ReadRequest.Summarize -> {
 				//最小字符数检查
 				val summarizeMinChars = ReadSettings.SummarizeMinChars().get()
-				if (fileContent.length < summarizeMinChars)
+				if (fileContent.content.length < summarizeMinChars)
 					return ReadSettings.MessageTooFew().format(
-						fileContent.length, summarizeMinChars
+						fileContent.content.length, summarizeMinChars
 					).toolFail {
-						text(i18n(ReadI18n.TooFewChars(), request.displayPath, fileContent.length))
+						text(i18n(ReadI18n.TooFewChars(), request.displayPath, fileContent.content.length))
 					}
 				//提示词构造
 				val summarizePrompt = ReadSettings.SummarizePrompt().get()
 				val prompt = request.prompt?.let { "$summarizePrompt\n$it" } ?: summarizePrompt
 				//运行总结
 				val summarize = dependency.get<SummarizeService>()
-				val output = trace.catching { summarize(prompt + '\n' + fileContent) }.getOrElse { e ->
+				val output = trace.catching { summarize(prompt + '\n' + fileContent.content) }.getOrElse { e ->
 					return ReadSettings.MessageSummarizeFailed().format(e.message()).toolFail {
 						text(i18n(ReadI18n.SummaryFailed(), request.displayPath, e.message()))
 					}
@@ -283,7 +292,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	private suspend fun readFileContent(
 		fs: FileSystemService, path: Path, startLine: Int, endLine: Int,
 		maxChars: Int, truncateMessage: String, lineNumber: Boolean, unicodeEscape: Boolean
-	): String {
+	): Truncated<String> {
 		val allLines: List<String> = trace.catching {
 			fs.readAllLines(path)
 		}.getOrThrow()
@@ -291,6 +300,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		if (lineCount < startLine) throw StartLineException(startLine, lineCount)
 		val actualEndLine = minOf(endLine, lineCount)
 		val selectedLines = allLines.subList(startLine - 1, actualEndLine)
+		var truncated = false
 		val sb = StringBuilder()
 		for (i in selectedLines.indices) {
 			val line = if (lineNumber) "${startLine + i}\t${selectedLines[i]}"
@@ -301,10 +311,11 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			)
 			if (sb.length > maxChars) {
 				sb.append(truncateMessage.format(sb.length))
+				truncated = true
 				break
 			}
 		}
-		return sb.toString()
+		return sb.toString().truncated(truncated)
 	}
 	
 	private inline fun <T> CatchingResult<T>.onFsException(
