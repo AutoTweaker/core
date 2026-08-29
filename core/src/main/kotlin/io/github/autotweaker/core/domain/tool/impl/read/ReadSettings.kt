@@ -203,28 +203,28 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MaxReadLines : IntSetting(
-		2_000, zh(
+		5_000, zh(
 			"read-file工具最大允许行数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxReadChars : IntSetting(
-		50_000, zh(
+		100_000, zh(
 			"read-file工具最大允许字符数，超出会截断"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMaxLines : IntSetting(
-		5_000, zh(
+		10_000, zh(
 			"read-summarize工具最大允许行数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMaxInputChars : IntSetting(
-		200000, zh(
+		500_000, zh(
 			"read-summarize工具最大输入字符数，超出会截断"
 		)
 	)
@@ -238,7 +238,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class SummarizeMaxOutputChars : IntSetting(
-		35_000, zh(
+		50_000, zh(
 			"read-summarize工具最大输出字符数，超出会截断"
 		)
 	)

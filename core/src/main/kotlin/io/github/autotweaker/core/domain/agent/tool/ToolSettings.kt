@@ -153,7 +153,7 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class MaxOutput : IntSetting(
-		100_000, zh(
+		500_000, zh(
 			"工具输出的极限长度，单位字符数而非token，任何工具在输出超过此长度时都将被截断，完整输出会被存入临时文件。" +
 					"请不要设置较小的值，也不要比read等工具的上限更小，如果此值比read工具的字符数上限小，" +
 					"可能导致模型在读取完整输出时再次触发截断和保存"
