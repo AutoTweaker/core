@@ -31,25 +31,13 @@ import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.*
 import java.nio.file.Path
 
-object ToolProvider {
-	private lateinit var shellExecutor: ShellExecutor
-	private lateinit var rawFileSystem: RawFileSystem
-	private lateinit var pathResolver: PathResolver
-	private lateinit var temporaryStorage: TemporaryStorage
-	
-	fun init(
-		shellExecutor: ShellExecutor,
-		rawFileSystem: RawFileSystem,
-		pathResolver: PathResolver,
-		temporaryStorage: TemporaryStorage,
-	) {
-		this.shellExecutor = shellExecutor
-		this.rawFileSystem = rawFileSystem
-		this.pathResolver = pathResolver
-		this.temporaryStorage = temporaryStorage
-	}
-	
-	fun buildToolProvider(
+class ToolProvider(
+	private val shellExecutor: ShellExecutor,
+	private val rawFileSystem: RawFileSystem,
+	private val pathResolver: PathResolver,
+	private val temporaryStorage: TemporaryStorage
+) {
+	fun build(
 		workspace: () -> Path,
 		model: AgentModel,
 		context: RuntimeContext,

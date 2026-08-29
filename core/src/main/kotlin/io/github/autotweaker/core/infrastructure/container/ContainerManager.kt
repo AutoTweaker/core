@@ -24,10 +24,8 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -36,13 +34,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
-object ContainerManager : Loggable, Traceable, EnvStore() {
+class ContainerManager(
+	private val secret: SecretStore,
+	private val service: ContainerService
+) : Loggable, Traceable, EnvStore() {
 	private val lock = ReentrantMutex()
 	private val scope = scope(IO)
 	
+	private val image = ContainerSettings.DockerImage().get()
 	private var imagePullJob: Deferred<Unit>? = null
-	
-	private val service: ContainerService = DockerJavaService()
 	
 	@Volatile
 	private var containerId: String? = null
@@ -52,31 +52,26 @@ object ContainerManager : Loggable, Traceable, EnvStore() {
 	
 	val isRunning: Boolean get() = containerId != null
 	
-	private lateinit var secretStore: SecretStore
-	
-	fun init(secretStore: SecretStore) {
-		this.secretStore = secretStore
-		
+	fun init() {
 		Files.createDirectories(WORKSPACE_HOST_PATH)
 		
 		if (service.checkAccess()) containerAccess = true
 		else log.warn("Denied container access, features disabled").also { return }
 		
 		imagePullJob = scope.async {
-			val image = ContainerSettings.DockerImage().get()
 			service.pullImage(image)
 		}
 	}
 	
-	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ensureRunning() = lock.withLock {
 		if (isRunning) return@withLock
-		secretStore.requireUnlocked()
-		val image = ContainerSettings.DockerImage().get()
-		val job = imagePullJob
-		if (job != null && job.isCompleted && job.getCompletionExceptionOrNull() != null)
-			imagePullJob = scope.async { service.pullImage(image) }
-				.andLog(log) { warn("Failed image pull, retried  image={}", image) }
+		secret.requireUnlocked()
+		trace.catching { imagePullJob?.await() }
+			.ensureActive()
+			.onFailure {
+				log.warn("Failed image pull, retried  image={}", image)
+				imagePullJob = scope.async { service.pullImage(image) }
+			}
 		
 		imagePullJob?.await()
 		
@@ -85,7 +80,9 @@ object ContainerManager : Loggable, Traceable, EnvStore() {
 			image, listEnv().mapNotNull {
 				it to (getEnv(it) ?: return@mapNotNull null)
 			}.toMap()
-		).andLog(log) { info("Started container  containerId={}", it) }
+		).andLog(log) {
+			info("Started container  containerId={}", it)
+		}
 	}
 	
 	suspend fun stop() = lock.withLock {
@@ -101,15 +98,15 @@ object ContainerManager : Loggable, Traceable, EnvStore() {
 	}
 	
 	
-	fun execShellStream(
-		command: String, workDir: Path?, timeout: Duration, env: Map<String, String>
+	fun exec(
+		command: String, workDir: Path, env: Map<String, String>, timeout: Duration
 	): Flow<ShellEvent> = flow {
 		if (!containerAccess) {
 			val msg = ContainerSettings.AccessDeniedMessage().get()
 			emit(ShellEvent.Stderr("$msg\n"))
 			emit(
 				ShellEvent.Exit(
-					ShellResult(exitCode = 1, timeout = false, duration = Duration.ZERO)
+					ShellResult(exitCode = -1, timeout = false, duration = Duration.ZERO)
 				)
 			)
 			return@flow

@@ -20,17 +20,16 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.llm.ReasoningEffort
-import io.github.autotweaker.core.domain.model.Model
 
 data class AgentModel(
-	val model: Model,
+	val model: RuntimeModel,
 	val reasoning: ReasoningEffort?,
-	val summarize: Model,
-	val compact: Model,
-	val fallback: List<Model>?,
+	val summarize: RuntimeModel,
+	val compact: RuntimeModel,
+	val fallback: List<RuntimeModel>?,
 ) {
 	companion object {
-		fun AgentModel.all(): List<Model> = buildList {
+		fun AgentModel.all(): List<RuntimeModel> = buildList {
 			add(model)
 			add(summarize)
 			add(compact)

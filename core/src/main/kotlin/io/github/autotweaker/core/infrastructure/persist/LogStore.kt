@@ -32,11 +32,11 @@ import java.nio.file.Path
 import kotlin.time.Instant
 
 object LogStore : Loggable, Traceable {
-	private val logDir: Path = CONFIG_PATH.resolve("logs")
+	private val LOG_PATH: Path = CONFIG_PATH.resolve("logs")
 	
 	fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> {
 		val files = trace.catching {
-			Files.list(logDir).use { stream ->
+			Files.list(LOG_PATH).use { stream ->
 				stream.filter { it.fileName.toString().endsWith(".jsonl") }.toList()
 			}
 		}.getOrNull()?.sortedByDescending { it.fileName.toString() }.orEmpty()

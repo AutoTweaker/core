@@ -19,15 +19,16 @@
 package io.github.autotweaker.core.infrastructure.persist.db.config
 
 import io.github.autotweaker.api.types.debug.SettingEntry
-import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.AbstractDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
+import org.jetbrains.exposed.v1.jdbc.Database
 
-object SettingDbApi : AbstractDbApi<SettingEntry, String>() {
-	fun init(databaseStore: DatabaseStore) {
-		super.init(databaseStore.connect("AppConfig"), ConfigTable, ConfigTable.keyName)
-	}
+class SettingDbApi(private val store: DatabaseStore) : AbstractDbApi<SettingEntry, String>(
+	ConfigTable, ConfigTable.keyName
+) {
+	override fun connect(): Database = store.connect("AppConfig")
 	
 	override fun ResultRow.toEntry() = SettingEntry(
 		key = this[ConfigTable.keyName],

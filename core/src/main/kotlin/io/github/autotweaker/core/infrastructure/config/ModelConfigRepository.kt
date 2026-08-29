@@ -20,7 +20,6 @@ package io.github.autotweaker.core.infrastructure.config
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.exception.DefaultModelDeletionException
 import io.github.autotweaker.api.types.exception.duplicate.DuplicateModelNameException
@@ -28,25 +27,25 @@ import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundExcept
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelStore
+import io.github.autotweaker.core.infrastructure.persist.json.ProviderStore
 import java.util.*
 
-object ModelConfigRepository : Loggable {
+class ModelConfigRepository(
+	private val modelResolver: ModelResolverImpl
+) : Loggable {
 	private val store = ModelStore
-	private val lock = ReentrantMutex()
 	
-	suspend fun set(model: ModelData) = lock.withLock {
-		ProviderRepository.lock.withLock {
-			ProviderRepository.get(model.providerId)
-				?: throw ProviderNotFoundException(model.providerId)
-			val duplicate = store.getAll().values.any {
-				it.id != model.id
-						&& it.providerId == model.providerId
-						&& it.displayName == model.displayName
-			}
-			if (duplicate) throw DuplicateModelNameException(model.displayName)
-			store.set(model)
-			log.info("Added model  id={}  modelId={}", model.id, model.modelInfo.modelId)
+	suspend fun set(model: ModelData) = ModelConfigLock.withLock {
+		ProviderStore.get(model.providerId)
+			?: throw ProviderNotFoundException(model.providerId)
+		val duplicate = store.getAll().values.any {
+			it.id != model.id
+					&& it.providerId == model.providerId
+					&& it.displayName == model.displayName
 		}
+		if (duplicate) throw DuplicateModelNameException(model.displayName)
+		store.set(model)
+		log.info("Added model  id={}  modelId={}", model.id, model.modelInfo.modelId)
 	}
 	
 	suspend fun list(): List<ModelData> = store.getAll().values.toList()
@@ -54,7 +53,7 @@ object ModelConfigRepository : Loggable {
 	suspend fun get(id: UUID) = store.get(id)
 	
 	suspend fun remove(id: UUID): Boolean =
-		ModelResolverImpl.getDefaultModel {
+		modelResolver.getDefaultModel {
 			if (it == id) throw DefaultModelDeletionException(it)
 			store.delete(id).andLog(log) {
 				info("Removed model  id={}", id)

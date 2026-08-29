@@ -28,9 +28,9 @@ import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.port.TemporaryStorage
@@ -64,10 +64,10 @@ class ThinkingStageTest {
 	private val workspace: () -> Path = { Path.of(".") }
 	private val truncation = mockk<TruncationService>()
 	private val model = AgentModel(
-		model = mockk<Model>(),
+		model = mockk<RuntimeModel>(),
 		reasoning = null,
-		summarize = mockk<Model>(),
-		compact = mockk<Model>(),
+		summarize = mockk<RuntimeModel>(),
+		compact = mockk<RuntimeModel>(),
 		fallback = null,
 	)
 	private val context = RuntimeContext(null, null, null, null, null)

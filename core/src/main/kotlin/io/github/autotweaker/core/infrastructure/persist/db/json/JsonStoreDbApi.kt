@@ -16,18 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.json.store
+package io.github.autotweaker.core.infrastructure.persist.db.json
 
 import io.github.autotweaker.api.types.debug.JsonStoreEntry
-import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.AbstractDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
+import org.jetbrains.exposed.v1.jdbc.Database
 
-object JsonStoreDbApi : AbstractDbApi<JsonStoreEntry, String>() {
-	fun init(databaseStore: DatabaseStore) {
-		super.init(databaseStore.connect("AppConfig"), JsonStoreTable, JsonStoreTable.namespace)
-	}
+class JsonStoreDbApi(private val store: DatabaseStore) : AbstractDbApi<JsonStoreEntry, String>(
+	JsonStoreTable, JsonStoreTable.namespace
+) {
+	override fun connect(): Database = store.connect("AppConfig")
 	
 	override fun ResultRow.toEntry() = JsonStoreEntry(
 		key = this[JsonStoreTable.namespace],

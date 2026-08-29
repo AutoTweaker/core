@@ -29,20 +29,14 @@ import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelResolver
-import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.coroutines.flow.*
 
-object ChatService : Loggable, Traceable {
-	private lateinit var modelRepo: ModelResolver
-	private lateinit var sessionRepo: SessionRepository
-	private lateinit var usageRepo: UsageRepository
-	
-	fun init(model: ModelResolver, session: SessionRepository) {
-		modelRepo = model
-		sessionRepo = session
-	}
-	
+class ChatService(
+	private val modelRepo: ModelResolver,
+	private val usageRepo: UsageRepository,
+	private val chat: ResilientChat,
+) : Loggable, Traceable {
 	fun chat(request: LlmRequest): Flow<LlmResult> = flow {
 		val model = modelRepo.resolve(request.model)
 		val fallbacks = request.fallbackModels?.map {
@@ -56,7 +50,7 @@ object ChatService : Loggable, Traceable {
 		)
 		var lastUsage: UsageEntry? = null
 		emitAll(
-			ResilientChat.execute(
+			chat.execute(
 				model = model,
 				fallbackModels = fallbacks,
 				timeout = request.timeout,

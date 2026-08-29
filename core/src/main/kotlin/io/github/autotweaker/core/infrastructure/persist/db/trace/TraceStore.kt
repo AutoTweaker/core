@@ -18,26 +18,22 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
-import io.github.autotweaker.core.infrastructure.persist.db.transaction
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.api.discard
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
-object TraceStore : Loggable {
-	private lateinit var db: Database
-	
-	suspend fun init(databaseStore: DatabaseStore) {
-		db = databaseStore.connect("Traces")
-		db.transaction { SchemaUtils.create(TraceTable) }
-		log.info("Initialized TraceStore  table=traces")
-	}
-	
-	suspend fun insert(origin: String, namespace: String, content: String) {
+class TraceStore(store: DatabaseStore) :
+	DbStore(store, "Traces", TraceTable) {
+	suspend fun insert(origin: String, namespace: String, content: String) =
 		db.transaction {
 			TraceTable.insert {
 				it[TraceTable.origin] = origin
@@ -45,16 +41,16 @@ object TraceStore : Loggable {
 				it[TraceTable.timestamp] = Clock.System.now()
 				it[TraceTable.content] = content
 			}
-		}
-	}
+		}.discard()
 	
-	suspend fun select(origin: String, namespace: String, timestamp: Instant): String? = db.transaction {
-		TraceTable.selectAll().where {
-			(TraceTable.origin eq origin) and
-					(TraceTable.namespace eq namespace) and
-					(TraceTable.timestamp eq timestamp)
-		}.firstOrNull()?.get(TraceTable.content)
-	}
+	suspend fun select(origin: String, namespace: String, timestamp: Instant): String? =
+		db.transaction {
+			TraceTable.selectAll().where {
+				(TraceTable.origin eq origin) and
+						(TraceTable.namespace eq namespace) and
+						(TraceTable.timestamp eq timestamp)
+			}.firstOrNull()?.get(TraceTable.content)
+		}
 	
 	suspend fun selectOrigins(): List<String> = db.transaction {
 		TraceTable.select(TraceTable.origin).withDistinct().map { it[TraceTable.origin] }

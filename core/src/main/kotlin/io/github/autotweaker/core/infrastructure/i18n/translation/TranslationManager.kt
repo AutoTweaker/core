@@ -33,15 +33,12 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.nullable
 import java.util.*
 
-object TranslationManager : ImmutableStore<UUID?>(), Loggable, Traceable {
+class TranslationManager(
+	private val modelResolver: ModelResolver,
+	private val engine: TranslationEngine
+) : ImmutableStore<UUID?>(), Loggable, Traceable {
 	override val serializer = UuidSerializer.nullable
 	override fun default() = null
-	
-	private lateinit var modelRepo: ModelResolver
-	
-	fun init(modelRepo: ModelResolver) {
-		this.modelRepo = modelRepo
-	}
 	
 	private val _status = MutableStateFlow(TranslationStatus.IDLE)
 	val status: StateFlow<TranslationStatus> get() = _status.asStateFlow()
@@ -72,7 +69,7 @@ object TranslationManager : ImmutableStore<UUID?>(), Loggable, Traceable {
 		}
 		
 		val target = I18nServiceImpl.getLanguage()
-		if (TranslationEngine.isCompleted(target)) {
+		if (engine.isCompleted(target)) {
 			logSkipped("already-complete")
 			_status.value = TranslationStatus.IDLE
 			return false
@@ -81,7 +78,7 @@ object TranslationManager : ImmutableStore<UUID?>(), Loggable, Traceable {
 		scope.launch {
 			log.info("Started translation  target={}  modelId={}", target.toLanguageTag(), modelId)
 			trace.catching {
-				TranslationEngine.run(modelId, target, modelRepo)
+				engine.run(modelId, target, modelResolver)
 			}.also { _status.value = TranslationStatus.IDLE }
 				.rethrowCancellation()
 				.onFailure { log.error("Failed translation  target={}", target.toLanguageTag(), it) }

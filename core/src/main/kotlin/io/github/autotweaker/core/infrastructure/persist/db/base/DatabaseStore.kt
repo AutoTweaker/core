@@ -16,15 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.model
+package io.github.autotweaker.core.infrastructure.persist.db.base
 
-import io.github.autotweaker.api.types.llm.ModelData.Config
-import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
-import java.util.*
+import org.jetbrains.exposed.v1.jdbc.Database
 
-data class Model(
-	val id: UUID,
-	val provider: Provider,
-	val modelInfo: ModelInfo,
-	val config: Config? = null,
-)
+interface DatabaseStore {
+	fun connect(dbName: String): Database
+	suspend fun shutdown() {}
+}

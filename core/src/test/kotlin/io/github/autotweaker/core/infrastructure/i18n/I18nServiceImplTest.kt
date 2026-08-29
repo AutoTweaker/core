@@ -23,7 +23,7 @@ import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.Localizations
 import io.github.autotweaker.api.types.exception.notfound.I18nEntryNotFoundException
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject

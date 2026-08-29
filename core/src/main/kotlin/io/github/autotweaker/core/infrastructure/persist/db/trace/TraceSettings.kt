@@ -63,7 +63,7 @@ object TraceSettings {
 	
 	@AutoService(SettingDef::class)
 	class CleanupIntervalMinutes : IntSetting(
-		60, zh(
+		15, zh(
 			"Traces数据库自动清理间隔，单位分钟，设为0禁用自动清理"
 		)
 	)

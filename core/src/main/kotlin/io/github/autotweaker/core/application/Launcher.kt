@@ -38,7 +38,9 @@ import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationMan
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
-import io.github.autotweaker.core.infrastructure.persist.db.objectstore.ObjectStorageImpl
+import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.objstore.ObjectStorageImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.AgentDataDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionDataDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionMessageDbApi
@@ -47,8 +49,6 @@ import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderI
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
-import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreDbApi
-import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 
 object Launcher : Loggable, Traceable {
 	suspend fun start(

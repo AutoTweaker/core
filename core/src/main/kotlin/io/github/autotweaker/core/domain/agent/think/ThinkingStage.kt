@@ -38,6 +38,7 @@ import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall as Raw
 class ThinkingStage(
 	private val llmService: LlmService,
 	private val tools: Tools,
+	private val provider: ToolProvider,
 	private val workspace: () -> Path,
 	private val truncation: TruncationService,
 	private val status: MutableStateFlow<AgentStatus>,
@@ -60,7 +61,7 @@ class ThinkingStage(
 			needsApproval = null
 		)
 		
-		val provider = ToolProvider.buildToolProvider(
+		val provider = provider.build(
 			workspace = workspace,
 			onOutput = onOutput,
 			model = model,

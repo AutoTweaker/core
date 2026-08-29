@@ -26,12 +26,12 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.agent.chat.MessageConverts.merge
+import io.github.autotweaker.core.domain.agent.RuntimeModel
+import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
-import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -79,7 +79,7 @@ class AgentBridgeTest {
 		usageRepo = mockk<UsageRepository>(relaxed = true),
 		resolveModel = {
 			// toModelConfig() 需要非空 Model.id
-			mockk<Model>(relaxed = true).also { model -> every { model.id } returns UUID.randomUUID() }
+			mockk<RuntimeModel>(relaxed = true).also { model -> every { model.id } returns UUID.randomUUID() }
 		},
 		workspace = dir,
 	).init(data)

@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
 
 class LlmService(
+	private val chat: AgentChat,
 	private val agentId: UUID,
 	private val status: MutableStateFlow<AgentStatus>,
 	private val onOutput: (RuntimeOutput) -> Unit,
@@ -74,7 +75,7 @@ class LlmService(
 		var assembled: AgentChatStreamResult.Assembled? = null
 		
 		status.value = AgentStatus.THINKING
-		AgentChat.execute(request, agentId).collect { result ->
+		chat.execute(request, agentId).collect { result ->
 			when (result) {
 				is AgentChatStreamResult.Delta -> {
 					onOutput(RuntimeOutput.Output(result.delta))

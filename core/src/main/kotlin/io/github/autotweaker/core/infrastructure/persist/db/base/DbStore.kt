@@ -16,13 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.db.objectstore
+package io.github.autotweaker.core.infrastructure.persist.db.base
 
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
-object ObjectStoreTable : Table("objects") {
-	val hash = binary("hash", 32)
-	val content = blob("content")
-	
-	override val primaryKey = PrimaryKey(hash)
+abstract class DbStore(databaseStore: DatabaseStore, dbName: String, table: Table, vararg tables: Table) {
+	protected val db: Database by lazy {
+		databaseStore.connect(dbName).also {
+			transaction(it) {
+				SchemaUtils.create(table, *tables)
+			}
+		}
+	}
 }

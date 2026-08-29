@@ -24,10 +24,10 @@ import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -50,10 +50,10 @@ class CompactServiceTest {
 	
 	private val agentId = UUID.randomUUID()
 	private val model = AgentModel(
-		model = mockk<Model>(relaxed = true),
+		model = mockk<RuntimeModel>(relaxed = true),
 		reasoning = null,
-		summarize = mockk<Model>(relaxed = true),
-		compact = mockk<Model>(relaxed = true),
+		summarize = mockk<RuntimeModel>(relaxed = true),
+		compact = mockk<RuntimeModel>(relaxed = true),
 		fallback = null,
 	)
 	

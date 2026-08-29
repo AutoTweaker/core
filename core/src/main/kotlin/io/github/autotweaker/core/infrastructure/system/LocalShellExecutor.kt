@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.tool
+package io.github.autotweaker.core.infrastructure.system
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable

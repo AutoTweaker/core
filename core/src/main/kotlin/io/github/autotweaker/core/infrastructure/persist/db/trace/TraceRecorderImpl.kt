@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.UpperSnakeCase
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -32,16 +33,19 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.minutes
 
-object TraceRecorderImpl : Loggable {
+class TraceRecorderImpl(
+	private val store: TraceStore,
+	private val cleanup: TraceCleanup,
+) : Loggable {
 	private val scope = scope(IO)
-	private val queue = Channel<TraceEntry>(Channel.UNLIMITED)
+	private val queue = Channel<TraceEntry>(Channel.BUFFERED)
 	private val cache = ConcurrentHashMap<KClass<*>, TraceRecorder>()
 	
 	fun init() {
 		scope.launch {
 			for ((origin, namespace, content) in queue) {
-				try { // 不能用 trace.catching，会循环
-					TraceStore.insert(origin, namespace, content)
+				try {
+					store.insert(origin, namespace, content)
 				} catch (e: CancellationException) {
 					throw e
 				} catch (e: Exception) {
@@ -54,7 +58,7 @@ object TraceRecorderImpl : Loggable {
 		if (interval > 0) scope.launch {
 			while (isActive) {
 				delay(interval.minutes)
-				TraceCleanup.cleanup()
+				cleanup()
 			}
 		}
 	}
@@ -62,12 +66,14 @@ object TraceRecorderImpl : Loggable {
 	fun shutdown() = scope.cancel()
 	
 	fun recorder(kClass: KClass<*>): TraceRecorder =
-		cache.computeIfAbsent(kClass) { Recorder(it.java.name) }
+		cache.computeIfAbsent(kClass) { Recorder(it.java.name, queue) }
 	
-	private class Recorder(private val origin: String) : TraceRecorder {
+	private class Recorder(
+		private val origin: String,
+		private val queue: SendChannel<TraceEntry>
+	) : TraceRecorder {
 		override fun add(namespace: KebabCase, content: Any) =
 			queue.trySend(TraceEntry(origin, namespace.value, content.toString())).discard()
-		
 		
 		override fun add(namespace: KebabCase, content: Map<UpperSnakeCase, Any>) =
 			queue.trySend(

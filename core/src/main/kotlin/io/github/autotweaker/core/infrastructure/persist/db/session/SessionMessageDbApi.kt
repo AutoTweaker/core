@@ -19,16 +19,17 @@
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
 import io.github.autotweaker.api.types.debug.SessionMessageEntry
-import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.AbstractDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
+import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
 
-object SessionMessageDbApi : AbstractDbApi<SessionMessageEntry, UUID>() {
-	fun init(databaseStore: DatabaseStore) {
-		super.init(databaseStore.connect("Sessions"), SessionMessageTable, SessionMessageTable.id)
-	}
+class SessionMessageDbApi(private val store: DatabaseStore) : AbstractDbApi<SessionMessageEntry, UUID>(
+	SessionMessageTable, SessionMessageTable.id
+) {
+	override fun connect(): Database = store.connect("Sessions")
 	
 	override fun ResultRow.toEntry() = SessionMessageEntry(
 		key = this[SessionMessageTable.id],

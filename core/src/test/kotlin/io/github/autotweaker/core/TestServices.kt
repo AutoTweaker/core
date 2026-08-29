@@ -25,8 +25,8 @@ import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.port.Truncated
+import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
-import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
 import io.mockk.coEvery
 import io.mockk.mockk
 

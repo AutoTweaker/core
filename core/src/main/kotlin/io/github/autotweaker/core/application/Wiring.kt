@@ -42,14 +42,10 @@ import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepos
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.store.h2.H2DatabaseStore
+import io.github.autotweaker.core.infrastructure.system.RawFileSystemImpl
 import io.github.autotweaker.core.infrastructure.system.SystemInfoServiceImpl
-import io.github.autotweaker.core.infrastructure.tool.RawFileSystemImpl
 
 object Wiring : Loggable {
-	val databaseStore: DatabaseStore = H2DatabaseStore
-	
 	/**
 	 * 都是纯赋值
 	 */
@@ -72,7 +68,7 @@ object Wiring : Loggable {
 	}
 	
 	fun createCoreAPI(adapterAPI: CoreAPI.AdapterAPI) = CoreAPIImpl(
-		usageRepo = UsageRepositoryImpl,
+		usageRepository = UsageRepositoryImpl,
 		adapter = adapterAPI,
 		pathResolver = PathResolverImpl,
 		appVersion = ResourcesLoader.version

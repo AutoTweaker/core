@@ -23,7 +23,7 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.application.impl.ChatService
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import kotlinx.coroutines.flow.toList
@@ -31,11 +31,13 @@ import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.time.Clock
 
-object TranslationEngine : Loggable, Traceable {
+class TranslationEngine(
+	private val chat: ChatService
+) : Loggable, Traceable {
 	private val json = Json { ignoreUnknownKeys = true; isLenient = true; prettyPrint = true }
 	
 	data class BatchJob(
-		val model: Model,
+		val model: RuntimeModel,
 		val systemPrompt: String,
 		val userPromptTemplate: String,
 		val target: Locale,
@@ -106,7 +108,7 @@ object TranslationEngine : Loggable, Traceable {
 			reasoning = ReasoningEffort(TranslateSettings.Thinking().get()),
 			jsonOutput = true
 		)
-		val results = trace.catching { ChatService.chat(request).toList() }
+		val results = trace.catching { chat.chat(request).toList() }
 			.rethrowCancellation().getOrElse { return null }
 		
 		val finalResult = results.lastOrNull()?.result as? ChatResult.Assembled ?: return null

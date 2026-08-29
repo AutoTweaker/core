@@ -33,7 +33,7 @@ object TestServices {
 			initServices(
 				ServiceRegistry(
 					trace = { traceRecorder },
-					store = { error("Test store not configured") },
+					store = { error("Test base not configured") },
 					lazyObjects = { error("Test objects not configured") },
 					lazySetting = { error("Test setting not configured") },
 					lazyI18n = { error("Test i18n not configured") },

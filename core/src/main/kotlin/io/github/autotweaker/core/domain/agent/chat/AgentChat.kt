@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.UUID
-import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -30,11 +27,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.util.*
 
-object AgentChat : Loggable {
+class AgentChat(
+	private val chat: ResilientChat,
+) : Loggable, I18nable {
 	fun execute(
 		request: AgentChatRequest, agentId: UUID
 	): Flow<AgentChatStreamResult> = flow {
-		val messages = request.toChatMessages()
+		val messages = request.toChatMessages(i18n.getLanguage())
 		
 		log.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  reasoning={}  messages={}",
@@ -45,7 +44,7 @@ object AgentChat : Loggable {
 			messages.size,
 		)
 		
-		val results = ResilientChat.execute(
+		val results = chat.execute(
 			model = request.model.model,
 			fallbackModels = request.model.fallback,
 			instructions = request.context.systemPrompt,

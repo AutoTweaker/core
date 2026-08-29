@@ -32,22 +32,17 @@ import io.github.autotweaker.api.types.exception.notfound.ApiKeyNotFoundExceptio
 import io.github.autotweaker.api.types.serializer.BiMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.SecretStore
+import io.github.autotweaker.core.infrastructure.persist.json.ProviderStore
 import kotlinx.serialization.builtins.serializer
 import java.util.*
 
-object ApiKeyRepository : MutableStore<BiMap<UUID, String>>(), Loggable {
+class ApiKeyRepository(private val secret: SecretStore) : MutableStore<BiMap<UUID, String>>(), Loggable {
 	override val serializer = BiMapSerializer(
 		UuidSerializer,
 		String.serializer()
 	)
 	
 	override fun default() = biMapOf<UUID, String>()
-	
-	private lateinit var secret: SecretStore
-	
-	fun init(secretStore: SecretStore) {
-		secret = secretStore
-	}
 	
 	suspend fun add(name: String, key: String) = transform {
 		if (it.containsValue(name)) throw DuplicateApiKeyException(name)
@@ -69,7 +64,7 @@ object ApiKeyRepository : MutableStore<BiMap<UUID, String>>(), Loggable {
 	}
 	
 	private suspend fun remove(id: UUID, name: String) = transform {
-		if (ProviderRepository.list().any { provider -> provider.apiKey == id })
+		if (ProviderStore.getAll().values.any { provider -> provider.apiKey == id })
 			throw ApiKeyInUseException(id, name)
 		secret.requireUnlocked()
 		it.remove(id)

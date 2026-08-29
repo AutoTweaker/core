@@ -23,7 +23,7 @@ import io.github.autotweaker.api.types.exception.ChatRetriesExhaustedException
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ChatRequest.Tool
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -32,16 +32,12 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-object ResilientChat : Loggable {
-	private lateinit var gateway: LlmGateway
-	
-	fun init(gateway: LlmGateway) {
-		this.gateway = gateway
-	}
-	
+class ResilientChat(
+	private val gateway: LlmGateway
+) : Loggable {
 	fun execute(
-		model: Model,
-		fallbackModels: List<Model>?,
+		model: RuntimeModel,
+		fallbackModels: List<RuntimeModel>?,
 		timeout: ChatTimeout? = null,
 		
 		instructions: String? = null,
@@ -72,7 +68,7 @@ object ResilientChat : Loggable {
 			llmChatRetries
 		)
 		
-		fun buildRequest(model: Model): ChatRequest {
+		fun buildRequest(model: RuntimeModel): ChatRequest {
 			val info = model.modelInfo
 			val thinkingDisabled = !info.supportsReasoning || reasoning == ReasoningEffort.NONE
 			
@@ -124,7 +120,7 @@ object ResilientChat : Loggable {
 		
 		var attempts = 0
 		
-		suspend fun attempt(target: Model): Pair<Int?, Boolean> {
+		suspend fun attempt(target: RuntimeModel): Pair<Int?, Boolean> {
 			val chatRequest = buildRequest(target)
 			val results = gateway.send(
 				request = chatRequest,

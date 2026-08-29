@@ -27,32 +27,26 @@ import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundExceptio
 import io.github.autotweaker.core.domain.port.SecretStore
 import java.util.*
 
-object SecretDbApi : DbAPI<SecretEntry, UUID>, Traceable {
-	private lateinit var secretStore: SecretStore
-	
-	fun init(secretStore: SecretStore) {
-		this.secretStore = secretStore
-	}
-	
+class SecretDbApi(private val secret: SecretStore) : DbAPI<SecretEntry, UUID>, Traceable {
 	override suspend fun list(range: UIntRange): List<SecretEntry> {
-		val all = secretStore.list()
+		val all = secret.list()
 		val count = (range.last - range.first + 1u).toInt()
 		return all.drop(range.first.toInt()).take(count).map { id ->
-			SecretEntry(key = id, content = secretStore.get(id))
+			SecretEntry(key = id, content = secret.get(id))
 		}
 	}
 	
 	override suspend fun get(key: UUID): SecretEntry? {
-		return trace.catching { SecretEntry(key = key, content = secretStore.get(key)) }
+		return trace.catching { SecretEntry(key = key, content = secret.get(key)) }
 			.rethrowNot<SecretNotFoundException>()
 			.getOrNull()
 	}
 	
 	override suspend fun put(content: SecretEntry) {
-		secretStore.set(content.content, content.key)
+		secret.set(content.content, content.key)
 	}
 	
 	override suspend fun delete(key: UUID) {
-		secretStore.remove(key)
+		secret.remove(key)
 	}
 }

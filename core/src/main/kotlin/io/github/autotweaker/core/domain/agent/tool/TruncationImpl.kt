@@ -26,12 +26,16 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.format
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+import org.koin.core.Koin
 import java.nio.file.Path
 
-
 class TruncationImpl(
+	koin: Koin,
 	private val workspace: () -> Path,
 ) : TruncationService {
+	private val pathResolver: PathResolver = koin.get()
+	private val temporaryStorage: TemporaryStorage = koin.get()
+	
 	override fun invoke(content: String, threshold: Int, keepTail: Boolean): String {
 		if (content.length <= threshold) return content
 		val inContainer = pathResolver.inContainer(workspace())
@@ -47,17 +51,4 @@ class TruncationImpl(
 			"工具输出被截断并保存时的提示"
 		)
 	)
-	
-	companion object {
-		private lateinit var pathResolver: PathResolver
-		private lateinit var temporaryStorage: TemporaryStorage
-		
-		fun init(
-			pathResolver: PathResolver,
-			temporaryStorage: TemporaryStorage,
-		) {
-			this.pathResolver = pathResolver
-			this.temporaryStorage = temporaryStorage
-		}
-	}
 }

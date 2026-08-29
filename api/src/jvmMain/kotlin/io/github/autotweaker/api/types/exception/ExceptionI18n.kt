@@ -88,7 +88,7 @@ internal object ExceptionI18n {
 	@AutoService(I18nDef::class)
 	class SecretStoreLockedException : I18nBase(
 		zh("密钥库已锁定, 请先解锁密钥库"),
-		en("Secret store is locked, please unlock it first"),
+		en("Secret base is locked, please unlock it first"),
 	)
 	
 	@AutoService(I18nDef::class)

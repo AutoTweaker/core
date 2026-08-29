@@ -18,30 +18,22 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.usage
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageCursor
 import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.port.UsageRepository
-import io.github.autotweaker.core.infrastructure.persist.db.transaction
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
 import kotlin.time.Instant
 
-object UsageRepositoryImpl : UsageRepository, Loggable {
-	private lateinit var db: Database
-	
-	suspend fun init(databaseStore: DatabaseStore) {
-		db = databaseStore.connect("Usages")
-		db.transaction {
-			SchemaUtils.create(UsageTable)
-		}
-		log.info("Initialized UsageRepository")
-	}
-	
+class UsageRepositoryImpl(store: DatabaseStore) : UsageRepository,
+	DbStore(store, "Usages", UsageTable) {
 	override suspend fun save(usages: List<UsageEntry>) {
 		db.transaction {
 			usages.forEach { entry ->

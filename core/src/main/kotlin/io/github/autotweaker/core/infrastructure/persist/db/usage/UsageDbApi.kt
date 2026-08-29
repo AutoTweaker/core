@@ -19,16 +19,17 @@
 package io.github.autotweaker.core.infrastructure.persist.db.usage
 
 import io.github.autotweaker.api.types.debug.UsageEntry
-import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.AbstractDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
+import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
 
-object UsageDbApi : AbstractDbApi<UsageEntry, UUID>() {
-	fun init(databaseStore: DatabaseStore) {
-		super.init(databaseStore.connect("Usages"), UsageTable, UsageTable.id)
-	}
+class UsageDbApi(private val store: DatabaseStore) : AbstractDbApi<UsageEntry, UUID>(
+	UsageTable, UsageTable.id
+) {
+	override fun connect(): Database = store.connect("Usages")
 	
 	override fun ResultRow.toEntry() = UsageEntry(
 		key = this[UsageTable.id],

@@ -16,30 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.db.objectstore
+package io.github.autotweaker.core.infrastructure.persist.db.objstore
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.core.infrastructure.persist.db.transaction
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insertIgnore
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
-object ObjectStorageImpl : ObjectStorage, Loggable {
-	private lateinit var db: Database
-	
-	suspend fun init(databaseStore: DatabaseStore) {
-		db = databaseStore.connect("Objects")
-		db.transaction { SchemaUtils.create(ObjectStoreTable) }
-		log.info("Initialized ObjectStorage")
-	}
-	
+class ObjectStorageImpl(store: DatabaseStore) : ObjectStorage,
+	DbStore(store, "Objects", ObjectStoreTable) {
 	override suspend fun put(bytes: ByteArray): Sha256 =
 		Sha256.hash(bytes).also { sha256 ->
 			db.transaction {

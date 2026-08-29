@@ -16,23 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.store.h2
+package io.github.autotweaker.core.infrastructure.persist.db.base.h2
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.core.infrastructure.persist.db.transaction
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 
 object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 	private val databases = ConcurrentHashMap<String, Database>()
+	private val DB_PATH = CONFIG_PATH.resolve("database")
 	
 	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->
-		val dbDir = CONFIG_PATH.resolve("database")
-		Files.createDirectories(dbDir)
-		val url = "jdbc:h2:${dbDir.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0;COMPRESS=TRUE"
+		Files.createDirectories(DB_PATH)
+		val url = "jdbc:h2:${DB_PATH.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0;COMPRESS=TRUE"
 		log.info("Connected database  db={}  url={}", name, url)
 		Database.connect(url, "org.h2.Driver")
 	}

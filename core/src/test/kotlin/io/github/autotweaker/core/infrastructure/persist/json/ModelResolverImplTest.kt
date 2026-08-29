@@ -27,7 +27,7 @@ import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persist.json.store.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject

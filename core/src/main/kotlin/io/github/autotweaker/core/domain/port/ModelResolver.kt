@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.domain.port
 
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import java.util.*
 
 interface ModelResolver {
-	suspend fun resolve(id: UUID): Model
+	suspend fun resolve(id: UUID): RuntimeModel
 }

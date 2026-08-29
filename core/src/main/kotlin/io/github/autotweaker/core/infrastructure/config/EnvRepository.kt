@@ -24,7 +24,7 @@ import io.github.autotweaker.core.domain.tool.impl.bash.Bash
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 
-object EnvRepository : Loggable {
+class EnvRepository(private val container: ContainerManager) : Loggable {
 	suspend fun list(type: EnvType): List<String> = getStore(type).listEnv()
 	suspend fun set(type: EnvType, id: String, value: String) = getStore(type).setEnv(id, value)
 	suspend fun get(type: EnvType, id: String): String? = getStore(type).getEnv(id)
@@ -32,6 +32,6 @@ object EnvRepository : Loggable {
 	
 	private fun getStore(type: EnvType): EnvStore = when (type) {
 		EnvType.BASH_ENV -> Bash.Companion
-		EnvType.CONTAINER_ENV -> ContainerManager
+		EnvType.CONTAINER_ENV -> container
 	}
 }

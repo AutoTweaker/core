@@ -36,10 +36,12 @@ import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.session.AgentHost
 import kotlinx.coroutines.flow.*
+import org.koin.core.Koin
 import java.nio.file.Path
 import java.util.*
 
 class Agent(
+	private val koin: Koin,
 	context: RuntimeContext,
 	val agentId: UUID,
 	val name: KebabCase,
@@ -72,10 +74,10 @@ class Agent(
 	private val toolManager = Tools(workspace, tools, activeTools, agentId)
 	val activeTools: StateFlow<Set<String>> = toolManager.activeTools
 	
-	private val truncation = TruncationImpl(workspace)
-	private val llmService = LlmService(agentId, _status, onOutput)
+	private val truncation = TruncationImpl(koin, workspace)
+	private val llmService = LlmService(koin.get(), agentId, _status, onOutput)
 	private val thinkingStage by lazy {
-		ThinkingStage(llmService, toolManager, workspace, truncation, _status, onOutput)
+		ThinkingStage(llmService, toolManager, koin.get(), workspace, truncation, _status, onOutput)
 	}
 	private val toolCallingStage by lazy {
 		ToolCallingStage(
@@ -87,9 +89,10 @@ class Agent(
 			onOutput = onOutput,
 			onToolCall = { _toolCalling.value = it })
 	}
-	private val compact = CompactService(agentId, onOutput)
+	private val compact = CompactService(agentId, koin.get(), onOutput)
 	
 	private val runner = RoundRunner(
+		koin = koin,
 		ctx = ctx,
 		workspace = workspace,
 		tools = toolManager,

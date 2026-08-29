@@ -25,21 +25,16 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
 import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
 import io.github.autotweaker.api.types.serializer.UuidSerializer
-import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.model.Provider
+import io.github.autotweaker.core.domain.agent.RuntimeModel
+import io.github.autotweaker.core.domain.agent.RuntimeProvider
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.serialization.builtins.nullable
 import java.util.*
 
-object ModelResolverImpl : ImmutableStore<UUID?>(), ModelResolver, Loggable {
+class ModelResolverImpl(private val secret: SecretStore) : ImmutableStore<UUID?>(), ModelResolver, Loggable {
 	override val serializer = UuidSerializer.nullable
 	override fun default() = null
-	
-	private lateinit var secretStore: SecretStore
-	fun init(secretStore: SecretStore) {
-		this.secretStore = secretStore
-	}
 	
 	fun getDefaultModel(): UUID? = cache.get()
 	
@@ -58,17 +53,17 @@ object ModelResolverImpl : ImmutableStore<UUID?>(), ModelResolver, Loggable {
 		log.info("Set default model  modelId={}", id)
 	}
 	
-	override suspend fun resolve(id: UUID): Model {
+	override suspend fun resolve(id: UUID): RuntimeModel {
 		val resolvedId = resolveModelId(id)
 		val model = ModelStore.get(resolvedId) ?: throw ModelNotFoundException(id)
 		val provider = ProviderStore.get(model.providerId) ?: throw ProviderNotFoundException(model.providerId)
-		return Model(
+		return RuntimeModel(
 			id = model.id,
-			provider = Provider(
+			provider = RuntimeProvider(
 				id = provider.id,
 				name = provider.providerType,
 				baseUrl = provider.baseUrl,
-				apiKey = secretStore.get(provider.apiKey),
+				apiKey = secret.get(provider.apiKey),
 				errorHandlingRules = provider.errorHandlingRules,
 			),
 			modelInfo = model.modelInfo,

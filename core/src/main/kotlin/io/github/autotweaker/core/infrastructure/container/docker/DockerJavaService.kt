@@ -122,7 +122,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 			}.getOrElse { e ->
 				log.error("Failed container start  image={}  name={}", image, CONTAINER_NAME, e)
 				throw ContainerOperationException("Failed to start container: ${e.message()}", e)
-			} as String
+			}
 	}
 	
 	override suspend fun stop(containerId: String) = withContext(Dispatchers.IO) {

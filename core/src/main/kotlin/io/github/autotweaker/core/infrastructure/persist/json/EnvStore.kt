@@ -26,6 +26,8 @@ import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.domain.port.SecretStore
 import kotlinx.serialization.builtins.serializer
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.*
 
 abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Traceable {
@@ -38,7 +40,7 @@ abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Tr
 	
 	suspend fun getEnv(id: String): String? = transform {
 		val uuid = it[id] ?: return@transform null
-		trace.catching { secretStore.get(uuid) }
+		trace.catching { secret.get(uuid) }
 			.rethrowCancellation()
 			.rethrow<SecretStoreLockedException>()
 			.onFailure { e ->
@@ -48,7 +50,7 @@ abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Tr
 	
 	suspend fun setEnv(id: String, value: String) = transform {
 		val uuid = UUID()
-		trace.catching { secretStore.set(value, uuid) }
+		trace.catching { secret.set(value, uuid) }
 			.rethrowCancellation()
 			.rethrow<SecretStoreLockedException>()
 			.onFailure { e ->
@@ -56,7 +58,7 @@ abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Tr
 			}.getOrThrow()
 		it.put(id, uuid).also { old ->
 			old ?: return@also
-			secretStore.remove(old)
+			secret.remove(old)
 		}.discard()
 	}.andLog(log) {
 		info("Set env  name={}", id)
@@ -64,7 +66,7 @@ abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Tr
 	
 	suspend fun removeEnv(id: String): Boolean = transform {
 		val uuid = it[id] ?: return@transform false
-		trace.catching { secretStore.remove(uuid) }
+		trace.catching { secret.remove(uuid) }
 			.rethrowCancellation()
 			.rethrow<SecretStoreLockedException>()
 			.onFailure { e ->
@@ -76,11 +78,7 @@ abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Tr
 		if (it) info("Removed env  name={}", id)
 	}
 	
-	companion object {
-		private lateinit var secretStore: SecretStore
-		
-		fun init(secretStore: SecretStore) {
-			this.secretStore = secretStore
-		}
+	companion object : KoinComponent {
+		private val secret: SecretStore by inject()
 	}
 }

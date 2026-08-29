@@ -16,13 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.model
+package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.llm.ProviderData
 import java.util.*
 
-data class Provider(
+data class RuntimeProvider(
 	val id: UUID,
 	val name: String,
 	val baseUrl: Url,

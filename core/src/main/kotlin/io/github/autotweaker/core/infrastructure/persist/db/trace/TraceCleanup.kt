@@ -26,11 +26,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Files
 
-object TraceCleanup : Loggable {
-	private const val BYTES_PER_MB = 1024 * 1024
-	private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
-	
-	suspend fun cleanup() {
+class TraceCleanup(private val store: TraceStore) : Loggable {
+	suspend operator fun invoke() {
 		val maxAgeDays = TraceSettings.MaxAgeDays().get()
 		val maxEntriesPerNs = TraceSettings.MaxEntriesPerNamespace().get()
 		val maxTotalEntries = TraceSettings.MaxTotalEntries().get()
@@ -39,18 +36,23 @@ object TraceCleanup : Loggable {
 		
 		var cleanupCount = 0
 		
-		cleanupCount += if (maxAgeDays > 0) TraceStore.deleteByAge(maxAgeDays) else 0
-		cleanupCount += if (maxEntriesPerNs > 0) TraceStore.trimPerNamespace(maxEntriesPerNs) else 0
-		cleanupCount += if (maxTotalEntries > 0) TraceStore.trimGlobal(maxTotalEntries) else 0
+		cleanupCount += if (maxAgeDays > 0) store.deleteByAge(maxAgeDays) else 0
+		cleanupCount += if (maxEntriesPerNs > 0) store.trimPerNamespace(maxEntriesPerNs) else 0
+		cleanupCount += if (maxTotalEntries > 0) store.trimGlobal(maxTotalEntries) else 0
 		cleanupCount += if (maxDbSizeMB > 0 && batchSize > 0) {
 			val maxSizeBytes = maxDbSizeMB * BYTES_PER_MB
 			if (withContext(Dispatchers.IO) {
 					Files.size(dbFilePath)
 				} > maxSizeBytes) {
-				TraceStore.deleteOldestBatch(batchSize)
+				store.deleteOldestBatch(batchSize)
 			} else 0
 		} else 0
 		
 		if (cleanupCount > 0) log.info("Completed trace cleanup  count={}", cleanupCount)
+	}
+	
+	companion object {
+		private const val BYTES_PER_MB = 1024 * 1024
+		private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
 	}
 }

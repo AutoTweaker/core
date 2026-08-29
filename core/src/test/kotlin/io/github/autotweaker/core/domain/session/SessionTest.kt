@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
 import io.mockk.mockk
@@ -50,7 +50,7 @@ class SessionTest {
 		),
 		sessionRepo = mockk<SessionRepository>(),
 		usageRepo = mockk<UsageRepository>(),
-		resolveModel = { mockk<Model>() },
+		resolveModel = { mockk<RuntimeModel>() },
 		workspace = Path.of("/tmp"),
 	)
 	

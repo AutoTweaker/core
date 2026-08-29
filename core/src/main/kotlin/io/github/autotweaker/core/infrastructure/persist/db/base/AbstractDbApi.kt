@@ -16,11 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.store
+package io.github.autotweaker.core.infrastructure.persist.db.base
 
 import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.types.debug.DbEntry
-import io.github.autotweaker.core.infrastructure.persist.db.transaction
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
@@ -31,17 +30,13 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 
-abstract class AbstractDbApi<Entry : DbEntry<PK>, PK> : DbAPI<Entry, PK> {
-	private lateinit var db: Database
-	private lateinit var table: Table
-	private lateinit var pkColumn: Column<PK>
+abstract class AbstractDbApi<Entry : DbEntry<PK>, PK>(
+	private val table: Table,
+	private val pkColumn: Column<PK>
+) : DbAPI<Entry, PK> {
+	private val db: Database by lazy { connect() }
 	
-	fun init(db: Database, table: Table, pkColumn: Column<PK>) {
-		this.db = db
-		this.table = table
-		this.pkColumn = pkColumn
-	}
-	
+	abstract fun connect(): Database
 	abstract fun ResultRow.toEntry(): Entry
 	abstract fun UpsertStatement<Long>.fill(content: Entry)
 	

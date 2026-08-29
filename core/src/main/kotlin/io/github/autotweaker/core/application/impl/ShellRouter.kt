@@ -23,14 +23,14 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.core.domain.port.ShellExecutor
-import io.github.autotweaker.core.infrastructure.tool.ContainerShellExecutor
-import io.github.autotweaker.core.infrastructure.tool.LocalShellExecutor
+import io.github.autotweaker.core.infrastructure.container.ContainerManager
+import io.github.autotweaker.core.infrastructure.system.LocalShellExecutor
 import kotlinx.coroutines.flow.Flow
 
-object ShellRouter : ShellExecutor, Loggable {
-	private val local = LocalShellExecutor()
-	private val container = ContainerShellExecutor()
-	
+class ShellRouter(
+	private val local: LocalShellExecutor,
+	private val container: ContainerManager
+) : ShellExecutor, Loggable {
 	override fun exec(arg: ShellExec): Flow<ShellEvent> {
 		val target = if (arg.container) "container" else "local"
 		log.debug("Routed shell command  target={}  command={}", target, arg.command)

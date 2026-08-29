@@ -16,16 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.db
+package io.github.autotweaker.core.infrastructure.persist.db.json
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.core.Table
 
-suspend fun <T> Database.transaction(
-	dispatcher: CoroutineDispatcher = Dispatchers.IO,
-	block: suspend JdbcTransaction.() -> T
-): T = withContext(dispatcher) { suspendTransaction(this@transaction) { this.block() } }
+object JsonStoreTable : Table("json_store") {
+	val namespace = varchar("namespace", 255)
+	val content = text("content")
+	
+	override val primaryKey = PrimaryKey(namespace)
+}

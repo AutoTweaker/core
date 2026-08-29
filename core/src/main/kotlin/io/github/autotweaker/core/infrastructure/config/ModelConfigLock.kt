@@ -16,23 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.store.h2
+package io.github.autotweaker.core.infrastructure.config
 
-import io.github.autotweaker.api.CONFIG_PATH
-import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
-import java.nio.file.Files
-import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertTrue
+import io.github.autotweaker.api.base.ReentrantMutex
 
-class H2DatabaseStoreTest {
-	
-	@Test
-	fun `connect creates database directory and file`() {
-		val dbName = "TestDb_${UUID.randomUUID()}"
-		H2DatabaseStore.connect(dbName)
-		
-		val dbDir = CONFIG_PATH.resolve("database")
-		assertTrue(Files.exists(dbDir))
-	}
-}
+val ModelConfigLock = ReentrantMutex()

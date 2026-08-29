@@ -26,7 +26,7 @@ import kotlinx.serialization.KSerializer
 /**
  * 基于 JsonStore 的持久化工具类，处理序列化、反序列化、默认值、懒加载。
  *
- * @param store 使用方实现 [io.github.autotweaker.api.JsonStorable] 后将 store 传入即可。
+ * @param store 使用方实现 [io.github.autotweaker.api.JsonStorable] 后将 base 传入即可。
  * @param serializer 用于序列化和反序列化 [V] 的序列化器。
  * @param default 提供数据库中无已有数据时的默认值，也就是初始值。
  */

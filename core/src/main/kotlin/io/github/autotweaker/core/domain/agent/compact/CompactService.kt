@@ -28,8 +28,9 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.chat.MessageConverts.inject
-import io.github.autotweaker.core.domain.agent.chat.MessageConverts.merge
+import io.github.autotweaker.core.domain.agent.chat.inject
+import io.github.autotweaker.core.domain.agent.chat.merge
+
 import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -40,6 +41,7 @@ import kotlin.time.Clock
 
 class CompactService(
 	private val agentId: UUID,
+	private val chat: ResilientChat,
 	private val onOutput: (RuntimeOutput) -> Unit,
 ) : Loggable, Traceable {
 	private val thinking = CompactSettings.Thinking().get()
@@ -109,7 +111,7 @@ class CompactService(
 		var lastResult: Pair<UUID, ChatMessage.Assistant>? = null
 		var lastUsage: Usage? = null
 		trace.catching {
-			val results = ResilientChat.execute(
+			val results = chat.execute(
 				model = model.summarize,
 				fallbackModels = model.fallback,
 				messages = messages,

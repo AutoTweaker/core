@@ -21,6 +21,6 @@ package io.github.autotweaker.api.types.exception
 import io.github.autotweaker.api.i18n
 
 class SecretStoreLockedException :
-	AutoTweakerException("Secret store locked, please wait for unlock") {
+	AutoTweakerException("Secret base locked, please wait for unlock") {
 	override fun message() = i18n(ExceptionI18n.SecretStoreLockedException())
 }

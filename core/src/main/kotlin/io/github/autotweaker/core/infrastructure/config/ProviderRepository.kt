@@ -21,7 +21,6 @@ package io.github.autotweaker.core.infrastructure.config
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.andLog
-import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.exception.DefaultModelDeletionException
 import io.github.autotweaker.api.types.exception.UnknownProviderTypeException
@@ -32,10 +31,12 @@ import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ProviderStore
 import java.util.*
 
-object ProviderRepository : Loggable, Traceable {
+class ProviderRepository(
+	private val apikey: ApiKeyRepository,
+	private val modelResolver: ModelResolverImpl,
+	private val modelRepo: ModelConfigRepository
+) : Loggable, Traceable {
 	private val store = ProviderStore
-	
-	val lock = ReentrantMutex()
 	
 	fun listAvailable(): Set<String> = LlmClientLoader.available()
 	fun getMeta(type: String) = LlmClientLoader.load(type).providerInfo
@@ -44,24 +45,24 @@ object ProviderRepository : Loggable, Traceable {
 	
 	suspend fun get(id: UUID): ProviderData? = store.get(id)
 	
-	suspend fun remove(id: UUID): Boolean = lock.withLock {
-		val modelIds = ModelConfigRepository.list().filter { it.providerId == id }.map { it.id }
-		ModelResolverImpl.getDefaultModel {
+	suspend fun remove(id: UUID): Boolean = ModelConfigLock.withLock {
+		val modelIds = modelRepo.list().filter { it.providerId == id }.map { it.id }
+		modelResolver.getDefaultModel {
 			it?.let { defaultModel ->
 				if (defaultModel in modelIds) throw DefaultModelDeletionException(defaultModel, id)
 			}
-			modelIds.forEach { model -> ModelConfigRepository.remove(model) }
+			modelIds.forEach { model -> modelRepo.remove(model) }
 		}
 		return@withLock store.delete(id).andLog(log) {
 			info("Deleted provider  id={}  modelCount={}", id, modelIds.count())
 		}
 	}
 	
-	suspend fun set(provider: ProviderData) = lock.withLock {
+	suspend fun set(provider: ProviderData) = ModelConfigLock.withLock {
 		if (store.getAll().values.any { it.id != provider.id && it.displayName == provider.displayName })
 			throw DuplicateProviderNameException(provider.displayName)
 		if (provider.providerType !in LlmClientLoader.available()) throw UnknownProviderTypeException(provider.providerType)
-		ApiKeyRepository.ensure(provider.apiKey) {
+		apikey.ensure(provider.apiKey) {
 			store.set(provider).andLog(log) {
 				info(
 					"Created provider  id={}  type={}  name={}",

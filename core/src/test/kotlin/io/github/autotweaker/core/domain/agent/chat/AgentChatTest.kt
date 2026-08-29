@@ -26,9 +26,9 @@ import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.RuntimeModel
+import io.github.autotweaker.core.domain.agent.RuntimeProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.model.Model
-import io.github.autotweaker.core.domain.model.Provider
 import io.mockk.every
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
@@ -62,8 +62,8 @@ class AgentChatTest {
 		supportsJsonOutput = true,
 	)
 	
-	private val testProvider = Provider(UUID.randomUUID(), "test-provider", testUrl, "sk-test", emptyList())
-	private val testModel = Model(
+	private val testProvider = RuntimeProvider(UUID.randomUUID(), "test-provider", testUrl, "sk-test", emptyList())
+	private val testModel = RuntimeModel(
 		provider = testProvider,
 		modelInfo = testModelInfo,
 		config = Config(0.7, 2048, null, null),

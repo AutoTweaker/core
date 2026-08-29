@@ -18,34 +18,27 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.infrastructure.persist.db.transaction
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
 
-object SessionRepositoryImpl : SessionRepository, Loggable {
-	private lateinit var db: Database
-	
-	suspend fun init(databaseStore: DatabaseStore) {
-		db = databaseStore.connect("Sessions")
-		db.transaction {
-			SchemaUtils.create(SessionDataTable, AgentDataTable, SessionMessageTable)
-		}
-		log.info("Initialized SessionRepository")
-	}
-	
-	// region Sessions
-	
+class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
+	DbStore(
+		store, "Sessions",
+		SessionDataTable, AgentDataTable, SessionMessageTable
+	) {
 	override suspend fun saveSessions(sessionData: List<SessionData>) {
 		db.transaction {
 			sessionData.forEach { data ->
@@ -88,9 +81,6 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 			agentIndex = SessionDataTable.readAgentIndex(this),
 		)
 	
-	// endregion
-	
-	// region Agent
 	
 	override suspend fun saveAgent(agentData: AgentData) {
 		db.transaction {
@@ -127,10 +117,6 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 			activeTools = AgentDataTable.readActiveTools(this),
 		)
 	
-	// endregion
-	
-	// region Messages
-	
 	override suspend fun saveMessages(messages: List<AgentMessage>) {
 		db.transaction {
 			messages.forEach { msg ->
@@ -159,6 +145,4 @@ object SessionRepositoryImpl : SessionRepository, Loggable {
 	
 	private fun ResultRow.toSessionMessage(): AgentMessage =
 		SessionMessageTable.readContent(this)
-	
-	// endregion
 }

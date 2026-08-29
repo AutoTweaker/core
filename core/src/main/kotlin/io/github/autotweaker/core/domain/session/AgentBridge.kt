@@ -35,7 +35,6 @@ import io.github.autotweaker.core.domain.agent.tool.MetaCache
 import io.github.autotweaker.core.domain.agent.tool.ToolMap
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.cacheMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
-import io.github.autotweaker.core.domain.model.Model
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.domain.session.converter.AgentContextBuilder
@@ -47,15 +46,17 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.koin.core.Koin
 import java.nio.file.Path
 import java.util.*
 
 class AgentBridge(
+	private val koin: Koin,
 	private val host: AgentHost,
 	private val onSend: ((MessageContent) -> Unit)? = null,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
-	private val resolveModel: suspend (UUID) -> Model,
+	private val resolveModel: suspend (UUID) -> RuntimeModel,
 	workspace: Path,
 ) : AgentAPI, Loggable, Traceable {
 	/* 初始化 */
@@ -248,6 +249,7 @@ class AgentBridge(
 	
 	private suspend fun createAgent() {
 		_agent = Agent(
+			koin = koin,
 			agentId = initialData.id,
 			context = RuntimeContextBuilder(_context.value, sessionRepo::loadMessages)().let {
 				droppedCompacted = it.second

@@ -33,45 +33,39 @@ import io.github.autotweaker.api.types.exception.notfound.SessionNotFoundExcepti
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
-import io.github.autotweaker.core.domain.model.Model
+import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
-import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.koin.core.Koin
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-object SessionManager : Loggable, Traceable {
+class SessionManager(
+	private val koin: Koin
+) : Loggable, Traceable {
 	private val systemPrompt = SystemPrompt().get()
 	
 	private val wsm = WorkspaceManager
 	
-	private lateinit var sessionRepo: SessionRepository
-	private lateinit var usageRepository: UsageRepository
-	private lateinit var modelRepo: ModelResolver
-	private lateinit var secretStore: SecretStore
-	
-	fun init(session: SessionRepository, usage: UsageRepository, model: ModelResolver, secret: SecretStore) {
-		sessionRepo = session
-		usageRepository = usage
-		modelRepo = model
-		secretStore = secret
-	}
+	private val sessionRepo: SessionRepository = koin.get()
+	private val usageRepo: UsageRepository = koin.get()
+	private val modelRepo: ModelResolver = koin.get()
+	private val secretStore: SecretStore = koin.get()
 	
 	private val scope = scope()
 	
 	private val lock = ReentrantMutex()
 	private val sessions = ConcurrentHashMap<UUID, Session>()
 	private val listener = ConcurrentHashMap<UUID, Job>()
-	
 	
 	suspend fun shutdown() = lock.withLock {
 		log.info("Initiated SessionManager shutdown  activeSessions={}", sessions.size)
@@ -83,8 +77,6 @@ object SessionManager : Loggable, Traceable {
 		scope.cancel()
 		log.info("Completed SessionManager shutdown")
 	}
-	
-	fun isContainerRunning() = ContainerManager.isRunning
 	
 	suspend fun get(id: UUID): SessionHandle = getOrRestore(id).toHandle()
 	
@@ -129,9 +121,10 @@ object SessionManager : Loggable, Traceable {
 			agentIndex = AgentIndex.new()
 		)
 		sessions[data.id] = Session(
+			koin = koin,
 			data = data,
 			sessionRepo = sessionRepo,
-			usageRepo = usageRepository,
+			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
 			workspace = workspace
 		).init(
@@ -191,9 +184,10 @@ object SessionManager : Loggable, Traceable {
 			}
 		
 		return@withLock Session(
+			koin = koin,
 			data = data,
 			sessionRepo = sessionRepo,
-			usageRepo = usageRepository,
+			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
 			workspace = workspace
 		).init(Session.SessionInit.Restore)
@@ -217,7 +211,7 @@ object SessionManager : Loggable, Traceable {
 		}
 	}
 	
-	private suspend fun resolveModel(id: UUID): Model =
+	private suspend fun resolveModel(id: UUID): RuntimeModel =
 		modelRepo.resolve(id)
 	
 	@AutoService(SettingDef::class)

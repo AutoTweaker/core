@@ -19,16 +19,17 @@
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
 import io.github.autotweaker.api.types.debug.AgentDataEntry
-import io.github.autotweaker.core.infrastructure.persist.store.AbstractDbApi
-import io.github.autotweaker.core.infrastructure.persist.store.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.AbstractDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpsertStatement
+import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
 
-object AgentDataDbApi : AbstractDbApi<AgentDataEntry, UUID>() {
-	fun init(databaseStore: DatabaseStore) {
-		super.init(databaseStore.connect("Sessions"), AgentDataTable, AgentDataTable.id)
-	}
+class AgentDataDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentDataEntry, UUID>(
+	AgentDataTable, AgentDataTable.id
+) {
+	override fun connect(): Database = store.connect("Sessions")
 	
 	override fun ResultRow.toEntry() = AgentDataEntry(
 		key = this[AgentDataTable.id],

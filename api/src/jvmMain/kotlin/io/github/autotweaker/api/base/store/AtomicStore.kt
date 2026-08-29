@@ -60,7 +60,7 @@ abstract class AtomicStore<V> : StoreBase<V>(), Loggable, Traceable {
 					}.rethrowCancellation().onFailure {
 						dirty.set(true)
 						retry++
-						log.error("Failed store save", it)
+						log.error("Failed base save", it)
 					}
 			}
 		}

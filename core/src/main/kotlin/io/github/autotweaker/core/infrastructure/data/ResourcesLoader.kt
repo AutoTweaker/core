@@ -23,11 +23,11 @@ import java.util.*
 
 object ResourcesLoader {
 	fun loadPrompt(name: String): String =
-		this::class.java.classLoader.getResourceAsStream("prompt/$name")!!.bufferedReader().use { it.readText() }
+		javaClass.classLoader.getResourceAsStream("prompt/$name")!!.bufferedReader().use { it.readText() }
 	
 	val version: SemVer by lazy {
 		val props = Properties()
-		this::class.java.classLoader.getResourceAsStream("version.properties")?.use { props.load(it) }
+		javaClass.classLoader.getResourceAsStream("version.properties")?.use { props.load(it) }
 		SemVer.parse(props.getProperty("version"))
 	}
 }

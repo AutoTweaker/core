@@ -42,6 +42,7 @@ import io.github.autotweaker.core.infrastructure.config.ApiKeyRepository
 import io.github.autotweaker.core.infrastructure.config.EnvRepository
 import io.github.autotweaker.core.infrastructure.config.ModelConfigRepository
 import io.github.autotweaker.core.infrastructure.config.ProviderRepository
+import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
@@ -58,22 +59,34 @@ import java.util.*
 import kotlin.time.Instant
 
 class CoreAPIImpl(
-	private val usageRepo: UsageRepository,
+	private val usageRepository: UsageRepository,
+	private val sessionManager: SessionManager,
+	private val containerManager: ContainerManager,
+	private val envRepository: EnvRepository,
+	private val providerRepository: ProviderRepository,
+	private val modelConfigRepository: ModelConfigRepository,
+	private val modelResolverImpl: ModelResolverImpl,
+	private val apiKeyRepository: ApiKeyRepository,
+	private val settings: Settings,
+	private val translationManager: TranslationManager,
+	private val chatService: ChatService,
+	private val traceStore: TraceStore,
+	private val shellRouter: ShellRouter,
 	override val adapter: CoreAPI.AdapterAPI,
 	override val pathResolver: PathResolver,
 	override val appVersion: SemVer
 ) : CoreAPI {
 	override val session = object : CoreAPI.SessionAPI {
-		override suspend fun create(model: ModelConfig) = SessionManager.create(model)
+		override suspend fun create(model: ModelConfig) = sessionManager.create(model)
 		override suspend fun create(workspace: UUID, model: ModelConfig) =
-			SessionManager.create(workspace, model)
+			sessionManager.create(workspace, model)
 		
-		override suspend fun delete(sessionId: UUID) = SessionManager.delete(sessionId)
-		override suspend fun getHandle(sessionId: UUID) = SessionManager.get(sessionId)
+		override suspend fun delete(sessionId: UUID) = sessionManager.delete(sessionId)
+		override suspend fun getHandle(sessionId: UUID) = sessionManager.get(sessionId)
 		override suspend fun updateTitle(sessionId: UUID, function: (String?) -> String?) =
-			SessionManager.updateTitle(sessionId, function)
+			sessionManager.updateTitle(sessionId, function)
 		
-		override fun isContainerRunning(): Boolean = SessionManager.isContainerRunning()
+		override fun isContainerRunning(): Boolean = containerManager.isRunning
 	}
 	
 	override val workspace = object : CoreAPI.WorkspaceAPI {
@@ -95,41 +108,41 @@ class CoreAPIImpl(
 	}
 	
 	override val config = object : CoreAPI.ConfigAPI {
-		override suspend fun listEnv(type: EnvType) = EnvRepository.list(type)
-		override suspend fun getEnv(type: EnvType, id: String) = EnvRepository.get(type, id)
-		override suspend fun setEnv(type: EnvType, id: String, value: String) = EnvRepository.set(type, id, value)
-		override suspend fun removeEnv(type: EnvType, id: String) = EnvRepository.remove(type, id)
-		override suspend fun listProviders() = ProviderRepository.list()
-		override fun listAvailableProviderTypes() = ProviderRepository.listAvailable()
-		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = ProviderRepository.getMeta(type)
-		override suspend fun setProvider(provider: ProviderData) = ProviderRepository.set(provider)
-		override suspend fun removeProvider(id: UUID) = ProviderRepository.remove(id)
-		override suspend fun getProvider(id: UUID) = ProviderRepository.get(id)
-		override suspend fun setModel(model: ModelData) = ModelConfigRepository.set(model)
-		override suspend fun getModel(id: UUID) = ModelConfigRepository.get(id)
-		override suspend fun listModels() = ModelConfigRepository.list()
-		override suspend fun removeModel(id: UUID) = ModelConfigRepository.remove(id)
+		override suspend fun listEnv(type: EnvType) = envRepository.list(type)
+		override suspend fun getEnv(type: EnvType, id: String) = envRepository.get(type, id)
+		override suspend fun setEnv(type: EnvType, id: String, value: String) = envRepository.set(type, id, value)
+		override suspend fun removeEnv(type: EnvType, id: String) = envRepository.remove(type, id)
+		override suspend fun listProviders() = providerRepository.list()
+		override fun listAvailableProviderTypes() = providerRepository.listAvailable()
+		override fun getProviderMeta(type: String): LlmClient.ProviderInfo = providerRepository.getMeta(type)
+		override suspend fun setProvider(provider: ProviderData) = providerRepository.set(provider)
+		override suspend fun removeProvider(id: UUID) = providerRepository.remove(id)
+		override suspend fun getProvider(id: UUID) = providerRepository.get(id)
+		override suspend fun setModel(model: ModelData) = modelConfigRepository.set(model)
+		override suspend fun getModel(id: UUID) = modelConfigRepository.get(id)
+		override suspend fun listModels() = modelConfigRepository.list()
+		override suspend fun removeModel(id: UUID) = modelConfigRepository.remove(id)
 		
-		override fun getDefaultModel(): UUID? = ModelResolverImpl.getDefaultModel()
-		override suspend fun setDefaultModel(id: UUID?) = ModelResolverImpl.setDefaultModel(id)
-		override suspend fun addApiKey(name: String, key: String) = ApiKeyRepository.add(name, key)
-		override suspend fun listApiKey() = ApiKeyRepository.list()
-		override suspend fun removeApiKey(id: UUID) = ApiKeyRepository.remove(id)
-		override suspend fun removeApiKey(name: String) = ApiKeyRepository.remove(name)
-		override fun getAllSettings() = Settings.getAllEntries()
-		override fun getSettingDef(id: String) = Settings.getDef(id)
-		override suspend fun setSetting(id: String, value: SettingValue<*>) = Settings.setById(id, value)
+		override fun getDefaultModel(): UUID? = modelResolverImpl.getDefaultModel()
+		override suspend fun setDefaultModel(id: UUID?) = modelResolverImpl.setDefaultModel(id)
+		override suspend fun addApiKey(name: String, key: String) = apiKeyRepository.add(name, key)
+		override suspend fun listApiKey() = apiKeyRepository.list()
+		override suspend fun removeApiKey(id: UUID) = apiKeyRepository.remove(id)
+		override suspend fun removeApiKey(name: String) = apiKeyRepository.remove(name)
+		override fun getAllSettings() = settings.getAllEntries()
+		override fun getSettingDef(id: String) = settings.getDef(id)
+		override suspend fun setSetting(id: String, value: SettingValue<*>) = settings.set(id, value)
 	}
 	
 	override val persistence = object : CoreAPI.PersistenceAPI {
-		override suspend fun loadData(ids: Set<UUID>) = SessionManager.loadData(ids)
-		override suspend fun loadMessages(ids: Set<UUID>) = SessionManager.loadMessages(ids)
-		override suspend fun loadAgent(id: UUID) = SessionManager.loadAgent(id)
-		override suspend fun loadUsage(ids: Set<UUID>) = usageRepo.load(ids)
-		override suspend fun loadUsage(limit: Int, before: UsageCursor?) = usageRepo.load(limit, before)
-		override suspend fun mergeUsage(ids: Set<UUID>) = usageRepo.summarize(ids)
+		override suspend fun loadData(ids: Set<UUID>) = sessionManager.loadData(ids)
+		override suspend fun loadMessages(ids: Set<UUID>) = sessionManager.loadMessages(ids)
+		override suspend fun loadAgent(id: UUID) = sessionManager.loadAgent(id)
+		override suspend fun loadUsage(ids: Set<UUID>) = usageRepository.load(ids)
+		override suspend fun loadUsage(limit: Int, before: UsageCursor?) = usageRepository.load(limit, before)
+		override suspend fun mergeUsage(ids: Set<UUID>) = usageRepository.summarize(ids)
 		override suspend fun mergeUsage(modelId: UUID?, from: Instant?, to: Instant?) =
-			usageRepo.summarize(modelId, from, to)
+			usageRepository.summarize(modelId, from, to)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {
@@ -146,24 +159,24 @@ class CoreAPIImpl(
 		override fun getAll() = I18nServiceImpl.getAllEntries()
 		override fun setLanguage(locale: Locale) = I18nServiceImpl.setLanguage(locale)
 		override fun getString(id: String) = I18nServiceImpl.resolveByKey(id)
-		override suspend fun setTranslationModel(modelId: UUID?) = TranslationManager.setModel(modelId)
-		override fun getTranslationModel(): UUID? = TranslationManager.getModel()
-		override fun startTranslation() = TranslationManager.startTranslation()
-		override fun getTranslationStatus(): StateFlow<TranslationStatus> = TranslationManager.status
+		override suspend fun setTranslationModel(modelId: UUID?) = translationManager.setModel(modelId)
+		override fun getTranslationModel(): UUID? = translationManager.getModel()
+		override fun startTranslation() = translationManager.startTranslation()
+		override fun getTranslationStatus(): StateFlow<TranslationStatus> = translationManager.status
 	}
 	
 	override val trace = object : CoreAPI.TraceAPI {
-		override suspend fun origins() = TraceStore.selectOrigins()
-		override suspend fun namespaces(origin: String) = TraceStore.selectNamespaces(origin).map { it.toKebab() }
-		override suspend fun count(origin: String, namespace: KebabCase) = TraceStore.count(origin, namespace.value)
+		override suspend fun origins() = traceStore.selectOrigins()
+		override suspend fun namespaces(origin: String) = traceStore.selectNamespaces(origin).map { it.toKebab() }
+		override suspend fun count(origin: String, namespace: KebabCase) = traceStore.count(origin, namespace.value)
 		override suspend fun entries(origin: String, namespace: KebabCase, range: UIntRange) =
-			TraceStore.selectEntries(origin, namespace.value, range)
+			traceStore.selectEntries(origin, namespace.value, range)
 		
 		override suspend fun get(origin: String, namespace: KebabCase, timestamp: Instant) =
-			TraceStore.select(origin, namespace.value, timestamp)
+			traceStore.select(origin, namespace.value, timestamp)
 		
 		override suspend fun remove(origin: String, namespace: KebabCase, timestamp: Instant) =
-			TraceStore.delete(origin, namespace.value, timestamp)
+			traceStore.delete(origin, namespace.value, timestamp)
 	}
 	
 	override val log = object : CoreAPI.LogAPI {
@@ -172,6 +185,6 @@ class CoreAPIImpl(
 			LogStore.readLogs(start, end)
 	}
 	
-	override fun chat(request: LlmRequest): Flow<LlmResult> = ChatService.chat(request)
-	override fun bash(arg: ShellExec): Flow<ShellEvent> = ShellRouter.exec(arg)
+	override fun chat(request: LlmRequest): Flow<LlmResult> = chatService.chat(request)
+	override fun bash(arg: ShellExec): Flow<ShellEvent> = shellRouter.exec(arg)
 }

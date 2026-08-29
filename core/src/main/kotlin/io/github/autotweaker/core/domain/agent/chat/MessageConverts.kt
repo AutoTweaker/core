@@ -35,68 +35,12 @@ import java.nio.file.Path
 import java.util.*
 import kotlin.time.Instant
 
-object MessageConverts : Traceable, I18nable {
-	private lateinit var fileSystem: RawFileSystem
-	private lateinit var pathResolver: PathResolver
-	private lateinit var systemInfo: SystemInfoService
-	private lateinit var gitService: GitStatusService
-	
-	fun init(fs: RawFileSystem, path: PathResolver, system: SystemInfoService, git: GitStatusService) {
-		fileSystem = fs
-		pathResolver = path
-		systemInfo = system
-		gitService = git
-	}
-	
-	fun MessageContent.inject() = content.inject(injections)
-	
-	fun List<ContentPart>?.inject(
-		injections: List<ContextInjection>?
-	): List<ContentPart> = buildList {
-		injections?.forEach { add(ContentPart.Text(it.toXml())) }
-		this@inject?.let { addAll(it) }
-	}
-	
-	fun List<ContentPart>.merge(): String = buildString {
-		this@merge.forEach {
-			if (it is ContentPart.Text) appendLine(it.content)
-			else appendLine("<media />")
-		}
-	}
-	
-	fun MessageContent.injectContext(
-		timestamp: Instant,
-		timeZone: TimeZone,
-	) = copy(
-		injections = listOf(
-			ContextInjection(
-				"utc_time", timestamp
-			), ContextInjection(
-				"local_time", timestamp.toLocalDateTime(timeZone)
-			), ContextInjection(
-				"timezone", timeZone
-			), ContextInjection(
-				"language", i18n.getLanguage()
-			)
-		) + injections.orEmpty()
-	)
-	
-	fun List<ChatMessage>.inject(
-		injections: List<ContextInjection>?, summarize: String?
-	): List<ChatMessage> = injectAtFirst(buildList {
-		summarize?.let {
-			add(
-				ContextInjection(
-					"summary",
-					summarize
-				)
-			)
-		}
-		injections?.let {
-			addAll(it)
-		}
-	})
-	
+class MessageConverts(
+	private val fileSystem: RawFileSystem,
+	private val pathResolver: PathResolver,
+	private val systemInfo: SystemInfoService,
+	private val gitService: GitStatusService
+) : Traceable, I18nable {
 	suspend fun environmentInjection(workspace: Path) = buildList {
 		val inContainer = pathResolver.inContainer(workspace)
 		val cwd = if (inContainer) pathResolver.toContainerPath(workspace) else workspace
@@ -176,18 +120,68 @@ object MessageConverts : Traceable, I18nable {
 	
 	private fun uuidOf(tag: String) =
 		UUID.nameUUIDFromBytes("ENVIRONMENT_INJECTION-$tag".toByteArray())
-	
-	fun List<ChatMessage>.injectAtFirst(injections: List<ContextInjection>?): List<ChatMessage> {
-		if (injections.isNullOrEmpty()) return this
-		val firstUserIndex = indexOfFirst { it is ChatMessage.User }
-		if (firstUserIndex == -1) return this
-		val mutable = toMutableList()
-		val userMsg = mutable[firstUserIndex] as ChatMessage.User
-		mutable[firstUserIndex] = userMsg.copy(content = userMsg.content.inject(injections))
-		return mutable
-	}
-	
-	fun ContextInjection.toXml() =
-		if (content.lines().count() <= 1) "<$tag>$content</$tag>"
-		else "<$tag>\n$content\n</$tag>"
 }
+
+fun MessageContent.inject() = content.inject(injections)
+
+fun List<ContentPart>?.inject(
+	injections: List<ContextInjection>?
+): List<ContentPart> = buildList {
+	injections?.forEach { add(ContentPart.Text(it.toXml())) }
+	this@inject?.let { addAll(it) }
+}
+
+fun MessageContent.injectContext(
+	timestamp: Instant,
+	timeZone: TimeZone,
+	language: Locale
+) = copy(
+	injections = listOf(
+		ContextInjection(
+			"utc_time", timestamp
+		), ContextInjection(
+			"local_time", timestamp.toLocalDateTime(timeZone)
+		), ContextInjection(
+			"timezone", timeZone
+		), ContextInjection(
+			"language", language
+		)
+	) + injections.orEmpty()
+)
+
+fun List<ChatMessage>.inject(
+	injections: List<ContextInjection>?, summarize: String?
+): List<ChatMessage> = injectAtFirst(buildList {
+	summarize?.let {
+		add(
+			ContextInjection(
+				"summary",
+				summarize
+			)
+		)
+	}
+	injections?.let {
+		addAll(it)
+	}
+})
+
+fun List<ContentPart>.merge(): String = buildString {
+	this@merge.forEach {
+		if (it is ContentPart.Text) appendLine(it.content)
+		else appendLine("<media />")
+	}
+}
+
+fun List<ChatMessage>.injectAtFirst(injections: List<ContextInjection>?): List<ChatMessage> {
+	if (injections.isNullOrEmpty()) return this
+	val firstUserIndex = indexOfFirst { it is ChatMessage.User }
+	if (firstUserIndex == -1) return this
+	val mutable = toMutableList()
+	val userMsg = mutable[firstUserIndex] as ChatMessage.User
+	mutable[firstUserIndex] = userMsg.copy(content = userMsg.content.inject(injections))
+	return mutable
+}
+
+fun ContextInjection.toXml() =
+	if (content.lines().count() <= 1) "<$tag>$content</$tag>"
+	else "<$tag>\n$content\n</$tag>"
