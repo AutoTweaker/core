@@ -61,7 +61,7 @@ object DbDebugAPIImpl : DbDebugAPI {
 	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
 		"AppConfig" to configDb.transaction {
 			mapOf(
-				"core_settings" to ConfigTable.selectAll().count(),
+				"settings" to ConfigTable.selectAll().count(),
 				"json_store" to JsonStoreTable.selectAll().count(),
 			)
 		},

@@ -26,13 +26,13 @@ import io.github.autotweaker.api.config.SettingDef
 object BashSettings {
 	@AutoService(SettingDef::class)
 	class DefaultTimeoutSeconds : IntSetting(
-		120,
+		60,
 		zh("bash-run工具默认超时时间（秒），可被LLM的参数覆盖")
 	)
 	
 	@AutoService(SettingDef::class)
 	class MaxOutput : IntSetting(
-		50_000,
-		zh("bash-run工具的最长输出长度（字符），超出将保留输出末尾阈值内部分，并将完整内容存入文件，此值分别对stdout和stderr应用，理论上完整输出最大达到此值的两倍")
+		20_000,
+		zh("bash-run工具的最长输出长度（字符），超出将保留输出末尾阈值内部分，并将完整内容存入文件，此值分别对stdout和stderr应用，理论上进入上下文的完整输出最大达到此值的两倍")
 	)
 }
