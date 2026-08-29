@@ -18,62 +18,69 @@
 
 package io.github.autotweaker.core.adapter.i18n.translation
 
+import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.port.ModelResolver
+import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationEngine
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
-import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.exposed.v1.jdbc.Database
+import kotlinx.serialization.json.JsonElement
 import java.util.*
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.KClass
 import kotlin.test.*
 
 class TranslationManagerTest {
 	
-	private val dbUrl = "jdbc:h2:mem:tm_${counter.getAndIncrement()};DB_CLOSE_DELAY=-1"
+	private val stored = mutableMapOf<KClass<*>, JsonElement?>()
 	
 	companion object {
-		private val counter = AtomicInteger(0)
-		
 		init {
 			TestServices.init()
 		}
 	}
 	
+	private lateinit var manager: TranslationManager
+	
 	@BeforeTest
 	fun setUp() {
-		val databaseStore = mockk<DatabaseStore>()
-		every { databaseStore.connect(any()) } answers {
-			Database.connect(dbUrl, "org.h2.Driver")
+		stored.clear()
+		every { TestServices.jsonStore.namespace(any()) } answers {
+			mockk<JsonStore>().also {
+				every { it.get() } answers { stored[TranslationManager::class] }
+				every { it.set(any()) } answers { stored[TranslationManager::class] = firstArg<JsonElement>() }
+			}
 		}
-		runBlocking { JsonStoreImpl.init(databaseStore) }
+		manager = TranslationManager(
+			modelResolver = mockk<ModelResolver>(relaxed = true),
+			engine = mockk<TranslationEngine>(relaxed = true),
+		)
 	}
 	
 	@AfterTest
 	fun tearDown() = runBlocking {
-		TranslationManager.setModel(null)
+		manager.setModel(null)
 	}
 	
 	@Test
 	fun `setModel and getModel roundtrip`() = runBlocking {
 		val id = UUID.randomUUID()
-		TranslationManager.setModel(id)
-		assertEquals(id, TranslationManager.getModel())
+		manager.setModel(id)
+		assertEquals(id, manager.getModel())
 	}
 	
 	@Test
 	fun `setModel null clears model`() = runBlocking {
-		TranslationManager.setModel(UUID.randomUUID())
-		TranslationManager.setModel(null)
-		assertNull(TranslationManager.getModel())
+		manager.setModel(UUID.randomUUID())
+		manager.setModel(null)
+		assertNull(manager.getModel())
 	}
 	
 	@Test
 	fun `status is a StateFlow`() {
-		val status = TranslationManager.status.value
+		val status = manager.status.value
 		assertTrue(status == TranslationStatus.IDLE || status == TranslationStatus.TRANSLATING)
 	}
 }

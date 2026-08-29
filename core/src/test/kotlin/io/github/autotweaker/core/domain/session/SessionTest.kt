@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
@@ -41,6 +42,7 @@ class SessionTest {
 	}
 	
 	private fun session() = Session(
+		deps = mockk<AgentDeps>(relaxed = true),
 		data = SessionData(
 			id = UUID.randomUUID(),
 			title = "original title",

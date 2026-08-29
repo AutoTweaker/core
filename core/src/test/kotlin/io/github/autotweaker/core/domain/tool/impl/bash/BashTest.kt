@@ -28,20 +28,19 @@ import io.github.autotweaker.api.types.tool.bash.BashOutput
 import io.github.autotweaker.api.types.tool.bash.BashRequest
 import io.github.autotweaker.api.types.tool.bash.BashResult
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.TruncationService
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import java.util.*
 import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 
@@ -55,7 +54,6 @@ class BashTest {
 	// region helpers
 	
 	private lateinit var bash: Bash
-	private lateinit var secretStore: SecretStore
 	private var storedJson: JsonElement? = null
 	private val truncation = mockk<TruncationService>().also {
 		every { it.invoke(any(), any(), any()) } answers { firstArg() }
@@ -64,32 +62,17 @@ class BashTest {
 	@BeforeTest
 	fun setUp() {
 		storedJson = null
-		mockkObject(JsonStoreImpl)
 		val mockEntry = mockk<JsonStore>()
 		every { mockEntry.get() } answers { storedJson }
 		every { mockEntry.set(any()) } answers { storedJson = firstArg<JsonElement>() }
-		every { JsonStoreImpl.namespace(any()) } returns mockEntry
-		
-		val secretMap = mutableMapOf<UUID, String>()
-		secretStore = object : SecretStore {
-			override suspend fun set(secret: String, id: UUID) {
-				secretMap[id] = secret
-			}
-			
-			override suspend fun get(id: UUID): String = secretMap[id]!!
-			override suspend fun list(): List<UUID> = secretMap.keys.toList()
-			override suspend fun remove(id: UUID): Boolean = secretMap.remove(id) != null
-			override fun requireUnlocked() {}
-		}
+		every { TestServices.jsonStore.namespace(any()) } returns mockEntry
 		
 		bash = Bash()
-		EnvStore.init(secretStore)
 	}
 	
 	@AfterTest
 	fun tearDown() {
 		runBlocking { Bash.listEnv().toList().forEach { Bash.removeEnv(it) } }
-		unmockkObject(JsonStoreImpl)
 	}
 	
 	private fun bashArgs(
@@ -175,7 +158,7 @@ class BashTest {
 	fun `meta timeout parameter description contains formatted default timeout`() = runTest {
 		val (meta, _) = bash.meta()
 		val timeout = meta.functions.first().parameters.first { it.name == "timeout_seconds" }
-		assertTrue(timeout.description.contains("120"))
+		assertTrue(timeout.description.contains("60"))
 	}
 	
 	@Test
@@ -194,7 +177,6 @@ class BashTest {
 		Bash.setEnv("MY_VAR", "value")
 		
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(container(bashService), bashArgs("echo hi", envIds = listOf("MY_VAR")))
 		
 		assertIs<Tool.ResolveResult.Ready>(result)
@@ -207,7 +189,6 @@ class BashTest {
 	@Test
 	fun `resolve missing timeout uses default from settings`() = runTest {
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(
 			container(bashService),
 			BashArgs.Run(command = "echo hi", timeoutSeconds = null, envIds = emptyList())
@@ -215,7 +196,7 @@ class BashTest {
 		
 		assertIs<Tool.ResolveResult.Ready>(result)
 		val request = Json.decodeFromJsonElement(BashRequest.serializer(), result.result)
-		assertEquals(120.seconds, request.timeout)
+		assertEquals(60.seconds, request.timeout)
 	}
 	
 	// endregion
@@ -225,7 +206,6 @@ class BashTest {
 	@Test
 	fun `blank command returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(container(bashService), bashArgs("   "))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
@@ -235,7 +215,6 @@ class BashTest {
 	@Test
 	fun `empty command returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(container(bashService), bashArgs(""))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
@@ -249,7 +228,6 @@ class BashTest {
 	@Test
 	fun `timeout zero returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(container(bashService), bashArgs("echo hello", timeoutSeconds = 0))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
@@ -259,7 +237,6 @@ class BashTest {
 	@Test
 	fun `negative timeout returns error`() = runTest {
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(container(bashService), bashArgs("echo hello", timeoutSeconds = -5))
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
@@ -276,7 +253,6 @@ class BashTest {
 		coEvery { bashService.run("echo hello", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello", durationSeconds = 0.123
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("echo hello")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -292,7 +268,6 @@ class BashTest {
 		coEvery { bashService.run("echo hello", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello", stderr = "warn", durationSeconds = 0.123
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("echo hello")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -310,7 +285,6 @@ class BashTest {
 		coEvery { bashService.run("sleep 100", 1.seconds, emptyMap()) } returns mockResult(
 			exitCode = -1, stdout = "", timeout = true, durationSeconds = 1.0
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("sleep 100", timeoutSeconds = 1)
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -327,7 +301,6 @@ class BashTest {
 		coEvery { bashService.run("false", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 1, stdout = "", stderr = "error msg", durationSeconds = 0.05
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("false")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -341,7 +314,6 @@ class BashTest {
 		coEvery { bashService.run("sleep 100", 1.seconds, emptyMap()) } returns mockResult(
 			exitCode = -1, stdout = "", timeout = true, durationSeconds = 1.0
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("sleep 100", timeoutSeconds = 1)
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -354,7 +326,6 @@ class BashTest {
 		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hi"
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("echo hi", timeoutSeconds = 60)
 		bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -367,7 +338,6 @@ class BashTest {
 		coEvery { bashService.run("echo hi", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hi"
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("echo hi")
 		bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -384,7 +354,6 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "", stderr = "some error", durationSeconds = 0.1
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -398,7 +367,6 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", stderr = "", durationSeconds = 0.1
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -412,7 +380,6 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", durationSeconds = 2.5
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -425,7 +392,6 @@ class BashTest {
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(
 			exitCode = 0, stdout = "out", stderr = "err", durationSeconds = 0.001
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -446,7 +412,6 @@ class BashTest {
 		coEvery { bashService.run($$"echo $MY_VAR", 60.seconds, mapOf("MY_VAR" to "my_value")) } returns mockResult(
 			exitCode = 0, stdout = "my_value"
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs($$"echo $MY_VAR", envIds = listOf("MY_VAR"))
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -461,7 +426,6 @@ class BashTest {
 		
 		val bashService = mockk<BashService>()
 		coEvery { bashService.run(any(), any(), any()) } returns mockResult(exitCode = 0, stdout = "")
-		EnvStore.init(secretStore)
 		val args = toolArgs("cmd", envIds = listOf("A", "B"))
 		bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -473,7 +437,6 @@ class BashTest {
 		Bash.setEnv("EXISTING", "val")
 		
 		val bashService = mockk<BashService>()
-		EnvStore.init(secretStore)
 		val result = bash.resolve(
 			container(bashService), bashArgs("cmd", envIds = listOf("EXISTING", "MISSING"))
 		)
@@ -492,7 +455,6 @@ class BashTest {
 		coEvery { bashService.run("echo \"hello world\"", 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "hello world"
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs("echo \"hello world\"")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
@@ -506,7 +468,6 @@ class BashTest {
 		coEvery { bashService.run(longCmd, 60.seconds, emptyMap()) } returns mockResult(
 			exitCode = 0, stdout = "x".repeat(1000)
 		)
-		EnvStore.init(secretStore)
 		val args = toolArgs(longCmd)
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		

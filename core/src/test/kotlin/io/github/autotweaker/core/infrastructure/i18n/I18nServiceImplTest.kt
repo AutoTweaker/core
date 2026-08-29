@@ -23,7 +23,6 @@ import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.Localizations
 import io.github.autotweaker.api.types.exception.notfound.I18nEntryNotFoundException
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -55,14 +54,12 @@ class I18nServiceImplTest {
 		mockkObject(I18nRegistry)
 		every { I18nRegistry.get(any()) } answers { registry[firstArg<String>()] }
 		every { I18nRegistry.getAll() } returns registry
-		mockkObject(JsonStoreImpl)
-		every { JsonStoreImpl.namespace(any()) } answers { entryFor() }
+		every { TestServices.jsonStore.namespace(any()) } answers { entryFor() }
 	}
 	
 	@AfterTest
 	fun tearDown() {
 		unmockkObject(I18nRegistry)
-		unmockkObject(JsonStoreImpl)
 	}
 	
 	@Test

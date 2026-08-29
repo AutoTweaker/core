@@ -30,13 +30,11 @@ import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.RuntimeProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.mockk.every
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
+import io.mockk.mockk
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import java.util.*
-import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -70,12 +68,7 @@ class AgentChatTest {
 		id = UUID.randomUUID()
 	)
 	private val agentModel = AgentModel(testModel, ReasoningEffort(false), testModel, testModel, null)
-	
-	@AfterTest
-	fun cleanup() {
-		unmockkObject(ResilientChat)
-	}
-	
+
 	private fun userMsg(content: String = "hello") =
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
@@ -92,9 +85,9 @@ class AgentChatTest {
 			message = ChatMessage.Assistant("hello world", Clock.System.now(), null, null),
 		)
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -104,7 +97,7 @@ class AgentChatTest {
 		val user = userMsg("hello")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		assertTrue(results.any { it is AgentChatStreamResult.Assembled })
 		
@@ -124,9 +117,9 @@ class AgentChatTest {
 			message = ChatMessage.Assistant("answer", now, reasoningContent = "let me think"),
 		)
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -137,7 +130,7 @@ class AgentChatTest {
 		val user = userMsg("question")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
 		assertEquals("let me think", delta.delta.reasoningContent)
@@ -152,9 +145,9 @@ class AgentChatTest {
 	fun `passes through deltas from multiple chunks`() = runTest {
 		val now = Clock.System.now()
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -191,7 +184,7 @@ class AgentChatTest {
 		val user = userMsg("greet")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
 		assertEquals(2, deltas.size)
@@ -206,9 +199,9 @@ class AgentChatTest {
 	fun `emits Failing for error message`() = runTest {
 		val errorChatResult = ChatResult.Failed("service down", 503)
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -218,7 +211,7 @@ class AgentChatTest {
 		val user = userMsg("help")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		val failings = results.filterIsInstance<AgentChatStreamResult.Failing>()
 		assertEquals(1, failings.size)
@@ -234,9 +227,9 @@ class AgentChatTest {
 			usage = Usage(100, 50, 50),
 		)
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -246,7 +239,7 @@ class AgentChatTest {
 		val user = userMsg("test")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals(Usage(100, 50, 50), assembled.message.usage)
@@ -259,9 +252,9 @@ class AgentChatTest {
 			message = ChatMessage.Assistant(null, now, "thinking...", null),
 		)
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -271,7 +264,7 @@ class AgentChatTest {
 		val user = userMsg("question")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
 		assertEquals("thinking...", assembled.message.reasoning)
@@ -290,9 +283,9 @@ class AgentChatTest {
 			message = ChatMessage.Assistant("done", now, null, toolCalls),
 		)
 		
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		every {
-			ResilientChat.execute(
+			chat.execute(
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
@@ -315,7 +308,7 @@ class AgentChatTest {
 		val user = userMsg("read test")
 		val request = AgentChatRequest(agentModel, null, ctx(user))
 		
-		val results = AgentChat.execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().last()
 		assertEquals(1, assembled.toolCalls?.size)

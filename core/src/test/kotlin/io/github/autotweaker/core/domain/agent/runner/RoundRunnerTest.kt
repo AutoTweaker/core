@@ -32,6 +32,7 @@ import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
@@ -181,6 +182,7 @@ class RoundRunnerTest {
 			agentModel = model,
 			status = status,
 			agentId = agentId,
+			converts = mockk<MessageConverts>(relaxed = true),
 		)
 		return Harness(ctx, runner, status)
 	}

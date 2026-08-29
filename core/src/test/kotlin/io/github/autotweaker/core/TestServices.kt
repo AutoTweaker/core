@@ -23,12 +23,14 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.domain.agent.chat.MessageConverts
-import io.github.autotweaker.core.domain.port.Truncated
+import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
-import io.mockk.coEvery
 import io.mockk.mockk
+import org.koin.core.context.GlobalContext
+import org.koin.core.context.startKoin
+import org.koin.dsl.module
+import java.util.*
 
 object TestServices {
 	private val settingService = object : SettingService {
@@ -39,24 +41,34 @@ object TestServices {
 		override fun <V : SettingValue<T>, T> set(def: SettingDef<V>, value: T) {}
 	}
 	
+	val jsonStore = mockk<JsonStoreImpl>(relaxed = true)
+	
+	val secretMap = mutableMapOf<UUID, String>()
+	val removedSecrets = mutableListOf<UUID>()
+	val secretStore = object : SecretStore {
+		override suspend fun set(secret: String, id: UUID) {
+			secretMap[id] = secret
+		}
+		
+		override suspend fun get(id: UUID): String = secretMap[id]!!
+		override suspend fun list(): List<UUID> = secretMap.keys.toList()
+		override suspend fun remove(id: UUID): Boolean = removedSecrets.add(id).let { secretMap.remove(id) != null }
+		override fun requireUnlocked() {}
+	}
+	
 	fun init() {
 		try {
+			if (GlobalContext.getOrNull() == null) {
+				startKoin { modules(module { single<SecretStore> { secretStore } }) }
+			}
 			initServices(
 				ServiceRegistry(
-					TraceRecorderImpl::recorder,
-					JsonStoreImpl::namespace,
+					TraceRecorderImpl(mockk(), mockk())::recorder,
+					jsonStore::namespace,
 					{ mockk(relaxed = true) },
 					{ settingService },
 					{ mockk(relaxed = true) }
 				)
-			)
-			MessageConverts.init(
-				fs = mockk(relaxed = true) {
-					coEvery { readString(any()) } returns Truncated(content = "", truncated = false)
-				},
-				path = mockk(relaxed = true),
-				system = mockk(relaxed = true),
-				git = mockk(relaxed = true)
 			)
 		} catch (_: IllegalStateException) {
 		}

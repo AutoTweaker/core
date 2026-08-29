@@ -24,6 +24,7 @@ import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -63,7 +64,7 @@ class ToolCallHistoryImplTest {
 		result = RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			content = content,
-			data = null,
+			data = JsonPrimitive(content),
 			presentation = listOf(UiBlock.Text("执行了命令")),
 			timestamp = Clock.System.now(),
 			status = ToolResultStatus.SUCCESS,
@@ -110,13 +111,13 @@ class ToolCallHistoryImplTest {
 			),
 		)
 		
-		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer())
+		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer())
 		
 		assertEquals(2, entries.size)
-		assertEquals(BashRequest("echo hi"), entries[0].request)
-		assertEquals("history result", entries[0].resultContent)
-		assertEquals(BashRequest("echo hi"), entries[1].request)
-		assertEquals("current result", entries[1].resultContent)
+		assertEquals(BashRequest("echo hi"), entries[0].first)
+		assertEquals("history result", entries[0].second)
+		assertEquals(BashRequest("echo hi"), entries[1].first)
+		assertEquals("current result", entries[1].second)
 	}
 	
 	@Test
@@ -129,7 +130,7 @@ class ToolCallHistoryImplTest {
 			null,
 		)
 		
-		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer())
+		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer())
 		
 		assertTrue(entries.isEmpty())
 	}
@@ -144,7 +145,7 @@ class ToolCallHistoryImplTest {
 			null,
 		)
 		
-		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer())
+		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer())
 		
 		assertTrue(entries.isEmpty())
 	}
@@ -153,6 +154,6 @@ class ToolCallHistoryImplTest {
 	fun `getAll returns empty for empty context`() {
 		val context = RuntimeContext(null, null, null, null, null)
 		
-		assertTrue(ToolCallHistoryImpl(context).getAll(BashRequest.serializer()).isEmpty())
+		assertTrue(ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer()).isEmpty())
 	}
 }

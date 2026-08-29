@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.*
@@ -26,13 +27,19 @@ import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
+import io.github.autotweaker.core.domain.agent.chat.AgentChat
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.chat.merge
+import io.github.autotweaker.core.domain.agent.compact.SummaryService
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
-import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.port.UsageRepository
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
-import io.mockk.*
+import io.github.autotweaker.core.domain.port.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -73,16 +80,44 @@ class AgentBridgeTest {
 		activeTools = emptySet(),
 	)
 	
-	private suspend fun bridge(data: AgentData = agentData()): AgentBridge = AgentBridge(
-		host = mockk(),
-		sessionRepo = store,
-		usageRepo = mockk<UsageRepository>(relaxed = true),
-		resolveModel = {
-			// toModelConfig() 需要非空 Model.id
-			mockk<RuntimeModel>(relaxed = true).also { model -> every { model.id } returns UUID.randomUUID() }
-		},
-		workspace = dir,
-	).init(data)
+	private suspend fun bridge(
+		data: AgentData = agentData(),
+		chat: ResilientChat = mockk(relaxed = true),
+	): AgentBridge {
+		val deps = AgentDeps(
+			agentChat = AgentChat(chat),
+			resilientChat = chat,
+			summaryService = SummaryService(chat),
+			messageConverts = MessageConverts(
+				fileSystem = mockk<RawFileSystem>(relaxed = true) {
+					coEvery { readString(any()) } returns Truncated(content = "", truncated = false)
+				},
+				pathResolver = mockk<PathResolver>(relaxed = true),
+				systemInfo = mockk<SystemInfoService>(relaxed = true),
+				gitService = mockk<GitStatusService>(relaxed = true),
+			),
+			toolProvider = ToolProvider(
+				shellExecutor = mockk(relaxed = true),
+				rawFileSystem = mockk<RawFileSystem>(relaxed = true),
+				pathResolver = mockk<PathResolver>(relaxed = true),
+				temporaryStorage = mockk<TemporaryStorage>(relaxed = true),
+				summaryService = SummaryService(chat),
+			),
+			pathResolver = mockk<PathResolver>(relaxed = true),
+			temporaryStorage = mockk<TemporaryStorage>(relaxed = true),
+		)
+		return AgentBridge(
+			deps = deps,
+			host = mockk(),
+			sessionRepo = store,
+			usageRepo = mockk<UsageRepository>(relaxed = true),
+			resolveModel = {
+				// toModelConfig() 需要非空 Model.id
+				mockk<RuntimeModel>(relaxed = true).also { model -> every { model.id } returns UUID.randomUUID() }
+			},
+			workspace = dir,
+		).init(data)
+	}
 	
 	private suspend fun awaitUntil(condition: () -> Boolean) {
 		// Agent 的 workLoop 跑在真实调度器上，轮询必须使用真实时间而非 runTest 的虚拟时间
@@ -98,8 +133,7 @@ class AgentBridgeTest {
 		dir = Files.createTempDirectory("bridge-test")
 		store = mockk<SessionRepository>(relaxed = true)
 		// 工具 meta() 会访问 JsonStore（EnvStore 等），屏蔽底层 H2
-		mockkObject(JsonStoreImpl)
-		every { JsonStoreImpl.namespace(any()) } answers {
+		every { TestServices.jsonStore.namespace(any()) } answers {
 			mockk<JsonStore>().also {
 				every { it.get() } answers { null }
 				every { it.set(any()) } answers { }
@@ -109,7 +143,6 @@ class AgentBridgeTest {
 	
 	@AfterTest
 	fun tearDown() {
-		unmockkObject(JsonStoreImpl)
 		dir.toFile().deleteRecursively()
 	}
 	
@@ -157,9 +190,9 @@ class AgentBridgeTest {
 	
 	@Test
 	fun `send message drives round and persists messages`() = runTest {
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		coEvery {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+			chat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(
 				LlmResult(
@@ -170,7 +203,7 @@ class AgentBridgeTest {
 				)
 			)
 		}
-		val b = bridge()
+		val b = bridge(chat = chat)
 		
 		b.send(MessageContent(content = "hello".toContentPart()))
 		awaitUntil { b.agent.context.value.historyRounds?.size == 1 }
@@ -181,7 +214,6 @@ class AgentBridgeTest {
 		coVerify(atLeast = 1) { store.saveMessages(any()) }
 		
 		b.shutdown()
-		unmockkObject(ResilientChat)
 	}
 	
 	@Test

@@ -118,7 +118,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(1, messages.size)
 		val msg = messages[0] as ChatMessage.User
@@ -133,7 +133,7 @@ class AgentChatRequestExtTest {
 		val req = request(context = ctx)
 		
 		// 系统提示现在通过 instructions 传给 provider，不再注入消息列表
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(1, messages.size)
 		val userMsg = messages[0] as ChatMessage.User
@@ -169,7 +169,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, compactedRounds, null, currentRound(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		val msg = messages[0] as ChatMessage.User
 		assertTrue(msg.content.merge().contains("<summary>"))
@@ -202,7 +202,7 @@ class AgentChatRequestExtTest {
 		)
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		val histUserMsg = messages[0] as ChatMessage.User
 		assertTrue(histUserMsg.content.merge().contains("<summary>"))
@@ -227,7 +227,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		val msg = messages[0] as ChatMessage.User
 		assertTrue(msg.content.any { it is ContentPart.Image && it.data == img })
@@ -239,7 +239,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, null)
 		val req = request(context = ctx)
 		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages() }
+		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages(Locale.ENGLISH) }
 		assertTrue(ex.message!!.contains("No current round"))
 	}
 	
@@ -251,7 +251,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages() }
+		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages(Locale.ENGLISH) }
 		assertTrue(ex.message!!.contains("Last message is an assistant message"))
 	}
 	
@@ -276,7 +276,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages() }
+		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages(Locale.ENGLISH) }
 		assertTrue(ex.message!!.contains("Pending tool calls exist"))
 	}
 	
@@ -290,7 +290,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(3, messages.size)
 		val userChatMsg = messages[0] as ChatMessage.User
@@ -320,7 +320,7 @@ class AgentChatRequestExtTest {
 		)
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(3, messages.size)
 		val histUserMsg = messages[0] as ChatMessage.User
@@ -345,7 +345,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, histRounds, currentRound(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		
 		assertEquals(5, messages.size)
 	}
@@ -360,7 +360,7 @@ class AgentChatRequestExtTest {
 		val ctx = RuntimeContext(null, null, null, null, round)
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages()
+		val messages = req.toChatMessages(Locale.ENGLISH)
 		assertNotNull(messages)
 	}
 }

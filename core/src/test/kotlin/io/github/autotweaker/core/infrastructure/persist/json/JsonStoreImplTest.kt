@@ -24,10 +24,10 @@ import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.concurrent.atomic.AtomicInteger
@@ -56,32 +56,37 @@ class JsonStoreImplTest {
 		every { databaseStore.connect(any()) } answers {
 			Database.connect(dbUrl, "org.h2.Driver")
 		}
+		// 注册默认数据库并建表，供测试直接使用 transaction { } 写入
+		Database.connect(dbUrl, "org.h2.Driver")
+		transaction {
+			SchemaUtils.create(JsonStoreTable)
+		}
 	}
 	
 	@Test
 	fun `init then get returns null`() {
-		runBlocking { JsonStoreImpl.init(databaseStore) }
-		assertNull(JsonStoreImpl.namespace(String::class).get())
+		val store = JsonStoreImpl(databaseStore)
+		assertNull(store.namespace(String::class).get())
 	}
-	
+
 	@Test
 	fun `namespace and set then get`() {
-		runBlocking { JsonStoreImpl.init(databaseStore) }
-		val entry = JsonStoreImpl.namespace(Int::class)
+		val store = JsonStoreImpl(databaseStore)
+		val entry = store.namespace(Int::class)
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
 		entry.set(data)
 		assertNotNull(entry.get())
 	}
-	
+
 	@Test
 	fun `get handles corrupted JSON`() {
-		runBlocking { JsonStoreImpl.init(databaseStore) }
+		val store = JsonStoreImpl(databaseStore)
 		transaction {
 			JsonStoreTable.insert {
 				it[JsonStoreTable.namespace] = Boolean::class.java.name
 				it[JsonStoreTable.content] = "bad json"
 			}
 		}
-		assertNull(JsonStoreImpl.namespace(Boolean::class).get())
+		assertNull(store.namespace(Boolean::class).get())
 	}
 }

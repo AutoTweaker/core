@@ -30,15 +30,16 @@ import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.mockk.coEvery
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class CompactServiceTest {
@@ -59,8 +60,10 @@ class CompactServiceTest {
 	
 	private fun longSummary(): String = "summary ".repeat(10).trim()  // 62 字符 > MinSummaryLength(50)
 	
-	private fun compactService(onOutput: (RuntimeOutput) -> Unit = {}) =
-		CompactService(agentId, onOutput)
+	private fun compactService(
+		chat: ResilientChat = mockk(relaxed = true),
+		onOutput: (RuntimeOutput) -> Unit = {},
+	) = CompactService(agentId, chat, SummaryService(chat), onOutput)
 	
 	private fun managerWithHistory(): AgentContextManager {
 		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null))
@@ -106,46 +109,41 @@ class CompactServiceTest {
 	private fun mockResilientChat(
 		vararg results: Flow<LlmResult>,
 		throwException: RuntimeException? = null,
-	): AtomicInteger {
+	): Pair<ResilientChat, AtomicInteger> {
 		val callCount = AtomicInteger(0)
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		coEvery {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+			chat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
 		} answers {
 			callCount.incrementAndGet()
 			throwException?.let { throw it }
 			results[callCount.get() - 1]
 		}
-		return callCount
-	}
-	
-	@AfterTest
-	fun tearDown() {
-		unmockkObject(ResilientChat)
+		return chat to callCount
 	}
 	
 	// region execute
 	
 	@Test
 	fun `no history rounds returns without calling llm`() = runTest {
-		val callCount = mockResilientChat()
+		val (chat, callCount) = mockResilientChat()
 		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null))
 		
-		compactService().execute(model, manager)
+		compactService(chat).execute(model, manager)
 		
 		assertEquals(0, callCount.get())
 	}
 	
 	@Test
 	fun `successful compact applies summarized rounds`() = runTest {
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		val result = assembledResult("<summary>${longSummary()}</summary>")
 		coEvery {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+			chat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
 		} returns result
 		val manager = managerWithHistory()
 		
-		compactService().execute(model, manager)
+		compactService(chat).execute(model, manager)
 		
 		val context = manager.context.value
 		assertNull(context.historyRounds)
@@ -155,11 +153,11 @@ class CompactServiceTest {
 	
 	@Test
 	fun `failed compact retries up to max retries and reports error`() = runTest {
-		val callCount = mockResilientChat(throwException = RuntimeException("llm down"))
+		val (chat, callCount) = mockResilientChat(throwException = RuntimeException("llm down"))
 		val manager = managerWithHistory()
 		val outputs = mutableListOf<RuntimeOutput>()
 		
-		compactService { outputs.add(it) }.execute(model, manager)
+		compactService(chat) { outputs.add(it) }.execute(model, manager)
 		
 		assertEquals(5, callCount.get())
 		assertNull(manager.context.value.compactedRounds)
@@ -175,13 +173,13 @@ class CompactServiceTest {
 	
 	@Test
 	fun `short summary is invalid and retried until valid`() = runTest {
-		val callCount = mockResilientChat(
+		val (chat, callCount) = mockResilientChat(
 			assembledResult("<summary>short</summary>"),
 			assembledResult("<summary>${longSummary()}</summary>"),
 		)
 		val manager = managerWithHistory()
 		
-		compactService().execute(model, manager)
+		compactService(chat).execute(model, manager)
 		
 		assertEquals(2, callCount.get())
 		assertEquals(longSummary(), manager.context.value.compactedRounds?.summarizedMessage?.content)
@@ -189,14 +187,14 @@ class CompactServiceTest {
 	
 	@Test
 	fun `usage from llm is collected into summarized message`() = runTest {
-		mockkObject(ResilientChat)
+		val chat = mockk<ResilientChat>()
 		val result = assembledResult("<summary>${longSummary()}</summary>", usage = Usage(100, 50, 50))
 		coEvery {
-			ResilientChat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+			chat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
 		} returns result
 		val manager = managerWithHistory()
 		
-		compactService().execute(model, manager)
+		compactService(chat).execute(model, manager)
 		
 		val usage = manager.context.value.compactedRounds?.summarizedMessage?.usage
 		assertEquals(Usage(100, 50, 50), usage)

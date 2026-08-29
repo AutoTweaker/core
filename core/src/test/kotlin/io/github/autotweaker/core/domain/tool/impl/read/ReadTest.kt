@@ -23,6 +23,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.read.ReadRequest
+import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.FileAccessDeniedException
 import io.github.autotweaker.core.domain.port.FileNotFoundException
@@ -86,9 +87,9 @@ class ReadTest {
 		return fs
 	}
 	
-	private fun history(vararg entries: ToolCallHistory.Entry<ReadRequest>): ToolCallHistory {
+	private fun history(vararg entries: Pair<ReadRequest, ReadResult>): ToolCallHistory {
 		val h = mockk<ToolCallHistory>()
-		every { h.getAll(any<KSerializer<ReadRequest>>()) } returns entries.toList()
+		every { h.getAll(any<KSerializer<ReadRequest>>(), any<KSerializer<ReadResult>>()) } returns entries.toList()
 		return h
 	}
 	
@@ -147,18 +148,18 @@ class ReadTest {
 	
 	@Test
 	fun `resolve too many lines rejected for file`() = runTest {
-		val result = read.resolve(container(mockFs()), fileArgs(startLine = 1, endLine = 2001))
-		
-		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("读取的行数过多（2001），上限为2000", result.reason)
-	}
-	
-	@Test
-	fun `resolve too many lines rejected for summarize`() = runTest {
-		val result = read.resolve(container(mockFs()), summarizeArgs(startLine = 1, endLine = 5001))
-		
+		val result = read.resolve(container(mockFs()), fileArgs(startLine = 1, endLine = 5001))
+
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("读取的行数过多（5001），上限为5000", result.reason)
+	}
+
+	@Test
+	fun `resolve too many lines rejected for summarize`() = runTest {
+		val result = read.resolve(container(mockFs()), summarizeArgs(startLine = 1, endLine = 10001))
+
+		assertIs<Tool.ResolveResult.Rejected>(result)
+		assertEquals("读取的行数过多（10001），上限为10000", result.reason)
 	}
 	
 	@Test
@@ -241,7 +242,7 @@ class ReadTest {
 		val c = container(mockFs(lines = listOf("line1", "line2")))
 		c.register(
 			ToolCallHistory::class,
-			history(ToolCallHistory.Entry(ReadRequest.File(path, path, 1, 2, true, false), "$sha\nold"))
+			history(ReadRequest.File(path, path, 1, 2, true, false) to ReadResult(sha, "$sha\nold", false))
 		)
 		val result =
 			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
@@ -314,13 +315,13 @@ class ReadTest {
 	@Test
 	fun `exec summarize output truncated`() = runTest {
 		val c = container(mockFs(lines = listOf("x".repeat(600))))
-		c.register(SummarizeService::class, summarizeService("y".repeat(40000)))
+		c.register(SummarizeService::class, summarizeService("y".repeat(60000)))
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
-		
+
 		assertTrue(result.success)
-		assertTrue(result.result.startsWith("y".repeat(35000)))
+		assertTrue(result.result.startsWith("y".repeat(50000)))
 		assertTrue(
-			result.result.endsWith("[总结器输出内容过多，后续内容已被截断（共40000字符），请尝试修改总结器提示词]")
+			result.result.endsWith("[总结器输出内容过多（共60000字符），后续内容已被截断，请尝试修改总结器提示词]")
 		)
 	}
 	

@@ -27,11 +27,8 @@ import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.ProviderData
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
@@ -96,23 +93,19 @@ class ModelResolverImplTest {
 		)
 	}
 	
+	private lateinit var resolver: ModelResolverImpl
+
 	@BeforeTest
 	fun setUp() {
 		entries.clear()
 		secretMap.clear()
-		mockkObject(JsonStoreImpl)
-		every { JsonStoreImpl.namespace(any()) } answers { entryFor(firstArg<KClass<*>>()) }
-		ModelResolverImpl.init(secretStore)
-		// object 单例的内存状态跨测试残留，逐个清理
+		every { TestServices.jsonStore.namespace(any()) } answers { entryFor(firstArg<KClass<*>>()) }
+		resolver = ModelResolverImpl(secretStore)
+		// 单例的内存状态跨测试残留，逐个清理
 		runBlocking {
 			ModelStore.getAll().keys.forEach { ModelStore.delete(it) }
 			ProviderStore.getAll().keys.forEach { ProviderStore.delete(it) }
 		}
-	}
-	
-	@AfterTest
-	fun tearDown() {
-		unmockkObject(JsonStoreImpl)
 	}
 	
 	// region ModelStore/ProviderStore CRUD
@@ -167,7 +160,7 @@ class ModelResolverImplTest {
 		ProviderStore.set(provider)
 		ModelStore.set(modelData(modelId, providerId))
 		
-		val model = ModelResolverImpl.resolve(modelId)
+		val model = resolver.resolve(modelId)
 		
 		assertNotNull(model)
 		assertEquals(modelId, model.id)
@@ -182,9 +175,9 @@ class ModelResolverImplTest {
 		val defaultId = UUID.randomUUID()
 		ProviderStore.set(providerData(providerId))
 		ModelStore.set(modelData(defaultId, providerId))
-		ModelResolverImpl.setDefaultModel(defaultId)
+		resolver.setDefaultModel(defaultId)
 		
-		val model = ModelResolverImpl.resolve(UUID.randomUUID())
+		val model = resolver.resolve(UUID.randomUUID())
 		
 		assertNotNull(model)
 		assertEquals(defaultId, model.id)
@@ -199,9 +192,9 @@ class ModelResolverImplTest {
 		ModelStore.set(modelData(brokenDefaultId, brokenProvider))
 		ModelStore.set(modelData(goodModelId, goodProvider))
 		ProviderStore.set(providerData(goodProvider))
-		ModelResolverImpl.setDefaultModel(brokenDefaultId)
+		resolver.setDefaultModel(brokenDefaultId)
 		
-		val model = ModelResolverImpl.resolve(UUID.randomUUID())
+		val model = resolver.resolve(UUID.randomUUID())
 		
 		assertNotNull(model)
 		assertEquals(goodModelId, model.id)
@@ -210,7 +203,7 @@ class ModelResolverImplTest {
 	@Test
 	fun `resolve throws when nothing available`() = runTest {
 		assertFailsWith<ModelNotFoundException> {
-			ModelResolverImpl.resolve(UUID.randomUUID())
+			resolver.resolve(UUID.randomUUID())
 		}
 	}
 	
@@ -220,7 +213,7 @@ class ModelResolverImplTest {
 		ModelStore.set(modelData(modelId, UUID.randomUUID()))
 		
 		assertFailsWith<ProviderNotFoundException> {
-			ModelResolverImpl.resolve(modelId)
+			resolver.resolve(modelId)
 		}
 	}
 	
@@ -233,15 +226,15 @@ class ModelResolverImplTest {
 		val modelId = UUID.randomUUID()
 		ModelStore.set(modelData(modelId, UUID.randomUUID()))
 		
-		ModelResolverImpl.setDefaultModel(modelId)
+		resolver.setDefaultModel(modelId)
 		
-		assertEquals(modelId, ModelResolverImpl.getDefaultModel())
+		assertEquals(modelId, resolver.getDefaultModel())
 	}
 	
 	@Test
 	fun `setDefaultModel with missing model fails`() = runTest {
 		assertFailsWith<ModelNotFoundException> {
-			ModelResolverImpl.setDefaultModel(UUID.randomUUID())
+			resolver.setDefaultModel(UUID.randomUUID())
 		}
 	}
 	

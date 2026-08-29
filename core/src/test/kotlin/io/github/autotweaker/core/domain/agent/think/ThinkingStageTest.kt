@@ -29,6 +29,7 @@ import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
+import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -52,14 +53,16 @@ class ThinkingStageTest {
 	companion object {
 		init {
 			TestServices.init()
-			ToolProvider.init(
-				shellExecutor = mockk<ShellExecutor>(),
-				rawFileSystem = mockk<RawFileSystem>(),
-				pathResolver = mockk<PathResolver>(),
-				temporaryStorage = mockk<TemporaryStorage>(),
-			)
 		}
 	}
+	
+	private val provider = ToolProvider(
+		shellExecutor = mockk<ShellExecutor>(),
+		rawFileSystem = mockk<RawFileSystem>(),
+		pathResolver = mockk<PathResolver>(),
+		temporaryStorage = mockk<TemporaryStorage>(),
+		summaryService = mockk<SummaryService>(),
+	)
 	
 	private val workspace: () -> Path = { Path.of(".") }
 	private val truncation = mockk<TruncationService>()
@@ -153,6 +156,7 @@ class ThinkingStageTest {
 	private fun stage(llm: LlmService, tools: Tools) = ThinkingStage(
 		llmService = llm,
 		tools = tools,
+		provider = provider,
 		workspace = workspace,
 		truncation = truncation,
 		status = MutableStateFlow(AgentStatus.FREE),

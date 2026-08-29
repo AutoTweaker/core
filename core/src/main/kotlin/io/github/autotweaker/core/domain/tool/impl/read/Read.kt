@@ -303,14 +303,14 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		var truncated = false
 		val sb = StringBuilder()
 		for (i in selectedLines.indices) {
-			val line = if (lineNumber) "${startLine + i}\t${selectedLines[i]}"
+			val line = if (unicodeEscape) selectedLines[i].toUnicodeEscape()
 			else selectedLines[i]
 			sb.appendLine(
-				if (unicodeEscape) line.toUnicodeEscape()
+				if (lineNumber) "${startLine + i}\t$line"
 				else line
 			)
 			if (sb.length > maxChars) {
-				sb.append(truncateMessage.format(sb.length))
+				sb.append(truncateMessage)
 				truncated = true
 				break
 			}

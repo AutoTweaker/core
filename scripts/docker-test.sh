@@ -64,6 +64,12 @@ if [ ! -f "$HOME/.gradle-docker/.bootstrapped" ]; then
     touch "$HOME/.gradle-docker/.bootstrapped"
 fi
 
+if [ "$#" -gt 0 ]; then
+    TEST_TASK=":core:test"
+else
+    TEST_TASK="test"
+fi
+
 $DOCKER run --rm \
     --network host \
     -e DOCKER_TEST=true \
@@ -74,4 +80,4 @@ $DOCKER run --rm \
     -v "$HOME/.gradle-docker/m2:/home/user/.m2/repository" \
     -w /workspace \
     "$IMAGE_NAME" \
-    ./gradlew --no-daemon --console=plain test -x :tool-decl:generateArgs "$@" 2>&1 | sed -u 's/^/[docker] /'
+    ./gradlew --no-daemon --console=plain "$TEST_TASK" -x :tool-decl:generateArgs "$@" 2>&1 | sed -u 's/^/[docker] /'
