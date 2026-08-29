@@ -100,6 +100,7 @@ dependencies {
 	implementation("tools.jackson.core:jackson-databind:3.2.1")
 	
 	implementation("com.google.guava:guava:33.7.1-jre")
+	implementation("io.insert-koin:koin-core:4.2.2")
 }
 afterEvaluate {
 	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {

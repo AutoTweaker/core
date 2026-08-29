@@ -202,7 +202,7 @@ object ResilientChat : Loggable {
 						
 						RecoveryStrategy.CONTEXT_FALLBACK -> {
 							log.debug(
-								"Fell back to larger context window  model={}  statusCode={}",
+								"Fell back to larger context window  currentModel={}  statusCode={}",
 								current.modelInfo.modelId,
 								statusCode
 							)
@@ -213,7 +213,7 @@ object ResilientChat : Loggable {
 						
 						RecoveryStrategy.PROVIDER_FALLBACK -> {
 							log.debug(
-								"Fell back to different provider  model={}  provider={}  statusCode={}",
+								"Fell back to different provider  currentModel={}  currentProvider={}  statusCode={}",
 								current.modelInfo.modelId,
 								current.provider.id,
 								statusCode
@@ -224,7 +224,7 @@ object ResilientChat : Loggable {
 						
 						RecoveryStrategy.FALLBACK -> {
 							log.debug(
-								"Fell back to next model  model={}  statusCode={}",
+								"Fell back to next model  currentModel={}  statusCode={}",
 								current.modelInfo.modelId,
 								statusCode
 							)

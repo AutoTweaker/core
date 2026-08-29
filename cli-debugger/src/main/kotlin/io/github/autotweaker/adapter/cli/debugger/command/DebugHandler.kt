@@ -87,50 +87,50 @@ class DebugHandler(private val debug: DbDebugAPI) {
 		when (table) {
 			"setting" -> SettingEntry(
 				key,
-				prompt("value:"),
+				promptOrStdin("value:"),
 			)
 			
 			"jsonStore" -> JsonStoreEntry(
 				key,
-				prompt("content:")
+				promptOrStdin("content:")
 			)
 			
 			"sessionData" -> SessionDataEntry(
 				UUID.fromString(key),
-				prompt("title:"),
-				prompt("overview:"),
-				UUID.fromString(prompt("workspaceId:")),
-				prompt("agentIndex:"),
+				promptOrStdin("title:"),
+				promptOrStdin("overview:"),
+				UUID.fromString(promptOrStdin("workspaceId:")),
+				promptOrStdin("agentIndex:"),
 			)
 			
 			"agentData" -> AgentDataEntry(
 				UUID.fromString(key),
-				prompt("name:"),
-				prompt("model:"),
-				prompt("context:"),
-				prompt("activeTools:")
+				promptOrStdin("name:"),
+				promptOrStdin("model:"),
+				promptOrStdin("context:"),
+				promptOrStdin("activeTools:")
 			)
 			
 			"sessionMessage" -> SessionMessageEntry(
 				UUID.fromString(key),
-				prompt("type:"),
-				prompt("timestamp:").toLong(),
-				prompt("content:")
+				promptOrStdin("type:"),
+				promptOrStdin("timestamp:").toLong(),
+				promptOrStdin("content:")
 			)
 			
 			"usage" -> UsageEntry(
 				UUID.fromString(key),
-				UUID.fromString(prompt("modelId:")),
-				Instant.parse(prompt("timestamp:")),
-				prompt("promptTokens:").toInt(),
-				prompt("completionTokens:").toInt(),
-				prompt("reasoningTokens:").toIntOrNull(),
-				prompt("cacheHitTokens:").toIntOrNull(),
+				UUID.fromString(promptOrStdin("modelId:")),
+				Instant.parse(promptOrStdin("timestamp:")),
+				promptOrStdin("promptTokens:").toInt(),
+				promptOrStdin("completionTokens:").toInt(),
+				promptOrStdin("reasoningTokens:").toIntOrNull(),
+				promptOrStdin("cacheHitTokens:").toIntOrNull(),
 			)
 			
 			"secrets" -> SecretEntry(
 				UUID.fromString(key),
-				prompt("content:")
+				promptOrStdin("content:")
 			)
 			
 			else -> error("Unknown table: $table")
