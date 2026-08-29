@@ -34,6 +34,7 @@ import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.Agent
+import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
@@ -41,13 +42,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import org.koin.core.Koin
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class Session(
-	private val koin: Koin,
+	private val deps: AgentDeps,
 	data: SessionData,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
@@ -161,7 +161,7 @@ class Session(
 	private suspend fun restoreAgent(
 		data: AgentData,
 	) = AgentBridge(
-		koin = koin,
+		deps = deps,
 		host = getHost(data.id),
 		onSend = onSendIfMain(data.id),
 		sessionRepo = sessionRepo,

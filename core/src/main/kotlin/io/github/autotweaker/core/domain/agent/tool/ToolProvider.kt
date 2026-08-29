@@ -22,6 +22,7 @@ import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
+import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.tool.service.*
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
@@ -35,7 +36,8 @@ class ToolProvider(
 	private val shellExecutor: ShellExecutor,
 	private val rawFileSystem: RawFileSystem,
 	private val pathResolver: PathResolver,
-	private val temporaryStorage: TemporaryStorage
+	private val temporaryStorage: TemporaryStorage,
+	private val summaryService: SummaryService,
 ) {
 	fun build(
 		workspace: () -> Path,
@@ -49,7 +51,7 @@ class ToolProvider(
 			FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
 		).register(
 			SummarizeService::class,
-			SummarizeServiceImpl(model, onOutput)
+			SummarizeServiceImpl(model, summaryService, onOutput)
 		).register(
 			BashService::class,
 			BashServiceImpl(shellExecutor, pathResolver, workspace)

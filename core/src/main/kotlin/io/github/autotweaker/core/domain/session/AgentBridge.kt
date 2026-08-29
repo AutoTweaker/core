@@ -46,12 +46,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import org.koin.core.Koin
 import java.nio.file.Path
 import java.util.*
 
 class AgentBridge(
-	private val koin: Koin,
+	private val deps: AgentDeps,
 	private val host: AgentHost,
 	private val onSend: ((MessageContent) -> Unit)? = null,
 	private val sessionRepo: SessionRepository,
@@ -229,7 +228,7 @@ class AgentBridge(
 	/* 内部工具 */
 	
 	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
-		is RuntimeOutput.Output -> this.output
+		is RuntimeOutput.Output -> output
 		is RuntimeOutput.UsageConsumed -> {
 			val record = AgentMessage.UsageRecord(
 				id = usage.id,
@@ -249,7 +248,7 @@ class AgentBridge(
 	
 	private suspend fun createAgent() {
 		_agent = Agent(
-			koin = koin,
+			deps = deps,
 			agentId = initialData.id,
 			context = RuntimeContextBuilder(_context.value, sessionRepo::loadMessages)().let {
 				droppedCompacted = it.second

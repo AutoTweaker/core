@@ -26,16 +26,13 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.format
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
-import org.koin.core.Koin
 import java.nio.file.Path
 
 class TruncationImpl(
-	koin: Koin,
 	private val workspace: () -> Path,
+	private val pathResolver: PathResolver,
+	private val temporaryStorage: TemporaryStorage
 ) : TruncationService {
-	private val pathResolver: PathResolver = koin.get()
-	private val temporaryStorage: TemporaryStorage = koin.get()
-	
 	override fun invoke(content: String, threshold: Int, keepTail: Boolean): String {
 		if (content.length <= threshold) return content
 		val inContainer = pathResolver.inContainer(workspace())

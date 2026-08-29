@@ -33,6 +33,7 @@ import io.github.autotweaker.api.types.exception.notfound.SessionNotFoundExcepti
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionHandle
+import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
@@ -44,22 +45,20 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import org.koin.core.Koin
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class SessionManager(
-	private val koin: Koin
+	private val agentDeps: AgentDeps,
+	private val sessionRepo: SessionRepository,
+	private val usageRepo: UsageRepository,
+	private val modelRepo: ModelResolver,
+	private val secretStore: SecretStore,
 ) : Loggable, Traceable {
 	private val systemPrompt = SystemPrompt().get()
 	
 	private val wsm = WorkspaceManager
-	
-	private val sessionRepo: SessionRepository = koin.get()
-	private val usageRepo: UsageRepository = koin.get()
-	private val modelRepo: ModelResolver = koin.get()
-	private val secretStore: SecretStore = koin.get()
 	
 	private val scope = scope()
 	
@@ -121,7 +120,7 @@ class SessionManager(
 			agentIndex = AgentIndex.new()
 		)
 		sessions[data.id] = Session(
-			koin = koin,
+			deps = agentDeps,
 			data = data,
 			sessionRepo = sessionRepo,
 			usageRepo = usageRepo,
@@ -184,7 +183,7 @@ class SessionManager(
 			}
 		
 		return@withLock Session(
-			koin = koin,
+			deps = agentDeps,
 			data = data,
 			sessionRepo = sessionRepo,
 			usageRepo = usageRepo,

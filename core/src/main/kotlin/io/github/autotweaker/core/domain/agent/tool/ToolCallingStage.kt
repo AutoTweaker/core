@@ -44,6 +44,7 @@ import kotlin.time.TimeSource
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
+	private val provider: ToolProvider,
 	private val workspace: () -> Path,
 	private val truncation: TruncationService,
 	private val status: MutableStateFlow<AgentStatus>,
@@ -73,7 +74,7 @@ class ToolCallingStage(
 				status.value = AgentStatus.TOOL_CALLING
 				onToolCall(call.callId to resolved.executing())
 				withTimeout(timeoutSeconds.seconds) {
-					val provider = ToolProvider.buildToolProvider(
+					val provider = provider.build(
 						workspace = workspace,
 						onOutput = onOutput,
 						model = model,

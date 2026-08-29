@@ -46,7 +46,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.koin.core.Koin
 import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
@@ -61,7 +60,7 @@ class RoundRunner(
 	agentModel: AgentModel,
 	private val status: MutableStateFlow<AgentStatus>,
 	private val agentId: UUID,
-	private val koin: Koin
+	private val converts: MessageConverts
 ) : Loggable, Traceable {
 	private val scope = scope()
 	private val cmdLock = ReentrantMutex()
@@ -172,7 +171,7 @@ class RoundRunner(
 	
 	private suspend fun workLoop() {
 		log.info("Started workLoop  agentId={}", agentId)
-		val environment = koin.get<MessageConverts>().environmentInjection(workspace()).orNull()?.associateBy { it.id }
+		val environment = converts.environmentInjection(workspace()).orNull()?.associateBy { it.id }
 		if (environment != null && ctx.get().injections.orEmpty().none { it.id in environment.keys })
 			ctx.updateInjections {
 				environment.values + it.orEmpty()

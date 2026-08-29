@@ -19,9 +19,7 @@
 package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
-import io.github.autotweaker.api.debug.DbAPI
 import io.github.autotweaker.api.debug.DbDebugAPI
-import io.github.autotweaker.api.types.debug.*
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
@@ -35,23 +33,21 @@ import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageTable
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.koin.core.Koin
-import java.util.*
 
-class DbDebugAPIImpl(private val koin: Koin) : DbDebugAPI {
-	private val databaseStore: DatabaseStore = koin.get()
-	private val secretStore: SecretStore = koin.get()
+class DbDebugAPIImpl(
+	databaseStore: DatabaseStore,
+	private val secretStore: SecretStore,
+	override val setting: SettingDbApi,
+	override val jsonStore: JsonStoreDbApi,
+	override val sessionData: SessionDataDbApi,
+	override val agentData: AgentDataDbApi,
+	override val sessionMessage: SessionMessageDbApi,
+	override val usage: UsageDbApi,
+	override val secrets: SecretDbApi,
+) : DbDebugAPI {
 	private val configDb: Database = databaseStore.connect("AppConfig")
 	private val sessionDb: Database = databaseStore.connect("Sessions")
 	private val usageDb: Database = databaseStore.connect("Usages")
-	
-	override val setting: DbAPI<SettingEntry, String> get() = koin.get<SettingDbApi>()
-	override val jsonStore: DbAPI<JsonStoreEntry, String> get() = koin.get<JsonStoreDbApi>()
-	override val sessionData: DbAPI<SessionDataEntry, UUID> get() = koin.get<SessionDataDbApi>()
-	override val agentData: DbAPI<AgentDataEntry, UUID> get() = koin.get<AgentDataDbApi>()
-	override val sessionMessage: DbAPI<SessionMessageEntry, UUID> get() = koin.get<SessionMessageDbApi>()
-	override val usage: DbAPI<UsageEntry, UUID> get() = koin.get<UsageDbApi>()
-	override val secrets: DbAPI<SecretEntry, UUID> get() = koin.get<SecretDbApi>()
 	
 	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
 		"AppConfig" to configDb.transaction {

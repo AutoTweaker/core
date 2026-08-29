@@ -24,7 +24,7 @@ import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.agent.chat.MessageConverts.merge
+import io.github.autotweaker.core.domain.agent.chat.merge
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import java.util.*

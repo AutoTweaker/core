@@ -247,7 +247,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		
 		when (request) {
 			//read-file直接返回
-			is ReadRequest.File -> return "$sha256\n$fileContent".toolSuccess(
+			is ReadRequest.File -> return "$sha256\n${fileContent.content}".toolSuccess(
 				resultSerializer, ReadResult(
 					sha256!!, fileContent.content, fileContent.truncated
 				)

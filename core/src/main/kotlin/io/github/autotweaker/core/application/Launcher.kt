@@ -28,77 +28,44 @@ import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
-import io.github.autotweaker.core.application.Wiring.databaseStore
-import io.github.autotweaker.core.application.impl.DbDebugAPIImpl
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
-import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
-import io.github.autotweaker.core.infrastructure.persist.db.objstore.ObjectStorageImpl
-import io.github.autotweaker.core.infrastructure.persist.db.session.AgentDataDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.SessionDataDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.SessionMessageDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
-import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
-import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
+import org.koin.core.Koin
 
 object Launcher : Loggable, Traceable {
 	suspend fun start(
+		koin: Koin,
 		registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>>,
 		lazyCore: () -> CoreAPI
 	) {
 		//依赖最广泛的able api
 		initServices(
 			ServiceRegistry(
-				trace = TraceRecorderImpl::recorder,
-				store = JsonStoreImpl::namespace,
-				lazyObjects = { ObjectStorageImpl },
-				lazySetting = { Settings },
-				lazyI18n = { I18nServiceImpl },
+				trace = koin.get<TraceRecorderImpl>()::recorder,
+				store = koin.get<JsonStoreImpl>()::namespace,
+				lazyObjects = { koin.get() },
+				lazySetting = { koin.get() },
+				lazyI18n = { koin.get() },
 			)
 		)
 		
-		
-		//都是数据库IO，互不依赖
-		JsonStoreImpl.init(databaseStore)
-		Settings.init(databaseStore)
-		TraceStore.init(databaseStore)
-		SessionRepositoryImpl.init(databaseStore)
-		ObjectStorageImpl.init(databaseStore)
-		UsageRepositoryImpl.init(databaseStore)
-		//DbApi
-		SettingDbApi.init(databaseStore)
-		JsonStoreDbApi.init(databaseStore)
-		SessionDataDbApi.init(databaseStore)
-		AgentDataDbApi.init(databaseStore)
-		SessionMessageDbApi.init(databaseStore)
-		UsageDbApi.init(databaseStore)
-		
-		
 		//密钥库
 		SecretManager.init()
-		//依赖SecretManager
-		DbDebugAPIImpl.init(databaseStore, SecretManager)
-		
 		//Trace服务，会启动协程
-		TraceRecorderImpl.init()
+		koin.get<TraceRecorderImpl>().init()
 		
 		//创建目录、检查权限、开始拉镜像
-		ContainerManager.init(SecretManager)
-		
-		//都是纯赋值
-		Wiring.init()
+		koin.get<ContainerManager>().init()
 		
 		PluginLoader.load<Debugger>().forEachParallel { debugger ->
-			debugger.init(DbDebugAPIImpl)
+			debugger.init(koin.get())
 			log.info("Initialized debugger  class={}", debugger::class.java.name)
 		}
 		
@@ -125,10 +92,10 @@ object Launcher : Loggable, Traceable {
 			}
 		}
 		
-		TranslationManager.startTranslation()
+		koin.get<TranslationManager>().startTranslation()
 	}
 	
-	suspend fun shutdown(registry: PairList<Adapter, AdapterInfo>) {
+	suspend fun shutdown(koin: Koin, registry: PairList<Adapter, AdapterInfo>) {
 		registry.forEachParallel { (adapter, info) ->
 			trace.catching {
 				adapter.stop()
@@ -140,23 +107,25 @@ object Launcher : Loggable, Traceable {
 			trace.catching { it.shutdown() }
 		}
 		
-		trace.catching { I18nServiceImpl.shutdown() }
+		trace.catching { koin.get<I18nServiceImpl>().shutdown() }
 			.onFailure { log.warn("Failed I18nServiceImpl shutdown") }
-		trace.catching { SessionManager.shutdown() }
+		trace.catching { koin.get<SessionManager>().shutdown() }
 			.onFailure { log.warn("Failed SessionManager shutdown") }
-		trace.catching { ContainerManager.stop() }
+		trace.catching { koin.get<ContainerManager>().stop() }
 			.onFailure { log.warn("Failed ContainerManager stop") }
-		trace.catching { TranslationManager.shutdown() }
+		trace.catching { koin.get<TranslationManager>().shutdown() }
 			.onFailure { log.warn("Failed TranslationManager shutdown") }
 		
 		LlmClientLoader.shutdown()
 		
-		trace.catching { SecretManager.killGpgAgent() }
+		trace.catching { koin.get<SecretManager>().killGpgAgent() }
 			.onFailure { log.warn("Failed GPG agent kill") }
-		trace.catching { TraceRecorderImpl.shutdown() }
+		trace.catching { koin.get<TraceRecorderImpl>().shutdown() }
 			.onFailure { log.warn("Failed TraceRecorderImpl shutdown") }
-		trace.catching { databaseStore.shutdown() }
+		trace.catching { koin.get<DatabaseStore>().shutdown() }
 			.onFailure { log.warn("Failed DatabaseStore shutdown") }
+		
+		koin.close()
 		
 		log.info("Completed launcher shutdown")
 	}

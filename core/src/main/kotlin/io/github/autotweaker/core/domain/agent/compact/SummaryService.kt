@@ -29,14 +29,16 @@ import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.toList
 import kotlin.time.Clock
 
-object SummaryService : Traceable {
+class SummaryService(
+	private val chat: ResilientChat
+) : Traceable {
 	suspend fun summarizeMessage(
 		request: String,
 		model: AgentModel,
 		thinking: Boolean,
 	): Pair<String?, UsageEntry?> {
 		val results = trace.catching {
-			ResilientChat.execute(
+			chat.execute(
 				model = model.model,
 				fallbackModels = model.fallback,
 				messages = listOf(

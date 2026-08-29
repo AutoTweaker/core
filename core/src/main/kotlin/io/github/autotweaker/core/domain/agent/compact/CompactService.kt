@@ -30,8 +30,6 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.chat.merge
-
-import io.github.autotweaker.core.domain.agent.compact.SummaryService.summarizeMessage
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.currentCoroutineContext
@@ -42,6 +40,7 @@ import kotlin.time.Clock
 class CompactService(
 	private val agentId: UUID,
 	private val chat: ResilientChat,
+	private val summary: SummaryService,
 	private val onOutput: (RuntimeOutput) -> Unit,
 ) : Loggable, Traceable {
 	private val thinking = CompactSettings.Thinking().get()
@@ -258,7 +257,7 @@ class CompactService(
 		content: String,
 		model: AgentModel,
 	): String = if (content.length > maxMessageChars)
-		summarizeMessage(messageSummarizePrompt.format(content), model, thinking).also {
+		summary.summarizeMessage(messageSummarizePrompt.format(content), model, thinking).also {
 			it.second?.let { usage ->
 				onOutput(RuntimeOutput.UsageConsumed(usage))
 			}

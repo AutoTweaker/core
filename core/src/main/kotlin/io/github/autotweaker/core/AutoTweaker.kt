@@ -26,13 +26,15 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.hook.StartupHook
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.AdapterNotFoundException
 import io.github.autotweaker.core.application.Launcher
 import io.github.autotweaker.core.application.Wiring
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.koin.core.Koin
+import org.koin.core.parameter.parametersOf
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
@@ -44,7 +46,8 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	private val registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>> = mutableMapOf()
 	private val lock = ReentrantMutex()
 	
-	private val core by lazy { Wiring.createCoreAPI(this) }
+	private val koin: Koin by lazy { Wiring.createKoin() }
+	private val core: CoreAPI by lazy { koin.get { parametersOf(this) } }
 	
 	private val lockFile: Path = CONFIG_PATH.resolve("$APP_NAME_LOWERCASE.lock")
 	private var lockChannel: FileChannel? = null
@@ -63,12 +66,12 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		
 		log.info("Started AutoTweaker  version={}", ResourcesLoader.version)
 		
-		Launcher.start(registry) { core }
+		Launcher.start(koin, registry) { core }
 	}
 	
 	fun shutdown() {
 		log.info("Initiated AutoTweaker shutdown")
-		runBlocking { Launcher.shutdown(registry.values.toList()) }
+		runBlocking { Launcher.shutdown(koin, registry.values.toList()) }
 		PluginLoader.close()
 		releaseLock()
 		log.info("Completed AutoTweaker shutdown")

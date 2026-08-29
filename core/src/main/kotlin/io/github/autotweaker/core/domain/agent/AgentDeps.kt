@@ -16,25 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.agent.tool.service
+package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
+import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.core.domain.agent.chat.AgentChat
+import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
-import io.github.autotweaker.core.domain.tool.port.SummarizeService
+import io.github.autotweaker.core.domain.agent.tool.ToolProvider
+import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.domain.port.TemporaryStorage
 
-class SummarizeServiceImpl(
-	private val model: AgentModel,
-	private val summary: SummaryService,
-	private val onOutput: (RuntimeOutput) -> Unit,
-) : SummarizeService {
-	override suspend fun invoke(request: String): String? {
-		val (result, usage) = summary.summarizeMessage(
-			request = request,
-			model = model,
-			thinking = false,
-		)
-		usage?.let { onOutput(RuntimeOutput.UsageConsumed(it)) }
-		return result
-	}
-}
+class AgentDeps(
+	val agentChat: AgentChat,
+	val resilientChat: ResilientChat,
+	val summaryService: SummaryService,
+	val messageConverts: MessageConverts,
+	val toolProvider: ToolProvider,
+	val pathResolver: PathResolver,
+	val temporaryStorage: TemporaryStorage,
+)
