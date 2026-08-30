@@ -36,21 +36,23 @@ class UnifiedDiffTest {
 	}
 	
 	@Test
-	fun `modify line`() {
+	fun `modify line with context`() {
 		val diff = unifiedDiff("line1\nline2\nline3", "line1\nline2x\nline3")
 		assertEquals(
-			"@@ -2 +2 @@\n" +
+			"@@ -1,3 +1,3 @@\n" +
+					" line1\n" +
 					"-line2\n" +
-					"+line2x",
+					"+line2x\n" +
+					" line3",
 			diff
 		)
 	}
 	
 	@Test
-	fun `single line change omits count`() {
+	fun `single line change`() {
 		val diff = unifiedDiff("old", "new")
 		assertEquals(
-			"@@ -1 +1 @@\n" +
+			"@@ -1,1 +1,1 @@\n" +
 					"-old\n" +
 					"+new",
 			diff
@@ -72,7 +74,7 @@ class UnifiedDiffTest {
 	fun `empty old content treated as new file`() {
 		val diff = unifiedDiff("", "a")
 		assertEquals(
-			"@@ -0,0 +1 @@\n" +
+			"@@ -0,0 +1,1 @@\n" +
 					"+a",
 			diff
 		)
@@ -82,27 +84,31 @@ class UnifiedDiffTest {
 	fun `insert at start keeps old position`() {
 		val diff = unifiedDiff("b", "a\nb")
 		assertEquals(
-			"@@ -1,0 +1 @@\n" +
-					"+a",
+			"@@ -1,1 +1,2 @@\n" +
+					"+a\n" +
+					" b",
 			diff
 		)
 	}
 	
 	@Test
-	fun `delete line`() {
+	fun `delete line with context`() {
 		val diff = unifiedDiff("a\nb\nc", "a\nc")
 		assertEquals(
-			"@@ -2 +2,0 @@\n" +
-					"-b",
+			"@@ -1,3 +1,2 @@\n" +
+					" a\n" +
+					"-b\n" +
+					" c",
 			diff
 		)
 	}
 	
 	@Test
-	fun `delete to empty side keeps zero count`() {
+	fun `delete to end of file`() {
 		val diff = unifiedDiff("a\nb", "a")
 		assertEquals(
-			"@@ -2 +2,0 @@\n" +
+			"@@ -1,2 +1,1 @@\n" +
+					" a\n" +
 					"-b",
 			diff
 		)
@@ -110,14 +116,26 @@ class UnifiedDiffTest {
 	
 	@Test
 	fun `multiple hunks separated without blank line`() {
-		val diff = unifiedDiff("a\nb\nc\nd\ne\nf\ng", "a\nX\nc\nd\nY\nf\ng")
+		val diff = unifiedDiff(
+			"a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl",
+			"a\nB\nc\nd\ne\nf\ng\nh\ni\nJ\nk\nl"
+		)
 		assertEquals(
-			"@@ -2 +2 @@\n" +
+			"@@ -1,5 +1,5 @@\n" +
+					" a\n" +
 					"-b\n" +
-					"+X\n" +
-					"@@ -5 +5 @@\n" +
-					"-e\n" +
-					"+Y",
+					"+B\n" +
+					" c\n" +
+					" d\n" +
+					" e\n" +
+					"@@ -7,6 +7,6 @@\n" +
+					" g\n" +
+					" h\n" +
+					" i\n" +
+					"-j\n" +
+					"+J\n" +
+					" k\n" +
+					" l",
 			diff
 		)
 	}

@@ -46,15 +46,15 @@ import kotlinx.serialization.json.JsonElement
 class Write : CoreTool<WriteArgs>, Traceable {
 	override suspend fun meta() = writeMeta(
 		WriteMetaDescriptions(
-			toolDescription = "创建一个新文件，或覆写一个已有文件。支持Unicode转义，不要使用bash来创建文件，而是激活此工具来写入文件，即使要写入特殊字符。优先使用edit来更新文件的部分片段",
+			toolDescription = WriteDesc.Tool().get(),
 			functions = WriteMetaDescriptions.Functions(
 				file = WriteMetaDescriptions.Functions.File(
 					filePath = ToolSettings.FilePathDesc().get(),
-					sha256 = "如果目标文件已存在，请通过read工具读取文件的完整内容，并提供read工具返回的文件当前SHA256，这能够避免意外覆盖来自用户或外部程序的文件更新",
-					content = "要写入到文件的新内容，如果启用unescape_unicode，可以包含若干Unicode转义序列，普通字符会按原样解析",
-					unescapeUnicode = "是否对content中的Unicode转义序列进行解码，默认false，仅支持Unicode转义以及反斜杠转义，例如\\u0055将被解析为'U'，\\\\u0055将被解析为'\\u0055'",
-					lenientUnescape = "若启用unescape_unicode，将原样保留content中不合法或不支持的转义，通常不应当启用，仅在要写入到内容确实包含大量字面反斜杠或Json转义（字面），同时又必须使用Unicode转义时启用，默认false"
-				) to "创建一个新文件，或覆写已有文件，你需要确保提前通过read工具读取目标文件。\n支持unicode转义，不支持\\n等json转义，需要通过unescape_unicode显式启用。\n你应该优先使用edit来更新文件的部分片段。\n始终避免在工作区中创建临时文件或任务报告类文件，请在'/tmp/$APP_NAME_LOWERCASE'下创建这类文件。\nfile_path的父目录若不存在会自动创建，如果你已经确认了要写入的位置，无需提前创建目录或检查父目录的存在性。"
+					sha256 = WriteDesc.Sha256().get(),
+					content = WriteDesc.Content().get(),
+					unescapeUnicode = WriteDesc.UnescapeUnicode().get(),
+					lenientUnescape = WriteDesc.LenientUnescape().get()
+				) to WriteDesc.Function().get()
 			)
 		)
 	)
@@ -68,7 +68,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val path = trace.catching { fileSystem.normalize(request.filePath) }
 			.getOrElse {
 				return Rejected(ToolSettings.PathErrorMessage().get()) {
-					text("创建或覆盖文件失败，非法的路径：${request.filePath}")
+					text(i18n(WriteI18n.InvalidPath(), request.filePath))
 				}
 			}
 		
@@ -76,8 +76,8 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val sha256 = args.sha256?.let {
 			trace.catching { Sha256(it) }
 				.getOrElse { e ->
-					return Rejected("无效的哈希：${e.message}") {
-						text("覆盖文件 $displayPath 失败，非法的请求参数")
+					return Rejected(WriteMessage.InvalidHash().format(e.message)) {
+						text(i18n(WriteI18n.InvalidHashArg(), displayPath))
 					}
 				}
 		}
@@ -85,13 +85,13 @@ class Write : CoreTool<WriteArgs>, Traceable {
 			fileSystem.read(path)
 		}.rethrow<PathOutsideWorkspaceException>().getOrNull()
 		if (fileContent != null && sha256 == null) return Rejected(
-			"文件 $displayPath 已存在，如需覆写请使用read工具读取后提供sha256"
+			WriteMessage.FileExists().format(displayPath)
 		) {
-			text("创建文件 $displayPath 失败，文件已存在")
+			text(i18n(WriteI18n.CreateFailedExists(), displayPath))
 		}
 		if (sha256 != null && fileContent != null && sha256 != fileContent.sha256)
-			return Rejected("覆盖文件 $displayPath 失败，SHA256不匹配，文件已被外部更新，请重新读取文件") {
-				text("覆盖文件 $displayPath 失败，文件已被外部更改")
+			return Rejected(WriteMessage.HashMismatch().format(displayPath)) {
+				text(i18n(WriteI18n.UpdateFailedChanged(), displayPath))
 			}
 		val newContent = let {
 			val unescape = request.unescapeUnicode ?: false
@@ -100,36 +100,36 @@ class Write : CoreTool<WriteArgs>, Traceable {
 			else trace.catching {
 				request.content.unescapeUnicode(!lenient)
 			}.getOrElse { e ->
-				return Rejected("未知或不合法的转义：${e.message}") {
-					text("创建或覆盖文件 $displayPath 失败，非法的转义")
+				return Rejected(WriteMessage.InvalidEscape().format(e.message)) {
+					text(i18n(WriteI18n.InvalidEscape(), displayPath))
 				}
 			}
 		}
-		val write = if (sha256 == null) "创建" else "更新"
+		val write = i18n(if (sha256 == null) WriteI18n.Create() else WriteI18n.Update())
 		return Ready(
 			requestSerializer,
 			WriteRequest(path, displayPath, fileContent?.let { it.content to it.sha256 }, newContent),
 			request = { reason ->
-				text("请求$write $displayPath（$reason）")
+				text(i18n(WriteI18n.Request(), write, displayPath, reason))
 				diff(path, fileContent?.content, newContent)
 			},
 			executing = {
-				text("正在$write $displayPath")
+				text(i18n(WriteI18n.Executing(), write, displayPath))
 			},
 			cancelled = {
-				text("$write $displayPath 被取消")
+				text(i18n(WriteI18n.Cancelled(), write, displayPath))
 			},
 			rejected = { reason ->
 				if (reason == null)
-					text("$write $displayPath 被拒绝")
-				else text("$write $displayPath 被拒绝：$reason")
+					text(i18n(WriteI18n.Rejected(), write, displayPath))
+				else text(i18n(WriteI18n.RejectedWithReason(), write, displayPath, reason))
 				diff(path, fileContent?.content, newContent)
 			},
 			failed = { e ->
-				text("$write $displayPath 失败：${e.message()}")
+				text(i18n(WriteI18n.Failed(), write, displayPath, e.message()))
 			},
 			timeout = { elapsed ->
-				text("$write $displayPath 超时：$elapsed")
+				text(i18n(WriteI18n.Timeout(), write, displayPath, elapsed))
 			}
 		)
 	}
@@ -144,24 +144,26 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val sha256 = request.expected?.second
 		if (sha256 == null) {
 			fileSystem.create(request.path, request.content)
-			return "创建了文件 ${request.displayPath}：\n${
+			return WriteMessage.Created().format(
+				request.displayPath,
 				unifiedDiff(
 					null,
 					request.content
-				) ?: "UNCHANGED"
-			}".toolSuccess {
-				text("创建了 ${request.displayPath}")
+				) ?: WriteMessage.Unchanged().get()
+			).toolSuccess {
+				text(i18n(WriteI18n.Created(), request.displayPath))
 				diff(request.path, null, request.content)
 			}
 		} else {
 			fileSystem.update(request.path, sha256, request.content)
-			return "覆盖了文件 ${request.displayPath}：\n${
+			return WriteMessage.Updated().format(
+				request.displayPath,
 				unifiedDiff(
 					request.expected?.first,
 					request.content
-				) ?: "UNCHANGED"
-			}".toolSuccess {
-				text("覆盖了 ${request.displayPath}")
+				) ?: WriteMessage.Unchanged().get()
+			).toolSuccess {
+				text(i18n(WriteI18n.Updated(), request.displayPath))
 				diff(request.path, request.expected?.first, request.content)
 			}
 		}

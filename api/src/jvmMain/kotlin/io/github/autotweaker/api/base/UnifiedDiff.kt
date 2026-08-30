@@ -19,41 +19,15 @@
 package io.github.autotweaker.api.base
 
 import com.github.difflib.DiffUtils
+import com.github.difflib.UnifiedDiffUtils
 
 fun unifiedDiff(oldContent: String?, newContent: String): String? {
 	val oldLines = oldContent?.takeIf { it.isNotEmpty() }?.lines().orEmpty()
 	val newLines = newContent.takeIf { it.isNotEmpty() }?.lines().orEmpty()
-	val deltas = DiffUtils.diff(oldLines, newLines).getDeltas()
-	if (deltas.isEmpty()) return null
-	return deltas.joinToString("\n") { delta ->
-		val source = delta.source
-		val target = delta.target
-		val oldStart = if (oldLines.isEmpty()) 0 else source.position + 1
-		val newStart = target.position + 1
-		buildString {
-			append("@@ -")
-			append(oldStart)
-			if (source.lines.size != 1) {
-				append(',')
-				append(source.lines.size)
-			}
-			append(" +")
-			append(newStart)
-			if (target.lines.size != 1) {
-				append(',')
-				append(target.lines.size)
-			}
-			append(" @@")
-			source.lines.forEach {
-				append('\n')
-				append('-')
-				append(it)
-			}
-			target.lines.forEach {
-				append('\n')
-				append('+')
-				append(it)
-			}
-		}
-	}
+	val patch = DiffUtils.diff(oldLines, newLines)
+	val originalFileName = if (oldLines.isEmpty()) null else ""
+	return UnifiedDiffUtils.generateUnifiedDiff(originalFileName, "", oldLines, patch, 3)
+		.drop(2)
+		.takeIf { it.isNotEmpty() }
+		?.joinToString("\n")
 }
