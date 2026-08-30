@@ -59,7 +59,7 @@ class ContainerManager(
 		else log.warn("Denied container access, features disabled").also { return }
 		
 		imagePullJob = scope.async {
-			service.pullImage(image)
+			service.pull(image)
 		}
 	}
 	
@@ -70,17 +70,13 @@ class ContainerManager(
 			.ensureActive()
 			.onFailure {
 				log.warn("Failed image pull, retried  image={}", image)
-				imagePullJob = scope.async { service.pullImage(image) }
+				imagePullJob = scope.async { service.pull(image) }
 			}
 		
 		imagePullJob?.await()
 		
 		log.debug("Initiated container start  image={}", image)
-		containerId = service.start(
-			image, listEnv().mapNotNull {
-				it to (getEnv(it) ?: return@mapNotNull null)
-			}.toMap()
-		).andLog(log) {
+		containerId = service.start(image).andLog(log) {
 			info("Started container  containerId={}", it)
 		}
 	}
@@ -116,6 +112,13 @@ class ContainerManager(
 		val wrappedCommand = listOf(
 			"timeout", "--signal=KILL", "${timeout.inWholeSeconds}", "bash", "-lc", command
 		)
-		emitAll(service.execStream(id, wrappedCommand, workDir = workDir, env = env))
+		emitAll(
+			service.exec(
+				id, wrappedCommand, workDir,
+				env = listEnv().mapNotNull {
+					it to (getEnv(it) ?: return@mapNotNull null)
+				}.toMap() + env
+			)
+		)
 	}
 }

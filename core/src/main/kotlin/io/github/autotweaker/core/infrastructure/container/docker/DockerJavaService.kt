@@ -75,13 +75,13 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 		return true
 	}.getOrDefault(false)
 	
-	override suspend fun pullImage(image: String) = withContext(Dispatchers.IO) {
+	override suspend fun pull(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
 		log.info("Pulled image  image={}", image)
 	}
 	
 	override suspend fun start(
-		image: String, env: Map<String, String>
+		image: String,
 	): String = withContext(Dispatchers.IO) {
 		trace.catching {
 			Files.createDirectories(WORKSPACE_HOST_PATH)
@@ -106,7 +106,6 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 			val createResponse = client.createContainerCmd(image)
 				.withName(CONTAINER_NAME)
 				.withWorkingDir(CONTAINER_WORK_PATH.toString())
-				.withEnv(env.map { "${it.key}=${it.value}" })
 				.withHostConfig(hostConfig)
 				.withEntrypoint("tail", "-f", "/dev/null")
 				.exec().andLog(log) { info("Created container  containerId={}", it.id) }
@@ -182,7 +181,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 		}
 	}
 	
-	override fun execStream(
+	override fun exec(
 		containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 	): Flow<ShellEvent> = callbackFlow {
 		log.debug(

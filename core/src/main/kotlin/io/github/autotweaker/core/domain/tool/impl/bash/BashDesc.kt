@@ -48,7 +48,7 @@ object BashDesc {
 	
 	@AutoService(SettingDef::class)
 	class Timeout : StringSetting(
-		"命令超时时间（秒），必须大于0，默认%s秒", zh(
+		"命令超时时间（秒），必须大于0，默认%s秒。请传递此参数而不是使用timeout命令", zh(
 			"bash-run工具timeout_seconds参数的描述"
 		)
 	)

@@ -23,12 +23,12 @@ import kotlinx.coroutines.flow.Flow
 import java.nio.file.Path
 
 interface ContainerService {
-	suspend fun pullImage(image: String)
-	suspend fun start(image: String, env: Map<String, String>): String
+	suspend fun pull(image: String)
+	suspend fun start(image: String): String
 	suspend fun stop(containerId: String)
-	fun shutdown() {}
-	fun checkAccess(): Boolean = true
-	fun execStream(
+	fun shutdown()
+	fun checkAccess(): Boolean
+	fun exec(
 		containerId: String,
 		command: List<String>,
 		workDir: Path? = null,

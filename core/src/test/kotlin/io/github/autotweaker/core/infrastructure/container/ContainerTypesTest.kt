@@ -76,7 +76,7 @@ class CommandResultTest {
 }
 
 class ContainerConstantsTest {
-
+	
 	@Test
 	fun `constants are correct`() {
 		assertEquals("autotweaker-workspace", CONTAINER_NAME)
@@ -99,10 +99,12 @@ class ContainerServiceTest {
 	fun `execStream is called with correct parameters`() = runTest {
 		var capturedCommand: List<String>? = null
 		val impl = object : ContainerService {
-			override suspend fun pullImage(image: String) {}
-			override suspend fun start(image: String, env: Map<String, String>) = "test"
+			override suspend fun pull(image: String) {}
+			override suspend fun start(image: String) = "test"
 			override suspend fun stop(containerId: String) {}
-			override fun execStream(
+			override fun shutdown() {}
+			override fun checkAccess(): Boolean = true
+			override fun exec(
 				containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
 			): Flow<ShellEvent> {
 				capturedCommand = command
@@ -110,7 +112,7 @@ class ContainerServiceTest {
 			}
 		}
 		
-		impl.execStream("id", listOf("echo", "hello")).collect {}
+		impl.exec("id", listOf("echo", "hello")).collect {}
 		assertEquals(listOf("echo", "hello"), capturedCommand)
 	}
 }
