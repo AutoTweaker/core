@@ -20,8 +20,8 @@ package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.types.Sha256
 
-data class FileContent<T>(
-	val content: T,
+data class FileContent(
+	val content: String,
 	val truncated: Boolean,
 	val sha256: Sha256,
 )

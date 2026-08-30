@@ -96,46 +96,8 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}.rethrowFileSystemException()
 	}
 	
-	override suspend fun readString(path: Path): FileContent<String> = withContext(Dispatchers.IO) {
-		readStringLimited(path)
-	}
-	
-	override suspend fun readAllLines(path: Path): FileContent<List<String>> = withContext(Dispatchers.IO) {
-		val limited = readStringLimited(path)
-		FileContent(limited.content.lines(), limited.truncated, limited.sha256)
-	}
-	
 	@Suppress("UnstableApiUsage")
-	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
-		trace.catching {
-			val hasher = Hashing.sha256().newHasher()
-			Files.newInputStream(path).use { input ->
-				val buffer = ByteArray(BUFFER_SIZE)
-				while (true) {
-					val read = input.read(buffer)
-					if (read < 0) break
-					hasher.putBytes(buffer, 0, read)
-				}
-			}
-			Sha256(hasher.hash())
-		}.rethrowFileSystemException()
-	}
-	
-	override suspend fun write(path: Path, expected: Sha256, lines: List<String>) =
-		withContext(Dispatchers.IO) {
-			trace.catching {
-				val target = path.toRealPath()
-				if (!Files.isWritable(target)) error("File is not writable: $path")
-				pathLocks[target.hashCode() and 255].withLock {
-					val current = sha256(target)
-					if (current != expected) error("File content changed since read: $path")
-					atomicReplace(target, lines)
-				}
-			}.rethrowFileSystemException()
-		}
-	
-	@Suppress("UnstableApiUsage")
-	private fun readStringLimited(path: Path): FileContent<String> =
+	override suspend fun read(path: Path): FileContent = withContext(Dispatchers.IO) {
 		trace.catching {
 			Files.newInputStream(path).use { input ->
 				val hasher = Hashing.sha256().newHasher()
@@ -161,14 +123,44 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 				)
 			}
 		}.rethrowFileSystemException()
+	}
 	
-	private fun atomicReplace(path: Path, lines: List<String>) {
+	@Suppress("UnstableApiUsage")
+	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
+		trace.catching {
+			val hasher = Hashing.sha256().newHasher()
+			Files.newInputStream(path).use { input ->
+				val buffer = ByteArray(BUFFER_SIZE)
+				while (true) {
+					val read = input.read(buffer)
+					if (read < 0) break
+					hasher.putBytes(buffer, 0, read)
+				}
+			}
+			Sha256(hasher.hash())
+		}.rethrowFileSystemException()
+	}
+	
+	override suspend fun write(path: Path, expected: Sha256, new: String) =
+		withContext(Dispatchers.IO) {
+			trace.catching {
+				val target = path.toRealPath()
+				if (!Files.isWritable(target)) error("File is not writable: $path")
+				pathLocks[target.hashCode() and 255].withLock {
+					val current = sha256(target)
+					if (current != expected) error("File content changed since read: $path")
+					atomicReplace(target, new)
+				}
+			}.rethrowFileSystemException()
+		}
+	
+	private fun atomicReplace(path: Path, new: String) {
 		val tmp = path.resolveSibling(".${path.fileName}.${UUID()}.tmp")
 		trace.catching {
 			FileChannel.open(tmp, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
 				.use { channel ->
 					trace.catching { Files.setPosixFilePermissions(tmp, ownerOnly) }
-					val buffer = ByteBuffer.wrap(lines.joinToString("\n").toByteArray())
+					val buffer = ByteBuffer.wrap(new.toByteArray())
 					while (buffer.hasRemaining()) channel.write(buffer)
 					channel.force(true)
 				}

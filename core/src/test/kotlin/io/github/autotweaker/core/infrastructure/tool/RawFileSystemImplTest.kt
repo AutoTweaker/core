@@ -62,7 +62,7 @@ class RawFileSystemImplTest {
 		val path = file("a.txt", "old content")
 		val expected = shaOf("old content")
 		
-		RawFileSystemImpl.write(path, expected, listOf("new line"))
+		RawFileSystemImpl.write(path, expected, "new line")
 		
 		assertEquals("new line", path.readText())
 	}
@@ -73,7 +73,7 @@ class RawFileSystemImplTest {
 		val stale = shaOf("something else")
 		
 		val ex = assertFailsWith<IllegalStateException> {
-			RawFileSystemImpl.write(path, stale, listOf("new"))
+			RawFileSystemImpl.write(path, stale, "new")
 		}
 		
 		assertTrue(ex.message!!.contains("File content changed since read"))
@@ -81,11 +81,11 @@ class RawFileSystemImplTest {
 	}
 	
 	@Test
-	fun `write joins lines with unix newline`() = runTest {
+	fun `write preserves unix newline`() = runTest {
 		val path = file("a.txt", "x")
 		val expected = shaOf("x")
 		
-		RawFileSystemImpl.write(path, expected, listOf("one", "two", "three"))
+		RawFileSystemImpl.write(path, expected, "one\ntwo\nthree")
 		
 		assertEquals("one\ntwo\nthree", path.readText())
 	}
@@ -99,7 +99,7 @@ class RawFileSystemImplTest {
 		path.toFile().setExecutable(false, false)
 		val before = Files.getPosixFilePermissions(path)
 		
-		RawFileSystemImpl.write(path, shaOf("content"), listOf("updated"))
+		RawFileSystemImpl.write(path, shaOf("content"), "updated")
 		
 		assertEquals(before, Files.getPosixFilePermissions(path))
 	}
@@ -109,7 +109,7 @@ class RawFileSystemImplTest {
 		val path = dir.resolve("missing.txt")
 		
 		assertFailsWith<FileNotFoundException> {
-			RawFileSystemImpl.write(path, shaOf(""), listOf("x"))
+			RawFileSystemImpl.write(path, shaOf(""), "x")
 		}
 	}
 	
@@ -136,10 +136,10 @@ class RawFileSystemImplTest {
 	// region read
 	
 	@Test
-	fun `readString returns content with matching sha256`() = runTest {
+	fun `read returns content with matching sha256`() = runTest {
 		val path = file("a.txt", "line one\nline two")
 		
-		val result = RawFileSystemImpl.readString(path)
+		val result = RawFileSystemImpl.read(path)
 		
 		assertEquals("line one\nline two", result.content)
 		assertFalse(result.truncated)
@@ -147,35 +147,35 @@ class RawFileSystemImplTest {
 	}
 	
 	@Test
-	fun `readString sha256 matches sha256 API for same file`() = runTest {
+	fun `read sha256 matches sha256 API for same file`() = runTest {
 		val path = file("a.txt", "hello world")
 		
-		assertEquals(RawFileSystemImpl.sha256(path), RawFileSystemImpl.readString(path).sha256)
+		assertEquals(RawFileSystemImpl.sha256(path), RawFileSystemImpl.read(path).sha256)
 	}
 	
 	@Test
-	fun `readString on missing file throws FileNotFoundException`() = runTest {
+	fun `read on missing file throws FileNotFoundException`() = runTest {
 		assertFailsWith<FileNotFoundException> {
-			RawFileSystemImpl.readString(dir.resolve("missing.txt"))
+			RawFileSystemImpl.read(dir.resolve("missing.txt"))
 		}
 	}
 	
 	@Test
-	fun `readAllLines returns lines with matching sha256`() = runTest {
+	fun `read returns raw text with matching sha256`() = runTest {
 		val path = file("a.txt", "a\nb\nc")
 		
-		val result = RawFileSystemImpl.readAllLines(path)
+		val result = RawFileSystemImpl.read(path)
 		
-		assertEquals(listOf("a", "b", "c"), result.content)
+		assertEquals("a\nb\nc", result.content)
 		assertFalse(result.truncated)
 		assertEquals(shaOf("a\nb\nc"), result.sha256)
 	}
 	
 	@Test
-	fun `readString on procfs virtual file with zero stat size returns content`() = runTest {
+	fun `read on procfs virtual file with zero stat size returns content`() = runTest {
 		val path = Path.of("/proc/self/status")
 		// procfs 文件 stat 恒为 0 但读取有内容（回归：此前会因 CharArray(0) 返回空字符串）
-		val result = RawFileSystemImpl.readString(path)
+		val result = RawFileSystemImpl.read(path)
 		
 		assertTrue(result.content.isNotBlank())
 		assertFalse(result.truncated)
@@ -183,11 +183,11 @@ class RawFileSystemImplTest {
 	}
 	
 	@Test
-	fun `readString sha256 covers full file even when truncated`() = runTest {
+	fun `read sha256 covers full file even when truncated`() = runTest {
 		val full = "x".repeat(10 * 1024 * 1024 + 1)
 		val path = file("big.txt", full)
 		
-		val result = RawFileSystemImpl.readString(path)
+		val result = RawFileSystemImpl.read(path)
 		
 		assertTrue(result.truncated)
 		assertEquals(10 * 1024 * 1024, result.content.length)

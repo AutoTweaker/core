@@ -45,14 +45,14 @@ class FileSystemServiceImpl(
 	override suspend fun isRegularFile(path: Path): Boolean =
 		fs.isRegularFile(resolve(path))
 	
-	override suspend fun readAllLines(path: Path): FileContent<List<String>> =
-		fs.readAllLines(resolve(path))
+	override suspend fun read(path: Path): FileContent =
+		fs.read(resolve(path))
 	
 	override suspend fun sha256(path: Path): Sha256 =
 		fs.sha256(resolve(path))
 	
-	override suspend fun write(path: Path, expected: Sha256, lines: List<String>) =
-		fs.write(resolve(path), expected, lines)
+	override suspend fun write(path: Path, expected: Sha256, new: String) =
+		fs.write(resolve(path), expected, new)
 	
 	override suspend fun glob(pattern: String, cwd: Path): List<Path> =
 		fs.glob(pattern, resolve(cwd))

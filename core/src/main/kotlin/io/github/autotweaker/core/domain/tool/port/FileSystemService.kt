@@ -27,8 +27,8 @@ interface FileSystemService {
 	fun relativize(path: Path): Path // 解析相对路径
 	suspend fun exists(path: Path): Boolean
 	suspend fun isRegularFile(path: Path): Boolean
-	suspend fun readAllLines(path: Path): FileContent<List<String>>
+	suspend fun read(path: Path): FileContent
 	suspend fun sha256(path: Path): Sha256
-	suspend fun write(path: Path, expected: Sha256, lines: List<String>)
+	suspend fun write(path: Path, expected: Sha256, new: String)
 	suspend fun glob(pattern: String, cwd: Path): List<Path>
 }

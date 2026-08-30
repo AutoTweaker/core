@@ -76,7 +76,7 @@ class ReadTest {
 	private fun mockFs(
 		exists: Boolean = true,
 		isRegularFile: Boolean = true,
-		lines: List<String> = emptyList(),
+		content: String = "",
 	): FileSystemService {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } returns path
@@ -84,7 +84,7 @@ class ReadTest {
 		coEvery { fs.exists(path) } returns exists
 		coEvery { fs.isRegularFile(path) } returns isRegularFile
 		coEvery { fs.sha256(path) } returns sha
-		coEvery { fs.readAllLines(path) } returns FileContent(lines, false, sha)
+		coEvery { fs.read(path) } returns FileContent(content, false, sha)
 		return fs
 	}
 	
@@ -207,7 +207,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec file returns content with sha256 prefix and line numbers`() = runTest {
-		val c = container(mockFs(lines = listOf("line1", "line2")))
+		val c = container(mockFs(content = "line1\nline2"))
 		c.register(history())
 		val result =
 			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
@@ -218,7 +218,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec file without line numbers`() = runTest {
-		val c = container(mockFs(lines = listOf("line1", "line2")))
+		val c = container(mockFs(content = "line1\nline2"))
 		c.register(history())
 		val result =
 			read.execute(c, request(ReadRequest.File(path, path, 1, 2, false, false)), Channel(Channel.UNLIMITED))
@@ -229,7 +229,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec file with unicode escape`() = runTest {
-		val c = container(mockFs(lines = listOf("中")))
+		val c = container(mockFs(content = "中"))
 		c.register(history())
 		val result =
 			read.execute(c, request(ReadRequest.File(path, path, 1, 1, false, true)), Channel(Channel.UNLIMITED))
@@ -240,7 +240,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec file duplicate returns duplicate message`() = runTest {
-		val c = container(mockFs(lines = listOf("line1", "line2")))
+		val c = container(mockFs(content = "line1\nline2"))
 		c.register(
 			history(ReadRequest.File(path, path, 1, 2, true, false) to ReadResult(sha, "$sha\nold", false))
 		)
@@ -253,7 +253,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec file start line beyond file size returns error`() = runTest {
-		val c = container(mockFs(lines = listOf("a", "b", "c")))
+		val c = container(mockFs(content = "a\nb\nc"))
 		c.register(history())
 		val result =
 			read.execute(c, request(ReadRequest.File(path, path, 5, 5, true, false)), Channel(Channel.UNLIMITED))
@@ -265,7 +265,7 @@ class ReadTest {
 	@Test
 	fun `exec file not found returns error`() = runTest {
 		val fs = mockFs()
-		coEvery { fs.readAllLines(path) } throws FileNotFoundException(NoSuchFileException(path.toFile()))
+		coEvery { fs.read(path) } throws FileNotFoundException(NoSuchFileException(path.toFile()))
 		val c = container(fs)
 		c.register(history())
 		val result =
@@ -277,8 +277,8 @@ class ReadTest {
 	
 	@Test
 	fun `exec file access denied returns error`() = runTest {
-		val fs = mockFs(lines = listOf("a"))
-		coEvery { fs.readAllLines(path) } throws FileAccessDeniedException(IllegalStateException())
+		val fs = mockFs(content = "a")
+		coEvery { fs.read(path) } throws FileAccessDeniedException(IllegalStateException())
 		val c = container(fs)
 		c.register(history())
 		val result =
@@ -294,7 +294,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec summarize returns summary`() = runTest {
-		val c = container(mockFs(lines = listOf("x".repeat(600))))
+		val c = container(mockFs(content = "x".repeat(600)))
 		c.register(summarizeService("summary result"))
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
@@ -304,7 +304,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec summarize too few chars returns error`() = runTest {
-		val c = container(mockFs(lines = listOf("short")))
+		val c = container(mockFs(content = "short"))
 		c.register(summarizeService("unused"))
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
@@ -314,7 +314,7 @@ class ReadTest {
 	
 	@Test
 	fun `exec summarize output truncated`() = runTest {
-		val c = container(mockFs(lines = listOf("x".repeat(600))))
+		val c = container(mockFs(content = "x".repeat(600)))
 		c.register(summarizeService("y".repeat(60000)))
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 
@@ -329,7 +329,7 @@ class ReadTest {
 	fun `exec summarize failure returns error`() = runTest {
 		val s = mockk<SummarizeService>()
 		coEvery { s.invoke(any()) } throws RuntimeException("boom")
-		val c = container(mockFs(lines = listOf("x".repeat(600))))
+		val c = container(mockFs(content = "x".repeat(600)))
 		c.register(s)
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		

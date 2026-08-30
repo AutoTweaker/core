@@ -285,9 +285,9 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	private suspend fun readFileContent(
 		fs: FileSystemService, path: Path, startLine: Int, endLine: Int,
 		maxChars: Int, truncateMessage: String, lineNumber: Boolean, unicodeEscape: Boolean
-	): FileContent<String> {
-		val result = fs.readAllLines(path)
-		val allLines = result.content
+	): FileContent {
+		val result = fs.read(path)
+		val allLines = result.content.lines()
 		val lineCount = allLines.size
 		if (lineCount < startLine) throw StartLineException(startLine, lineCount)
 		val actualEndLine = minOf(endLine, lineCount)

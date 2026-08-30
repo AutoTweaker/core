@@ -91,11 +91,11 @@ class FileSystemServiceImplTest {
 	}
 	
 	@Test
-	fun `readAllLines delegates and returns content`() = runTest {
+	fun `read delegates and returns content`() = runTest {
 		val (service, fs) = service(inContainer = false)
-		coEvery { fs.readAllLines(hostPath) } returns FileContent(listOf("a", "b"), false, sha)
+		coEvery { fs.read(hostPath) } returns FileContent("a\nb", false, sha)
 		
-		assertEquals(listOf("a", "b"), service.readAllLines(hostPath).content)
+		assertEquals("a\nb", service.read(hostPath).content)
 	}
 	
 	@Test
@@ -109,11 +109,11 @@ class FileSystemServiceImplTest {
 	@Test
 	fun `write delegates with resolution`() = runTest {
 		val (service, fs) = service(inContainer = false)
-		coEvery { fs.write(hostPath, sha, listOf("x")) } returns Unit
+		coEvery { fs.write(hostPath, sha, "x") } returns Unit
 		
-		service.write(hostPath, sha, listOf("x"))
+		service.write(hostPath, sha, "x")
 		
-		coVerify { fs.write(hostPath, sha, listOf("x")) }
+		coVerify { fs.write(hostPath, sha, "x") }
 	}
 	
 	@Test

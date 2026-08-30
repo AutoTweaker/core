@@ -91,7 +91,7 @@ class AgentBridgeTest {
 			summaryService = SummaryService(chat),
 			messageConverts = MessageConverts(
 				fileSystem = mockk<RawFileSystem>(relaxed = true) {
-					coEvery { readString(any()) } returns FileContent("", false, Sha256(ByteArray(32)))
+					coEvery { read(any()) } returns FileContent("", false, Sha256(ByteArray(32)))
 				},
 				pathResolver = mockk<PathResolver>(relaxed = true),
 				systemInfo = mockk<SystemInfoService>(relaxed = true),
