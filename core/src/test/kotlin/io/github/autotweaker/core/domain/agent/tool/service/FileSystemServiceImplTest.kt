@@ -109,11 +109,21 @@ class FileSystemServiceImplTest {
 	@Test
 	fun `write delegates with resolution`() = runTest {
 		val (service, fs) = service(inContainer = false)
-		coEvery { fs.write(hostPath, sha, "x") } returns Unit
+		coEvery { fs.update(hostPath, sha, "x") } returns Unit
 		
-		service.write(hostPath, sha, "x")
+		service.update(hostPath, sha, "x")
 		
-		coVerify { fs.write(hostPath, sha, "x") }
+		coVerify { fs.update(hostPath, sha, "x") }
+	}
+	
+	@Test
+	fun `create delegates with resolution`() = runTest {
+		val (service, fs) = service(inContainer = true)
+		coEvery { fs.create(hostPath, "x") } returns Unit
+		
+		service.create(containerPath, "x")
+		
+		coVerify { fs.create(hostPath, "x") }
 	}
 	
 	@Test

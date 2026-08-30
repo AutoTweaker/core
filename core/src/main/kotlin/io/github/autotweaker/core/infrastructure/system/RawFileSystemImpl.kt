@@ -26,6 +26,7 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.domain.port.*
+import io.github.autotweaker.core.domain.port.FileAlreadyExistsException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -41,6 +42,7 @@ import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.attribute.UserDefinedFileAttributeView
 import kotlin.time.toKotlinInstant
+import java.nio.file.FileAlreadyExistsException as JvmFileAlreadyExistsException
 
 object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	private val pathLocks = Array(256) { Mutex() }
@@ -141,7 +143,30 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}.rethrowFileSystemException()
 	}
 	
-	override suspend fun write(path: Path, expected: Sha256, new: String) =
+	override suspend fun create(path: Path, content: String) = withContext(Dispatchers.IO) {
+		val target = path.toAbsolutePath()
+		trace.catching {
+			pathLocks[target.hashCode() and 255].withLock {
+				target.parent?.let { Files.createDirectories(it) }
+				var created = false
+				trace.catching {
+					FileChannel.open(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+						.use { channel ->
+							created = true
+							trace.catching { Files.setPosixFilePermissions(target, ownerOnly) }
+							val buffer = ByteBuffer.wrap(content.toByteArray())
+							while (buffer.hasRemaining()) channel.write(buffer)
+							channel.force(true)
+						}
+				}.also { result ->
+					if (created && result.isFailure) trace.catching { Files.deleteIfExists(target) }
+				}.getOrThrow()
+			}
+		}.also { target.parent?.let { fsyncDir(it) } }
+			.rethrowFileSystemException()
+	}
+	
+	override suspend fun update(path: Path, expected: Sha256, new: String) =
 		withContext(Dispatchers.IO) {
 			trace.catching {
 				val target = path.toRealPath()
@@ -222,6 +247,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	private fun <T> CatchingResult<T>.rethrowFileSystemException(): T =
 		rethrowCancellation()
 			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
+			.recoverException { e: JvmFileAlreadyExistsException -> throw FileAlreadyExistsException(e) }
 			.recoverException { e: NoSuchFileException -> throw FileNotFoundException(e) }
 			.getOrThrow()
 	

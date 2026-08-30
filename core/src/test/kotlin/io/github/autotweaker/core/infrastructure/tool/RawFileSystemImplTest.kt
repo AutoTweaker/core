@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.tool
 
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.port.FileAlreadyExistsException
 import io.github.autotweaker.core.domain.port.FileNotFoundException
 import io.github.autotweaker.core.infrastructure.system.RawFileSystemImpl
 import kotlinx.coroutines.test.runTest
@@ -62,7 +63,7 @@ class RawFileSystemImplTest {
 		val path = file("a.txt", "old content")
 		val expected = shaOf("old content")
 		
-		RawFileSystemImpl.write(path, expected, "new line")
+		RawFileSystemImpl.update(path, expected, "new line")
 		
 		assertEquals("new line", path.readText())
 	}
@@ -73,7 +74,7 @@ class RawFileSystemImplTest {
 		val stale = shaOf("something else")
 		
 		val ex = assertFailsWith<IllegalStateException> {
-			RawFileSystemImpl.write(path, stale, "new")
+			RawFileSystemImpl.update(path, stale, "new")
 		}
 		
 		assertTrue(ex.message!!.contains("File content changed since read"))
@@ -85,7 +86,7 @@ class RawFileSystemImplTest {
 		val path = file("a.txt", "x")
 		val expected = shaOf("x")
 		
-		RawFileSystemImpl.write(path, expected, "one\ntwo\nthree")
+		RawFileSystemImpl.update(path, expected, "one\ntwo\nthree")
 		
 		assertEquals("one\ntwo\nthree", path.readText())
 	}
@@ -99,7 +100,7 @@ class RawFileSystemImplTest {
 		path.toFile().setExecutable(false, false)
 		val before = Files.getPosixFilePermissions(path)
 		
-		RawFileSystemImpl.write(path, shaOf("content"), "updated")
+		RawFileSystemImpl.update(path, shaOf("content"), "updated")
 		
 		assertEquals(before, Files.getPosixFilePermissions(path))
 	}
@@ -109,8 +110,42 @@ class RawFileSystemImplTest {
 		val path = dir.resolve("missing.txt")
 		
 		assertFailsWith<FileNotFoundException> {
-			RawFileSystemImpl.write(path, shaOf(""), "x")
+			RawFileSystemImpl.update(path, shaOf(""), "x")
 		}
+	}
+	
+	// endregion
+	
+	// region create
+	
+	@Test
+	fun `create writes new file with content`() = runTest {
+		val path = dir.resolve("new.txt")
+		
+		RawFileSystemImpl.create(path, "hello")
+		
+		assertEquals("hello", path.readText())
+	}
+	
+	@Test
+	fun `create on existing file throws FileAlreadyExistsException without modifying`() = runTest {
+		val path = file("a.txt", "existing")
+		
+		assertFailsWith<FileAlreadyExistsException> {
+			RawFileSystemImpl.create(path, "new content")
+		}
+		
+		assertEquals("existing", path.readText())
+	}
+	
+	@Test
+	fun `create creates missing parent directories`() = runTest {
+		val path = dir.resolve("nope/deep.txt")
+		
+		RawFileSystemImpl.create(path, "x")
+		
+		assertTrue(Files.isDirectory(dir.resolve("nope")))
+		assertEquals("x", path.readText())
 	}
 	
 	// endregion

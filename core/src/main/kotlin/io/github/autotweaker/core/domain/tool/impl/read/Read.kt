@@ -90,14 +90,13 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		}
 		val filePath = trace.catching {
 			fs.normalize(requestPath)
-		}.rethrowCancellation().getOrElse {
+		}.getOrElse {
 			return Rejected(ToolSettings.PathErrorMessage().get()) {
 				text(i18n(ReadI18n.InvalidPath(), requestPath))
 			}
 		}
 		
-		val relativePath = fs.relativize(filePath)
-		val displayPath = if (filePath.length < relativePath.length) filePath else relativePath
+		val displayPath = fs.displayPath(filePath)
 		
 		val request = when (args) {
 			is ReadArgs.File -> {
@@ -178,15 +177,15 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			cancelled = {
 				text(i18n(ReadI18n.Cancelled(), displayPath))
 			},
-			rejected = {
-				if (it == null) text(i18n(ReadI18n.Rejected(), displayPath))
-				else text(i18n(ReadI18n.RejectedWithReason(), displayPath, it))
+			rejected = { reason ->
+				if (reason == null) text(i18n(ReadI18n.Rejected(), displayPath))
+				else text(i18n(ReadI18n.RejectedWithReason(), displayPath, reason))
 			},
-			failed = {
-				text(i18n(ReadI18n.Failed(), displayPath, it.message()))
+			failed = { e ->
+				text(i18n(ReadI18n.Failed(), displayPath, e.message()))
 			},
-			timeout = {
-				text(i18n(ReadI18n.Timeout(), displayPath, it))
+			timeout = { elapsed ->
+				text(i18n(ReadI18n.Timeout(), displayPath, elapsed))
 			},
 		)
 	}

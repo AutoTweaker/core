@@ -16,20 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.port
+@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
 
-import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.core.domain.port.FileContent
-import java.nio.file.Path
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
 
-interface FileSystemService {
-	fun normalize(filePath: String): Path
-	fun displayPath(path: Path): Path // 解析相对路径
-	suspend fun exists(path: Path): Boolean
-	suspend fun isRegularFile(path: Path): Boolean
-	suspend fun read(path: Path): FileContent
-	suspend fun sha256(path: Path): Sha256
-	suspend fun create(path: Path, content: String)
-	suspend fun update(path: Path, expected: Sha256, new: String)
-	suspend fun glob(pattern: String, cwd: Path): List<Path>
-}
+tool("write") {
+	function("file") {
+		string("file_path")
+		string("sha256") { required = false }
+		string("content")
+		boolean("unescape_unicode") { required = false }
+		boolean("lenient_unescape") { required = false }
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.write",
+)

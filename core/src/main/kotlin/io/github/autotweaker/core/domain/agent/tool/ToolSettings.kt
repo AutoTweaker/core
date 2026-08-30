@@ -86,7 +86,7 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ReasonDescription : StringSetting(
-		"简要描述调用此工具的目的",
+		"简要描述调用此工具的目的，必须提供",
 		zh("工具调用的reason属性描述")
 	)
 	

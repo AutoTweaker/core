@@ -135,5 +135,5 @@ object EditDesc {
 	)
 	
 	fun unescapeConfig(param: String) =
-		"如果要启用对于${param}的Unicode解码，请提供此字段，否则将不会处理${param}中的任何转义"
+		"对象，如果要启用对于${param}的Unicode解码，请提供此对象，否则将不会处理${param}中的任何转义，无需解码时可省略此字段"
 }

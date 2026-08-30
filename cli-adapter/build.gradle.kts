@@ -36,6 +36,7 @@ dependencies {
 	implementation("io.ktor:ktor-network:3.5.1")
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	implementation("com.google.guava:guava:33.7.1-jre")
+	implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 	
 	testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")

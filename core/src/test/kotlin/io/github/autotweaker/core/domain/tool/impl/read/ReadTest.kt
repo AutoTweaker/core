@@ -80,7 +80,7 @@ class ReadTest {
 	): FileSystemService {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } returns path
-		every { fs.relativize(any()) } returns path
+		every { fs.displayPath(any()) } returns path
 		coEvery { fs.exists(path) } returns exists
 		coEvery { fs.isRegularFile(path) } returns isRegularFile
 		coEvery { fs.sha256(path) } returns sha
@@ -150,15 +150,15 @@ class ReadTest {
 	@Test
 	fun `resolve too many lines rejected for file`() = runTest {
 		val result = read.resolve(container(mockFs()), fileArgs(startLine = 1, endLine = 5001))
-
+		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("读取的行数过多（5001），上限为5000", result.reason)
 	}
-
+	
 	@Test
 	fun `resolve too many lines rejected for summarize`() = runTest {
 		val result = read.resolve(container(mockFs()), summarizeArgs(startLine = 1, endLine = 10001))
-
+		
 		assertIs<Tool.ResolveResult.Rejected>(result)
 		assertEquals("读取的行数过多（10001），上限为10000", result.reason)
 	}
@@ -183,7 +183,7 @@ class ReadTest {
 	fun `resolve path outside workspace rejected`() = runTest {
 		val fs = mockk<FileSystemService>()
 		every { fs.normalize(any()) } returns path
-		every { fs.relativize(any()) } returns path
+		every { fs.displayPath(any()) } returns path
 		coEvery { fs.exists(path) } throws PathOutsideWorkspaceException(path)
 		val result = read.resolve(container(fs), fileArgs())
 		
@@ -270,7 +270,7 @@ class ReadTest {
 		c.register(history())
 		val result =
 			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
-
+		
 		assertFalse(result.success)
 		assertEquals("文件test.txt不存在或访问被拒绝", result.result)
 	}
@@ -317,7 +317,7 @@ class ReadTest {
 		val c = container(mockFs(content = "x".repeat(600)))
 		c.register(summarizeService("y".repeat(60000)))
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
-
+		
 		assertTrue(result.success)
 		assertTrue(result.result.startsWith("y".repeat(50000)))
 		assertTrue(

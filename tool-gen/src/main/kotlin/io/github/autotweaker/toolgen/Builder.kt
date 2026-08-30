@@ -224,8 +224,11 @@ private fun String.check(): String {
 	require(first() != '_' && last() != '_') {
 		"Name '$this' must not start or end with '_'"
 	}
-	require(all { it.isLowerCase() || it == '_' }) {
-		"Name '$this' must consist of lowercase letters and '_' only"
+	require(!first().isDigit()) {
+		"Name '$this' must not start with a digit"
+	}
+	require(all { it.isLowerCase() || it.isDigit() || it == '_' }) {
+		"Name '$this' must consist of lowercase letters, digits and '_' only"
 	}
 	require(!contains("__")) {
 		"Name '$this' must not contain consecutive '_'"

@@ -28,7 +28,8 @@ interface RawFileSystem {
 	suspend fun lineCount(path: Path): Int
 	suspend fun read(path: Path): FileContent
 	suspend fun sha256(path: Path): Sha256
-	suspend fun write(path: Path, expected: Sha256, new: String)
+	suspend fun create(path: Path, content: String)
+	suspend fun update(path: Path, expected: Sha256, new: String)
 	suspend fun list(path: Path): List<Path>
 	suspend fun glob(pattern: String, cwd: Path): List<Path>
 }

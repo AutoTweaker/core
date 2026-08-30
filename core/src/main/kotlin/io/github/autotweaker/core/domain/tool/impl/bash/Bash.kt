@@ -105,17 +105,17 @@ class Bash : CoreTool<BashArgs>, Loggable {
 				text(i18n(BashI18n.Cancelled()))
 				command(command)
 			},
-			rejected = {
-				if (it == null) text(i18n(BashI18n.Rejected()))
-				else text(i18n(BashI18n.RejectedWithReason(), it))
+			rejected = { reason ->
+				if (reason == null) text(i18n(BashI18n.Rejected()))
+				else text(i18n(BashI18n.RejectedWithReason(), reason))
 				command(command)
 			},
-			failed = {
-				text(i18n(BashI18n.Failed(), it.message()))
+			failed = { e ->
+				text(i18n(BashI18n.Failed(), e.message()))
 				command(command)
 			},
-			timeout = {
-				text(i18n(BashI18n.Timeout(), it))
+			timeout = { elapsed ->
+				text(i18n(BashI18n.Timeout(), elapsed))
 				command(command)
 			}
 		)

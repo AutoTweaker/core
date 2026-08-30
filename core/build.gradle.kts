@@ -101,6 +101,7 @@ dependencies {
 	
 	implementation("com.google.guava:guava:33.7.1-jre")
 	implementation("io.insert-koin:koin-core:4.2.2")
+	implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 }
 afterEvaluate {
 	extensions.getByType<org.jetbrains.kotlin.gradle.dsl.KaptExtensionConfig>().javacOptions {

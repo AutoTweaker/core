@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.tool
 
+import io.github.autotweaker.api.types.serializer.PathSerializer
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
 
@@ -42,11 +43,14 @@ sealed interface UiBlock {
 	
 	/**
 	 * 文件变更的新旧内容，应完整，便于适配器显示正确的行号。
+	 *
+	 * 对于创建的全新文件，[oldContent] 将为 null。
 	 */
 	@Serializable
 	data class Diff(
+		@Serializable(with = PathSerializer::class)
 		val filePath: Path,
-		val oldContent: String,
+		val oldContent: String?,
 		val newContent: String,
 	) : UiBlock
 	
@@ -75,7 +79,7 @@ fun MutableList<UiBlock>.text(content: String) = add(UiBlock.Text(content))
 fun MutableList<UiBlock>.command(command: String) = add(UiBlock.Command(command))
 fun MutableList<UiBlock>.diff(
 	filePath: Path,
-	oldContent: String,
+	oldContent: String?,
 	newContent: String,
 ) = add(UiBlock.Diff(filePath, oldContent, newContent))
 

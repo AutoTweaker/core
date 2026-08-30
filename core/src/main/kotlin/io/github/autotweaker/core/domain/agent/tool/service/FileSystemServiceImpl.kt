@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.length
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -36,8 +37,10 @@ class FileSystemServiceImpl(
 			Path.of(filePath)
 		)
 	
-	override fun relativize(path: Path): Path =
-		pathResolver.toRelativePath(workspace(), path)
+	override fun displayPath(path: Path): Path {
+		val relativePath = pathResolver.toRelativePath(workspace(), path)
+		return if (path.length < relativePath.length) path else relativePath
+	}
 	
 	override suspend fun exists(path: Path): Boolean =
 		fs.exists(resolve(path))
@@ -51,8 +54,11 @@ class FileSystemServiceImpl(
 	override suspend fun sha256(path: Path): Sha256 =
 		fs.sha256(resolve(path))
 	
-	override suspend fun write(path: Path, expected: Sha256, new: String) =
-		fs.write(resolve(path), expected, new)
+	override suspend fun create(path: Path, content: String) =
+		fs.create(resolve(path), content)
+	
+	override suspend fun update(path: Path, expected: Sha256, new: String) =
+		fs.update(resolve(path), expected, new)
 	
 	override suspend fun glob(pattern: String, cwd: Path): List<Path> =
 		fs.glob(pattern, resolve(cwd))

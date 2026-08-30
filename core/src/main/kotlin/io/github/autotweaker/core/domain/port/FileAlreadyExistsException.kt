@@ -16,20 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.tool.port
+package io.github.autotweaker.core.domain.port
 
-import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.core.domain.port.FileContent
-import java.nio.file.Path
-
-interface FileSystemService {
-	fun normalize(filePath: String): Path
-	fun displayPath(path: Path): Path // 解析相对路径
-	suspend fun exists(path: Path): Boolean
-	suspend fun isRegularFile(path: Path): Boolean
-	suspend fun read(path: Path): FileContent
-	suspend fun sha256(path: Path): Sha256
-	suspend fun create(path: Path, content: String)
-	suspend fun update(path: Path, expected: Sha256, new: String)
-	suspend fun glob(pattern: String, cwd: Path): List<Path>
-}
+class FileAlreadyExistsException(cause: Throwable) : IllegalStateException("File already exists", cause)

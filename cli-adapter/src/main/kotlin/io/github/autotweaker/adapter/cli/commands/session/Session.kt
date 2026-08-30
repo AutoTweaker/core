@@ -34,6 +34,7 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.ShortIdMapper
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.session.diff
+import io.github.autotweaker.api.base.unifiedDiff
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.agent.AgentContextIndex.Turn
 import io.github.autotweaker.api.types.llm.ContentPart
@@ -504,7 +505,7 @@ class Session : Command, Traceable, Loggable {
 			when (it) {
 				is UiBlock.Text -> out(it.content) { yellow() }
 				is UiBlock.Command -> out(it.command) { blue() }
-				is UiBlock.Diff -> TODO("暂不可达")
+				is UiBlock.Diff -> it.print()
 				is UiBlock.Error -> it.content.lines().let { lines ->
 					lines.take(5).forEach { line ->
 						out(line) { red() }
@@ -518,6 +519,18 @@ class Session : Command, Traceable, Loggable {
 					}
 					if (lines.count() > 5) out("...")
 				}
+			}
+		}
+	}
+	
+	context(c: Console)
+	private suspend fun UiBlock.Diff.print() = with(c) {
+		unifiedDiff(oldContent, newContent)?.lines()?.forEach { line ->
+			when {
+				line.startsWith("@@") -> out(line) { cyan() }
+				line.startsWith("+") -> out(line) { green() }
+				line.startsWith("-") -> out(line) { red() }
+				else -> out(line)
 			}
 		}
 	}
