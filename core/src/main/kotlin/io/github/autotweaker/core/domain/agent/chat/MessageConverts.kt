@@ -85,7 +85,9 @@ class MessageConverts(
 					isRepository,
 					trace.catching {
 						buildString {
-							fileSystem.list(workspace).take(1000).forEach {
+							val files = fileSystem.list(workspace).take(1000)
+							if (files.isEmpty()) appendLine("[empty]")
+							files.forEach {
 								val path = if (inContainer) pathResolver.toContainerPath(it) else it
 								appendLine(path)
 							}

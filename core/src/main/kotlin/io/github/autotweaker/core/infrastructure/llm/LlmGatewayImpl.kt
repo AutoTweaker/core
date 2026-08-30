@@ -42,7 +42,7 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 		timeout: ChatTimeout,
 	): Flow<ChatResult> {
 		val chatId = UUID()
-		log.debug(
+		log.info(
 			"Sent LLM request  providerType={}  model={}  stream={}  chatId={}",
 			providerType,
 			request.model,

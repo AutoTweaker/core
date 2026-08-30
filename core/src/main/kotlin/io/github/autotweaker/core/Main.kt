@@ -24,7 +24,6 @@ import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 fun main() {
-	Runtime.getRuntime().addShutdownHook(Thread(::shutdown))
 	try {
 		runBlocking {
 			AutoTweaker.start()
@@ -33,5 +32,6 @@ fun main() {
 		AutoTweaker.log.error("Startup failed", e)
 		exitProcess(1)
 	}
+	Runtime.getRuntime().addShutdownHook(Thread(::shutdown))
 	Thread.currentThread().join()
 }
