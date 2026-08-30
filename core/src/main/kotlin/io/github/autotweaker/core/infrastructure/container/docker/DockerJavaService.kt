@@ -145,22 +145,28 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	}
 	
 	private fun fixWorkspacePermissions(containerId: String) {
-		val workDir = CONTAINER_WORK_PATH
-		trace.catching {
-			val execId = client.execCreateCmd(containerId)
-				.withCmd("chown", "-R", uidGid, workDir.toString())
-				.withAttachStdout(true)
-				.withAttachStderr(true)
-				.exec().id
-			client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {}).awaitCompletion()
-			val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
-			if (exitCode == 0) {
-				log.debug("Fixed workspace permissions  containerId={}", containerId)
-			} else {
-				log.warn("Failed workspace permissions fix  containerId={}  exitCode={}", containerId, exitCode)
+		listOf(CONTAINER_WORK_PATH, CONTAINER_TMP_PATH).forEach { dir ->
+			trace.catching {
+				val execId = client.execCreateCmd(containerId)
+					.withCmd("chown", "-R", uidGid, dir.toString())
+					.withAttachStdout(true)
+					.withAttachStderr(true)
+					.exec().id
+				client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {}).awaitCompletion()
+				val exitCode = client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
+				if (exitCode == 0) {
+					log.debug("Fixed workspace permissions  containerId={}  dir={}", containerId, dir)
+				} else {
+					log.warn(
+						"Failed workspace permissions fix  containerId={}  dir={}  exitCode={}",
+						containerId,
+						dir,
+						exitCode
+					)
+				}
+			}.onFailure { e ->
+				log.warn("Failed workspace permissions fix  containerId={}  dir={}", containerId, dir, e)
 			}
-		}.onFailure { e ->
-			log.warn("Failed workspace permissions fix  containerId={}", containerId, e)
 		}
 	}
 	
