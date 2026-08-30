@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import java.nio.file.Path
@@ -44,8 +45,8 @@ class FileSystemServiceImpl(
 	override suspend fun isRegularFile(path: Path): Boolean =
 		fs.isRegularFile(resolve(path))
 	
-	override suspend fun readAllLines(path: Path): List<String> =
-		fs.readAllLines(resolve(path)).content
+	override suspend fun readAllLines(path: Path): FileContent<List<String>> =
+		fs.readAllLines(resolve(path))
 	
 	override suspend fun sha256(path: Path): Sha256 =
 		fs.sha256(resolve(path))

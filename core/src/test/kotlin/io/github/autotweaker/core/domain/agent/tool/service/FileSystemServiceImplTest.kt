@@ -21,8 +21,8 @@ package io.github.autotweaker.core.domain.agent.tool.service
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.RawFileSystem
-import io.github.autotweaker.core.domain.port.Truncated
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -93,9 +93,9 @@ class FileSystemServiceImplTest {
 	@Test
 	fun `readAllLines delegates and returns content`() = runTest {
 		val (service, fs) = service(inContainer = false)
-		coEvery { fs.readAllLines(hostPath) } returns Truncated(listOf("a", "b"), false)
+		coEvery { fs.readAllLines(hostPath) } returns FileContent(listOf("a", "b"), false, sha)
 		
-		assertEquals(listOf("a", "b"), service.readAllLines(hostPath))
+		assertEquals(listOf("a", "b"), service.readAllLines(hostPath).content)
 	}
 	
 	@Test

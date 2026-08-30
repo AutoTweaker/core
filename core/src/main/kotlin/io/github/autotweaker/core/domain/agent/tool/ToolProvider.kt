@@ -46,23 +46,17 @@ class ToolProvider(
 		onOutput: (RuntimeOutput) -> Unit,
 		truncation: TruncationService,
 	): DependencyProvider = ServiceContainer()
-		.register(
-			FileSystemService::class,
+		.register<FileSystemService>(
 			FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
-		).register(
-			SummarizeService::class,
+		).register<SummarizeService>(
 			SummarizeServiceImpl(model, summaryService, onOutput)
-		).register(
-			BashService::class,
+		).register<BashService>(
 			BashServiceImpl(shellExecutor, pathResolver, workspace)
-		).register(
-			ToolCallHistory::class,
+		).register<ToolCallHistory>(
 			ToolCallHistoryImpl(context)
-		).register(
-			TruncationService::class,
+		).register<TruncationService>(
 			truncation
-		).register(
-			ClipboardService::class,
+		).register<ClipboardService>(
 			ClipboardServiceImpl(temporaryStorage, pathResolver, workspace)
 		)
 }

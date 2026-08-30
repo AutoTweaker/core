@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
@@ -90,7 +91,7 @@ class AgentBridgeTest {
 			summaryService = SummaryService(chat),
 			messageConverts = MessageConverts(
 				fileSystem = mockk<RawFileSystem>(relaxed = true) {
-					coEvery { readString(any()) } returns Truncated(content = "", truncated = false)
+					coEvery { readString(any()) } returns FileContent("", false, Sha256(ByteArray(32)))
 				},
 				pathResolver = mockk<PathResolver>(relaxed = true),
 				systemInfo = mockk<SystemInfoService>(relaxed = true),

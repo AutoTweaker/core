@@ -100,8 +100,8 @@ class BashTest {
 	
 	private fun container(bashService: BashService): ServiceContainer {
 		val c = ServiceContainer()
-		c.register(BashService::class, bashService)
-		c.register(TruncationService::class, truncation)
+		c.register(bashService)
+		c.register(truncation)
 		return c
 	}
 	

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.system
 
+import com.google.common.hash.Hasher
 import com.google.common.hash.Hashing
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.CatchingResult
@@ -29,6 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.FilterInputStream
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -93,13 +96,13 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}.rethrowFileSystemException()
 	}
 	
-	override suspend fun readString(path: Path): Truncated<String> = withContext(Dispatchers.IO) {
+	override suspend fun readString(path: Path): FileContent<String> = withContext(Dispatchers.IO) {
 		readStringLimited(path)
 	}
 	
-	override suspend fun readAllLines(path: Path): Truncated<List<String>> = withContext(Dispatchers.IO) {
+	override suspend fun readAllLines(path: Path): FileContent<List<String>> = withContext(Dispatchers.IO) {
 		val limited = readStringLimited(path)
-		Truncated(limited.content.lines(), limited.truncated)
+		FileContent(limited.content.lines(), limited.truncated, limited.sha256)
 	}
 	
 	@Suppress("UnstableApiUsage")
@@ -131,10 +134,12 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 			}.rethrowFileSystemException()
 		}
 	
-	private fun readStringLimited(path: Path): Truncated<String> =
+	@Suppress("UnstableApiUsage")
+	private fun readStringLimited(path: Path): FileContent<String> =
 		trace.catching {
 			Files.newInputStream(path).use { input ->
-				val reader = InputStreamReader(input, Charsets.UTF_8)
+				val hasher = Hashing.sha256().newHasher()
+				val reader = InputStreamReader(HashingInputStream(input, hasher), Charsets.UTF_8)
 				val initialSize = minOf(
 					maxOf(Files.size(path), BUFFER_SIZE.toLong()),
 					MAX_READ_CHARS.toLong()
@@ -149,7 +154,11 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 						chars = chars.copyOf(minOf(chars.size * 2, MAX_READ_CHARS))
 					}
 				}
-				Truncated(String(chars, 0, total), total == MAX_READ_CHARS && reader.read() != -1)
+				FileContent(
+					String(chars, 0, total),
+					total == MAX_READ_CHARS && reader.read() != -1,
+					Sha256(hasher.hash()),
+				)
 			}
 		}.rethrowFileSystemException()
 	
@@ -223,4 +232,22 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 			.recoverException { e: AccessDeniedException -> throw FileAccessDeniedException(e) }
 			.recoverException { e: NoSuchFileException -> throw FileNotFoundException(e) }
 			.getOrThrow()
+	
+	@Suppress("UnstableApiUsage")
+	private class HashingInputStream(
+		input: InputStream,
+		private val hasher: Hasher,
+	) : FilterInputStream(input) {
+		override fun read(): Int {
+			val b = super.read()
+			if (b >= 0) hasher.putByte(b.toByte())
+			return b
+		}
+		
+		override fun read(b: ByteArray, off: Int, len: Int): Int {
+			val n = super.read(b, off, len)
+			if (n > 0) hasher.putBytes(b, off, n)
+			return n
+		}
+	}
 }

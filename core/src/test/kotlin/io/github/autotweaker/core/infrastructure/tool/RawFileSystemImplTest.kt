@@ -136,13 +136,21 @@ class RawFileSystemImplTest {
 	// region read
 	
 	@Test
-	fun `readString returns content without truncation flag`() = runTest {
+	fun `readString returns content with matching sha256`() = runTest {
 		val path = file("a.txt", "line one\nline two")
 		
 		val result = RawFileSystemImpl.readString(path)
 		
 		assertEquals("line one\nline two", result.content)
 		assertFalse(result.truncated)
+		assertEquals(shaOf("line one\nline two"), result.sha256)
+	}
+	
+	@Test
+	fun `readString sha256 matches sha256 API for same file`() = runTest {
+		val path = file("a.txt", "hello world")
+		
+		assertEquals(RawFileSystemImpl.sha256(path), RawFileSystemImpl.readString(path).sha256)
 	}
 	
 	@Test
@@ -153,13 +161,14 @@ class RawFileSystemImplTest {
 	}
 	
 	@Test
-	fun `readAllLines returns lines`() = runTest {
+	fun `readAllLines returns lines with matching sha256`() = runTest {
 		val path = file("a.txt", "a\nb\nc")
 		
 		val result = RawFileSystemImpl.readAllLines(path)
 		
 		assertEquals(listOf("a", "b", "c"), result.content)
 		assertFalse(result.truncated)
+		assertEquals(shaOf("a\nb\nc"), result.sha256)
 	}
 	
 	@Test
@@ -170,6 +179,19 @@ class RawFileSystemImplTest {
 		
 		assertTrue(result.content.isNotBlank())
 		assertFalse(result.truncated)
+		assertEquals(shaOf(result.content), result.sha256)
+	}
+	
+	@Test
+	fun `readString sha256 covers full file even when truncated`() = runTest {
+		val full = "x".repeat(10 * 1024 * 1024 + 1)
+		val path = file("big.txt", full)
+		
+		val result = RawFileSystemImpl.readString(path)
+		
+		assertTrue(result.truncated)
+		assertEquals(10 * 1024 * 1024, result.content.length)
+		assertEquals(shaOf(full), result.sha256)
 	}
 	
 	// endregion

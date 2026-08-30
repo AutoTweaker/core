@@ -22,13 +22,13 @@ import io.github.autotweaker.api.base.guava.ClassToInstanceMap
 import kotlin.reflect.KClass
 
 class ServiceContainer : DependencyProvider {
-	private val services = ClassToInstanceMap<Any>()
+	val services = ClassToInstanceMap<Any>()
 	
-	fun <T : Any> register(serviceClass: KClass<T>, instance: T) = also {
-		services.putInstance(serviceClass.java, instance)
+	inline fun <reified T : Any> register(instance: T) = also {
+		services.putInstance(T::class.java, instance)
 	}
 	
-	override fun <T : Any> get(serviceClass: KClass<T>): T =
-		services.getInstance(serviceClass.java)
-			?: throw NoSuchElementException("Service ${serviceClass.simpleName} not found.")
+	override fun <T : Any> get(clazz: KClass<T>): T =
+		services.getInstance(clazz.java)
+			?: throw NoSuchElementException("Service ${clazz.simpleName} not found.")
 }

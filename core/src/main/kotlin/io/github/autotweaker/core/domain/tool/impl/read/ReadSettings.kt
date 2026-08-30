@@ -175,7 +175,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class TruncateMessage : StringSetting(
-		"[字符数过多，后续内容已被截断，请重新读取剩余部分或尝试使用read-summarize工具]", zh(
+		"[字符数过多或文件过大，后续内容已被截断，请重新读取剩余部分或尝试使用read-summarize工具]", zh(
 			"read-file工具截断位置的描述"
 		)
 	)

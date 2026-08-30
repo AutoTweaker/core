@@ -33,7 +33,7 @@ class ServiceContainerTest {
 	fun `register and get roundtrip`() {
 		val container = ServiceContainer()
 		val service = mockk<BashService>()
-		container.register(BashService::class, service)
+		container.register(service)
 		
 		val resolved = container.get(BashService::class)
 		assertSame(service, resolved)
@@ -54,8 +54,8 @@ class ServiceContainerTest {
 		val oldService = mockk<BashService>()
 		val newService = mockk<BashService>()
 		
-		container.register(BashService::class, oldService)
-		container.register(BashService::class, newService)
+		container.register(oldService)
+		container.register(newService)
 		
 		val resolved = container.get(BashService::class)
 		assertSame(newService, resolved)
@@ -67,8 +67,8 @@ class ServiceContainerTest {
 		val bashService = mockk<BashService>()
 		val anotherService = mockk<AnotherService>()
 		
-		container.register(BashService::class, bashService)
-		container.register(AnotherService::class, anotherService)
+		container.register(bashService)
+		container.register(anotherService)
 		
 		assertSame(bashService, container.get(BashService::class))
 		assertSame(anotherService, container.get(AnotherService::class))
@@ -78,7 +78,7 @@ class ServiceContainerTest {
 	fun `get with inline extension roundtrip`() {
 		val container = ServiceContainer()
 		val service = mockk<BashService>()
-		container.register(BashService::class, service)
+		container.register(service)
 		
 		val resolved: BashService = container.get()
 		assertSame(service, resolved)
