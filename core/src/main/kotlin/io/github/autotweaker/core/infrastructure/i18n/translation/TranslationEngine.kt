@@ -18,9 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.i18n.translation
 
+import com.ibm.icu.util.ULocale
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.types.Localizations
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.domain.agent.RuntimeModel
@@ -80,15 +82,13 @@ class TranslationEngine(
 		val result = mutableMapOf<String, List<String>>()
 		val all = I18nServiceImpl.getAllEntries()
 		all.forEach { (key, localizations) ->
-			if (localizations[target] == null) result[key] = localizations.values.toList()
+			if (!localizations.hasTarget(target)) result[key] = localizations.values.toList()
 		}
 		return result
 	}
 	
 	fun isCompleted(target: Locale): Boolean =
-		I18nServiceImpl.getAllEntries().all {
-			it.value[target] != null
-		}
+		I18nServiceImpl.getAllEntries().all { it.value.hasTarget(target) }
 	
 	
 	private suspend fun translateBatch(job: BatchJob): BatchResult? {
@@ -132,13 +132,22 @@ class TranslationEngine(
 	
 	
 	private fun parseResponse(responseText: String): Map<String, String>? {
-		val jsonText = responseText
-			.substringAfter('{', missingDelimiterValue = "")
-			.substringBeforeLast('}', missingDelimiterValue = "").ifEmpty { return null }
+		val start = responseText.indexOf('{')
+		val end = responseText.lastIndexOf('}')
+		if (start !in 0..<end) return null
+		val jsonText = responseText.substring(start, end + 1)
 		
 		return trace.catching {
 			json.decodeFromString<Map<String, String>>(jsonText).orNull()
 		}.onFailure { log.warn("Failed translation response parsing  length={}", responseText.length) }
 			.getOrNull()
+	}
+	
+	private fun Locale.normalized(): String =
+		ULocale.addLikelySubtags(ULocale.forLanguageTag(toLanguageTag())).toLanguageTag()
+	
+	private fun Localizations.hasTarget(target: Locale): Boolean {
+		val normalized = target.normalized()
+		return keys.any { it.normalized() == normalized }
 	}
 }

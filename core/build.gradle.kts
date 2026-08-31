@@ -100,6 +100,7 @@ dependencies {
 	implementation("tools.jackson.core:jackson-databind:3.2.1")
 	
 	implementation("com.google.guava:guava:33.7.1-jre")
+	implementation("com.ibm.icu:icu4j:78.3")
 	implementation("io.insert-koin:koin-core:4.2.2")
 	implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 }

@@ -57,7 +57,7 @@ object TranslateSettings {
 	
 	@AutoService(SettingDef::class)
 	class Thinking : BooleanSetting(
-		false, zh(
+		true, zh(
 			"翻译请求是否启用思考"
 		)
 	)
