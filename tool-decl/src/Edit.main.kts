@@ -23,23 +23,19 @@ import io.github.autotweaker.toolgen.tool
 
 tool("edit") {
 	val unescapeConfig = buildDeclaration {
-		obj("unescape_config") {
-			boolean("enable_unescape")
-			boolean("lenient_mode") {
-				required = false
-			}
-		}
+		enum("unescape_config", "disable", "default", "lenient_mode")
 	}
 	
 	function("single") {
 		string("file_path")
+		string("sha256")
 		int("line_from") {
 			required = false
 		}
 		int("line_to") {
 			required = false
 		}
-		stringList("old_string")
+		string("old_string")
 		param("unescape_old", unescapeConfig) {
 			required = false
 		}

@@ -19,22 +19,28 @@
 package io.github.autotweaker.core.domain.tool.impl.edit
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.unifiedDiff
 import io.github.autotweaker.api.generated.tool.args.EditArgs
-import io.github.autotweaker.api.get
+import io.github.autotweaker.api.generated.tool.args.UnescapeConfig
+import io.github.autotweaker.api.tool.Ready
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.trace
+import io.github.autotweaker.api.tool.toolSuccess
+import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.api.types.tool.diff
+import io.github.autotweaker.api.types.tool.edit.EditRequest
 import io.github.autotweaker.api.types.tool.text
-import io.github.autotweaker.api.unescapeUnicode
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.impl.ToolSettings
+import io.github.autotweaker.core.domain.tool.impl.write.WriteMessage
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import kotlinx.coroutines.channels.SendChannel
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
 @AutoService(CoreTool::class)
@@ -45,6 +51,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 			functions = EditMetaDescriptions.Functions(
 				single = EditMetaDescriptions.Functions.Single(
 					filePath = ToolSettings.FilePathDesc().get(),
+					sha256 = EditDesc.SingleSha256().get(),
 					lineFrom = EditDesc.SingleLineFrom().get(),
 					lineTo = EditDesc.SingleLineTo().get(),
 					oldString = EditDesc.SingleOldString().get(),
@@ -62,14 +69,10 @@ class Edit : CoreTool<EditArgs>, Traceable {
 					operationId = EditDesc.ApplyOperationId().get(),
 				) to EditDesc.Apply().get()
 			),
-			types = EditMetaDescriptions.Types(
-				unescapeConfig = EditMetaDescriptions.Types.UnescapeConfig(
-					enableUnescape = EditDesc.UnescapeConfigEnable().get(),
-					lenientMode = EditDesc.UnescapeConfigLenient().get()
-				)
-			)
 		)
 	)
+	
+	private val requestSerializer = EditRequest.serializer()
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: EditArgs): Tool.ResolveResult {
 		if (args !is EditArgs.Single) return Rejected("edit工具目前仅支持edit-single") {
@@ -86,32 +89,123 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		
 		val displayPath = fileSystem.displayPath(path)
 		
+		val sha256 = trace.catching { Sha256(args.sha256) }
+			.getOrElse { e ->
+				return Rejected(WriteMessage.InvalidHash().format(e.message)) {
+					text("编辑文件 $displayPath 失败，非法的请求参数")
+				}
+			}
+		
+		val fileContent = trace.catching { fileSystem.read(path) }
+			.getOrElse { e ->
+				return Rejected("读取目标文件时出错：${e.message()}") {
+					text("编辑文件 $displayPath 失败，无法读取目标文件")
+				}
+			}
+		
+		if (fileContent.sha256 != sha256)
+			return Rejected("编辑文件失败，SHA256不匹配，文件已被外部更新，请重新读取文件") {
+				text("编辑文件 $displayPath 失败，文件已被外部更改")
+			}
+		
 		val lineFrom = args.lineFrom ?: 1
 		val lineTo = args.lineTo
 		
 		if (lineFrom < 1) return Rejected("line_from必须大于或等于1") {
-			text("编辑文件失败，非法的请求参数")
+			text("编辑文件 $displayPath 失败，非法的请求参数")
 		}
 		if (lineTo != null && lineTo < lineFrom) return Rejected("line_to不能小于line_from") {
-			text("编辑文件失败，非法的请求参数")
+			text("编辑文件 $displayPath 失败，非法的请求参数")
 		}
 		
-		val oldString = let {
-			val unescape = args.unescapeOld ?: return@let args.oldString
-			if (args.unescapeOld?.enableUnescape == true) {
-				val lenientMode = unescape.lenientMode ?: false
-				args.oldString.map { it.unescapeUnicode(!lenientMode) }
-			} else args.oldString
-		}
+		val oldString = trace.catching { args.oldString.unescape(args.unescapeOld) }
+			.getOrElse { e ->
+				return Rejected("old_string中包含非法或未知的转义序列：${e.message}") {
+					text("编辑文件 $displayPath 失败，非法的转义")
+				}
+			}
 		
 		if (oldString.isEmpty()) return Rejected("old_string不能为空") {
-			text("编辑文件失败，非法的请求参数")
+			text("编辑文件 $displayPath 失败，非法的请求参数")
 		}
 		
-		oldString.singleOrNull()?.let {
-			TODO()
+		val newString = trace.catching { args.newString.unescape(args.unescapeNew) }
+			.getOrElse { e ->
+				return Rejected("new_string中包含非法或未知的转义序列：${e.message}") {
+					text("编辑文件 $displayPath 失败，非法的转义")
+				}
+			}
+		
+		val oldContent = fileContent.content
+		var lineStart = 0
+		repeat(lineFrom - 1) {
+			val next = oldContent.indexOf('\n', lineStart)
+			lineStart = if (next == -1) oldContent.length else next + 1
 		}
-		TODO()
+		var lineEnd = oldContent.length
+		if (lineTo != null) {
+			var cursor = lineStart
+			repeat(lineTo - lineFrom) {
+				val next = oldContent.indexOf('\n', cursor)
+				cursor = if (next == -1) oldContent.length else next + 1
+			}
+			val next = oldContent.indexOf('\n', cursor)
+			if (next != -1) lineEnd = next
+		}
+		
+		val rangeContent = oldContent.substring(lineStart, lineEnd)
+		val matchIndex = rangeContent.indexOf(oldString)
+		
+		if (matchIndex == -1) return Rejected("指定的范围内没有old_string的匹配项。请重新读取文件确认当前状态符合预期，并确保提供的字符精确") {
+			text("编辑文件 $displayPath 失败，无匹配内容")
+		}
+		if (matchIndex != rangeContent.lastIndexOf(oldString))
+			return Rejected("指定的范围内存在多处old_string的匹配项，请尝试缩小行区间或在old_string中提供更多上下文") {
+				text("编辑文件 $displayPath 失败，匹配项不唯一")
+			}
+		
+		val newContent = oldContent.replaceRange(
+			lineStart + matchIndex,
+			lineStart + matchIndex + oldString.length,
+			newString
+		)
+		
+		return Ready(
+			requestSerializer,
+			EditRequest(
+				path, displayPath, oldContent to fileContent.sha256, newContent
+			),
+			request = { reason ->
+				text("请求编辑 $displayPath（${reason}）")
+				diff(path, oldContent, newContent)
+			},
+			executing = {
+				text("正在编辑 $displayPath")
+			},
+			cancelled = {
+				text("编辑 $displayPath 被取消")
+			},
+			rejected = { reason ->
+				if (reason == null) text("编辑 $displayPath 被拒绝")
+				else text("编辑 $displayPath 被拒绝：$reason")
+				diff(path, oldContent, newContent)
+			},
+			failed = { e ->
+				text("编辑 $displayPath 失败：${e.message()}")
+			},
+			timeout = { elapsed ->
+				text("编辑 $displayPath 超时：$elapsed")
+			}
+		)
+	}
+	
+	private fun String.unescape(mode: UnescapeConfig?): String {
+		val unescapeMode = mode ?: UnescapeConfig.DISABLE
+		return when (unescapeMode) {
+			UnescapeConfig.DISABLE -> this
+			UnescapeConfig.DEFAULT -> unescapeUnicode(strict = true)
+			UnescapeConfig.LENIENT_MODE -> unescapeUnicode(strict = false)
+		}
 	}
 	
 	override suspend fun execute(
@@ -119,6 +213,23 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		request: JsonElement,
 		outputChannel: SendChannel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
-		TODO("暂未实现，请使用Bash来修改文件")
+		val request = Json.decodeFromJsonElement(requestSerializer, request)
+		val fileSystem = dependency.get<FileSystemService>()
+		val oldContent = request.expected.first
+		val sha256 = request.expected.second
+		fileSystem.update(request.path, sha256, request.newContent)
+		return "已更新文件 ${request.displayPath}：\n${
+			unifiedDiff(
+				oldContent,
+				request.newContent
+			) ?: "UNCHANGED"
+		}".toolSuccess {
+			text("编辑了 ${request.displayPath}")
+			diff(
+				request.path,
+				oldContent,
+				request.newContent
+			)
+		}
 	}
 }

@@ -44,10 +44,12 @@ import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.UiBlock
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.time.Duration.Companion.milliseconds
 
 @AutoService(Command::class)
 class Session : Command, Traceable, Loggable {
@@ -378,6 +380,7 @@ class Session : Command, Traceable, Loggable {
 				}
 			}
 			launch {
+				delay(5.milliseconds)
 				agent.toolCalling.collect { call ->
 					if (call == null) return@collect
 					outputLock.withLock {
