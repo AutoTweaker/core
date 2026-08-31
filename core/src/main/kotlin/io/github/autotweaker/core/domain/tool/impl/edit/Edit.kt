@@ -49,25 +49,16 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		EditMetaDescriptions(
 			toolDescription = EditDesc.Tool().get(),
 			functions = EditMetaDescriptions.Functions(
-				single = EditMetaDescriptions.Functions.Single(
+				file = EditMetaDescriptions.Functions.File(
 					filePath = ToolSettings.FilePathDesc().get(),
-					sha256 = EditDesc.SingleSha256().get(),
-					lineFrom = EditDesc.SingleLineFrom().get(),
-					lineTo = EditDesc.SingleLineTo().get(),
-					oldString = EditDesc.SingleOldString().get(),
-					unescapeOld = EditDesc.SingleUnescapeOldString().get(),
-					newString = EditDesc.SingleNewString().get(),
-					unescapeNew = EditDesc.SingleUnescapeNewString().get()
-				) to EditDesc.Single().get(),
-				batch = EditMetaDescriptions.Functions.Batch(
-					files = EditDesc.BatchFiles().get(),
-					regex = EditDesc.BatchRegex().get(),
-					replaceWith = EditDesc.BatchReplaceWith().get(),
-					unescapeConfig = EditDesc.BatchUnescapeConfig().get()
-				) to EditDesc.Batch().get(),
-				apply = EditMetaDescriptions.Functions.Apply(
-					operationId = EditDesc.ApplyOperationId().get(),
-				) to EditDesc.Apply().get()
+					sha256 = EditDesc.Sha256().get(),
+					lineFrom = EditDesc.LineFrom().get(),
+					lineTo = EditDesc.LineTo().get(),
+					oldString = EditDesc.OldString().get(),
+					unescapeOld = EditDesc.UnescapeOldString().get(),
+					newString = EditDesc.NewString().get(),
+					unescapeNew = EditDesc.UnescapeNewString().get()
+				) to EditDesc.Single().get()
 			),
 		)
 	)
@@ -75,21 +66,19 @@ class Edit : CoreTool<EditArgs>, Traceable {
 	private val requestSerializer = EditRequest.serializer()
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: EditArgs): Tool.ResolveResult {
-		if (args !is EditArgs.Single) return Rejected("edit工具目前仅支持edit-single") {
-			text("编辑文件失败，不支持的函数")
-		}
+		val request = args as EditArgs.File
 		val fileSystem = dependency.get<FileSystemService>()
 		
-		val path = trace.catching { fileSystem.normalize(args.filePath) }
+		val path = trace.catching { fileSystem.normalize(request.filePath) }
 			.getOrElse {
 				return Rejected(ToolSettings.PathErrorMessage().get()) {
-					text("编辑文件失败，非法的路径：${args.filePath}")
+					text("编辑文件失败，非法的路径：${request.filePath}")
 				}
 			}
 		
 		val displayPath = fileSystem.displayPath(path)
 		
-		val sha256 = trace.catching { Sha256(args.sha256) }
+		val sha256 = trace.catching { Sha256(request.sha256) }
 			.getOrElse { e ->
 				return Rejected(WriteMessage.InvalidHash().format(e.message)) {
 					text("编辑文件 $displayPath 失败，非法的请求参数")
@@ -108,8 +97,8 @@ class Edit : CoreTool<EditArgs>, Traceable {
 				text("编辑文件 $displayPath 失败，文件已被外部更改")
 			}
 		
-		val lineFrom = args.lineFrom ?: 1
-		val lineTo = args.lineTo
+		val lineFrom = request.lineFrom ?: 1
+		val lineTo = request.lineTo
 		
 		if (lineFrom < 1) return Rejected("line_from必须大于或等于1") {
 			text("编辑文件 $displayPath 失败，非法的请求参数")
@@ -118,7 +107,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 			text("编辑文件 $displayPath 失败，非法的请求参数")
 		}
 		
-		val oldString = trace.catching { args.oldString.unescape(args.unescapeOld) }
+		val oldString = trace.catching { request.oldString.unescape(request.unescapeOld) }
 			.getOrElse { e ->
 				return Rejected("old_string中包含非法或未知的转义序列：${e.message}") {
 					text("编辑文件 $displayPath 失败，非法的转义")
@@ -129,7 +118,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 			text("编辑文件 $displayPath 失败，非法的请求参数")
 		}
 		
-		val newString = trace.catching { args.newString.unescape(args.unescapeNew) }
+		val newString = trace.catching { request.newString.unescape(request.unescapeNew) }
 			.getOrElse { e ->
 				return Rejected("new_string中包含非法或未知的转义序列：${e.message}") {
 					text("编辑文件 $displayPath 失败，非法的转义")

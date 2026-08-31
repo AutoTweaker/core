@@ -26,7 +26,7 @@ tool("edit") {
 		enum("unescape_config", "disable", "default", "lenient_mode")
 	}
 	
-	function("single") {
+	function("file") {
 		string("file_path")
 		string("sha256")
 		int("line_from") {
@@ -44,20 +44,6 @@ tool("edit") {
 			required = false
 		}
 	}
-	
-	function("batch") {
-		stringList("files")
-		string("regex")
-		string("replace_with")
-		param("unescape_config", unescapeConfig) {
-			required = false
-		}
-	}
-	
-	function("apply") {
-		string("operation_id")
-	}
-	
 }.gen(
 	"io.github.autotweaker.api.generated.tool.args",
 	"io.github.autotweaker.core.domain.tool.impl.edit",
