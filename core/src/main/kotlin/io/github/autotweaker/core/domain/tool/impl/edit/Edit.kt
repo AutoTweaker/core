@@ -37,7 +37,6 @@ import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
 import io.github.autotweaker.core.domain.tool.impl.ToolSettings
-import io.github.autotweaker.core.domain.tool.impl.write.WriteMessage
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
@@ -72,7 +71,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		val path = trace.catching { fileSystem.normalize(request.filePath) }
 			.getOrElse {
 				return Rejected(ToolSettings.PathErrorMessage().get()) {
-					text("编辑文件失败，非法的路径：${request.filePath}")
+					text(i18n(EditI18n.InvalidPath(), request.filePath))
 				}
 			}
 		
@@ -80,48 +79,48 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		
 		val sha256 = trace.catching { Sha256(request.sha256) }
 			.getOrElse { e ->
-				return Rejected(WriteMessage.InvalidHash().format(e.message)) {
-					text("编辑文件 $displayPath 失败，非法的请求参数")
+				return Rejected(EditMessage.InvalidHash().format(e.message)) {
+					text(i18n(EditI18n.InvalidArg(), displayPath))
 				}
 			}
 		
 		val fileContent = trace.catching { fileSystem.read(path) }
 			.getOrElse { e ->
-				return Rejected("读取目标文件时出错：${e.message()}") {
-					text("编辑文件 $displayPath 失败，无法读取目标文件")
+				return Rejected(EditMessage.ReadFailed().format(e.message())) {
+					text(i18n(EditI18n.ReadFailed(), displayPath))
 				}
 			}
 		
 		if (fileContent.sha256 != sha256)
-			return Rejected("编辑文件失败，SHA256不匹配，文件已被外部更新，请重新读取文件") {
-				text("编辑文件 $displayPath 失败，文件已被外部更改")
+			return Rejected(EditMessage.HashMismatch().get()) {
+				text(i18n(EditI18n.UpdateFailedChanged(), displayPath))
 			}
 		
 		val lineFrom = request.lineFrom ?: 1
 		val lineTo = request.lineTo
 		
-		if (lineFrom < 1) return Rejected("line_from必须大于或等于1") {
-			text("编辑文件 $displayPath 失败，非法的请求参数")
+		if (lineFrom < 1) return Rejected(EditMessage.LineFromInvalid().get()) {
+			text(i18n(EditI18n.InvalidArg(), displayPath))
 		}
-		if (lineTo != null && lineTo < lineFrom) return Rejected("line_to不能小于line_from") {
-			text("编辑文件 $displayPath 失败，非法的请求参数")
+		if (lineTo != null && lineTo < lineFrom) return Rejected(EditMessage.LineToInvalid().get()) {
+			text(i18n(EditI18n.InvalidArg(), displayPath))
 		}
 		
 		val oldString = trace.catching { request.oldString.unescape(request.unescapeOld) }
 			.getOrElse { e ->
-				return Rejected("old_string中包含非法或未知的转义序列：${e.message}") {
-					text("编辑文件 $displayPath 失败，非法的转义")
+				return Rejected(EditMessage.InvalidEscape().format("old_string", e.message)) {
+					text(i18n(EditI18n.InvalidEscape(), displayPath))
 				}
 			}
 		
-		if (oldString.isEmpty()) return Rejected("old_string不能为空") {
-			text("编辑文件 $displayPath 失败，非法的请求参数")
+		if (oldString.isEmpty()) return Rejected(EditMessage.OldStringEmpty().get()) {
+			text(i18n(EditI18n.InvalidArg(), displayPath))
 		}
 		
 		val newString = trace.catching { request.newString.unescape(request.unescapeNew) }
 			.getOrElse { e ->
-				return Rejected("new_string中包含非法或未知的转义序列：${e.message}") {
-					text("编辑文件 $displayPath 失败，非法的转义")
+				return Rejected(EditMessage.InvalidEscape().format("new_string", e.message)) {
+					text(i18n(EditI18n.InvalidEscape(), displayPath))
 				}
 			}
 		
@@ -145,12 +144,12 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		val rangeContent = oldContent.substring(lineStart, lineEnd)
 		val matchIndex = rangeContent.indexOf(oldString)
 		
-		if (matchIndex == -1) return Rejected("指定的范围内没有old_string的匹配项。请重新读取文件确认当前状态符合预期，并确保提供的字符精确") {
-			text("编辑文件 $displayPath 失败，无匹配内容")
+		if (matchIndex == -1) return Rejected(EditMessage.NoMatch().get()) {
+			text(i18n(EditI18n.NoMatch(), displayPath))
 		}
 		if (matchIndex != rangeContent.lastIndexOf(oldString))
-			return Rejected("指定的范围内存在多处old_string的匹配项，请尝试缩小行区间或在old_string中提供更多上下文") {
-				text("编辑文件 $displayPath 失败，匹配项不唯一")
+			return Rejected(EditMessage.NotUnique().get()) {
+				text(i18n(EditI18n.NotUnique(), displayPath))
 			}
 		
 		val newContent = oldContent.replaceRange(
@@ -165,25 +164,25 @@ class Edit : CoreTool<EditArgs>, Traceable {
 				path, displayPath, oldContent to fileContent.sha256, newContent
 			),
 			request = { reason ->
-				text("请求编辑 $displayPath（${reason}）")
+				text(i18n(EditI18n.Request(), displayPath, reason))
 				diff(path, oldContent, newContent)
 			},
 			executing = {
-				text("正在编辑 $displayPath")
+				text(i18n(EditI18n.Executing(), displayPath))
 			},
 			cancelled = {
-				text("编辑 $displayPath 被取消")
+				text(i18n(EditI18n.Cancelled(), displayPath))
 			},
 			rejected = { reason ->
-				if (reason == null) text("编辑 $displayPath 被拒绝")
-				else text("编辑 $displayPath 被拒绝：$reason")
+				if (reason == null) text(i18n(EditI18n.Rejected(), displayPath))
+				else text(i18n(EditI18n.RejectedWithReason(), displayPath, reason))
 				diff(path, oldContent, newContent)
 			},
 			failed = { e ->
-				text("编辑 $displayPath 失败：${e.message()}")
+				text(i18n(EditI18n.Failed(), displayPath, e.message()))
 			},
 			timeout = { elapsed ->
-				text("编辑 $displayPath 超时：$elapsed")
+				text(i18n(EditI18n.Timeout(), displayPath, elapsed))
 			}
 		)
 	}
@@ -207,13 +206,14 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		val oldContent = request.expected.first
 		val sha256 = request.expected.second
 		fileSystem.update(request.path, sha256, request.newContent)
-		return "已更新文件 ${request.displayPath}：\n${
+		return EditMessage.Updated().format(
+			request.displayPath,
 			unifiedDiff(
 				oldContent,
 				request.newContent
-			) ?: "UNCHANGED"
-		}".toolSuccess {
-			text("编辑了 ${request.displayPath}")
+			) ?: EditMessage.Unchanged().get()
+		).toolSuccess {
+			text(i18n(EditI18n.Updated(), request.displayPath))
 			diff(
 				request.path,
 				oldContent,
