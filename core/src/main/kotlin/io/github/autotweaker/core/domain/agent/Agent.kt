@@ -53,6 +53,9 @@ class Agent(
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
 	
+	private val _compacting = MutableStateFlow(false)
+	val compacting = _compacting.asStateFlow()
+	
 	private val _toolCalling = MutableStateFlow<Pair<String, ToolPresentation>?>(null)
 	val toolCalling = _toolCalling.asStateFlow()
 	
@@ -100,6 +103,7 @@ class Agent(
 		compactService = compact,
 		agentModel = model,
 		status = _status,
+		compacting = _compacting,
 		agentId = agentId,
 		converts = deps.messageConverts
 	)

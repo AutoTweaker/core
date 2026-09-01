@@ -37,6 +37,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 import java.time.Duration as JavaDuration
@@ -183,33 +187,58 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	
 	override fun exec(
 		containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
+		timeout: Duration,
 	): Flow<ShellEvent> = callbackFlow {
+		val wrappedCommand = listOf(
+			"timeout", "--kill-after=${DockerSettings.KillAfterSeconds().get()}",
+			"${timeout.inWholeSeconds}"
+		) + command
 		log.debug(
 			"Started streaming exec  containerId={}  cmd={}", containerId,
-			command.joinToString(SPACE.toString())
+			wrappedCommand.joinToString(SPACE.toString())
 		)
 		withContext(Dispatchers.IO) {
+			var execId: String? = null
 			trace.catching {
 				val execCmd =
-					client.execCreateCmd(containerId).withCmd(*command.toTypedArray()).withAttachStdout(true)
+					client.execCreateCmd(containerId).withCmd(*wrappedCommand.toTypedArray()).withAttachStdout(true)
 						.withAttachStderr(true).withEnv(env.map { "${it.key}=${it.value}" })
 				if (workDir != null)
 					execCmd.withWorkingDir(workDir.toString())
 				
-				val execId = execCmd.exec().id
+				execId = execCmd.exec().id
 				
 				val execDuration = measureTimedValue {
-					client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
-						override fun onNext(frame: Frame) {
-							val text = String(frame.payload, Charsets.UTF_8)
-							when (frame.streamType) {
-								StreamType.STDOUT -> trySend(ShellEvent.Stdout(text))
-								StreamType.STDERR -> trySend(ShellEvent.Stderr(text))
-								else -> {}
+					suspendCancellableCoroutine { cont ->
+						val callback = client.execStartCmd(execId).exec(object : ResultCallback.Adapter<Frame>() {
+							override fun onNext(frame: Frame) {
+								val text = String(frame.payload, Charsets.UTF_8)
+								when (frame.streamType) {
+									StreamType.STDOUT -> trySend(ShellEvent.Stdout(text))
+									StreamType.STDERR -> trySend(ShellEvent.Stderr(text))
+									else -> {}
+								}
+							}
+							
+							override fun onComplete() {
+								cont.resume(client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1)
+							}
+							
+							override fun onError(throwable: Throwable) {
+								cont.resumeWithException(throwable)
+							}
+						})
+						cont.invokeOnCancellation {
+							callback.close()
+							execId?.let {
+								scope.launch {
+									withContext(NonCancellable + Dispatchers.IO) {
+										killExecProcess(containerId, it)
+									}
+								}
 							}
 						}
-					}).awaitCompletion()
-					client.inspectExecCmd(execId).exec().exitCodeLong?.toInt() ?: -1
+					}
 				}
 				trySend(
 					ShellEvent.Exit(
@@ -220,17 +249,31 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 						)
 					)
 				)
-			}.rethrowCancellation()
-				.recoverException { e: NotFoundException ->
-					log.warn("Failed container lookup  containerId={}  reason={}", containerId, e.message)
-					throw ContainerOperationException("Container not found: $containerId", e)
-				}.onFailure { e ->
-					log.error("Failed command execution  containerId={}", containerId, e)
-					throw ContainerOperationException("Failed to exec command: ${e.message()}", e)
-				}.getOrThrow()
+			}.rethrowCancellation {
+				execId?.let { killExecProcess(containerId, it) }
+			}.recoverException { e: NotFoundException ->
+				log.warn("Failed container lookup  containerId={}  reason={}", containerId, e.message)
+				throw ContainerOperationException("Container not found: $containerId", e)
+			}.onFailure { e ->
+				log.error("Failed command execution  containerId={}", containerId, e)
+				throw ContainerOperationException("Failed to exec command: ${e.message()}", e)
+			}.getOrThrow()
 		}
 		schedulePermissionFix(containerId)
 		close()
+	}
+	
+	private fun killExecProcess(containerId: String, execId: String) {
+		trace.catching {
+			val pid = client.inspectExecCmd(execId).exec().pidLong ?: return@catching
+			val killExecId = client.execCreateCmd(containerId)
+				.withCmd("bash", "-lc", "kill -KILL -- -$pid 2>/dev/null")
+				.exec().id
+			client.execStartCmd(killExecId).exec(object : ResultCallback.Adapter<Frame>() {})
+				.awaitCompletion(10, TimeUnit.SECONDS)
+		}.onFailure { e ->
+			log.debug("Failed exec kill  containerId={}  execId={}", containerId, execId, e)
+		}
 	}
 	
 	private fun findContainerByName(name: String): ExistingContainer? =

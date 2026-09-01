@@ -25,13 +25,13 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.time.Duration
 import kotlin.time.measureTimedValue
 
@@ -70,21 +70,31 @@ class LocalShellExecutor : Loggable, Traceable {
 			}
 			
 			val execDuration = measureTimedValue {
-				val finished = withContext(Dispatchers.IO) {
-					process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-				}
-				if (!finished) {
-					//杀进程
-					process.destroyForcibly()
-					//确保彻底停
-					withContext(Dispatchers.IO) { process.waitFor(2, TimeUnit.SECONDS) }
-					log.warn("Timed out shell command  command={}  timeout={}", command, timeout)
+				val (finished, exitCode) = withContext(Dispatchers.IO) {
+					val code = withTimeoutOrNull(timeout) {
+						suspendCancellableCoroutine { cont ->
+							cont.invokeOnCancellation {
+								process.destroyForcibly()
+							}
+							process.onExit().whenComplete { p, err ->
+								if (err != null) cont.resumeWithException(err)
+								else cont.resume(p.exitValue())
+							}
+						}
+					}
+					if (code != null) {
+						true to code
+					} else {
+						process.waitFor(2, TimeUnit.SECONDS)
+						log.warn("Timed out shell command  command={}  timeout={}", command, timeout)
+						false to -1
+					}
 				}
 				
 				stdoutJob.join()
 				stderrJob.join()
 				
-				finished to if (finished) process.exitValue() else -1
+				finished to exitCode
 			}
 			val (finished, exitCode) = execDuration.value
 			log.debug(

@@ -109,15 +109,13 @@ class ContainerManager(
 		}
 		ensureRunning()
 		val id = containerId ?: error("Failed to start container")
-		val wrappedCommand = listOf(
-			"timeout", "--signal=KILL", "${timeout.inWholeSeconds}", "bash", "-lc", command
-		)
 		emitAll(
 			service.exec(
-				id, wrappedCommand, workDir,
+				id, listOf("bash", "-lc", command), workDir,
 				env = listEnv().mapNotNull {
 					it to (getEnv(it) ?: return@mapNotNull null)
-				}.toMap() + env
+				}.toMap() + env,
+				timeout = timeout
 			)
 		)
 	}

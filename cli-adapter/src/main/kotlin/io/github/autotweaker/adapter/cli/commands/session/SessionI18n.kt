@@ -20,7 +20,6 @@ package io.github.autotweaker.adapter.cli.commands.session
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.base.I18nBase
-import io.github.autotweaker.api.base.en
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.i18n.I18nDef
 
@@ -31,77 +30,102 @@ object SessionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class WorkspaceParam : I18nBase(
+	class Workspace : I18nBase(
 		zh("工作区的名称，默认当前目录下的工作区，无可用则默认工作区"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class ListFlag : I18nBase(
+	class List : I18nBase(
 		zh("列出工作区下的所有会话"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class NewFlag : I18nBase(
+	class New : I18nBase(
 		zh("创建新会话，如果stdin有内容会直接发送"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class SendFlag : I18nBase(
+	class Send : I18nBase(
 		zh("通过stdin向指定的会话发送消息"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class MessageParam : I18nBase(
+	class Pause : I18nBase(
+		zh("暂停指定的会话"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Stop : I18nBase(
+		zh("中止指定的会话"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Compact : I18nBase(
+		zh("触发指定会话的上下文压缩"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CancelCompact : I18nBase(
+		zh("取消指定会话的上下文压缩"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CancelTool : I18nBase(
+		zh("取消指定会话正在进行的工具调用"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Message : I18nBase(
 		zh("要发送的消息内容，传递此将屏蔽stdin"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class ApproveFlag : I18nBase(
+	class Approve : I18nBase(
 		zh("批准指定会话的工具调用"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class RejectFlag : I18nBase(
+	class Reject : I18nBase(
 		zh("拒绝指定会话的工具调用"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class AllFlag : I18nBase(
+	class All : I18nBase(
 		zh("一次性批准所有请求的工具调用"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class ReasonParam : I18nBase(
+	class Reason : I18nBase(
 		zh("附言"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class YoloFlag : I18nBase(
+	class Yolo : I18nBase(
 		zh("自动批准指定会话的任何工具调用"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class ViewFlag : I18nBase(
+	class View : I18nBase(
 		zh("查看指定会话"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class FollowFlag : I18nBase(
+	class Follow : I18nBase(
 		zh("命令将永不退出，流式输出新的会话消息"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class StatusFlag : I18nBase(
+	class Status : I18nBase(
 		zh("查看指定会话当前状态"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class UpdateModelFlag : I18nBase(
+	class UpdateModel : I18nBase(
 		zh("更新指定会话的模型配置为当前新会话配置"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class DeleteFlag : I18nBase(
+	class Delete : I18nBase(
 		zh("通过id删除一个会话"),
 	)
 	
@@ -143,6 +167,11 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class CurrentStatus : I18nBase(
 		zh("当前状态: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Compacting : I18nBase(
+		zh("[上下文压缩正在进行]"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -246,12 +275,6 @@ object SessionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class Thinking : I18nBase(
-		zh("Thinking..."),
-		en("Thinking..."),
-	)
-	
-	@AutoService(I18nDef::class)
 	class AgentError : I18nBase(
 		zh("Agent 错误: %s"),
 	)
@@ -269,6 +292,11 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class CorruptMessage : I18nBase(
 		zh("[损坏的消息: %s]"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CompactMessage : I18nBase(
+		zh("=== 上下文已压缩 ==="),
 	)
 	
 	@AutoService(I18nDef::class)

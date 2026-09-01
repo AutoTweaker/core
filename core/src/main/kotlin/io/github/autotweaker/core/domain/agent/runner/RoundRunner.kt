@@ -59,6 +59,7 @@ class RoundRunner(
 	private val compactService: CompactService,
 	agentModel: AgentModel,
 	private val status: MutableStateFlow<AgentStatus>,
+	private val compacting: MutableStateFlow<Boolean>,
 	private val agentId: UUID,
 	private val converts: MessageConverts
 ) : Loggable, Traceable {
@@ -93,7 +94,10 @@ class RoundRunner(
 	var exception: Throwable? = null
 	
 	private fun throwFailure() {
-		exception?.let { throw it }
+		exception?.let {
+			compactJob?.cancel("workLoop failed", it)
+			throw it
+		}
 	}
 	
 	init {
@@ -104,6 +108,7 @@ class RoundRunner(
 				exception = e
 				status.value = AgentStatus.FAILED
 				compactJob?.cancel("workLoop failed", e)
+				compacting.value = false
 				log.error("Agent failed  agentId={}", agentId, e)
 			}
 		}
@@ -369,9 +374,14 @@ class RoundRunner(
 		throwFailure()
 		if (compactJob?.isActive == true) return@withLock
 		compactJob = scope.launch {
-			throwFailure()
-			compactService.execute(currentModel, ctx)
+			try {
+				compacting.value = true
+				compactService.execute(currentModel, ctx)
+			} finally {
+				compacting.value = false
+			}
 		}
+		throwFailure()
 	}
 	
 	private fun markBreak() {

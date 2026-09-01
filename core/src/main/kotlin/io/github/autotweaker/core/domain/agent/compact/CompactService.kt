@@ -65,7 +65,7 @@ class CompactService(
 		val processedMessages = preprocessMessages(
 			rounds, model,
 		).inject(
-			context.injections, context.compactedRounds?.summarizedMessage?.content
+			null, context.compactedRounds?.summarizedMessage?.content
 		) + ChatMessage.User(
 			compactPrompt.toContentPart(),
 			Clock.System.now()

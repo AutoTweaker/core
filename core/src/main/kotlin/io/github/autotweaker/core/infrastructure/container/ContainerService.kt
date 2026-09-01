@@ -21,6 +21,7 @@ package io.github.autotweaker.core.infrastructure.container
 import io.github.autotweaker.api.types.shell.ShellEvent
 import kotlinx.coroutines.flow.Flow
 import java.nio.file.Path
+import kotlin.time.Duration
 
 interface ContainerService {
 	suspend fun pull(image: String)
@@ -33,5 +34,6 @@ interface ContainerService {
 		command: List<String>,
 		workDir: Path? = null,
 		env: Map<String, String> = emptyMap(),
+		timeout: Duration,
 	): Flow<ShellEvent>
 }

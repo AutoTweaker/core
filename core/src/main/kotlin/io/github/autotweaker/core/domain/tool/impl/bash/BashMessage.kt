@@ -48,7 +48,7 @@ object BashMessage {
 	@AutoService(SettingDef::class)
 	class ToolResult : StringSetting(
 		"""
-			命令已执行，退出码：%s，执行时间：%s
+			命令已执行，退出码：%s，执行时间：%s，超时：%s
 			
 			标准输出：
 			<stdout>
@@ -60,7 +60,7 @@ object BashMessage {
 			%s
 			</stderr>
 			""".trimIndent(), zh(
-			"bash-run工具执行结果模板，参数依次为退出码、执行时间（秒）、标准输出、标准错误"
+			"bash-run工具执行结果模板，参数依次为退出码、执行时间（秒）、是否超时、标准输出、标准错误"
 		)
 	)
 }

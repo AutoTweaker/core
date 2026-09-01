@@ -28,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import java.nio.file.Path
 import kotlin.test.*
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class ContainerExceptionsTest {
 	
@@ -106,13 +107,14 @@ class ContainerServiceTest {
 			override fun checkAccess(): Boolean = true
 			override fun exec(
 				containerId: String, command: List<String>, workDir: Path?, env: Map<String, String>,
+				timeout: Duration,
 			): Flow<ShellEvent> {
 				capturedCommand = command
 				return flowOf(ShellEvent.Exit(ShellResult(0, false, Duration.ZERO)))
 			}
 		}
 		
-		impl.exec("id", listOf("echo", "hello")).collect {}
+		impl.exec("id", listOf("echo", "hello"), timeout = 30.seconds).collect {}
 		assertEquals(listOf("echo", "hello"), capturedCommand)
 	}
 }

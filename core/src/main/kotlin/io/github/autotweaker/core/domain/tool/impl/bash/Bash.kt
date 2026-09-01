@@ -178,7 +178,7 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		)
 		
 		return BashMessage.ToolResult().get()
-			.format(result.exitCode, result.duration, processOutput(stdout), processOutput(stderr))
+			.format(result.exitCode, result.duration, result.timeout, processOutput(stdout), processOutput(stderr))
 			.toolResult(BashResult.serializer(), output, success) {
 				if (request.envIds.isEmpty()) text(i18n(BashI18n.Executed(), result.duration, result.exitCode))
 				else text(

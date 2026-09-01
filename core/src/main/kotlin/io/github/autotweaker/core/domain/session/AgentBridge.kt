@@ -81,6 +81,7 @@ class AgentBridge(
 	override val id: UUID get() = _agent.agentId
 	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
+	override val compacting: StateFlow<Boolean> get() = _agent.compacting
 	override val activeTools: StateFlow<Set<String>> get() = _agent.activeTools
 	override val toolCalling: StateFlow<Pair<String, ToolPresentation>?> get() = _agent.toolCalling
 	

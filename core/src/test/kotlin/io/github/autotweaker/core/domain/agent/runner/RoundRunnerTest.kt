@@ -181,6 +181,7 @@ class RoundRunnerTest {
 			compactService = compact,
 			agentModel = model,
 			status = status,
+			compacting = MutableStateFlow(false),
 			agentId = agentId,
 			converts = mockk<MessageConverts>(relaxed = true),
 		)

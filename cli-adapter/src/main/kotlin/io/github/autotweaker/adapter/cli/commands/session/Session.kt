@@ -56,33 +56,38 @@ class Session : Command, Traceable, Loggable {
 	override val name = "session"
 	override val description = i18n(SessionI18n.Desc())
 	override val syntax = buildSyntax(ALL) {
-		value("workspace", SessionI18n.WorkspaceParam()) { required = false }
+		value("workspace", SessionI18n.Workspace()) { required = false }
 		xor {
-			flag("list", SessionI18n.ListFlag())
+			flag("list", SessionI18n.List())
 			all {
-				flag("new", SessionI18n.NewFlag())
-				positional("message", SessionI18n.MessageParam()) { required = false }
+				flag("new", SessionI18n.New())
+				positional("message", SessionI18n.Message()) { required = false }
 			}
 			all {
-				value("send", SessionI18n.SendFlag())
-				positional("message", SessionI18n.MessageParam()) { required = false }
+				value("send", SessionI18n.Send())
+				positional("message", SessionI18n.Message()) { required = false }
 			}
+			value("pause", SessionI18n.Pause())
+			value("stop", SessionI18n.Stop()) { aliases() }
+			value("compact", SessionI18n.Compact()) { aliases() }
+			value("cancel-compact", SessionI18n.CancelCompact()) { aliases() }
+			value("cancel-tool", SessionI18n.CancelTool()) { aliases() }
 			all {
 				xor {
-					value("approve", SessionI18n.ApproveFlag())
-					value("reject", SessionI18n.RejectFlag())
+					value("approve", SessionI18n.Approve())
+					value("reject", SessionI18n.Reject())
 				}
-				flag("all", SessionI18n.AllFlag()) { required = false; aliases() }
-				positional("reason", SessionI18n.ReasonParam()) { required = false }
+				flag("all", SessionI18n.All()) { required = false; aliases() }
+				positional("reason", SessionI18n.Reason()) { required = false }
 			}
-			value("yolo", SessionI18n.YoloFlag()) { aliases() }
+			value("yolo", SessionI18n.Yolo()) { aliases() }
 			all {
-				value("view", SessionI18n.ViewFlag())
-				flag("follow", SessionI18n.FollowFlag()) { required = false }
+				value("view", SessionI18n.View())
+				flag("follow", SessionI18n.Follow()) { required = false }
 			}
-			value("update-model", SessionI18n.UpdateModelFlag())
-			value("status", SessionI18n.StatusFlag()) { aliases() }
-			value("delete", SessionI18n.DeleteFlag())
+			value("update-model", SessionI18n.UpdateModel())
+			value("status", SessionI18n.Status()) { aliases() }
+			value("delete", SessionI18n.Delete())
 		}
 	}
 	override val children = listOf(SessionModel(), SessionUsage())
@@ -184,7 +189,11 @@ class Session : Command, Traceable, Loggable {
 			out(SessionI18n.SessionTitle(), session.data.value.title)
 			session.agents.sortedBy { it.name }.forEach { agent ->
 				out(SessionI18n.AgentName(), agent.name)
-				out(SessionI18n.CurrentStatus(), agent.status.value)
+				out(SessionI18n.CurrentStatus(), agent.status.value) { newline = false }
+				if (agent.compacting.value) {
+					out(SPACE.toString()) { newline = false }
+					out(SessionI18n.Compacting())
+				} else ln()
 				out(SessionI18n.MessageCount(), agent.context.value.index.ids().count())
 				agent.context.value.droppedMessages?.let {
 					if (it.isNotEmpty()) out(SessionI18n.DroppedMessages(), it.count())
@@ -194,9 +203,25 @@ class Session : Command, Traceable, Loggable {
 				out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString())
 			}
 		}
+		suspend fun agent(session: String): AgentAPI = core.session.getHandle(sessionId(session, workspace)).mainAgent()
 		handleValue("update-model") {
-			core.session.getHandle(sessionId(it, workspace)).mainAgent().setModel(getConfig())
+			agent(it).setModel(getConfig())
 			out(SessionI18n.ModelUpdated(), it)
+		}
+		handleValue("pause") {
+			agent(it).pause()
+		}
+		handleValue("stop") {
+			agent(it).stop()
+		}
+		handleValue("compact") {
+			agent(it).compact()
+		}
+		handleValue("cancel-compact") {
+			agent(it).cancelCompact()
+		}
+		handleValue("cancel-tool") {
+			agent(it).cancelTool()
 		}
 		
 		done(1)
@@ -287,7 +312,7 @@ class Session : Command, Traceable, Loggable {
 				agent.status.collectLatest { state ->
 					if (state == AgentStatus.THINKING) outputLock.withLock {
 						altScreen {
-							out(SessionI18n.Thinking()) { white() }
+							out("Thinking...") { white() }
 							ln()
 							var lastReasoning: String? = null
 							agent.output.collect { output ->
@@ -428,6 +453,29 @@ class Session : Command, Traceable, Loggable {
 			turn.assistantMessage.printMsg<AgentMessage.Assistant>()
 			turn.tools.print()
 		}
+		context.index.compactedRounds?.toList()?.forEach { (summarizedMessage, rounds) ->
+			val messages = core.persistence.loadMessages(
+				rounds.flatMapTo(mutableSetOf()) { it.ids() } + summarizedMessage
+			).associateBy { it.id }
+			
+			suspend fun UUID.printIf(test: (AgentMessage) -> Boolean) {
+				val msg = messages[this]
+				if (msg == null || !test(msg)) {
+					out(SessionI18n.CorruptMessage(), this@printIf) { red() }
+				} else msg.printMsg()
+			}
+			rounds.forEach { round ->
+				round.userMessage.printIf { it is AgentMessage.User }
+				round.turns?.forEach { turn ->
+					turn.assistantMessage.printIf { it is AgentMessage.Assistant }
+					turn.tools.forEach { tool ->
+						tool.result.printIf { it is AgentMessage.Tool.Result }
+					}
+				}
+				round.finalAssistantMessage?.printIf { it is AgentMessage.Assistant }
+			}
+			summarizedMessage.printIf { it is AgentMessage.Compact }
+		}
 		context.index.historyRounds?.forEach { round ->
 			round.userMessage.printMsg<AgentMessage.User>()
 			round.turns?.print()
@@ -448,7 +496,7 @@ class Session : Command, Traceable, Loggable {
 	private suspend inline fun <reified T : AgentMessage> UUID.printMsg() = with(c) {
 		val msg = loadMessage<T>(core)
 		if (msg == null) {
-			out(SessionI18n.CorruptMessage(), this) { red() }
+			out(SessionI18n.CorruptMessage(), this@printMsg) { red() }
 			return@with
 		}
 		msg.printMsg()
@@ -481,7 +529,23 @@ class Session : Command, Traceable, Loggable {
 				ln()
 			}
 			
-			is AgentMessage.Compact -> {}
+			is AgentMessage.Compact -> {
+				out(SessionI18n.CompactMessage()) { yellow() }
+				ln()
+				out(content) { white() }
+				usage?.let {
+					out(
+						SessionI18n.Usage(),
+						it.promptTokens,
+						it.completionTokens,
+						it.cacheHitRateStr
+					) {
+						cyan()
+					}
+				}
+				ln()
+			}
+			
 			is AgentMessage.Tool.Call -> {
 				presentation?.print()
 				ln()

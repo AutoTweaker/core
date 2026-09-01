@@ -63,6 +63,11 @@ interface AgentAPI {
 	val status: StateFlow<AgentStatus>
 	
 	/**
+	 * agent 的上下文压缩是否正在进行。
+	 */
+	val compacting: StateFlow<Boolean>
+	
+	/**
 	 * agent 的实时输出流，通常为无需持久化的流式数据块或错误信息。
 	 *
 	 * 关于状态信息请见 [status]，关于上下文信息请见 [context]。

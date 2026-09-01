@@ -31,4 +31,11 @@ object DockerSettings {
 			"指定秒数内未运行容器内命令自动修复工作区目录权限，设为0仅在应用退出前修复"
 		)
 	)
+	
+	@AutoService(SettingDef::class)
+	class KillAfterSeconds : IntSetting(
+		10, zh(
+			"容器内命令超时后发送KILL信号的等待时长（秒），TERM信号发出后命令仍未退出则在此时间后强制KILL"
+		)
+	)
 }
