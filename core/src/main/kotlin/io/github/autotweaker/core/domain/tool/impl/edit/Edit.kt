@@ -29,7 +29,6 @@ import io.github.autotweaker.api.tool.Ready
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.toolSuccess
-import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.tool.diff
 import io.github.autotweaker.api.types.tool.edit.EditRequest
 import io.github.autotweaker.api.types.tool.text
@@ -50,7 +49,6 @@ class Edit : CoreTool<EditArgs>, Traceable {
 			functions = EditMetaDescriptions.Functions(
 				file = EditMetaDescriptions.Functions.File(
 					filePath = ToolSettings.FilePathDesc().get(),
-					sha256 = EditDesc.Sha256().get(),
 					lineFrom = EditDesc.LineFrom().get(),
 					lineTo = EditDesc.LineTo().get(),
 					oldString = EditDesc.OldString().get(),
@@ -77,23 +75,11 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		
 		val displayPath = fileSystem.displayPath(path)
 		
-		val sha256 = trace.catching { Sha256(request.sha256) }
-			.getOrElse { e ->
-				return Rejected(EditMessage.InvalidHash().format(e.message)) {
-					text(i18n(EditI18n.InvalidArg(), displayPath))
-				}
-			}
-		
 		val fileContent = trace.catching { fileSystem.read(path) }
 			.getOrElse { e ->
 				return Rejected(EditMessage.ReadFailed().format(e.message())) {
 					text(i18n(EditI18n.ReadFailed(), displayPath))
 				}
-			}
-		
-		if (fileContent.sha256 != sha256)
-			return Rejected(EditMessage.HashMismatch().get()) {
-				text(i18n(EditI18n.UpdateFailedChanged(), displayPath))
 			}
 		
 		val lineFrom = request.lineFrom ?: 1

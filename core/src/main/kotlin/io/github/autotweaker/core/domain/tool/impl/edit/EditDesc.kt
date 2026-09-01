@@ -43,12 +43,6 @@ object EditDesc {
 	)
 	
 	@AutoService(SettingDef::class)
-	class Sha256 : StringSetting(
-		"请通过read工具读取要编辑文件的当前内容，并提供read工具返回的文件当前SHA256。这能够避免意外覆盖来自用户或外部程序的文件更新，也能够在文件被更新后收到明确的报错而不是找不到old_string匹配项",
-		zh("edit-single工具sha256参数的描述")
-	)
-	
-	@AutoService(SettingDef::class)
 	class LineFrom : StringSetting(
 		"指定old_string匹配范围的开始行号，默认为1",
 		zh("edit-single工具line_from参数的描述")

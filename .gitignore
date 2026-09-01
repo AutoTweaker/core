@@ -33,6 +33,7 @@ build/
 
 
 CLAUDE.md
+/AGENTS.md
 bin/
 .claude
 .kotlin

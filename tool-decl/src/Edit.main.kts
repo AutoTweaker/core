@@ -28,7 +28,6 @@ tool("edit") {
 	
 	function("file") {
 		string("file_path")
-		string("sha256")
 		int("line_from") {
 			required = false
 		}

@@ -25,21 +25,9 @@ import io.github.autotweaker.api.config.SettingDef
 
 object EditMessage {
 	@AutoService(SettingDef::class)
-	class InvalidHash : StringSetting(
-		"无效的哈希：%s",
-		zh("edit工具sha256参数非法时的描述")
-	)
-	
-	@AutoService(SettingDef::class)
 	class ReadFailed : StringSetting(
 		"读取目标文件时出错：%s",
 		zh("edit工具读取目标文件失败时的描述")
-	)
-	
-	@AutoService(SettingDef::class)
-	class HashMismatch : StringSetting(
-		"编辑文件失败，SHA256不匹配，文件已被外部更新，请重新读取文件",
-		zh("edit工具SHA256校验失败时的描述")
 	)
 	
 	@AutoService(SettingDef::class)
@@ -68,13 +56,13 @@ object EditMessage {
 	
 	@AutoService(SettingDef::class)
 	class NoMatch : StringSetting(
-		"指定的范围内没有old_string的匹配项。请重新读取文件确认当前状态符合预期，并确保提供的字符精确",
+		"指定的范围内没有old_string的匹配项。文件可能已经被外部修改，请重新读取文件确认当前状态符合预期，并确保提供的字符精确",
 		zh("edit工具未找到old_string匹配项时的描述")
 	)
 	
 	@AutoService(SettingDef::class)
 	class NotUnique : StringSetting(
-		"指定的范围内存在多处old_string的匹配项，请尝试缩小行区间或在old_string中提供更多上下文",
+		"指定的范围内存在多处old_string的匹配项。文件可能已经被外部修改，请重新读取文件确认当前状态符合预期，请尝试缩小行区间或在old_string中提供更多上下文",
 		zh("edit工具存在多处匹配项时的描述")
 	)
 	

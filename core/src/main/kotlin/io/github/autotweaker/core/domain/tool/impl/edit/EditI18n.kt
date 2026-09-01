@@ -40,11 +40,6 @@ object EditI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class UpdateFailedChanged : I18nBase(
-		zh("编辑文件 %s 失败，文件已被外部更改"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class InvalidEscape : I18nBase(
 		zh("编辑文件 %s 失败，非法的转义"),
 	)
