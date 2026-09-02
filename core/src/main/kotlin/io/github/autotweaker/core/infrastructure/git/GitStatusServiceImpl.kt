@@ -44,14 +44,14 @@ object GitStatusServiceImpl : GitStatusService, Loggable, Traceable {
 	
 	override fun log(workspace: Path, count: Int): List<String> =
 		if (count <= 0) emptyList()
-		else runGit(workspace, "log", "--oneline", "-n", count.toString())?.lines().orEmpty()
+		else runGit(workspace, "log", "--oneline", "--decorate", "-n", count.toString())?.lines().orEmpty()
 	
 	private fun porcelain(workspace: Path, filter: (Char, Char) -> Boolean): List<String> =
 		runGit(workspace, "status", "--porcelain")?.lineSequence()
 			?.filter { it.length >= 3 }
 			?.filter { filter(it[0], it[1]) }
 			?.map { it.substring(3) }
-			?.toList() ?: emptyList()
+			?.toList().orEmpty()
 	
 	private fun runGit(workspace: Path, vararg args: String): String? = trace.catching {
 		val process = ProcessBuilder("git", *args)
