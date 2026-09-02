@@ -469,6 +469,49 @@ class ToolAssemblerTest {
 		val innerProps = nested["properties"]?.jsonObject!!
 		assertEquals("string", innerProps["a"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
 		assertEquals("integer", innerProps["b"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+		val innerRequired = nested["required"]?.jsonArray!!.map { it.jsonPrimitive.content }
+		assertEquals(listOf("a", "b"), innerRequired)
+	}
+	
+	@Test
+	@Suppress("UNCHECKED_CAST")
+	fun `list element object schema requires mandatory fields`() = runBlocking {
+		@Serializable
+		data class Args(val blocks: List<Nested>) : ToolArgs
+		
+		val tool = mockk<Tool<ToolArgs>>()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"t", "d", listOf(
+					ToolMeta.Function(
+						"run", "d", listOf(
+							ToolMeta.Prop(
+								"blocks", ToolMeta.Type.TList(
+									ToolMeta.Type.Obj(
+										"block", listOf(
+											ToolMeta.Prop("old_string", ToolMeta.Type.TString, true, ""),
+											ToolMeta.Prop("new_string", ToolMeta.Type.TString, false, ""),
+										)
+									)
+								), true, "desc"
+							)
+						)
+					)
+				)
+			),
+			Args.serializer() as KSerializer<ToolArgs>,
+		)
+		val result = assembleWithTool(tool)
+		val props = result!![0].parameters.jsonObject["properties"]?.jsonObject!!
+		val blocks = props["blocks"]?.jsonObject!!
+		assertEquals("array", blocks["type"]?.jsonPrimitive?.content)
+		val items = blocks["items"]?.jsonObject!!
+		assertEquals("object", items["type"]?.jsonPrimitive?.content)
+		val itemProps = items["properties"]?.jsonObject!!
+		assertEquals("string", itemProps["old_string"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+		assertEquals("string", itemProps["new_string"]?.jsonObject?.get("type")?.jsonPrimitive?.content)
+		val itemRequired = items["required"]?.jsonArray!!.map { it.jsonPrimitive.content }
+		assertEquals(listOf("old_string"), itemRequired)
 	}
 	
 	// endregion

@@ -24,6 +24,7 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.exception.I18nableException
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -127,11 +128,13 @@ class ToolCallingStage(
 					ToolResultStatus.CANCELLED
 				)
 			}.getOrElse { e ->
-				log.error(
-					"Failed tool execution  agentId={}  tool={}",
-					agentId,
-					call.validatedToolName,
-					e
+				if (e is I18nableException)
+					log.warn(
+						"Failed tool execution  agentId={}  tool={}  exception={}  reason={}",
+						agentId, call.validatedToolName, e::class.simpleName, e.message
+					)
+				else log.error(
+					"Failed tool execution  agentId={}  tool={}", agentId, call.validatedToolName, e
 				)
 				buildToolResult(
 					ToolSettings.ToolExecutionError().format(e.message()),

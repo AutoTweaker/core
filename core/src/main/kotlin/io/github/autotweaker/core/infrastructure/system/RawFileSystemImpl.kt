@@ -25,8 +25,11 @@ import io.github.autotweaker.api.base.CatchingResult
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.core.domain.port.*
-import io.github.autotweaker.core.domain.port.FileAlreadyExistsException
+import io.github.autotweaker.core.domain.port.FileContent
+import io.github.autotweaker.core.domain.port.FileMetadata
+import io.github.autotweaker.core.domain.port.RawFileSystem
+import io.github.autotweaker.core.domain.port.exception.*
+import io.github.autotweaker.core.domain.port.exception.FileAlreadyExistsException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -170,10 +173,10 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		withContext(Dispatchers.IO) {
 			trace.catching {
 				val target = path.toRealPath()
-				if (!Files.isWritable(target)) error("File is not writable: $path")
+				if (!Files.isWritable(target)) throw FileNotWritableException()
 				pathLocks[target.hashCode() and 255].withLock {
 					val current = sha256(target)
-					if (current != expected) error("File content changed since read: $path")
+					if (current != expected) throw FileChangedException()
 					atomicReplace(target, new)
 				}
 			}.rethrowFileSystemException()

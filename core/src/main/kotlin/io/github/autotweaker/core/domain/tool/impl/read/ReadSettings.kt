@@ -91,36 +91,22 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class MessageFileNotFound : StringSetting(
-		"文件%s不存在或访问被拒绝", zh(
+		"文件'%s'不存在或访问被拒绝", zh(
 			"read工具读取不存在的文件时的描述"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
 	class MessageNotRegularFile : StringSetting(
-		"文件%s不是一个可读取的普通文件", zh(
+		"文件'%s'不是一个可读取的普通文件", zh(
 			"read工具读取文件不是一个普通文件时的描述"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
-	class MessageFileAccessDenied : StringSetting(
-		"当前用户没有权限读取这个文件", zh(
-			"read工具没有权限取文件时的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class MessageFileCannotRead : StringSetting(
-		"读取文件%s时失败：%s", zh(
+	class MessageReadFailed : StringSetting(
+		"读取文件'%s'时失败：%s", zh(
 			"read工具读取文件出错时的描述"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class MessagePathOutsideWorkspace : StringSetting(
-		"错误：请求的文件路径在工作目录外部", zh(
-			"read工具在容器内读取工作目录外的文件时的描述"
 		)
 	)
 	
@@ -147,7 +133,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class DuplicateMessage : StringSetting(
-		"读取的文件内容与文件哈希%s时的读取相同", zh(
+		"读取的文件内容与文件哈希'%s'时的读取相同", zh(
 			"read-file工具读取重复内容时的描述"
 		)
 	)

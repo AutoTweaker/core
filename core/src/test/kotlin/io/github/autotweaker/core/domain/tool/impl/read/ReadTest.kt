@@ -25,9 +25,9 @@ import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.read.ReadRequest
 import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.port.FileAccessDeniedException
 import io.github.autotweaker.core.domain.port.FileContent
-import io.github.autotweaker.core.domain.port.FileNotFoundException
+import io.github.autotweaker.core.domain.port.exception.FileAccessDeniedException
+import io.github.autotweaker.core.domain.port.exception.FileNotFoundException
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
@@ -168,7 +168,7 @@ class ReadTest {
 		val result = read.resolve(container(mockFs(exists = false)), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("文件test.txt不存在或访问被拒绝", result.reason)
+		assertEquals("文件'test.txt'不存在或访问被拒绝", result.reason)
 	}
 	
 	@Test
@@ -176,7 +176,7 @@ class ReadTest {
 		val result = read.resolve(container(mockFs(isRegularFile = false)), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("文件test.txt不是一个可读取的普通文件", result.reason)
+		assertEquals("文件'test.txt'不是一个可读取的普通文件", result.reason)
 	}
 	
 	@Test
@@ -188,7 +188,7 @@ class ReadTest {
 		val result = read.resolve(container(fs), fileArgs())
 		
 		assertIs<Tool.ResolveResult.Rejected>(result)
-		assertEquals("错误：请求的文件路径在工作目录外部", result.reason)
+		assertEquals("读取文件'test.txt'时失败：", result.reason)
 	}
 	
 	@Test
@@ -248,7 +248,7 @@ class ReadTest {
 			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
-		assertEquals("读取的文件内容与文件哈希${sha}时的读取相同", result.result)
+		assertEquals("读取的文件内容与文件哈希'${sha}'时的读取相同", result.result)
 	}
 	
 	@Test
@@ -272,7 +272,7 @@ class ReadTest {
 			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
-		assertEquals("文件test.txt不存在或访问被拒绝", result.result)
+		assertEquals("读取文件'test.txt'时失败：", result.result)
 	}
 	
 	@Test
@@ -285,7 +285,7 @@ class ReadTest {
 			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
-		assertEquals("当前用户没有权限读取这个文件", result.result)
+		assertEquals("读取文件'test.txt'时失败：", result.result)
 	}
 	
 	// endregion

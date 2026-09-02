@@ -16,6 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.port
+package io.github.autotweaker.core.domain.port.exception
 
-class FileNotFoundException(cause: Throwable) : IllegalStateException("File not found", cause)
+import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.types.exception.I18nableException
+
+class FileNotWritableException :
+	IllegalStateException("File is not writable"),
+	I18nableException {
+	override fun message() = i18n(PortExceptionI18n.FileNotWritableException())
+}

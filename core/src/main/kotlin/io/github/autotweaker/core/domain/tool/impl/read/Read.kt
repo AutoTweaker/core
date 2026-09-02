@@ -20,19 +20,14 @@ package io.github.autotweaker.core.domain.tool.impl.read
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.CatchingResult
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.generated.tool.args.ReadArgs
 import io.github.autotweaker.api.tool.*
-import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.read.ReadRequest
 import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.api.types.tool.text
-import io.github.autotweaker.core.domain.port.FileAccessDeniedException
 import io.github.autotweaker.core.domain.port.FileContent
-import io.github.autotweaker.core.domain.port.FileNotFoundException
 import io.github.autotweaker.core.domain.tool.CoreTool
 import io.github.autotweaker.core.domain.tool.DependencyProvider
 import io.github.autotweaker.core.domain.tool.get
@@ -153,9 +148,11 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				return Rejected(ReadSettings.MessageNotRegularFile().format(displayPath)) {
 					text(i18n(ReadI18n.FileNotRegular(), displayPath))
 				}
-		}.rethrowCancellation().recoverException { _: PathOutsideWorkspaceException ->
-			return Rejected(ReadSettings.MessagePathOutsideWorkspace().get()) {
-				text(i18n(ReadI18n.PathOutsideWorkspace(), filePath))
+		}.rethrowCancellation().getOrElse { e ->
+			return Rejected(
+				ReadSettings.MessageReadFailed().format(displayPath, e.message())
+			) {
+				text(i18n(ReadI18n.Failed(), displayPath, e.message()))
 			}
 		}
 		
@@ -215,7 +212,15 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				lineNumber = request.lineNumber,
 				unicodeEscape = request.unicodeEscape
 			)
-		}.onFsException(request.displayPath) { return it }
+		}.rethrowCancellation().onException { e: StartLineException ->
+			return ReadSettings.MessageStartLineBiggerThanFile().format(e.lineCount).toolFail {
+				text(i18n(ReadI18n.StartLineError(), request.displayPath, e.request, e.lineCount))
+			}
+		}.getOrElse { e ->
+			return ReadSettings.MessageReadFailed().format(request.displayPath, e.message()).toolFail {
+				text(i18n(ReadI18n.Failed(), request.displayPath, e.message()))
+			}
+		}
 		
 		//read-file判重
 		if (request is ReadRequest.File) {
@@ -310,37 +315,6 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		if (result.truncated && !truncated) sb.append(truncateMessage)
 		return FileContent(sb.toString(), truncated || result.truncated, result.sha256)
 	}
-	
-	private inline fun <T> CatchingResult<T>.onFsException(
-		displayPath: Path, output: (Tool.ToolOutput) -> Nothing
-	) = rethrowCancellation()
-		.onException { e: PathOutsideWorkspaceException ->
-			output(ReadSettings.MessagePathOutsideWorkspace().get().toolFail {
-				text(i18n(ReadI18n.PathOutsideWorkspace(), e.path))
-			})
-		}.onException { e: StartLineException ->
-			output(
-				ReadSettings.MessageStartLineBiggerThanFile().get()
-					.format(e.lineCount).toolFail {
-						text(i18n(ReadI18n.StartLineError(), displayPath, e.request, e.lineCount))
-					}
-			)
-		}.onException { _: FileAccessDeniedException ->
-			output(ReadSettings.MessageFileAccessDenied().get().toolFail {
-				text(i18n(ReadI18n.AccessDenied(), displayPath))
-			})
-		}.onException { _: FileNotFoundException ->
-			output(ReadSettings.MessageFileNotFound().format(displayPath).toolFail {
-				text(i18n(ReadI18n.FileNotFound(), displayPath))
-			})
-		}.getOrElse { e ->
-			output(
-				ReadSettings.MessageFileCannotRead().get()
-					.format(displayPath, e.message()).toolFail {
-						text(i18n(ReadI18n.Failed(), displayPath, e.message()))
-					}
-			)
-		}
 	
 	private class StartLineException(val request: Int, val lineCount: Int) :
 		IllegalStateException("Start line bigger than file size")

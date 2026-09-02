@@ -81,8 +81,8 @@ internal object ExceptionI18n {
 	
 	@AutoService(I18nDef::class)
 	class PathOutsideWorkspaceException : I18nBase(
-		zh("路径 '%s' 未被挂载到容器内"),
-		en("Path '%s' is not mounted into the container"),
+		zh("路径 '%s' 超出了容器挂载范围"),
+		en("Path '%s' is outside the container mount range"),
 	)
 	
 	@AutoService(I18nDef::class)

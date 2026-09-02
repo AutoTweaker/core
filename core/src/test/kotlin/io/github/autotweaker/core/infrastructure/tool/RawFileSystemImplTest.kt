@@ -20,8 +20,9 @@ package io.github.autotweaker.core.infrastructure.tool
 
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.TestServices
-import io.github.autotweaker.core.domain.port.FileAlreadyExistsException
-import io.github.autotweaker.core.domain.port.FileNotFoundException
+import io.github.autotweaker.core.domain.port.exception.FileAlreadyExistsException
+import io.github.autotweaker.core.domain.port.exception.FileChangedException
+import io.github.autotweaker.core.domain.port.exception.FileNotFoundException
 import io.github.autotweaker.core.infrastructure.system.RawFileSystemImpl
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Files
@@ -73,11 +74,10 @@ class RawFileSystemImplTest {
 		val path = file("a.txt", "original")
 		val stale = shaOf("something else")
 		
-		val ex = assertFailsWith<IllegalStateException> {
+		assertFailsWith<FileChangedException> {
 			RawFileSystemImpl.update(path, stale, "new")
 		}
 		
-		assertTrue(ex.message!!.contains("File content changed since read"))
 		assertEquals("original", path.readText())
 	}
 	

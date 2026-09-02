@@ -55,11 +55,6 @@ object ReadI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class PathOutsideWorkspace : I18nBase(
-		zh("读取文件失败，%s 不在容器工作区内"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class Request : I18nBase(
 		zh("请求读取 %s（%s）"),
 	)
@@ -107,11 +102,6 @@ object ReadI18n {
 	@AutoService(I18nDef::class)
 	class StartLineError : I18nBase(
 		zh("读取文件 %s 失败，请求的起始行 %s 超出了文件总行数 %s"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class AccessDenied : I18nBase(
-		zh("读取文件 %s 失败，权限不足"),
 	)
 	
 	@AutoService(I18nDef::class)

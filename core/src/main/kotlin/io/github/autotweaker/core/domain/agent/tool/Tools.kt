@@ -25,6 +25,7 @@ import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentOutput
+import io.github.autotweaker.api.types.exception.I18nableException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.exception.notfound.ToolNotFoundException
 import io.github.autotweaker.api.types.llm.ChatMessage
@@ -112,7 +113,14 @@ class Tools(
 					}
 				}.rethrow<SecretStoreLockedException>().rethrowCancellation()
 					.getOrElse { e ->
-						log.error("Failed tool call resolve  agentId={}  tool={}", agentId, result.toolName, e)
+						if (e is I18nableException)
+							log.warn(
+								"Failed tool call resolve  agentId={}  tool={}  exception={}  reason={}",
+								agentId, result.toolName, e::class.simpleName, e.message
+							)
+						else log.error(
+							"Failed tool call resolve  agentId={}  tool={}", agentId, result.toolName, e
+						)
 						Rejected(
 							ToolSettings.ToolResolveError().format(e.message())
 						) {
