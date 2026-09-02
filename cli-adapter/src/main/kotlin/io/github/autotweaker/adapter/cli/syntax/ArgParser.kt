@@ -113,9 +113,8 @@ class ArgParser(
 			}
 		}
 		
-		val declaredPosCount = allParams.count { it is Param.Positional }
-		val requiredPosCount = syntaxValidator.countRequiredPositional(syntax)
-		if (positional.size !in requiredPosCount..declaredPosCount) return null
+		val posRange = syntaxValidator.positionalRange(syntax, values.keys, positional.isNotEmpty())
+		if (posRange != null && positional.size !in posRange) return null
 		
 		if (!syntaxValidator.validate(syntax, values.keys, positional.size)) {
 			log.debug("Failed syntax validation")

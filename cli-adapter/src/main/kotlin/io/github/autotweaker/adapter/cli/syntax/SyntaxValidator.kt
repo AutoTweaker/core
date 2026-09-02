@@ -42,10 +42,40 @@ object SyntaxValidator {
 		return conflicts
 	}
 	
-	fun countRequiredPositional(syntax: Syntax): Int = when (syntax) {
-		is Syntax.All -> if (!syntax.required) 0 else syntax.children.sumOf { countRequiredPositional(it) }
-		is Syntax.Xor -> 0
-		is Syntax.Leaf -> if (syntax.required && syntax.param is Param.Positional) 1 else 0
+	fun positionalRange(
+		syntax: Syntax, activeValues: Set<String>, hasPositional: Boolean,
+	): IntRange? = when (syntax) {
+		is Syntax.Leaf -> when (syntax.param) {
+			is Param.Positional ->
+				if (!syntax.required && !hasPositional) null
+				else (if (syntax.required) 1 else 0)..1
+			
+			else -> if (syntax.param.name in activeValues) 0..0 else null
+		}
+		
+		is Syntax.All -> {
+			if (!syntax.required && !hasPositional && syntax.children.none { isActive(it, activeValues) }) {
+				null
+			} else {
+				syntax.children.fold(0..0) { acc, child ->
+					val childRange =
+						positionalRange(child, activeValues, hasPositionalParam(child) && hasPositional)
+							?: return@fold acc
+					(acc.first + childRange.first)..(acc.last + childRange.last)
+				}
+			}
+		}
+		
+		is Syntax.Xor -> {
+			val byParam = syntax.children.filter { isActive(it, activeValues) }
+			val effectiveHasPos = byParam.isEmpty() && hasPositional
+			val candidates =
+				if (effectiveHasPos) syntax.children.filter { isActive(it, activeValues, hasPositional = true) }
+				else byParam
+			if (candidates.size == 1) {
+				positionalRange(candidates.single(), activeValues, hasPositional)
+			} else null
+		}
 	}
 	
 	fun validate(

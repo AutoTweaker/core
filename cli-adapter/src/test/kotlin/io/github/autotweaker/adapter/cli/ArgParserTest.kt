@@ -50,6 +50,8 @@ class ArgParserTest {
 	
 	private fun all(vararg children: Syntax, required: Boolean = true) = Syntax.All(children.toList(), required)
 	
+	private fun xor(vararg children: Syntax, required: Boolean = true) = Syntax.Xor(children.toList(), required)
+	
 	// ── flag parsing ──────────────────────────────────────────────
 	
 	@Test
@@ -200,6 +202,41 @@ class ArgParserTest {
 		assertNotNull(r)
 		assertTrue(r.has("verbose"))
 		assertEquals(listOf("input.txt"), r.positional)
+	}
+	
+	@Test
+	fun positionalLimitedToActiveXorBranch() {
+		val syntax = all(
+			xor(
+				all(flag("new"), positional("message")),
+				all(value("send"), positional("message")),
+				value("status"),
+			)
+		)
+		val r = parse(syntax, "--send", "id", "hello")
+		assertNotNull(r)
+		assertEquals(listOf("hello"), r.positional)
+		assertNull(parse(syntax, "--send", "id", "hello", "world"))
+		assertNull(parse(syntax, "--send", "id", "hello", "world", "again"))
+		assertNull(parse(syntax, "--status", "id", "extra"))
+		val r2 = parse(syntax, "--new", "hello")
+		assertNotNull(r2)
+		assertEquals(listOf("hello"), r2.positional)
+		assertNull(parse(syntax, "--new", "hello", "world"))
+	}
+	
+	@Test
+	fun requiredPositionalInMutuallyExclusiveBranches() {
+		val syntax = xor(
+			all(flag("alpha"), positional("src", required = true)),
+			all(flag("beta"), positional("dst", required = true)),
+		)
+		val r = parse(syntax, "--alpha", "one")
+		assertNotNull(r)
+		assertEquals(listOf("one"), r.positional)
+		assertNotNull(parse(syntax, "--beta", "two"))
+		assertNull(parse(syntax, "--alpha"))
+		assertNull(parse(syntax, "--alpha", "one", "two"))
 	}
 	
 	@Test

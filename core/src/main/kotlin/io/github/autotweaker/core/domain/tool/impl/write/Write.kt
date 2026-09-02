@@ -105,13 +105,16 @@ class Write : CoreTool<WriteArgs>, Traceable {
 				}
 			}
 		}
+		val oldContent = fileContent?.let {
+			if (it.truncated) null else it.content
+		}
 		val write = i18n(if (sha256 == null) WriteI18n.Create() else WriteI18n.Update())
 		return Ready(
 			requestSerializer,
-			WriteRequest(path, displayPath, fileContent?.let { it.content to it.sha256 }, newContent),
+			WriteRequest(path, displayPath, fileContent?.let { oldContent to it.sha256 }, newContent),
 			request = { reason ->
 				text(i18n(WriteI18n.Request(), write, displayPath, reason))
-				diff(path, fileContent?.content, newContent)
+				diff(path, oldContent, newContent)
 			},
 			executing = {
 				text(i18n(WriteI18n.Executing(), write, displayPath))
@@ -123,7 +126,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 				if (reason == null)
 					text(i18n(WriteI18n.Rejected(), write, displayPath))
 				else text(i18n(WriteI18n.RejectedWithReason(), write, displayPath, reason))
-				diff(path, fileContent?.content, newContent)
+				diff(path, oldContent, newContent)
 			},
 			failed = { e ->
 				text(i18n(WriteI18n.Failed(), write, displayPath, e.message()))
@@ -143,28 +146,28 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val fileSystem = dependency.get<FileSystemService>()
 		val sha256 = request.expected?.second
 		if (sha256 == null) {
-			fileSystem.create(request.path, request.content)
+			val result = fileSystem.create(request.path, request.content)
 			return WriteMessage.Created().format(
 				request.displayPath,
-				unifiedDiff(
-					null,
-					request.content
-				) ?: WriteMessage.Unchanged().get()
+				result
 			).toolSuccess {
 				text(i18n(WriteI18n.Created(), request.displayPath))
 				diff(request.path, null, request.content)
 			}
 		} else {
-			fileSystem.update(request.path, sha256, request.content)
+			val result = fileSystem.update(request.path, sha256, request.content)
+			val oldContent = request.expected?.first
 			return WriteMessage.Updated().format(
 				request.displayPath,
-				unifiedDiff(
-					request.expected?.first,
+				result,
+				if (oldContent != null) unifiedDiff(
+					oldContent,
 					request.content
 				) ?: WriteMessage.Unchanged().get()
+				else WriteMessage.TooLarge().get()
 			).toolSuccess {
 				text(i18n(WriteI18n.Updated(), request.displayPath))
-				diff(request.path, request.expected?.first, request.content)
+				diff(request.path, oldContent, request.content)
 			}
 		}
 	}

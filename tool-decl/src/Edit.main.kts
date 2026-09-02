@@ -26,22 +26,33 @@ tool("edit") {
 		enum("unescape_config", "disable", "default", "lenient_mode")
 	}
 	
+	val replacement = buildDeclaration {
+		obj("replacement") {
+			int("line_from") {
+				required = false
+			}
+			int("line_to") {
+				required = false
+			}
+			string("old_string")
+			param("unescape_old", unescapeConfig) {
+				required = false
+			}
+			string("new_string")
+			param("unescape_new", unescapeConfig) {
+				required = false
+			}
+		}
+	}
+	
+	val edits = buildDeclaration {
+		list(replacement)
+	}
+	
 	function("file") {
 		string("file_path")
-		int("line_from") {
-			required = false
-		}
-		int("line_to") {
-			required = false
-		}
-		string("old_string")
-		param("unescape_old", unescapeConfig) {
-			required = false
-		}
-		string("new_string")
-		param("unescape_new", unescapeConfig) {
-			required = false
-		}
+		string("sha256")
+		param("edits", edits)
 	}
 }.gen(
 	"io.github.autotweaker.api.generated.tool.args",

@@ -25,9 +25,45 @@ import io.github.autotweaker.api.config.SettingDef
 
 object EditMessage {
 	@AutoService(SettingDef::class)
+	class InvalidHash : StringSetting(
+		"无效的哈希：%s",
+		zh("edit工具sha256参数非法时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
 	class ReadFailed : StringSetting(
 		"读取目标文件时出错：%s",
 		zh("edit工具读取目标文件失败时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class FileTooLarge : StringSetting(
+		"目标文件可能超出了10MB，程序无法完整读取，也无法计算更新后的完整内容",
+		zh("edit工具目标文件过大时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class HashMismatch : StringSetting(
+		"编辑文件失败，SHA256不匹配，文件已被外部更新，请重新读取文件",
+		zh("edit工具SHA256校验失败时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class HasInvalidReplacement : StringSetting(
+		"以下%s个编辑段存在错误，文件没有被更新：",
+		zh("edit工具编辑段校验失败时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class ReplacementInvalid : StringSetting(
+		"编辑段%s存在错误：",
+		zh("edit工具编辑段校验失败时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class ReplacementDuplicate : StringSetting(
+		"编辑段%s与%s重叠",
+		zh("edit工具编辑段重叠的描述")
 	)
 	
 	@AutoService(SettingDef::class)
@@ -43,9 +79,21 @@ object EditMessage {
 	)
 	
 	@AutoService(SettingDef::class)
+	class LineToOutOfFile : StringSetting(
+		"line_to超出了文件总行数（%s行）",
+		zh("edit工具line_to超出文件的描述")
+	)
+	
+	@AutoService(SettingDef::class)
 	class InvalidEscape : StringSetting(
 		"%s中包含非法或未知的转义序列：%s",
 		zh("edit工具字符串转义非法时的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class EditsEmpty : StringSetting(
+		"edits不能为空",
+		zh("edit工具edits数组为空时的描述")
 	)
 	
 	@AutoService(SettingDef::class)
@@ -56,19 +104,23 @@ object EditMessage {
 	
 	@AutoService(SettingDef::class)
 	class NoMatch : StringSetting(
-		"指定的范围内没有old_string的匹配项。文件可能已经被外部修改，请重新读取文件确认当前状态符合预期，并确保提供的字符精确",
+		"以下指定的范围内没有old_string的匹配项。\n" +
+				"%s\n" +
+				"请重新读取文件确认当前状态符合预期，并确保提供的字符精确。你可以使用read工具的Unicode转义模式获取指定片段的精确内容",
 		zh("edit工具未找到old_string匹配项时的描述")
 	)
 	
 	@AutoService(SettingDef::class)
 	class NotUnique : StringSetting(
-		"指定的范围内存在多处old_string的匹配项。文件可能已经被外部修改，请重新读取文件确认当前状态符合预期，请尝试缩小行区间或在old_string中提供更多上下文",
+		"以下指定的范围内存在多处old_string的匹配项。\n" +
+				"%s\n" +
+				"请尝试缩小行区间或在old_string中提供更多上下文",
 		zh("edit工具存在多处匹配项时的描述")
 	)
 	
 	@AutoService(SettingDef::class)
 	class Updated : StringSetting(
-		"已更新文件 %s：\n%s",
+		"已更新文件 %s，当前 SHA256：%s，文件变更：\n%s",
 		zh("edit工具更新文件成功时的响应")
 	)
 	

@@ -106,7 +106,8 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		trace.catching {
 			Files.newInputStream(path).use { input ->
 				val hasher = Hashing.sha256().newHasher()
-				val reader = InputStreamReader(HashingInputStream(input, hasher), Charsets.UTF_8)
+				val hashing = HashingInputStream(input, hasher)
+				val reader = InputStreamReader(hashing, Charsets.UTF_8)
 				val initialSize = minOf(
 					maxOf(Files.size(path), BUFFER_SIZE.toLong()),
 					MAX_READ_CHARS.toLong()
@@ -121,9 +122,17 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 						chars = chars.copyOf(minOf(chars.size * 2, MAX_READ_CHARS))
 					}
 				}
+				val truncated = total == MAX_READ_CHARS && reader.read() != -1
+				if (truncated) {
+					val buffer = ByteArray(BUFFER_SIZE)
+					while (true) {
+						val read = hashing.read(buffer)
+						if (read < 0) break
+					}
+				}
 				FileContent(
 					String(chars, 0, total),
-					total == MAX_READ_CHARS && reader.read() != -1,
+					truncated,
 					Sha256(hasher.hash()),
 				)
 			}
@@ -146,8 +155,9 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}.rethrowFileSystemException()
 	}
 	
-	override suspend fun create(path: Path, content: String) = withContext(Dispatchers.IO) {
+	override suspend fun create(path: Path, content: String): Sha256 = withContext(Dispatchers.IO) {
 		val target = path.toAbsolutePath()
+		val bytes = content.toByteArray()
 		trace.catching {
 			pathLocks[target.hashCode() and 255].withLock {
 				target.parent?.let { Files.createDirectories(it) }
@@ -157,19 +167,20 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 						.use { channel ->
 							created = true
 							trace.catching { Files.setPosixFilePermissions(target, ownerOnly) }
-							val buffer = ByteBuffer.wrap(content.toByteArray())
+							val buffer = ByteBuffer.wrap(bytes)
 							while (buffer.hasRemaining()) channel.write(buffer)
 							channel.force(true)
 						}
 				}.also { result ->
 					if (created && result.isFailure) trace.catching { Files.deleteIfExists(target) }
 				}.getOrThrow()
+				Sha256(Hashing.sha256().hashBytes(bytes))
 			}
 		}.also { target.parent?.let { fsyncDir(it) } }
 			.rethrowFileSystemException()
 	}
 	
-	override suspend fun update(path: Path, expected: Sha256, new: String) =
+	override suspend fun update(path: Path, expected: Sha256, new: String): Sha256 =
 		withContext(Dispatchers.IO) {
 			trace.catching {
 				val target = path.toRealPath()
@@ -182,24 +193,27 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 			}.rethrowFileSystemException()
 		}
 	
-	private fun atomicReplace(path: Path, new: String) {
+	private fun atomicReplace(path: Path, new: String): Sha256 {
 		val tmp = path.resolveSibling(".${path.fileName}.${UUID()}.tmp")
-		trace.catching {
+		val hash = trace.catching {
+			val bytes = new.toByteArray()
 			FileChannel.open(tmp, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
 				.use { channel ->
 					trace.catching { Files.setPosixFilePermissions(tmp, ownerOnly) }
-					val buffer = ByteBuffer.wrap(new.toByteArray())
+					val buffer = ByteBuffer.wrap(bytes)
 					while (buffer.hasRemaining()) channel.write(buffer)
 					channel.force(true)
 				}
 			copyMetadata(path, tmp)
 			Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+			Sha256(Hashing.sha256().hashBytes(bytes))
 		}.also { result ->
 			if (result.isFailure) trace.catching { Files.deleteIfExists(tmp) }
 		}.rethrowCancellation()
 			.onFailure { log.error("Failed to write file  path={}  reason={}", path, it.message, it) }
 			.getOrThrow()
 		path.parent?.let { fsyncDir(it) }
+		return hash
 	}
 	
 	private fun copyMetadata(from: Path, to: Path) {

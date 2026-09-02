@@ -21,10 +21,7 @@ package io.github.autotweaker.adapter.cli
 import io.github.autotweaker.adapter.cli.syntax.Param
 import io.github.autotweaker.adapter.cli.syntax.Syntax
 import io.github.autotweaker.adapter.cli.syntax.SyntaxValidator
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class SyntaxValidatorTest {
 	
@@ -220,27 +217,38 @@ class SyntaxValidatorTest {
 	}
 	
 	@Test
-	fun countRequiredPositional() {
-		val syntax = all(
-			positional("src", required = true),
-			positional("dst", required = true),
+	fun positionalRangeOnlyCountsActiveXorBranch() {
+		val syntax = xor(
+			all(flag("new"), positional("msg")),
+			all(value("send"), positional("msg")),
+			value("status"),
 		)
-		assertEquals(2, SyntaxValidator.countRequiredPositional(syntax))
+		assertEquals(0..1, SyntaxValidator.positionalRange(syntax, setOf("send"), true))
+		assertEquals(0..1, SyntaxValidator.positionalRange(syntax, setOf("new"), true))
+		assertEquals(0..0, SyntaxValidator.positionalRange(syntax, setOf("status"), true))
+		assertEquals(0..0, SyntaxValidator.positionalRange(syntax, setOf("send"), false))
 	}
 	
 	@Test
-	fun countRequiredPositionalWithOptional() {
+	fun positionalRangeCountsSequentialRequired() {
 		val syntax = all(
-			positional("src", required = true),
-			positional("dst"),
+			flag("show"),
+			positional("a", required = true),
+			positional("b", required = true),
 		)
-		assertEquals(1, SyntaxValidator.countRequiredPositional(syntax))
+		assertEquals(2..2, SyntaxValidator.positionalRange(syntax, setOf("show"), true))
+		assertEquals(2..2, SyntaxValidator.positionalRange(syntax, setOf("show"), false))
 	}
 	
 	@Test
-	fun countRequiredPositionalXorReturnsZero() {
-		val syntax = xor(positional("a", required = true), positional("b", required = true))
-		assertEquals(0, SyntaxValidator.countRequiredPositional(syntax))
+	fun positionalRangeOptionalGroupAbsent() {
+		val syntax = all(
+			positional("a", required = true),
+			positional("b", required = true),
+			required = false,
+		)
+		assertNull(SyntaxValidator.positionalRange(syntax, emptySet(), false))
+		assertEquals(2..2, SyntaxValidator.positionalRange(syntax, emptySet(), true))
 	}
 	
 	// ── collectParams ─────────────────────────────────────────────

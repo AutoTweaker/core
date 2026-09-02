@@ -29,6 +29,6 @@ data class WriteRequest(
 	val path: Path,
 	@Serializable(with = PathSerializer::class)
 	val displayPath: Path,
-	val expected: Pair<String, Sha256>?,
+	val expected: Pair<String?, Sha256>?,
 	val content: String,
 )

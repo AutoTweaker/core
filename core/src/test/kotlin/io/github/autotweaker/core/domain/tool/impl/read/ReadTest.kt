@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.tool.impl.read
 
 import io.github.autotweaker.api.generated.tool.args.ReadArgs
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
@@ -210,7 +211,11 @@ class ReadTest {
 		val c = container(mockFs(content = "line1\nline2"))
 		c.register(history())
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 2, lineNumber = true, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertTrue(result.success)
 		assertEquals("$sha\n1\tline1\n2\tline2\n", result.result)
@@ -221,7 +226,11 @@ class ReadTest {
 		val c = container(mockFs(content = "line1\nline2"))
 		c.register(history())
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 1, 2, false, false)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 2, lineNumber = false, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertTrue(result.success)
 		assertEquals("$sha\nline1\nline2\n", result.result)
@@ -232,20 +241,70 @@ class ReadTest {
 		val c = container(mockFs(content = "中"))
 		c.register(history())
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 1, 1, false, true)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 1, lineNumber = false, unicodeEscape = true)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertTrue(result.success)
 		assertEquals("$sha\n\\u4E2D\n", result.result)
 	}
 	
 	@Test
+	fun `exec file long single line truncated in line`() = runTest {
+		val c = container(mockFs(content = "a".repeat(100_100)))
+		c.register(history())
+		val result =
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 1, lineNumber = false, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
+		
+		assertTrue(result.success)
+		assertEquals(
+			"$sha\n" + "a".repeat(99_999) + "\n" + ReadSettings.TruncateMessage().get(),
+			result.result
+		)
+	}
+	
+	@Test
+	fun `exec file long line with unicode escape truncated in line`() = runTest {
+		val c = container(mockFs(content = "中".repeat(20_000)))
+		c.register(history())
+		val result =
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 1, lineNumber = false, unicodeEscape = true)),
+				Channel(Channel.UNLIMITED)
+			)
+		
+		assertTrue(result.success)
+		assertEquals(
+			"$sha\n" + "\\u4E2D".repeat(16_666) + "\\u4E2D".take(3) + "\n" + ReadSettings.TruncateMessage().get(),
+			result.result
+		)
+	}
+	
+	@Test
 	fun `exec file duplicate returns duplicate message`() = runTest {
 		val c = container(mockFs(content = "line1\nline2"))
 		c.register(
-			history(ReadRequest.File(path, path, 1, 2, true, false) to ReadResult(sha, "$sha\nold", false))
+			history(
+				ReadRequest.File(path, path, 1, 2, lineNumber = true, unicodeEscape = false) to ReadResult(
+					sha,
+					"$sha\nold",
+					false
+				)
+			)
 		)
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 1, 2, true, false)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 2, lineNumber = true, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertTrue(result.success)
 		assertEquals("读取的文件内容与文件哈希'${sha}'时的读取相同", result.result)
@@ -256,7 +315,11 @@ class ReadTest {
 		val c = container(mockFs(content = "a\nb\nc"))
 		c.register(history())
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 5, 5, true, false)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 5, 5, lineNumber = true, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertFalse(result.success)
 		assertEquals("start_line超出了文件可读行数（3）", result.result)
@@ -269,7 +332,11 @@ class ReadTest {
 		val c = container(fs)
 		c.register(history())
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 1, lineNumber = true, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertFalse(result.success)
 		assertEquals("读取文件'test.txt'时失败：", result.result)
@@ -282,7 +349,11 @@ class ReadTest {
 		val c = container(fs)
 		c.register(history())
 		val result =
-			read.execute(c, request(ReadRequest.File(path, path, 1, 1, true, false)), Channel(Channel.UNLIMITED))
+			read.execute(
+				c,
+				request(ReadRequest.File(path, path, 1, 1, lineNumber = true, unicodeEscape = false)),
+				Channel(Channel.UNLIMITED)
+			)
 		
 		assertFalse(result.success)
 		assertEquals("读取文件'test.txt'时失败：", result.result)

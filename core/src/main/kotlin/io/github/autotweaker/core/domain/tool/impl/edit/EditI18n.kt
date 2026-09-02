@@ -40,18 +40,23 @@ object EditI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class FileTooLarge : I18nBase(
+		zh("编辑文件 %s 失败，文件过大"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class UpdateFailedChanged : I18nBase(
+		zh("编辑文件 %s 失败，文件已被外部更改"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class InvalidEscape : I18nBase(
 		zh("编辑文件 %s 失败，非法的转义"),
 	)
 	
 	@AutoService(I18nDef::class)
-	class NoMatch : I18nBase(
-		zh("编辑文件 %s 失败，无匹配内容"),
-	)
-	
-	@AutoService(I18nDef::class)
-	class NotUnique : I18nBase(
-		zh("编辑文件 %s 失败，匹配项不唯一"),
+	class MatchFailed : I18nBase(
+		zh("编辑文件 %s 失败，无匹配内容或匹配项不唯一"),
 	)
 	
 	@AutoService(I18nDef::class)

@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.tool.edit
 
+import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.serializer.PathSerializer
 import kotlinx.serialization.Serializable
@@ -31,4 +32,6 @@ data class EditRequest(
 	val displayPath: Path,
 	val expected: Pair<String, Sha256>,
 	val newContent: String,
+	val skippedNoMatch: PairList<Int, Int>,
+	val skippedNotUnique: PairList<Int, Int>,
 )

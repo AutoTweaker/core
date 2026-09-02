@@ -300,19 +300,18 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val sb = StringBuilder()
 		var truncated = false
 		for (i in selectedLines.indices) {
+			val prefix = if (lineNumber) "${startLine + i}\t" else ""
 			val line = if (unicodeEscape) selectedLines[i].toUnicodeEscape()
 			else selectedLines[i]
-			sb.appendLine(
-				if (lineNumber) "${startLine + i}\t$line"
-				else line
-			)
-			if (sb.length > maxChars) {
-				sb.append(truncateMessage)
+			val remain = maxChars - sb.length - prefix.length - 1
+			if (line.length > remain) {
 				truncated = true
+				if (remain > 0) sb.append(prefix).append(line, 0, remain).append('\n')
 				break
 			}
+			sb.append(prefix).append(line).append('\n')
 		}
-		if (result.truncated && !truncated) sb.append(truncateMessage)
+		if (truncated || result.truncated) sb.append(truncateMessage)
 		return FileContent(sb.toString(), truncated || result.truncated, result.sha256)
 	}
 	

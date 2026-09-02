@@ -219,7 +219,9 @@ class RawFileSystemImplTest {
 	
 	@Test
 	fun `read sha256 covers full file even when truncated`() = runTest {
-		val full = "x".repeat(10 * 1024 * 1024 + 1)
+		// 文件须远大于截断阈值 + Reader 缓冲(8K):若只大 1 字节,截断探测的那次拉取
+		// 恰好覆盖整个文件,截断后漏哈希的 bug 无法暴露
+		val full = "x".repeat(10 * 1024 * 1024 + 1024 * 1024)
 		val path = file("big.txt", full)
 		
 		val result = RawFileSystemImpl.read(path)

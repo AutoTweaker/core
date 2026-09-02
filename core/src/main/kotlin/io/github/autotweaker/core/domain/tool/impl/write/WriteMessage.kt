@@ -50,14 +50,20 @@ object WriteMessage {
 	
 	@AutoService(SettingDef::class)
 	class Created : StringSetting(
-		"创建了文件 %s：\n%s",
+		"创建了文件 %s，新文件 SHA256：%s",
 		zh("write工具创建文件成功时的响应")
 	)
 	
 	@AutoService(SettingDef::class)
 	class Updated : StringSetting(
-		"覆盖了文件 %s：\n%s",
+		"覆盖了文件 %s，当前 SHA256：%s，文件变更：\n%s",
 		zh("write工具更新文件成功时的响应")
+	)
+	
+	@AutoService(SettingDef::class)
+	class TooLarge : StringSetting(
+		"文件的旧内容过大（可能超过了10MB），完整diff无法展示",
+		zh("write工具更新文件成功但旧内容过大时的响应")
 	)
 	
 	@AutoService(SettingDef::class)

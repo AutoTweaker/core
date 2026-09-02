@@ -29,6 +29,7 @@ import io.github.autotweaker.api.tool.Ready
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.toolSuccess
+import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.tool.diff
 import io.github.autotweaker.api.types.tool.edit.EditRequest
 import io.github.autotweaker.api.types.tool.text
@@ -49,18 +50,38 @@ class Edit : CoreTool<EditArgs>, Traceable {
 			functions = EditMetaDescriptions.Functions(
 				file = EditMetaDescriptions.Functions.File(
 					filePath = ToolSettings.FilePathDesc().get(),
+					sha256 = EditDesc.Sha256().get(),
+					edits = EditDesc.Edits().get()
+				) to EditDesc.Single().get()
+			),
+			types = EditMetaDescriptions.Types(
+				replacement = EditMetaDescriptions.Types.Replacement(
 					lineFrom = EditDesc.LineFrom().get(),
 					lineTo = EditDesc.LineTo().get(),
 					oldString = EditDesc.OldString().get(),
 					unescapeOld = EditDesc.UnescapeOldString().get(),
 					newString = EditDesc.NewString().get(),
 					unescapeNew = EditDesc.UnescapeNewString().get()
-				) to EditDesc.Single().get()
-			),
+				)
+			)
 		)
 	)
 	
 	private val requestSerializer = EditRequest.serializer()
+	
+	private class ParsedEdit(
+		val lineFrom: Int,
+		val lineTo: Int,
+		val oldString: String,
+		val newString: String,
+		val range: IntRange,
+	)
+	
+	private class AppliedEdit(
+		val start: Int,
+		val end: Int,
+		val newString: String,
+	)
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: EditArgs): Tool.ResolveResult {
 		val request = args as EditArgs.File
@@ -75,6 +96,13 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		
 		val displayPath = fileSystem.displayPath(path)
 		
+		val sha256 = trace.catching { Sha256(request.sha256) }
+			.getOrElse { e ->
+				return Rejected(EditMessage.InvalidHash().format(e.message)) {
+					text(i18n(EditI18n.InvalidArg(), displayPath))
+				}
+			}
+		
 		val fileContent = trace.catching { fileSystem.read(path) }
 			.getOrElse { e ->
 				return Rejected(EditMessage.ReadFailed().format(e.message())) {
@@ -82,72 +110,123 @@ class Edit : CoreTool<EditArgs>, Traceable {
 				}
 			}
 		
-		val lineFrom = request.lineFrom ?: 1
-		val lineTo = request.lineTo
-		
-		if (lineFrom < 1) return Rejected(EditMessage.LineFromInvalid().get()) {
-			text(i18n(EditI18n.InvalidArg(), displayPath))
-		}
-		if (lineTo != null && lineTo < lineFrom) return Rejected(EditMessage.LineToInvalid().get()) {
-			text(i18n(EditI18n.InvalidArg(), displayPath))
+		if (fileContent.truncated) return Rejected(EditMessage.FileTooLarge().get()) {
+			text(i18n(EditI18n.FileTooLarge(), displayPath))
 		}
 		
-		val oldString = trace.catching { request.oldString.unescape(request.unescapeOld) }
-			.getOrElse { e ->
-				return Rejected(EditMessage.InvalidEscape().format("old_string", e.message)) {
-					text(i18n(EditI18n.InvalidEscape(), displayPath))
-				}
-			}
-		
-		if (oldString.isEmpty()) return Rejected(EditMessage.OldStringEmpty().get()) {
-			text(i18n(EditI18n.InvalidArg(), displayPath))
-		}
-		
-		val newString = trace.catching { request.newString.unescape(request.unescapeNew) }
-			.getOrElse { e ->
-				return Rejected(EditMessage.InvalidEscape().format("new_string", e.message)) {
-					text(i18n(EditI18n.InvalidEscape(), displayPath))
-				}
+		if (fileContent.sha256 != sha256)
+			return Rejected(EditMessage.HashMismatch().get()) {
+				text(i18n(EditI18n.UpdateFailedChanged(), displayPath))
 			}
 		
 		val oldContent = fileContent.content
-		var lineStart = 0
-		repeat(lineFrom - 1) {
-			val next = oldContent.indexOf('\n', lineStart)
-			lineStart = if (next == -1) oldContent.length else next + 1
+		
+		if (request.edits.isEmpty()) return Rejected(EditMessage.EditsEmpty().get()) {
+			text(i18n(EditI18n.InvalidArg(), displayPath))
 		}
-		var lineEnd = oldContent.length
-		if (lineTo != null) {
-			var cursor = lineStart
-			repeat(lineTo - lineFrom) {
-				val next = oldContent.indexOf('\n', cursor)
-				cursor = if (next == -1) oldContent.length else next + 1
+		
+		val lastLine = lastLineNumber(oldContent)
+		val parsed = mutableListOf<ParsedEdit>()
+		val errors = mutableListOf<String>()
+		request.edits.forEach { edit ->
+			val lineFrom = edit.lineFrom ?: 1
+			val lineTo = edit.lineTo ?: lastLine
+			fun replacementInvalid(reason: String) {
+				errors += EditMessage.ReplacementInvalid().format("$lineFrom-$lineTo") + reason
 			}
-			val next = oldContent.indexOf('\n', cursor)
-			if (next != -1) lineEnd = next
-		}
-		
-		val rangeContent = oldContent.substring(lineStart, lineEnd)
-		val matchIndex = rangeContent.indexOf(oldString)
-		
-		if (matchIndex == -1) return Rejected(EditMessage.NoMatch().get()) {
-			text(i18n(EditI18n.NoMatch(), displayPath))
-		}
-		if (matchIndex != rangeContent.lastIndexOf(oldString))
-			return Rejected(EditMessage.NotUnique().get()) {
-				text(i18n(EditI18n.NotUnique(), displayPath))
+			if (lineFrom < 1) {
+				replacementInvalid(EditMessage.LineFromInvalid().get())
+				return@forEach
 			}
+			if (lineTo < lineFrom) {
+				replacementInvalid(EditMessage.LineToInvalid().get())
+				return@forEach
+			}
+			if (lineTo > lastLine) {
+				replacementInvalid(EditMessage.LineToOutOfFile().format(lastLine))
+				return@forEach
+			}
+			val oldString = trace.catching { edit.oldString.unescape(edit.unescapeOld) }
+				.getOrElse { e ->
+					replacementInvalid(EditMessage.InvalidEscape().format("old_string", e.message))
+					return@forEach
+				}
+			if (oldString.isEmpty()) {
+				replacementInvalid(EditMessage.OldStringEmpty().get())
+				return@forEach
+			}
+			val newString = trace.catching { edit.newString.unescape(edit.unescapeNew) }
+				.getOrElse { e ->
+					replacementInvalid(EditMessage.InvalidEscape().format("new_string", e.message))
+					return@forEach
+				}
+			parsed += ParsedEdit(
+				lineFrom,
+				lineTo,
+				oldString,
+				newString,
+				lineRange(oldContent, lineFrom, lineTo)
+			)
+		}
 		
-		val newContent = oldContent.replaceRange(
-			lineStart + matchIndex,
-			lineStart + matchIndex + oldString.length,
-			newString
-		)
+		if (errors.isNotEmpty()) return Rejected(buildString {
+			appendLine(EditMessage.HasInvalidReplacement().format(errors.count()))
+			errors.forEach {
+				appendLine(it)
+			}
+		}) {
+			text(i18n(EditI18n.InvalidArg(), displayPath))
+		}
+		
+		val ordered = parsed.sortedBy { it.range.first }
+		
+		for (i in 1 until ordered.size) {
+			val previous = ordered[i - 1]
+			val current = ordered[i]
+			if (previous.range.last + 1 > current.range.first)
+				return Rejected(
+					EditMessage.ReplacementDuplicate().format(
+						"${previous.lineFrom}-${previous.lineTo}",
+						"${current.lineFrom}-${current.lineTo}"
+					)
+				) {
+					text(i18n(EditI18n.InvalidArg(), displayPath))
+				}
+		}
+		
+		val noMatch = mutableListOf<Pair<Int, Int>>()
+		val notUnique = mutableListOf<Pair<Int, Int>>()
+		val applied = mutableListOf<AppliedEdit>()
+		
+		ordered.forEach { edit ->
+			val fragment = oldContent.substring(edit.range.first, edit.range.last + 1)
+			val matchIndex = fragment.indexOf(edit.oldString)
+			when {
+				matchIndex == -1 -> noMatch += edit.lineFrom to edit.lineTo
+				matchIndex != fragment.lastIndexOf(edit.oldString) -> notUnique += edit.lineFrom to edit.lineTo
+				else -> {
+					val start = edit.range.first + matchIndex
+					applied += AppliedEdit(start, start + edit.oldString.length, edit.newString)
+				}
+			}
+		}
+		
+		val newContent = spliceContent(oldContent, applied)
+		
+		if (applied.isEmpty())
+			return Rejected(matchMessages(noMatch, notUnique)) {
+				text(i18n(EditI18n.MatchFailed(), displayPath))
+			}
 		
 		return Ready(
 			requestSerializer,
 			EditRequest(
-				path, displayPath, oldContent to fileContent.sha256, newContent
+				path,
+				displayPath,
+				oldContent to fileContent.sha256,
+				newContent,
+				noMatch,
+				notUnique
 			),
 			request = { reason ->
 				text(i18n(EditI18n.Request(), displayPath, reason))
@@ -182,6 +261,39 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		}
 	}
 	
+	private fun lineRange(content: String, lineFrom: Int, lineTo: Int): IntRange {
+		var start = 0
+		repeat(lineFrom - 1) {
+			val next = content.indexOf('\n', start)
+			start = if (next == -1) content.length else next + 1
+		}
+		var cursor = start
+		repeat(lineTo - lineFrom) {
+			val next = content.indexOf('\n', cursor)
+			cursor = if (next == -1) content.length else next + 1
+		}
+		val next = content.indexOf('\n', cursor)
+		return start until if (next == -1) content.length else next
+	}
+	
+	private fun lastLineNumber(content: String): Int {
+		if (content.isEmpty()) return 1
+		return content.count { it == '\n' } + if (content.endsWith('\n')) 0 else 1
+	}
+	
+	private fun spliceContent(content: String, applied: List<AppliedEdit>): String {
+		if (applied.isEmpty()) return content
+		val builder = StringBuilder(content.length)
+		var cursor = 0
+		for (edit in applied.sortedBy { it.start }) {
+			builder.append(content, cursor, edit.start)
+			builder.append(edit.newString)
+			cursor = edit.end
+		}
+		builder.append(content, cursor, content.length)
+		return builder.toString()
+	}
+	
 	override suspend fun execute(
 		dependency: DependencyProvider,
 		request: JsonElement,
@@ -190,21 +302,28 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		val request = Json.decodeFromJsonElement(requestSerializer, request)
 		val fileSystem = dependency.get<FileSystemService>()
 		val oldContent = request.expected.first
-		val sha256 = request.expected.second
-		fileSystem.update(request.path, sha256, request.newContent)
-		return EditMessage.Updated().format(
-			request.displayPath,
-			unifiedDiff(
-				oldContent,
-				request.newContent
-			) ?: EditMessage.Unchanged().get()
-		).toolSuccess {
+		val expected = request.expected.second
+		val sha256 = fileSystem.update(request.path, expected, request.newContent)
+		val diffText = unifiedDiff(oldContent, request.newContent) ?: EditMessage.Unchanged().get()
+		val result = buildString {
+			append(EditMessage.Updated().format(request.displayPath, sha256, diffText))
+			val skipped = matchMessages(request.skippedNoMatch, request.skippedNotUnique)
+			if (skipped.isNotEmpty()) append("\n\n").append(skipped)
+		}
+		return result.toolSuccess {
 			text(i18n(EditI18n.Updated(), request.displayPath))
-			diff(
-				request.path,
-				oldContent,
-				request.newContent
-			)
+			diff(request.path, oldContent, request.newContent)
 		}
 	}
+	
+	private fun matchMessages(noMatch: List<Pair<Int, Int>>, notUnique: List<Pair<Int, Int>>) = buildString {
+		if (noMatch.isNotEmpty())
+			appendLine(EditMessage.NoMatch().format(joinedRanges(noMatch)))
+		if (noMatch.isNotEmpty() && notUnique.isNotEmpty()) appendLine()
+		if (notUnique.isNotEmpty())
+			appendLine(EditMessage.NotUnique().format(joinedRanges(notUnique)))
+	}
+	
+	private fun joinedRanges(ranges: List<Pair<Int, Int>>) =
+		ranges.joinToString { "${it.first}-${it.second}" }
 }
