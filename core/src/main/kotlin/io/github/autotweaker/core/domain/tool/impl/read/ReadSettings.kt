@@ -34,7 +34,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class ReadFileDescription : StringSetting(
-		"读取一个文件，最大字符数%s，最大行数%s，返回内容的第一行为文件内容的SHA256，第二行开始是文件内容，注意区分。\n请注意：始终使用此工具而不是bash来获取文件内容",
+		"读取一个文件，最大字符数%s，最大行数%s，返回内容的第一行为文件内容的SHA256，第二行开始是文件内容，注意区分。\n请注意：不要使用bash来运行cat，始终使用此工具而不是bash来获取文件内容",
 		zh(
 			"read-file工具的描述"
 		)
