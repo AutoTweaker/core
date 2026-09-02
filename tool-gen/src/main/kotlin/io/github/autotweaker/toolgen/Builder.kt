@@ -38,8 +38,11 @@ class ToolMetaBuilder internal constructor(
 	private val declaration = mutableListOf<ToolMeta.Type.Declared>()
 	
 	fun function(name: String, block: FunctionBuilder.() -> Unit) {
+		require(name != "active") { "Function name must not be 'active'" }
 		functions.add(FunctionBuilder(name.check()).apply(block).toFunction())
 	}
+	
+	fun defaultFunction(block: FunctionBuilder.() -> Unit) = function("default", block)
 	
 	fun buildDeclaration(block: DeclarationBuilder.() -> Unit) =
 		DeclarationBuilder(declaration).apply(block).declaration()

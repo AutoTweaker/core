@@ -24,56 +24,34 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolMeta.Prop
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings.DEFAULT_FUNCTION
 import kotlinx.serialization.json.*
 
 object ToolAssembler : Loggable {
 	fun assemble(
-		tools: MetaCache,
-		active: (String) -> Boolean
+		tools: MetaCache
 	): List<ChatRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
-		val reasonDescription = ToolSettings.ReasonDescription().get()
-		val enableDesc = ToolSettings.EnableDescription().get()
-		
-		return tools.flatMap {
-			val meta = it.value.first
-			if (active(it.key)) meta.functions.map { func ->
+		return tools.flatMap { (name, entry) ->
+			entry.first.functions.map { func ->
 				ChatRequest.Tool(
-					name = "${it.key}-${func.name}",
+					name = if (func.name == DEFAULT_FUNCTION) name else "$name-${func.name}",
 					description = func.description,
-					parameters = func.parameters.toJsonSchema(reasonDescription),
+					parameters = func.parameters.toJsonSchema(),
 				)
-			} else listOf(
-				ChatRequest.Tool(
-					name = meta.name,
-					description = meta.description,
-					parameters = inactiveParameters(enableDesc),
-				)
-			)
+			}
 		}
 	}
 	
-	private fun inactiveParameters(enableDesc: String) = buildJsonObject {
-		put("type", "object")
-		putJsonObject("properties") {
-			put("enable", buildJsonObject {
-				put("type", "boolean")
-				put("description", enableDesc)
-			})
-		}
-	}
-	
-	private fun List<Prop>.toJsonSchema(
-		reasonDescription: String
-	): JsonElement = buildJsonObject {
+	private fun List<Prop>.toJsonSchema(): JsonElement = buildJsonObject {
 		put("type", "object")
 		putJsonObject("properties") {
 			put("reason", buildJsonObject {
 				put("type", "string")
-				put("description", reasonDescription)
+				put("description", ToolSettings.ReasonDescription().get())
 			})
 			putProperties(this@toJsonSchema)
 		}

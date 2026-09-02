@@ -46,7 +46,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		ReadMetaDescriptions(
 			toolDescription = ReadSettings.ToolDescription().get(),
 			functions = ReadMetaDescriptions.Functions(
-				file = ReadMetaDescriptions.Functions.File(
+				default = ReadMetaDescriptions.Functions.Default(
 					filePath = ToolSettings.FilePathDesc().get(),
 					startLine = ReadSettings.StartLineDesc().get(),
 					endLine = ReadSettings.EndLineDesc().get(),
@@ -80,7 +80,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val fs = dependency.get<FileSystemService>()
 		
 		val requestPath = when (args) {
-			is ReadArgs.File -> args.filePath
+			is ReadArgs.Default -> args.filePath
 			is ReadArgs.Summarize -> args.filePath
 		}
 		val filePath = trace.catching {
@@ -94,7 +94,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val displayPath = fs.displayPath(filePath)
 		
 		val request = when (args) {
-			is ReadArgs.File -> {
+			is ReadArgs.Default -> {
 				val startLine = args.startLine ?: 1
 				val endLine = args.endLine ?: (startLine + ReadSettings.MaxReadLines().get() - 1)
 				ReadRequest.File(

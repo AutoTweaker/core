@@ -49,7 +49,7 @@ tool("edit") {
 		list(replacement)
 	}
 	
-	function("file") {
+	defaultFunction {
 		string("file_path")
 		string("sha256")
 		param("edits", edits)

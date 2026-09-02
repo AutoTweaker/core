@@ -22,7 +22,7 @@ import io.github.autotweaker.toolgen.gen
 import io.github.autotweaker.toolgen.tool
 
 tool("read") {
-	function("file") {
+	defaultFunction {
 		string("file_path")
 		int("start_line") { required = false }
 		int("end_line") { required = false }

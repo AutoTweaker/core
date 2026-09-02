@@ -24,6 +24,8 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.UiBlock
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings.DEFAULT_FUNCTION
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -48,31 +50,23 @@ class ToolCallParser : Loggable, Traceable, I18nable {
 		callId: String,
 		metaCache: MetaCache,
 	): ValidationResult {
-		metaCache[toolCallName]?.let {
-			return ValidationResult.Failure(
-				ToolSettings.ToolAlreadyActiveError().format(
-					toolCallName,
-					it.first.functions.joinToString { "$toolCallName-${it.name}" }),
-				listOf(UiBlock.Text(i18n(ToolI18n.AlreadyActive(), toolCallName)))
-			).andLog(log) {
-				debug(
-					"Failed tool activation parsing, tool already activated  callId={}  name={}",
-					callId,
-					toolCallName
+		val resolvedName = resolveCallName(toolCallName)
+		if (resolvedName == null || metaCache[resolvedName.first]?.first?.functions?.none {
+				it.name == resolvedName.second
+			} ?: true) {
+			if (resolvedName?.first == ACTIVE_TOOL_NAME && resolvedName.second == DEFAULT_FUNCTION)
+				return ValidationResult.Failure(
+					ToolSettings.ActiveNotFound().get(),
+					listOf(UiBlock.Text(i18n(ToolI18n.NotFoundError(), toolCallName)))
 				)
+			return ValidationResult.Failure(
+				ToolSettings.FunctionNameError().format(toolCallName),
+				listOf(UiBlock.Text(i18n(ToolI18n.NotFoundError(), toolCallName)))
+			).andLog(log) {
+				debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
 			}
 		}
-		val (toolName, functionName) = resolveCallName(toolCallName)
-			?.takeIf { result ->
-				metaCache[result.first]?.first?.functions?.any { function ->
-					function.name == result.second
-				} == true
-			} ?: return ValidationResult.Failure(
-			ToolSettings.FunctionNameError().format(toolCallName),
-			listOf(UiBlock.Text(i18n(ToolI18n.NotFoundError(), toolCallName)))
-		).andLog(log) {
-			debug("Failed tool call name parsing  callId={}  name={}", callId, toolCallName)
-		}
+		val (toolName, functionName) = resolvedName
 		
 		val arguments = trace.catching {
 			Json.parseToJsonElement(argumentsJson)
@@ -141,10 +135,11 @@ class ToolCallParser : Loggable, Traceable, I18nable {
 			args = args,
 		)
 	}
-	
-	private fun resolveCallName(callName: String): Pair<String, String>? {
-		val parts = callName.split("-")
-		if (parts.size != 2) return null
-		return parts[0] to parts[1]
-	}
+}
+
+fun resolveCallName(callName: String): Pair<String, String>? {
+	val parts = callName.split("-")
+	if (parts.size == 1) return parts[0] to DEFAULT_FUNCTION
+	if (parts.size != 2) return null
+	return parts[0] to parts[1]
 }

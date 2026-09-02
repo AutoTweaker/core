@@ -48,7 +48,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		EditMetaDescriptions(
 			toolDescription = EditDesc.Tool().get(),
 			functions = EditMetaDescriptions.Functions(
-				file = EditMetaDescriptions.Functions.File(
+				default = EditMetaDescriptions.Functions.Default(
 					filePath = ToolSettings.FilePathDesc().get(),
 					sha256 = EditDesc.Sha256().get(),
 					edits = EditDesc.Edits().get()
@@ -84,7 +84,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 	)
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: EditArgs): Tool.ResolveResult {
-		val request = args as EditArgs.File
+		val request = args as EditArgs.Default
 		val fileSystem = dependency.get<FileSystemService>()
 		
 		val path = trace.catching { fileSystem.normalize(request.filePath) }

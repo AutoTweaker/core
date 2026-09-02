@@ -50,7 +50,7 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		BashMetaDescriptions(
 			toolDescription = BashDesc.Tool().get(),
 			functions = BashMetaDescriptions.Functions(
-				run = BashMetaDescriptions.Functions.Run(
+				default = BashMetaDescriptions.Functions.Default(
 					command = BashDesc.Command().get(),
 					timeoutSeconds = BashDesc.Timeout().get()
 						.format(BashSettings.DefaultTimeoutSeconds().get()),
@@ -64,7 +64,7 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		listEnv().sorted().let { if (it.isEmpty()) "[none]" else Json.encodeToString(it) }
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: BashArgs): Tool.ResolveResult {
-		val request = args as BashArgs.Run
+		val request = args as BashArgs.Default
 		val command = request.command
 		if (command.isBlank()) return Rejected(
 			BashMessage.InvalidCommand().get(),

@@ -36,16 +36,15 @@ import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.compact.CompactService
 import io.github.autotweaker.core.domain.agent.compact.CompactSettings
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.ResolveResult
-import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import io.github.autotweaker.core.domain.agent.tool.ToolSettings
-import io.github.autotweaker.core.domain.agent.tool.Tools
+import io.github.autotweaker.core.domain.agent.tool.*
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
@@ -314,7 +313,19 @@ class RoundRunner(
 		} + context.currentRound?.turns.orEmpty()
 		val allCalls = turns.flatMap { turn ->
 			turn.tools.mapNotNull {
-				it.call.callName.substringBefore("-").orNull()
+				val resolvedName = resolveCallName(it.call.callName)
+				val toolName = resolvedName?.first ?: return@mapNotNull null
+				if (toolName == ACTIVE_TOOL_NAME) {
+					val args = trace.catching {
+						it.call.validatedArgs?.let { element ->
+							Json.decodeFromJsonElement(
+								Tools.ActiveArgs.serializer(),
+								element
+							) as Tools.ActiveArgs.Default
+						}
+					}.getOrNull()
+					return@mapNotNull args?.toolName
+				} else return@mapNotNull toolName
 			}
 		}.orNull() ?: return
 		if (allCalls.size < threshold) return
@@ -368,7 +379,7 @@ class RoundRunner(
 	}
 	
 	private fun activeAll(activations: PairList<ToolCall, ResolveResult.Activation>) =
-		activations.forEach { tools.activate(it.first.name, true) }
+		activations.forEach { tools.activate(it.second.toolName, true) }
 	
 	private suspend fun launchCompact() = compactLock.withLock {
 		throwFailure()

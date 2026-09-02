@@ -27,6 +27,7 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
 import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -168,6 +169,9 @@ object ToolMessageFactory {
 		activation: Pair<RawToolCall, ResolveResult.Activation>,
 	) = buildToolMessage(
 		timestamp, activation.first,
+		activation.second.reason,
+		ACTIVE_TOOL_NAME,
+		activation.second.validatedArgs,
 		ToolResult(
 			id = UUID(),
 			content = activation.second.message,

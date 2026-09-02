@@ -22,7 +22,7 @@ import io.github.autotweaker.toolgen.gen
 import io.github.autotweaker.toolgen.tool
 
 tool("bash") {
-	function("run") {
+	defaultFunction {
 		string("command")
 		int("timeout_seconds") { required = false }
 		stringList("env_ids") { required = false }

@@ -48,7 +48,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		WriteMetaDescriptions(
 			toolDescription = WriteDesc.Tool().get(),
 			functions = WriteMetaDescriptions.Functions(
-				file = WriteMetaDescriptions.Functions.File(
+				default = WriteMetaDescriptions.Functions.Default(
 					filePath = ToolSettings.FilePathDesc().get(),
 					sha256 = WriteDesc.Sha256().get(),
 					content = WriteDesc.Content().get(),
@@ -62,7 +62,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 	private val requestSerializer = WriteRequest.serializer()
 	
 	override suspend fun resolve(dependency: DependencyProvider, args: WriteArgs): Tool.ResolveResult {
-		val request = args as WriteArgs.File
+		val request = args as WriteArgs.Default
 		val fileSystem = dependency.get<FileSystemService>()
 		
 		val path = trace.catching { fileSystem.normalize(request.filePath) }

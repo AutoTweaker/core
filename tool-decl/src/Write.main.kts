@@ -22,7 +22,7 @@ import io.github.autotweaker.toolgen.gen
 import io.github.autotweaker.toolgen.tool
 
 tool("write") {
-	function("file") {
+	defaultFunction {
 		string("file_path")
 		string("sha256") { required = false }
 		string("content")

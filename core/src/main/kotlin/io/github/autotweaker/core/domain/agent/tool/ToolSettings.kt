@@ -26,6 +26,9 @@ import io.github.autotweaker.api.config.SettingDef
 
 
 object ToolSettings {
+	const val ACTIVE_TOOL_NAME = "active"
+	const val DEFAULT_FUNCTION = "default"
+	
 	const val TOOL_NOT_EXECUTED =
 		"工具未被执行，文件系统与外部环境处于工具调用之前的状态，工具没有对文件系统或外部环境产生任何影响"
 	
@@ -44,7 +47,7 @@ object ToolSettings {
 	@AutoService(SettingDef::class)
 	class Rejected : StringSetting(
 		"工具调用已被用户拒绝，$TOOL_NOT_EXECUTED。" +
-				"用户不希望执行当前操作，请确保执行的操作没有超出你的权限范围，没有违背用户意图，并使用其他方式继续。",
+				"用户不希望执行当前操作，请确保执行的操作没有超出你的权限范围，没有违背用户意图或系统指令，并使用其他方式继续。",
 		zh("工具调用被拒绝时的ToolResult")
 	)
 	
@@ -68,13 +71,25 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class FunctionNameError : StringSetting(
-		"%s工具不存在，请检查工具是否已激活\n$TOOL_NOT_EXECUTED",
+		"%s工具不存在，请检查工具是否已激活",
+		zh("调用工具不存在时的ToolResult")
+	)
+	
+	@AutoService(SettingDef::class)
+	class ToolNotFound : StringSetting(
+		"%s工具不存在，请检查你的工具列表",
+		zh("调用工具不存在时的ToolResult")
+	)
+	
+	@AutoService(SettingDef::class)
+	class ActiveNotFound : StringSetting(
+		"active工具不存在，所有工具都已经激活",
 		zh("调用工具不存在时的ToolResult")
 	)
 	
 	@AutoService(SettingDef::class)
 	class ToolAlreadyActiveError : StringSetting(
-		"%s工具已经激活，请不要重复激活，已展开的可用子函数：[%s]\n$TOOL_NOT_EXECUTED",
+		"%s工具已经激活，请不要重复激活，你的工具列表已经包含这个工具，请查看你的工具列表",
 		zh("激活已激活工具时的ToolResult")
 	)
 	
@@ -127,15 +142,26 @@ object ToolSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class EnableDescription : StringSetting(
-		"请传递此参数来激活这个工具\n无论将此值设为true或false都将激活工具\n激活后工具将可用，工具列表将会更新",
-		zh("未激活工具的enable属性描述")
+	class ActiveToolDesc : StringSetting(
+		"存在未激活的工具，你需要激活这些工具才能使用它们，调用本工具来激活其他工具。",
+		zh("active工具的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class ActiveToolNameParam : StringSetting(
+		"要激活的工具名称，以下工具可被激活：\n%s",
+		zh("active工具tool_name属性的描述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class InactiveTool : StringSetting(
+		"- 工具名称：%s，工具描述：%s",
+		zh("active工具tool_name属性列举未激活工具的模板")
 	)
 	
 	@AutoService(SettingDef::class)
 	class ActiveMessage : StringSetting(
-		"工具已激活，包含这些子函数：[%s]\n" +
-				"注意：名为[%s]的函数已不再可用，检查你的工具列表来了解新的函数和使用方法",
+		"工具已激活，包含这些子函数：[%s]，检查你的工具列表来了解新的函数和使用方法",
 		zh("激活工具后的ToolResult")
 	)
 	
