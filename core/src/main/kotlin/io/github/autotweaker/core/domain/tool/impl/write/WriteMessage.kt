@@ -24,11 +24,7 @@ import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 
 object WriteMessage {
-	@AutoService(SettingDef::class)
-	class InvalidHash : StringSetting(
-		"无效的哈希：%s",
-		zh("write工具sha256参数非法时的描述")
-	)
+	
 	
 	@AutoService(SettingDef::class)
 	class FileExists : StringSetting(
@@ -38,7 +34,7 @@ object WriteMessage {
 	
 	@AutoService(SettingDef::class)
 	class HashMismatch : StringSetting(
-		"覆盖文件 %s 失败，SHA256不匹配，文件已被外部更新，请重新读取文件",
+		"覆盖文件 %s 失败，文件当前SHA256哈希值不以 '%s' 为前缀，文件已被外部更新，请重新读取文件",
 		zh("write工具SHA256校验失败时的描述")
 	)
 	

@@ -33,7 +33,7 @@ object ReadSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class ReadFileDescription : StringSetting(
+	class ReadDefaultDescription : StringSetting(
 		"读取一个文件，最大字符数%s，最大行数%s，返回内容的第一行为文件内容的SHA256，第二行开始是文件内容，注意区分。\n请注意：不要使用bash来运行cat，始终使用此工具而不是bash来获取文件内容",
 		zh(
 			"read-file工具的描述"
@@ -133,7 +133,7 @@ object ReadSettings {
 	
 	@AutoService(SettingDef::class)
 	class DuplicateMessage : StringSetting(
-		"读取的文件内容与文件哈希'%s'时的读取相同", zh(
+		"读取的文件内容与文件哈希 '%s' 时的读取相同", zh(
 			"read-file工具读取重复内容时的描述"
 		)
 	)

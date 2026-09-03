@@ -43,7 +43,7 @@ object WriteDesc {
 	
 	@AutoService(SettingDef::class)
 	class Sha256 : StringSetting(
-		"如果目标文件已存在，请通过read工具读取文件的完整内容，并提供read工具返回的文件当前SHA256，这能够避免意外覆盖来自用户或外部程序的文件更新",
+		"如果目标文件已存在，请通过read工具读取文件的完整内容，并提供read工具返回的文件当前SHA256，这能够避免意外覆盖来自用户或外部程序的文件更新。为了避免错误，你可以只传递SHA256的前8位，不必提供完整的64长字符串",
 		zh("write工具sha256参数的描述")
 	)
 	

@@ -25,12 +25,6 @@ import io.github.autotweaker.api.config.SettingDef
 
 object EditMessage {
 	@AutoService(SettingDef::class)
-	class InvalidHash : StringSetting(
-		"无效的哈希：%s",
-		zh("edit工具sha256参数非法时的描述")
-	)
-	
-	@AutoService(SettingDef::class)
 	class ReadFailed : StringSetting(
 		"读取目标文件时出错：%s",
 		zh("edit工具读取目标文件失败时的描述")
@@ -44,7 +38,7 @@ object EditMessage {
 	
 	@AutoService(SettingDef::class)
 	class HashMismatch : StringSetting(
-		"编辑文件失败，SHA256不匹配，文件已被外部更新，请重新读取文件",
+		"编辑文件失败，文件当前SHA256哈希值不以 '%s' 为前缀，文件已被外部更新，请重新读取文件",
 		zh("edit工具SHA256校验失败时的描述")
 	)
 	

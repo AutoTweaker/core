@@ -31,9 +31,9 @@ object EditDesc {
 	)
 	
 	@AutoService(SettingDef::class)
-	class Single : StringSetting(
+	class Default : StringSetting(
 		"编辑一个文件，支持Unicode转义\n\n" +
-				"- 优先使用本工具而不是write来编辑文件。" +
+				"- 优先使用本工具而不是write来编辑文件。\n" +
 				"- 始终优先编辑代码库中已有的文件。除非明确要求，否则切勿创建新文件。\n" +
 				"- 仅在用户明确要求时才使用emoji。除非被要求，否则避免向文件中添加emoji。\n" +
 				"- 你不能在一条消息中使用本工具多次编辑同一个文件，你应该在一次edit调用中传递多段edits来替代。\n" +
@@ -46,7 +46,8 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class Sha256 : StringSetting(
-		"请通过read工具读取要编辑文件的当前内容，并提供read工具返回的文件当前SHA256。这能够避免意外覆盖来自用户或外部程序的文件更新，也能够在文件被更新后收到明确的报错而不是找不到old_string匹配项",
+		"预期文件当前SHA256。为了避免错误，你可以只传递SHA256的前8位，不必提供完整的64长字符串。\n" +
+				"请通过read工具读取要编辑文件的当前内容，并提供read工具返回的文件当前SHA256。这能够避免意外覆盖来自用户或外部程序的文件更新，也能够在文件被更新后收到明确的报错而不是找不到old_string匹配项",
 		zh("edit-single工具sha256参数的描述")
 	)
 	

@@ -37,4 +37,10 @@ object ToolSettings {
 				"除非需要访问工作区外部，否则请不要使用绝对路径，这可能导致意外的越权访问",
 		zh("工具文件路径参数的描述")
 	)
+	
+	@AutoService(SettingDef::class)
+	class InvalidHash : StringSetting(
+		"必须提供至少8位的哈希值，你提供的 '%s' 只有 %s 位",
+		zh("工具sha256参数非法时的描述")
+	)
 }

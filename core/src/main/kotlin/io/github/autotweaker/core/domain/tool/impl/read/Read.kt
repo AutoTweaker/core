@@ -52,7 +52,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 					endLine = ReadSettings.EndLineDesc().get(),
 					lineNumber = ReadSettings.LineNumberDesc().get(),
 					unicodeEscape = ReadSettings.UnicodeEscapeDesc().get()
-				) to ReadSettings.ReadFileDescription().format(
+				) to ReadSettings.ReadDefaultDescription().format(
 					ReadSettings.MaxReadChars().get(),
 					ReadSettings.MaxReadLines().get()
 				

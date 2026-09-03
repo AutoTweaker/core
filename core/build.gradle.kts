@@ -52,7 +52,6 @@ tasks.named<JavaExec>("run") {
 
 dependencies {
 	implementation(project(":api"))
-	compileOnly(project(":tool-gen"))
 	
 	implementation("io.ktor:ktor-client-core:3.5.2")
 	implementation("io.ktor:ktor-client-java:3.5.2")

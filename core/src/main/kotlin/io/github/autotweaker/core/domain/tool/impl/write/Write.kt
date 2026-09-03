@@ -28,7 +28,6 @@ import io.github.autotweaker.api.tool.Ready
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.toolSuccess
-import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.diff
 import io.github.autotweaker.api.types.tool.text
@@ -73,24 +72,23 @@ class Write : CoreTool<WriteArgs>, Traceable {
 			}
 		
 		val displayPath = fileSystem.displayPath(path)
-		val sha256 = args.sha256?.let {
-			trace.catching { Sha256(it) }
-				.getOrElse { e ->
-					return Rejected(WriteMessage.InvalidHash().format(e.message)) {
-						text(i18n(WriteI18n.InvalidHashArg(), displayPath))
-					}
-				}
-		}
+		val shortHash = args.sha256
+		if (shortHash != null && shortHash.length < 8)
+			return Rejected(ToolSettings.InvalidHash().format(shortHash, shortHash.length)) {
+				text(i18n(WriteI18n.InvalidHashArg(), displayPath))
+			}
 		val fileContent = trace.catching {
 			fileSystem.read(path)
 		}.rethrow<PathOutsideWorkspaceException>().getOrNull()
-		if (fileContent != null && sha256 == null) return Rejected(
+		if (fileContent != null && shortHash == null) return Rejected(
 			WriteMessage.FileExists().format(displayPath)
 		) {
 			text(i18n(WriteI18n.CreateFailedExists(), displayPath))
 		}
-		if (sha256 != null && fileContent != null && sha256 != fileContent.sha256)
-			return Rejected(WriteMessage.HashMismatch().format(displayPath)) {
+		if (shortHash != null && fileContent != null && !fileContent.sha256.toString()
+				.startsWith(shortHash, ignoreCase = true)
+		)
+			return Rejected(WriteMessage.HashMismatch().format(displayPath, shortHash)) {
 				text(i18n(WriteI18n.UpdateFailedChanged(), displayPath))
 			}
 		val newContent = let {
@@ -108,7 +106,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val oldContent = fileContent?.let {
 			if (it.truncated) null else it.content
 		}
-		val write = i18n(if (sha256 == null) WriteI18n.Create() else WriteI18n.Update())
+		val write = i18n(if (shortHash == null) WriteI18n.Create() else WriteI18n.Update())
 		return Ready(
 			requestSerializer,
 			WriteRequest(path, displayPath, fileContent?.let { oldContent to it.sha256 }, newContent),
