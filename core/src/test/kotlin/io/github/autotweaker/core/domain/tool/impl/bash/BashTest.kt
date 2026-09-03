@@ -79,7 +79,7 @@ class BashTest {
 		command: String,
 		timeoutSeconds: Int? = null,
 		envIds: List<String>? = null,
-	): BashArgs.Run = BashArgs.Run(
+	): BashArgs.Default = BashArgs.Default(
 		command = command,
 		timeoutSeconds = timeoutSeconds ?: 60,
 		envIds = envIds ?: emptyList(),
@@ -124,14 +124,14 @@ class BashTest {
 	}
 	
 	@Test
-	fun `meta returns one function named run`() = runTest {
+	fun `meta returns one function named default`() = runTest {
 		val (meta, _) = bash.meta()
 		assertEquals(1, meta.functions.size)
-		assertEquals("run", meta.functions.first().name)
+		assertEquals("default", meta.functions.first().name)
 	}
 	
 	@Test
-	fun `meta run function has required command string parameter`() = runTest {
+	fun `meta default function has required command string parameter`() = runTest {
 		val (meta, _) = bash.meta()
 		val command = meta.functions.first().parameters.first { it.name == "command" }
 		assertTrue(command.required)
@@ -139,7 +139,7 @@ class BashTest {
 	}
 	
 	@Test
-	fun `meta run function has optional timeout_seconds integer parameter`() = runTest {
+	fun `meta default function has optional timeout_seconds integer parameter`() = runTest {
 		val (meta, _) = bash.meta()
 		val timeout = meta.functions.first().parameters.first { it.name == "timeout_seconds" }
 		assertFalse(timeout.required)
@@ -147,7 +147,7 @@ class BashTest {
 	}
 	
 	@Test
-	fun `meta run function has optional env_ids array parameter`() = runTest {
+	fun `meta default function has optional env_ids array parameter`() = runTest {
 		val (meta, _) = bash.meta()
 		val envIds = meta.functions.first().parameters.first { it.name == "env_ids" }
 		assertFalse(envIds.required)
@@ -191,7 +191,7 @@ class BashTest {
 		val bashService = mockk<BashService>()
 		val result = bash.resolve(
 			container(bashService),
-			BashArgs.Run(command = "echo hi", timeoutSeconds = null, envIds = emptyList())
+			BashArgs.Default(command = "echo hi", timeoutSeconds = null, envIds = emptyList())
 		)
 		
 		assertIs<Tool.ResolveResult.Ready>(result)

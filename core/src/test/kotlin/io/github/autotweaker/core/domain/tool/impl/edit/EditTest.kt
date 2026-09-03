@@ -71,7 +71,7 @@ class EditTest {
 	) = Replacement(lineFrom, lineTo, oldString, unescapeOld, newString, unescapeNew)
 	
 	private fun editArgs(content: String, edits: List<Replacement>, sha256: String = sha(content).toString()) =
-		EditArgs.File("test.txt", sha256, edits)
+		EditArgs.Default("test.txt", sha256, edits)
 	
 	private fun mockFs(
 		content: String,

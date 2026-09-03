@@ -205,15 +205,28 @@ class ThinkingStageTest {
 	// region 单调用分流
 	
 	@Test
-	fun `inactive tool call becomes Activation`() = runTest {
+	fun `activating an inactive tool returns Activation`() = runTest {
 		val tool = mockTool("bash")
 		val tools = makeTools(listOf(tool), emptySet())
-		val result = stage(llmService(success(listOf(call("c1", name = "bash")))), tools)
-			.execute(model, emptyList(), context)
+		val result = stage(
+			llmService(
+				success(
+					listOf(
+						call(
+							"c1",
+							name = "active",
+							arguments = """{"tool_name":"bash","reason":"activate the bash tool"}"""
+						)
+					)
+				)
+			),
+			tools
+		).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
 		assertEquals(1, result.activations!!.size)
 		assertEquals("c1", result.activations[0].first.id)
+		assertEquals("bash", result.activations[0].second.toolName)
 		assertTrue(result.activations[0].second.message.contains("工具已激活"))
 		assertTrue(result.parseFailures.isNullOrEmpty())
 		assertTrue(result.resolveFailures.isNullOrEmpty())
@@ -298,7 +311,9 @@ class ThinkingStageTest {
 		val edit = mockTool("edit")
 		val tools = makeTools(listOf(bash, read, edit), setOf("bash", "read"))
 		
-		val activationCall = call("c1", name = "edit")
+		val activationCall = call(
+			"c1", name = "active", arguments = """{"tool_name":"edit","reason":"activate the edit tool"}"""
+		)
 		val parseCall = call("c2", arguments = """{"cmd":"echo"}""")
 		val pendingCall = call("c3")
 		val rejectCall = call("c4", name = "read-run")

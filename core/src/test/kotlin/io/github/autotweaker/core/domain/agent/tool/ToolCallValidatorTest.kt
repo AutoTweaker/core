@@ -32,6 +32,7 @@ import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 class ToolCallValidatorTest {
 	companion object {
@@ -81,6 +82,28 @@ class ToolCallValidatorTest {
 					ToolMeta.Function("run", "Run bash commands", emptyList())
 				)
 			), SimpleArgs.serializer()
+		)
+		return tool as Tool<*>
+	}
+	
+	@Serializable
+	private sealed class DefaultArgs : ToolArgs {
+		@Serializable
+		@SerialName("default")
+		data class Default(
+			@SerialName("command") val command: String,
+		) : DefaultArgs()
+	}
+	
+	@Suppress("UNCHECKED_CAST")
+	private fun mockDefaultTool(): Tool<*> {
+		val tool = mockk<Tool<DefaultArgs>>()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"bash", "Run bash commands", listOf(
+					ToolMeta.Function("default", "Run bash commands", emptyList())
+				)
+			), DefaultArgs.serializer()
 		)
 		return tool as Tool<*>
 	}
@@ -412,6 +435,48 @@ class ToolCallValidatorTest {
 		)
 		assertIs<ValidationResult.Failure>(result)
 	}.discard()
+	
+	// endregion
+	
+	// region default function resolution
+	
+	@Test
+	fun `bare name resolves to default function`() = runBlocking {
+		val result = validator.validate(
+			"bash", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockDefaultTool())
+		)
+		assertIs<ValidationResult.Success>(result)
+		assertEquals("bash", result.toolName)
+		val args = result.args as DefaultArgs.Default
+		assertEquals("echo", args.command)
+	}
+	
+	@Test
+	fun `bare name fails for tool without default function`() = runBlocking {
+		val result = validator.validate(
+			"bash", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
+		)
+		assertIs<ValidationResult.Failure>(result)
+	}
+	
+	// endregion
+	
+	// region resolveCallName
+	
+	@Test
+	fun `resolveCallName single segment maps to default function`() {
+		assertEquals("bash" to ToolSettings.DEFAULT_FUNCTION, resolveCallName("bash"))
+	}
+	
+	@Test
+	fun `resolveCallName two segments split on dash`() {
+		assertEquals("bash" to "run", resolveCallName("bash-run"))
+	}
+	
+	@Test
+	fun `resolveCallName multi dash name returns null`() {
+		assertNull(resolveCallName("a-b-c"))
+	}
 	
 	// endregion
 }

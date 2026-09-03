@@ -141,7 +141,13 @@ class ToolMessageFactoryTest {
 	@Test
 	fun `buildImmediateResults activation returns success with message`() {
 		val call = rawCall()
-		val activation = call to ResolveResult.Activation("tool activated", presentation())
+		val activation = call to ResolveResult.Activation(
+			toolName = "bash",
+			reason = "activate",
+			validatedArgs = JsonPrimitive("{}"),
+			presentation = presentation(),
+			message = "tool activated",
+		)
 		
 		val results = ToolMessageFactory.buildImmediateResults(
 			result(activations = listOf(activation))
@@ -163,7 +169,13 @@ class ToolMessageFactoryTest {
 		val resolve = call2 to ResolveResult.ResolveFailure(
 			"bash", "rejected", JsonPrimitive("{}"), "resolve error", presentation()
 		)
-		val activation = call3 to ResolveResult.Activation("activated", presentation())
+		val activation = call3 to ResolveResult.Activation(
+			toolName = "bash",
+			reason = "activate",
+			validatedArgs = JsonPrimitive("{}"),
+			presentation = presentation(),
+			message = "activated",
+		)
 		
 		val results = ToolMessageFactory.buildImmediateResults(
 			result(parseFailures = listOf(parse), resolveFailures = listOf(resolve), activations = listOf(activation))
@@ -258,7 +270,14 @@ class ToolMessageFactoryTest {
 	fun `buildActivation returns success with activation message`() {
 		val call = rawCall()
 		val message = ToolMessageFactory.buildActivation(
-			timestamp, call to ResolveResult.Activation("please activate", presentation())
+			timestamp,
+			call to ResolveResult.Activation(
+				toolName = "bash",
+				reason = "please activate",
+				validatedArgs = JsonPrimitive("{}"),
+				presentation = presentation(),
+				message = "please activate",
+			)
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, message.result.status)

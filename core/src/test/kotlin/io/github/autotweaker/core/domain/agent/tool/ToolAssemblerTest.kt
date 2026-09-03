@@ -63,6 +63,20 @@ class ToolAssemblerTest {
 	}
 	
 	@Serializable
+	private sealed class MixedArgs : ToolArgs {
+		@Serializable
+		data class Default(
+			val filePath: String,
+		) : MixedArgs()
+		
+		@Serializable
+		data class Summarize(
+			val filePath: String,
+			val prompt: String,
+		) : MixedArgs()
+	}
+	
+	@Serializable
 	private sealed class Inner : ToolArgs {
 		@Serializable
 		data class A(val x: Int) : Inner()
@@ -118,14 +132,38 @@ class ToolAssemblerTest {
 		return tool as Tool<ToolArgs>
 	}
 	
+	@Suppress("UNCHECKED_CAST")
+	private fun mockMixedTool(): Tool<ToolArgs> {
+		val tool = mockk<Tool<MixedArgs>>()
+		coEvery { tool.meta() } returns Pair(
+			ToolMeta(
+				"read", "Read files", listOf(
+					ToolMeta.Function(
+						"default", "Read file lines", listOf(
+							ToolMeta.Prop("file_path", ToolMeta.Type.TString, true, "File path"),
+						)
+					),
+					ToolMeta.Function(
+						"summarize", "Summarize file", listOf(
+							ToolMeta.Prop("file_path", ToolMeta.Type.TString, true, "File path"),
+							ToolMeta.Prop("prompt", ToolMeta.Type.TString, false, "Prompt"),
+						)
+					),
+				)
+			),
+			MixedArgs.serializer()
+		)
+		return tool as Tool<ToolArgs>
+	}
+	
 	private fun assemble(tools: List<Tool<ToolArgs>>) = runBlocking {
 		val metaCache = Tools.cacheMeta(tools.associate { it.meta().first.name to it })
-		ToolAssembler.assemble(metaCache) { true }
+		ToolAssembler.assemble(metaCache)
 	}
 	
 	private fun assembleWithTool(tool: Tool<ToolArgs>) = runBlocking {
 		val metaCache = Tools.cacheMeta(mapOf(tool.meta().first.name to tool))
-		ToolAssembler.assemble(metaCache) { true }
+		ToolAssembler.assemble(metaCache)
 	}
 	
 	// endregion
@@ -134,7 +172,7 @@ class ToolAssemblerTest {
 	
 	@Test
 	fun `empty tools returns null`() = runBlocking {
-		val result = ToolAssembler.assemble(emptyMap()) { true }
+		val result = ToolAssembler.assemble(emptyMap())
 		assertNull(result)
 	}
 	
@@ -591,6 +629,36 @@ class ToolAssemblerTest {
 		assertTrue(requiredNames.contains("b"))
 		assertTrue(requiredNames.contains("reason"))
 		assertEquals(3, requiredNames.size)
+	}
+	
+	// endregion
+	
+	// region default function assembly
+	
+	@Test
+	fun `default function entry uses bare tool name`() = runBlocking {
+		val result = assemble(listOf(mockMixedTool()))
+		val names = result!!.map { it.name }.toSet()
+		assertTrue("read" in names)
+		assertTrue("read-summarize" in names)
+		assertFalse("read-default" in names)
+	}
+	
+	@Test
+	fun `default function entry keeps function description`() = runBlocking {
+		val result = assemble(listOf(mockMixedTool()))
+		val defaultEntry = result!!.first { it.name == "read" }
+		assertEquals("Read file lines", defaultEntry.description)
+	}
+	
+	@Test
+	fun `default function schema contains no type discriminator property`() = runBlocking {
+		val result = assemble(listOf(mockMixedTool()))
+		val defaultEntry = result!!.first { it.name == "read" }
+		val props = defaultEntry.parameters.jsonObject["properties"]?.jsonObject
+		assertNotNull(props)
+		assertTrue(props.containsKey("file_path"))
+		assertFalse(props.containsKey("type"))
 	}
 	
 	// endregion

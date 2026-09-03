@@ -35,9 +35,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.*
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.*
@@ -69,6 +67,7 @@ class ToolsTest {
 	private fun mockTool(
 		name: String = "bash",
 		description: String = "a tool",
+		functionName: String = "run",
 	): Tool<ToolArgs> {
 		val tool = mockk<Tool<BashArgs>>()
 		coEvery { tool.resolve(any(), any()) } returns Tool.ResolveResult.Ready(
@@ -84,7 +83,7 @@ class ToolsTest {
 			ToolMeta(
 				name, description, listOf(
 					ToolMeta.Function(
-						"run", description, listOf(
+						functionName, description, listOf(
 							ToolMeta.Prop("cmd", ToolMeta.Type.TString, true, "command"),
 							ToolMeta.Prop("type", ToolMeta.Type.TString, true, "Function type"),
 						)
@@ -128,7 +127,13 @@ class ToolsTest {
 		tools.assembleTools()
 		
 		assertFalse("bash" in tools.activeTools.value)
-		val result = tools.resolveToolCall(toolCall(name = "bash"), ServiceContainer())
+		val result = tools.resolveToolCall(
+			toolCall(
+				name = "active",
+				arguments = """{"tool_name":"bash","reason":"activate the bash tool"}"""
+			),
+			ServiceContainer()
+		)
 		
 		assertIs<ResolveResult.Activation>(result)
 		assertFalse("bash" in tools.activeTools.value)
@@ -255,13 +260,12 @@ class ToolsTest {
 		val result = tools.assembleTools()
 		
 		assertNotNull(result)
-		assertEquals(2, result.size)
-		result.forEach { tool ->
-			val params = tool.parameters
-			val props = params.jsonObject["properties"]?.jsonObject
-			assertNotNull(props)
-			assertTrue(props.containsKey("enable"))
-		}
+		assertEquals(1, result.size)
+		assertEquals("active", result[0].name)
+		val props = result[0].parameters.jsonObject["properties"]?.jsonObject
+		assertNotNull(props)
+		assertTrue(props.containsKey("tool_name"))
+		assertFalse(props.containsKey("enable"))
 	}
 	
 	@Test
@@ -287,7 +291,7 @@ class ToolsTest {
 		assertNotNull(result)
 		assertEquals(2, result.size)
 		assertTrue(result.any { it.name == "bash-run" })
-		assertTrue(result.any { it.name == "read" })
+		assertTrue(result.any { it.name == "active" })
 	}
 	// endregion
 	
@@ -315,5 +319,96 @@ class ToolsTest {
 		
 		assertFalse("bash" in tools.activeTools.value)
 	}
+	// endregion
+	
+	// region active mechanism
+	
+	@Test
+	fun `resolveToolCall bare name invokes default function`() = runTest {
+		val tool = mockTool(functionName = "default")
+		val tools = makeTools(listOf(tool), setOf("bash"))
+		tools.assembleTools()
+		
+		val result = tools.resolveToolCall(
+			toolCall(name = "bash", arguments = """{"cmd":"echo","reason":"tests"}"""),
+			ServiceContainer()
+		)
+		
+		val approval = assertIs<ResolveResult.NeedsApproval>(result)
+		assertEquals("bash", approval.toolName)
+	}
+	
+	@Test
+	fun `resolveToolCall activating already active tool returns ParseFailure`() = runTest {
+		val active = mockTool("bash")
+		val inactive = mockTool("read")
+		val tools = makeTools(listOf(active, inactive), setOf("bash"))
+		tools.assembleTools()
+		
+		val result = tools.resolveToolCall(
+			toolCall(
+				name = "active",
+				arguments = """{"tool_name":"bash","reason":"activate the bash tool"}"""
+			),
+			ServiceContainer()
+		)
+		
+		val failure = assertIs<ResolveResult.ParseFailure>(result)
+		assertTrue(failure.errorMessage.contains("已经激活"))
+	}
+	
+	@Test
+	fun `resolveToolCall activating unknown tool returns ParseFailure`() = runTest {
+		val tool = mockTool()
+		val tools = makeTools(listOf(tool), emptySet())
+		tools.assembleTools()
+		
+		val result = tools.resolveToolCall(
+			toolCall(
+				name = "active",
+				arguments = """{"tool_name":"nope","reason":"activate the missing tool"}"""
+			),
+			ServiceContainer()
+		)
+		
+		val failure = assertIs<ResolveResult.ParseFailure>(result)
+		assertTrue(failure.errorMessage.contains("不存在"))
+	}
+	
+	@Test
+	fun `activation message inlines default function as bare name`() = runTest {
+		val tool = mockTool(functionName = "default")
+		val tools = makeTools(listOf(tool), emptySet())
+		tools.assembleTools()
+		
+		val result = tools.resolveToolCall(
+			toolCall(
+				name = "active",
+				arguments = """{"tool_name":"bash","reason":"activate the bash tool"}"""
+			),
+			ServiceContainer()
+		)
+		
+		val activation = assertIs<ResolveResult.Activation>(result)
+		assertEquals("bash", activation.toolName)
+		assertTrue(activation.message.contains("包含这些子函数：[bash]"))
+		assertEquals(JsonPrimitive("bash"), activation.validatedArgs.jsonObject["tool_name"])
+	}
+	
+	@Test
+	fun `assembleTools active entry enums only inactive tools`() = runTest {
+		val activeTool = mockTool("bash", "bash tool")
+		val inactiveTool = mockTool("read", "read tool")
+		val tools = makeTools(listOf(activeTool, inactiveTool), setOf("bash"))
+		
+		val result = tools.assembleTools()
+		val activeEntry = result!!.first { it.name == "active" }
+		val toolNameProp = activeEntry.parameters.jsonObject["properties"]?.jsonObject?.get("tool_name")?.jsonObject
+		assertNotNull(toolNameProp)
+		val enumValues = toolNameProp["enum"]?.jsonArray
+		assertNotNull(enumValues)
+		assertEquals(listOf("read"), enumValues.map { it.jsonPrimitive.content })
+	}
+	
 	// endregion
 }

@@ -279,8 +279,11 @@ class RoundRunnerTest {
 				"activate",
 				activations = listOf(
 					activationCall to ResolveResult.Activation(
-						message = "activate me",
+						toolName = "bash",
+						reason = "activate me",
+						validatedArgs = JsonPrimitive("""{"tool_name":"bash"}"""),
 						presentation = listOf(UiBlock.Text("激活了 bash 工具")),
+						message = "activate me",
 					)
 				)
 			),

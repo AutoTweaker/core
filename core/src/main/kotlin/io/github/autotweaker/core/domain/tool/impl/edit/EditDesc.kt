@@ -62,13 +62,13 @@ object EditDesc {
 	
 	@AutoService(SettingDef::class)
 	class LineFrom : StringSetting(
-		"指定old_string匹配范围的开始行号，默认为1",
+		"指定old_string匹配范围的开始行号，默认为1，如果你在多段编辑中都缺省开始行号，它们会因为范围重叠而失败",
 		zh("edit-single工具line_from参数的描述")
 	)
 	
 	@AutoService(SettingDef::class)
 	class LineTo : StringSetting(
-		"指定old_string匹配范围的结束行号，默认为文件的最后一行",
+		"指定old_string匹配范围的结束行号，默认为文件的最后一行，如果你在多段编辑中都缺省结束行号，它们会因为范围重叠而失败",
 		zh("edit-single工具line_to参数的描述")
 	)
 	

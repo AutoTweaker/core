@@ -66,7 +66,7 @@ class ReadTest {
 		endLine: Int = 2,
 		lineNumber: Boolean? = null,
 		unicodeEscape: Boolean? = null,
-	) = ReadArgs.File("test.txt", startLine, endLine, lineNumber, unicodeEscape)
+	) = ReadArgs.Default("test.txt", startLine, endLine, lineNumber, unicodeEscape)
 	
 	private fun summarizeArgs(
 		startLine: Int = 1,
