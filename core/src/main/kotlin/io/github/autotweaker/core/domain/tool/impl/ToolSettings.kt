@@ -43,4 +43,10 @@ object ToolSettings {
 		"必须提供至少8位的哈希值，你提供的 '%s' 只有 %s 位",
 		zh("工具sha256参数非法时的描述")
 	)
+	
+	@AutoService(SettingDef::class)
+	class UseShortHash : StringSetting(
+		"你提供了%s位的哈希字符串，实际上你只需要提供完整哈希的前8位来避免复制错误",
+		zh("文件sha256不匹配且提供了超过8位哈希的附加描述")
+	)
 }

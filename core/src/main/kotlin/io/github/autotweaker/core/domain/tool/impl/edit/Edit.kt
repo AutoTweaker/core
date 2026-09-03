@@ -110,7 +110,13 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		}
 		
 		if (!fileContent.sha256.toString().startsWith(shortHash, ignoreCase = true))
-			return Rejected(EditMessage.HashMismatch().format(shortHash)) {
+			return Rejected(buildString {
+				append(EditMessage.HashMismatch().format(shortHash))
+				if (shortHash.length > 8) {
+					appendLine()
+					append(ToolSettings.UseShortHash().format(shortHash.length))
+				}
+			}) {
 				text(i18n(EditI18n.UpdateFailedChanged(), displayPath))
 			}
 		

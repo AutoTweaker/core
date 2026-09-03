@@ -24,8 +24,6 @@ import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 
 object WriteMessage {
-	
-	
 	@AutoService(SettingDef::class)
 	class FileExists : StringSetting(
 		"文件 %s 已存在，如需覆写请使用read工具读取后提供sha256",

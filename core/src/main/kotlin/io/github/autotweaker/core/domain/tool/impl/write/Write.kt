@@ -87,10 +87,15 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		}
 		if (shortHash != null && fileContent != null && !fileContent.sha256.toString()
 				.startsWith(shortHash, ignoreCase = true)
-		)
-			return Rejected(WriteMessage.HashMismatch().format(displayPath, shortHash)) {
-				text(i18n(WriteI18n.UpdateFailedChanged(), displayPath))
+		) return Rejected(buildString {
+			append(WriteMessage.HashMismatch().format(displayPath, shortHash))
+			if (shortHash.length > 8) {
+				appendLine()
+				append(ToolSettings.UseShortHash().format(shortHash.length))
 			}
+		}) {
+			text(i18n(WriteI18n.UpdateFailedChanged(), displayPath))
+		}
 		val newContent = let {
 			val unescape = request.unescapeUnicode ?: false
 			val lenient = request.lenientUnescape ?: false
