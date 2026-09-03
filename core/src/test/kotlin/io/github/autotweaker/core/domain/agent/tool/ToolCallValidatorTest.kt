@@ -456,7 +456,7 @@ class ToolCallValidatorTest {
 		val result = validator.validate(
 			"bash", """{"command":"echo","reason":"tests"}""", "", toolMetaCache(mockSimpleTool())
 		)
-		assertIs<ValidationResult.Failure>(result)
+		assertIs<ValidationResult.Failure>(result).discard()
 	}
 	
 	// endregion
