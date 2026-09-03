@@ -143,7 +143,7 @@ object ToolSettings {
 	
 	@AutoService(SettingDef::class)
 	class ActiveToolDesc : StringSetting(
-		"存在未激活的工具，你需要激活这些工具才能使用它们，调用本工具来激活其他工具。",
+		"激活一个工具并获取它的函数列表",
 		zh("active工具的描述")
 	)
 	
@@ -174,7 +174,7 @@ object ToolSettings {
 	@AutoService(SettingDef::class)
 	class DeactivationThreshold : IntSetting(
 		50,
-		zh("工具将在连续指定次数未使用后被自动禁用，设为0以禁用此特性")
+		zh("工具将在连续指定次数未使用后被自动取消激活，设为0以禁用此特性")
 	)
 	
 	@AutoService(SettingDef::class)
