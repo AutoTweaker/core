@@ -22,7 +22,7 @@ plugins {
 }
 
 dependencies {
-	implementation("com.squareup:kotlinpoet:2.1.0")
+	implementation("com.squareup:kotlinpoet:2.3.0")
 	implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:2.4.10")
 	implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:2.4.10")
 	implementation("org.jetbrains.kotlin:kotlin-scripting-common:2.4.10")
