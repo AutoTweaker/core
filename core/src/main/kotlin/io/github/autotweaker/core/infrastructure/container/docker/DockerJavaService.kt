@@ -79,9 +79,6 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 		return true
 	}.getOrDefault(false)
 	
-	private fun tmpfsOptions(): String =
-		"rw,nosuid,nodev,exec,relatime,mode=1777,size=${ContainerSettings.ContainerTmpSizeMb().get()}m"
-	
 	override suspend fun pull(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
 		log.info("Pulled image  image={}", image)
@@ -150,6 +147,10 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 				throw ContainerOperationException("Failed to stop container: ${e.message()}", e)
 			}.discard()
 	}
+	
+	private fun tmpfsOptions(): String =
+		"rw,nosuid,nodev,exec,relatime,mode=1777,size=${ContainerSettings.ContainerTmpSizeMb().get()}m"
+	
 	
 	private fun fixWorkspacePermissions(containerId: String) {
 		listOf(CONTAINER_WORK_PATH, CONTAINER_TMP_PATH).forEach { dir ->
