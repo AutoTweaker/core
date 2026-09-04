@@ -40,7 +40,7 @@ dokka {
 	}
 }
 
-tasks.register<Sync>("syncGeneratedArgs") {
+val syncGeneratedArgs = tasks.register<Sync>("syncGeneratedArgs") {
 	description = "同步 tool-decl 生成的 ToolArgs 源码到 api 模块"
 	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
 	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
@@ -63,7 +63,7 @@ kotlin {
 			implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 		}
 		jvmMain {
-			kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
+			kotlin.srcDir(project.files(layout.buildDirectory.dir("generated/args")).builtBy(syncGeneratedArgs))
 		}
 		jvmTest.dependencies {
 			implementation(kotlin("test"))

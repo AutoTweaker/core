@@ -24,7 +24,7 @@ plugins {
 	jacoco
 }
 
-tasks.register<Sync>("syncGeneratedMeta") {
+val syncGeneratedMeta = tasks.register<Sync>("syncGeneratedMeta") {
 	description = "同步 tool-decl 生成的 ToolMeta 源码到 core 模块"
 	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
 	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
@@ -32,7 +32,9 @@ tasks.register<Sync>("syncGeneratedMeta") {
 }
 
 kotlin {
-	sourceSets["main"].kotlin.srcDir(layout.buildDirectory.dir("generated/args"))
+	sourceSets["main"].kotlin.srcDir(
+		project.files(layout.buildDirectory.dir("generated/args")).builtBy(syncGeneratedMeta)
+	)
 }
 
 tasks.configureEach {
