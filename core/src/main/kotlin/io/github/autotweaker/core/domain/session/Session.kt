@@ -18,10 +18,14 @@
 
 package io.github.autotweaker.core.domain.session
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.zh
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentContext
@@ -81,7 +85,7 @@ class Session(
 						name = MAIN_AGENT_NAME.toKebab(),
 						model = init.model,
 						context = AgentContext.emptyContext(init.systemPrompt),
-						activeTools = init.activeTools
+						activeTools = initialActiveTools()
 					)
 				).andLog(log) {
 					info(
@@ -97,8 +101,7 @@ class Session(
 	sealed interface SessionInit {
 		data class New(
 			val model: ModelConfig,
-			val systemPrompt: String,
-			val activeTools: Set<String>
+			val systemPrompt: String
 		) : SessionInit
 		
 		data object Restore : SessionInit
@@ -117,13 +120,14 @@ class Session(
 	}
 	
 	private fun getHost(agentId: UUID) = object : AgentHost {
-		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent = lock.withLock {
-			val childId = UUID()
-			_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
-			val bridge = newAgent(childId, name, systemPrompt, model)
-			log.info("Created child agent  parentId={}  childId={}", agentId, childId)
-			return@withLock bridge.agent
-		}
+		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent =
+			lock.withLock {
+				val childId = UUID()
+				_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
+				val bridge = newAgent(childId, name, systemPrompt, model)
+				log.info("Created child agent  parentId={}  childId={}", agentId, childId)
+				return@withLock bridge.agent
+			}
 		
 		override fun list(): List<UUID> {
 			val children = index.findChildren(agentId)
@@ -154,7 +158,7 @@ class Session(
 			name = name,
 			model = model,
 			context = AgentContext.emptyContext(systemPrompt),
-			activeTools = emptySet()
+			activeTools = initialActiveTools()
 		)
 	)
 	
@@ -181,6 +185,19 @@ class Session(
 				}
 			}
 		} else null
+	
+	private fun initialActiveTools() =
+		InitialActiveTools().get()
+			.split(SPACE)
+			.mapNotNullTo(mutableSetOf()) {
+				it.ifBlank { null }
+			}
+	
+	@AutoService(SettingDef::class)
+	class InitialActiveTools : StringSetting(
+		"bash read",
+		zh("配置在新的Agent创建时就激活的工具，空格分隔")
+	)
 	
 	companion object {
 		const val MAIN_AGENT_NAME = "main"

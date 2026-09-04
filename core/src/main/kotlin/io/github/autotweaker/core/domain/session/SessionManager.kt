@@ -129,8 +129,7 @@ class SessionManager(
 		).init(
 			Session.SessionInit.New(
 				model = model,
-				systemPrompt = systemPrompt,
-				activeTools = emptySet()
+				systemPrompt = systemPrompt
 			)
 		).andSave().listen()
 		trace.catching { wsm.updateSessions(workspaceId) { it + data.id } }

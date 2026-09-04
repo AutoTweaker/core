@@ -79,6 +79,9 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 		return true
 	}.getOrDefault(false)
 	
+	private fun tmpfsOptions(): String =
+		"rw,nosuid,nodev,exec,relatime,mode=1777,size=${ContainerSettings.ContainerTmpSizeMb().get()}m"
+	
 	override suspend fun pull(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
 		log.info("Pulled image  image={}", image)
@@ -106,6 +109,7 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 				Bind(WORKSPACE_HOST_PATH.toString(), Volume(CONTAINER_WORK_PATH.toString())),
 				Bind(TMP_HOST_PATH.toString(), Volume(CONTAINER_TMP_PATH.toString()))
 			).withExtraHosts("host.docker.internal:host-gateway").withInit(true)
+				.withTmpFs(mapOf("/tmp" to tmpfsOptions()))
 			
 			val createResponse = client.createContainerCmd(image)
 				.withName(CONTAINER_NAME)
