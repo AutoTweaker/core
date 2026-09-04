@@ -73,3 +73,9 @@ tasks.jar {
 	dependsOn(project(":cli-protocol").tasks.named("jvmJar"))
 	from(zipTree(project(":cli-protocol").tasks.named("jvmJar").get().outputs.files.singleFile))
 }
+
+val rootVersionFile = rootProject.layout.buildDirectory.file("generated/version/version.properties")
+
+tasks.named<ProcessResources>("processResources") {
+	from(rootVersionFile.map { it.asFile.parentFile })
+}
