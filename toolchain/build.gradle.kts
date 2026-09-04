@@ -20,13 +20,33 @@ plugins {
 	kotlin("jvm") version "2.4.10" apply false
 }
 
+abstract class GitHashProvider : ValueSource<String, ValueSourceParameters.None> {
+	override fun obtain(): String {
+		return runCatching {
+			val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+				.redirectError(ProcessBuilder.Redirect.DISCARD)
+				.start()
+			val output = process.inputStream.bufferedReader().readText().trim()
+			if (process.waitFor() != 0) throw RuntimeException("git exited non-zero")
+			output
+		}.getOrDefault("unknown")
+	}
+}
+
 val toolchainProps = java.util.Properties().apply {
 	file("../gradle.properties").inputStream().use { load(it) }
 }
 
+val baseVersion: String = toolchainProps.getProperty("version")
+val gitHash = providers.of(GitHashProvider::class) {}.get()
+val githubRef = providers.environmentVariable("GITHUB_REF").getOrElse("")
+val resolvedVersion = if (githubRef.startsWith("refs/tags/v")) {
+	"${githubRef.removePrefix("refs/tags/v")}+$gitHash"
+} else baseVersion
+
 allprojects {
 	group = toolchainProps.getProperty("group")
-	version = toolchainProps.getProperty("version")
+	version = resolvedVersion
 	repositories {
 		mavenCentral()
 	}

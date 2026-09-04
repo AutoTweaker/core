@@ -98,8 +98,6 @@ dependencies {
 	add("kapt", "com.google.auto.service:auto-service:1.1.1")
 }
 
-// region Maven publish to GitHub Packages
-
 group = "io.github.autotweaker"
 version = rootProject.ext["generatedVersion"] as String
 
@@ -109,11 +107,9 @@ publishing {
 			name = "GitHubPackages"
 			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
 			credentials {
-				username = System.getenv("GITHUB_ACTOR") ?: ""
-				password = System.getenv("GITHUB_TOKEN") ?: ""
+				username = System.getenv("GITHUB_ACTOR").orEmpty()
+				password = System.getenv("GITHUB_TOKEN").orEmpty()
 			}
 		}
 	}
 }
-
-// endregion

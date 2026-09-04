@@ -148,7 +148,7 @@ tasks.named<ProcessResources>("processResources") {
 
 tasks.jar {
 	archiveBaseName = "autotweaker-core"
-	if ((System.getenv("GITHUB_REF") ?: "").startsWith("refs/tags/v")) {
+	if ((System.getenv("GITHUB_REF").orEmpty()).startsWith("refs/tags/v")) {
 		archiveVersion.set(provider { generatedVersion })
 	} else {
 		archiveVersion.set("")

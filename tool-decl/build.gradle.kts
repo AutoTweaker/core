@@ -18,15 +18,10 @@
 
 plugins {
 	id("io.github.autotweaker.toolgen")
-	kotlin("jvm")
 }
 
 toolgen {
 	scriptsDirectory.set(layout.projectDirectory.dir("src/main/tools"))
 	outputDirectory.set(layout.buildDirectory.dir("generated/args"))
 	attachToSourceSet.set(false)
-}
-
-dependencies {
-	implementation("io.github.autotweaker:tool-gen:${project.version}")
 }

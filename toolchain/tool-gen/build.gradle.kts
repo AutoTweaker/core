@@ -51,8 +51,8 @@ publishing {
 			name = "GitHubPackages"
 			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
 			credentials {
-				username = System.getenv("GITHUB_ACTOR") ?: ""
-				password = System.getenv("GITHUB_TOKEN") ?: ""
+				username = System.getenv("GITHUB_ACTOR").orEmpty()
+				password = System.getenv("GITHUB_TOKEN").orEmpty()
 			}
 		}
 	}
