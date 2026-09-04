@@ -33,9 +33,12 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 
 class LocalShellExecutor : Loggable, Traceable {
+	private val drainGrace: Duration = 5.seconds
+
 	fun exec(
 		command: String, workDir: Path, env: Map<String, String>, timeout: Duration
 	): Flow<ShellEvent> = channelFlow {
@@ -48,7 +51,7 @@ class LocalShellExecutor : Loggable, Traceable {
 				.redirectErrorStream(false)
 				.apply { environment().putAll(env) }.start()
 		}
-		trace.catching {
+		try {
 			val stdoutJob = launch(Dispatchers.IO) {
 				process.inputStream.bufferedReader().use { reader ->
 					var line = reader.readLine()
@@ -74,7 +77,7 @@ class LocalShellExecutor : Loggable, Traceable {
 					val code = withTimeoutOrNull(timeout) {
 						suspendCancellableCoroutine { cont ->
 							cont.invokeOnCancellation {
-								process.destroyForcibly()
+								killProcessTree(process)
 							}
 							process.onExit().whenComplete { p, err ->
 								if (err != null) cont.resumeWithException(err)
@@ -85,15 +88,18 @@ class LocalShellExecutor : Loggable, Traceable {
 					if (code != null) {
 						true to code
 					} else {
+						killProcessTree(process)
 						process.waitFor(2, TimeUnit.SECONDS)
 						log.warn("Timed out shell command  command={}  timeout={}", command, timeout)
 						false to -1
 					}
 				}
 				
-				stdoutJob.join()
-				stderrJob.join()
-				
+				if (withTimeoutOrNull(drainGrace) { stdoutJob.join(); stderrJob.join() } == null) {
+					stdoutJob.cancel()
+					stderrJob.cancel()
+				}
+
 				finished to exitCode
 			}
 			val (finished, exitCode) = execDuration.value
@@ -112,8 +118,13 @@ class LocalShellExecutor : Loggable, Traceable {
 					)
 				)
 			)
-		}.also {
-			process.destroyForcibly()
-		}.getOrThrow()
+		} finally {
+			killProcessTree(process)
+		}
+	}
+
+	private fun killProcessTree(process: Process) {
+		process.descendants().forEach { it.destroyForcibly() }
+		process.destroyForcibly()
 	}
 }
