@@ -15,18 +15,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
 
-plugins {
-	id("io.github.autotweaker.toolgen")
-	kotlin("jvm")
-}
-
-toolgen {
-	scriptsDirectory.set(layout.projectDirectory.dir("src/main/tools"))
-	outputDirectory.set(layout.buildDirectory.dir("generated/args"))
-	attachToSourceSet.set(false)
-}
-
-dependencies {
-	implementation("io.github.autotweaker:tool-gen:${project.version}")
-}
+tool("read") {
+	defaultFunction {
+		string("file_path")
+		int("start_line") { required = false }
+		int("end_line") { required = false }
+		boolean("line_number") { required = false }
+		boolean("unicode_escape") { required = false }
+	}
+	
+	function("summarize") {
+		string("file_path")
+		int("start_line") { required = false }
+		int("end_line") { required = false }
+		string("prompt") { required = false }
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.read",
+)

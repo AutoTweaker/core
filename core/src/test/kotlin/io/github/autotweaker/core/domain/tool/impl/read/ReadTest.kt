@@ -307,7 +307,7 @@ class ReadTest {
 			)
 		
 		assertTrue(result.success)
-		assertEquals("读取的文件内容与文件哈希'${sha}'时的读取相同", result.result)
+		assertEquals("读取的文件内容与文件哈希 '${sha}' 时的读取相同", result.result)
 	}
 	
 	@Test

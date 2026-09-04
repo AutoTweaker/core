@@ -15,28 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
-
 import io.github.autotweaker.toolgen.gen
 import io.github.autotweaker.toolgen.tool
 
-tool("read") {
+tool("write") {
 	defaultFunction {
 		string("file_path")
-		int("start_line") { required = false }
-		int("end_line") { required = false }
-		boolean("line_number") { required = false }
-		boolean("unicode_escape") { required = false }
-	}
-	
-	function("summarize") {
-		string("file_path")
-		int("start_line") { required = false }
-		int("end_line") { required = false }
-		string("prompt") { required = false }
+		string("sha256") { required = false }
+		string("content")
+		boolean("unescape_unicode") { required = false }
+		boolean("lenient_unescape") { required = false }
 	}
 }.gen(
 	"io.github.autotweaker.api.generated.tool.args",
-	"io.github.autotweaker.core.domain.tool.impl.read",
+	"io.github.autotweaker.core.domain.tool.impl.write",
 )

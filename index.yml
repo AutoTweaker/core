@@ -1,8 +1,10 @@
 org_url: "https://github.com/AutoTweaker"
 
+doc_url: "https://autotweaker.github.io/doc/"
+install_url: "https://autotweaker.github.io/install.sh"
+
 core:
   repo_url: "https://github.com/AutoTweaker/core"
-  install_url: "https://autotweaker.github.io/install.sh"
   clone_url:
     ssh: "git@github.com:AutoTweaker/core.git"
     http: "https://github.com/AutoTweaker/core.git"

@@ -15,18 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import io.github.autotweaker.toolgen.gen
+import io.github.autotweaker.toolgen.tool
 
-plugins {
-	id("io.github.autotweaker.toolgen")
-	kotlin("jvm")
-}
-
-toolgen {
-	scriptsDirectory.set(layout.projectDirectory.dir("src/main/tools"))
-	outputDirectory.set(layout.buildDirectory.dir("generated/args"))
-	attachToSourceSet.set(false)
-}
-
-dependencies {
-	implementation("io.github.autotweaker:tool-gen:${project.version}")
-}
+tool("bash") {
+	defaultFunction {
+		string("command")
+		int("timeout_seconds") { required = false }
+		stringList("env_ids") { required = false }
+	}
+}.gen(
+	"io.github.autotweaker.api.generated.tool.args",
+	"io.github.autotweaker.core.domain.tool.impl.bash",
+)

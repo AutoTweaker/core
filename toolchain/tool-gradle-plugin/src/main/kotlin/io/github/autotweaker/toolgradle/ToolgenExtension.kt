@@ -16,20 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
+package io.github.autotweaker.toolgradle
 
-import io.github.autotweaker.toolgen.gen
-import io.github.autotweaker.toolgen.tool
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
 
-tool("write") {
-	defaultFunction {
-		string("file_path")
-		string("sha256") { required = false }
-		string("content")
-		boolean("unescape_unicode") { required = false }
-		boolean("lenient_unescape") { required = false }
-	}
-}.gen(
-	"io.github.autotweaker.api.generated.tool.args",
-	"io.github.autotweaker.core.domain.tool.impl.write",
-)
+abstract class ToolgenExtension {
+	abstract val scriptsDirectory: DirectoryProperty
+	abstract val outputDirectory: DirectoryProperty
+	abstract val attachToSourceSet: Property<Boolean>
+}

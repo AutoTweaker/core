@@ -50,6 +50,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Publish toolchain to GitHub Packages
+        run: ./gradlew -p toolchain :tool-gen:publish :tool-gradle-plugin:publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub Release
         run: |
           gh release create "v$VERSION" \

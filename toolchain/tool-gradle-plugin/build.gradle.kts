@@ -18,32 +18,39 @@
 
 plugins {
 	kotlin("jvm")
+	`java-gradle-plugin`
 	`maven-publish`
-}
-
-dependencies {
-	implementation("com.squareup:kotlinpoet:2.1.0")
-	runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-jsr223:2.4.10")
-	runtimeOnly("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:2.4.10")
 }
 
 kotlin {
 	jvmToolchain(25)
 }
 
-val sourcesJar = tasks.register<Jar>("sourcesJar") {
-	description = "打包源码 jar 用于发布"
-	archiveClassifier.set("sources")
-	from(sourceSets.main.get().allSource)
+dependencies {
+	compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10")
 }
 
-publishing {
-	publications {
-		create<MavenPublication>("maven") {
-			from(components["java"])
-			artifact(sourcesJar)
+gradlePlugin {
+	plugins {
+		create("toolgen") {
+			id = "io.github.autotweaker.toolgen"
+			implementationClass = "io.github.autotweaker.toolgradle.ToolgenPlugin"
 		}
 	}
+}
+
+val versionResDir = layout.buildDirectory.dir("generated/toolgradle/version")
+val pluginVersion = project.version.toString()
+
+val versionFile = versionResDir.get().file("io/github/autotweaker/toolgradle/toolgen.properties")
+versionFile.asFile.apply {
+	parentFile.mkdirs()
+	writeText("toolgen=$pluginVersion")
+}
+
+sourceSets["main"].resources.srcDir(versionResDir)
+
+publishing {
 	repositories {
 		maven {
 			name = "GitHubPackages"

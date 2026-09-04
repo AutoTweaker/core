@@ -16,18 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:DependsOn("io.github.autotweaker:tool-gen:0.1.0-alpha.35")
+package io.github.autotweaker.toolgen
 
-import io.github.autotweaker.toolgen.gen
-import io.github.autotweaker.toolgen.tool
+import kotlin.script.experimental.annotations.KotlinScript
+import kotlin.script.experimental.api.ScriptCompilationConfiguration
+import kotlin.script.experimental.jvm.dependenciesFromClassloader
+import kotlin.script.experimental.jvm.jvm
 
-tool("bash") {
-	defaultFunction {
-		string("command")
-		int("timeout_seconds") { required = false }
-		stringList("env_ids") { required = false }
-	}
-}.gen(
-	"io.github.autotweaker.api.generated.tool.args",
-	"io.github.autotweaker.core.domain.tool.impl.bash",
+@KotlinScript(
+	fileExtension = "toolgen.kts",
+	compilationConfiguration = ToolgenScriptConfiguration::class,
 )
+abstract class ToolgenScript
+
+object ToolgenScriptConfiguration : ScriptCompilationConfiguration({
+	jvm {
+		dependenciesFromClassloader(wholeClasspath = true, classLoader = ToolgenScript::class.java.classLoader)
+	}
+}) {
+	@Suppress("unused")
+	private fun readResolve(): Any = ToolgenScriptConfiguration
+}

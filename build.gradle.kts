@@ -26,8 +26,6 @@ allprojects {
 	repositories {
 		mavenCentral()
 	}
-	group = "io.github.autotweaker"
-	version = "0.1.0-alpha.35"
 }
 
 // region 生成版本资源文件

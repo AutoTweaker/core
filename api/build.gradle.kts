@@ -44,7 +44,7 @@ tasks.register<Sync>("syncGeneratedArgs") {
 	description = "同步 tool-decl 生成的 ToolArgs 源码到 api 模块"
 	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
 	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
-	dependsOn(":tool-decl:generateArgs")
+	dependsOn(":tool-decl:generateToolArgs")
 }
 
 kotlin {

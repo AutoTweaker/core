@@ -16,17 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-	id("io.github.autotweaker.toolgen")
-	kotlin("jvm")
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		mavenCentral()
+	}
 }
 
-toolgen {
-	scriptsDirectory.set(layout.projectDirectory.dir("src/main/tools"))
-	outputDirectory.set(layout.buildDirectory.dir("generated/args"))
-	attachToSourceSet.set(false)
-}
+rootProject.name = "autotweaker-toolchain"
 
-dependencies {
-	implementation("io.github.autotweaker:tool-gen:${project.version}")
-}
+include("tool-gen")
+include("tool-gradle-plugin")

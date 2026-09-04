@@ -22,6 +22,8 @@ pluginManagement {
 	}
 }
 
+includeBuild("toolchain")
+
 plugins {
 	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
@@ -34,5 +36,4 @@ include("cli-adapter")
 include("cli-debugger")
 include("cli-client")
 include("cli-protocol")
-include("tool-gen")
 include("tool-decl")

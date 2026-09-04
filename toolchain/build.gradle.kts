@@ -17,16 +17,17 @@
  */
 
 plugins {
-	id("io.github.autotweaker.toolgen")
-	kotlin("jvm")
+	kotlin("jvm") version "2.4.10" apply false
 }
 
-toolgen {
-	scriptsDirectory.set(layout.projectDirectory.dir("src/main/tools"))
-	outputDirectory.set(layout.buildDirectory.dir("generated/args"))
-	attachToSourceSet.set(false)
+val toolchainProps = java.util.Properties().apply {
+	file("../gradle.properties").inputStream().use { load(it) }
 }
 
-dependencies {
-	implementation("io.github.autotweaker:tool-gen:${project.version}")
+allprojects {
+	group = toolchainProps.getProperty("group")
+	version = toolchainProps.getProperty("version")
+	repositories {
+		mavenCentral()
+	}
 }

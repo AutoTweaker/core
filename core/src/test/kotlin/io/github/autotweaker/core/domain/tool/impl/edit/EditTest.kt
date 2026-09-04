@@ -184,6 +184,22 @@ class EditTest {
 		assertEquals("same\nother\nchanged", request.newContent)
 	}
 	
+	@Test
+	fun `resolve 8 digit prefix sha256 accepted`() = runTest {
+		val content = "line"
+		val result = edit.resolve(
+			container(mockFs(content)),
+			editArgs(
+				content,
+				listOf(replacement(oldString = "line", newString = "l")),
+				sha256 = sha(content).toString().take(8)
+			)
+		)
+		
+		val request = decodeRequest(result)
+		assertEquals("l", request.newContent)
+	}
+	
 	// endregion
 	
 	// region resolve - 参数与读取失败
@@ -201,24 +217,28 @@ class EditTest {
 	}
 	
 	@Test
-	fun `resolve invalid sha256 hex rejected`() = runTest {
+	fun `resolve too short sha256 rejected`() = runTest {
 		val result = edit.resolve(
 			container(mockFs("line")),
 			editArgs("line", listOf(replacement(oldString = "line", newString = "l")), sha256 = "1234")
 		)
 		
-		val rejected = assertIs<Tool.ResolveResult.Rejected>(result)
-		assertTrue(rejected.reason.startsWith("无效的哈希："))
+		assertRejected(result, "必须提供至少8位的哈希值，你提供的 '1234' 只有 4 位")
 	}
 	
 	@Test
 	fun `resolve sha256 mismatch rejected`() = runTest {
+		val wrong = sha("other").toString()
 		val result = edit.resolve(
 			container(mockFs("line")),
-			editArgs("line", listOf(replacement(oldString = "line", newString = "l")), sha256 = sha("other").toString())
+			editArgs("line", listOf(replacement(oldString = "line", newString = "l")), sha256 = wrong)
 		)
 		
-		assertRejected(result, "编辑文件失败，SHA256不匹配，文件已被外部更新，请重新读取文件")
+		assertRejected(
+			result,
+			"编辑文件失败，文件当前SHA256哈希值不以 '$wrong' 为前缀，文件已被外部更新，请重新读取文件\n" +
+					"你提供了64位的哈希字符串，实际上你只需要提供完整哈希的前8位来避免复制错误"
+		)
 	}
 	
 	@Test
