@@ -50,11 +50,11 @@ val TMP_PATH: Path = Path.of(
 )
 
 /**
- * 容器内 `/tmp/autotweaker` 的挂载对象。
+ * 容器内 `/tmp/autotweaker` 在宿主的挂载位置。
  */
 val TMP_HOST_PATH: Path = TMP_PATH.resolve("container")
 
 /**
- * 容器内 `/workspace` 的挂载对象，位于此路径下的工作区会被视为容器内工作区。
+ * 容器内 `/workspace` 在宿主的挂载位置，位于此路径下的工作区会被视为容器内工作区。
  */
 val WORKSPACE_HOST_PATH: Path = CONFIG_PATH.resolve("container", "workspace")

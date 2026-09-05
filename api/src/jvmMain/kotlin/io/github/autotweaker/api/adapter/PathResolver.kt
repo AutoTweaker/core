@@ -22,11 +22,11 @@ import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import java.nio.file.Path
 
 /**
- * AutoTweaker 支持容器内工作区，并将宿主目录挂载到容器内以便程序直接读写宿主文件系统。
+ * AutoTweaker 支持容器内工作区，并将宿主目录挂载到容器内以便程序直接读写宿主文件系统（等价于读写容器内文件系统）。
  *
- * 需要保障 LLM 始终以“容器内”的视角执行操作，而程序在读写文件系统时又能够正确得到宿主路径。
+ * 需要保障容器内工作区的 LLM 始终以“容器内”的视角执行操作，而程序在宿主机读写文件系统时又能够正确得到宿主路径。
  *
- * 此接口用于处理容器内 <---> 宿主的路径映射关系。
+ * 此接口基于容器的实际挂载配置，处理容器内 <---> 宿主的路径映射关系。
  *
  * AutoTweaker 会挂载 [io.github.autotweaker.api.CONFIG_PATH] `/container/workspace` 以及 [io.github.autotweaker.api.TMP_PATH] `/container` 到容器内。
  */
@@ -34,19 +34,19 @@ interface PathResolver {
 	/**
 	 * 判断一个工作区是否为容器内工作区，只需提供 [Path]。
 	 *
-	 * 容器内工作区中的任何操作都只应该影响容器内状态，也包括宿主挂载路径的状态。
+	 * 容器内工作区中，LLM 的任何操作（如工具调用）都只应该影响容器内状态或宿主挂载点的状态。
 	 */
 	fun inContainer(workspace: Path): Boolean
 	
 	/**
-	 * 基于工作区路径解析相对路径为绝对路径，不会进行转换，容器内得到的是“容器内视角”的绝对路径，宿主得到的是“宿主视角”的绝对路径。
+	 * 基于工作区路径解析 LLM 提供的相对路径为绝对路径，不会进行挂载映射，容器内工作区得到的是“容器内视角”的绝对路径，宿主工作区得到的是“宿主视角”的绝对路径。
 	 *
 	 * @param workspace 工作区的路径，工作区路径始终为宿主路径，如果需要解析容器内路径，AutoTweaker 会自动映射挂载关系。
 	 */
 	fun toAbsolutePath(workspace: Path, path: Path): Path
 	
 	/**
-	 * 基于绝对路径解析相对路径，不会进行转换，与 [toAbsolutePath] 互逆且行为相似。
+	 * 基于绝对路径解析相对路径，不会进行挂载映射，与 [toAbsolutePath] 互逆且行为相似。
 	 *
 	 * @param path 容器内或宿主绝对路径，相对路径同时允许，会基于工作区路径解析。
 	 * @param workspace 工作区的路径，工作区路径始终为宿主路径，如果需要解析容器内路径，AutoTweaker 会自动映射挂载关系。
