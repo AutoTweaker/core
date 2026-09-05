@@ -35,11 +35,12 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.reflect.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.selects.onTimeout
+import kotlinx.coroutines.selects.select
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
@@ -72,7 +73,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		apiKey: String,
 		baseUrl: Url?,
 		timeout: ChatTimeout?
-	): Flow<ChatResult> = flow {
+	): Flow<ChatResult> = channelFlow {
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
 		trace.catching {
 			if (request.stream) {
@@ -83,10 +84,10 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		}.rethrowCancellation {
 			log.debug("Cancelled LLM request  provider={}  model={}", providerInfo.name, request.model)
 		}.recoverException { e: LlmFailedException ->
-			emit(e.result)
+			send(e.result)
 		}.getOrElse { e ->
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
-			emit(
+			send(
 				ChatResult.Failed(
 					message = e.message(), statusCode = null, exception = e
 				)
@@ -94,23 +95,55 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		}
 	}
 	
-	private suspend fun FlowCollector<ChatResult>.streamChat(
+	@OptIn(ExperimentalCoroutinesApi::class)
+	private suspend fun ProducerScope<ChatResult>.streamChat(
 		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
-		sharedHttpClient.preparePost {
-			configureRequest(request, apiKey, baseUrl, timeout)
-		}.execute { response ->
-			if (!response.status.isSuccess()) {
-				val errorBody = response.bodyAsText()
-				throw LlmFailedException(
-					ChatResult.Failed(
-						message = "LLM API Error (${response.status}): $errorBody",
-						statusCode = response.status.value
-					),
-				)
+		coroutineScope {
+			val chunkTimeout = timeout?.streamChunkTimeout
+			val headersArrived = CompletableDeferred<Unit>()
+			val responseJob = async(start = CoroutineStart.UNDISPATCHED) {
+				sharedHttpClient.preparePost {
+					configureRequest(request, apiKey, baseUrl, timeout)
+				}.execute { response ->
+					headersArrived.complete(Unit)
+					collectStream(response, chunkTimeout)
+				}
 			}
-			
-			val channel = response.bodyAsChannel()
+			if (chunkTimeout != null) {
+				select {
+					headersArrived.onAwait { }
+					responseJob.onAwait { }
+					onTimeout(chunkTimeout) {
+						responseJob.cancel()
+						chunkTimeoutFailed(chunkTimeout, null)
+					}
+				}
+			}
+			responseJob.await()
+		}
+	}
+	
+	private suspend fun ProducerScope<ChatResult>.collectStream(
+		response: HttpResponse, chunkTimeout: Duration?
+	) {
+		if (!response.status.isSuccess()) {
+			val errorBody = response.bodyAsText()
+			throw LlmFailedException(
+				ChatResult.Failed(
+					message = "LLM API Error (${response.status}): $errorBody",
+					statusCode = response.status.value
+				),
+			)
+		}
+		
+		var idleDeadline: Instant? = null
+		if (chunkTimeout != null) {
+			idleDeadline = Clock.System.now() + chunkTimeout
+		}
+		
+		val channel = response.bodyAsChannel()
+		try {
 			val pendingToolCalls = mutableMapOf<Int, PendingToolCall>()
 			val content: StringBuilder = StringBuilder()
 			val reasoning: StringBuilder = StringBuilder()
@@ -118,9 +151,10 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			var lastTimestamp: Instant? = null
 			
 			while (!channel.isClosedForRead) {
-				val line = readLineWithChunkTimeout(channel, timeout?.streamChunkTimeout) ?: break
+				val line = readLineWithChunkTimeout(channel, chunkTimeout, idleDeadline) ?: break
 				
 				if (line.startsWith("data:")) {
+					idleDeadline = chunkTimeout?.let { Clock.System.now() + it }
 					val data = line.removePrefix("data:").trim()
 					
 					if (data == "[DONE]") break
@@ -129,7 +163,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 						val chunk = json.decodeFromString(chunkSerializer, data)
 						
 						val result = chunk.transform()
-						emit(result)
+						send(result)
 						
 						result.toolCalls?.forEach { fragment ->
 							val pending = pendingToolCalls.getOrPut(fragment.index) { PendingToolCall() }
@@ -155,22 +189,23 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			val toolCalls = if (pendingToolCalls.isEmpty()) null
 			else pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
 			
-			emit(
+			send(
 				ChatResult.Assembled(
 					message = ChatMessage.Assistant(
 						content = content.toString(),
 						reasoningContent = reasoning.toString(),
 						toolCalls = toolCalls,
-						timestamp = lastTimestamp ?: Clock.System.now(),
+						timestamp = lastTimestamp.orNow(),
 					),
 					usage = lastUsage,
 				)
 			)
-			
+		} finally {
+			trace.catching { channel.cancel() }
 		}
 	}
 	
-	private suspend fun FlowCollector<ChatResult>.nonStreamChat(
+	private suspend fun ProducerScope<ChatResult>.nonStreamChat(
 		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
 		val response = sharedHttpClient.post {
@@ -187,23 +222,22 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			)
 		}
 		
-		emit(response.body<Response>(responseTypeInfo).transform())
+		send(response.body<Response>(responseTypeInfo).transform())
 	}
 	
 	
-	private suspend fun readLineWithChunkTimeout(channel: ByteReadChannel, timeout: Duration?): String? =
-		if (timeout == null) channel.readLine()
-		else trace.catching { withTimeout(timeout) { channel.readLine() } }
-			.recoverException { e: TimeoutCancellationException ->
-				throw LlmFailedException(
-					ChatResult.Failed(
-						message = "LLM stream chunk timeout after=${timeout.inWholeSeconds} seconds",
-						statusCode = null,
-						exception = e
-					)
-				)
-			}.getOrThrow()
-
+	private suspend fun readLineWithChunkTimeout(
+		channel: ByteReadChannel, timeout: Duration?, idleDeadline: Instant?
+	): String? {
+		if (timeout == null || idleDeadline == null) return channel.readLine()
+		return trace.catching {
+			val remaining = idleDeadline - Clock.System.now()
+			withTimeout(remaining) { channel.readLine() }
+		}.recoverException { e: TimeoutCancellationException ->
+			chunkTimeoutFailed(timeout, e)
+		}.getOrThrow()
+	}
+	
 	private suspend fun HttpRequestBuilder.configureRequest(
 		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
@@ -215,11 +249,18 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			timeout {
 				connectTimeoutMillis = it.connectTimeout.inWholeMilliseconds
 				requestTimeoutMillis = it.requestTimeout.inWholeMilliseconds
-				if (request.stream) {
-					socketTimeoutMillis = it.streamChunkTimeout.inWholeMilliseconds
-				}
 			}
 		}
+	}
+	
+	private fun chunkTimeoutFailed(timeout: Duration, cause: Throwable?): Nothing {
+		throw LlmFailedException(
+			ChatResult.Failed(
+				message = "LLM stream chunk timeout after=${timeout.inWholeSeconds} seconds",
+				statusCode = null,
+				exception = cause
+			)
+		)
 	}
 	
 	private class LlmFailedException(val result: ChatResult.Failed) : Exception()
