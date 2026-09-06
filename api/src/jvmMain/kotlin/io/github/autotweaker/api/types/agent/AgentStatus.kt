@@ -33,7 +33,7 @@ enum class AgentStatus(val stopped: Boolean) {
 	DEAD(true),
 	
 	/**
-	 * Agent 主循环发生不可恢复错误，已经无法工作。
+	 * Agent 主循环发生不可恢复错误，已经无法工作。此时调用 Agent 的任何 api 都会抛出导致主循环失败的那个原始异常。
 	 */
 	FAILED(true),
 	

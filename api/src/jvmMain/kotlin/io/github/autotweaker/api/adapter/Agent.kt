@@ -20,6 +20,11 @@ package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.exception.AgentDeadException
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,9 +40,9 @@ import java.util.*
  *
  * 为了避免内存泄漏，长时间空闲的 agent 会停止运行，状态变为 [AgentStatus.DEAD]，AutoTweaker 会内部解除对 agent 对象的引用。
  *
- * [status] 为 [AgentStatus.DEAD] 时调用 agent 的任何方法都将抛出 [io.github.autotweaker.api.types.exception.AgentDeadException]，请在观察到 [AgentStatus.DEAD] 或收到 [io.github.autotweaker.api.types.exception.AgentDeadException] 后解除对于 [Agent] 对象的引用。
+ * [status] 为 [AgentStatus.DEAD] 时调用 agent 的任何方法都将抛出 [AgentDeadException]，请在观察到 [AgentStatus.DEAD] 或收到 [AgentDeadException] 后解除对于 [Agent] 对象的引用。
  *
- * agent 的关机过程中也可能存在一个较小窗口，方法抛出 [io.github.autotweaker.api.types.exception.AgentDeadException] 但状态不为 [AgentStatus.DEAD]。
+ * agent 的关机过程中也可能存在一个较小窗口，方法抛出 [AgentDeadException] 但状态不为 [AgentStatus.DEAD]。
  */
 interface Agent {
 	/**
@@ -122,7 +127,7 @@ interface Agent {
 	 *
 	 * 发送一条只包含 [MessageContent.injections] 的消息可以注入一些即时信息。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 * @see MessageContent
 	 * @see Delivery
 	 */
@@ -133,7 +138,7 @@ interface Agent {
 	 *
 	 * [sendCoalescing] 入队的消息仅会在每次 THINKING 开始前被合并到请求中，适用于发送 [MessageContent.injections] 来注入提示。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 * @see send
 	 * @see Delivery
 	 */
@@ -146,7 +151,7 @@ interface Agent {
 	 *
 	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact]。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun pause(): Agent
 	
@@ -159,7 +164,7 @@ interface Agent {
 	 *
 	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact]。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun stop(): Agent
 	
@@ -170,7 +175,7 @@ interface Agent {
 	 *
 	 * agent 的上下文压缩完全在后台进行，不会阻塞 agent 的主事件循环，上下文压缩完毕后将在下一次 LLM 请求立即生效。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun compact(): Agent
 	
@@ -179,7 +184,7 @@ interface Agent {
 	 *
 	 * 请注意，只要达到阈值，上下文压缩仍然会继续自动触发。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun cancelCompact(): Agent
 	
@@ -188,7 +193,7 @@ interface Agent {
 	 *
 	 * 请注意，只要被批准，剩余工具调用仍然会继续执行。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun cancelTool(): Agent
 	
@@ -197,7 +202,11 @@ interface Agent {
 	 *
 	 * 要获取当前的大模型配置，请访问 [model]。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
+	 * @throws ModelNotFoundException
+	 * @throws ProviderNotFoundException
+	 * @throws SecretNotFoundException
+	 * @throws SecretStoreLockedException
 	 */
 	suspend fun setModel(config: ModelConfig): Agent
 	
@@ -208,7 +217,7 @@ interface Agent {
 	 *
 	 * 工具调用会始终根据 LLM 请求的顺序执行。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun approve(approval: ToolApprove): Agent
 	
@@ -219,7 +228,7 @@ interface Agent {
 	 *
 	 * 请不要频繁使用此方法，这将导致模型 API 的硬盘缓存失效，并增加费用。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun inject(injection: ContextInjection): Agent
 	
@@ -230,7 +239,7 @@ interface Agent {
 	 *
 	 * 请不要频繁使用此方法，这将导致模型 API 的硬盘缓存失效，并增加费用。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
+	 * @throws AgentDeadException
 	 */
 	suspend fun removeInjection(id: UUID): Agent
 }

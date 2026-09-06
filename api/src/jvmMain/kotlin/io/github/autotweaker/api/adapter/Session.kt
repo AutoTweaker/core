@@ -19,6 +19,11 @@
 package io.github.autotweaker.api.adapter
 
 import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.exception.SecretStoreLockedException
+import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
+import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
@@ -59,7 +64,11 @@ interface Session {
 	/**
 	 * 从持久化恢复 agent 实例，如果内存中已有会直接返回。
 	 *
-	 * @throws io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
+	 * @throws AgentNotFoundException
+	 * @throws ModelNotFoundException
+	 * @throws ProviderNotFoundException
+	 * @throws SecretNotFoundException
+	 * @throws SecretStoreLockedException
 	 */
 	suspend fun restore(agent: UUID): Agent
 	

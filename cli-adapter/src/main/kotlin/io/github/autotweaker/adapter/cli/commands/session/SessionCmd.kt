@@ -310,6 +310,8 @@ class SessionCmd : Command, Traceable, Loggable {
 			val outputLock = ReentrantMutex()
 			launch {
 				agent.status.collectLatest { state ->
+					if (state == AgentStatus.DEAD) done()
+					if (state == AgentStatus.FAILED) done(1)
 					if (state == AgentStatus.THINKING) outputLock.withLock {
 						altScreen {
 							out("Thinking...") { white() }
