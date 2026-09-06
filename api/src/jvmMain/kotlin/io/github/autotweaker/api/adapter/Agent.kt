@@ -29,11 +29,17 @@ import java.util.*
 /**
  * 用于管理单个 agent 实例的 api。
  *
- * 大部分方法都重新返回自身（[AgentAPI]）以支持链式调用。
+ * 大部分方法都重新返回自身（[Agent]）以支持链式调用。
  *
- * 关于 agent 上下文的基本概念（如“轮次”）请参阅 [AgentContextIndex]
+ * 关于 agent 上下文的基本概念（如“轮次”）请参阅 [AgentContextIndex]。
+ *
+ * 为了避免内存泄漏，长时间空闲的 agent 会停止运行，状态变为 [AgentStatus.DEAD]，AutoTweaker 会内部解除对 agent 对象的引用。
+ *
+ * [status] 为 [AgentStatus.DEAD] 时调用 agent 的任何方法都将抛出 [io.github.autotweaker.api.types.exception.AgentDeadException]，请在观察到 [AgentStatus.DEAD] 或收到 [io.github.autotweaker.api.types.exception.AgentDeadException] 后解除对于 [Agent] 对象的引用。
+ *
+ * agent 的关机过程中也可能存在一个较小窗口，方法抛出 [io.github.autotweaker.api.types.exception.AgentDeadException] 但状态不为 [AgentStatus.DEAD]。
  */
-interface AgentAPI {
+interface Agent {
 	/**
 	 * agent 的 id，永远唯一。
 	 */
@@ -116,6 +122,7 @@ interface AgentAPI {
 	 *
 	 * 发送一条只包含 [MessageContent.injections] 的消息可以注入一些即时信息。
 	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 * @see MessageContent
 	 * @see Delivery
 	 */
@@ -126,6 +133,7 @@ interface AgentAPI {
 	 *
 	 * [sendCoalescing] 入队的消息仅会在每次 THINKING 开始前被合并到请求中，适用于发送 [MessageContent.injections] 来注入提示。
 	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 * @see send
 	 * @see Delivery
 	 */
@@ -137,8 +145,10 @@ interface AgentAPI {
 	 * “当前任务”包括 LLM 请求和工具调用（单个工具），未执行的工具调用将被取消。
 	 *
 	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact]。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun pause(): AgentAPI
+	suspend fun pause(): Agent
 	
 	/**
 	 * 立即停止 agent 的工具调用或 LLM 请求，并归档当前上下文，等待状态变为 [AgentStatus.FREE]（Stop 完成）。
@@ -148,8 +158,10 @@ interface AgentAPI {
 	 * 请注意，终止正在进行的 LLM 请求将导致 Usage 无法被记录。
 	 *
 	 * 后台的上下文压缩任务不受此影响，要终止正在进行的上下文压缩任务，请使用 [cancelCompact]。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun stop(): AgentAPI
+	suspend fun stop(): Agent
 	
 	/**
 	 * 触发 agent 的上下文压缩，如果上下文压缩正在进行，不会重复触发，上下文压缩在后台进行，此方法不会挂起等待上下文压缩完毕。
@@ -157,29 +169,37 @@ interface AgentAPI {
 	 * 除此之外，agent 会在每次 LLM 请求、工具调用结束后自动根据配置的阈值检查当前 Usage 并自动触发上下文压缩。
 	 *
 	 * agent 的上下文压缩完全在后台进行，不会阻塞 agent 的主事件循环，上下文压缩完毕后将在下一次 LLM 请求立即生效。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun compact(): AgentAPI
+	suspend fun compact(): Agent
 	
 	/**
 	 * 取消正在进行的上下文压缩进程。
 	 *
 	 * 请注意，只要达到阈值，上下文压缩仍然会继续自动触发。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun cancelCompact(): AgentAPI
+	suspend fun cancelCompact(): Agent
 	
 	/**
 	 * 取消正在进行的工具调用。
 	 *
 	 * 请注意，只要被批准，剩余工具调用仍然会继续执行。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun cancelTool(): AgentAPI
+	suspend fun cancelTool(): Agent
 	
 	/**
 	 * 更新 agent 使用的大模型，下次请求立即生效。
 	 *
 	 * 要获取当前的大模型配置，请访问 [model]。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun setModel(config: ModelConfig): AgentAPI
+	suspend fun setModel(config: ModelConfig): Agent
 	
 	/**
 	 * 批准一个工具调用请求。
@@ -187,8 +207,10 @@ interface AgentAPI {
 	 * AutoTweaker 会根据 LLM 请求的顺序，逐一等待批准，并逐一执行，乱序的批准将被缓存。
 	 *
 	 * 工具调用会始终根据 LLM 请求的顺序执行。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun approve(approval: ToolApprove): AgentAPI
+	suspend fun approve(approval: ToolApprove): Agent
 	
 	/**
 	 * 在 agent 的上下文中注入 XML 标签，相同 id 的标签会去重。
@@ -196,8 +218,10 @@ interface AgentAPI {
 	 * XML 标签会被注入到当前上下文中的第一条用户消息中，此 api 用于注入不变的系统提示，如果要注入动态的实时信息，请使用 [send]。
 	 *
 	 * 请不要频繁使用此方法，这将导致模型 API 的硬盘缓存失效，并增加费用。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun inject(injection: ContextInjection): AgentAPI
+	suspend fun inject(injection: ContextInjection): Agent
 	
 	/**
 	 * 从 agent 的上下文中移除一条标签注入。
@@ -205,6 +229,8 @@ interface AgentAPI {
 	 * 如果请求移除一条不存在的标签，什么也不会发生。
 	 *
 	 * 请不要频繁使用此方法，这将导致模型 API 的硬盘缓存失效，并增加费用。
+	 *
+	 * @throws io.github.autotweaker.api.types.exception.AgentDeadException
 	 */
-	suspend fun removeInjection(id: UUID): AgentAPI
+	suspend fun removeInjection(id: UUID): Agent
 }

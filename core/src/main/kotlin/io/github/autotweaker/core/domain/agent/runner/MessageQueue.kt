@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import java.util.*
@@ -39,6 +40,9 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 	
 	private val cancelled = mutableSetOf<UUID>()
 	private val lock = ReentrantMutex()
+	
+	@OptIn(ExperimentalCoroutinesApi::class)
+	fun isEmpty() = channel.isEmpty && coalescingChannel.isEmpty
 	
 	fun shutdown() {
 		channel.close()

@@ -33,8 +33,8 @@ data class ContextInjection(
 	/**
 	 * id 仅用于对于 Agent 会话级的注入，对于 [MessageContent] 这种用户消息，甚至不会用于去重。
 	 *
-	 * @see io.github.autotweaker.api.adapter.AgentAPI.inject
-	 * @see io.github.autotweaker.api.adapter.AgentAPI.removeInjection
+	 * @see io.github.autotweaker.api.adapter.Agent.inject
+	 * @see io.github.autotweaker.api.adapter.Agent.removeInjection
 	 */
 	@Serializable(with = UuidSerializer::class)
 	val id: UUID = UUID(),

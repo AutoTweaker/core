@@ -41,11 +41,14 @@ import io.github.autotweaker.core.domain.agent.tool.*
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class RoundRunner(
 	private val ctx: AgentContextManager,
@@ -61,6 +64,7 @@ class RoundRunner(
 	private val converts: MessageConverts,
 ) : Loggable, Traceable {
 	private val scope = scope()
+	private val shutdownScope = scope()
 	private val lock = ReentrantMutex()
 	private val compactLock = ReentrantMutex()
 	
@@ -109,16 +113,47 @@ class RoundRunner(
 				log.error("Agent failed  agentId={}", agentId, e)
 			}
 		}
+		shutdownScope.launch {
+			status.collectLatest { status ->
+				if (status == AgentStatus.FREE) {
+					delay(IdleShutdownDelay().get().seconds)
+					while (true) {
+						compacting.first { !it }
+						lock.withLock {
+							if (shutdownStarted) {
+								shutdownScope.cancel()
+								return@withLock
+							}
+							if (!messages.isEmpty()) return@withLock
+							if (compactJob?.isActive == true) return@withLock
+							delay(5.milliseconds)
+							withContext(NonCancellable) {
+								shutdownStarted = true
+								scope.cancelAndJoin()
+								messages.shutdown()
+								approval.shutdown()
+								this@RoundRunner.status.value = AgentStatus.DEAD
+								shutdownScope.cancel()
+							}
+						}
+						currentCoroutineContext().ensureActive()
+					}
+				}
+			}
+		}
 	}
 	
 	suspend fun shutdown() {
 		throwFailure()
+		if (shutdownStarted) return
 		lock.withLock {
+			if (shutdownStarted) return@withLock
 			shutdownStarted = true
+			shutdownScope.cancel()
 			compactJob?.cancelAndJoin()
 			compacting.value = false
-			execute(AgentCommand.Stop)
-			scope.cancel()
+			stop()
+			scope.cancelAndJoin()
 			messages.shutdown()
 			approval.shutdown()
 			status.value = AgentStatus.DEAD
@@ -131,16 +166,9 @@ class RoundRunner(
 	
 	suspend fun execute(command: AgentCommand) {
 		throwFailure()
-		if (command !is AgentCommand.Stop) throwDead()
+		throwDead()
 		when (command) {
-			is AgentCommand.Stop -> {
-				if (status.value.stopped) return
-				markBreak()
-				status.first { it != AgentStatus.PROCESSING }
-				thinkJob?.cancel()
-				toolCalling.cancelToolJob()
-				status.first { it.stopped }
-			}
+			is AgentCommand.Stop -> stop()
 			
 			is AgentCommand.Pause -> {
 				if (status.value.stopped) return
@@ -172,6 +200,15 @@ class RoundRunner(
 		throwFailure()
 		
 		log.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
+	}
+	
+	private suspend fun stop() {
+		if (status.value.stopped) return
+		markBreak()
+		status.first { it != AgentStatus.PROCESSING }
+		thinkJob?.cancel()
+		toolCalling.cancelToolJob()
+		status.first { it.stopped }
 	}
 	
 	suspend fun send(content: MessageContent): Delivery = lock.withLock {
@@ -428,5 +465,11 @@ class RoundRunner(
 	class EmptyResponseFeedbackPrompt : StringSetting(
 		"你并没有输出任何有效内容，如果任务仍未完成，请继续工作，否则请输出有效的正文",
 		zh("模型输出为空时自动发送的提示词")
+	)
+	
+	@AutoService(SettingDef::class)
+	class IdleShutdownDelay : IntSetting(
+		300,
+		zh("Agent对象从内存中销毁前的等待时间（秒）")
 	)
 }

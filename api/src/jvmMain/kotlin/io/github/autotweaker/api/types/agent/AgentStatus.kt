@@ -28,7 +28,7 @@ enum class AgentStatus(val stopped: Boolean) {
 	FREE(true),
 	
 	/**
-	 * Agent 的一切活动已经停止，请在此状态后主动释放 AgentAPI 引用，如果仍然需要进行交互请重新从 [io.github.autotweaker.api.adapter.CoreAPI.SessionAPI] 获取实例。
+	 * Agent 的一切活动已经停止，请在此状态后主动释放 AgentAPI 引用，如果仍然需要进行交互请重新从 [io.github.autotweaker.api.adapter.Session.restore] 获取实例。
 	 */
 	DEAD(true),
 	

@@ -28,7 +28,7 @@ import io.github.autotweaker.adapter.cli.commands.session.usage.SessionUsage
 import io.github.autotweaker.adapter.cli.syntax.ALL
 import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.adapter.Agent
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.adapter.Session
 import io.github.autotweaker.api.base.ReentrantMutex
@@ -203,7 +203,7 @@ class SessionCmd : Command, Traceable, Loggable {
 			agent.toolCalling.value?.second?.print()
 			out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString())
 		}
-		suspend fun agent(session: String): AgentAPI = core.session.restore(sessionId(session, workspace)).mainAgent()
+		suspend fun agent(session: String): Agent = core.session.restore(sessionId(session, workspace)).mainAgent()
 		handleValue("update-model") {
 			agent(it).setModel(getConfig())
 			out(SessionI18n.ModelUpdated(), it)
@@ -227,7 +227,7 @@ class SessionCmd : Command, Traceable, Loggable {
 		done(1)
 	}
 	
-	private suspend fun Console.send(agent: AgentAPI, message: String) {
+	private suspend fun Console.send(agent: Agent, message: String) {
 		val deferred = agent.send(
 			MessageContent(
 				injections = listOf(
@@ -305,7 +305,7 @@ class SessionCmd : Command, Traceable, Loggable {
 	}
 	
 	
-	private suspend fun Console.view(core: CoreAPI, agent: AgentAPI) =
+	private suspend fun Console.view(core: CoreAPI, agent: Agent) =
 		coroutineScope {
 			val outputLock = ReentrantMutex()
 			launch {
@@ -615,5 +615,5 @@ class SessionCmd : Command, Traceable, Loggable {
 			messages[it.id] = it
 		}
 	
-	private suspend fun Session.mainAgent(): AgentAPI = getAgent(agentIndex.value.main.id)
+	private suspend fun Session.mainAgent(): Agent = restore(agentIndex.value.main.id)
 }

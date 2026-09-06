@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.adapter.Agent
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.tool.Tool
@@ -42,6 +42,7 @@ import io.github.autotweaker.core.domain.session.converter.RuntimeContextBuilder
 import io.github.autotweaker.core.domain.tool.CoreTool
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
@@ -53,11 +54,12 @@ class AgentBridge(
 	private val deps: AgentDeps,
 	private val host: AgentHost,
 	private val onSend: ((MessageContent) -> Unit)? = null,
+	private val onShutdown: () -> Unit,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
 	workspace: Path,
-) : AgentAPI, Loggable, Traceable {
+) : Agent, Loggable, Traceable {
 	/* 初始化 */
 	private val contextLock = ReentrantMutex()
 	
@@ -70,7 +72,7 @@ class AgentBridge(
 	
 	private var cwd = workspace
 	
-	private lateinit var _agent: Agent
+	private lateinit var _agent: AgentImpl
 	val agent get() = _agent
 	
 	private val _output = MutableSharedFlow<AgentOutput>(
@@ -142,10 +144,14 @@ class AgentBridge(
 				when (it) {
 					AgentStatus.FAILED -> scope.cancel("Agent failed", _agent.exception)
 					AgentStatus.DEAD -> {
-						collectJob?.cancel()
+						collectJob?.cancelAndJoin()
 						saveChannel.close()
 						saveJob?.join()
-						log.info("Agent shutdown  agentId={}", _agent.agentId)
+						log.info("Agent died  agentId={}", _agent.agentId)
+						scope().launch {
+							scope.join()
+							onShutdown()
+						}
 						scope.cancel()
 					}
 					
@@ -156,6 +162,12 @@ class AgentBridge(
 		log.info("Initialized agent bridge  agentId={}  cwd={}", _agent.agentId, cwd)
 	}
 	
+	suspend fun shutdown() {
+		_agent.shutdown()
+		scope.join()
+		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
+	}
+	
 	private suspend fun initTools(): MetaCache {
 		val coreTools = loadService<CoreTool<ToolArgs>>().associateBy { it.name() }
 		val pluginTools = PluginLoader.load<Tool<ToolArgs>>().associateBy { it.name() }
@@ -164,8 +176,6 @@ class AgentBridge(
 		tools = all
 		return cacheMeta(all)
 	}
-	
-	/* API */
 	
 	override suspend fun send(content: MessageContent) =
 		_agent.send(content)
@@ -231,20 +241,6 @@ class AgentBridge(
 		log.info("Stopped agent  agentId={}", _agent.agentId)
 	}
 	
-	suspend fun shutdown() {
-		collectJob?.cancel()
-		saveChannel.close()
-		_agent.shutdown()
-		scope.cancel()
-		trace.catching { _agent.context.value.save() }
-			.onFailure { e ->
-				log.error("Failed to save agent context  agentId={}", _agent.agentId, e)
-			}
-		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
-	}
-	
-	/* 内部工具 */
-	
 	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
 		is RuntimeOutput.Output -> output
 		is RuntimeOutput.UsageConsumed -> {
@@ -265,7 +261,7 @@ class AgentBridge(
 	
 	
 	private suspend fun createAgent() {
-		_agent = Agent(
+		_agent = AgentImpl(
 			deps = deps,
 			agentId = initialData.id,
 			context = RuntimeContextBuilder(_context.value, sessionRepo::loadMessages)().let {
@@ -285,13 +281,13 @@ class AgentBridge(
 		val builder = AgentContextBuilder(_context.value, this, droppedCompacted)
 		val (context, messages) = builder()
 		
-		messages.save()
 		updateContext {
 			val droppedMessages = it.droppedMessages.orEmpty() + context.droppedMessages.orEmpty()
 			context.copy(
 				droppedMessages = droppedMessages.orNull()
 			)
 		}
+		messages.save()
 	}
 	
 	private suspend fun updateContext(function: (AgentContext) -> AgentContext) {

@@ -150,7 +150,7 @@ interface CoreAPI {
 	/**
 	 * 管理会话，AutoTweaker AI 功能的主要 API。
 	 *
-	 * @see AgentAPI
+	 * @see Agent
 	 */
 	interface SessionAPI {
 		/**
@@ -188,6 +188,11 @@ interface CoreAPI {
 		 * @return 找不到会话返回 false，删除成功返回 true。
 		 */
 		suspend fun delete(sessionId: UUID): Boolean
+		
+		/**
+		 * 从内存中获取已恢复的会话实例。
+		 */
+		fun getOrNull(sessionId: UUID): Session?
 		
 		/**
 		 * 获取会话实例，如果不在内存中会从持久化恢复。

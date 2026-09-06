@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.session
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.adapter.Agent
 import io.github.autotweaker.api.adapter.Session
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.StringSetting
@@ -38,8 +38,8 @@ import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.core.domain.agent.Agent
 import io.github.autotweaker.core.domain.agent.AgentDeps
+import io.github.autotweaker.core.domain.agent.AgentImpl
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
@@ -82,20 +82,23 @@ class SessionImpl(
 	private val lock = ReentrantMutex()
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
 	
-	override suspend fun getAgent(id: UUID): AgentAPI = getOrRestore(id)
-		?: throw AgentNotFoundException("Agent not found in session '${this.id}'", id, this.id)
+	override fun getOrNull(agent: UUID) = bridges[agent]
+	
+	override suspend fun restore(agent: UUID): Agent = getOrRestore(agent)
+		?: throw AgentNotFoundException(agent, id)
 	
 	suspend fun init(init: SessionInit) = also {
 		lock.withLock {
 			val mainId = _agentIndex.value.main.id
 			when (init) {
 				is SessionInit.Restore -> restoreOrNull(mainId)
-					?: throw AgentNotFoundException(mainId, id).andLog(log) {
-						warn(
-							"Main agent not found while restoring session  sessionId={}  agentId={}",
-							it.sessionId, it.id
-						)
-					}
+					?: throw AgentNotFoundException("Main agent not found for session '$id'", mainId, id)
+						.andLog(log) {
+							warn(
+								"Main agent not found while restoring session  sessionId={}  agentId={}",
+								it.sessionId, it.id
+							)
+						}
 				
 				is SessionInit.New -> restoreAgent(
 					AgentData(
@@ -137,7 +140,7 @@ class SessionImpl(
 	}
 	
 	private fun getHost(agentId: UUID) = object : AgentHost {
-		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent =
+		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): AgentImpl =
 			lock.withLock {
 				val childId = UUID()
 				_agentIndex.update { it.addChild(agentId, childId) }
@@ -151,7 +154,7 @@ class SessionImpl(
 			return children.map { it.id }
 		}
 		
-		override suspend fun get(id: UUID): Agent? = getOrRestore(id)?.agent
+		override suspend fun get(id: UUID): AgentImpl? = getOrRestore(id)?.agent
 	}
 	
 	private suspend fun getOrRestore(id: UUID): AgentBridge? = lock.withLock {
@@ -185,6 +188,7 @@ class SessionImpl(
 		deps = deps,
 		host = getHost(data.id),
 		onSend = onSendIfMain(data.id),
+		onShutdown = { bridges.remove(data.id) },
 		sessionRepo = sessionRepo,
 		usageRepo = usageRepo,
 		resolveModel = resolveModel,

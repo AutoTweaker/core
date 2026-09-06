@@ -18,10 +18,7 @@
 
 package io.github.autotweaker.api
 
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 
 
 /**
@@ -38,6 +35,16 @@ fun Loggable.scope(io: IO? = null): CoroutineScope {
 	else
 		CoroutineScope(Dispatchers.IO + SupervisorJob() + handler)
 }
+
+/**
+ * 等待协程作用域的根 Job 完成，等价于 `scope.coroutineContext.job.join()`。
+ */
+suspend fun CoroutineScope.join(): Unit = coroutineContext.job.join()
+
+/**
+ * 取消并等待协程作用域的根 Job 完成，等价于 `scope.coroutineContext.job.cancelAndJoin()`。
+ */
+suspend fun CoroutineScope.cancelAndJoin(): Unit = coroutineContext.job.cancelAndJoin()
 
 /**
  * 用于告知 [scope] 使用 IO 线程池 `Dispatchers.IO`。（使用 `scope(IO)`）

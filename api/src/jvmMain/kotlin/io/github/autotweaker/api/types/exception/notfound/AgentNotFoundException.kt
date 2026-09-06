@@ -25,7 +25,7 @@ import java.util.*
 class AgentNotFoundException(message: String, override val id: UUID, val sessionId: UUID) :
 	NotFoundException(message, id) {
 	constructor(id: UUID, sessionId: UUID) :
-			this("Main agent not found for session '$sessionId'", id, sessionId)
+			this("Agent '$id' not found in session '$sessionId'", id, sessionId)
 	
 	override fun message() = i18n(ExceptionI18n.AgentNotFoundException(), id, sessionId)
 }

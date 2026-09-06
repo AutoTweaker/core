@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.*
 import java.nio.file.Path
 import java.util.*
 
-class Agent(
+class AgentImpl(
 	private val deps: AgentDeps,
 	context: RuntimeContext,
 	val agentId: UUID,

@@ -119,7 +119,7 @@ data class AgentContextIndex(
 	 * @property userMessage 用户发送的消息，参见 [AgentMessage.User]。
 	 * @property assistantMessage 这个字段承载刚刚完成的 LLM 请求，接下来如果未生成工具调用，轮次归档，变为 [CompletedRound.finalAssistantMessage]，如果生成了工具调用（即使无效或失败），[assistantMessage] 连同工具调用的请求和结果都将进入一个 [Turn]，[assistantMessage] / [finishedToolCalls] / [pendingToolCalls] 清空，并继续开始推理。
 	 * @property finishedToolCalls 这个字段承载已完成的工具调用，此时仍有 [pendingToolCalls] 或正在进行的工具调用，无法创建 [Turn]。
-	 * @property pendingToolCalls 这个字段承载校验通过、等待用户审批的工具调用，这里索引的 [AgentMessage.Tool.Call] 所有字段都必然非空，可在向用户展示后通过 [io.github.autotweaker.api.adapter.AgentAPI.approve] 批准或拒绝。
+	 * @property pendingToolCalls 这个字段承载校验通过、等待用户审批的工具调用，这里索引的 [AgentMessage.Tool.Call] 所有字段都必然非空，可在向用户展示后通过 [io.github.autotweaker.api.adapter.Agent.approve] 批准或拒绝。
 	 * @property turns 已经完成的 [Turn]，参见 [Turn]。
 	 */
 	@Serializable

@@ -52,11 +52,16 @@ interface Session {
 	val agentIndex: StateFlow<AgentIndex>
 	
 	/**
-	 * 获取会话中 agent 的 [AgentAPI]。
+	 * 获取内存中的 [Agent] 实例。
+	 */
+	fun getOrNull(agent: UUID): Agent?
+	
+	/**
+	 * 从持久化恢复 agent 实例，如果内存中已有会直接返回。
 	 *
 	 * @throws io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 	 */
-	suspend fun getAgent(id: UUID): AgentAPI
+	suspend fun restore(agent: UUID): Agent
 	
 	/**
 	 * 更新会话标题。

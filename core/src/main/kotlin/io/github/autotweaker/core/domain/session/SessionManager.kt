@@ -42,7 +42,6 @@ import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
@@ -74,11 +73,12 @@ class SessionManager(
 				log.warn("Failed session shutdown  sessionId={}  reason={}", id, e.message)
 			}
 		}
-		scope.cancel()
+		scope.cancelAndJoin()
 		log.info("Completed SessionManager shutdown")
 	}
 	
-	suspend fun get(id: UUID): Session = getOrRestore(id)
+	
+	fun get(id: UUID): Session? = sessions[id]
 	
 	suspend fun delete(id: UUID): Boolean = lock.withLock {
 		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
@@ -154,7 +154,7 @@ class SessionManager(
 			}.getOrThrow()
 	}
 	
-	private suspend fun getOrRestore(id: UUID): SessionImpl = lock.withLock {
+	suspend fun getOrRestore(id: UUID): SessionImpl = lock.withLock {
 		sessions[id] ?: restore(id)
 	}
 	
