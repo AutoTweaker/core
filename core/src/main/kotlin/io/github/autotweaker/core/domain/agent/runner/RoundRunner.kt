@@ -113,34 +113,36 @@ class RoundRunner(
 				log.error("Agent failed  agentId={}", agentId, e)
 			}
 		}
-		shutdownScope.launch {
-			status.collectLatest { status ->
-				if (status == AgentStatus.FREE) {
-					delay(IdleShutdownDelay().get().seconds)
-					while (true) {
-						compacting.first { !it }
-						lock.withLock {
-							if (shutdownStarted) {
-								shutdownScope.cancel()
-								return@withLock
+		val idleShutdownDelay = IdleShutdownDelay().get()
+		if (idleShutdownDelay > 0)
+			shutdownScope.launch {
+				status.collectLatest { status ->
+					if (status == AgentStatus.FREE) {
+						delay(idleShutdownDelay.seconds)
+						while (true) {
+							compacting.first { !it }
+							lock.withLock {
+								if (shutdownStarted) {
+									shutdownScope.cancel()
+									return@withLock
+								}
+								if (!messages.isEmpty()) return@withLock
+								if (compactJob?.isActive == true) return@withLock
+								delay(5.milliseconds)
+								withContext(NonCancellable) {
+									shutdownStarted = true
+									scope.cancelAndJoin()
+									messages.shutdown()
+									approval.shutdown()
+									this@RoundRunner.status.value = AgentStatus.DEAD
+									shutdownScope.cancel()
+								}
 							}
-							if (!messages.isEmpty()) return@withLock
-							if (compactJob?.isActive == true) return@withLock
-							delay(5.milliseconds)
-							withContext(NonCancellable) {
-								shutdownStarted = true
-								scope.cancelAndJoin()
-								messages.shutdown()
-								approval.shutdown()
-								this@RoundRunner.status.value = AgentStatus.DEAD
-								shutdownScope.cancel()
-							}
+							currentCoroutineContext().ensureActive()
 						}
-						currentCoroutineContext().ensureActive()
 					}
 				}
 			}
-		}
 	}
 	
 	suspend fun shutdown() {
@@ -470,6 +472,6 @@ class RoundRunner(
 	@AutoService(SettingDef::class)
 	class IdleShutdownDelay : IntSetting(
 		300,
-		zh("Agent对象从内存中销毁前的等待时间（秒）")
+		zh("Agent持续空闲指定时间后自动释放内存，单位秒")
 	)
 }

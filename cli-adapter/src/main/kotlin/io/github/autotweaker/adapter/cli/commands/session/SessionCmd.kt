@@ -305,13 +305,11 @@ class SessionCmd : Command, Traceable, Loggable {
 	}
 	
 	
-	private suspend fun Console.view(core: CoreAPI, agent: Agent) =
+	private suspend fun Console.view(core: CoreAPI, agent: Agent): Nothing =
 		coroutineScope {
 			val outputLock = ReentrantMutex()
 			launch {
 				agent.status.collectLatest { state ->
-					if (state == AgentStatus.DEAD) done()
-					if (state == AgentStatus.FAILED) done(1)
 					if (state == AgentStatus.THINKING) outputLock.withLock {
 						altScreen {
 							out("Thinking...") { white() }
@@ -439,6 +437,10 @@ class SessionCmd : Command, Traceable, Loggable {
 						else -> {}
 					}
 				}
+			}
+			agent.status.collect {
+				if (it == AgentStatus.DEAD) done()
+				if (it == AgentStatus.FAILED) done(1)
 			}
 		}
 	

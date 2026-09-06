@@ -110,6 +110,7 @@ class AgentBridgeTest {
 		return AgentBridge(
 			deps = deps,
 			host = mockk(),
+			onShutdown = {},
 			sessionRepo = store,
 			usageRepo = mockk<UsageRepository>(relaxed = true),
 			resolveModel = {

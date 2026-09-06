@@ -83,11 +83,11 @@ class SessionImplTest {
 	}
 	
 	@Test
-	fun `getAgent before init throws not found`() = runTest {
+	fun `restore before init throws not found`() = runTest {
 		val s = session()
-		
+
 		assertFailsWith<AgentNotFoundException> {
-			s.getAgent(s.data.agentIndex.main.id)
+			s.restore(s.data.agentIndex.main.id)
 		}
 	}
 	

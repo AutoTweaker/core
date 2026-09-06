@@ -281,13 +281,13 @@ class AgentBridge(
 		val builder = AgentContextBuilder(_context.value, this, droppedCompacted)
 		val (context, messages) = builder()
 		
+		messages.save()
 		updateContext {
 			val droppedMessages = it.droppedMessages.orEmpty() + context.droppedMessages.orEmpty()
 			context.copy(
 				droppedMessages = droppedMessages.orNull()
 			)
 		}
-		messages.save()
 	}
 	
 	private suspend fun updateContext(function: (AgentContext) -> AgentContext) {
