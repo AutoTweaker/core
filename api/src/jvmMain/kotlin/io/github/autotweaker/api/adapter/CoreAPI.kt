@@ -474,6 +474,14 @@ interface CoreAPI {
 		 * @return K、V 分别为 id 和 displayName（不是值）
 		 */
 		suspend fun listApiKey(): ImmutableBiMap<UUID, String>
+		
+		/**
+		 * 获取一个 api key 的密文，不建议向用户展示已设置 api key 的密文。
+		 *
+		 * @throws SecretStoreLockedException
+		 * @throws SecretNotFoundException
+		 */
+		suspend fun getApiKey(id: UUID): String
 	}
 	
 	/**

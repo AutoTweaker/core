@@ -55,6 +55,8 @@ class ApiKeyRepository(private val secret: SecretStore) : MutableStore<BiMap<UUI
 	
 	suspend fun list() = transform { it.toImmutable() }
 	
+	suspend fun get(id: UUID) = secret.get(id)
+	
 	suspend fun remove(name: String) = transform {
 		remove(it.inverse[name] ?: return@transform false, name)
 	}
