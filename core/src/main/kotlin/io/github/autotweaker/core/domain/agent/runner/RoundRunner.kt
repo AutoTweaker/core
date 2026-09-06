@@ -27,6 +27,7 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.exception.AgentDeadException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall
 import io.github.autotweaker.core.domain.agent.AgentCommand
@@ -38,12 +39,9 @@ import io.github.autotweaker.core.domain.agent.compact.CompactSettings
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.*
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
 import java.util.*
@@ -60,10 +58,10 @@ class RoundRunner(
 	private val status: MutableStateFlow<AgentStatus>,
 	private val compacting: MutableStateFlow<Boolean>,
 	private val agentId: UUID,
-	private val converts: MessageConverts
+	private val converts: MessageConverts,
 ) : Loggable, Traceable {
 	private val scope = scope()
-	private val cmdLock = ReentrantMutex()
+	private val lock = ReentrantMutex()
 	private val compactLock = ReentrantMutex()
 	
 	@Volatile
@@ -115,62 +113,77 @@ class RoundRunner(
 	
 	suspend fun shutdown() {
 		throwFailure()
-		shutdownStarted = true
-		compactJob?.cancel()
-		execute(AgentCommand.Stop)
-		scope.cancel()
-		messages.shutdown()
-	}
-	
-	suspend fun execute(command: AgentCommand) = also {
-		throwFailure()
-		cmdLock.withLock {
-			if (command !is AgentCommand.Stop && shutdownStarted) return@withLock
-			when (command) {
-				is AgentCommand.Stop -> {
-					if (status.value == AgentStatus.FREE || status.value == AgentStatus.FAILED) return@withLock
-					markBreak()
-					thinkJob?.cancel()
-					toolCalling.cancelToolJob()
-					status.first { it == AgentStatus.FREE || it == AgentStatus.FAILED }
-					throwFailure()
-				}
-				
-				is AgentCommand.Pause -> {
-					if (status.value == AgentStatus.FREE || status.value == AgentStatus.FAILED) return@withLock
-					markBreak()
-					status.first { it == AgentStatus.FREE || it == AgentStatus.FAILED }
-					throwFailure()
-				}
-				
-				is AgentCommand.CancelTool ->
-					toolCalling.cancelToolJob()
-				
-				
-				is AgentCommand.CancelCompact ->
-					compactJob?.cancel()
-				
-				
-				is AgentCommand.Compact ->
-					launchCompact()
-				
-				
-				is AgentCommand.UpdateModel ->
-					currentModel = command.model
-				
-				
-				is AgentCommand.ApproveTool -> {
-					approval.approvalChannel.trySend(command.approval)
-				}
-			}.andLog(log) {
-				debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
-			}
+		lock.withLock {
+			shutdownStarted = true
+			compactJob?.cancelAndJoin()
+			compacting.value = false
+			execute(AgentCommand.Stop)
+			scope.cancel()
+			messages.shutdown()
+			approval.shutdown()
+			status.value = AgentStatus.DEAD
 		}
 	}
 	
-	fun send(content: MessageContent): Delivery {
+	fun throwDead() {
+		if (shutdownStarted) throw AgentDeadException(agentId)
+	}
+	
+	suspend fun execute(command: AgentCommand) {
 		throwFailure()
-		return messages.send(content)
+		if (command !is AgentCommand.Stop) throwDead()
+		when (command) {
+			is AgentCommand.Stop -> {
+				if (status.value.stopped) return
+				markBreak()
+				status.first { it != AgentStatus.PROCESSING }
+				thinkJob?.cancel()
+				toolCalling.cancelToolJob()
+				status.first { it.stopped }
+			}
+			
+			is AgentCommand.Pause -> {
+				if (status.value.stopped) return
+				markBreak()
+				status.first { it.stopped }
+			}
+			
+			is AgentCommand.CancelTool ->
+				toolCalling.cancelToolJob()
+			
+			is AgentCommand.CancelCompact ->
+				compactJob?.cancelAndJoin()
+			
+			is AgentCommand.UpdateModel ->
+				currentModel = command.model
+			
+			else -> lock.withLock {
+				throwDead()
+				throwFailure()
+				when (command) {
+					is AgentCommand.Compact ->
+						launchCompact()
+					
+					is AgentCommand.ApproveTool ->
+						approval.approvalChannel.trySend(command.approval)
+				}
+			}
+		}
+		throwFailure()
+		
+		log.debug("Processed command  command={}  agentId={}", command::class.simpleName, agentId)
+	}
+	
+	suspend fun send(content: MessageContent): Delivery = lock.withLock {
+		throwFailure()
+		throwDead()
+		return@withLock messages.send(content)
+	}
+	
+	suspend fun sendCoalescing(content: MessageContent): Delivery = lock.withLock {
+		throwFailure()
+		throwDead()
+		return@withLock messages.sendCoalescing(content)
 	}
 	
 	private suspend fun workLoop() {
@@ -243,7 +256,7 @@ class RoundRunner(
 					result.needsApproval
 				)
 			) { // 无 tool call
-				messages.drain()?.let { // 尝试消费消息，若有直接继续，防止闪FREE
+				messages.drainPrimary()?.let { // 尝试消费消息，若有直接继续，防止闪FREE
 					status.value = AgentStatus.PROCESSING
 					ctx.archiveCurrentRound()
 					ctx.beginRound(it)
@@ -294,7 +307,7 @@ class RoundRunner(
 			autoCompact()
 			autoDeactivate()
 			
-			messages.drain()?.let {
+			messages.drainAll()?.let {
 				status.value = AgentStatus.PROCESSING
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it)
@@ -384,6 +397,8 @@ class RoundRunner(
 	private suspend fun launchCompact() = compactLock.withLock {
 		throwFailure()
 		if (compactJob?.isActive == true) return@withLock
+		if (status.value.stopped) throwDead()
+		else if (shutdownStarted) return@withLock
 		compactJob = scope.launch {
 			try {
 				compacting.value = true

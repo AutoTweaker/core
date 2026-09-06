@@ -19,42 +19,50 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import java.nio.file.Path
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
-class SessionTest {
+class SessionImplTest {
 	companion object {
 		init {
 			TestServices.init()
 		}
 	}
 	
-	private fun session() = Session(
-		deps = mockk<AgentDeps>(relaxed = true),
-		data = SessionData(
-			id = UUID.randomUUID(),
-			title = "original title",
-			overview = null,
-			workspaceId = UUID.randomUUID(),
-			agentIndex = AgentIndex.new(),
-		),
-		sessionRepo = mockk<SessionRepository>(),
-		usageRepo = mockk<UsageRepository>(),
-		resolveModel = { mockk<RuntimeModel>() },
-		workspace = Path.of("/tmp"),
-	)
+	private fun session() = run {
+		val workspace = UUID.randomUUID()
+		val sessionRepo = mockk<SessionRepository>()
+		coEvery { sessionRepo.loadAgent(any()) } returns null
+		SessionImpl(
+			deps = mockk<AgentDeps>(relaxed = true),
+			data = SessionData(
+				id = UUID.randomUUID(),
+				title = "original title",
+				overview = null,
+				workspaceId = workspace,
+				agentIndex = AgentIndex.new(),
+			),
+			sessionRepo = sessionRepo,
+			usageRepo = mockk<UsageRepository>(),
+			resolveModel = { mockk<RuntimeModel>() },
+			workspaceId = workspace,
+			workspacePath = Path.of("/tmp"),
+		)
+	}
 	
 	@Test
 	fun `updateTitle updates session data`() = runTest {
@@ -62,12 +70,12 @@ class SessionTest {
 		
 		s.updateTitle { "new title" }
 		
-		assertEquals("new title", s.data.value.title)
+		assertEquals("new title", s.data.title)
 	}
 	
 	@Test
 	fun `data exposes initial session data`() = runTest {
-		val data = session().data.value
+		val data = session().data
 		
 		assertEquals("original title", data.title)
 		assertNotNull(data.id)
@@ -75,18 +83,20 @@ class SessionTest {
 	}
 	
 	@Test
-	fun `agents is empty before init`() = runTest {
+	fun `getAgent before init throws not found`() = runTest {
 		val s = session()
 		
-		assertTrue(s.agents.isEmpty())
+		assertFailsWith<AgentNotFoundException> {
+			s.getAgent(s.data.agentIndex.main.id)
+		}
 	}
 	
 	@Test
 	fun `shutdown without bridges is safe`() = runTest {
 		val s = session()
 		
+		// 无 agent 时 shutdown 应幂等且不抛异常
 		s.shutdown()
-		
-		assertTrue(s.agents.isEmpty())
+		s.shutdown()
 	}
 }

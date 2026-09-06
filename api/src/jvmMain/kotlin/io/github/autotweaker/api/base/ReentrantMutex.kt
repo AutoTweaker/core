@@ -55,7 +55,6 @@ class ReentrantMutex : Traceable {
 	 * @return [block] 的返回值。
 	 */
 	@OptIn(ExperimentalContracts::class)
-	@Suppress("WRONG_INVOCATION_KIND")
 	suspend inline fun <T> withLock(crossinline block: suspend () -> T): T {
 		contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
 		if (currentCoroutineContext()[lockKey] === key) return block()

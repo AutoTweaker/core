@@ -35,7 +35,7 @@ import java.util.*
  */
 interface AgentAPI {
 	/**
-	 * agent 的 id，永远由 [UUID.randomUUID] 生成。
+	 * agent 的 id，永远唯一。
 	 */
 	val id: UUID
 	
@@ -117,8 +117,19 @@ interface AgentAPI {
 	 * 发送一条只包含 [MessageContent.injections] 的消息可以注入一些即时信息。
 	 *
 	 * @see MessageContent
+	 * @see Delivery
 	 */
-	fun send(content: MessageContent): Delivery
+	suspend fun send(content: MessageContent): Delivery
+	
+	/**
+	 * 向 agent 发送消息，与 [send] 不同，如果 agent 刚刚结束轮次，或正处于空闲状态，[sendCoalescing] 不会触发新的 LLM 思考。
+	 *
+	 * [sendCoalescing] 入队的消息仅会在每次 THINKING 开始前被合并到请求中，适用于发送 [MessageContent.injections] 来注入提示。
+	 *
+	 * @see send
+	 * @see Delivery
+	 */
+	suspend fun sendCoalescing(content: MessageContent): Delivery
 	
 	/**
 	 * 令 agent 在当前任务完成之后停下，并归档当前上下文。状态将变为 [AgentStatus.FREE]。

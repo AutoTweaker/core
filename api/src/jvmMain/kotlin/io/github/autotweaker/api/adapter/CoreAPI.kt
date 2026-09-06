@@ -41,7 +41,6 @@ import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
@@ -191,9 +190,8 @@ interface CoreAPI {
 		suspend fun delete(sessionId: UUID): Boolean
 		
 		/**
-		 * 获取会话的控制器。
+		 * 获取会话实例，如果不在内存中会从持久化恢复。
 		 *
-		 * @return 所有 Agent 的 API，[SessionData] 数据流。
 		 * @throws SecretStoreLockedException
 		 * @throws SessionNotFoundException
 		 * @throws WorkspaceNotFoundException
@@ -203,22 +201,7 @@ interface CoreAPI {
 		 * @throws ProviderNotFoundException
 		 * @throws SecretNotFoundException
 		 */
-		suspend fun getHandle(sessionId: UUID): SessionHandle
-		
-		/**
-		 * 更新会话标题。
-		 *
-		 * @param function 接收旧标题，返回新标题，可能被多次调用，不应有副作用。
-		 * @throws SecretStoreLockedException
-		 * @throws SessionNotFoundException
-		 * @throws WorkspaceNotFoundException
-		 * @throws InvalidWorkspacePathException
-		 * @throws AgentNotFoundException
-		 * @throws ModelNotFoundException
-		 * @throws ProviderNotFoundException
-		 * @throws SecretNotFoundException
-		 */
-		suspend fun updateTitle(sessionId: UUID, function: (String?) -> String?)
+		suspend fun restore(sessionId: UUID): Session
 		
 		/**
 		 * 容器的启停由 AutoTweaker 内部管理，按需自动启动，不需要在调用 api 前检查此值。
@@ -497,7 +480,7 @@ interface CoreAPI {
 		/**
 		 * 从数据库加载会话数据。
 		 *
-		 * [SessionAPI.getHandle] 可能会触发会话的实例化，如果只是查数据，请使用此 api。
+		 * [SessionAPI.restore] 可能会触发会话的实例化，如果只是查数据，请使用此 api。
 		 *
 		 * @return 找不到会话返回 [emptyList]。
 		 */

@@ -48,7 +48,8 @@ class Agent(
 	private val workspace: () -> Path,
 	private val tools: ToolMap,
 	activeTools: Set<String>,
-	@Suppress("unused") private val host: AgentHost,
+	@Suppress("unused")
+	private val host: AgentHost,
 ) {
 	private val _status = MutableStateFlow(AgentStatus.FREE)
 	val status: StateFlow<AgentStatus> = _status.asStateFlow()
@@ -68,9 +69,7 @@ class Agent(
 		_output.tryEmit(it)
 	}
 	
-	private val ctx = AgentContextManager(
-		context.copy(currentRound = null),
-	)
+	private val ctx = AgentContextManager(context.copy(currentRound = null))
 	val context: StateFlow<RuntimeContext> = ctx.context
 	
 	private val toolManager = Tools(workspace, tools, activeTools, agentId)
@@ -105,24 +104,25 @@ class Agent(
 		status = _status,
 		compacting = _compacting,
 		agentId = agentId,
-		converts = deps.messageConverts
+		converts = deps.messageConverts,
 	)
 	
 	val exception get() = runner.exception
 	
 	val model get() = runner.model.toModelConfig()
 	
-	suspend fun execute(command: AgentCommand) = also {
-		runner.execute(command)
-	}
+	suspend fun execute(command: AgentCommand) = runner.execute(command)
 	
-	fun sendMessage(content: MessageContent): Delivery = runner.send(content)
+	suspend fun send(content: MessageContent): Delivery = runner.send(content)
+	
+	suspend fun sendCoalescing(content: MessageContent): Delivery = runner.sendCoalescing(content)
 	
 	suspend fun updateInjections(
 		function: (List<ContextInjection>?) -> List<ContextInjection>?
-	) = ctx.updateInjections(function)
-	
-	suspend fun shutdown() {
-		runner.shutdown()
+	) {
+		runner.throwDead()
+		ctx.updateInjections(function)
 	}
+	
+	suspend fun shutdown() = runner.shutdown()
 }

@@ -16,20 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.session
+package io.github.autotweaker.api.types.exception
 
-import io.github.autotweaker.api.adapter.AgentAPI
-import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
-import kotlinx.coroutines.flow.StateFlow
+import io.github.autotweaker.api.i18n
+import java.util.*
 
-class SessionHandle(
-	val agents: List<AgentAPI>,
-	val data: StateFlow<SessionData>,
-) {
-	fun mainAgent(): AgentAPI {
-		val mainId = data.value.agentIndex.main.id
-		return agents.find {
-			it.id == mainId
-		} ?: throw AgentNotFoundException(mainId, data.value.id)
-	}
+class AgentDeadException(id: UUID) : AutoTweakerException("Agent '$id' is dead") {
+	override fun message() = i18n(ExceptionI18n.AgentDeadException())
 }

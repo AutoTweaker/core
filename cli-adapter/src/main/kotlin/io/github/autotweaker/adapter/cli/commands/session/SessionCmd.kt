@@ -30,6 +30,7 @@ import io.github.autotweaker.adapter.cli.syntax.buildSyntax
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.adapter.Session
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.ShortIdMapper
 import io.github.autotweaker.api.base.catching
@@ -52,7 +53,7 @@ import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
 
 @AutoService(Command::class)
-class Session : Command, Traceable, Loggable {
+class SessionCmd : Command, Traceable, Loggable {
 	override val name = "session"
 	override val description = i18n(SessionI18n.Desc())
 	override val syntax = buildSyntax(ALL) {
@@ -131,7 +132,7 @@ class Session : Command, Traceable, Loggable {
 			val newId = core.session.create(workspace.id, getConfig())
 			out(SessionI18n.SessionCreated(), ShortIdMapper.shortString(newId)) { green() }
 			val msg = getPositionalOrNull(0) ?: readAll() ?: done()
-			val agent = core.session.getHandle(newId).mainAgent()
+			val agent = core.session.restore(newId).mainAgent()
 			send(agent, msg)
 		}
 		handleValue("delete") {
@@ -141,7 +142,7 @@ class Session : Command, Traceable, Loggable {
 			else out(SessionI18n.SessionDeleted(), it) { green() }
 		}
 		handleValue("view") {
-			val session = core.session.getHandle(sessionId(it, workspace))
+			val session = core.session.restore(sessionId(it, workspace))
 			val agent = session.mainAgent()
 			out(SessionI18n.SessionEntered(), it) { green() }
 			ln()
@@ -151,7 +152,7 @@ class Session : Command, Traceable, Loggable {
 		}
 		handleValue("send") { value ->
 			val id = sessionId(value, workspace)
-			val agent = core.session.getHandle(id).mainAgent()
+			val agent = core.session.restore(id).mainAgent()
 			var message = getPositionalOrNull(0) ?: readAll()
 			if (message.isNullOrBlank()) message = prompt(">")
 			send(agent, message)
@@ -167,7 +168,7 @@ class Session : Command, Traceable, Loggable {
 				error(SessionI18n.YoloContainerOnly())
 			
 			val id = sessionId(value, workspace)
-			val session = core.session.getHandle(id)
+			val session = core.session.restore(id)
 			val agent = session.mainAgent()
 			out(SessionI18n.YoloStart(), value) { yellow() }
 			agent.context.collect {
@@ -184,26 +185,25 @@ class Session : Command, Traceable, Loggable {
 			}
 		}
 		handleValue("status") { value ->
-			val session = core.session.getHandle(sessionId(value, workspace))
+			val session = core.session.restore(sessionId(value, workspace))
 			out(SessionI18n.SessionId(), value)
-			out(SessionI18n.SessionTitle(), session.data.value.title)
-			session.agents.sortedBy { it.name }.forEach { agent ->
-				out(SessionI18n.AgentName(), agent.name)
-				out(SessionI18n.CurrentStatus(), agent.status.value) { newline = false }
-				if (agent.compacting.value) {
-					out(SPACE.toString()) { newline = false }
-					out(SessionI18n.Compacting())
-				} else ln()
-				out(SessionI18n.MessageCount(), agent.context.value.index.ids().count())
-				agent.context.value.droppedMessages?.let {
-					if (it.isNotEmpty()) out(SessionI18n.DroppedMessages(), it.count())
-				}
-				out(SessionI18n.Reasoning(), agent.model.reasoning)
-				agent.toolCalling.value?.second?.print()
-				out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString())
+			out(SessionI18n.SessionTitle(), session.title.value)
+			val agent = session.mainAgent()
+			out(SessionI18n.AgentName(), agent.name)
+			out(SessionI18n.CurrentStatus(), agent.status.value) { newline = false }
+			if (agent.compacting.value) {
+				out(SPACE.toString()) { newline = false }
+				out(SessionI18n.Compacting())
+			} else ln()
+			out(SessionI18n.MessageCount(), agent.context.value.index.ids().count())
+			agent.context.value.droppedMessages?.let {
+				if (it.isNotEmpty()) out(SessionI18n.DroppedMessages(), it.count())
 			}
+			out(SessionI18n.Reasoning(), agent.model.reasoning)
+			agent.toolCalling.value?.second?.print()
+			out(SessionI18n.ActiveTools(), agent.activeTools.value.joinToString())
 		}
-		suspend fun agent(session: String): AgentAPI = core.session.getHandle(sessionId(session, workspace)).mainAgent()
+		suspend fun agent(session: String): AgentAPI = core.session.restore(sessionId(session, workspace)).mainAgent()
 		handleValue("update-model") {
 			agent(it).setModel(getConfig())
 			out(SessionI18n.ModelUpdated(), it)
@@ -249,7 +249,7 @@ class Session : Command, Traceable, Loggable {
 	}
 	
 	private suspend fun Console.approve(id: String, workspace: WorkspaceData, core: CoreAPI) {
-		val agent = core.session.getHandle(sessionId(id, workspace)).mainAgent()
+		val agent = core.session.restore(sessionId(id, workspace)).mainAgent()
 		
 		val call = agent.context.value.index.currentRound?.pendingToolCalls?.let { calls ->
 			if (hasArg("all")) calls else calls.firstOrNull()?.let { first -> listOf(first) }
@@ -614,4 +614,6 @@ class Session : Command, Traceable, Loggable {
 		core.persistence.loadMessages(this).forEach {
 			messages[it.id] = it
 		}
+	
+	private suspend fun Session.mainAgent(): AgentAPI = getAgent(agentIndex.value.main.id)
 }

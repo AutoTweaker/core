@@ -37,10 +37,11 @@ import kotlinx.coroutines.flow.update
 import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool as ToolMessage
 
 class AgentContextManager(initial: RuntimeContext) : I18nable {
+	private val lock = ReentrantMutex()
+	
 	private val _context = MutableStateFlow(initial)
 	val context: StateFlow<RuntimeContext> = _context.asStateFlow()
 	
-	private val lock = ReentrantMutex()
 	private val cancelledPending = ToolSettings.CancelledPending().get()
 	
 	suspend fun get(): RuntimeContext = lock.withLock { _context.value }

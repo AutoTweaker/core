@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.PairList
@@ -45,6 +46,8 @@ class ApprovalProcessor(
 	private val shouldBreak: StateFlow<Boolean>,
 ) : Traceable {
 	val approvalChannel = Channel<ToolApprove>(Channel.BUFFERED)
+	
+	fun shutdown() = approvalChannel.close().discard()
 	
 	suspend fun process(
 		needsApproval: PairList<RuntimeContext.CurrentRound.PendingToolCall, Tool.ResolveResult.Ready>,

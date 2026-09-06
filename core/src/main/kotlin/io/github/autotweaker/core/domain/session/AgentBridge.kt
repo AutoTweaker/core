@@ -101,6 +101,7 @@ class AgentBridge(
 	
 	private val saveChannel = Channel<Unit>(Channel.CONFLATED)
 	private var collectJob: Job? = null
+	private var saveJob: Job? = null
 	
 	suspend fun init(data: AgentData) = also {
 		initialData = data
@@ -109,7 +110,7 @@ class AgentBridge(
 		collectJob = scope.launch {
 			_agent.context.collect { saveChannel.send(Unit) }
 		}
-		scope.launch {
+		saveJob = scope.launch {
 			saveChannel.consumeEach {
 				trace.catching { _agent.context.value.save() }
 					.onFailure { e ->
@@ -138,7 +139,18 @@ class AgentBridge(
 		}
 		scope.launch {
 			_agent.status.collect {
-				if (it == AgentStatus.FAILED) scope.cancel("Agent failed", _agent.exception)
+				when (it) {
+					AgentStatus.FAILED -> scope.cancel("Agent failed", _agent.exception)
+					AgentStatus.DEAD -> {
+						collectJob?.cancel()
+						saveChannel.close()
+						saveJob?.join()
+						log.info("Agent shutdown  agentId={}", _agent.agentId)
+						scope.cancel()
+					}
+					
+					else -> {}
+				}
 			}
 		}
 		log.info("Initialized agent bridge  agentId={}  cwd={}", _agent.agentId, cwd)
@@ -155,12 +167,17 @@ class AgentBridge(
 	
 	/* API */
 	
-	override fun send(content: MessageContent) =
-		_agent.sendMessage(content)
+	override suspend fun send(content: MessageContent) =
+		_agent.send(content)
 			.also {
 				log.info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
 				onSend?.invoke(content)
 			}
+	
+	override suspend fun sendCoalescing(content: MessageContent) =
+		_agent.sendCoalescing(content).andLog(log) {
+			info("Queued coalescing message  agentId={}  contents={}", _agent.agentId, content.content?.count())
+		}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
 		_agent.updateInjections { injections ->

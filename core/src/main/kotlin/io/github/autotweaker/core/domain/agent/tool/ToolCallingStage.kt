@@ -55,8 +55,8 @@ class ToolCallingStage(
 	@Volatile
 	private var toolJob: Job? = null
 	
-	fun cancelToolJob() {
-		toolJob?.cancel()
+	suspend fun cancelToolJob() {
+		toolJob?.cancelAndJoin()
 		toolJob = null
 	}
 	

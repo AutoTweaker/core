@@ -41,7 +41,6 @@ import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -161,7 +160,7 @@ class RoundRunnerTest {
 		val ctx = AgentContextManager(RuntimeContext(null, null, null, null, null))
 		val status = MutableStateFlow(AgentStatus.FREE)
 		val toolCalling = mockk<ToolCallingStage>()
-		every { toolCalling.cancelToolJob() } returns Unit
+		coEvery { toolCalling.cancelToolJob() } returns Unit
 		coEvery { toolCalling.execute(any(), any(), any(), any()) } returns RuntimeContext.Message.Tool.Result(
 			id = UUID.randomUUID(),
 			content = "tool result",

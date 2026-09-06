@@ -20,6 +20,7 @@ package io.github.autotweaker.core.domain.session
 
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.adapter.Session
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.recoverException
@@ -32,7 +33,6 @@ import io.github.autotweaker.api.types.exception.InvalidWorkspacePathException
 import io.github.autotweaker.api.types.exception.notfound.SessionNotFoundException
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
-import io.github.autotweaker.api.types.session.SessionHandle
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.ModelResolver
@@ -43,7 +43,8 @@ import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import java.nio.file.Files
 import java.util.*
@@ -63,7 +64,7 @@ class SessionManager(
 	private val scope = scope()
 	
 	private val lock = ReentrantMutex()
-	private val sessions = ConcurrentHashMap<UUID, Session>()
+	private val sessions = ConcurrentHashMap<UUID, SessionImpl>()
 	private val listener = ConcurrentHashMap<UUID, Job>()
 	
 	suspend fun shutdown() = lock.withLock {
@@ -77,7 +78,7 @@ class SessionManager(
 		log.info("Completed SessionManager shutdown")
 	}
 	
-	suspend fun get(id: UUID): SessionHandle = getOrRestore(id).toHandle()
+	suspend fun get(id: UUID): Session = getOrRestore(id)
 	
 	suspend fun delete(id: UUID): Boolean = lock.withLock {
 		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
@@ -94,13 +95,6 @@ class SessionManager(
 		return@withLock true
 	}
 	
-	suspend fun updateTitle(session: UUID, function: (String?) -> String?) =
-		getOrRestore(session).updateTitle(function)
-			.andLog(log) {
-				debug("Updated session title  session={}", session)
-			}.discard()
-	
-	
 	suspend fun create(model: ModelConfig) = create(wsm.defaultWorkspaceId, model)
 	
 	suspend fun loadData(ids: Set<UUID>) = sessionRepo.loadSessions(ids)
@@ -109,8 +103,9 @@ class SessionManager(
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
-		val workspace = wsm.getData(workspaceId)?.meta?.path ?: throw WorkspaceNotFoundException(workspaceId)
-		if (!Files.isDirectory(workspace)) throw InvalidWorkspacePathException(workspace)
+		val workspace = wsm.getData(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
+		val workspacePath = workspace.meta.path
+		if (!Files.isDirectory(workspacePath)) throw InvalidWorkspacePathException(workspacePath)
 		
 		val data = SessionData(
 			id = UUID(),
@@ -119,15 +114,16 @@ class SessionManager(
 			workspaceId = workspaceId,
 			agentIndex = AgentIndex.new()
 		)
-		sessions[data.id] = Session(
+		sessions[data.id] = SessionImpl(
 			deps = agentDeps,
 			data = data,
 			sessionRepo = sessionRepo,
 			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
-			workspace = workspace
+			workspaceId = workspace.id,
+			workspacePath = workspacePath
 		).init(
-			Session.SessionInit.New(
+			SessionImpl.SessionInit.New(
 				model = model,
 				systemPrompt = systemPrompt
 			)
@@ -148,63 +144,65 @@ class SessionManager(
 		return@withLock data.id
 	}
 	
-	private suspend fun Session.andSave(): Session = also {
-		trace.catching { sessionRepo.saveSessions(listOf(data.value)) }
+	private suspend fun SessionImpl.andSave(): SessionImpl = also {
+		trace.catching { sessionRepo.saveSessions(listOf(data)) }
 			.onFailure { e ->
-				log.error("Failed to save session  sessionId={}", data.value.id, e)
+				log.error("Failed to save session  sessionId={}", id, e)
 				shutdown()
-				sessionRepo.deleteSessions(setOf(data.value.id))
-				data.value.agentIndex.getAll().forEach { sessionRepo.deleteAgent(it) }
+				sessionRepo.deleteSessions(setOf(id))
+				agentIndex.value.getAll().forEach { sessionRepo.deleteAgent(it) }
 			}.getOrThrow()
 	}
 	
-	private suspend fun getOrRestore(id: UUID): Session = lock.withLock {
+	private suspend fun getOrRestore(id: UUID): SessionImpl = lock.withLock {
 		sessions[id] ?: restore(id)
 	}
 	
-	private suspend fun restore(id: UUID): Session = lock.withLock {
+	private suspend fun restore(id: UUID): SessionImpl = lock.withLock {
 		secretStore.requireUnlocked()
 		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: throw SessionNotFoundException(id)
 		val workspaceId = data.workspaceId
-		val workspace = wsm.getData(workspaceId)?.meta?.path ?: throw WorkspaceNotFoundException(workspaceId)
+		val workspace = wsm.getData(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
 			.andLog(log) {
 				warn(
 					"Workspace not found while restoring session  sessionId={}  workspaceId={}",
 					id, workspaceId
 				)
 			}
-		if (!Files.isDirectory(workspace))
-			throw InvalidWorkspacePathException(workspace).andLog(log) {
+		val workspacePath = workspace.meta.path
+		if (!Files.isDirectory(workspacePath))
+			throw InvalidWorkspacePathException(workspacePath).andLog(log) {
 				warn(
 					"Invalid workspace path while restoring session  sessionId={}  path={}",
-					id, workspace
+					id, workspacePath
 				)
 			}
 		
-		return@withLock Session(
+		return@withLock SessionImpl(
 			deps = agentDeps,
 			data = data,
 			sessionRepo = sessionRepo,
 			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
-			workspace = workspace
-		).init(Session.SessionInit.Restore)
+			workspaceId = workspaceId,
+			workspacePath = workspacePath
+		).init(SessionImpl.SessionInit.Restore)
 			.listen()
 			.also { sessions[data.id] = it }
-			.andLog(log)
-			{ info("Restored session  sessionId={}  workspaceId={}", it.data.value.id, workspaceId) }
+			.andLog(log) {
+				info("Restored session  sessionId={}  workspaceId={}", it.id, workspaceId)
+			}
 	}
 	
-	private fun Session.toHandle() = SessionHandle(
-		data = data,
-		agents = agents.values.toList()
-	)
-	
-	private fun Session.listen(): Session = also {
-		val id = data.value.id
+	private fun SessionImpl.listen(): SessionImpl = also {
+		val id = id
 		listener[id] = scope.launch {
-			data.collectLatest {
-				sessionRepo.saveSessions(listOf(it))
+			merge(
+				agentIndex.drop(1),
+				title.drop(1),
+				overview.drop(1)
+			).collect {
+				sessionRepo.saveSessions(listOf(data))
 			}
 		}
 	}

@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.session
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.AgentAPI
+import io.github.autotweaker.api.adapter.Session
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.catching
@@ -43,36 +44,53 @@ import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class Session(
+class SessionImpl(
 	private val deps: AgentDeps,
 	data: SessionData,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
-	private val workspace: Path,
-) : Loggable, Traceable {
-	private val _data = MutableStateFlow(data)
-	val data: StateFlow<SessionData> = _data.asStateFlow()
+	override val workspaceId: UUID,
+	private val workspacePath: Path,
+) : Session, Loggable, Traceable {
+	override val id = data.id
 	
-	private val index get() = _data.value.agentIndex
+	private val _agentIndex = MutableStateFlow(data.agentIndex)
+	override val agentIndex = _agentIndex.asStateFlow()
+	
+	private val _title = MutableStateFlow(data.title)
+	override val title = _title.asStateFlow()
+	
+	private val _overview = MutableStateFlow(data.overview)
+	override val overview = _overview.asStateFlow()
+	
+	val data: SessionData
+		get() = SessionData(
+			id = id,
+			title = _title.value,
+			overview = _overview.value,
+			workspaceId = workspaceId,
+			agentIndex = _agentIndex.value,
+		)
 	
 	private val lock = ReentrantMutex()
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
-	val agents: Map<UUID, AgentAPI> get() = bridges.toMap()
+	
+	override suspend fun getAgent(id: UUID): AgentAPI = getOrRestore(id)
+		?: throw AgentNotFoundException("Agent not found in session '${this.id}'", id, this.id)
 	
 	suspend fun init(init: SessionInit) = also {
 		lock.withLock {
-			val mainId = index.main.id
+			val mainId = _agentIndex.value.main.id
 			when (init) {
 				is SessionInit.Restore -> restoreOrNull(mainId)
-					?: throw AgentNotFoundException(mainId, _data.value.id).andLog(log) {
+					?: throw AgentNotFoundException(mainId, id).andLog(log) {
 						warn(
 							"Main agent not found while restoring session  sessionId={}  agentId={}",
 							it.sessionId, it.id
@@ -91,7 +109,7 @@ class Session(
 					info(
 						"Initialized session  sessionId={}  path={}",
 						it.id,
-						workspace
+						workspacePath
 					)
 				}
 			}
@@ -107,9 +125,8 @@ class Session(
 		data object Restore : SessionInit
 	}
 	
-	fun updateTitle(function: (String?) -> String?) = also {
-		_data.update { it.copy(title = function(it.title)) }
-	}
+	override fun updateTitle(function: (String?) -> String?) =
+		_title.update { function(it) }
 	
 	suspend fun shutdown() = lock.withLock {
 		bridges.values.forEachParallel {
@@ -123,14 +140,14 @@ class Session(
 		override suspend fun create(name: KebabCase, systemPrompt: String, model: ModelConfig): Agent =
 			lock.withLock {
 				val childId = UUID()
-				_data.update { it.copy(agentIndex = it.agentIndex.addChild(agentId, childId)) }
+				_agentIndex.update { it.addChild(agentId, childId) }
 				val bridge = newAgent(childId, name, systemPrompt, model)
 				log.info("Created child agent  parentId={}  childId={}", agentId, childId)
 				return@withLock bridge.agent
 			}
 		
 		override fun list(): List<UUID> {
-			val children = index.findChildren(agentId)
+			val children = _agentIndex.value.findChildren(agentId)
 			return children.map { it.id }
 		}
 		
@@ -171,13 +188,13 @@ class Session(
 		sessionRepo = sessionRepo,
 		usageRepo = usageRepo,
 		resolveModel = resolveModel,
-		workspace = workspace
+		workspace = workspacePath
 	).init(data).also { bridges[data.id] = it }
 	
 	private fun onSendIfMain(id: UUID): ((MessageContent) -> Unit)? =
-		if (id == index.main.id) {
+		if (id == _agentIndex.value.main.id) {
 			onSend@{
-				if (_data.value.title != null) return@onSend
+				if (_title.value != null) return@onSend
 				val text = it.content?.filterIsInstance<ContentPart.Text>()?.firstOrNull()?.content
 					?: return@onSend
 				updateTitle { old ->

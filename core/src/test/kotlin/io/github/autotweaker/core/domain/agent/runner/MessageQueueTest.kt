@@ -134,7 +134,7 @@ class MessageQueueTest {
 	
 	@Test
 	fun `drain empty queue returns null`() = runTest {
-		assertNull(queue().drain())
+		assertNull(queue().drainAll())
 	}
 	
 	@Test
@@ -142,7 +142,7 @@ class MessageQueueTest {
 		val q = queue()
 		q.send("hello")
 		
-		val message = q.drain()
+		val message = q.drainAll()
 		
 		assertNotNull(message)
 		assertEquals("hello\n", message.content.content?.merge())
@@ -153,7 +153,7 @@ class MessageQueueTest {
 		val q = queue()
 		val delivery = q.send("hello")
 		
-		val message = q.drain()
+		val message = q.drainAll()
 		assertNotNull(message)
 		assertEquals(message.id, delivery.await()?.first)
 	}
@@ -176,7 +176,7 @@ class MessageQueueTest {
 		val delivery = q.send("to be cancelled")
 		delivery.cancel()
 		
-		assertNull(q.drain())
+		assertNull(q.drainAll())
 	}
 	
 	@Test
@@ -194,7 +194,7 @@ class MessageQueueTest {
 		val delivery = q.send("   ")
 		
 		// 空白文本仍保留为 ContentPart.Text，消息不再被丢弃
-		val message = q.drain()
+		val message = q.drainAll()
 		assertNotNull(message)
 		assertEquals(message.id, delivery.await()?.first)
 	}
@@ -205,7 +205,7 @@ class MessageQueueTest {
 		val deliveries = q.send(listOf("a", "b"))
 		assertEquals(2, deliveries.size)
 		
-		val message = q.drain()
+		val message = q.drainAll()
 		assertNotNull(message)
 		assertEquals("a\nb\n", message.content.content?.merge())
 		deliveries.forEach { assertEquals(message.id, it.await()?.first) }

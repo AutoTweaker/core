@@ -186,4 +186,10 @@ internal object ExceptionI18n {
 		zh("工作区 '%s' 中包含会话, 无法删除"),
 		en("Workspace '%s' contains sessions and cannot be deleted"),
 	)
+	
+	@AutoService(I18nDef::class)
+	class AgentDeadException : I18nBase(
+		zh("Agent '%s' 已终止或正在终止"),
+		en("Agent '%s' is dead or shutting down"),
+	)
 }
