@@ -24,18 +24,23 @@ import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
 object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 	private val databases = ConcurrentHashMap<String, Database>()
-	private val DB_PATH = CONFIG_PATH.resolve("database")
+	
+	val DB_PATH: Path = CONFIG_PATH.resolve("database")
 	
 	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->
 		Files.createDirectories(DB_PATH)
-		val url = "jdbc:h2:${DB_PATH.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0;COMPRESS=TRUE"
+		val url = url(name)
 		log.info("Connected database  db={}  url={}", name, url)
 		Database.connect(url, "org.h2.Driver")
 	}
+	
+	fun url(name: String): String =
+		"jdbc:h2:${DB_PATH.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0;COMPRESS=TRUE"
 	
 	override suspend fun shutdown() {
 		databases.values.forEachParallel { db ->

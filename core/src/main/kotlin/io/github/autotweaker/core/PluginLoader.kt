@@ -23,6 +23,7 @@ import io.github.autotweaker.api.PLUGIN_PATH
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.log
 import org.objectweb.asm.ClassReader
+import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
@@ -36,7 +37,7 @@ object PluginLoader : Loggable, Traceable {
 		sharedClassLoader?.let { return it }
 		synchronized(this) {
 			sharedClassLoader?.let { return it }
-			if (!Files.isDirectory(PLUGIN_PATH)) return URLClassLoader(emptyArray(), apiClassLoader)
+			if (!Files.isDirectory(PLUGIN_PATH)) return null
 			
 			val jars = Files.list(PLUGIN_PATH).use {
 				it.filter { path -> path.toString().endsWith(".jar") }.toList()
@@ -59,7 +60,7 @@ object PluginLoader : Loggable, Traceable {
 					.onFailure { log.warn("Skipping bad plugin jar  path={}  reason={}", path, it.message) }
 					.getOrNull()
 			}.toTypedArray()
-			val classLoader = URLClassLoader(urls, apiClassLoader)
+			val classLoader = PluginClassLoader(urls, apiClassLoader)
 			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
 			sharedClassLoader = classLoader
 			return classLoader
@@ -74,4 +75,10 @@ object PluginLoader : Loggable, Traceable {
 	}
 	
 	fun close() = sharedClassLoader?.close()
+	
+	private class PluginClassLoader(urls: Array<URL>, parent: ClassLoader) : URLClassLoader(urls, parent) {
+		override fun getResources(name: String): Enumeration<URL> =
+			if (name.startsWith("META-INF/services/")) findResources(name)
+			else super.getResources(name)
+	}
 }

@@ -16,9 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.domain.session
+package io.github.autotweaker.core.infrastructure.persist.migrate
 
-import java.util.*
+import com.google.auto.service.AutoService
+import io.github.autotweaker.api.hook.StartupHook
+import io.github.autotweaker.api.types.SemVer
 
-inline fun <reified T : Any> loadService() =
-	ServiceLoader.load(T::class.java).toList()
+@AutoService(StartupHook::class)
+class DataMigrationStartupHook : StartupHook {
+	override suspend fun execute(coreVersion: SemVer) {
+		SchemaMigrationEngine.run()
+	}
+}

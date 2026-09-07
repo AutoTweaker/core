@@ -30,6 +30,7 @@ import io.github.autotweaker.api.types.exception.notfound.AdapterNotFoundExcepti
 import io.github.autotweaker.core.application.Launcher
 import io.github.autotweaker.core.application.Wiring
 import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
+import io.github.autotweaker.core.infrastructure.loadClass
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -59,7 +60,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 			acquireLock()
 		}
 		
-		PluginLoader.load<StartupHook>().forEach { hook ->
+		loadClass<StartupHook>().forEach { hook ->
 			hook.execute(ResourcesLoader.version)
 			log.info("Executed startup hook  class={}", hook::class.java.name)
 		}
