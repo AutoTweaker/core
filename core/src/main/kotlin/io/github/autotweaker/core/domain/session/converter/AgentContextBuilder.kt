@@ -25,10 +25,12 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext
 import java.util.*
 
 class AgentContextBuilder(
+	id: UUID,
 	private val old: AgentContext,
 	private val new: RuntimeContext,
 	private val droppedCompacted: AgentContextIndex.CompactedRounds?
 ) {
+	private val agentId = setOf(id)
 	private val oldMessages = old.index.ids()
 	private val messages = mutableMapOf<UUID, AgentMessage>()
 	
@@ -82,32 +84,36 @@ class AgentContextBuilder(
 		AgentMessage.User(
 			id = id,
 			timestamp = timestamp,
+			origin = agentId,
 			content = content
-		).add()
+		).addIfNew()
 	
 	private fun RuntimeContext.Message.Assistant.id(): UUID =
 		AgentMessage.Assistant(
 			id = id,
 			timestamp = timestamp,
+			origin = agentId,
 			reasoning = reasoning,
 			content = content,
 			model = modelId,
 			usage = usage
-		).add()
+		).addIfNew()
 	
 	private fun RuntimeContext.SummarizedMessage.id(): UUID =
 		AgentMessage.Compact(
 			id = id,
 			timestamp = timestamp,
+			origin = agentId,
 			content = content,
 			model = modelId,
 			usage = usage
-		).add()
+		).addIfNew()
 	
 	private fun RuntimeContext.Message.Tool.call(): UUID =
 		AgentMessage.Tool.Call(
 			id = call.id,
 			timestamp = call.timestamp,
+			origin = agentId,
 			callId = callId,
 			callName = call.callName,
 			arguments = call.arguments,
@@ -116,23 +122,25 @@ class AgentContextBuilder(
 			validatedArgs = call.validatedArgs,
 			resolvedRequest = call.resolvedRequest,
 			presentation = call.presentation
-		).add()
+		).addIfNew()
 	
 	private fun RuntimeContext.Message.Tool.result(): UUID =
 		AgentMessage.Tool.Result(
 			id = result.id,
 			timestamp = result.timestamp,
+			origin = agentId,
 			callId = callId,
 			content = result.content,
 			data = result.data,
 			presentation = result.presentation,
 			status = result.status,
-		).add()
+		).addIfNew()
 	
 	private fun RuntimeContext.CurrentRound.PendingToolCall.id(): UUID =
 		AgentMessage.Tool.Call(
 			id = id,
 			timestamp = timestamp,
+			origin = agentId,
 			callId = callId,
 			callName = callName,
 			arguments = arguments,
@@ -141,9 +149,9 @@ class AgentContextBuilder(
 			validatedArgs = validatedArgs,
 			resolvedRequest = resolvedRequest,
 			presentation = presentation
-		).add()
+		).addIfNew()
 	
-	private fun AgentMessage.add(): UUID = id.also {
+	private fun AgentMessage.addIfNew(): UUID = id.also {
 		if (id !in oldMessages)
 			messages[id] = this
 	}

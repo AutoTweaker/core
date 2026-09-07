@@ -42,7 +42,6 @@ import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.WorkspaceData
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.api.types.tool.ToolMeta
@@ -52,6 +51,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonElement
+import java.nio.file.Path
 import java.util.*
 import kotlin.time.Instant
 
@@ -232,7 +232,7 @@ interface CoreAPI {
 		 * @throws InvalidWorkspacePathException
 		 * @throws DuplicateWorkspaceNameException
 		 */
-		suspend fun create(meta: WorkspaceMeta): WorkspaceData
+		suspend fun create(displayName: String, path: Path): WorkspaceData
 		
 		/**
 		 * 重命名一个工作区。

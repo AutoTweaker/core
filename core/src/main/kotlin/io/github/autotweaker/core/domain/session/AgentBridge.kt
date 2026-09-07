@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.nio.file.Path
 import java.util.*
+import kotlin.time.Clock
 
 class AgentBridge(
 	private val deps: AgentDeps,
@@ -57,17 +58,17 @@ class AgentBridge(
 	private val onShutdown: () -> Unit,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
+	private val initialData: AgentData,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
 	workspace: Path,
 ) : Agent, Loggable, Traceable {
 	/* 初始化 */
 	private val contextLock = ReentrantMutex()
 	
-	private lateinit var initialData: AgentData
 	private lateinit var tools: ToolMap
 	
-	private val _context by lazy { MutableStateFlow(initialData.context) }
-	override val context: StateFlow<AgentContext> by lazy { _context.asStateFlow() }
+	private val _context = MutableStateFlow(initialData.context)
+	override val context = _context.asStateFlow()
 	private var droppedCompacted: AgentContextIndex.CompactedRounds? = null
 	
 	private var cwd = workspace
@@ -80,20 +81,23 @@ class AgentBridge(
 	)
 	override val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
-	override val id: UUID get() = _agent.agentId
+	override val id = initialData.id
+	override val sessionId = initialData.sessionId
 	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
 	override val compacting: StateFlow<Boolean> get() = _agent.compacting
 	override val activeTools: StateFlow<Set<String>> get() = _agent.activeTools
 	override val toolCalling: StateFlow<Pair<String, ToolPresentation>?> get() = _agent.toolCalling
 	
-	override val model: ModelConfig
-		get() = _agent.model
+	override val model: ModelConfig get() = _agent.model
 	
 	private val agentData
 		get() = AgentData(
 			id = id,
 			name = name,
+			sessionId = sessionId,
+			creationTime = initialData.creationTime,
+			lastAccessTime = Clock.System.now(),
 			model = _agent.model,
 			context = _context.value,
 			activeTools = activeTools.value
@@ -105,9 +109,7 @@ class AgentBridge(
 	private var collectJob: Job? = null
 	private var saveJob: Job? = null
 	
-	suspend fun init(data: AgentData) = also {
-		initialData = data
-		
+	suspend fun init() = also {
 		initTools(); createAgent()
 		collectJob = scope.launch {
 			_agent.context.collect { saveChannel.send(Unit) }
@@ -247,6 +249,7 @@ class AgentBridge(
 			val record = AgentMessage.UsageRecord(
 				id = usage.id,
 				timestamp = usage.timestamp,
+				origin = setOf(id),
 				model = usage.modelId,
 				usage = usage.usage,
 			)
@@ -278,7 +281,7 @@ class AgentBridge(
 	}
 	
 	private suspend fun RuntimeContext.save() = contextLock.withLock {
-		val builder = AgentContextBuilder(_context.value, this, droppedCompacted)
+		val builder = AgentContextBuilder(id, _context.value, this, droppedCompacted)
 		val (context, messages) = builder()
 		
 		messages.save()

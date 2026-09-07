@@ -46,6 +46,13 @@ sealed class AgentMessage {
 	abstract val timestamp: Instant
 	
 	/**
+	 * 包含这条消息的 agent id，适用于从一条消息反查所属会话。
+	 *
+	 * 如 [id] 的文档所述，一条消息可能出现在多个会话中。
+	 */
+	abstract val origin: Set<@Serializable(with = UuidSerializer::class) UUID>
+	
+	/**
 	 * 表示一条用户消息。
 	 */
 	@Serializable
@@ -53,6 +60,7 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
+		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
 		/**
 		 * 用户消息的内容，也可能包含系统注入。
 		 *
@@ -69,6 +77,7 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
+		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
 		/**
 		 * LLM 思维链。
 		 */
@@ -106,6 +115,7 @@ sealed class AgentMessage {
 			@Serializable(with = UuidSerializer::class)
 			override val id: UUID,
 			override val timestamp: Instant,
+			override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
 			override val callId: String,
 			/**
 			 * 工具调用的请求名称，可能同时包含工具名称和 function 名称。
@@ -157,6 +167,7 @@ sealed class AgentMessage {
 			@Serializable(with = UuidSerializer::class)
 			override val id: UUID,
 			override val timestamp: Instant,
+			override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
 			override val callId: String,
 			/**
 			 * 响应内容，不一定是结构化数据。
@@ -187,6 +198,7 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
+		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
 		/**
 		 * 上下文压缩的结果，不同于 [AgentOutput.Compact]，这里没有 XML 标签，是纯净的总结内容。
 		 */
@@ -212,6 +224,7 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
+		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
 		@Serializable(with = UuidSerializer::class)
 		val model: UUID,
 		val usage: Usage,

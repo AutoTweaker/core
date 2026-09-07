@@ -30,14 +30,12 @@ import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.domain.session.SessionManager
-import io.github.autotweaker.core.domain.session.WorkspaceAPI
 import io.github.autotweaker.core.infrastructure.config.ApiKeyRepository
 import io.github.autotweaker.core.infrastructure.config.EnvRepository
 import io.github.autotweaker.core.infrastructure.config.ModelConfigRepository
@@ -55,6 +53,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
+import java.nio.file.Path
 import java.util.*
 import kotlin.time.Instant
 
@@ -89,11 +88,11 @@ class CoreAPIImpl(
 	
 	override val workspace = object : CoreAPI.WorkspaceAPI {
 		override val default = WorkspaceManager.defaultWorkspaceId
-		override suspend fun create(meta: WorkspaceMeta) = WorkspaceAPI.create(meta)
-		override suspend fun rename(id: UUID, newName: String) = WorkspaceAPI.rename(id, newName)
-		override suspend fun delete(id: UUID) = WorkspaceAPI.delete(id)
-		override suspend fun get(id: UUID) = WorkspaceAPI.get(id)
-		override suspend fun list() = WorkspaceAPI.list()
+		override suspend fun create(displayName: String, path: Path) = WorkspaceManager.create(displayName, path)
+		override suspend fun rename(id: UUID, newName: String) = WorkspaceManager.rename(id, newName)
+		override suspend fun delete(id: UUID) = WorkspaceManager.delete(id)
+		override suspend fun get(id: UUID) = WorkspaceManager.getData(id)
+		override suspend fun list() = WorkspaceManager.getAll()
 	}
 	
 	override val tool = object : CoreAPI.ToolAPI {

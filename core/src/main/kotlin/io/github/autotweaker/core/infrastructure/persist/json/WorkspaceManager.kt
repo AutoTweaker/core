@@ -18,19 +18,18 @@
 
 package io.github.autotweaker.core.infrastructure.persist.json
 
-import io.github.autotweaker.api.CONFIG_PATH
-import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.store.MutableStore
-import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.exception.DefaultWorkspaceMutationException
+import io.github.autotweaker.api.types.exception.InvalidWorkspacePathException
 import io.github.autotweaker.api.types.exception.WorkspaceNotEmptyException
 import io.github.autotweaker.api.types.exception.duplicate.DuplicateWorkspaceNameException
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.WorkspaceData
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Loggable {
@@ -40,17 +39,16 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 	
 	override fun default() = mutableMapOf<UUID, WorkspaceData>()
 	
-	suspend fun updateMeta(id: UUID, function: suspend () -> WorkspaceMeta) = transform { workspaces ->
-		val meta = function()
+	suspend fun rename(id: UUID, newName: String) = transform { workspaces ->
 		if (id == defaultWorkspaceId) throw DefaultWorkspaceMutationException()
 		ensureDefault()
 		if (!workspaces.containsKey(id)) throw WorkspaceNotFoundException(id)
-		if (workspaces.values.any { it.id != id && it.meta.displayName == meta.displayName })
-			throw DuplicateWorkspaceNameException(meta.displayName)
+		if (workspaces.values.any { it.displayName == newName })
+			throw DuplicateWorkspaceNameException(newName)
 		workspaces.computeIfPresent(id) { _, old ->
-			old.copy(meta = meta)
+			old.copy(displayName = newName)
 		}
-		log.debug("Updated workspace meta  id={}", id)
+		log.info("Renamed workspace  id={}  newName={}", id, newName)
 	}
 	
 	suspend fun updateSessions(id: UUID, function: (Set<UUID>) -> Set<UUID>) =
@@ -75,11 +73,16 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 	}
 	
 	
-	suspend fun create(meta: WorkspaceMeta): WorkspaceData = transform { workspaces ->
+	suspend fun create(displayName: String, path: Path): WorkspaceData = transform { workspaces ->
 		ensureDefault()
-		if (workspaces.values.any { it.meta.displayName == meta.displayName })
-			throw DuplicateWorkspaceNameException(meta.displayName)
-		WorkspaceData(meta = meta).also { workspaces[it.id] = it }
+		if (workspaces.values.any { it.displayName == displayName })
+			throw DuplicateWorkspaceNameException(displayName)
+		val resolved = HOME.resolve(path).normalize()
+		if (!Files.isDirectory(resolved)) throw InvalidWorkspacePathException(resolved)
+		WorkspaceData(path = resolved, displayName = displayName).also {
+			workspaces[it.id] = it
+			log.info("Created workspace  id={}  name={}  path={}", it.id, it.displayName, it.path)
+		}
 	}
 	
 	suspend fun getData(id: UUID): WorkspaceData? = transform { workspaces ->
@@ -98,14 +101,13 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 		val defaultPath = CONFIG_PATH.resolve("workspace")
 		Files.createDirectories(defaultPath)
 		
-		val meta = WorkspaceMeta(
-			displayName = DEFAULT_WORKSPACE_NAME, path = defaultPath
-		)
-		val data = WorkspaceData(id = defaultWorkspaceId, meta = meta)
-		
-		workspaces[defaultWorkspaceId] = data
-		
-		log.info("Created default workspace  id={}  path={}", data.id, data.meta.path)
+		workspaces[defaultWorkspaceId] = WorkspaceData(
+			id = defaultWorkspaceId,
+			path = defaultPath,
+			displayName = DEFAULT_WORKSPACE_NAME
+		).andLog(log) {
+			info("Created default workspace  id={}  path={}", it.id, it.path)
+		}
 	}
 	
 	private const val DEFAULT_WORKSPACE_NAME = "default"

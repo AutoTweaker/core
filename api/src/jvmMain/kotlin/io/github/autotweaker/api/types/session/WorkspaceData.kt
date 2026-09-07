@@ -19,14 +19,22 @@
 package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.UUID
+import io.github.autotweaker.api.types.serializer.PathSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
+import java.nio.file.Path
 import java.util.*
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Serializable
 data class WorkspaceData(
 	@Serializable(with = UuidSerializer::class)
 	val id: UUID = UUID(),
-	val meta: WorkspaceMeta,
+	@Serializable(with = PathSerializer::class)
+	val path: Path,
+	val displayName: String,
+	val creationTime: Instant = Clock.System.now(),
+	val lastAccessTime: Instant = Clock.System.now(),
 	val sessionIds: Set<@Serializable(with = UuidSerializer::class) UUID> = emptySet()
 )

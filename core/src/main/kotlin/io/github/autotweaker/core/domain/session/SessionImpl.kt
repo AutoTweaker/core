@@ -49,25 +49,26 @@ import kotlinx.coroutines.flow.update
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Clock
 
 class SessionImpl(
 	private val deps: AgentDeps,
-	data: SessionData,
+	private val initialData: SessionData,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
 	override val workspaceId: UUID,
 	private val workspacePath: Path,
 ) : Session, Loggable, Traceable {
-	override val id = data.id
+	override val id = initialData.id
 	
-	private val _agentIndex = MutableStateFlow(data.agentIndex)
+	private val _agentIndex = MutableStateFlow(initialData.agentIndex)
 	override val agentIndex = _agentIndex.asStateFlow()
 	
-	private val _title = MutableStateFlow(data.title)
+	private val _title = MutableStateFlow(initialData.title)
 	override val title = _title.asStateFlow()
 	
-	private val _overview = MutableStateFlow(data.overview)
+	private val _overview = MutableStateFlow(initialData.overview)
 	override val overview = _overview.asStateFlow()
 	
 	val data: SessionData
@@ -76,6 +77,8 @@ class SessionImpl(
 			title = _title.value,
 			overview = _overview.value,
 			workspaceId = workspaceId,
+			creationTime = initialData.creationTime,
+			lastAccessTime = Clock.System.now(),
 			agentIndex = _agentIndex.value,
 		)
 	
@@ -100,14 +103,11 @@ class SessionImpl(
 							)
 						}
 				
-				is SessionInit.New -> restoreAgent(
-					AgentData(
-						id = mainId,
-						name = MAIN_AGENT_NAME.toKebab(),
-						model = init.model,
-						context = AgentContext.emptyContext(init.systemPrompt),
-						activeTools = initialActiveTools()
-					)
+				is SessionInit.New -> newAgent(
+					agentId = mainId,
+					name = MAIN_AGENT_NAME.toKebab(),
+					systemPrompt = init.systemPrompt,
+					model = init.model,
 				).andLog(log) {
 					info(
 						"Initialized session  sessionId={}  path={}",
@@ -168,14 +168,17 @@ class SessionImpl(
 	}
 	
 	private suspend fun newAgent(
-		id: UUID,
+		agentId: UUID,
 		name: KebabCase,
 		systemPrompt: String,
 		model: ModelConfig,
 	): AgentBridge = restoreAgent(
 		AgentData(
-			id = id,
+			id = agentId,
 			name = name,
+			sessionId = id,
+			creationTime = Clock.System.now(),
+			lastAccessTime = Clock.System.now(),
 			model = model,
 			context = AgentContext.emptyContext(systemPrompt),
 			activeTools = initialActiveTools()
@@ -192,8 +195,9 @@ class SessionImpl(
 		sessionRepo = sessionRepo,
 		usageRepo = usageRepo,
 		resolveModel = resolveModel,
-		workspace = workspacePath
-	).init(data).also { bridges[data.id] = it }
+		workspace = workspacePath,
+		initialData = data
+	).init().also { bridges[data.id] = it }
 	
 	private fun onSendIfMain(id: UUID): ((MessageContent) -> Unit)? =
 		if (id == _agentIndex.value.main.id) {

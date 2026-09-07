@@ -51,6 +51,11 @@ interface Agent {
 	val id: UUID
 	
 	/**
+	 * agent 的所属会话。
+	 */
+	val sessionId: UUID
+	
+	/**
 	 * agent 的名称，用于多 agent 场景下的显示区分。
 	 *
 	 * @see KebabCase

@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Clock
 
 class SessionManager(
 	private val agentDeps: AgentDeps,
@@ -104,24 +105,25 @@ class SessionManager(
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
 		val workspace = wsm.getData(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
-		val workspacePath = workspace.meta.path
-		if (!Files.isDirectory(workspacePath)) throw InvalidWorkspacePathException(workspacePath)
+		if (!Files.isDirectory(workspace.path)) throw InvalidWorkspacePathException(workspace.path)
 		
 		val data = SessionData(
 			id = UUID(),
 			title = null,
 			overview = null,
 			workspaceId = workspaceId,
+			creationTime = Clock.System.now(),
+			lastAccessTime = Clock.System.now(),
 			agentIndex = AgentIndex.new()
 		)
 		sessions[data.id] = SessionImpl(
 			deps = agentDeps,
-			data = data,
+			initialData = data,
 			sessionRepo = sessionRepo,
 			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
 			workspaceId = workspace.id,
-			workspacePath = workspacePath
+			workspacePath = workspace.path
 		).init(
 			SessionImpl.SessionInit.New(
 				model = model,
@@ -169,23 +171,22 @@ class SessionManager(
 					id, workspaceId
 				)
 			}
-		val workspacePath = workspace.meta.path
-		if (!Files.isDirectory(workspacePath))
-			throw InvalidWorkspacePathException(workspacePath).andLog(log) {
+		if (!Files.isDirectory(workspace.path))
+			throw InvalidWorkspacePathException(workspace.path).andLog(log) {
 				warn(
 					"Invalid workspace path while restoring session  sessionId={}  path={}",
-					id, workspacePath
+					id, workspace.path
 				)
 			}
 		
 		return@withLock SessionImpl(
 			deps = agentDeps,
-			data = data,
+			initialData = data,
 			sessionRepo = sessionRepo,
 			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
 			workspaceId = workspaceId,
-			workspacePath = workspacePath
+			workspacePath = workspace.path
 		).init(SessionImpl.SessionInit.Restore)
 			.listen()
 			.also { sessions[data.id] = it }

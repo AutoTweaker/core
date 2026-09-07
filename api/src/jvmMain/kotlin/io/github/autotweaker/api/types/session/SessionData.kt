@@ -20,11 +20,14 @@ package io.github.autotweaker.api.types.session
 
 import io.github.autotweaker.api.types.agent.AgentIndex
 import java.util.*
+import kotlin.time.Instant
 
 data class SessionData(
 	val id: UUID,
 	val title: String?,
 	val overview: String?,
 	val workspaceId: UUID,
+	val creationTime: Instant,
+	val lastAccessTime: Instant,
 	val agentIndex: AgentIndex
 )

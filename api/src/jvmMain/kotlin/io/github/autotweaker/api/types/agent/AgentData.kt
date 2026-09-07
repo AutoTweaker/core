@@ -22,12 +22,17 @@ import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
+import kotlin.time.Instant
 
 @Serializable
 data class AgentData(
 	@Serializable(with = UuidSerializer::class)
 	val id: UUID,
 	val name: KebabCase,
+	@Serializable(with = UuidSerializer::class)
+	val sessionId: UUID,
+	val creationTime: Instant,
+	val lastAccessTime: Instant,
 	val model: ModelConfig,
 	val context: AgentContext,
 	val activeTools: Set<String>,
