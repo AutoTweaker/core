@@ -19,10 +19,12 @@
 package io.github.autotweaker.api.types.debug
 
 import java.util.*
+import kotlin.time.Instant
 
 data class SessionMessageEntry(
 	override val key: UUID,
 	val type: String,
-	val timestamp: Long,
+	val timestamp: Instant,
+	val origin: List<UUID>,
 	val content: String
 ) : DbEntry<UUID>()

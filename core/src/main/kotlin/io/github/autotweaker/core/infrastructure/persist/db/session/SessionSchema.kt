@@ -32,6 +32,8 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.datetime.timestamp
+import java.util.*
 
 private val sessionJson = Json {
 	ignoreUnknownKeys = true
@@ -59,6 +61,8 @@ object SessionDataTable : Table("session_data") {
 	val title = varchar("title", 512).nullable()
 	val overview = varchar("overview", 512).nullable()
 	val workspaceId = javaUUID("workspace_id")
+	val creationTime = timestamp("creation_time")
+	val lastAccessTime = timestamp("last_access_time")
 	val agentIndexJson = text("agent_index_json")
 	
 	override val primaryKey = PrimaryKey(id)
@@ -70,29 +74,30 @@ object SessionDataTable : Table("session_data") {
 object AgentDataTable : Table("agent_data") {
 	val id = javaUUID("id")
 	val name = varchar("name", 128)
+	val sessionId = javaUUID("session_id")
+	val creationTime = timestamp("creation_time")
+	val lastAccessTime = timestamp("last_access_time")
 	val modelJson = text("model_json")
 	val contextJson = text("context_json")
-	val activeToolsJson = text("active_tools_json")
+	val activeTools = array<String>("active_tools")
 	
 	override val primaryKey = PrimaryKey(id)
+	
+	init {
+		index(false, sessionId)
+	}
 	
 	fun fillModel(it: UpdateBuilder<*>, model: ModelConfig) = fillJson(it, modelJson, model)
 	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
 	fun fillContext(it: UpdateBuilder<*>, context: AgentContext) = fillJson(it, contextJson, context)
 	fun readContext(row: ResultRow): AgentContext = readJson(row, contextJson)
-	fun fillActiveTools(it: UpdateBuilder<*>, tools: Set<String>) = fillJson(it, activeToolsJson, tools)
-	
-	fun readActiveTools(row: ResultRow): Set<String> {
-		val jsonStr = row[activeToolsJson]
-		if (jsonStr.isBlank()) return emptySet()
-		return readJson(row, activeToolsJson)
-	}
 }
 
 object SessionMessageTable : Table("session_message") {
 	val id = javaUUID("id")
 	val type = varchar("type", 32)
-	val timestamp = long("timestamp")
+	val timestamp = timestamp("timestamp")
+	val origin = array<UUID>("origin")
 	val contentJson = text("content_json")
 	
 	override val primaryKey = PrimaryKey(id)

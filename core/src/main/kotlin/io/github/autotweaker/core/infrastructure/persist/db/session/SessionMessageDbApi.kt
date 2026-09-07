@@ -35,13 +35,15 @@ class SessionMessageDbApi(private val store: DatabaseStore) : AbstractDbApi<Sess
 		key = this[SessionMessageTable.id],
 		type = this[SessionMessageTable.type],
 		timestamp = this[SessionMessageTable.timestamp],
+		origin = this[SessionMessageTable.origin],
 		content = this[SessionMessageTable.contentJson],
 	)
-	
+
 	override fun UpsertStatement<Long>.fill(content: SessionMessageEntry) {
 		this[SessionMessageTable.id] = content.key
 		this[SessionMessageTable.type] = content.type
 		this[SessionMessageTable.timestamp] = content.timestamp
+		this[SessionMessageTable.origin] = content.origin
 		this[SessionMessageTable.contentJson] = content.content
 	}
 }

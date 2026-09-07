@@ -100,21 +100,27 @@ class DebugHandler(private val debug: DbDebugAPI) {
 				promptOrStdin("title:"),
 				promptOrStdin("overview:"),
 				UUID.fromString(promptOrStdin("workspaceId:")),
+				Instant.parse(promptOrStdin("creationTime:")),
+				Instant.parse(promptOrStdin("lastAccessTime:")),
 				promptOrStdin("agentIndex:"),
 			)
 			
 			"agentData" -> AgentDataEntry(
 				UUID.fromString(key),
 				promptOrStdin("name:"),
+				UUID.fromString(promptOrStdin("sessionId:")),
+				Instant.parse(promptOrStdin("creationTime:")),
+				Instant.parse(promptOrStdin("lastAccessTime:")),
 				promptOrStdin("model:"),
 				promptOrStdin("context:"),
-				promptOrStdin("activeTools:")
+				promptOrStdin("activeTools:").split(',').filter(String::isNotBlank).map { it.trim() }
 			)
 			
 			"sessionMessage" -> SessionMessageEntry(
 				UUID.fromString(key),
 				promptOrStdin("type:"),
-				promptOrStdin("timestamp:").toLong(),
+				Instant.parse(promptOrStdin("timestamp:")),
+				promptOrStdin("origin:").split(',').filter(String::isNotBlank).map { UUID.fromString(it.trim()) },
 				promptOrStdin("content:")
 			)
 			

@@ -19,11 +19,15 @@
 package io.github.autotweaker.api.types.debug
 
 import java.util.*
+import kotlin.time.Instant
 
 data class AgentDataEntry(
 	override val key: UUID,
 	val name: String,
+	val sessionId: UUID,
+	val creationTime: Instant,
+	val lastAccessTime: Instant,
 	val model: String,
 	val context: String,
-	val activeTools: String
+	val activeTools: List<String>
 ) : DbEntry<UUID>()

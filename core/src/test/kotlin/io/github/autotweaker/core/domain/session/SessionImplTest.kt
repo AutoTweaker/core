@@ -35,6 +35,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.time.Clock
 
 class SessionImplTest {
 	companion object {
@@ -49,11 +50,13 @@ class SessionImplTest {
 		coEvery { sessionRepo.loadAgent(any()) } returns null
 		SessionImpl(
 			deps = mockk<AgentDeps>(relaxed = true),
-			data = SessionData(
+			initialData = SessionData(
 				id = UUID.randomUUID(),
 				title = "original title",
 				overview = null,
 				workspaceId = workspace,
+				creationTime = Clock.System.now(),
+				lastAccessTime = Clock.System.now(),
 				agentIndex = AgentIndex.new(),
 			),
 			sessionRepo = sessionRepo,

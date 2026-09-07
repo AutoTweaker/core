@@ -34,16 +34,22 @@ class AgentDataDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentData
 	override fun ResultRow.toEntry() = AgentDataEntry(
 		key = this[AgentDataTable.id],
 		name = this[AgentDataTable.name],
+		sessionId = this[AgentDataTable.sessionId],
+		creationTime = this[AgentDataTable.creationTime],
+		lastAccessTime = this[AgentDataTable.lastAccessTime],
 		model = this[AgentDataTable.modelJson],
 		context = this[AgentDataTable.contextJson],
-		activeTools = this[AgentDataTable.activeToolsJson],
+		activeTools = this[AgentDataTable.activeTools],
 	)
-	
+
 	override fun UpsertStatement<Long>.fill(content: AgentDataEntry) {
 		this[AgentDataTable.id] = content.key
 		this[AgentDataTable.name] = content.name
+		this[AgentDataTable.sessionId] = content.sessionId
+		this[AgentDataTable.creationTime] = content.creationTime
+		this[AgentDataTable.lastAccessTime] = content.lastAccessTime
 		this[AgentDataTable.modelJson] = content.model
 		this[AgentDataTable.contextJson] = content.context
-		this[AgentDataTable.activeToolsJson] = content.activeTools
+		this[AgentDataTable.activeTools] = content.activeTools
 	}
 }

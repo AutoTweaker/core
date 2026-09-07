@@ -31,7 +31,6 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
-import io.github.autotweaker.api.types.session.WorkspaceMeta
 
 @AutoService(Command::class)
 class Workspace : Command, Traceable {
@@ -60,10 +59,10 @@ class Workspace : Command, Traceable {
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		handleFlag("list") {
 			core.workspace.list().forEach {
-				out(WorkspaceI18n.ListFormat(), it.meta.displayName, it.meta.path, it.sessionIds.count()) {
+				out(WorkspaceI18n.ListFormat(), it.displayName, it.path, it.sessionIds.count()) {
 					newline = false
 				}
-				if (core.pathResolver.inContainer(it.meta.path))
+				if (core.pathResolver.inContainer(it.path))
 					out(SPACE + i18n(WorkspaceI18n.ContainerWorkspace())) { green() }
 				else ln()
 			}
@@ -72,24 +71,22 @@ class Workspace : Command, Traceable {
 			val path = trace.catching { getValueOrNull("directory")?.let { cwd.resolve(it) } }
 				.getOrElse { error(WorkspaceI18n.InvalidPath()) } ?: cwd
 			val data = core.workspace.create(
-				WorkspaceMeta(
-					displayName = displayName,
-					path = path
-				)
+				displayName = displayName,
+				path = path
 			)
-			out(WorkspaceI18n.Name(), data.meta.displayName)
-			out(WorkspaceI18n.Path(), data.meta.path)
+			out(WorkspaceI18n.Name(), data.displayName)
+			out(WorkspaceI18n.Path(), data.path)
 		}
 		handleValue("rename") { displayName ->
 			var data = findWorkspace(core, displayName)
 			core.workspace.rename(data.id, getPositional(0))
 			data = core.workspace.get(data.id) ?: throw WorkspaceNotFoundException(data.id)
-			out(WorkspaceI18n.Name(), data.meta.displayName)
-			out(WorkspaceI18n.Path(), data.meta.path)
+			out(WorkspaceI18n.Name(), data.displayName)
+			out(WorkspaceI18n.Path(), data.path)
 		}
 		handleValue("delete") { displayName ->
 			val data = findWorkspace(core, displayName)
-			if (!hasArg("yes") && !confirm(WorkspaceI18n.Confirm(), displayName, data.meta.path))
+			if (!hasArg("yes") && !confirm(WorkspaceI18n.Confirm(), displayName, data.path))
 				done(1)
 			core.workspace.delete(data.id)
 		}
@@ -97,6 +94,6 @@ class Workspace : Command, Traceable {
 	}
 	
 	private suspend fun Console.findWorkspace(core: CoreAPI, displayName: String) =
-		core.workspace.list().find { it.meta.displayName == displayName }
+		core.workspace.list().find { it.displayName == displayName }
 			?: error(WorkspaceI18n.NotFound(), displayName)
 }

@@ -97,15 +97,15 @@ class SessionCmd : Command, Traceable, Loggable {
 		ModelManager.init(core)
 		val workspace = getValueOrNull("workspace").let { workspaceName ->
 			val list = core.workspace.list()
-			list.find { it.meta.displayName == workspaceName }
-				?: list.find { it.meta.path == cwd }
+			list.find { it.displayName == workspaceName }
+				?: list.find { it.path == cwd }
 				?: core.workspace.get(core.workspace.default)
 				?: unreachable()
 		}
 		
-		if (core.pathResolver.inContainer(workspace.meta.path))
-			err(SessionI18n.ContainerWorkspaceFormat(), workspace.meta.displayName, workspace.meta.path) { white() }
-		else err(SessionI18n.WorkspaceFormat(), workspace.meta.displayName, workspace.meta.path) { white() }
+		if (core.pathResolver.inContainer(workspace.path))
+			err(SessionI18n.ContainerWorkspaceFormat(), workspace.displayName, workspace.path) { white() }
+		else err(SessionI18n.WorkspaceFormat(), workspace.displayName, workspace.path) { white() }
 		handleFlag("list") {
 			val ids = workspace.sessionIds
 			if (ids.isEmpty()) error(SessionI18n.NoSessions())
@@ -164,7 +164,7 @@ class SessionCmd : Command, Traceable, Loggable {
 			approve(it, workspace, core)
 		}
 		handleValue("yolo") { value ->
-			if (!core.pathResolver.inContainer(workspace.meta.path))
+			if (!core.pathResolver.inContainer(workspace.path))
 				error(SessionI18n.YoloContainerOnly())
 			
 			val id = sessionId(value, workspace)

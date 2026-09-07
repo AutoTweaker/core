@@ -27,7 +27,6 @@ import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentIndex
-import io.github.autotweaker.api.types.agent.AgentIndex.Companion.getAll
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.exception.InvalidWorkspacePathException
 import io.github.autotweaker.api.types.exception.notfound.SessionNotFoundException
@@ -42,6 +41,7 @@ import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
@@ -91,7 +91,6 @@ class SessionManager(
 			}.getOrThrow()
 		sessions.remove(id)
 		sessionRepo.deleteSessions(setOf(id))
-		data.agentIndex.getAll().forEach { sessionRepo.deleteAgent(it) }
 		log.info("Deleted session  id={}", id)
 		return@withLock true
 	}
@@ -133,10 +132,9 @@ class SessionManager(
 		trace.catching { wsm.updateSessions(workspaceId) { it + data.id } }
 			.onException { e: WorkspaceNotFoundException ->
 				sessions[data.id]?.shutdown()
-				listener[data.id]?.cancel()
+				listener[data.id]?.cancelAndJoin()
 				sessions.remove(data.id)
 				sessionRepo.deleteSessions(setOf(data.id))
-				data.agentIndex.getAll().forEach { sessionRepo.deleteAgent(it) }
 				log.warn(
 					"Workspace deleted while creating session  sessionId={}  workspaceId={}",
 					data.id, e.id
@@ -152,7 +150,6 @@ class SessionManager(
 				log.error("Failed to save session  sessionId={}", id, e)
 				shutdown()
 				sessionRepo.deleteSessions(setOf(id))
-				agentIndex.value.getAll().forEach { sessionRepo.deleteAgent(it) }
 			}.getOrThrow()
 	}
 	

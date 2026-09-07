@@ -37,6 +37,8 @@ class AgentContextBuilderTest {
 		}
 	}
 	
+	private val agentId = UUID.randomUUID()
+	
 	private fun user(id: UUID = UUID.randomUUID(), content: String = "hello") = RuntimeContext.Message.User(
 		id = id,
 		content = MessageContent(content = content.toContentPart()),
@@ -121,7 +123,12 @@ class AgentContextBuilderTest {
 	@Test
 	fun `empty runtime context transforms to empty agent context`() {
 		val old = AgentContext.emptyContext("old prompt")
-		val (context, messages) = AgentContextBuilder(old, RuntimeContext(null, null, null, null, null), null)()
+		val (context, messages) = AgentContextBuilder(
+			agentId,
+			old,
+			RuntimeContext(null, null, null, null, null),
+			null
+		)()
 		
 		assertNull(context.index.compactedRounds)
 		assertNull(context.index.historyRounds)
@@ -132,7 +139,7 @@ class AgentContextBuilderTest {
 	@Test
 	fun `full context transforms with all message types`() {
 		val old = AgentContext.emptyContext("old prompt")
-		val (context, messages) = AgentContextBuilder(old, fullRuntimeContext(), null)()
+		val (context, messages) = AgentContextBuilder(agentId, old, fullRuntimeContext(), null)()
 		
 		val allIds = context.index.ids()
 		val messageTypes = messages.map { it::class }.toSet()
@@ -158,7 +165,7 @@ class AgentContextBuilderTest {
 		)
 		val new = RuntimeContext(null, null, null, null, null)
 		
-		val (context, _) = AgentContextBuilder(old, new, null)()
+		val (context, _) = AgentContextBuilder(agentId, old, new, null)()
 		
 		assertEquals(setOf(oldUser.id), context.droppedMessages)
 	}
@@ -166,7 +173,7 @@ class AgentContextBuilderTest {
 	@Test
 	fun `system prompt falls back to old context`() {
 		val old = AgentContext.emptyContext("old prompt")
-		val (context, _) = AgentContextBuilder(old, RuntimeContext(null, null, null, null, null), null)()
+		val (context, _) = AgentContextBuilder(agentId, old, RuntimeContext(null, null, null, null, null), null)()
 		
 		assertEquals("old prompt", context.systemPrompt)
 	}
@@ -189,7 +196,7 @@ class AgentContextBuilderTest {
 			null,
 		)
 		
-		val (_, messages) = AgentContextBuilder(old, new, null)()
+		val (_, messages) = AgentContextBuilder(agentId, old, new, null)()
 		
 		assertTrue(messages.isEmpty())
 	}
@@ -202,7 +209,7 @@ class AgentContextBuilderTest {
 	fun `round trip preserves full runtime context`() {
 		val old = AgentContext.emptyContext("old prompt")
 		val original = fullRuntimeContext()
-		val (context, messages) = AgentContextBuilder(old, original, null)()
+		val (context, messages) = AgentContextBuilder(agentId, old, original, null)()
 		val messageMap = messages.associateBy { it.id }
 		
 		val (rebuilt, _) = runBlocking { RuntimeContextBuilder(context) { ids -> ids.mapNotNull(messageMap::get) }() }
@@ -223,7 +230,7 @@ class AgentContextBuilderTest {
 				pendingToolCalls = listOf(pendingCall()),
 			),
 		)
-		val (context, messages) = AgentContextBuilder(old, original, null)()
+		val (context, messages) = AgentContextBuilder(agentId, old, original, null)()
 		val messageMap = messages.associateBy { it.id }
 		val (rebuilt, _) = runBlocking { RuntimeContextBuilder(context) { ids -> ids.mapNotNull(messageMap::get) }() }
 		
@@ -242,7 +249,7 @@ class AgentContextBuilderTest {
 		assertNotNull(dropped)
 		
 		// 持久化时用 dropped 子树补全，完整链不丢失
-		val (saved, emitted) = AgentContextBuilder(context, runtime, dropped)()
+		val (saved, emitted) = AgentContextBuilder(agentId, context, runtime, dropped)()
 		
 		assertEquals(7, depth(saved.index.compactedRounds))
 		// 被丢弃层的消息引用仍然保留在索引中
@@ -259,6 +266,7 @@ class AgentContextBuilderTest {
 			AgentMessage.User(
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
+				origin = setOf(agentId),
 				content = MessageContent(content = "question $i".toContentPart()),
 			)
 		}
@@ -266,6 +274,7 @@ class AgentContextBuilderTest {
 			AgentMessage.Compact(
 				id = UUID.randomUUID(),
 				timestamp = Clock.System.now(),
+				origin = setOf(agentId),
 				content = "summary $i",
 				model = UUID.randomUUID(),
 				usage = null,

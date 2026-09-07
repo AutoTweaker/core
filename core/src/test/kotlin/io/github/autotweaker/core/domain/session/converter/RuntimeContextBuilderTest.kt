@@ -39,6 +39,8 @@ class RuntimeContextBuilderTest {
 		}
 	}
 	
+	private val agentId = UUID.randomUUID()
+	
 	@Test
 	fun `empty agent context rebuilds empty runtime context`() {
 		val context = AgentContext.emptyContext("prompt")
@@ -156,6 +158,7 @@ class RuntimeContextBuilderTest {
 		val call = AgentMessage.Tool.Call(
 			id = UUID.randomUUID(),
 			timestamp = Instant.fromEpochMilliseconds(1000),
+			origin = setOf(agentId),
 			callId = "real-call-id",
 			callName = "bash-run",
 			arguments = "{}",
@@ -236,6 +239,7 @@ class RuntimeContextBuilderTest {
 			AgentMessage.User(
 				id = UUID.randomUUID(),
 				timestamp = Instant.fromEpochMilliseconds(1000L * i),
+				origin = setOf(agentId),
 				content = MessageContent(content = "question $i".toContentPart()),
 			)
 		}
@@ -243,6 +247,7 @@ class RuntimeContextBuilderTest {
 			AgentMessage.Compact(
 				id = UUID.randomUUID(),
 				timestamp = Instant.fromEpochMilliseconds(1000L * i),
+				origin = setOf(agentId),
 				content = "summary $i",
 				model = UUID.randomUUID(),
 				usage = null,

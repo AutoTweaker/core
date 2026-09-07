@@ -76,6 +76,9 @@ class AgentBridgeTest {
 	private fun agentData(id: UUID = UUID.randomUUID()) = AgentData(
 		id = id,
 		name = "main-agent".toKebab(),
+		sessionId = UUID.randomUUID(),
+		creationTime = Clock.System.now(),
+		lastAccessTime = Clock.System.now(),
 		model = modelConfig(),
 		context = AgentContext.emptyContext("system prompt"),
 		activeTools = emptySet(),
@@ -113,12 +116,13 @@ class AgentBridgeTest {
 			onShutdown = {},
 			sessionRepo = store,
 			usageRepo = mockk<UsageRepository>(relaxed = true),
+			initialData = data,
 			resolveModel = {
 				// toModelConfig() 需要非空 Model.id
 				mockk<RuntimeModel>(relaxed = true).also { model -> every { model.id } returns UUID.randomUUID() }
 			},
 			workspace = dir,
-		).init(data)
+		).init()
 	}
 	
 	private suspend fun awaitUntil(condition: () -> Boolean) {

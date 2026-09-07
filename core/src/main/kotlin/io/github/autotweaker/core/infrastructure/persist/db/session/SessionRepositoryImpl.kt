@@ -26,11 +26,11 @@ import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
-import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.java.UUIDColumnType
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
 
@@ -47,6 +47,8 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 					it[title] = data.title
 					it[overview] = data.overview
 					it[workspaceId] = data.workspaceId
+					it[creationTime] = data.creationTime
+					it[lastAccessTime] = data.lastAccessTime
 					SessionDataTable.fillAgentIndex(it, data.agentIndex)
 				}
 			}
@@ -68,8 +70,41 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 	
 	override suspend fun deleteSessions(id: Set<UUID>) {
 		db.transaction {
+			val agentIds = AgentDataTable.selectAll()
+				.where { AgentDataTable.sessionId inList id }
+				.map { it[AgentDataTable.id] }
+				.toSet()
+			AgentDataTable.deleteWhere { AgentDataTable.sessionId inList id }
+			if (agentIds.isNotEmpty()) {
+				SessionMessageTable.selectAll()
+					.where {
+						agentIds.map { agentId ->
+							QueryParameter(agentId, UUIDColumnType()) eq anyFrom(SessionMessageTable.origin)
+						}.reduce { acc, cond -> acc or cond }
+					}.forEach { row ->
+						val message = SessionMessageTable.readContent(row)
+						val remaining = message.origin - agentIds
+						if (remaining.isEmpty()) {
+							SessionMessageTable.deleteWhere { SessionMessageTable.id eq message.id }
+						} else {
+							SessionMessageTable.update({ SessionMessageTable.id eq message.id }) {
+								it[origin] = remaining.toList()
+								SessionMessageTable.fillContent(it, message.withOrigin(remaining))
+							}
+						}
+					}
+			}
 			SessionDataTable.deleteWhere { SessionDataTable.id inList id }
 		}
+	}
+	
+	private fun AgentMessage.withOrigin(newOrigin: Set<UUID>): AgentMessage = when (this) {
+		is AgentMessage.User -> copy(origin = newOrigin)
+		is AgentMessage.Assistant -> copy(origin = newOrigin)
+		is AgentMessage.Tool.Call -> copy(origin = newOrigin)
+		is AgentMessage.Tool.Result -> copy(origin = newOrigin)
+		is AgentMessage.Compact -> copy(origin = newOrigin)
+		is AgentMessage.UsageRecord -> copy(origin = newOrigin)
 	}
 	
 	private fun ResultRow.toSessionData(): SessionData =
@@ -78,6 +113,8 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			title = this[SessionDataTable.title],
 			overview = this[SessionDataTable.overview],
 			workspaceId = this[SessionDataTable.workspaceId],
+			creationTime = this[SessionDataTable.creationTime],
+			lastAccessTime = this[SessionDataTable.lastAccessTime],
 			agentIndex = SessionDataTable.readAgentIndex(this),
 		)
 	
@@ -87,9 +124,12 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			AgentDataTable.upsert {
 				it[id] = agentData.id
 				it[name] = agentData.name.value
+				it[sessionId] = agentData.sessionId
+				it[creationTime] = agentData.creationTime
+				it[lastAccessTime] = agentData.lastAccessTime
 				AgentDataTable.fillModel(it, agentData.model)
 				AgentDataTable.fillContext(it, agentData.context)
-				AgentDataTable.fillActiveTools(it, agentData.activeTools)
+				it[activeTools] = agentData.activeTools.toList()
 			}
 		}
 	}
@@ -112,9 +152,12 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 		AgentData(
 			id = this[AgentDataTable.id],
 			name = this[AgentDataTable.name].toKebab(),
+			sessionId = this[AgentDataTable.sessionId],
+			creationTime = this[AgentDataTable.creationTime],
+			lastAccessTime = this[AgentDataTable.lastAccessTime],
 			model = AgentDataTable.readModel(this),
 			context = AgentDataTable.readContext(this),
-			activeTools = AgentDataTable.readActiveTools(this),
+			activeTools = this[AgentDataTable.activeTools].toSet(),
 		)
 	
 	override suspend fun saveMessages(messages: List<AgentMessage>) {
@@ -123,7 +166,8 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 				SessionMessageTable.upsert {
 					it[id] = msg.id
 					it[type] = SessionMessageTable.typeOf(msg)
-					it[timestamp] = msg.timestamp.toEpochMilliseconds()
+					it[timestamp] = msg.timestamp
+					it[origin] = msg.origin.toList()
 					SessionMessageTable.fillContent(it, msg)
 				}
 			}

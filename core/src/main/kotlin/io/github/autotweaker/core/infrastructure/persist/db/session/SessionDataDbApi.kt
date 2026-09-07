@@ -36,14 +36,18 @@ class SessionDataDbApi(private val store: DatabaseStore) : AbstractDbApi<Session
 		title = this[SessionDataTable.title],
 		overview = this[SessionDataTable.overview],
 		workspaceId = this[SessionDataTable.workspaceId],
+		creationTime = this[SessionDataTable.creationTime],
+		lastAccessTime = this[SessionDataTable.lastAccessTime],
 		agentIndex = this[SessionDataTable.agentIndexJson],
 	)
-	
+
 	override fun UpsertStatement<Long>.fill(content: SessionDataEntry) {
 		this[SessionDataTable.id] = content.key
 		this[SessionDataTable.title] = content.title
 		this[SessionDataTable.overview] = content.overview
 		this[SessionDataTable.workspaceId] = content.workspaceId
+		this[SessionDataTable.creationTime] = content.creationTime
+		this[SessionDataTable.lastAccessTime] = content.lastAccessTime
 		this[SessionDataTable.agentIndexJson] = content.agentIndex
 	}
 }
