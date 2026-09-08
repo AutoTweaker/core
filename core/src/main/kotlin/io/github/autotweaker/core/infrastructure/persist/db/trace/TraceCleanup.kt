@@ -25,6 +25,7 @@ import io.github.autotweaker.api.log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.file.Files
+import kotlin.time.Duration.Companion.days
 
 class TraceCleanup(private val store: TraceStore) : Loggable {
 	suspend operator fun invoke() {
@@ -34,19 +35,19 @@ class TraceCleanup(private val store: TraceStore) : Loggable {
 		val maxDbSizeMB = TraceSettings.MaxDbSizeMB().get()
 		val batchSize = TraceSettings.CleanupBatchSize().get()
 		
-		var cleanupCount = 0
+		var cleanupCount = 0L
 		
-		cleanupCount += if (maxAgeDays > 0) store.deleteByAge(maxAgeDays) else 0
-		cleanupCount += if (maxEntriesPerNs > 0) store.trimPerNamespace(maxEntriesPerNs) else 0
-		cleanupCount += if (maxTotalEntries > 0) store.trimGlobal(maxTotalEntries) else 0
+		cleanupCount += if (maxAgeDays > 0) store.deleteByAge(maxAgeDays.days) else 0L
+		cleanupCount += if (maxEntriesPerNs > 0) store.trimPerNamespace(maxEntriesPerNs) else 0L
+		cleanupCount += if (maxTotalEntries > 0) store.trimGlobal(maxTotalEntries) else 0L
 		cleanupCount += if (maxDbSizeMB > 0 && batchSize > 0) {
 			val maxSizeBytes = maxDbSizeMB * BYTES_PER_MB
 			if (withContext(Dispatchers.IO) {
 					Files.size(dbFilePath)
 				} > maxSizeBytes) {
 				store.deleteOldestBatch(batchSize)
-			} else 0
-		} else 0
+			} else 0L
+		} else 0L
 		
 		if (cleanupCount > 0) log.info("Completed trace cleanup  count={}", cleanupCount)
 	}

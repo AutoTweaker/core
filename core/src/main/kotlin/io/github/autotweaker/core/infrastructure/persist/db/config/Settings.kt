@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:Suppress("UNCHECKED_CAST")
-
 package io.github.autotweaker.core.infrastructure.persist.db.config
 
 import io.github.autotweaker.api.*
@@ -37,6 +35,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.concurrent.ConcurrentHashMap
 
+@Suppress("UNCHECKED_CAST")
 class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 	DbStore(store, "AppConfig", ConfigTable) {
 	private val cache by lazy {
@@ -115,7 +114,7 @@ class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 			is SettingValue.ValString -> it[ConfigTable.stringValue] = value.value
 		}
 	}
-
+	
 	private fun getValueFromRow(row: ResultRow): SettingValue<*>? =
 		row[ConfigTable.byteValue]?.let(::SettingValue)
 			?: row[ConfigTable.shortValue]?.let(::SettingValue)

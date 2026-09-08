@@ -77,7 +77,7 @@ class Bash : CoreTool<BashArgs>, Loggable {
 		) { text(i18n(BashI18n.InvalidArg())) }
 		
 		val envIds = request.envIds?.toSet().orEmpty()
-		val notFound = envIds - listEnv().toSet()
+		val notFound = envIds - listEnv()
 		if (notFound.isNotEmpty()) return Rejected(
 			BashMessage.EnvNotFound().format(notFound)
 		) { text(i18n(BashI18n.InvalidArg())) }

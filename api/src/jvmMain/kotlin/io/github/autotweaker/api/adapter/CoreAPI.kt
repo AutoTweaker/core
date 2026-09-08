@@ -697,7 +697,7 @@ interface CoreAPI {
 		/**
 		 * 获取指定记录者指定命名空间下所有条目的总数。
 		 */
-		suspend fun count(origin: String, namespace: KebabCase): Int
+		suspend fun count(origin: String, namespace: KebabCase): Long
 		
 		/**
 		 * 获取指定记录者指定命名空间下指定时间戳的条目。trace 条目可能较大，请妥善处理。

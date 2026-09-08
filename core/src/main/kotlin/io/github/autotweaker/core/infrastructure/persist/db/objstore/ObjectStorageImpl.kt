@@ -42,7 +42,7 @@ class ObjectStorageImpl(store: DatabaseStore) : ObjectStorage,
 	
 	override suspend fun get(sha256: Sha256): ByteArray? = db.transaction {
 		ObjectStoreTable.selectAll().where { ObjectStoreTable.hash eq sha256.bytes }
-			.firstOrNull()?.get(ObjectStoreTable.content)?.bytes
+			.singleOrNull()?.get(ObjectStoreTable.content)?.bytes
 	}
 	
 	// TODO 目前只能增不能删，可能未来需要考虑清理机制

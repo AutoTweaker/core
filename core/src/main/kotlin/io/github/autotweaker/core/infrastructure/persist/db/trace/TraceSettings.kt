@@ -27,15 +27,15 @@ import io.github.autotweaker.api.config.SettingDef
 
 object TraceSettings {
 	@AutoService(SettingDef::class)
-	class MaxEntriesPerNamespace : IntSetting(
-		1_000_000, zh(
+	class MaxEntriesPerNamespace : LongSetting(
+		1_000_000L, zh(
 			"Traces数据库每个命名空间最多保留的条目数，设为0忽略命名空间条目计数"
 		)
 	)
 	
 	@AutoService(SettingDef::class)
-	class MaxTotalEntries : IntSetting(
-		5_000_000, zh(
+	class MaxTotalEntries : LongSetting(
+		5_000_000L, zh(
 			"Traces数据库总条目上限，设为0忽略总数"
 		)
 	)
@@ -55,8 +55,8 @@ object TraceSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class CleanupBatchSize : IntSetting(
-		500, zh(
+	class CleanupBatchSize : LongSetting(
+		500L, zh(
 			"Traces数据库文件大小超限时每轮删除的条目数"
 		)
 	)

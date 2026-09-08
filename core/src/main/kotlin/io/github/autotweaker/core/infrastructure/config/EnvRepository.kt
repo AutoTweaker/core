@@ -25,7 +25,7 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.persist.json.EnvStore
 
 class EnvRepository(private val container: ContainerManager) : Loggable {
-	suspend fun list(type: EnvType): List<String> = getStore(type).listEnv()
+	suspend fun list(type: EnvType): List<String> = getStore(type).listEnv().toList()
 	suspend fun set(type: EnvType, id: String, value: String) = getStore(type).setEnv(id, value)
 	suspend fun get(type: EnvType, id: String): String? = getStore(type).getEnv(id)
 	suspend fun remove(type: EnvType, id: String) = getStore(type).removeEnv(id)

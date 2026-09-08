@@ -34,9 +34,7 @@ abstract class EnvStore : MutableStore<MutableMap<String, UUID>>(), Loggable, Tr
 	override val serializer = MutableMapSerializer(String.serializer(), UuidSerializer)
 	override fun default() = mutableMapOf<String, UUID>()
 	
-	suspend fun listEnv(): List<String> = transform {
-		it.keys.toList()
-	}
+	suspend fun listEnv(): Set<String> = transform { it.keys }
 	
 	suspend fun getEnv(id: String): String? = transform {
 		val uuid = it[id] ?: return@transform null
