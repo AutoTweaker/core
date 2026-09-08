@@ -20,8 +20,8 @@ package io.github.autotweaker.core.infrastructure.persist.migrate
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
 import kotlinx.coroutines.Dispatchers

@@ -82,6 +82,9 @@ dependencies {
 	
 	implementation("com.h2database:h2:2.4.240")
 	
+	implementation("org.apache.lucene:lucene-core:10.5.1")
+	implementation("org.apache.lucene:lucene-analysis-common:10.5.1")
+	
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	implementation("ch.qos.logback:logback-classic:1.5.37")
 	implementation("com.dgkncgty:logback-journal:0.5.1")

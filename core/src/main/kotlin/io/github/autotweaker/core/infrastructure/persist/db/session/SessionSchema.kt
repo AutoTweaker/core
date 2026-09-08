@@ -60,7 +60,6 @@ object AgentMessageTable : Table("agent_message") {
 		toDb = { it.name }
 	)
 	val timestamp = timestamp("timestamp")
-	val searchText = text("search_text").nullable()
 	val content = jsonb<AgentMessage>("content", Json)
 	
 	override val primaryKey = PrimaryKey(id)

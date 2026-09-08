@@ -37,6 +37,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
+import kotlin.time.Instant
 
 class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 	DbStore(
@@ -67,7 +68,7 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 		}
 	
 	override suspend fun deleteSessions(id: Set<UUID>) {
-		db.transaction {
+		val orphans = db.transaction {
 			val agentIds = AgentDataTable.selectAll()
 				.where { AgentDataTable.sessionId inList id }
 				.mapTo(mutableSetOf()) { it[AgentDataTable.id] }
@@ -76,15 +77,16 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 				.mapTo(mutableSetOf()) { it[MessageOwnershipTable.messageId] }
 			else emptySet()
 			SessionDataTable.deleteWhere { SessionDataTable.id inList id }
-			if (affected.isNotEmpty()) {
-				val surviving = MessageOwnershipTable.selectAll()
-					.where { MessageOwnershipTable.messageId inList affected }
-					.mapTo(mutableSetOf()) { it[MessageOwnershipTable.messageId] }
-				val orphans = affected - surviving
-				if (orphans.isNotEmpty())
-					AgentMessageTable.deleteWhere { AgentMessageTable.id inList orphans }
-			}
+			if (affected.isEmpty()) return@transaction emptySet()
+			val surviving = MessageOwnershipTable.selectAll()
+				.where { MessageOwnershipTable.messageId inList affected }
+				.mapTo(mutableSetOf()) { it[MessageOwnershipTable.messageId] }
+			val orphans = affected - surviving
+			if (orphans.isNotEmpty())
+				AgentMessageTable.deleteWhere { AgentMessageTable.id inList orphans }
+			return@transaction orphans
 		}
+		MessageSearch.delete(orphans)
 	}
 	
 	private fun ResultRow.toSessionData(): SessionData =
@@ -144,7 +146,6 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 					it[id] = msg.id
 					it[type] = typeOf(msg)
 					it[timestamp] = msg.timestamp
-					it[searchText] = searchTextOf(msg)
 					it[content] = msg
 				}
 				msg.origin.forEach { owner ->
@@ -154,6 +155,9 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 					}
 				}
 			}
+		}
+		messages.forEach { msg ->
+			MessageSearch.upsert(msg.id, typeOf(msg), msg.timestamp, searchTextOf(msg))
 		}
 	}
 	
@@ -173,6 +177,13 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 					row[AgentMessageTable.content].withOrigin(origins[row[AgentMessageTable.id]].orEmpty())
 				}
 		}
+	
+	override suspend fun searchMessages(
+		query: String,
+		type: AgentMessageType?,
+		from: Instant?,
+		to: Instant?,
+	): Set<UUID> = MessageSearch.search(query, type, from, to)
 	
 	private fun typeOf(msg: AgentMessage): AgentMessageType = when (msg) {
 		is AgentMessage.User -> AgentMessageType.USER

@@ -36,6 +36,7 @@ import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationMan
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.session.MessageSearch
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import org.koin.core.Koin
 
@@ -122,6 +123,8 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed GPG agent kill") }
 		trace.catching { koin.get<TraceRecorderImpl>().shutdown() }
 			.onFailure { log.warn("Failed TraceRecorderImpl shutdown") }
+		trace.catching { MessageSearch.close() }
+			.onFailure { log.warn("Failed MessageSearch close") }
 		trace.catching { koin.get<DatabaseStore>().shutdown() }
 			.onFailure { log.warn("Failed DatabaseStore shutdown") }
 		

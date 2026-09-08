@@ -16,16 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.debug
+package io.github.autotweaker.core.infrastructure.persist.db.base
 
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.AgentMessageType
-import java.util.*
-import kotlin.time.Instant
+import io.github.autotweaker.api.CONFIG_PATH
+import java.nio.file.Path
 
-data class AgentMessageEntry(
-	override val key: UUID,
-	val type: AgentMessageType,
-	val timestamp: Instant,
-	val content: AgentMessage
-) : DbEntry<UUID>()
+val DB_PATH: Path = CONFIG_PATH.resolve("database")

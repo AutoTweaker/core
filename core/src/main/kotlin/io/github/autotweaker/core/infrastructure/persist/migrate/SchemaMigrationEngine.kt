@@ -21,7 +21,7 @@ package io.github.autotweaker.core.infrastructure.persist.migrate
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.loadService
 import io.github.autotweaker.api.log
-import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore.DB_PATH
+import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.eq

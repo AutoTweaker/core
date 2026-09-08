@@ -35,7 +35,6 @@ class AgentMessageDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentM
 		key = this[AgentMessageTable.id],
 		type = this[AgentMessageTable.type],
 		timestamp = this[AgentMessageTable.timestamp],
-		searchText = this[AgentMessageTable.searchText],
 		content = this[AgentMessageTable.content],
 	)
 	
@@ -43,7 +42,6 @@ class AgentMessageDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentM
 		this[AgentMessageTable.id] = content.key
 		this[AgentMessageTable.type] = content.type
 		this[AgentMessageTable.timestamp] = content.timestamp
-		this[AgentMessageTable.searchText] = content.searchText
 		this[AgentMessageTable.content] = content.content
 	}
 }

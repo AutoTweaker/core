@@ -20,8 +20,10 @@ package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.agent.AgentMessageType
 import io.github.autotweaker.api.types.session.SessionData
 import java.util.*
+import kotlin.time.Instant
 
 interface SessionRepository {
 	suspend fun saveSessions(sessionData: List<SessionData>)
@@ -33,4 +35,10 @@ interface SessionRepository {
 	
 	suspend fun saveMessages(messages: List<AgentMessage>)
 	suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage>
+	suspend fun searchMessages(
+		query: String,
+		type: AgentMessageType?,
+		from: Instant?,
+		to: Instant?,
+	): Set<UUID>
 }

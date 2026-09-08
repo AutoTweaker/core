@@ -20,17 +20,15 @@ package io.github.autotweaker.core.infrastructure.persist.db.base.h2
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
 object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 	private val databases = ConcurrentHashMap<String, Database>()
-	
-	val DB_PATH: Path = CONFIG_PATH.resolve("database")
 	
 	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->
 		Files.createDirectories(DB_PATH)
