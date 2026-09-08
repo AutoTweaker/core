@@ -28,7 +28,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.BeforeTest
@@ -68,7 +67,7 @@ class JsonStoreImplTest {
 		val store = JsonStoreImpl(databaseStore)
 		assertNull(store.namespace(String::class).get())
 	}
-
+	
 	@Test
 	fun `namespace and set then get`() {
 		val store = JsonStoreImpl(databaseStore)
@@ -76,17 +75,5 @@ class JsonStoreImplTest {
 		val data = buildJsonObject { put("k", JsonPrimitive("v")) }
 		entry.set(data)
 		assertNotNull(entry.get())
-	}
-
-	@Test
-	fun `get handles corrupted JSON`() {
-		val store = JsonStoreImpl(databaseStore)
-		transaction {
-			JsonStoreTable.insert {
-				it[JsonStoreTable.namespace] = Boolean::class.java.name
-				it[JsonStoreTable.content] = "bad json"
-			}
-		}
-		assertNull(store.namespace(Boolean::class).get())
 	}
 }

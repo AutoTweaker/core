@@ -62,8 +62,8 @@ import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.objstore.ObjectStorageImpl
 import io.github.autotweaker.core.infrastructure.persist.db.session.AgentDataDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.session.AgentMessageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionDataDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.SessionMessageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceCleanup
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
@@ -155,7 +155,7 @@ object Wiring : Loggable {
 		singleOf(::JsonStoreDbApi)
 		singleOf(::SessionDataDbApi)
 		singleOf(::AgentDataDbApi)
-		singleOf(::SessionMessageDbApi)
+		singleOf(::AgentMessageDbApi)
 		singleOf(::UsageDbApi)
 		singleOf(::TraceCleanup)
 		singleOf(::TraceRecorderImpl)

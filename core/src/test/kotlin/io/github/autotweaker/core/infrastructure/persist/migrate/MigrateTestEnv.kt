@@ -24,8 +24,11 @@ import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.upsert
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -67,14 +70,6 @@ object MigrateTestEnv {
 		transaction(connect()) { SchemaUtils.create(JsonStoreTable) }
 	}
 	
-	fun insertCorruptJson(namespace: String) {
-		transaction(connect()) {
-			JsonStoreTable.insert {
-				it[JsonStoreTable.namespace] = namespace
-				it[JsonStoreTable.content] = "not a json"
-			}
-		}
-	}
 	
 	fun seedSchemaVersion(version: Int) {
 		transaction(connect()) {

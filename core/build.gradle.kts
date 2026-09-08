@@ -77,6 +77,7 @@ dependencies {
 	implementation("org.jetbrains.exposed:exposed-core:1.4.0")
 	implementation("org.jetbrains.exposed:exposed-dao:1.4.0")
 	implementation("org.jetbrains.exposed:exposed-jdbc:1.4.0")
+	implementation("org.jetbrains.exposed:exposed-json:1.4.0")
 	implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.4.0")
 	
 	implementation("com.h2database:h2:2.4.240")

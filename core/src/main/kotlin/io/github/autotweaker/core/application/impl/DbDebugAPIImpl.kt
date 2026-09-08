@@ -41,7 +41,7 @@ class DbDebugAPIImpl(
 	override val jsonStore: JsonStoreDbApi,
 	override val sessionData: SessionDataDbApi,
 	override val agentData: AgentDataDbApi,
-	override val sessionMessage: SessionMessageDbApi,
+	override val agentMessage: AgentMessageDbApi,
 	override val usage: UsageDbApi,
 	override val secrets: SecretDbApi,
 ) : DbDebugAPI {
@@ -60,7 +60,8 @@ class DbDebugAPIImpl(
 			mapOf(
 				"session_data" to SessionDataTable.selectAll().count(),
 				"agent_data" to AgentDataTable.selectAll().count(),
-				"session_message" to SessionMessageTable.selectAll().count(),
+				"agent_message" to AgentMessageTable.selectAll().count(),
+				"message_ownership" to MessageOwnershipTable.selectAll().count(),
 			)
 		},
 		"Usages" to usageDb.transaction {

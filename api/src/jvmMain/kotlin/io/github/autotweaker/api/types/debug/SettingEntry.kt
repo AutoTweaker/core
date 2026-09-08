@@ -20,5 +20,13 @@ package io.github.autotweaker.api.types.debug
 
 data class SettingEntry(
 	override val key: String,
-	val value: String,
+	val byteValue: Byte?,
+	val shortValue: Short?,
+	val intValue: Int?,
+	val longValue: Long?,
+	val floatValue: Float?,
+	val doubleValue: Double?,
+	val booleanValue: Boolean?,
+	val charValue: String?,
+	val stringValue: String?,
 ) : DbEntry<String>()

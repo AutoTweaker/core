@@ -32,11 +32,27 @@ class SettingDbApi(private val store: DatabaseStore) : AbstractDbApi<SettingEntr
 	
 	override fun ResultRow.toEntry() = SettingEntry(
 		key = this[ConfigTable.keyName],
-		value = this[ConfigTable.valJson],
+		byteValue = this[ConfigTable.byteValue],
+		shortValue = this[ConfigTable.shortValue],
+		intValue = this[ConfigTable.intValue],
+		longValue = this[ConfigTable.longValue],
+		floatValue = this[ConfigTable.floatValue],
+		doubleValue = this[ConfigTable.doubleValue],
+		booleanValue = this[ConfigTable.booleanValue],
+		charValue = this[ConfigTable.charValue],
+		stringValue = this[ConfigTable.stringValue],
 	)
-	
+
 	override fun UpsertStatement<Long>.fill(content: SettingEntry) {
 		this[ConfigTable.keyName] = content.key
-		this[ConfigTable.valJson] = content.value
+		this[ConfigTable.byteValue] = content.byteValue
+		this[ConfigTable.shortValue] = content.shortValue
+		this[ConfigTable.intValue] = content.intValue
+		this[ConfigTable.longValue] = content.longValue
+		this[ConfigTable.floatValue] = content.floatValue
+		this[ConfigTable.doubleValue] = content.doubleValue
+		this[ConfigTable.booleanValue] = content.booleanValue
+		this[ConfigTable.charValue] = content.charValue
+		this[ConfigTable.stringValue] = content.stringValue
 	}
 }

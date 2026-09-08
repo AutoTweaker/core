@@ -18,13 +18,15 @@
 
 package io.github.autotweaker.api.types.debug
 
+import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.agent.AgentMessageType
 import java.util.*
 import kotlin.time.Instant
 
-data class SessionMessageEntry(
+data class AgentMessageEntry(
 	override val key: UUID,
-	val type: String,
+	val type: AgentMessageType,
 	val timestamp: Instant,
-	val origin: List<UUID>,
-	val content: String
+	val searchText: String?,
+	val content: AgentMessage
 ) : DbEntry<UUID>()

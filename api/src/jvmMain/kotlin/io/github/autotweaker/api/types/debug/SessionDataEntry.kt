@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.debug
 
+import io.github.autotweaker.api.types.agent.AgentIndex
 import java.util.*
 import kotlin.time.Instant
 
@@ -28,5 +29,5 @@ data class SessionDataEntry(
 	val workspaceId: UUID,
 	val creationTime: Instant,
 	val lastAccessTime: Instant,
-	val agentIndex: String
+	val agentIndex: AgentIndex
 ) : DbEntry<UUID>()

@@ -16,16 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.db.json
+package io.github.autotweaker.api.types.agent
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.json.jsonb
-
-object JsonStoreTable : Table("json_store") {
-	val namespace = varchar("namespace", 255)
-	val content = jsonb<JsonElement>("content", Json)
-
-	override val primaryKey = PrimaryKey(namespace)
-}
+enum class AgentMessageType { USER, ASSISTANT, TOOL_CALL, TOOL_RESULT, COMPACT, USAGE_RECORD }

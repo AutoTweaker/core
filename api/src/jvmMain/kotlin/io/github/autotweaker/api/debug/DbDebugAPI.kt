@@ -25,7 +25,7 @@ interface DbDebugAPI {
 	val setting: DbAPI<SettingEntry, String>
 	val jsonStore: DbAPI<JsonStoreEntry, String>
 	val sessionData: DbAPI<SessionDataEntry, UUID>
-	val sessionMessage: DbAPI<SessionMessageEntry, UUID>
+	val agentMessage: DbAPI<AgentMessageEntry, UUID>
 	val agentData: DbAPI<AgentDataEntry, UUID>
 	val usage: DbAPI<UsageEntry, UUID>
 	val secrets: DbAPI<SecretEntry, UUID>

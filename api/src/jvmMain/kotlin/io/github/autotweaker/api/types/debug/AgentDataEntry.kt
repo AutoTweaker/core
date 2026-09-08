@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.api.types.debug
 
+import io.github.autotweaker.api.types.agent.AgentContext
+import io.github.autotweaker.api.types.agent.ModelConfig
 import java.util.*
 import kotlin.time.Instant
 
@@ -27,7 +29,7 @@ data class AgentDataEntry(
 	val sessionId: UUID,
 	val creationTime: Instant,
 	val lastAccessTime: Instant,
-	val model: String,
-	val context: String,
+	val model: ModelConfig,
+	val context: AgentContext,
 	val activeTools: List<String>
 ) : DbEntry<UUID>()

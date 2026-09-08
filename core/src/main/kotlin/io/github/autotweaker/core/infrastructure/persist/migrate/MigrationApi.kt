@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.infrastructure.persist.migrate
 
 import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.json
 import io.github.autotweaker.api.log
 import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore.DB_PATH
@@ -50,13 +49,12 @@ object MigrationApi : Loggable {
 	suspend fun readJson(namespace: String): JsonElement? = transaction(APP_CONFIG) {
 		JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq namespace }
 			.singleOrNull()?.get(JsonStoreTable.content)
-			?.let { json.parseToJsonElement(it) }
 	}
 	
 	suspend fun writeJson(namespace: String, element: JsonElement) = transaction(APP_CONFIG) {
 		JsonStoreTable.upsert {
 			it[JsonStoreTable.namespace] = namespace
-			it[JsonStoreTable.content] = json.encodeToString(element)
+			it[JsonStoreTable.content] = element
 		}
 	}
 	

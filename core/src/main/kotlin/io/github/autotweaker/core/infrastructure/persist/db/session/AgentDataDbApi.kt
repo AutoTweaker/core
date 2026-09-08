@@ -37,8 +37,8 @@ class AgentDataDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentData
 		sessionId = this[AgentDataTable.sessionId],
 		creationTime = this[AgentDataTable.creationTime],
 		lastAccessTime = this[AgentDataTable.lastAccessTime],
-		model = this[AgentDataTable.modelJson],
-		context = this[AgentDataTable.contextJson],
+		model = this[AgentDataTable.model],
+		context = this[AgentDataTable.context],
 		activeTools = this[AgentDataTable.activeTools],
 	)
 
@@ -48,8 +48,8 @@ class AgentDataDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentData
 		this[AgentDataTable.sessionId] = content.sessionId
 		this[AgentDataTable.creationTime] = content.creationTime
 		this[AgentDataTable.lastAccessTime] = content.lastAccessTime
-		this[AgentDataTable.modelJson] = content.model
-		this[AgentDataTable.contextJson] = content.context
+		this[AgentDataTable.model] = content.model
+		this[AgentDataTable.context] = content.context
 		this[AgentDataTable.activeTools] = content.activeTools
 	}
 }

@@ -18,43 +18,13 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.types.agent.AgentContext
-import io.github.autotweaker.api.types.agent.AgentIndex
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.ModelConfig
+import io.github.autotweaker.api.types.agent.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
-import kotlinx.serialization.serializer
-import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.java.javaUUID
-import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.datetime.timestamp
-import java.util.*
-
-private val sessionJson = Json {
-	ignoreUnknownKeys = true
-	serializersModule = SerializersModule {
-		polymorphic(AgentMessage::class) {
-			subclass(AgentMessage.User::class)
-			subclass(AgentMessage.Assistant::class)
-			subclass(AgentMessage.Tool.Call::class)
-			subclass(AgentMessage.Tool.Result::class)
-			subclass(AgentMessage.Compact::class)
-			subclass(AgentMessage.UsageRecord::class)
-		}
-	}
-}
-
-private inline fun <reified T> fillJson(it: UpdateBuilder<*>, column: Column<String>, value: T) {
-	it[column] = sessionJson.encodeToString(serializer<T>(), value)
-}
-
-private inline fun <reified T> readJson(row: ResultRow, column: Column<String>): T =
-	sessionJson.decodeFromString(serializer<T>(), row[column])
+import org.jetbrains.exposed.v1.json.jsonb
 
 object SessionDataTable : Table("session_data") {
 	val id = javaUUID("id")
@@ -63,54 +33,46 @@ object SessionDataTable : Table("session_data") {
 	val workspaceId = javaUUID("workspace_id")
 	val creationTime = timestamp("creation_time")
 	val lastAccessTime = timestamp("last_access_time")
-	val agentIndexJson = text("agent_index_json")
+	val agentIndex = jsonb<AgentIndex>("agent_index", Json)
 	
 	override val primaryKey = PrimaryKey(id)
-	
-	fun fillAgentIndex(it: UpdateBuilder<*>, index: AgentIndex) = fillJson(it, agentIndexJson, index)
-	fun readAgentIndex(row: ResultRow): AgentIndex = readJson(row, agentIndexJson)
 }
 
 object AgentDataTable : Table("agent_data") {
 	val id = javaUUID("id")
 	val name = varchar("name", 128)
-	val sessionId = javaUUID("session_id")
+	val sessionId = reference("session_id", SessionDataTable.id, onDelete = ReferenceOption.CASCADE)
 	val creationTime = timestamp("creation_time")
 	val lastAccessTime = timestamp("last_access_time")
-	val modelJson = text("model_json")
-	val contextJson = text("context_json")
+	val model = jsonb<ModelConfig>("model", Json)
+	val context = jsonb<AgentContext>("context", Json)
 	val activeTools = array<String>("active_tools")
 	
 	override val primaryKey = PrimaryKey(id)
-	
-	init {
-		index(false, sessionId)
-	}
-	
-	fun fillModel(it: UpdateBuilder<*>, model: ModelConfig) = fillJson(it, modelJson, model)
-	fun readModel(row: ResultRow): ModelConfig = readJson(row, modelJson)
-	fun fillContext(it: UpdateBuilder<*>, context: AgentContext) = fillJson(it, contextJson, context)
-	fun readContext(row: ResultRow): AgentContext = readJson(row, contextJson)
 }
 
-object SessionMessageTable : Table("session_message") {
+object AgentMessageTable : Table("agent_message") {
 	val id = javaUUID("id")
-	val type = varchar("type", 32)
+	val type = customEnumeration(
+		name = "type",
+		sql = "ENUM('USER','ASSISTANT','TOOL_CALL','TOOL_RESULT','COMPACT','USAGE_RECORD')",
+		fromDb = { value -> AgentMessageType.valueOf(value as String) },
+		toDb = { it.name }
+	)
 	val timestamp = timestamp("timestamp")
-	val origin = array<UUID>("origin")
-	val contentJson = text("content_json")
+	val searchText = text("search_text").nullable()
+	val content = jsonb<AgentMessage>("content", Json)
 	
 	override val primaryKey = PrimaryKey(id)
+}
+
+object MessageOwnershipTable : Table("message_ownership") {
+	val messageId = reference("message_id", AgentMessageTable.id, onDelete = ReferenceOption.CASCADE)
+	val agentId = reference("agent_id", AgentDataTable.id, onDelete = ReferenceOption.CASCADE)
 	
-	fun fillContent(it: UpdateBuilder<*>, msg: AgentMessage) = fillJson(it, contentJson, msg)
-	fun readContent(row: ResultRow): AgentMessage = readJson(row, contentJson)
+	override val primaryKey = PrimaryKey(messageId, agentId)
 	
-	fun typeOf(msg: AgentMessage): String = when (msg) {
-		is AgentMessage.User -> "USER"
-		is AgentMessage.Assistant -> "ASSISTANT"
-		is AgentMessage.Tool.Call -> "TOOL_CALL"
-		is AgentMessage.Tool.Result -> "TOOL_RESULT"
-		is AgentMessage.Compact -> "COMPACT"
-		is AgentMessage.UsageRecord -> "USAGE_RECORD"
+	init {
+		index(false, agentId)
 	}
 }

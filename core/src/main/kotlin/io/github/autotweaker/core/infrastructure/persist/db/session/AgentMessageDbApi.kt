@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.types.debug.SessionMessageEntry
+import io.github.autotweaker.api.types.debug.AgentMessageEntry
 import io.github.autotweaker.core.infrastructure.persist.db.base.AbstractDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -26,24 +26,24 @@ import org.jetbrains.exposed.v1.core.statements.UpsertStatement
 import org.jetbrains.exposed.v1.jdbc.Database
 import java.util.*
 
-class SessionMessageDbApi(private val store: DatabaseStore) : AbstractDbApi<SessionMessageEntry, UUID>(
-	SessionMessageTable, SessionMessageTable.id
+class AgentMessageDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentMessageEntry, UUID>(
+	AgentMessageTable, AgentMessageTable.id
 ) {
 	override fun connect(): Database = store.connect("Sessions")
 	
-	override fun ResultRow.toEntry() = SessionMessageEntry(
-		key = this[SessionMessageTable.id],
-		type = this[SessionMessageTable.type],
-		timestamp = this[SessionMessageTable.timestamp],
-		origin = this[SessionMessageTable.origin],
-		content = this[SessionMessageTable.contentJson],
+	override fun ResultRow.toEntry() = AgentMessageEntry(
+		key = this[AgentMessageTable.id],
+		type = this[AgentMessageTable.type],
+		timestamp = this[AgentMessageTable.timestamp],
+		searchText = this[AgentMessageTable.searchText],
+		content = this[AgentMessageTable.content],
 	)
-
-	override fun UpsertStatement<Long>.fill(content: SessionMessageEntry) {
-		this[SessionMessageTable.id] = content.key
-		this[SessionMessageTable.type] = content.type
-		this[SessionMessageTable.timestamp] = content.timestamp
-		this[SessionMessageTable.origin] = content.origin
-		this[SessionMessageTable.contentJson] = content.content
+	
+	override fun UpsertStatement<Long>.fill(content: AgentMessageEntry) {
+		this[AgentMessageTable.id] = content.key
+		this[AgentMessageTable.type] = content.type
+		this[AgentMessageTable.timestamp] = content.timestamp
+		this[AgentMessageTable.searchText] = content.searchText
+		this[AgentMessageTable.content] = content.content
 	}
 }

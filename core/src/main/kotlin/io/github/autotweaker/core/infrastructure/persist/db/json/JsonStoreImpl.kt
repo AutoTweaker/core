@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.json
 
-import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
@@ -42,23 +42,14 @@ class JsonStoreImpl(store: DatabaseStore) : Loggable, Traceable, DbStore(
 			override fun get(): JsonElement? =
 				transaction(db) {
 					JsonStoreTable.selectAll().where { JsonStoreTable.namespace eq javaName }
-						.singleOrNull()?.let { row ->
-							trace.catching { json.parseToJsonElement(row[JsonStoreTable.content]) }
-								.onFailure { e ->
-									log.error(
-										"Failed JSON parsing  namespace={}",
-										javaName, e
-									)
-								}.getOrNull()
-						}
+						.singleOrNull()?.get(JsonStoreTable.content)
 				}
 			
 			override fun set(value: JsonElement) {
-				val content = json.encodeToString(value)
 				transaction(db) {
 					JsonStoreTable.upsert {
 						it[JsonStoreTable.namespace] = javaName
-						it[JsonStoreTable.content] = content
+						it[JsonStoreTable.content] = value
 					}
 				}
 			}

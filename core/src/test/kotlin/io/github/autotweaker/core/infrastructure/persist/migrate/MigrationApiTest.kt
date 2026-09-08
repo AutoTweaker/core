@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.infrastructure.persist.migrate
 
-import io.github.autotweaker.api.discard
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -43,19 +42,6 @@ class MigrationApiTest {
 		assertNull(MigrationApi.readJson("missing.ns"))
 	}
 	
-	@Test
-	fun `corrupted json throws instead of returning null`() = runBlocking {
-		SchemaMigrationEngine.run()
-		MigrateTestEnv.createJsonStoreTable()
-		MigrateTestEnv.insertCorruptJson("corrupt.ns")
-		val error = try {
-			MigrationApi.readJson("corrupt.ns")
-			null
-		} catch (e: Throwable) {
-			e
-		}
-		assertNotNull(error).discard()
-	}
 	
 	@Test
 	fun `syncSchema adds missing column idempotently`() = runBlocking {

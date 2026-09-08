@@ -50,7 +50,7 @@ class Debug : Command, I18nable {
 				flag("jsonStore", Table()) { aliases() }
 				flag("sessionData", Table()) { aliases() }
 				flag("agentData", Table()) { aliases() }
-				flag("sessionMessage", Table()) { aliases() }
+				flag("agentMessage", Table()) { aliases() }
 				flag("usage", Table()) { aliases() }
 				flag("secrets", Table()) { aliases() }
 			}

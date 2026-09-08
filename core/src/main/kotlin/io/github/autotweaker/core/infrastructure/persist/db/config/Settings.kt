@@ -103,17 +103,29 @@ class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 	}
 	
 	private fun fillColumn(it: UpdateBuilder<*>, value: SettingValue<*>) {
-		it[ConfigTable.valJson] = json.encodeToString(SettingValue.serializer(), value)
+		when (value) {
+			is SettingValue.ValByte -> it[ConfigTable.byteValue] = value.value
+			is SettingValue.ValShort -> it[ConfigTable.shortValue] = value.value
+			is SettingValue.ValInt -> it[ConfigTable.intValue] = value.value
+			is SettingValue.ValLong -> it[ConfigTable.longValue] = value.value
+			is SettingValue.ValFloat -> it[ConfigTable.floatValue] = value.value
+			is SettingValue.ValDouble -> it[ConfigTable.doubleValue] = value.value
+			is SettingValue.ValBoolean -> it[ConfigTable.booleanValue] = value.value
+			is SettingValue.ValChar -> it[ConfigTable.charValue] = value.value.toString()
+			is SettingValue.ValString -> it[ConfigTable.stringValue] = value.value
+		}
 	}
-	
+
 	private fun getValueFromRow(row: ResultRow): SettingValue<*>? =
-		trace.catching {
-			json.decodeFromString(
-				SettingValue.serializer(), row[ConfigTable.valJson]
-			)
-		}.onFailure { e ->
-			log.error("Failed config value deserialization  key={}", row[ConfigTable.keyName], e)
-		}.getOrNull()
+		row[ConfigTable.byteValue]?.let(::SettingValue)
+			?: row[ConfigTable.shortValue]?.let(::SettingValue)
+			?: row[ConfigTable.intValue]?.let(::SettingValue)
+			?: row[ConfigTable.longValue]?.let(::SettingValue)
+			?: row[ConfigTable.floatValue]?.let(::SettingValue)
+			?: row[ConfigTable.doubleValue]?.let(::SettingValue)
+			?: row[ConfigTable.booleanValue]?.let(::SettingValue)
+			?: row[ConfigTable.charValue]?.single()?.let(::SettingValue)
+			?: row[ConfigTable.stringValue]?.let(::SettingValue)
 	
 	private fun <V : SettingValue<T>, T> nameOf(def: SettingDef<V>) =
 		requireNotNull(def::class.qualifiedName) { "Anonymous SettingDef not supported: ${def::class}" }
