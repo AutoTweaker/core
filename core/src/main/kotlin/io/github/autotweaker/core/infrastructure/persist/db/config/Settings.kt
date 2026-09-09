@@ -44,21 +44,22 @@ class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 		}
 	}
 	
-	private fun loadAll(): Map<String, SettingValue<*>> = transaction(db) {
-		buildMap {
-			ConfigTable.selectAll().forEach { row ->
-				getValueFromRow(row)?.let { this[row[ConfigTable.keyName]] = it }
-			}
-		}
-	}
-	
 	override fun <V : SettingValue<T>, T> get(def: SettingDef<V>): T {
 		val id = nameOf(def)
 		val stored = cache[id]
 		
-		val result = if (stored != null && stored::class == def.default::class) stored as V else def.default
+		val result = if (stored != null && stored.typeMatches(def)) stored as V else def.default
 		return result.value
 	}
+	
+	fun getAllEntries(): List<SettingEntry> = SettingRegistry.getAll().map { (id, def) ->
+		SettingEntry(
+			id = id,
+			value = cache[id] ?: def.default,
+		)
+	}
+	
+	fun getDef(id: String): SettingDef<*>? = SettingRegistry.get(id)
 	
 	override fun <V : SettingValue<T>, T> set(def: SettingDef<V>, value: T) {
 		val id = nameOf(def)
@@ -78,20 +79,6 @@ class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 		log.debug("Updated setting by def  id={}  value={}", id, wrapped)
 	}
 	
-	fun getAllEntries(): List<SettingEntry> = transaction(db) {
-		val stored = ConfigTable.selectAll().associate {
-			it[ConfigTable.keyName] to getValueFromRow(it)
-		}
-		SettingRegistry.getAll().map { (id, def) ->
-			SettingEntry(
-				id = id,
-				value = stored[id] ?: def.default,
-			)
-		}
-	}
-	
-	fun getDef(id: String): SettingDef<*>? = SettingRegistry.get(id)
-	
 	fun set(id: String, value: SettingValue<*>) {
 		val def = SettingRegistry.get(id) ?: throw SettingNotFoundException(id)
 		if (value::class != def.default::class)
@@ -101,19 +88,28 @@ class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 		log.debug("Updated setting by id  id={}  value={}", id, value)
 	}
 	
-	private fun fillColumn(it: UpdateBuilder<*>, value: SettingValue<*>) {
-		when (value) {
-			is SettingValue.ValByte -> it[ConfigTable.byteValue] = value.value
-			is SettingValue.ValShort -> it[ConfigTable.shortValue] = value.value
-			is SettingValue.ValInt -> it[ConfigTable.intValue] = value.value
-			is SettingValue.ValLong -> it[ConfigTable.longValue] = value.value
-			is SettingValue.ValFloat -> it[ConfigTable.floatValue] = value.value
-			is SettingValue.ValDouble -> it[ConfigTable.doubleValue] = value.value
-			is SettingValue.ValBoolean -> it[ConfigTable.booleanValue] = value.value
-			is SettingValue.ValChar -> it[ConfigTable.charValue] = value.value.toString()
-			is SettingValue.ValString -> it[ConfigTable.stringValue] = value.value
+	private fun loadAll(): Map<String, SettingValue<*>> = transaction(db) {
+		buildMap {
+			ConfigTable.selectAll().forEach { row ->
+				val id = row[ConfigTable.keyName]
+				val stored = getValueFromRow(row)
+				val def = SettingRegistry.get(id)
+				when {
+					def == null -> log.warn("Ignored unregistered setting  id={}", id)
+					stored == null || !stored.typeMatches(def) ->
+						log.warn(
+							"Ignored setting with mismatched type  id={}  storedType={}  declaredType={}",
+							id, stored?.let { it::class.simpleName }, def.default::class.simpleName
+						)
+					
+					else -> this[id] = stored
+				}
+			}
 		}
 	}
+	
+	private fun SettingValue<*>.typeMatches(def: SettingDef<*>): Boolean =
+		this::class == def.default::class
 	
 	private fun getValueFromRow(row: ResultRow): SettingValue<*>? =
 		row[ConfigTable.byteValue]?.let(::SettingValue)
@@ -140,5 +136,28 @@ class Settings(store: DatabaseStore) : SettingService, Traceable, Loggable,
 		}.onFailure { e ->
 			log.error("Failed setting upsert  id={}", id, e)
 		}.getOrThrow()
+	}
+	
+	private fun fillColumn(it: UpdateBuilder<*>, value: SettingValue<*>) {
+		it[ConfigTable.byteValue] = null
+		it[ConfigTable.shortValue] = null
+		it[ConfigTable.intValue] = null
+		it[ConfigTable.longValue] = null
+		it[ConfigTable.floatValue] = null
+		it[ConfigTable.doubleValue] = null
+		it[ConfigTable.booleanValue] = null
+		it[ConfigTable.charValue] = null
+		it[ConfigTable.stringValue] = null
+		when (value) {
+			is SettingValue.ValByte -> it[ConfigTable.byteValue] = value.value
+			is SettingValue.ValShort -> it[ConfigTable.shortValue] = value.value
+			is SettingValue.ValInt -> it[ConfigTable.intValue] = value.value
+			is SettingValue.ValLong -> it[ConfigTable.longValue] = value.value
+			is SettingValue.ValFloat -> it[ConfigTable.floatValue] = value.value
+			is SettingValue.ValDouble -> it[ConfigTable.doubleValue] = value.value
+			is SettingValue.ValBoolean -> it[ConfigTable.booleanValue] = value.value
+			is SettingValue.ValChar -> it[ConfigTable.charValue] = value.value.toString()
+			is SettingValue.ValString -> it[ConfigTable.stringValue] = value.value
+		}
 	}
 }
