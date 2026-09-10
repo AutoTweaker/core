@@ -45,7 +45,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 import java.time.Duration as JavaDuration
 
-class DockerJavaService : ContainerService, Loggable, Traceable {
+object DockerJavaService : ContainerService, Loggable, Traceable {
 	private val uidGid: String by lazy {
 		val unix = UnixSystem()
 		"${unix.uid}:${unix.gid}"
@@ -53,11 +53,11 @@ class DockerJavaService : ContainerService, Loggable, Traceable {
 	
 	@Volatile
 	private var permissionFixJob: Job? = null
-	private val lock = ReentrantMutex()
 	
+	private val lock = ReentrantMutex()
 	private val scope = scope(IO)
 	
-	private val client: DockerClient = run {
+	private val client: DockerClient by lazy {
 		val config = DefaultDockerClientConfig.createDefaultConfigBuilder().build()
 		val httpClient = ApacheDockerHttpClient.Builder()
 			.dockerHost(config.dockerHost)

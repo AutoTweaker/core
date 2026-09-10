@@ -133,8 +133,8 @@ object Wiring : Loggable {
 	val configModule = module {
 		single { SecretManager }.bind<SecretStore>()
 		single { I18nServiceImpl }.bind<I18nService>()
+		single { DockerJavaService }.bind<ContainerService>()
 		singleOf(::SecretDbApi)
-		singleOf(::DockerJavaService).bind<ContainerService>()
 		singleOf(::ContainerManager)
 		singleOf(::ApiKeyRepository)
 		singleOf(::EnvRepository)
