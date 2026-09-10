@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundExcept
 import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
 import kotlinx.coroutines.flow.StateFlow
 import java.util.*
+import kotlin.time.Instant
 
 /**
  * 一个会话实例，一个会话中可能拥有多个 agent。
@@ -45,6 +46,13 @@ interface Session {
 	 * 会话标题，可通过 [updateTitle] 更新。
 	 */
 	val title: StateFlow<String?>
+	
+	/**
+	 * 会话的创建时间。
+	 *
+	 * 未暴露访问时间，因为访问时间就是当下。
+	 */
+	val creationTime: Instant
 	
 	/**
 	 * LLM 生成的会话概述，可向用户展示。

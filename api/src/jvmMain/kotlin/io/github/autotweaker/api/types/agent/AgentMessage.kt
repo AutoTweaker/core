@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.orNull
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.tool.ToolPresentation
@@ -229,4 +231,15 @@ sealed class AgentMessage {
 		val model: UUID,
 		val usage: Usage,
 	) : AgentMessage()
+}
+
+fun AgentMessage.content(): String? = when (this) {
+	is AgentMessage.User -> content.content?.filterIsInstance<ContentPart.Text>()
+		?.joinToString("\n") { it.content }?.ifBlank { null }
+	
+	is AgentMessage.Assistant -> content?.orNull()
+	is AgentMessage.Tool.Call -> arguments
+	is AgentMessage.Tool.Result -> content
+	is AgentMessage.Compact -> content
+	is AgentMessage.UsageRecord -> null
 }

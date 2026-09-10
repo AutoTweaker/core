@@ -25,15 +25,19 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.agent.AgentMessageType
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.session.SessionCursor
+import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools
+import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.config.ApiKeyRepository
@@ -60,6 +64,7 @@ import kotlin.time.Instant
 class CoreAPIImpl(
 	private val usageRepository: UsageRepository,
 	private val sessionManager: SessionManager,
+	private val sessionRepository: SessionRepository,
 	private val containerManager: ContainerManager,
 	private val envRepository: EnvRepository,
 	private val providerRepository: ProviderRepository,
@@ -133,9 +138,23 @@ class CoreAPIImpl(
 	}
 	
 	override val persistence = object : CoreAPI.PersistenceAPI {
-		override suspend fun loadData(ids: Set<UUID>) = sessionManager.loadData(ids)
-		override suspend fun loadMessages(ids: Set<UUID>) = sessionManager.loadMessages(ids)
-		override suspend fun loadAgent(id: UUID) = sessionManager.loadAgent(id)
+		override suspend fun loadSession(id: UUID) = sessionRepository.loadSession(id)
+		override suspend fun loadSession(
+			workspaceId: UUID?,
+			sortBy: SessionSort,
+			limit: Int,
+			before: SessionCursor?
+		) = sessionRepository.loadSessions(workspaceId, sortBy, limit, before)
+		
+		override suspend fun loadMessages(ids: Set<UUID>) = sessionRepository.loadMessages(ids)
+		override suspend fun searchMessages(
+			query: String,
+			type: AgentMessageType?,
+			from: Instant?,
+			to: Instant?
+		) = sessionRepository.searchMessages(query, type, from, to)
+		
+		override suspend fun loadAgent(id: UUID) = sessionRepository.loadAgent(id)
 		override suspend fun loadUsage(ids: Set<UUID>) = usageRepository.load(ids)
 		override suspend fun loadUsage(limit: Int, before: UsageCursor?) = usageRepository.load(limit, before)
 		override suspend fun mergeUsage(ids: Set<UUID>) = usageRepository.summarize(ids)

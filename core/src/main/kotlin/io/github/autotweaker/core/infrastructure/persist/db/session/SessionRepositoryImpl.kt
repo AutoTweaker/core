@@ -18,12 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.agent.AgentMessageType
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.agent.content
 import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionSort
@@ -67,14 +66,15 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 		}
 	}
 	
-	override suspend fun loadSessions(ids: Set<UUID>): List<SessionData> =
+	override suspend fun loadSession(id: UUID): SessionData? =
 		db.transaction {
 			SessionDataTable.selectAll()
-				.where { SessionDataTable.id inList ids }
-				.map { it.toSessionData() }
+				.where { SessionDataTable.id eq id }
+				.singleOrNull()
+				?.toSessionData()
 		}
 	
-	override suspend fun querySessions(
+	override suspend fun loadSessions(
 		workspaceId: UUID?,
 		sortBy: SessionSort,
 		limit: Int,
@@ -85,8 +85,8 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			.where {
 				val scope = workspaceId?.let { SessionDataTable.workspaceId eq it } ?: Op.TRUE
 				val page = before?.let {
-					(sortColumn less it.sortTime) or
-							((sortColumn eq it.sortTime) and (SessionDataTable.id less it.id))
+					(sortColumn less it.time) or
+							((sortColumn eq it.time) and (SessionDataTable.id less it.id))
 				} ?: Op.TRUE
 				scope and page
 			}
@@ -185,7 +185,7 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			}
 		}
 		messages.forEach { msg ->
-			MessageSearch.upsert(msg.id, typeOf(msg), msg.timestamp, searchTextOf(msg))
+			MessageSearch.upsert(msg.id, typeOf(msg), msg.timestamp, msg.content())
 		}
 	}
 	
@@ -220,17 +220,6 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 		is AgentMessage.Tool.Result -> AgentMessageType.TOOL_RESULT
 		is AgentMessage.Compact -> AgentMessageType.COMPACT
 		is AgentMessage.UsageRecord -> AgentMessageType.USAGE_RECORD
-	}
-	
-	private fun searchTextOf(msg: AgentMessage): String? = when (msg) {
-		is AgentMessage.User -> msg.content.content?.filterIsInstance<ContentPart.Text>()
-			?.joinToString("\n") { it.content }?.ifBlank { null }
-		
-		is AgentMessage.Assistant -> msg.content?.orNull()
-		is AgentMessage.Tool.Call -> msg.arguments
-		is AgentMessage.Tool.Result -> msg.content
-		is AgentMessage.Compact -> msg.content
-		is AgentMessage.UsageRecord -> null
 	}
 	
 	private fun AgentMessage.withOrigin(newOrigin: Set<UUID>): AgentMessage = when (this) {

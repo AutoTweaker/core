@@ -52,8 +52,8 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 
 class SessionImpl(
+	initialData: SessionData,
 	private val deps: AgentDeps,
-	private val initialData: SessionData,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
@@ -71,13 +71,15 @@ class SessionImpl(
 	private val _overview = MutableStateFlow(initialData.overview)
 	override val overview = _overview.asStateFlow()
 	
+	override val creationTime = initialData.creationTime
+	
 	val data: SessionData
 		get() = SessionData(
 			id = id,
 			title = _title.value,
 			overview = _overview.value,
 			workspaceId = workspaceId,
-			creationTime = initialData.creationTime,
+			creationTime = creationTime,
 			lastAccessTime = Clock.System.now(),
 			agentIndex = _agentIndex.value,
 		)

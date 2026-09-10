@@ -26,6 +26,7 @@ import io.github.autotweaker.api.types.*
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.agent.AgentMessageType
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingEntry
@@ -40,7 +41,9 @@ import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
+import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionData
+import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellExec
@@ -497,7 +500,22 @@ interface CoreAPI {
 		 *
 		 * @return 找不到会话返回 [emptyList]。
 		 */
-		suspend fun loadData(ids: Set<UUID>): List<SessionData>
+		suspend fun loadSession(id: UUID): SessionData?
+		
+		/**
+		 * 从数据库加载最近的会话数据，可翻页。
+		 *
+		 * @param workspaceId 限制为指定的工作区。
+		 * @param sortBy 根据会话创建时间或访问时间排序。
+		 * @param before 加载比这更早的会话数据。
+		 * @return 最新会话在 [first]，最早会话在 [last]。
+		 */
+		suspend fun loadSession(
+			workspaceId: UUID?,
+			sortBy: SessionSort,
+			limit: Int,
+			before: SessionCursor?,
+		): List<SessionData>
 		
 		/**
 		 * 从数据库加载 agent 数据，找不到返回 null。
@@ -512,6 +530,18 @@ interface CoreAPI {
 		 * @return 找不到消息返回 [emptyList]。
 		 */
 		suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage>
+		
+		/**
+		 * 根据指定关键词搜索数据库中的消息，返回匹配的消息 id。
+		 *
+		 * @param type 限制检索的消息类型。
+		 */
+		suspend fun searchMessages(
+			query: String,
+			type: AgentMessageType?,
+			from: Instant?,
+			to: Instant?,
+		): Set<UUID>
 		
 		/**
 		 * 从数据库加载 Usage 数据，用于统计。

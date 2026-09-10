@@ -40,6 +40,11 @@ object SessionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
+	class Number : I18nBase(
+		zh("限制列出的会话数量，默认20"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class New : I18nBase(
 		zh("创建新会话，如果stdin有内容会直接发送"),
 	)
@@ -47,6 +52,41 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class Send : I18nBase(
 		zh("通过stdin向指定的会话发送消息"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Search : I18nBase(
+		zh("在所有历史消息中搜索"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchLimit : I18nBase(
+		zh("限制展示结果的数量"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchUser : I18nBase(
+		zh("在用户消息中搜索"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchAssistant : I18nBase(
+		zh("在所有助手消息中搜索"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchToolCall : I18nBase(
+		zh("在所有工具调用请求中搜索"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchToolResult : I18nBase(
+		zh("在所有工具输出中搜索"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchSummary : I18nBase(
+		zh("在所有上下文压缩的总结中搜索"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -157,6 +197,21 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class MessageCount : I18nBase(
 		zh("消息数量: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class CreationTime : I18nBase(
+		zh("创建时间: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class LastAccessTime : I18nBase(
+		zh("访问时间: %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class Overview : I18nBase(
+		zh("概述: %s"),
 	)
 	
 	@AutoService(I18nDef::class)
@@ -302,5 +357,15 @@ object SessionI18n {
 	@AutoService(I18nDef::class)
 	class Usage : I18nBase(
 		zh("输入 %s tokens | 输出 %s tokens | 缓存命中率 %s"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchMatches : I18nBase(
+		zh("找到 %s 个匹配项，展示其中 %s 条:"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class SearchOrigin : I18nBase(
+		zh("所属工作区: %s，所属会话: %s，会话标题: %s"),
 	)
 }

@@ -93,6 +93,7 @@ object Wiring : Loggable {
 			CoreAPIImpl(
 				usageRepository = get(),
 				sessionManager = get(),
+				sessionRepository = get(),
 				containerManager = get(),
 				envRepository = get(),
 				providerRepository = get(),

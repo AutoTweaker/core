@@ -22,12 +22,12 @@ import java.util.*
 import kotlin.time.Instant
 
 data class SessionCursor(
-	val sortTime: Instant,
+	val time: Instant,
 	val id: UUID,
 )
 
 fun SessionData.toCursor(sortBy: SessionSort): SessionCursor = SessionCursor(
-	sortTime = when (sortBy) {
+	time = when (sortBy) {
 		SessionSort.CREATION_TIME -> creationTime
 		SessionSort.LAST_ACCESS_TIME -> lastAccessTime
 	},

@@ -81,7 +81,7 @@ class SessionManager(
 	fun get(id: UUID): Session? = sessions[id]
 	
 	suspend fun delete(id: UUID): Boolean = lock.withLock {
-		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: return@withLock false
+		val data = sessionRepo.loadSession(id) ?: return@withLock false
 		sessions[id]?.shutdown()
 		listener[id]?.cancel()
 		trace.catching { wsm.updateSessions(data.workspaceId) { it - id } }
@@ -95,10 +95,6 @@ class SessionManager(
 	}
 	
 	suspend fun create(model: ModelConfig) = create(wsm.defaultWorkspaceId, model)
-	
-	suspend fun loadData(ids: Set<UUID>) = sessionRepo.loadSessions(ids)
-	suspend fun loadMessages(ids: Set<UUID>) = sessionRepo.loadMessages(ids)
-	suspend fun loadAgent(id: UUID) = sessionRepo.loadAgent(id)
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
@@ -158,7 +154,7 @@ class SessionManager(
 	
 	private suspend fun restore(id: UUID): SessionImpl = lock.withLock {
 		secretStore.requireUnlocked()
-		val data = sessionRepo.loadSessions(setOf(id)).firstOrNull() ?: throw SessionNotFoundException(id)
+		val data = sessionRepo.loadSession(id) ?: throw SessionNotFoundException(id)
 		val workspaceId = data.workspaceId
 		val workspace = wsm.getData(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
 			.andLog(log) {

@@ -36,6 +36,7 @@ dependencies {
 	implementation("io.ktor:ktor-network:3.5.1")
 	implementation("org.slf4j:slf4j-api:2.0.18")
 	implementation("com.google.guava:guava:33.7.1-jre")
+	implementation("com.ibm.icu:icu4j:78.3")
 	implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 	
 	testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")

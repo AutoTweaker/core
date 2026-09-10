@@ -29,14 +29,15 @@ import kotlin.time.Instant
 
 interface SessionRepository {
 	suspend fun saveSessions(sessionData: List<SessionData>)
-	suspend fun loadSessions(ids: Set<UUID>): List<SessionData>
-	suspend fun querySessions(
+	suspend fun loadSession(id: UUID): SessionData?
+	
+	suspend fun loadSessions(
 		workspaceId: UUID?,
 		sortBy: SessionSort,
 		limit: Int,
 		before: SessionCursor?,
 	): List<SessionData>
-
+	
 	suspend fun deleteSessions(id: Set<UUID>)
 	
 	suspend fun saveAgent(agentData: AgentData)

@@ -93,7 +93,7 @@ class SessionRepositoryQueryTest {
 		val inB = session(workspaceId = workspaceB, lastAccessTime = baseTime.plus(2.hours))
 		repo.saveSessions(listOf(inA, inB))
 		
-		val result = repo.querySessions(null, SessionSort.LAST_ACCESS_TIME, 10, null)
+		val result = repo.loadSessions(null, SessionSort.LAST_ACCESS_TIME, 10, null)
 		
 		assertEquals(listOf(inB.id, inA.id), result.map { it.id })
 	}
@@ -105,7 +105,7 @@ class SessionRepositoryQueryTest {
 		val newest = session(lastAccessTime = baseTime.plus(2.hours))
 		repo.saveSessions(listOf(oldest, newest, middle))
 		
-		val result = repo.querySessions(null, SessionSort.LAST_ACCESS_TIME, 10, null)
+		val result = repo.loadSessions(null, SessionSort.LAST_ACCESS_TIME, 10, null)
 		
 		assertEquals(listOf(newest.id, middle.id, oldest.id), result.map { it.id })
 	}
@@ -117,7 +117,7 @@ class SessionRepositoryQueryTest {
 		val newer = session(creationTime = baseTime.plus(2.hours), lastAccessTime = baseTime)
 		repo.saveSessions(listOf(older, newer))
 		
-		val result = repo.querySessions(null, SessionSort.CREATION_TIME, 10, null)
+		val result = repo.loadSessions(null, SessionSort.CREATION_TIME, 10, null)
 		
 		assertEquals(listOf(newer.id, older.id), result.map { it.id })
 	}
@@ -128,8 +128,8 @@ class SessionRepositoryQueryTest {
 		val inB = session(workspaceId = workspaceB)
 		repo.saveSessions(listOf(inA, inB))
 		
-		val resultA = repo.querySessions(workspaceA, SessionSort.LAST_ACCESS_TIME, 10, null)
-		val resultB = repo.querySessions(workspaceB, SessionSort.LAST_ACCESS_TIME, 10, null)
+		val resultA = repo.loadSessions(workspaceA, SessionSort.LAST_ACCESS_TIME, 10, null)
+		val resultB = repo.loadSessions(workspaceB, SessionSort.LAST_ACCESS_TIME, 10, null)
 		
 		assertEquals(listOf(inA.id), resultA.map { it.id })
 		assertEquals(listOf(inB.id), resultB.map { it.id })
@@ -140,7 +140,7 @@ class SessionRepositoryQueryTest {
 		val sessions = (0 until 5).map { session(lastAccessTime = baseTime.plus(it.hours)) }
 		repo.saveSessions(sessions)
 		
-		val result = repo.querySessions(null, SessionSort.LAST_ACCESS_TIME, 2, null)
+		val result = repo.loadSessions(null, SessionSort.LAST_ACCESS_TIME, 2, null)
 		
 		assertEquals(listOf(sessions[4].id, sessions[3].id), result.map { it.id })
 	}
@@ -154,7 +154,7 @@ class SessionRepositoryQueryTest {
 		val collected = mutableListOf<UUID>()
 		var cursor: SessionCursor? = null
 		while (collected.size < sessions.size) {
-			val page = repo.querySessions(null, SessionSort.LAST_ACCESS_TIME, 2, cursor)
+			val page = repo.loadSessions(null, SessionSort.LAST_ACCESS_TIME, 2, cursor)
 			check(page.isNotEmpty()) { "游标分页在取完 $expected 之前就返回了空页" }
 			collected += page.map { it.id }
 			cursor = page.last().toCursor(SessionSort.LAST_ACCESS_TIME)
@@ -168,8 +168,8 @@ class SessionRepositoryQueryTest {
 		val sessions = (0 until 3).map { session(lastAccessTime = baseTime) }
 		repo.saveSessions(sessions)
 		
-		val first = repo.querySessions(null, SessionSort.LAST_ACCESS_TIME, 2, null)
-		val second = repo.querySessions(
+		val first = repo.loadSessions(null, SessionSort.LAST_ACCESS_TIME, 2, null)
+		val second = repo.loadSessions(
 			null, SessionSort.LAST_ACCESS_TIME, 2,
 			first.last().toCursor(SessionSort.LAST_ACCESS_TIME),
 		)
@@ -185,8 +185,8 @@ class SessionRepositoryQueryTest {
 		val inB = (0 until 4).map { session(workspaceId = workspaceB, lastAccessTime = baseTime.plus(it.hours)) }
 		repo.saveSessions(inA + inB)
 		
-		val first = repo.querySessions(workspaceA, SessionSort.LAST_ACCESS_TIME, 2, null)
-		val second = repo.querySessions(
+		val first = repo.loadSessions(workspaceA, SessionSort.LAST_ACCESS_TIME, 2, null)
+		val second = repo.loadSessions(
 			workspaceA, SessionSort.LAST_ACCESS_TIME, 2,
 			first.last().toCursor(SessionSort.LAST_ACCESS_TIME),
 		)

@@ -19,6 +19,8 @@
 package io.github.autotweaker.adapter.cli.commands.session
 
 import com.google.auto.service.AutoService
+import com.ibm.icu.text.DateFormat
+import com.ibm.icu.util.ULocale
 import io.github.autotweaker.adapter.cli.commands.Command
 import io.github.autotweaker.adapter.cli.commands.Console
 import io.github.autotweaker.adapter.cli.commands.session.model.ModelManager
@@ -40,6 +42,7 @@ import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.agent.AgentContextIndex.Turn
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
@@ -51,6 +54,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 @AutoService(Command::class)
 class SessionCmd : Command, Traceable, Loggable {
@@ -59,14 +64,29 @@ class SessionCmd : Command, Traceable, Loggable {
 	override val syntax = buildSyntax(ALL) {
 		value("workspace", SessionI18n.Workspace()) { required = false }
 		xor {
-			flag("list", SessionI18n.List())
 			all {
-				flag("new", SessionI18n.New())
+				flag("list", SessionI18n.List())
+				value("number", SessionI18n.Number()) { required = false }
+			}
+			all {
+				flag("new", SessionI18n.New()) { aliases("create", "c") }
 				positional("message", SessionI18n.Message()) { required = false }
 			}
 			all {
 				value("send", SessionI18n.Send())
 				positional("message", SessionI18n.Message()) { required = false }
+			}
+			all {
+				value("search", SessionI18n.Search()) { aliases() }
+				value("limit", SessionI18n.SearchLimit()) { aliases(); required = false }
+				xor {
+					flag("user", SessionI18n.SearchUser()) { aliases() }
+					flag("assistant", SessionI18n.SearchAssistant()) { aliases() }
+					flag("tool-call", SessionI18n.SearchToolCall()) { aliases() }
+					flag("tool-result", SessionI18n.SearchToolResult()) { aliases() }
+					flag("summary", SessionI18n.SearchSummary()) { aliases() }
+					required = false
+				}
 			}
 			value("pause", SessionI18n.Pause())
 			value("stop", SessionI18n.Stop()) { aliases() }
@@ -107,25 +127,21 @@ class SessionCmd : Command, Traceable, Loggable {
 			err(SessionI18n.ContainerWorkspaceFormat(), workspace.displayName, workspace.path) { white() }
 		else err(SessionI18n.WorkspaceFormat(), workspace.displayName, workspace.path) { white() }
 		handleFlag("list") {
-			val ids = workspace.sessionIds
-			if (ids.isEmpty()) error(SessionI18n.NoSessions())
+			val limit = getValueOrNull("number")?.toIntOrNull() ?: 20
 			
-			ids.chunked(100).forEach { chunk ->
-				val unorderedSessions = core.persistence.loadData(chunk.toSet())
-				val orderMap = chunk.withIndex().associate { it.value to it.index }
-				val sessions = unorderedSessions.sortedBy { item ->
-					orderMap[item.id] ?: Int.MAX_VALUE
-				}
-				sessions.forEachBetween(
-					action = { session ->
-						val agent = core.persistence.loadAgent(session.agentIndex.main.id)
-						out(SessionI18n.SessionId(), ShortIdMapper.shortString(session.id))
-						out(SessionI18n.SessionTitle(), session.title)
-						out(SessionI18n.MessageCount(), agent?.context?.index?.ids()?.count() ?: 0)
-					},
-					between = { out(LINE) }
-				)
-			}
+			core.persistence.loadSession(
+				workspace.id, SessionSort.LAST_ACCESS_TIME, limit, null
+			).ifEmpty { error(SessionI18n.NoSessions()) }.reversed().forEachBetween(
+				action = { session ->
+					val agent = core.persistence.loadAgent(session.agentIndex.main.id)
+					out(SessionI18n.SessionId(), ShortIdMapper.shortString(session.id))
+					out(SessionI18n.SessionTitle(), session.title)
+					out(SessionI18n.CreationTime(), session.creationTime.timeString())
+					out(SessionI18n.LastAccessTime(), session.lastAccessTime.timeString())
+					out(SessionI18n.MessageCount(), agent?.context?.index?.ids()?.count() ?: 0)
+				},
+				between = { out(LINE) }
+			)
 			err(SessionI18n.IdRestartWarning()) { yellow() }
 		}
 		handleFlag("new") {
@@ -188,6 +204,7 @@ class SessionCmd : Command, Traceable, Loggable {
 			val session = core.session.restore(sessionId(value, workspace))
 			out(SessionI18n.SessionId(), value)
 			out(SessionI18n.SessionTitle(), session.title.value)
+			out(SessionI18n.CreationTime(), session.creationTime.timeString())
 			val agent = session.mainAgent()
 			out(SessionI18n.AgentName(), agent.name)
 			out(SessionI18n.CurrentStatus(), agent.status.value) { newline = false }
@@ -222,6 +239,35 @@ class SessionCmd : Command, Traceable, Loggable {
 		}
 		handleValue("cancel-tool") {
 			agent(it).cancelTool()
+		}
+		handleValue("search") { query ->
+			val limit = getValueOrNull("limit")?.toIntOrNull() ?: 10
+			val type = when {
+				hasArg("user") -> AgentMessageType.USER
+				hasArg("assistant") -> AgentMessageType.ASSISTANT
+				hasArg("tool-call") -> AgentMessageType.TOOL_CALL
+				hasArg("tool-result") -> AgentMessageType.TOOL_RESULT
+				hasArg("summary") -> AgentMessageType.COMPACT
+				else -> null
+			}
+			val result = core.persistence.searchMessages(query, type, null, null)
+			if (result.count() > limit) {
+				out(SessionI18n.SearchMatches(), result.count(), limit)
+				ln()
+			}
+			val messages = core.persistence.loadMessages(result.take(limit).toSet())
+			messages.forEachBetween({ msg ->
+				val agent = core.persistence.loadAgent(msg.origin.single()) ?: return@forEachBetween
+				val session = core.persistence.loadSession(agent.sessionId) ?: return@forEachBetween
+				val workspace = session.workspaceId.let { core.workspace.get(it) } ?: return@forEachBetween
+				out(
+					SessionI18n.SearchOrigin(),
+					workspace.displayName,
+					ShortIdMapper.shortString(session.id),
+					session.title
+				) { yellow() }
+				out(msg.content().toString())
+			}, between = { out(LINE) })
 		}
 		
 		done(1)
@@ -620,4 +666,8 @@ class SessionCmd : Command, Traceable, Loggable {
 		}
 	
 	private suspend fun Session.mainAgent(): Agent = restore(agentIndex.value.main.id)
+	
+	private fun Instant.timeString(): String =
+		DateFormat.getPatternInstance("yMdjms", ULocale.forLocale(i18n.getLanguage()))
+			.format(Date.from(toJavaInstant()))
 }
