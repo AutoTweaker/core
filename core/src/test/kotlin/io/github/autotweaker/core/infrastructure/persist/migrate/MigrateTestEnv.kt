@@ -46,9 +46,17 @@ object MigrateTestEnv {
 				testDb = null
 			}
 		}
-		if (Files.exists(databaseDir)) {
-			Files.walk(databaseDir).use { stream ->
-				stream.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
+		if (Files.isDirectory(databaseDir)) {
+			Files.list(databaseDir).use { stream ->
+				stream.filter { it.fileName.toString().endsWith(".mv.db") }
+					.forEach(Files::deleteIfExists)
+			}
+			listOf("backup", "backup.tmp").forEach { name ->
+				val dir = databaseDir.resolve(name)
+				if (Files.isDirectory(dir)) {
+					Files.list(dir).use { it.forEach(Files::deleteIfExists) }
+					Files.deleteIfExists(dir)
+				}
 			}
 		}
 	}
