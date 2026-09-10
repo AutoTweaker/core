@@ -21,13 +21,22 @@ package io.github.autotweaker.core.domain.port
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.agent.AgentMessageType
+import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionData
+import io.github.autotweaker.api.types.session.SessionSort
 import java.util.*
 import kotlin.time.Instant
 
 interface SessionRepository {
 	suspend fun saveSessions(sessionData: List<SessionData>)
 	suspend fun loadSessions(ids: Set<UUID>): List<SessionData>
+	suspend fun querySessions(
+		workspaceId: UUID?,
+		sortBy: SessionSort,
+		limit: Int,
+		before: SessionCursor?,
+	): List<SessionData>
+
 	suspend fun deleteSessions(id: Set<UUID>)
 	
 	suspend fun saveAgent(agentData: AgentData)

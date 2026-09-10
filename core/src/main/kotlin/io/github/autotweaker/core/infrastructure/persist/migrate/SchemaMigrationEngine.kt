@@ -121,7 +121,6 @@ object SchemaMigrationEngine : MigratorBase() {
 		deleteDirIfEmpty(BACKUP_PATH)
 		Files.createDirectories(BACKUP_TMP_PATH)
 		dbNames.forEach { dbName ->
-			log.info("Started database backup  db={}", dbName)
 			val timed = measureTimedValue {
 				shutdown(dbName)
 				Files.copy(
@@ -151,7 +150,6 @@ object SchemaMigrationEngine : MigratorBase() {
 	}
 	
 	private suspend fun restore(dbName: String, backup: Path) = withContext(Dispatchers.IO) {
-		log.info("Started database restore  db={}", dbName)
 		val timed = measureTimedValue {
 			shutdown(dbName)
 			Files.copy(

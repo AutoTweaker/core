@@ -24,14 +24,14 @@ import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentMessage
 import io.github.autotweaker.api.types.agent.AgentMessageType
 import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionData
+import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
-import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -44,6 +44,13 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 		store, "Sessions",
 		SessionDataTable, AgentDataTable, AgentMessageTable, MessageOwnershipTable
 	) {
+	
+	private val SessionSort.column: Column<Instant>
+		get() = when (this) {
+			SessionSort.CREATION_TIME -> SessionDataTable.creationTime
+			SessionSort.LAST_ACCESS_TIME -> SessionDataTable.lastAccessTime
+		}
+	
 	override suspend fun saveSessions(sessionData: List<SessionData>) {
 		db.transaction {
 			sessionData.forEach { data ->
@@ -66,6 +73,27 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 				.where { SessionDataTable.id inList ids }
 				.map { it.toSessionData() }
 		}
+	
+	override suspend fun querySessions(
+		workspaceId: UUID?,
+		sortBy: SessionSort,
+		limit: Int,
+		before: SessionCursor?,
+	): List<SessionData> = db.transaction {
+		val sortColumn = sortBy.column
+		SessionDataTable.selectAll()
+			.where {
+				val scope = workspaceId?.let { SessionDataTable.workspaceId eq it } ?: Op.TRUE
+				val page = before?.let {
+					(sortColumn less it.sortTime) or
+							((sortColumn eq it.sortTime) and (SessionDataTable.id less it.id))
+				} ?: Op.TRUE
+				scope and page
+			}
+			.orderBy(sortColumn to SortOrder.DESC, SessionDataTable.id to SortOrder.DESC)
+			.limit(limit)
+			.map { it.toSessionData() }
+	}
 	
 	override suspend fun deleteSessions(id: Set<UUID>) {
 		val orphans = db.transaction {

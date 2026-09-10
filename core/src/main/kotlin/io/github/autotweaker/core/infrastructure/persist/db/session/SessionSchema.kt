@@ -36,6 +36,13 @@ object SessionDataTable : Table("session_data") {
 	val agentIndex = jsonb<AgentIndex>("agent_index", Json)
 	
 	override val primaryKey = PrimaryKey(id)
+	
+	init {
+		index(false, workspaceId, lastAccessTime, id)
+		index(false, workspaceId, creationTime, id)
+		index(false, lastAccessTime, id)
+		index(false, creationTime, id)
+	}
 }
 
 object AgentDataTable : Table("agent_data") {
