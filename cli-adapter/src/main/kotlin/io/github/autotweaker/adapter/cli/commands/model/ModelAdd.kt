@@ -70,21 +70,17 @@ class ModelAdd(
 			suspend fun promptFeature(featureI18n: I18nDef) =
 				confirm(ModelI18n.PromptSetFeature(), i18n(featureI18n))
 			
-			val supportsStreaming = promptFeature(ModelFeature.StreamingFeature())
-			val supportsToolCalls = promptFeature(ModelFeature.ToolCallFeature())
-			val supportsReasoning = promptFeature(ModelFeature.ReasoningFeature())
-			val supportsImage = promptFeature(ModelFeature.ImageFeature())
-			val supportsJsonOutput = promptFeature(ModelFeature.JsonOutputFeature())
-			
 			modelInfo = ModelData.ModelInfo(
 				modelId = id,
 				contextWindow = contextWindow,
 				maxOutputTokens = maxOutputTokens,
-				supportsStreaming = supportsStreaming,
-				supportsToolCalls = supportsToolCalls,
-				supportsReasoning = supportsReasoning,
-				supportsImage = supportsImage,
-				supportsJsonOutput = supportsJsonOutput
+				supportsStreaming = promptFeature(ModelFeature.StreamingFeature()),
+				supportsToolCalls = promptFeature(ModelFeature.ToolCallFeature()),
+				supportsReasoning = promptFeature(ModelFeature.ReasoningFeature()),
+				supportsImage = promptFeature(ModelFeature.ImageFeature()),
+				supportsAudio = promptFeature(ModelFeature.AudioFeature()),
+				supportsVideo = promptFeature(ModelFeature.VideoFeature()),
+				supportsJsonOutput = promptFeature(ModelFeature.JsonOutputFeature()),
 			)
 		}
 		

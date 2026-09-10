@@ -145,6 +145,8 @@ class Model : Command, Traceable {
 				if (info.supportsToolCalls) add(ModelFeature.ToolCallFeature())
 				if (info.supportsReasoning) add(ModelFeature.ReasoningFeature())
 				if (info.supportsImage) add(ModelFeature.ImageFeature())
+				if (info.supportsAudio) add(ModelFeature.AudioFeature())
+				if (info.supportsVideo) add(ModelFeature.VideoFeature())
 				if (info.supportsJsonOutput) add(ModelFeature.JsonOutputFeature())
 			}.joinToString(separator = SPACE.toString()) { "[${i18n(it)}]" }
 			

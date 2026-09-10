@@ -50,6 +50,16 @@ object ModelFeature {
 	)
 	
 	@AutoService(I18nDef::class)
+	class AudioFeature : I18nBase(
+		zh("音频理解"),
+	)
+	
+	@AutoService(I18nDef::class)
+	class VideoFeature : I18nBase(
+		zh("视频理解"),
+	)
+	
+	@AutoService(I18nDef::class)
 	class JsonOutputFeature : I18nBase(
 		en("JSON output"),
 		zh("格式化输出"),
