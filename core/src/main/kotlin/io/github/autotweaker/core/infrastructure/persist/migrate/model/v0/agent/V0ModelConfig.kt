@@ -16,17 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.migrate
+package io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent
 
-import org.jetbrains.exposed.v1.core.Table
+import io.github.autotweaker.api.types.serializer.UuidSerializer
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0ReasoningEffort
+import kotlinx.serialization.Serializable
+import java.util.*
 
-const val CURRENT_SCHEMA_VERSION = 1
-
-const val SCHEMA_VERSION_KEY = "schema_version"
-
-object SchemaMetaTable : Table("meta") {
-	val key = varchar("key", 255)
-	val value = integer("value")
-	
-	override val primaryKey = PrimaryKey(key)
-}
+@Serializable
+data class V0ModelConfig(
+	@Serializable(with = UuidSerializer::class)
+	val model: UUID,
+	val reasoning: V0ReasoningEffort?,
+	@Serializable(with = UuidSerializer::class)
+	val summarize: UUID,
+	@Serializable(with = UuidSerializer::class)
+	val compact: UUID,
+	val fallback: List<@Serializable(with = UuidSerializer::class) UUID>,
+)

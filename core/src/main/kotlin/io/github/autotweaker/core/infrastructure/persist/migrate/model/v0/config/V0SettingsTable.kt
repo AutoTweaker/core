@@ -16,17 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.migrate
+package io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.config
 
 import org.jetbrains.exposed.v1.core.Table
 
-const val CURRENT_SCHEMA_VERSION = 1
-
-const val SCHEMA_VERSION_KEY = "schema_version"
-
-object SchemaMetaTable : Table("meta") {
-	val key = varchar("key", 255)
-	val value = integer("value")
-	
-	override val primaryKey = PrimaryKey(key)
+class V0SettingsTable(tableName: String) : Table(tableName) {
+	val keyName = varchar("key_name", 255)
+	val valJson = text("val_json")
 }

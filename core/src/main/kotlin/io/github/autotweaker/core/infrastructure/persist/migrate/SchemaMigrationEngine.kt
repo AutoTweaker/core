@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.infrastructure.persist.migrate
 
-import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.loadService
 import io.github.autotweaker.api.log
 import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
@@ -31,23 +30,21 @@ import org.jetbrains.exposed.v1.jdbc.upsert
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.util.zip.ZipInputStream
+import kotlin.time.measureTimedValue
 
-object SchemaMigrationEngine : Loggable {
-	private val api = MigrationApi
-	
+object SchemaMigrationEngine : MigratorBase() {
 	private const val DB_FILE_SUFFIX = ".mv.db"
-	private const val ZIP_SUFFIX = ".zip"
 	
 	private val BACKUP_PATH: Path = DB_PATH.resolve("backup")
-	private val APP_CONFIG_FILE: Path = DB_PATH.resolve(api.APP_CONFIG + DB_FILE_SUFFIX)
+	private val BACKUP_TMP_PATH: Path = DB_PATH.resolve("backup.tmp")
+	private val APP_CONFIG_FILE: Path = DB_PATH.resolve(APP_CONFIG + DB_FILE_SUFFIX)
 	
 	suspend fun run() {
 		if (!Files.exists(APP_CONFIG_FILE)) {
 			initSchemaVersion()
 			log.info(
 				"Initialized new database  db={}  schemaVersion={}",
-				api.APP_CONFIG, CURRENT_SCHEMA_VERSION
+				APP_CONFIG, CURRENT_SCHEMA_VERSION
 			)
 			return
 		}
@@ -55,8 +52,8 @@ object SchemaMigrationEngine : Loggable {
 		val diskVersion = readSchemaVersion() ?: error(MISSING_VERSION_MESSAGE)
 		if (diskVersion > CURRENT_SCHEMA_VERSION) {
 			error(
-				"Database schema version $diskVersion is newer than supported version $CURRENT_SCHEMA_VERSION " +
-						"(file: $APP_CONFIG_FILE). Refusing to run an older program against newer data."
+				"Database schema version $diskVersion is newer than supported version $CURRENT_SCHEMA_VERSION. " +
+						"Refusing to run an older program against newer data."
 			)
 		}
 		if (diskVersion == CURRENT_SCHEMA_VERSION) {
@@ -72,17 +69,21 @@ object SchemaMigrationEngine : Loggable {
 		}
 		
 		log.info(
-			"Starting schema migration  from={}  to={}  databases={}",
+			"Started schema migration  from={}  to={}  databases={}",
 			diskVersion, CURRENT_SCHEMA_VERSION, listDbNames()
 		)
-		val staleBackups = listBackupZips()
+		if (Files.isDirectory(BACKUP_TMP_PATH)) {
+			log.warn("Discarded incomplete backup")
+			deleteDir(BACKUP_TMP_PATH)
+		}
+		val staleBackups = listBackupFiles()
 		if (staleBackups.isNotEmpty()) {
 			log.warn("Detected backup of incomplete migration  count={}", staleBackups.size)
 			restoreAll()
 		}
 		
 		val dbNames = listDbNames()
-		dbNames.forEach { backup(it) }
+		backupAll(dbNames)
 		
 		runCatching {
 			for (version in pendingVersions) {
@@ -100,64 +101,83 @@ object SchemaMigrationEngine : Loggable {
 		log.info("Completed schema migration  from={}  to={}", diskVersion, CURRENT_SCHEMA_VERSION)
 	}
 	
-	private suspend fun readSchemaVersion(): Int? = api.transaction(api.APP_CONFIG) {
+	private suspend fun readSchemaVersion(): Int? = transaction(APP_CONFIG) {
 		runCatching {
 			SchemaMetaTable.selectAll().where { SchemaMetaTable.key eq SCHEMA_VERSION_KEY }
 				.singleOrNull()?.get(SchemaMetaTable.value)
 		}.getOrNull()
 	}
 	
-	private suspend fun initSchemaVersion() = api.transaction(api.APP_CONFIG) {
+	private suspend fun initSchemaVersion() = transaction(APP_CONFIG) {
 		SchemaUtils.create(SchemaMetaTable)
 		upsertSchemaVersion()
 	}
 	
-	private suspend fun updateSchemaVersion() = api.transaction(api.APP_CONFIG) {
+	private suspend fun updateSchemaVersion() = transaction(APP_CONFIG) {
 		upsertSchemaVersion()
 	}
 	
-	private suspend fun backup(dbName: String) = withContext(Dispatchers.IO) {
-		Files.createDirectories(BACKUP_PATH)
-		val zip = BACKUP_PATH.resolve(dbName + ZIP_SUFFIX)
-		api.transaction(dbName) {
-			exec("BACKUP TO '${zip.toString().replace("'", "''")}'")
+	private suspend fun backupAll(dbNames: List<String>) = withContext(Dispatchers.IO) {
+		deleteDirIfEmpty(BACKUP_PATH)
+		Files.createDirectories(BACKUP_TMP_PATH)
+		dbNames.forEach { dbName ->
+			log.info("Started database backup  db={}", dbName)
+			val timed = measureTimedValue {
+				shutdown(dbName)
+				Files.copy(
+					DB_PATH.resolve(dbName + DB_FILE_SUFFIX),
+					BACKUP_TMP_PATH.resolve(dbName + DB_FILE_SUFFIX),
+					StandardCopyOption.REPLACE_EXISTING,
+				)
+			}
+			log.info("Completed database backup  db={}  duration={}", dbName, timed.duration)
 		}
+		Files.move(BACKUP_TMP_PATH, BACKUP_PATH, StandardCopyOption.ATOMIC_MOVE)
 	}
 	
 	private suspend fun checkpoint(dbName: String) =
-		api.transaction(dbName) {
+		transaction(dbName) {
 			exec("CHECKPOINT")
 		}
 	
 	private suspend fun restoreAll() = withContext(Dispatchers.IO) {
-		listBackupZips().forEach { zip ->
-			val dbName = zip.fileName.toString().removeSuffix(ZIP_SUFFIX)
-			runCatching { restore(dbName, zip) }
-				.onSuccess { Files.deleteIfExists(zip) }
-				.onFailure { log.error("Failed to restore database  db={}  backup={}", dbName, zip, it) }
+		listBackupFiles().forEach { backup ->
+			val dbName = backup.fileName.toString().removeSuffix(DB_FILE_SUFFIX)
+			runCatching { restore(dbName, backup) }
+				.onSuccess { Files.deleteIfExists(backup) }
+				.onFailure { log.error("Failed to restore database  db={}  backup={}", dbName, backup, it) }
 		}
+		deleteDirIfEmpty(BACKUP_PATH)
 	}
 	
-	private suspend fun restore(dbName: String, zip: Path) = withContext(Dispatchers.IO) {
-		api.shutdown(dbName)
-		Files.deleteIfExists(DB_PATH.resolve(dbName + DB_FILE_SUFFIX))
-		Files.deleteIfExists(DB_PATH.resolve("$dbName.trace.db"))
-		ZipInputStream(Files.newInputStream(zip)).use { zis ->
-			var entry = zis.nextEntry
-			while (entry != null) {
-				Files.copy(
-					zis, DB_PATH.resolve(Path.of(entry.name).fileName.toString()),
-					StandardCopyOption.REPLACE_EXISTING
-				)
-				zis.closeEntry()
-				entry = zis.nextEntry
-			}
+	private suspend fun restore(dbName: String, backup: Path) = withContext(Dispatchers.IO) {
+		log.info("Started database restore  db={}", dbName)
+		val timed = measureTimedValue {
+			shutdown(dbName)
+			Files.copy(
+				backup,
+				DB_PATH.resolve(dbName + DB_FILE_SUFFIX),
+				StandardCopyOption.REPLACE_EXISTING,
+			)
 		}
+		log.info("Completed database restore  db={}  duration={}", dbName, timed.duration)
 	}
 	
 	private suspend fun deleteAllBackups() = withContext(Dispatchers.IO) {
-		if (Files.isDirectory(BACKUP_PATH)) Files.list(BACKUP_PATH).use {
-			it.forEach(Files::deleteIfExists)
+		deleteDir(BACKUP_PATH)
+		deleteDir(BACKUP_TMP_PATH)
+	}
+	
+	private suspend fun deleteDir(dir: Path) = withContext(Dispatchers.IO) {
+		if (!Files.isDirectory(dir)) return@withContext
+		Files.list(dir).use { it.forEach(Files::deleteIfExists) }
+		Files.deleteIfExists(dir)
+	}
+	
+	private suspend fun deleteDirIfEmpty(dir: Path) = withContext(Dispatchers.IO) {
+		if (!Files.isDirectory(dir)) return@withContext
+		Files.list(dir).use { stream ->
+			if (stream.findFirst().isEmpty) Files.deleteIfExists(dir)
 		}
 	}
 	
@@ -169,11 +189,11 @@ object SchemaMigrationEngine : Loggable {
 		}
 	}
 	
-	private suspend fun listBackupZips(): List<Path> = withContext(Dispatchers.IO) {
+	private suspend fun listBackupFiles(): List<Path> = withContext(Dispatchers.IO) {
 		if (!Files.isDirectory(BACKUP_PATH)) emptyList()
 		else Files.list(BACKUP_PATH).use { stream ->
 			stream.filter {
-				it.fileName.toString().endsWith(ZIP_SUFFIX)
+				it.fileName.toString().endsWith(DB_FILE_SUFFIX)
 			}.toList()
 		}
 	}
@@ -186,7 +206,7 @@ object SchemaMigrationEngine : Loggable {
 	}
 	
 	private val MISSING_VERSION_MESSAGE =
-		"Missing schema version row in database '${api.APP_CONFIG}' " +
+		"Missing schema version row in database '$APP_CONFIG' " +
 				"(file: $APP_CONFIG_FILE). If this database predates schema versioning, initialize it manually: " +
 				"CREATE TABLE IF NOT EXISTS meta (\"key\" VARCHAR(255) PRIMARY KEY, \"value\" INT); " +
 				"INSERT INTO meta (\"key\", \"value\") VALUES ('schema_version', 0);"

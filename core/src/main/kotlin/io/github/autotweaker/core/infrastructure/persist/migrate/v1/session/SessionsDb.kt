@@ -16,17 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.migrate
+package io.github.autotweaker.core.infrastructure.persist.migrate.v1.session
 
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.java.javaUUID
 
-const val CURRENT_SCHEMA_VERSION = 1
+const val SESSIONS_DB = "Sessions"
 
-const val SCHEMA_VERSION_KEY = "schema_version"
-
-object SchemaMetaTable : Table("meta") {
-	val key = varchar("key", 255)
-	val value = integer("value")
+object OwnerTable : Table("_mig_owner") {
+	val messageId = javaUUID("message_id")
+	val agentId = javaUUID("agent_id")
 	
-	override val primaryKey = PrimaryKey(key)
+	override val primaryKey = PrimaryKey(messageId)
 }

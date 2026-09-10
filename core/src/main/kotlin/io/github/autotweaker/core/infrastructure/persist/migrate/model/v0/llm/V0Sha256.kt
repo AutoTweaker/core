@@ -16,17 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.migrate
+package io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm
 
-import org.jetbrains.exposed.v1.core.Table
+import kotlinx.serialization.Serializable
 
-const val CURRENT_SCHEMA_VERSION = 1
-
-const val SCHEMA_VERSION_KEY = "schema_version"
-
-object SchemaMetaTable : Table("meta") {
-	val key = varchar("key", 255)
-	val value = integer("value")
-	
-	override val primaryKey = PrimaryKey(key)
-}
+@JvmInline
+@Serializable
+value class V0Sha256(val hex: String)

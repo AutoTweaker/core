@@ -16,17 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.persist.migrate
+package io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.config
 
+import io.github.autotweaker.api.json
+import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.json.jsonb
 
-const val CURRENT_SCHEMA_VERSION = 1
-
-const val SCHEMA_VERSION_KEY = "schema_version"
-
-object SchemaMetaTable : Table("meta") {
-	val key = varchar("key", 255)
-	val value = integer("value")
+object V1JsonStoreTable : Table("json_store") {
+	val namespace = varchar("namespace", 255)
+	val content = jsonb<JsonElement>("content", json)
 	
-	override val primaryKey = PrimaryKey(key)
+	override val primaryKey = PrimaryKey(namespace)
 }

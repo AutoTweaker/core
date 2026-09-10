@@ -39,7 +39,8 @@ object MigrateTestEnv {
 	
 	fun clean() {
 		runBlocking {
-			MigrationApi.closeAll()
+			MigratorBridge.close("AppConfig")
+			MigratorBridge.close("Sessions")
 			testDb?.let { db ->
 				runCatching { transaction(db) { exec("SHUTDOWN") } }
 				testDb = null
@@ -86,6 +87,10 @@ object MigrateTestEnv {
 	private fun connect(): Database = testDb ?: run {
 		Files.createDirectories(databaseDir)
 		Database.connect(appConfigUrl, "org.h2.Driver").also { testDb = it }
+	}
+	
+	private object MigratorBridge : MigratorBase() {
+		suspend fun close(dbName: String) = shutdown(dbName)
 	}
 }
 

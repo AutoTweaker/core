@@ -42,9 +42,8 @@ import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -193,16 +192,11 @@ class SessionManager(
 	}
 	
 	private fun SessionImpl.listen(): SessionImpl = also {
-		val id = id
-		listener[id] = scope.launch {
-			merge(
-				agentIndex.drop(1),
-				title.drop(1),
-				overview.drop(1)
-			).collect {
-				sessionRepo.saveSessions(listOf(data))
-			}
-		}
+		listener[id] = combine(
+			agentIndex, title, overview
+		) {
+			sessionRepo.saveSessions(listOf(data))
+		}.launchIn(scope)
 	}
 	
 	private suspend fun resolveModel(id: UUID): RuntimeModel =

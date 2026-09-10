@@ -123,7 +123,7 @@ class AgentBridge(
 			}
 		}
 		scope.launch {
-			_agent.activeTools.collect {
+			_agent.activeTools.drop(1).collect {
 				trace.catching { saveAgent() }
 					.onFailure { e ->
 						log.error("Failed to save agent data  agentId={}", _agent.agentId, e)
