@@ -49,7 +49,7 @@ abstract class TimestampProvider : ValueSource<Long, ValueSourceParameters.None>
 
 val gitHash = providers.of(GitHashProvider::class) {}.get()
 
-val timestamp = providers.of(TimestampProvider::class) {}.get()
+val timestampProvider = providers.of(TimestampProvider::class) {}
 
 val githubRef = providers.environmentVariable("GITHUB_REF").getOrElse("")
 
@@ -58,24 +58,28 @@ fun resolveVersion(baseVersion: String): String {
 		"${githubRef.removePrefix("refs/tags/v")}+$gitHash"
 	} else {
 		val stripped = baseVersion.replace(Regex("-[a-zA-Z].*"), "")
-		"$stripped-dev+$timestamp.$gitHash"
+		"$stripped-dev+${timestampProvider.get()}.$gitHash"
 	}
 }
 
 val generatedVersionFile = layout.buildDirectory.file("generated/version/version.properties")
 
-// 配置阶段生成版本号
 val generatedVersion = resolveVersion(project.version.toString())
-generatedVersionFile.get().asFile.apply {
-	parentFile.mkdirs()
-	writeText("version=$generatedVersion")
-}
 
 ext["generatedVersion"] = generatedVersion
 
 val generateVersionProperties = tasks.register("generateVersionProperties") {
 	description = "生成 version.properties（含 git hash 和构建时间戳）"
-	outputs.file(generatedVersionFile)
+	val outputFile = generatedVersionFile
+	val version = generatedVersion
+	inputs.property("version", version)
+	outputs.file(outputFile)
+	doLast {
+		outputFile.get().asFile.apply {
+			parentFile.mkdirs()
+			writeText("version=$version")
+		}
+	}
 }
 
 subprojects {

@@ -149,7 +149,7 @@ val generatedVersion = rootProject.ext["generatedVersion"] as String
 val rootVersionFile = rootProject.layout.buildDirectory.file("generated/version/version.properties")
 
 tasks.named<ProcessResources>("processResources") {
-	from(rootVersionFile.map { it.asFile.parentFile })
+	from(rootVersionFile.map { it.asFile })
 }
 
 tasks.jar {
