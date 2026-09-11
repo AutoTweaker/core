@@ -77,7 +77,7 @@ object ResilientChatSettings {
 	
 	@AutoService(SettingDef::class)
 	class ChatStreamChunkTimeout : IntSetting(
-		15, zh(
+		30, zh(
 			"大模型流式请求，两个数据块之间的默认最大等待秒数"
 		)
 	)

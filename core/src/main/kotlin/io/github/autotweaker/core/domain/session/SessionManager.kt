@@ -97,7 +97,7 @@ class SessionManager(
 	
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
-		val workspace = wsm.getData(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
+		val workspace = wsm.getAndTouch(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
 		if (!Files.isDirectory(workspace.path)) throw InvalidWorkspacePathException(workspace.path)
 		
 		val data = SessionData(
@@ -155,7 +155,7 @@ class SessionManager(
 		secretStore.requireUnlocked()
 		val data = sessionRepo.loadSession(id) ?: throw SessionNotFoundException(id)
 		val workspaceId = data.workspaceId
-		val workspace = wsm.getData(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
+		val workspace = wsm.getAndTouch(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
 			.andLog(log) {
 				warn(
 					"Workspace not found while restoring session  sessionId={}  workspaceId={}",

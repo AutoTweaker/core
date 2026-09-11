@@ -46,9 +46,22 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 		if (workspaces.values.any { it.displayName == newName })
 			throw DuplicateWorkspaceNameException(newName)
 		workspaces.computeIfPresent(id) { _, old ->
-			old.copy(displayName = newName)
+			old.copy(
+				displayName = newName,
+				lastAccessTime = now()
+			)
 		}
 		log.info("Renamed workspace  id={}  newName={}", id, newName)
+	}
+	
+	suspend fun touch(id: UUID) = transform { workspaces ->
+		ensureDefault()
+		if (!workspaces.containsKey(id)) throw WorkspaceNotFoundException(id)
+		workspaces.computeIfPresent(id) { _, old ->
+			old.copy(
+				lastAccessTime = now()
+			)
+		}
 	}
 	
 	suspend fun updateSessions(id: UUID, function: (Set<UUID>) -> Set<UUID>) =
@@ -86,6 +99,11 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 			workspaces[it.id] = it
 			log.info("Created workspace  id={}  name={}  path={}", it.id, it.displayName, it.path)
 		}
+	}
+	
+	suspend fun getAndTouch(id: UUID): WorkspaceData? {
+		touch(id)
+		return getData(id)
 	}
 	
 	suspend fun getData(id: UUID): WorkspaceData? = transform { workspaces ->
