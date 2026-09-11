@@ -40,13 +40,14 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 	override val providerInfo = LlmClient.ProviderInfo(
 		name = "deepseek", baseUrl = "https://api.deepseek.com/v1".toUrl(), models = listOf(
 			ModelData.ModelInfo(
-				modelId = "deepseek-v4-flash",
+				modelId = "deepseek-flash",
 				contextWindow = 1_000_000,
 				maxOutputTokens = 384_000,
 				supportsStreaming = true,
 				supportsToolCalls = true,
 				supportsReasoning = true,
 				supportsJsonOutput = true,
+				supportsImage = true
 			), ModelData.ModelInfo(
 				modelId = "deepseek-v4-pro",
 				contextWindow = 1_000_000,
