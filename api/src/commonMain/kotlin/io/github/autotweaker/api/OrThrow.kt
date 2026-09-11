@@ -22,8 +22,14 @@ package io.github.autotweaker.api
 
 import kotlin.jvm.JvmName
 
+/**
+ * 如果 `this` 为 `null`，抛出 [exception] 返回的异常对象。
+ */
 inline fun <T : Any> T?.orThrow(exception: () -> Throwable): T = this ?: throw exception()
 
+/**
+ * 用于在编译期拦截对于非空类型的冗余 [orThrow] 调用。
+ */
 @JvmName("orThrowNotNull")
 @Deprecated(
 	"orThrow() on a non-null T is redundant",

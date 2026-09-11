@@ -20,5 +20,8 @@ package io.github.autotweaker.api
 
 import java.util.*
 
+/**
+ * 通过 SPI 加载 [T]：`ServiceLoader.load(T::class.java).toList()`
+ */
 inline fun <reified T : Any> loadService() =
 	ServiceLoader.load(T::class.java).toList()

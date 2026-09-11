@@ -29,6 +29,9 @@ import kotlin.time.Instant
  */
 inline fun Instant?.orNow(): Instant = this ?: Clock.System.now()
 
+/**
+ * 用于在编译期拦截对于非空 [Instant] 的冗余 `orNow` 调用。
+ */
 @JvmName("orNowNotNull")
 @Suppress("UnusedReceiverParameter")
 @Deprecated(
@@ -38,4 +41,7 @@ inline fun Instant?.orNow(): Instant = this ?: Clock.System.now()
 )
 inline fun Instant.orNow(): Nothing = throw NotImplementedError()
 
+/**
+ * `Clock.System.now()` 的别名。
+ */
 inline fun now(): Instant = Clock.System.now()

@@ -20,4 +20,9 @@ package io.github.autotweaker.api
 
 import io.github.autotweaker.api.types.exception.UnreachableException
 
+/**
+ * 标记一个逻辑上不可达的代码路径。
+ *
+ * @throws UnreachableException 始终抛出
+ */
 fun unreachable(message: String? = null): Nothing = throw UnreachableException(message)

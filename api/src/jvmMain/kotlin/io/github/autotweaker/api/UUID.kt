@@ -22,4 +22,7 @@ package io.github.autotweaker.api
 
 import java.util.*
 
+/**
+ * `UUID.randomUUID()` 的别名。
+ */
 inline fun UUID(): UUID = UUID.randomUUID()

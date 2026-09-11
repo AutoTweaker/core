@@ -20,4 +20,7 @@ package io.github.autotweaker.api
 
 import kotlinx.serialization.json.Json
 
+/**
+ * `Json { ignoreUnknownKeys = true }`
+ */
 val json = Json { ignoreUnknownKeys = true }
