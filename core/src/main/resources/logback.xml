@@ -36,15 +36,6 @@
         <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
     </appender>
 
-    <appender name="JOURNAL" class="com.dgkncgty.logback.SystemdJournalAppender">
-        <syslogIdentifier>autotweaker</syslogIdentifier>
-        <logThreadName>true</logThreadName>
-        <logLoggerName>true</logLoggerName>
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-    </appender>
-
     <appender name="SHARED_FLOW" class="io.github.autotweaker.core.logging.SharedFlowAppender"/>
 
     <logger name="Exposed" level="INFO"/>
@@ -54,6 +45,14 @@
     </condition>
     <if>
         <then>
+            <appender name="JOURNAL" class="com.dgkncgty.logback.SystemdJournalAppender">
+                <syslogIdentifier>autotweaker</syslogIdentifier>
+                <logThreadName>true</logThreadName>
+                <logLoggerName>true</logLoggerName>
+                <encoder>
+                    <pattern>%msg%n</pattern>
+                </encoder>
+            </appender>
             <root level="${log.root.level:-DEBUG}">
                 <appender-ref ref="JOURNAL"/>
                 <appender-ref ref="JSONL"/>

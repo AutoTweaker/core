@@ -46,6 +46,7 @@ tasks.configureEach {
 application {
 	mainClass = "io.github.autotweaker.core.MainKt"
 	applicationName = "autotweaker"
+	applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
 tasks.named<JavaExec>("run") {
