@@ -282,15 +282,15 @@ class SessionImpl(
 	
 	private fun initialActiveTools() =
 		InitialActiveTools().get()
-			.split(SPACE)
+			.split(',')
 			.mapNotNullTo(mutableSetOf()) {
-				it.ifBlank { null }
+				it.trim().orNull()
 			}
 	
 	@AutoService(SettingDef::class)
 	class InitialActiveTools : StringSetting(
-		"bash read",
-		zh("配置在新的Agent创建时就激活的工具，空格分隔")
+		"bash,read",
+		zh("配置在新的Agent创建时就激活的工具，英文逗号分隔")
 	)
 	
 	@AutoService(SettingDef::class)

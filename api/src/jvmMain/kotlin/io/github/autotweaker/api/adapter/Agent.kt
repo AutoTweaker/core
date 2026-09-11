@@ -78,6 +78,9 @@ interface Agent {
 	 */
 	val status: StateFlow<AgentStatus>
 	
+	/**
+	 * agent 当前状态是否为 DEAD。
+	 */
 	val isDead: Boolean get() = status.value == AgentStatus.DEAD
 	
 	/**
