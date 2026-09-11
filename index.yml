@@ -8,3 +8,5 @@ core:
   clone_url:
     ssh: "git@github.com:AutoTweaker/core.git"
     http: "https://github.com/AutoTweaker/core.git"
+adapter:
+  actions: "https://autotweaker.github.io/index/adapter/actions.json"
