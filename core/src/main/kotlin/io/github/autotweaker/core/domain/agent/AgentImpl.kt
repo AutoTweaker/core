@@ -36,6 +36,7 @@ import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
 import io.github.autotweaker.core.domain.session.AgentHost
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.json.JsonElement
 import java.nio.file.Path
 import java.util.*
 
@@ -92,7 +93,7 @@ class AgentImpl(
 			onToolCall = { _toolCalling.value = it })
 	}
 	private val compact = CompactService(agentId, deps.resilientChat, deps.summaryService, onOutput)
-	
+	private val digestService = DigestService(deps.resilientChat) { onOutput(RuntimeOutput.UsageConsumed(it)) }
 	private val runner = RoundRunner(
 		ctx = ctx,
 		workspace = workspace,
@@ -110,6 +111,9 @@ class AgentImpl(
 	val exception get() = runner.exception
 	
 	val model get() = runner.model.toModelConfig()
+	
+	suspend fun summary(prompt: String): JsonElement? =
+		digestService.summary(prompt, ctx.get(), runner.model)
 	
 	suspend fun execute(command: AgentCommand) = runner.execute(command)
 	

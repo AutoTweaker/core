@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -35,7 +36,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
 import kotlin.test.*
-import kotlin.time.Clock
 
 class AgentChatRequestExtTest {
 	companion object {
@@ -68,7 +68,7 @@ class AgentChatRequestExtTest {
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
 			content = MessageContent(content = content.toContentPart()),
-			timestamp = Clock.System.now()
+			timestamp = now()
 		)
 	
 	private fun assistantMsg(content: String = "response") = RuntimeContext.Message.Assistant(
@@ -76,7 +76,7 @@ class AgentChatRequestExtTest {
 		reasoning = null,
 		content = content,
 		modelId = testModel.id,
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		usage = null,
 	)
 	
@@ -87,7 +87,7 @@ class AgentChatRequestExtTest {
 				callName = "read",
 				arguments = "{}",
 				reason = null,
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				validatedToolName = null,
 				validatedArgs = JsonPrimitive("{}"),
 				resolvedRequest = null,
@@ -99,7 +99,7 @@ class AgentChatRequestExtTest {
 				content = "file content",
 				data = null,
 				presentation = listOf(UiBlock.Text("读取了文件")),
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				status = ToolResultStatus.SUCCESS
 			),
 		)
@@ -160,7 +160,7 @@ class AgentChatRequestExtTest {
 			rounds = emptyList(),
 			summarizedMessage = RuntimeContext.SummarizedMessage(
 				id = UUID.randomUUID(),
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				content = "previous summary",
 				modelId = UUID.randomUUID(),
 				usage = null,
@@ -189,7 +189,7 @@ class AgentChatRequestExtTest {
 			rounds = emptyList(),
 			summarizedMessage = RuntimeContext.SummarizedMessage(
 				id = UUID.randomUUID(),
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				content = "compacted summary of old rounds",
 				modelId = UUID.randomUUID(),
 				usage = null,
@@ -222,7 +222,7 @@ class AgentChatRequestExtTest {
 			content = MessageContent(
 				content = listOf(ContentPart.Text("look at this"), ContentPart.Image("image/png", img)),
 			),
-			timestamp = Clock.System.now()
+			timestamp = now()
 		)
 		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
 		val req = request(context = ctx)
@@ -265,7 +265,7 @@ class AgentChatRequestExtTest {
 				callName = "read",
 				arguments = "{}",
 				reason = "test",
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				validatedToolName = "read",
 				validatedArgs = JsonPrimitive("{}"),
 				resolvedRequest = JsonPrimitive("{}"),

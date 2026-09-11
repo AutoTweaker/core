@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.think
 
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentStatus
@@ -46,7 +47,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import java.nio.file.Path
 import java.util.*
 import kotlin.test.*
-import kotlin.time.Clock
 
 @Suppress("UNCHECKED_CAST")
 class ThinkingStageTest {
@@ -80,7 +80,7 @@ class ThinkingStageTest {
 		reasoning = null,
 		content = "I will call a tool",
 		modelId = UUID.randomUUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		usage = null,
 	)
 	

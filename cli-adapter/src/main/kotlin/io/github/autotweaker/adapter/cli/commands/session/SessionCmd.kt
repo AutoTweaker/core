@@ -139,6 +139,7 @@ class SessionCmd : Command, Traceable, Loggable {
 					out(SessionI18n.CreationTime(), session.creationTime.timeString())
 					out(SessionI18n.LastAccessTime(), session.lastAccessTime.timeString())
 					out(SessionI18n.MessageCount(), agent?.context?.index?.ids()?.count() ?: 0)
+					session.overview?.let { out(SessionI18n.Overview(), it) }
 				},
 				between = { out(LINE) }
 			)
@@ -187,16 +188,24 @@ class SessionCmd : Command, Traceable, Loggable {
 			val session = core.session.restore(id)
 			val agent = session.mainAgent()
 			out(SessionI18n.YoloStart(), value) { yellow() }
-			agent.context.collect {
-				agent.context.value.index.currentRound?.pendingToolCalls?.forEach { call ->
-					val msg = call.loadMessage<AgentMessage.Tool.Call>(core) ?: return@collect
-					agent.approve(
-						ToolApprove(
-							msg.callId,
-						)
-					)
-					out(SessionI18n.CallApproved()) { green() }
-					msg.printMsg()
+			coroutineScope {
+				launch {
+					agent.context.collect {
+						agent.context.value.index.currentRound?.pendingToolCalls?.forEach { call ->
+							val msg = call.loadMessage<AgentMessage.Tool.Call>(core) ?: return@collect
+							agent.approve(
+								ToolApprove(
+									msg.callId,
+								)
+							)
+							out(SessionI18n.CallApproved()) { green() }
+							msg.printMsg()
+						}
+					}
+				}
+				agent.status.collect {
+					if (it == AgentStatus.DEAD) done()
+					if (it == AgentStatus.FAILED) done(1)
 				}
 			}
 		}
@@ -205,6 +214,7 @@ class SessionCmd : Command, Traceable, Loggable {
 			out(SessionI18n.SessionId(), value)
 			out(SessionI18n.SessionTitle(), session.title.value)
 			out(SessionI18n.CreationTime(), session.creationTime.timeString())
+			session.overview.value?.let { out(SessionI18n.Overview(), it) }
 			val agent = session.mainAgent()
 			out(SessionI18n.AgentName(), agent.name)
 			out(SessionI18n.CurrentStatus(), agent.status.value) { newline = false }

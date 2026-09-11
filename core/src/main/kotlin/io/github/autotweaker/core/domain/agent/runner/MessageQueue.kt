@@ -31,7 +31,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Clock
 
 class MessageQueue(private val agentId: UUID) : Loggable {
 	private val channel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
@@ -125,7 +124,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			content = MessageContent(
 				injections, content
 			),
-			timestamp = Clock.System.now()
+			timestamp = now()
 		).also { message ->
 			filtered.keys.forEach {
 				deliveries.remove(it)?.complete(message.id to message.content)

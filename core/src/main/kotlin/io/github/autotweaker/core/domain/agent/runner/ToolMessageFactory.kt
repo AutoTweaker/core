@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.format
 import io.github.autotweaker.api.get
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -29,7 +30,6 @@ import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
 import kotlinx.serialization.json.JsonElement
-import kotlin.time.Clock
 import kotlin.time.Instant
 import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall as RawToolCall
 import io.github.autotweaker.core.domain.agent.RuntimeContext.CurrentRound.PendingToolCall as PendingCall
@@ -106,7 +106,7 @@ object ToolMessageFactory {
 			else ToolSettings.Rejected().get(),
 			data = null,
 			presentation = presentation,
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			status = ToolResultStatus.REJECTED,
 		)
 	)
@@ -122,7 +122,7 @@ object ToolMessageFactory {
 			content = message,
 			data = null,
 			presentation = presentation,
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			status = ToolResultStatus.CANCELLED
 		)
 	)

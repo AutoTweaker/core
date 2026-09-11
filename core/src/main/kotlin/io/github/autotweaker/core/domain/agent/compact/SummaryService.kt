@@ -22,12 +22,12 @@ import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.toList
-import kotlin.time.Clock
 
 class SummaryService(
 	private val chat: ResilientChat
@@ -44,7 +44,7 @@ class SummaryService(
 				messages = listOf(
 					ChatMessage.User(
 						request.toContentPart(),
-						Clock.System.now()
+						now()
 					)
 				),
 				reasoning = ReasoningEffort(thinking)

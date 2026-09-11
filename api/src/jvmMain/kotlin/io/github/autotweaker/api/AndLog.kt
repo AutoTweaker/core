@@ -27,5 +27,4 @@ import org.slf4j.Logger
  * null.andLog(log) { info("Hello World") }
  * ```
  */
-inline fun <T> T.andLog(logger: Logger, crossinline log: Logger.(T) -> Unit): T =
-	also { logger.log(this) }
+inline fun <T> T.andLog(logger: Logger, log: Logger.(T) -> Unit): T = also { logger.log(this) }

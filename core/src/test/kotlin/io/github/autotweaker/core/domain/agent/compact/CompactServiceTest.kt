@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.compact
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
@@ -40,7 +41,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 
 class CompactServiceTest {
 	companion object {
@@ -72,7 +72,7 @@ class CompactServiceTest {
 				RuntimeContext.Message.User(
 					id = UUID.randomUUID(),
 					content = MessageContent(content = "question".toContentPart()),
-					timestamp = Clock.System.now(),
+					timestamp = now(),
 				)
 			)
 			manager.applyThinking(
@@ -81,7 +81,7 @@ class CompactServiceTest {
 					reasoning = null,
 					content = "answer",
 					modelId = UUID.randomUUID(),
-					timestamp = Clock.System.now(),
+					timestamp = now(),
 					usage = null,
 				),
 				emptyList(),
@@ -97,7 +97,7 @@ class CompactServiceTest {
 		emit(
 			LlmResult(
 				ChatResult.Assembled(
-					message = ChatMessage.Assistant(content, Clock.System.now()),
+					message = ChatMessage.Assistant(content, now()),
 					usage = usage,
 				),
 				model = UUID.randomUUID(),

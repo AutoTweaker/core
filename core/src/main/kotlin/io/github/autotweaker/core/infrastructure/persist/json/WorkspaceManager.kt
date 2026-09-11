@@ -31,7 +31,6 @@ import io.github.autotweaker.api.types.session.WorkspaceData
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import kotlin.time.Clock
 
 object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Loggable {
 	override val serializer = MutableMapSerializer(
@@ -59,7 +58,7 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 				val data = old ?: throw WorkspaceNotFoundException(id)
 				data.copy(
 					sessionIds = function(data.sessionIds),
-					lastAccessTime = Clock.System.now()
+					lastAccessTime = now()
 				)
 			}
 			log.debug("Updated workspace data  id={}", id)

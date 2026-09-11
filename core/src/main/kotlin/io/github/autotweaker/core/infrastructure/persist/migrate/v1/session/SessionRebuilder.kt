@@ -20,6 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.migrate.v1.session
 
 import io.github.autotweaker.api.json
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.core.infrastructure.persist.migrate.MigratorBase
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent.V0AgentContext
@@ -33,7 +34,6 @@ import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 object SessionRebuilder : MigratorBase() {
@@ -58,7 +58,7 @@ object SessionRebuilder : MigratorBase() {
 	}
 	
 	suspend fun finalize(plan: SessionPlanner.SessionPlan, agentTimes: Map<UUID, Pair<Instant, Instant>>) {
-		val fallback = Clock.System.now() to Clock.System.now()
+		val fallback = now() to now()
 		val sessionTimes = plan.sessions.associate { session ->
 			session.id to (agentTimes[session.mainId] ?: fallback)
 		}

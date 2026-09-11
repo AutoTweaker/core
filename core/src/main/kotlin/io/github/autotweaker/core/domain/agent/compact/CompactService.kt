@@ -35,7 +35,6 @@ import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.util.*
-import kotlin.time.Clock
 
 class CompactService(
 	private val agentId: UUID,
@@ -68,7 +67,7 @@ class CompactService(
 			null, context.compactedRounds?.summarizedMessage?.content
 		) + ChatMessage.User(
 			compactPrompt.toContentPart(),
-			Clock.System.now()
+			now()
 		)
 		
 		var attempt = 0

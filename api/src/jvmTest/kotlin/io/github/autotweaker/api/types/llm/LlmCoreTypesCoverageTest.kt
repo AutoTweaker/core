@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.llm
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Sha256
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -25,10 +26,9 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.time.Clock
 
 class LlmCoreTypesCoverageTest {
-	private val now = Clock.System.now()
+	private val now = now()
 	
 	@Test
 	fun `ChatMessage sealed subtypes coverage`() {

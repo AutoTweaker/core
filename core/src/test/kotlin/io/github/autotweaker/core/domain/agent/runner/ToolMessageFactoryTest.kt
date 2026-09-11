@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -32,7 +33,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 
 class ToolMessageFactoryTest {
 	companion object {
@@ -41,7 +41,7 @@ class ToolMessageFactoryTest {
 		}
 	}
 	
-	private val timestamp = Clock.System.now()
+	private val timestamp = now()
 	
 	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
 	

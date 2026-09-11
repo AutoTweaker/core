@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("NOTHING_TO_INLINE")
+
 package io.github.autotweaker.api
 
 /**
@@ -23,4 +25,4 @@ package io.github.autotweaker.api
  *
  * @see LINE
  */
-fun line(length: Int) = '-' * length
+inline fun line(length: Int) = '-' * length

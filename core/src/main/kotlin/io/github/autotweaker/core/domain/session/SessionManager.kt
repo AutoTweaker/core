@@ -47,7 +47,6 @@ import kotlinx.coroutines.flow.launchIn
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Clock
 
 class SessionManager(
 	private val agentDeps: AgentDeps,
@@ -106,8 +105,8 @@ class SessionManager(
 			title = null,
 			overview = null,
 			workspaceId = workspaceId,
-			creationTime = Clock.System.now(),
-			lastAccessTime = Clock.System.now(),
+			creationTime = now(),
+			lastAccessTime = now(),
 			agentIndex = AgentIndex.new()
 		)
 		sessions[data.id] = SessionImpl(

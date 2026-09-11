@@ -38,7 +38,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -150,7 +149,7 @@ class ToolCallingStage(
 		status: ToolResultStatus,
 	): Result = Result(
 		id = UUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		content = content,
 		data = null,
 		presentation = presentation,

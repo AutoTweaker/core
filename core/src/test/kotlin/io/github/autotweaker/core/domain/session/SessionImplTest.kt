@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
 import io.github.autotweaker.api.types.session.SessionData
@@ -35,7 +36,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.time.Clock
 
 class SessionImplTest {
 	companion object {
@@ -55,8 +55,8 @@ class SessionImplTest {
 				title = "original title",
 				overview = null,
 				workspaceId = workspace,
-				creationTime = Clock.System.now(),
-				lastAccessTime = Clock.System.now(),
+				creationTime = now(),
+				lastAccessTime = now(),
 				agentIndex = AgentIndex.new(),
 			),
 			sessionRepo = sessionRepo,

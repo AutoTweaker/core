@@ -31,7 +31,6 @@ import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.json.Json
 import java.util.*
-import kotlin.time.Clock
 
 class TranslationEngine(
 	private val chat: ChatService
@@ -102,7 +101,7 @@ class TranslationEngine(
 			fallbackModels = null,
 			instructions = job.systemPrompt,
 			messages = listOf(
-				ChatMessage.User(userPrompt.toContentPart(), Clock.System.now()),
+				ChatMessage.User(userPrompt.toContentPart(), now()),
 			),
 			stream = false,
 			reasoning = ReasoningEffort(TranslateSettings.Thinking().get()),

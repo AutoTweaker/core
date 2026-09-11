@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.tool.service
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -32,7 +33,6 @@ import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 
 class ToolCallHistoryImplTest {
 	companion object {
@@ -52,7 +52,7 @@ class ToolCallHistoryImplTest {
 		callId = callId,
 		call = RuntimeContext.Message.Tool.Call(
 			id = UUID.randomUUID(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			callName = "bash-run",
 			arguments = """{"cmd":"echo hi","reason":"because"}""",
 			reason = "because",
@@ -66,7 +66,7 @@ class ToolCallHistoryImplTest {
 			content = content,
 			data = JsonPrimitive(content),
 			presentation = listOf(UiBlock.Text("执行了命令")),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			status = ToolResultStatus.SUCCESS,
 		),
 	)
@@ -76,7 +76,7 @@ class ToolCallHistoryImplTest {
 			userMessage = RuntimeContext.Message.User(
 				id = UUID.randomUUID(),
 				content = io.github.autotweaker.api.types.agent.MessageContent(content = "q".toContentPart()),
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 			),
 			turns = listOf(RuntimeContext.Turn(assistant(), tools)),
 			finalAssistantMessage = null,
@@ -87,7 +87,7 @@ class ToolCallHistoryImplTest {
 		reasoning = null,
 		content = "calling",
 		modelId = UUID.randomUUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		usage = null,
 	)
 	
@@ -102,7 +102,7 @@ class ToolCallHistoryImplTest {
 				userMessage = RuntimeContext.Message.User(
 					UUID.randomUUID(),
 					io.github.autotweaker.api.types.agent.MessageContent(content = "q".toContentPart()),
-					Clock.System.now(),
+					now(),
 				),
 				turns = listOf(RuntimeContext.Turn(assistant(), listOf(currentTool))),
 				assistantMessage = null,

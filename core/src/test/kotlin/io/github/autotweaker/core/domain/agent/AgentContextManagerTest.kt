@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.get
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -30,7 +31,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
 import kotlin.test.*
-import kotlin.time.Clock
 
 class AgentContextManagerTest {
 	companion object {
@@ -48,7 +48,7 @@ class AgentContextManagerTest {
 	private fun user(content: String = "hello") = RuntimeContext.Message.User(
 		id = UUID.randomUUID(),
 		content = MessageContent(content = content.toContentPart()),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 	)
 	
 	private fun assistant(content: String = "reply") = RuntimeContext.Message.Assistant(
@@ -56,13 +56,13 @@ class AgentContextManagerTest {
 		reasoning = null,
 		content = content,
 		modelId = UUID.randomUUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		usage = null,
 	)
 	
 	private fun pendingCall(callId: String = "c1") = RuntimeContext.CurrentRound.PendingToolCall(
 		id = UUID.randomUUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		callId = callId,
 		callName = "bash-run",
 		arguments = """{"cmd":"echo"}""",
@@ -77,7 +77,7 @@ class AgentContextManagerTest {
 		callId = callId,
 		call = RuntimeContext.Message.Tool.Call(
 			id = UUID.randomUUID(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			callName = "bash-run",
 			arguments = """{"cmd":"echo"}""",
 			reason = "because",
@@ -91,7 +91,7 @@ class AgentContextManagerTest {
 			content = content,
 			data = null,
 			presentation = presentation(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			status = ToolResultStatus.SUCCESS,
 		),
 	)
@@ -473,7 +473,7 @@ class AgentContextManagerTest {
 		val history = manager.context.value.historyRounds!!
 		val summarized = RuntimeContext.SummarizedMessage(
 			id = UUID.randomUUID(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			content = "summary",
 			modelId = UUID.randomUUID(),
 			usage = null,
@@ -496,7 +496,7 @@ class AgentContextManagerTest {
 		
 		assertFailsWith<IllegalStateException> {
 			manager.applyCompact(
-				RuntimeContext.SummarizedMessage(UUID.randomUUID(), Clock.System.now(), "s", UUID.randomUUID(), null),
+				RuntimeContext.SummarizedMessage(UUID.randomUUID(), now(), "s", UUID.randomUUID(), null),
 				listOf(foreign),
 			)
 		}
@@ -506,7 +506,7 @@ class AgentContextManagerTest {
 	fun `applyCompact without history fails`() = runTest {
 		val manager = ctx()
 		val summarized = RuntimeContext.SummarizedMessage(
-			UUID.randomUUID(), Clock.System.now(), "s", UUID.randomUUID(), null
+			UUID.randomUUID(), now(), "s", UUID.randomUUID(), null
 		)
 		
 		assertFailsWith<IllegalArgumentException> { manager.applyCompact(summarized, emptyList()) }

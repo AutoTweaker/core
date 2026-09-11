@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.session
 
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.Sha256
@@ -51,7 +52,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import kotlin.test.*
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -77,8 +77,8 @@ class AgentBridgeTest {
 		id = id,
 		name = "main-agent".toKebab(),
 		sessionId = UUID.randomUUID(),
-		creationTime = Clock.System.now(),
-		lastAccessTime = Clock.System.now(),
+		creationTime = now(),
+		lastAccessTime = now(),
 		model = modelConfig(),
 		context = AgentContext.emptyContext("system prompt"),
 		activeTools = emptySet(),
@@ -203,7 +203,7 @@ class AgentBridgeTest {
 			emit(
 				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.Assistant("answer", Clock.System.now()),
+						message = ChatMessage.Assistant("answer", now()),
 					),
 					model = UUID.randomUUID(),
 				)

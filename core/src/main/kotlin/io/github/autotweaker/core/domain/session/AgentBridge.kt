@@ -18,10 +18,14 @@
 
 package io.github.autotweaker.core.domain.session
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Agent
 import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.zh
+import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
@@ -47,14 +51,14 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.nio.file.Path
 import java.util.*
-import kotlin.time.Clock
 
 class AgentBridge(
 	private val deps: AgentDeps,
 	private val host: AgentHost,
-	private val onSend: ((MessageContent) -> Unit)? = null,
 	private val onShutdown: () -> Unit,
 	private val sessionRepo: SessionRepository,
 	private val usageRepo: UsageRepository,
@@ -97,7 +101,7 @@ class AgentBridge(
 			name = name,
 			sessionId = sessionId,
 			creationTime = initialData.creationTime,
-			lastAccessTime = Clock.System.now(),
+			lastAccessTime = now(),
 			model = _agent.model,
 			context = _context.value,
 			activeTools = activeTools.value
@@ -164,12 +168,6 @@ class AgentBridge(
 		log.info("Initialized agent bridge  agentId={}  cwd={}", _agent.agentId, cwd)
 	}
 	
-	suspend fun shutdown() {
-		_agent.shutdown()
-		scope.join()
-		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
-	}
-	
 	private suspend fun initTools(): MetaCache {
 		val coreTools = loadService<CoreTool<ToolArgs>>().associateBy { it.name() }
 		val pluginTools = PluginLoader.load<Tool<ToolArgs>>().associateBy { it.name() }
@@ -179,12 +177,26 @@ class AgentBridge(
 		return cacheMeta(all)
 	}
 	
+	suspend fun shutdown() {
+		_agent.shutdown()
+		scope.join()
+		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
+	}
+	
+	suspend fun title() = summary(TitlePrompt().get(), "title")
+	
+	suspend fun overview() = summary(OverviewPrompt().get(), "overview")
+	
+	private suspend fun summary(prompt: String, key: String): String? {
+		val result = _agent.summary(prompt) as? JsonObject ?: return null
+		val primitive = result[key] as? JsonPrimitive ?: return null
+		return if (primitive.isString) primitive.content else null
+	}
+	
 	override suspend fun send(content: MessageContent) =
-		_agent.send(content)
-			.also {
-				log.info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
-				onSend?.invoke(content)
-			}
+		_agent.send(content).andLog(log) {
+			info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
+		}
 	
 	override suspend fun sendCoalescing(content: MessageContent) =
 		_agent.sendCoalescing(content).andLog(log) {
@@ -328,5 +340,23 @@ class AgentBridge(
 		compact = resolveModel(compact),
 		fallback = fallback.map { resolveModel(it) },
 		reasoning = reasoning
+	)
+	
+	@AutoService(SettingDef::class)
+	class OverviewPrompt : StringSetting(
+		"你的任务是根据迄今为止的对话内容，输出一个会话概览，描述这个会话中发生了什么，不能超过200字。\n" +
+				"你必须进行客观描述，禁止使用第一或第二人称。\n" +
+				"你的输出必须是一个有效的json对象，包含一个overview字段，类型为字符串。\n" +
+				"禁止在输出中包含markdown标记，如代码块：'```'。",
+		zh("生成会话概览使用的提示词")
+	)
+	
+	@AutoService(SettingDef::class)
+	class TitlePrompt : StringSetting(
+		"你的任务是根据迄今为止的对话内容，输出一个会话标题，简要地概括会话内容，不能超过30字。\n" +
+				"你必须进行客观概括，禁止使用第一或第二人称。\n" +
+				"你的输出必须是一个有效的json对象，包含一个title字段，类型为字符串。\n" +
+				"禁止在输出中包含markdown标记，如代码块：'```'。",
+		zh("生成会话标题使用的提示词")
 	)
 }

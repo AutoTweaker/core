@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
@@ -27,11 +28,10 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.test.*
-import kotlin.time.Clock
 
 class DeepSeekClientMappingTest {
 	
-	private val now = Clock.System.now()
+	private val now = now()
 	private val client = DeepSeekClient()
 	
 	// transform/usage 是 DeepSeekClient 的成员扩展，类外部不可见，通过反射调用编译后的实例方法

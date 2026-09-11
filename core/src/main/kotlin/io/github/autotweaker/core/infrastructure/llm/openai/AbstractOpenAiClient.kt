@@ -43,7 +43,6 @@ import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
-import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
@@ -139,7 +138,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		
 		var idleDeadline: Instant? = null
 		if (chunkTimeout != null) {
-			idleDeadline = Clock.System.now() + chunkTimeout
+			idleDeadline = now() + chunkTimeout
 		}
 		
 		val channel = response.bodyAsChannel()
@@ -154,7 +153,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 				val line = readLineWithChunkTimeout(channel, chunkTimeout, idleDeadline) ?: break
 				
 				if (line.startsWith("data:")) {
-					idleDeadline = chunkTimeout?.let { Clock.System.now() + it }
+					idleDeadline = chunkTimeout?.let { now() + it }
 					val data = line.removePrefix("data:").trim()
 					
 					if (data == "[DONE]") break
@@ -231,7 +230,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	): String? {
 		if (timeout == null || idleDeadline == null) return channel.readLine()
 		return trace.catching {
-			val remaining = idleDeadline - Clock.System.now()
+			val remaining = idleDeadline - now()
 			withTimeout(remaining) { channel.readLine() }
 		}.recoverException { e: TimeoutCancellationException ->
 			chunkTimeoutFailed(timeout, e)

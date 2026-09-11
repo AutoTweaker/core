@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
@@ -38,7 +39,6 @@ import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 
 class AgentChatTest {
 	companion object {
@@ -73,7 +73,7 @@ class AgentChatTest {
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),
 			content = MessageContent(content = content.toContentPart()),
-			timestamp = Clock.System.now()
+			timestamp = now()
 		)
 	
 	private fun ctx(user: RuntimeContext.Message.User) =
@@ -82,7 +82,7 @@ class AgentChatTest {
 	@Test
 	fun `collects assembled message with content and finish reason`() = runTest {
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.Assistant("hello world", Clock.System.now(), null, null),
+			message = ChatMessage.Assistant("hello world", now(), null, null),
 		)
 		
 		val chat = mockk<ResilientChat>()
@@ -107,7 +107,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `emits delta with reasoning when reasoning content arrives`() = runTest {
-		val now = Clock.System.now()
+		val now = now()
 		val chunkResult = ChatResult.Chunk(
 			content = "answer",
 			reasoningContent = "let me think",
@@ -143,7 +143,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `passes through deltas from multiple chunks`() = runTest {
-		val now = Clock.System.now()
+		val now = now()
 		
 		val chat = mockk<ResilientChat>()
 		every {
@@ -221,7 +221,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `assembled message carries usage`() = runTest {
-		val now = Clock.System.now()
+		val now = now()
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.Assistant("ok", now, null, null),
 			usage = Usage(100, 50, 50),
@@ -247,7 +247,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `assembled message with reasoning content is included`() = runTest {
-		val now = Clock.System.now()
+		val now = now()
 		val chatResult = ChatResult.Assembled(
 			message = ChatMessage.Assistant(null, now, "thinking...", null),
 		)
@@ -272,7 +272,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `assembled message with tool calls creates pending tool calls`() = runTest {
-		val now = Clock.System.now()
+		val now = now()
 		val toolCalls = listOf(
 			ChatMessage.Assistant.ToolCall(
 				id = "call1", name = "read_file",

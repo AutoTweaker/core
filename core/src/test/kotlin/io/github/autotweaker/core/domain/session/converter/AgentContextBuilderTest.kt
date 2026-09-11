@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.session.converter
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -28,7 +29,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
 import kotlin.test.*
-import kotlin.time.Clock
 
 class AgentContextBuilderTest {
 	companion object {
@@ -42,7 +42,7 @@ class AgentContextBuilderTest {
 	private fun user(id: UUID = UUID.randomUUID(), content: String = "hello") = RuntimeContext.Message.User(
 		id = id,
 		content = MessageContent(content = content.toContentPart()),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 	)
 	
 	private fun assistant(id: UUID = UUID.randomUUID(), content: String? = "reply") =
@@ -51,13 +51,13 @@ class AgentContextBuilderTest {
 			reasoning = "thinking",
 			content = content,
 			modelId = UUID.randomUUID(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			usage = null,
 		)
 	
 	private fun pendingCall(id: UUID = UUID.randomUUID()) = RuntimeContext.CurrentRound.PendingToolCall(
 		id = id,
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		callId = "c1",
 		callName = "bash-run",
 		arguments = """{"cmd":"echo"}""",
@@ -72,7 +72,7 @@ class AgentContextBuilderTest {
 		callId = callId,
 		call = RuntimeContext.Message.Tool.Call(
 			id = UUID.randomUUID(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			callName = "bash-run",
 			arguments = """{"cmd":"echo"}""",
 			reason = "because",
@@ -86,7 +86,7 @@ class AgentContextBuilderTest {
 			content = "done",
 			data = JsonPrimitive("""{"exit":0}"""),
 			presentation = listOf(UiBlock.Text("执行了命令")),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			status = ToolResultStatus.SUCCESS,
 		),
 	)
@@ -105,7 +105,7 @@ class AgentContextBuilderTest {
 			compactedRounds = null,
 			rounds = listOf(completedRound(user(content = "compacted question"))),
 			summarizedMessage = RuntimeContext.SummarizedMessage(
-				UUID.randomUUID(), Clock.System.now(), "compacted summary", UUID.randomUUID(), null
+				UUID.randomUUID(), now(), "compacted summary", UUID.randomUUID(), null
 			),
 		),
 		historyRounds = listOf(completedRound()),
@@ -265,7 +265,7 @@ class AgentContextBuilderTest {
 		val users = List(depth) { i ->
 			AgentMessage.User(
 				id = UUID.randomUUID(),
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				origin = setOf(agentId),
 				content = MessageContent(content = "question $i".toContentPart()),
 			)
@@ -273,7 +273,7 @@ class AgentContextBuilderTest {
 		val compacts = List(depth) { i ->
 			AgentMessage.Compact(
 				id = UUID.randomUUID(),
-				timestamp = Clock.System.now(),
+				timestamp = now(),
 				origin = setOf(agentId),
 				content = "summary $i",
 				model = UUID.randomUUID(),

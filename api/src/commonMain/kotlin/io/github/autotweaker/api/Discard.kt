@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("NOTHING_TO_INLINE")
+
 package io.github.autotweaker.api
 
 /**
@@ -24,7 +26,7 @@ package io.github.autotweaker.api
  * 常用于链式调用末尾吞掉表达式返回值。
  */
 @Suppress("UnusedReceiverParameter")
-fun <T> T.discard(): Unit = Unit
+inline fun <T> T.discard(): Unit = Unit
 
 /**
  * 丢弃对象并返回 [result]。
@@ -32,4 +34,4 @@ fun <T> T.discard(): Unit = Unit
  * 常用于链式调用末尾吞掉返回值并返回 `null`。
  */
 @Suppress("UnusedReceiverParameter")
-fun <T, R> T.discard(result: R): R = result
+inline fun <T, R> T.discard(result: R): R = result

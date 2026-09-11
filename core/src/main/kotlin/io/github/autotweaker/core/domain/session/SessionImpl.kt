@@ -22,10 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Agent
 import io.github.autotweaker.api.adapter.Session
-import io.github.autotweaker.api.base.ReentrantMutex
-import io.github.autotweaker.api.base.StringSetting
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.zh
+import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
@@ -33,23 +30,27 @@ import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.addChild
 import io.github.autotweaker.api.types.agent.AgentIndex.Companion.findChildren
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.exception.notfound.AgentNotFoundException
-import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.AgentImpl
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.seconds
 
 class SessionImpl(
 	initialData: SessionData,
@@ -80,11 +81,12 @@ class SessionImpl(
 			overview = _overview.value,
 			workspaceId = workspaceId,
 			creationTime = creationTime,
-			lastAccessTime = Clock.System.now(),
+			lastAccessTime = now(),
 			agentIndex = _agentIndex.value,
 		)
 	
 	private val lock = ReentrantMutex()
+	private val scope = scope()
 	private val bridges = ConcurrentHashMap<UUID, AgentBridge>()
 	
 	override fun getOrNull(agent: UUID) = bridges[agent]
@@ -93,8 +95,8 @@ class SessionImpl(
 		?: throw AgentNotFoundException(agent, id)
 	
 	suspend fun init(init: SessionInit) = also {
-		lock.withLock {
-			val mainId = _agentIndex.value.main.id
+		val mainId = _agentIndex.value.main.id
+		val main = lock.withLock {
 			when (init) {
 				is SessionInit.Restore -> restoreOrNull(mainId)
 					?: throw AgentNotFoundException("Main agent not found for session '$id'", mainId, id)
@@ -117,6 +119,84 @@ class SessionImpl(
 						workspacePath
 					)
 				}
+			}
+		}
+		val titleJob = if (_title.value == null) scope.launch {
+			val lock = ReentrantMutex()
+			
+			suspend fun generateTitle(trigger: String): Boolean {
+				if (main.context.value.index.ids().isEmpty()) return false
+				val newTitle = main.title()
+				if (newTitle == null) {
+					log.warn("Failed to generate session title  sessionId={}  trigger={}", id, trigger)
+					return false
+				}
+				updateTitle { it ?: newTitle }
+				log.info("Generated session title  sessionId={}  trigger={}  title={}", id, trigger, newTitle)
+				return true
+			}
+			
+			val collectJob = launch {
+				val messageCount = AutoTitleMessageCount().get()
+				if (messageCount > 0)
+					main.context.collect { ctx ->
+						if (_title.value != null) throw CancellationException()
+						if (ctx.index.ids().count() >= messageCount)
+							lock.withLock {
+								if (_title.value != null) throw CancellationException()
+								if (!generateTitle("messageCount")) throw CancellationException()
+							}
+					}
+			}
+			val duration = AutoTitleDelaySeconds().get().let {
+				if (it > 0) it else return@launch
+			}.seconds
+			delay(duration)
+			lock.withLock {
+				if (_title.value != null) throw CancellationException()
+				if (!generateTitle("timeout")) return@withLock
+				collectJob.cancel()
+			}
+		} else null
+		scope.launch {
+			main.status.collect {
+				if (it.isDead) {
+					titleJob?.cancel()
+					throw CancellationException()
+				}
+			}
+		}
+		val messageCount = main.context.value.index.ids().count()
+		val delta = OverviewMessageDelta().get()
+		if (delta > 0) scope.launch {
+			var lastCount = if (_overview.value == null) 0 else messageCount
+			while (isActive) {
+				val agent = bridges[mainId]
+				if (agent == null || agent.isDead) {
+					delay(5.seconds)
+					continue
+				}
+				val collectJob = launch {
+					log.debug("Started overview watcher  sessionId={}  agentId={}", id, agent.id)
+					agent.context.collect { ctx ->
+						val count = ctx.index.ids().count()
+						if (count - lastCount >= delta) {
+							lastCount = count
+							val overview = agent.overview()
+							if (overview == null) {
+								log.warn("Failed to generate session overview  sessionId={}", id)
+							} else {
+								_overview.value = overview
+								log.info("Generated session overview  sessionId={}", id)
+								val cooldown = OverviewCooldownSeconds().get()
+								if (cooldown > 0) delay(cooldown.seconds)
+							}
+						}
+					}
+				}
+				
+				agent.status.first { it.isDead }
+				collectJob.cancelAndJoin()
 			}
 		}
 	}
@@ -179,8 +259,8 @@ class SessionImpl(
 			id = agentId,
 			name = name,
 			sessionId = id,
-			creationTime = Clock.System.now(),
-			lastAccessTime = Clock.System.now(),
+			creationTime = now(),
+			lastAccessTime = now(),
 			model = model,
 			context = AgentContext.emptyContext(systemPrompt),
 			activeTools = initialActiveTools()
@@ -192,7 +272,6 @@ class SessionImpl(
 	) = AgentBridge(
 		deps = deps,
 		host = getHost(data.id),
-		onSend = onSendIfMain(data.id),
 		onShutdown = { bridges.remove(data.id) },
 		sessionRepo = sessionRepo,
 		usageRepo = usageRepo,
@@ -200,18 +279,6 @@ class SessionImpl(
 		workspace = workspacePath,
 		initialData = data
 	).init().also { bridges[data.id] = it }
-	
-	private fun onSendIfMain(id: UUID): ((MessageContent) -> Unit)? =
-		if (id == _agentIndex.value.main.id) {
-			onSend@{
-				if (_title.value != null) return@onSend
-				val text = it.content?.filterIsInstance<ContentPart.Text>()?.firstOrNull()?.content
-					?: return@onSend
-				updateTitle { old ->
-					old ?: text.lines().firstOrNull()?.take(100)
-				}
-			}
-		} else null
 	
 	private fun initialActiveTools() =
 		InitialActiveTools().get()
@@ -224,6 +291,30 @@ class SessionImpl(
 	class InitialActiveTools : StringSetting(
 		"bash read",
 		zh("配置在新的Agent创建时就激活的工具，空格分隔")
+	)
+	
+	@AutoService(SettingDef::class)
+	class AutoTitleMessageCount : IntSetting(
+		5,
+		zh("无标题会话在指定的消息数量后自动生成标题，与等待时间设置共同生效")
+	)
+	
+	@AutoService(SettingDef::class)
+	class AutoTitleDelaySeconds : IntSetting(
+		60,
+		zh("无标题会话在创建后等待多少秒自动生成标题，与消息条目设置共同生效")
+	)
+	
+	@AutoService(SettingDef::class)
+	class OverviewMessageDelta : IntSetting(
+		20,
+		zh("会话每新增此数量的消息后自动更新概述")
+	)
+	
+	@AutoService(SettingDef::class)
+	class OverviewCooldownSeconds : IntSetting(
+		300,
+		zh("更新会话概述后指定秒内不再重新生成")
 	)
 	
 	companion object {

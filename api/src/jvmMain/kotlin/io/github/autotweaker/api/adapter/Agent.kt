@@ -78,6 +78,8 @@ interface Agent {
 	 */
 	val status: StateFlow<AgentStatus>
 	
+	val isDead: Boolean get() = status.value == AgentStatus.DEAD
+	
 	/**
 	 * agent 的上下文压缩是否正在进行。
 	 */

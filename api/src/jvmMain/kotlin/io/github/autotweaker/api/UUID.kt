@@ -16,8 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("NOTHING_TO_INLINE")
+
 package io.github.autotweaker.api
 
 import java.util.*
 
-fun UUID(): UUID = UUID.randomUUID()
+inline fun UUID(): UUID = UUID.randomUUID()

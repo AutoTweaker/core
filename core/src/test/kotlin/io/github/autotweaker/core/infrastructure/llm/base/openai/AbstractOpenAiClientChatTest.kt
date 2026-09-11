@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.base.openai
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
@@ -36,10 +37,9 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.*
-import kotlin.time.Clock
 
 class AbstractOpenAiClientChatTest {
-	private val now = Clock.System.now()
+	private val now = now()
 	private val serializationJson = Json {
 		ignoreUnknownKeys = true
 		isLenient = true

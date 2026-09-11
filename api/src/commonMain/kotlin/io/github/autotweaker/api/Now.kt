@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("NOTHING_TO_INLINE")
+
 package io.github.autotweaker.api
 
 import kotlin.jvm.JvmName
@@ -25,12 +27,15 @@ import kotlin.time.Instant
 /**
  * 如果 [this] 为 null，返回 [Clock.System.now]，否则返回 [this] 本身。
  */
-fun Instant?.orNow() = this ?: Clock.System.now()
+inline fun Instant?.orNow(): Instant = this ?: Clock.System.now()
 
 @JvmName("orNowNotNull")
+@Suppress("UnusedReceiverParameter")
 @Deprecated(
 	"orNow() on a non-null Instant is redundant",
 	ReplaceWith("this"),
 	level = DeprecationLevel.ERROR,
 )
-fun Instant.orNow() = this
+inline fun Instant.orNow(): Nothing = throw NotImplementedError()
+
+inline fun now(): Instant = Clock.System.now()

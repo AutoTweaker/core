@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
+import io.github.autotweaker.api.now
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.MessageContent
@@ -40,7 +41,6 @@ import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 
 @Suppress("UNCHECKED_CAST")
 class ApprovalProcessorTest {
@@ -60,7 +60,7 @@ class ApprovalProcessorTest {
 				RuntimeContext.Message.User(
 					id = UUID.randomUUID(),
 					content = MessageContent(content = "hello".toContentPart()),
-					timestamp = Clock.System.now(),
+					timestamp = now(),
 				)
 			)
 			manager.applyThinking(assistant(), pendingCalls.map { pendingCall(it) }, emptyList())
@@ -72,13 +72,13 @@ class ApprovalProcessorTest {
 		reasoning = null,
 		content = "calling tools",
 		modelId = UUID.randomUUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		usage = null,
 	)
 	
 	private fun pendingCall(callId: String) = RuntimeContext.CurrentRound.PendingToolCall(
 		id = UUID.randomUUID(),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		callId = callId,
 		callName = "bash-run",
 		arguments = """{"cmd":"echo"}""",
@@ -104,7 +104,7 @@ class ApprovalProcessorTest {
 		content = content,
 		data = null,
 		presentation = listOf(UiBlock.Text("执行了命令")),
-		timestamp = Clock.System.now(),
+		timestamp = now(),
 		status = ToolResultStatus.SUCCESS,
 	)
 	

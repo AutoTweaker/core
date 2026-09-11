@@ -21,7 +21,7 @@ package io.github.autotweaker.api.types.agent
 /**
  * 表示 Agent 当前状态。
  */
-enum class AgentStatus(val stopped: Boolean) {
+enum class AgentStatus(val stopped: Boolean = false, val isDead: Boolean = false) {
 	/**
 	 * Agent 主循环空闲，但上下文压缩可能正在进行。
 	 */
@@ -30,7 +30,7 @@ enum class AgentStatus(val stopped: Boolean) {
 	/**
 	 * Agent 的一切活动已经停止，请在此状态后主动释放 AgentAPI 引用，如果仍然需要进行交互请重新从 [io.github.autotweaker.api.adapter.Session.restore] 获取实例。
 	 */
-	DEAD(true),
+	DEAD(true, true),
 	
 	/**
 	 * Agent 主循环发生不可恢复错误，已经无法工作。此时调用 Agent 的任何 api 都会抛出导致主循环失败的那个原始异常。
@@ -40,20 +40,20 @@ enum class AgentStatus(val stopped: Boolean) {
 	/**
 	 * Agent 正在调用 LLM，在此期间不会有上下文更新。
 	 */
-	THINKING(false),
+	THINKING,
 	
 	/**
 	 * Agent 正在执行工具，在此期间不会有上下文更新。
 	 */
-	TOOL_CALLING(false),
+	TOOL_CALLING,
 	
 	/**
 	 * 短暂的瞬时状态，Agent 正在执行内部运算，如更新上下文或校验工具调用。
 	 */
-	PROCESSING(false),
+	PROCESSING,
 	
 	/**
 	 * Agent 正在等待工具审批。
 	 */
-	WAITING(false),
+	WAITING,
 }

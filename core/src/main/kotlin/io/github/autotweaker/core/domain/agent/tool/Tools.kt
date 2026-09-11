@@ -58,7 +58,6 @@ import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
-import kotlin.time.Clock
 
 class Tools(
 	private val workspace: () -> Path,
@@ -218,7 +217,7 @@ class Tools(
 		
 		return RuntimeContext.Message.Tool.Result(
 			id = UUID(),
-			timestamp = Clock.System.now(),
+			timestamp = now(),
 			content = truncation(output.result, ToolSettings.MaxOutput().get()),
 			data = output.data,
 			presentation = output.presentation,

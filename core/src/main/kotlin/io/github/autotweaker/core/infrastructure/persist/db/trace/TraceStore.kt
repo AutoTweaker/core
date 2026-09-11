@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
 import io.github.autotweaker.api.discard
+import io.github.autotweaker.api.now
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
@@ -27,7 +28,6 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
@@ -38,7 +38,7 @@ class TraceStore(store: DatabaseStore) :
 			TraceTable.insert {
 				it[TraceTable.origin] = origin
 				it[TraceTable.namespace] = namespace
-				it[TraceTable.timestamp] = Clock.System.now()
+				it[TraceTable.timestamp] = now()
 				it[TraceTable.content] = content
 			}
 		}.discard()
@@ -87,7 +87,7 @@ class TraceStore(store: DatabaseStore) :
 	}
 	
 	suspend fun deleteByAge(maxAge: Duration): Long = db.transaction {
-		val cutoff = Clock.System.now() - maxAge
+		val cutoff = now() - maxAge
 		TraceTable.deleteWhere { TraceTable.timestamp less cutoff }.toLong()
 	}
 	
