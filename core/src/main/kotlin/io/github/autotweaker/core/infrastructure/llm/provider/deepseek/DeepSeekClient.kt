@@ -38,7 +38,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 	chunkSerializer = DeepSeekStreamChunk.serializer(),
 ), ObjectStorable {
 	override val providerInfo = LlmClient.ProviderInfo(
-		name = "deepseek", baseUrl = "https://api.deepseek.com/v1".toUrl(), models = listOf(
+		name = "deepseek", baseUrl = "https://api.deepseek.com".toUrl(), models = listOf(
 			ModelData.ModelInfo(
 				modelId = "deepseek-flash",
 				contextWindow = 1_000_000,
