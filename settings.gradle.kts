@@ -16,7 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import io.github.autotweaker.gradle.plugin.versioning.VersionMode
+@file:Suppress("UnstableApiUsage")
+
+import io.github.autotweaker.plugin.versioning.VersionMode
 
 pluginManagement {
 	repositories {
@@ -41,7 +43,7 @@ dependencyResolutionManagement {
 
 plugins {
 	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-	id("io.github.autotweaker.versioning") version "1.0.0"
+	id("io.github.autotweaker.plugin.versioning") version "2.0.0"
 }
 
 rootProject.name = "AutoTweaker"

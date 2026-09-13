@@ -104,8 +104,6 @@ dependencies {
 	add("kapt", "com.google.auto.service:auto-service:1.1.1")
 }
 
-group = "io.github.autotweaker"
-
 publishing {
 	repositories {
 		maven {

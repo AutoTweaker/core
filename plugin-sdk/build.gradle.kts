@@ -37,7 +37,7 @@ dependencies {
 gradlePlugin {
 	plugins {
 		create("autotweakerPlugin") {
-			id = "io.github.autotweaker.plugin"
+			id = "io.github.autotweaker.plugin.sdk"
 			implementationClass = "io.github.autotweaker.plugin.sdk.AutoTweakerPlugin"
 			displayName = "AutoTweaker Plugin SDK"
 			description = "Build toolkit for AutoTweaker third-party plugins"

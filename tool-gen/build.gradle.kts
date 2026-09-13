@@ -37,8 +37,6 @@ kotlin {
 	jvmToolchain(25)
 }
 
-group = "io.github.autotweaker"
-
 publishing {
 	publications {
 		create<MavenPublication>("maven") {
