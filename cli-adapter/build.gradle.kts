@@ -68,15 +68,38 @@ if (inDocker) {
 	tasks.test { enabled = false }
 }
 
-evaluationDependsOn(":cli-protocol")
+val cliProtocolJar = configurations.register("cliProtocolJar") {
+	isCanBeConsumed = false
+	isCanBeResolved = true
+	isTransitive = false
+	attributes {
+		attribute(Attribute.of("org.jetbrains.kotlin.platform.type", String::class.java), "jvm")
+	}
+}
+dependencies.add(cliProtocolJar.name, dependencies.project(path = ":cli-protocol", configuration = "jvmApiElements"))
 
 tasks.jar {
-	dependsOn(project(":cli-protocol").tasks.named("jvmJar"))
-	from(zipTree(project(":cli-protocol").tasks.named("jvmJar").get().outputs.files.singleFile))
+	from(zipTree(cliProtocolJar.map { it.singleFile }))
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-val rootVersionFile = rootProject.layout.buildDirectory.file("generated/version/version.properties")
+val pluginMetadataDir = layout.buildDirectory.dir("generated/plugin-metadata")
 
-tasks.named<ProcessResources>("processResources") {
-	from(rootVersionFile.map { it.asFile })
+val generatePluginMetadata = tasks.register("generatePluginMetadata") {
+	description = "生成 plugin.properties，内含本插件声明的 api 版本"
+	val outputDir = pluginMetadataDir
+	val apiVersion = version.toString()
+	inputs.property("apiVersion", apiVersion)
+	outputs.dir(outputDir)
+	doLast {
+		outputDir.get().file("META-INF/autotweaker/plugin.properties").asFile.apply {
+			parentFile.mkdirs()
+			writeText("apiVersion=$apiVersion")
+		}
+	}
+}
+
+tasks.processResources {
+	dependsOn(generatePluginMetadata)
+	from(pluginMetadataDir) { include("META-INF/autotweaker/plugin.properties") }
 }

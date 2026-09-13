@@ -27,24 +27,7 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 import kotlin.system.exitProcess
 
-fun main(args: Array<String>) {
-	if (args.size != 2) {
-		System.err.println("usage: <outputDir> <scriptsDir>")
-		exitProcess(2)
-	}
-	val outputDir = File(args[0]).apply { mkdirs() }
-	val scriptsDir = File(args[1])
-	if (!scriptsDir.isDirectory) {
-		System.err.println("scripts dir not found: $scriptsDir")
-		exitProcess(2)
-	}
-	val scripts = scriptsDir.listFiles { it.isFile && it.name.endsWith(".toolgen.kts") }
-		?.sortedBy { it.name }
-		?: emptyList()
-	if (scripts.isEmpty()) {
-		System.err.println("no *.toolgen.kts under $scriptsDir")
-		exitProcess(2)
-	}
+fun executeScripts(outputDir: File, scripts: List<File>): Boolean {
 	val host = BasicJvmScriptingHost()
 	var failed = false
 	for (script in scripts) {
@@ -67,5 +50,15 @@ fun main(args: Array<String>) {
 			}
 		}
 	}
-	if (failed) exitProcess(1)
+	return !failed
+}
+
+fun main(args: Array<String>) {
+	if (args.size < 2) {
+		System.err.println("usage: <outputDir> <script>...")
+		exitProcess(2)
+	}
+	val outputDir = File(args[0]).apply { mkdirs() }
+	val scripts = args.drop(1).map(::File).sortedBy { it.name }
+	if (!executeScripts(outputDir, scripts)) exitProcess(1)
 }

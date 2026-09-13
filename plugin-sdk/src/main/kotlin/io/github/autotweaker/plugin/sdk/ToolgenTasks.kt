@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.toolgradle
+package io.github.autotweaker.plugin.sdk
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -25,29 +25,32 @@ import org.gradle.api.tasks.*
 import org.gradle.process.ExecOperations
 import javax.inject.Inject
 
-abstract class ToolgenGenerateTask : DefaultTask() {
+@CacheableTask
+abstract class GenerateToolArgsTask : DefaultTask() {
 	@get:Inject
-	protected abstract val execOperations: ExecOperations
+	abstract val execOperations: ExecOperations
+	
+	@get:InputFiles
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val scripts: ConfigurableFileCollection
+	
+	@get:Classpath
+	abstract val toolgenClasspath: ConfigurableFileCollection
 	
 	@get:OutputDirectory
 	abstract val outputDir: DirectoryProperty
 	
-	@get:InputFiles
-	abstract val scripts: ConfigurableFileCollection
-	
-	@get:Classpath
-	abstract val classpath: ConfigurableFileCollection
-	
-	@get:Internal
-	abstract val scriptsDir: DirectoryProperty
-	
 	@TaskAction
 	fun generate() {
+		val target = outputDir.get().asFile
+		target.deleteRecursively()
+		val sources = scripts.files.sortedBy { it.name }
+		if (sources.isEmpty()) return
 		execOperations.javaexec { spec ->
 			spec.mainClass.set("io.github.autotweaker.toolgen.ToolgenScriptHostKt")
-			spec.classpath = classpath
-			spec.args(outputDir.get().asFile.absolutePath)
-			spec.args(scriptsDir.get().asFile.absolutePath)
+			spec.classpath = toolgenClasspath
+			spec.args(target.absolutePath)
+			sources.forEach { spec.args(it.absolutePath) }
 		}
 	}
 }

@@ -40,11 +40,17 @@ dokka {
 	}
 }
 
+val toolgenArgs = configurations.register("toolgenArgs") {
+	isCanBeConsumed = false
+	isCanBeResolved = true
+	isTransitive = false
+}
+dependencies.add(toolgenArgs.name, dependencies.project(path = ":tool-decl", configuration = "generatedApiArgs"))
+
 val syncGeneratedArgs = tasks.register<Sync>("syncGeneratedArgs") {
 	description = "同步 tool-decl 生成的 ToolArgs 源码到 api 模块"
-	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
+	from(toolgenArgs)
 	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/api"))
-	dependsOn(":tool-decl:generateToolArgs")
 }
 
 kotlin {
@@ -85,7 +91,7 @@ if (inDocker) {
 	}
 } else {
 	tasks.withType<Test> { enabled = false }
-	tasks.check { dependsOn(rootProject.tasks.named("testInDocker")) }
+	tasks.check { dependsOn(":testInDocker") }
 }
 
 tasks.configureEach {
@@ -99,7 +105,6 @@ dependencies {
 }
 
 group = "io.github.autotweaker"
-version = rootProject.ext["generatedVersion"] as String
 
 publishing {
 	repositories {
@@ -107,8 +112,8 @@ publishing {
 			name = "GitHubPackages"
 			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
 			credentials {
-				username = System.getenv("GITHUB_ACTOR").orEmpty()
-				password = System.getenv("GITHUB_TOKEN").orEmpty()
+				username = providers.gradleProperty("gpr.user").getOrElse("")
+				password = providers.gradleProperty("gpr.key").getOrElse("")
 			}
 		}
 	}

@@ -16,12 +16,61 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-	id("io.github.autotweaker.toolgen")
+val toolgenHost = configurations.create("toolgenHost") {
+	isCanBeConsumed = false
+	isCanBeResolved = true
+}
+dependencies.add(toolgenHost.name, dependencies.project(":tool-gen"))
+
+@CacheableTask
+abstract class GenerateToolArgsTask : DefaultTask() {
+	@get:Inject
+	abstract val execOperations: ExecOperations
+	
+	@get:Classpath
+	abstract val runtimeClasspath: ConfigurableFileCollection
+	
+	@get:InputFiles
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val scripts: ConfigurableFileCollection
+	
+	@get:OutputDirectory
+	abstract val outputDir: DirectoryProperty
+	
+	@TaskAction
+	fun generate() {
+		val target = outputDir.get().asFile
+		target.deleteRecursively()
+		val sources = scripts.files.sortedBy { it.name }
+		if (sources.isEmpty()) return
+		execOperations.javaexec {
+			mainClass.set("io.github.autotweaker.toolgen.ToolgenScriptHostKt")
+			classpath = runtimeClasspath
+			args(target.absolutePath)
+			sources.forEach { args(it.absolutePath) }
+		}
+	}
 }
 
-toolgen {
-	scriptsDirectory.set(layout.projectDirectory.dir("src/main/tools"))
-	outputDirectory.set(layout.buildDirectory.dir("generated/args"))
-	attachToSourceSet.set(false)
+val generateToolArgs = tasks.register<GenerateToolArgsTask>("generateToolArgs") {
+	group = "generate"
+	description = "Runs toolgen declaration scripts and generates ToolArgs sources"
+	runtimeClasspath.from(toolgenHost)
+	outputDir.set(layout.buildDirectory.dir("generated/args"))
+	scripts.setFrom(
+		layout.projectDirectory.dir("src/main/tools").asFileTree.matching { include("*.toolgen.kts") }
+	)
+}
+
+listOf(
+	"generatedApiArgs" to "io/github/autotweaker/api",
+	"generatedCoreMeta" to "io/github/autotweaker/core",
+).forEach { (name, packagePath) ->
+	configurations.create(name) {
+		isCanBeConsumed = true
+		isCanBeResolved = false
+		outgoing.artifact(layout.buildDirectory.dir("generated/args/$packagePath")) {
+			builtBy(generateToolArgs)
+		}
+	}
 }

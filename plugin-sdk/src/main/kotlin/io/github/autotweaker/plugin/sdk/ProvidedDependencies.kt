@@ -16,13 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.toolgradle
+package io.github.autotweaker.plugin.sdk
 
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.Property
-
-abstract class ToolgenExtension {
-	abstract val scriptsDirectory: DirectoryProperty
-	abstract val outputDirectory: DirectoryProperty
-	abstract val attachToSourceSet: Property<Boolean>
+object ProvidedDependencies {
+	fun load(): Map<String, String> {
+		val stream = javaClass.classLoader
+			.getResourceAsStream("io/github/autotweaker/plugin/sdk/provided-dependencies.txt")!!
+		return stream.bufferedReader().use { reader ->
+			reader.lineSequence()
+				.filter { it.isNotBlank() }
+				.mapNotNull(::parseEntry)
+				.toMap()
+		}
+	}
+	
+	private fun parseEntry(line: String): Pair<String, String>? {
+		val parts = line.split(":", limit = 3)
+		if (parts.size != 3) return null
+		return "${parts[0]}:${parts[1]}" to parts[2]
+	}
 }

@@ -17,47 +17,41 @@
  */
 
 plugins {
-	kotlin("jvm")
-	`java-gradle-plugin`
+	kotlin("jvm") version "2.4.10"
 	`maven-publish`
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation("com.squareup:kotlinpoet:2.3.0")
+	implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:2.4.10")
+	implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:2.4.10")
+	implementation("org.jetbrains.kotlin:kotlin-scripting-common:2.4.10")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 }
 
 kotlin {
 	jvmToolchain(25)
 }
 
-dependencies {
-	compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10")
-}
-
-gradlePlugin {
-	plugins {
-		create("toolgen") {
-			id = "io.github.autotweaker.toolgen"
-			implementationClass = "io.github.autotweaker.toolgradle.ToolgenPlugin"
-		}
-	}
-}
-
-val versionResDir = layout.buildDirectory.dir("generated/toolgradle/version")
-val pluginVersion = project.version.toString()
-
-val versionFile = versionResDir.get().file("io/github/autotweaker/toolgradle/toolgen.properties")
-versionFile.asFile.apply {
-	parentFile.mkdirs()
-	writeText("toolgen=$pluginVersion")
-}
-
-sourceSets["main"].resources.srcDir(versionResDir)
+group = "io.github.autotweaker"
 
 publishing {
+	publications {
+		create<MavenPublication>("maven") {
+			from(components["java"])
+		}
+	}
 	repositories {
 		maven {
 			name = "GitHubPackages"
 			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
 			credentials {
-				username = System.getenv("GITHUB_ACTOR").orEmpty()
-				password = System.getenv("GITHUB_TOKEN").orEmpty()
+				username = providers.gradleProperty("gpr.user").getOrElse("")
+				password = providers.gradleProperty("gpr.key").getOrElse("")
 			}
 		}
 	}

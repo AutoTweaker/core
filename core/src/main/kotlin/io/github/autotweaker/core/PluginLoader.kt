@@ -22,10 +22,13 @@ import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.PLUGIN_PATH
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.log
+import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import org.objectweb.asm.ClassReader
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 import java.util.jar.JarFile
 
@@ -54,14 +57,14 @@ object PluginLoader : Loggable, Traceable {
 									ClassReader(stream.readAllBytes())
 								}
 							}
+						if (isApiCompatible(jar, path)) path.toUri().toURL() else null
 					}
-					path.toUri().toURL()
 				}
 					.onFailure { log.warn("Skipping bad plugin jar  path={}  reason={}", path, it.message) }
 					.getOrNull()
 			}.toTypedArray()
 			val classLoader = PluginClassLoader(urls, apiClassLoader)
-			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", jars.size, classLoader)
+			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", urls.size, classLoader)
 			sharedClassLoader = classLoader
 			return classLoader
 		}
@@ -75,6 +78,43 @@ object PluginLoader : Loggable, Traceable {
 	}
 	
 	fun close() = sharedClassLoader?.close()
+	
+	private fun isApiCompatible(jar: JarFile, path: Path): Boolean {
+		val raw = jar.getJarEntry("META-INF/autotweaker/plugin.properties")?.let { entry ->
+			jar.getInputStream(entry).use { stream ->
+				Properties().apply { load(stream) }.getProperty("apiVersion")
+			}
+		}
+		if (raw == null) {
+			log.warn("Skipped plugin jar missing api version  path={}", path)
+			return false
+		}
+		val declared = SemVer.parse(raw)
+		val core = ResourcesLoader.version
+		val sameVersion = declared.major == core.major && declared.minor == core.minor && declared.patch == core.patch
+		if (sameVersion && core.preRelease.singleOrNull() == "dev") return true
+		if (declared > core) {
+			log.warn("Skipped plugin jar newer than core  path={}  apiVersion={}  coreVersion={}", path, declared, core)
+			return false
+		}
+		if (declared == core) return true
+		if (core.major > 0 && declared.major == core.major) {
+			log.warn(
+				"Plugin jar built against a different api version  path={}  apiVersion={}  coreVersion={}",
+				path,
+				declared,
+				core
+			)
+			return true
+		}
+		log.warn(
+			"Skipped plugin jar incompatible with core  path={}  apiVersion={}  coreVersion={}",
+			path,
+			declared,
+			core
+		)
+		return false
+	}
 	
 	private class PluginClassLoader(urls: Array<URL>, parent: ClassLoader) : URLClassLoader(urls, parent) {
 		override fun getResources(name: String): Enumeration<URL> =

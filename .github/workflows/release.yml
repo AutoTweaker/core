@@ -4,6 +4,9 @@ on:
   push:
     tags: [ 'v*' ]
 
+env:
+  AUTOTWEAKER_RELEASE: "1"
+
 permissions:
   contents: write
   packages: write
@@ -28,32 +31,34 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Configure Gradle credentials
+        run: |
+          mkdir -p ~/.gradle
+          echo "gpr.user=${{ github.actor }}" >> ~/.gradle/gradle.properties
+          echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> ~/.gradle/gradle.properties
+
       - name: Extract version from tag
         run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+          VERSION="${{ github.ref_name }}"
+          echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
 
       - name: Build and package
         run: ./gradlew :core:distZip :core:distTar
 
       - name: Export full version
         id: version
-        run: echo "full-version=$(grep '^version=' build/generated/version/version.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
-
-      - name: Install build dependencies
-        run: sudo apt-get update -y && sudo apt-get install -y libcjson-dev
+        run: |
+          ./gradlew :generateVersionProperties
+          echo "full-version=$(grep '^version=' build/generated/versioning/resources/version.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Build .deb package
         run: ./gradlew buildDeb
 
-      - name: Publish api to GitHub Packages
-        run: ./gradlew :api:publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish api and tool-gen to GitHub Packages
+        run: ./gradlew :api:publish :tool-gen:publish
 
-      - name: Publish toolchain to GitHub Packages
-        run: ./gradlew -p toolchain :tool-gen:publish :tool-gradle-plugin:publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish plugin-sdk to GitHub Packages
+        run: ./gradlew :plugin-sdk:publish
 
       - name: Create GitHub Release
         run: |
@@ -75,7 +80,8 @@ jobs:
 
       - name: Extract version from tag
         run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+          VERSION="${{ github.ref_name }}"
+          echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
 
       - name: Install PyYAML
         run: pip3 install pyyaml
@@ -137,9 +143,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Configure Gradle credentials
+        run: |
+          mkdir -p ~/.gradle
+          echo "gpr.user=${{ github.actor }}" >> ~/.gradle/gradle.properties
+          echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> ~/.gradle/gradle.properties
+
       - name: Extract version from tag
         run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+          VERSION="${{ github.ref_name }}"
+          echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
 
       - name: Generate Dokka docs
         run: ./gradlew :api:dokkaGenerate

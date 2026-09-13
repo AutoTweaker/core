@@ -70,6 +70,11 @@ else
     TEST_TASK="test"
 fi
 
+CREDENTIAL_ARGS=()
+if [ -f "$HOME/.gradle/gradle.properties" ]; then
+    CREDENTIAL_ARGS+=(-v "$HOME/.gradle/gradle.properties:/gradle-cache/gradle.properties:ro")
+fi
+
 $DOCKER run --rm \
     --network host \
     -e DOCKER_TEST=true \
@@ -78,6 +83,7 @@ $DOCKER run --rm \
     -v "$PROJECT_DIR:/workspace" \
     -v "$HOME/.gradle-docker:/gradle-cache" \
     -v "$HOME/.gradle-docker/m2:/home/user/.m2/repository" \
+    "${CREDENTIAL_ARGS[@]}" \
     -w /workspace \
     "$IMAGE_NAME" \
-    ./gradlew --no-daemon --console=plain "$TEST_TASK" -x :tool-decl:generateArgs "$@" 2>&1 | sed -u 's/^/[docker] /'
+    ./gradlew --no-daemon --console=plain "$TEST_TASK" "$@" 2>&1 | sed -u 's/^/[docker] /'

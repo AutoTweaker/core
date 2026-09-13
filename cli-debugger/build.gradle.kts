@@ -36,3 +36,24 @@ afterEvaluate {
 	}
 }
 
+val pluginMetadataDir = layout.buildDirectory.dir("generated/plugin-metadata")
+
+val generatePluginMetadata = tasks.register("generatePluginMetadata") {
+	description = "生成 plugin.properties，内含本插件声明的 api 版本"
+	val outputDir = pluginMetadataDir
+	val apiVersion = version.toString()
+	inputs.property("apiVersion", apiVersion)
+	outputs.dir(outputDir)
+	doLast {
+		outputDir.get().file("META-INF/autotweaker/plugin.properties").asFile.apply {
+			parentFile.mkdirs()
+			writeText("apiVersion=$apiVersion")
+		}
+	}
+}
+
+tasks.processResources {
+	dependsOn(generatePluginMetadata)
+	from(pluginMetadataDir) { include("META-INF/autotweaker/plugin.properties") }
+}
+

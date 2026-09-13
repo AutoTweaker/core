@@ -22,75 +22,6 @@ plugins {
 	id("org.jetbrains.dokka") version "2.2.0" apply false
 }
 
-allprojects {
-	repositories {
-		mavenCentral()
-	}
-}
-
-// region 生成版本资源文件
-
-abstract class GitHashProvider : ValueSource<String, ValueSourceParameters.None> {
-	override fun obtain(): String {
-		return runCatching {
-			val process = ProcessBuilder("git", "rev-parse", "--short", "HEAD")
-				.redirectError(ProcessBuilder.Redirect.DISCARD)
-				.start()
-			val output = process.inputStream.bufferedReader().readText().trim()
-			if (process.waitFor() != 0) throw RuntimeException("git exited non-zero")
-			output
-		}.getOrDefault("unknown")
-	}
-}
-
-abstract class TimestampProvider : ValueSource<Long, ValueSourceParameters.None> {
-	override fun obtain(): Long = System.currentTimeMillis() / 1000
-}
-
-val gitHash = providers.of(GitHashProvider::class) {}.get()
-
-val timestampProvider = providers.of(TimestampProvider::class) {}
-
-val githubRef = providers.environmentVariable("GITHUB_REF").getOrElse("")
-
-fun resolveVersion(baseVersion: String): String {
-	return if (githubRef.startsWith("refs/tags/v")) {
-		"${githubRef.removePrefix("refs/tags/v")}+$gitHash"
-	} else {
-		val stripped = baseVersion.replace(Regex("-[a-zA-Z].*"), "")
-		"$stripped-dev+${timestampProvider.get()}.$gitHash"
-	}
-}
-
-val generatedVersionFile = layout.buildDirectory.file("generated/version/version.properties")
-
-val generatedVersion = resolveVersion(project.version.toString())
-
-ext["generatedVersion"] = generatedVersion
-
-val generateVersionProperties = tasks.register("generateVersionProperties") {
-	description = "生成 version.properties（含 git hash 和构建时间戳）"
-	val outputFile = generatedVersionFile
-	val version = generatedVersion
-	inputs.property("version", version)
-	outputs.file(outputFile)
-	doLast {
-		outputFile.get().asFile.apply {
-			parentFile.mkdirs()
-			writeText("version=$version")
-		}
-	}
-}
-
-subprojects {
-	tasks.withType<ProcessResources>().configureEach {
-		dependsOn(":generateVersionProperties")
-	}
-	
-}
-
-// endregion
-
 tasks.register<Exec>("buildDeb") {
 	description = "构建 .deb 包"
 	dependsOn(
@@ -101,7 +32,7 @@ tasks.register<Exec>("buildDeb") {
 	)
 	workingDir = projectDir
 	val cliAdapterJar = project(":cli-adapter").tasks.named("jar").get().outputs.files.singleFile.absolutePath
-	val versionFile = generatedVersionFile
+	val versionFile = layout.buildDirectory.file("generated/versioning/resources/version.properties")
 	doFirst {
 		val version = versionFile.get().asFile.readText().removePrefix("version=").trim()
 		commandLine("bash", "scripts/build-deb.sh", version, cliAdapterJar)
@@ -110,6 +41,7 @@ tasks.register<Exec>("buildDeb") {
 
 tasks.register<Exec>("releaseTag") {
 	description = "基于当前版本号打 tag 并推送"
+	val releaseVersion = providers.gradleProperty("version").get()
 	dependsOn(subprojects.filter { it.tasks.findByName("build") != null }.map { "${it.path}:build" })
 	workingDir = projectDir
 	commandLine(
@@ -124,8 +56,8 @@ tasks.register<Exec>("releaseTag") {
             echo "错误: 本地 main 分支与 origin/main 不同步，请先同步后再执行 releaseTag" >&2
             exit 1
         fi
-        git tag -a "v${project.version}" -m "AutoTweaker v${project.version}"
-        git push origin "v${project.version}"
+        git tag -a "v$releaseVersion" -m "AutoTweaker v$releaseVersion"
+        git push origin "v$releaseVersion"
     """.trimIndent()
 	)
 }

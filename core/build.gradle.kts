@@ -24,11 +24,17 @@ plugins {
 	jacoco
 }
 
+val toolgenMeta = configurations.register("toolgenMeta") {
+	isCanBeConsumed = false
+	isCanBeResolved = true
+	isTransitive = false
+}
+dependencies.add(toolgenMeta.name, dependencies.project(path = ":tool-decl", configuration = "generatedCoreMeta"))
+
 val syncGeneratedMeta = tasks.register<Sync>("syncGeneratedMeta") {
 	description = "同步 tool-decl 生成的 ToolMeta 源码到 core 模块"
-	from(project(":tool-decl").layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
+	from(toolgenMeta)
 	into(layout.buildDirectory.dir("generated/args/io/github/autotweaker/core"))
-	dependsOn(":tool-decl:generateToolArgs")
 }
 
 kotlin {
@@ -133,9 +139,9 @@ if (inDocker) {
 	}
 } else {
 	tasks.test { enabled = false }
-	tasks.check { dependsOn(rootProject.tasks.named("testInDocker")) }
+	tasks.check { dependsOn(":testInDocker") }
 	tasks.jacocoTestReport {
-		dependsOn(rootProject.tasks.named("testInDocker"))
+		dependsOn(":testInDocker")
 		reports {
 			xml.required = true
 			html.required = true
@@ -145,25 +151,17 @@ if (inDocker) {
 
 // region 版本资源
 
-val generatedVersion = rootProject.ext["generatedVersion"] as String
-
-val rootVersionFile = rootProject.layout.buildDirectory.file("generated/version/version.properties")
-
-tasks.named<ProcessResources>("processResources") {
-	from(rootVersionFile.map { it.asFile })
-}
-
 tasks.jar {
 	archiveBaseName = "autotweaker-core"
-	if ((System.getenv("GITHUB_REF").orEmpty()).startsWith("refs/tags/v")) {
-		archiveVersion.set(provider { generatedVersion })
+	if (System.getenv("AUTOTWEAKER_RELEASE") == "1") {
+		archiveVersion.set(provider { version.toString() })
 	} else {
 		archiveVersion.set("")
 	}
 }
 
 tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEach {
-	archiveVersion.set(provider { generatedVersion })
+	archiveVersion.set(provider { version.toString() })
 }
 
 // endregion
