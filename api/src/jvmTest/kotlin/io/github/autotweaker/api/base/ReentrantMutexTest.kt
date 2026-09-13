@@ -30,7 +30,6 @@ import kotlin.test.fail
 import kotlin.time.Duration.Companion.milliseconds
 
 class ReentrantMutexTest {
-	
 	private val lock = ReentrantMutex()
 	private val otherLock = ReentrantMutex()
 	
@@ -203,10 +202,14 @@ class ReentrantMutexTest {
 	fun `cancellation while waiting releases nothing but does not corrupt`() = runBlocking {
 		TestServices.init()
 		withTimeout(5000.milliseconds) {
+			// 门闩：job 必须等主协程持锁后才去竞争，否则 job 可能抢先拿到锁令断言误报
+			val locked = CompletableDeferred<Unit>()
 			val job = launch(Dispatchers.Default) {
+				locked.await()
 				lock.withLock { fail("should not acquire") }
 			}
 			lock.withLock {
+				locked.complete(Unit)
 				delay(10.milliseconds)
 				job.cancelAndJoin()
 			}
