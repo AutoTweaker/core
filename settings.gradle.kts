@@ -24,14 +24,6 @@ pluginManagement {
 	repositories {
 		gradlePluginPortal()
 		mavenCentral()
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/AutoTweaker/gradle-versioning")
-			credentials {
-				username = providers.gradleProperty("gpr.user").getOrElse("")
-				password = providers.gradleProperty("gpr.key").getOrElse("")
-			}
-		}
 	}
 }
 
@@ -43,7 +35,16 @@ dependencyResolutionManagement {
 
 plugins {
 	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-	id("io.github.autotweaker.plugin.versioning") version "2.0.0"
+	id("io.github.autotweaker.plugin.versioning") version "2.0.1"
+	id("com.gradleup.nmcp.settings") version "1.6.2"
+}
+
+nmcpSettings {
+	centralPortal {
+		username = providers.gradleProperty("centralPortalUsername").getOrElse("")
+		password = providers.gradleProperty("centralPortalPassword").getOrElse("")
+		publishingType = "USER_MANAGED"
+	}
 }
 
 rootProject.name = "AutoTweaker"

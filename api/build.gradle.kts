@@ -24,6 +24,7 @@ plugins {
 	kotlin("plugin.serialization")
 	id("org.jetbrains.dokka")
 	`maven-publish`
+	signing
 }
 
 dokka {
@@ -105,14 +106,44 @@ dependencies {
 }
 
 publishing {
-	repositories {
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
-			credentials {
-				username = providers.gradleProperty("gpr.user").getOrElse("")
-				password = providers.gradleProperty("gpr.key").getOrElse("")
+	publications.withType<MavenPublication>().configureEach {
+		val javadocJar = tasks.register<Jar>("${name}JavadocJar") {
+			description = "将 Dokka 生成的文档打包为 javadoc jar"
+			from(tasks.named("dokkaGeneratePublicationHtml"))
+			archiveClassifier.set("javadoc")
+			archiveBaseName.set("${project.name}-$name")
+		}
+		artifact(javadocJar)
+		pom {
+			name.set("AutoTweaker API")
+			description.set("Public API of AutoTweaker")
+			url.set("https://github.com/AutoTweaker/core")
+			licenses {
+				license {
+					name.set("GNU General Public License v3.0 or later")
+					url.set("https://www.gnu.org/licenses/gpl-3.0.html")
+				}
+			}
+			developers {
+				developer {
+					id.set("WhiteElephant-abc")
+					name.set("WhiteElephant-abc")
+					url.set("https://github.com/WhiteElephant-abc")
+				}
+			}
+			scm {
+				connection.set("scm:git:git://github.com/AutoTweaker/core.git")
+				developerConnection.set("scm:git:ssh://git@github.com/AutoTweaker/core.git")
+				url.set("https://github.com/AutoTweaker/core")
 			}
 		}
+	}
+}
+
+signing {
+	val signingKey = providers.gradleProperty("signingInMemoryKey").orNull
+	if (signingKey != null) {
+		useInMemoryPgpKeys(signingKey, providers.gradleProperty("signingInMemoryKeyPassword").getOrElse(""))
+		publishing.publications.configureEach { sign(this) }
 	}
 }

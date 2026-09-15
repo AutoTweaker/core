@@ -9,7 +9,6 @@ env:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   release:
@@ -31,12 +30,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Configure Gradle credentials
-        run: |
-          mkdir -p ~/.gradle
-          echo "gpr.user=${{ github.actor }}" >> ~/.gradle/gradle.properties
-          echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> ~/.gradle/gradle.properties
-
       - name: Extract version from tag
         run: |
           VERSION="${{ github.ref_name }}"
@@ -54,11 +47,13 @@ jobs:
       - name: Build .deb package
         run: ./gradlew buildDeb
 
-      - name: Publish api and tool-gen to GitHub Packages
-        run: ./gradlew :api:publish :tool-gen:publish
-
-      - name: Publish plugin-sdk to GitHub Packages
-        run: ./gradlew :plugin-sdk:publish
+      - name: Publish to Maven Central
+        run: ./gradlew publishAggregationToCentralPortal
+        env:
+          ORG_GRADLE_PROJECT_centralPortalUsername: ${{ secrets.CENTRAL_PORTAL_USERNAME }}
+          ORG_GRADLE_PROJECT_centralPortalPassword: ${{ secrets.CENTRAL_PORTAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
 
       - name: Create GitHub Release
         run: |
@@ -142,12 +137,6 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
-
-      - name: Configure Gradle credentials
-        run: |
-          mkdir -p ~/.gradle
-          echo "gpr.user=${{ github.actor }}" >> ~/.gradle/gradle.properties
-          echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> ~/.gradle/gradle.properties
 
       - name: Extract version from tag
         run: |

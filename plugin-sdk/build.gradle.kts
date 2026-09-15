@@ -19,7 +19,9 @@
 plugins {
 	kotlin("jvm")
 	`java-gradle-plugin`
+	id("org.jetbrains.dokka")
 	`maven-publish`
+	signing
 }
 
 repositories {
@@ -109,15 +111,51 @@ val generateProvidedDependencies = tasks.register<GenerateResourceFile>("generat
 
 sourceSets["main"].resources.srcDir(files(providedResourcesDir).builtBy(generateProvidedDependencies))
 
+java {
+	withSourcesJar()
+}
+
+val javadocJar = tasks.register<Jar>("javadocJar") {
+	description = "将 Dokka 生成的文档打包为 javadoc jar"
+	from(tasks.named("dokkaGeneratePublicationHtml"))
+	archiveClassifier.set("javadoc")
+}
+
 publishing {
-	repositories {
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/AutoTweaker/core")
-			credentials {
-				username = providers.gradleProperty("gpr.user").getOrElse("")
-				password = providers.gradleProperty("gpr.key").getOrElse("")
+	publications.withType<MavenPublication>().configureEach {
+		if (!name.endsWith("PluginMarkerMaven")) {
+			artifact(javadocJar)
+		}
+		pom {
+			name.set("AutoTweaker Plugin SDK")
+			description.set("Build toolkit for AutoTweaker plugins")
+			url.set("https://github.com/AutoTweaker/core")
+			licenses {
+				license {
+					name.set("GNU General Public License v3.0 or later")
+					url.set("https://www.gnu.org/licenses/gpl-3.0.html")
+				}
+			}
+			developers {
+				developer {
+					id.set("WhiteElephant-abc")
+					name.set("WhiteElephant-abc")
+					url.set("https://github.com/WhiteElephant-abc")
+				}
+			}
+			scm {
+				connection.set("scm:git:git://github.com/AutoTweaker/core.git")
+				developerConnection.set("scm:git:ssh://git@github.com/AutoTweaker/core.git")
+				url.set("https://github.com/AutoTweaker/core")
 			}
 		}
+	}
+}
+
+signing {
+	val signingKey = providers.gradleProperty("signingInMemoryKey").orNull
+	if (signingKey != null) {
+		useInMemoryPgpKeys(signingKey, providers.gradleProperty("signingInMemoryKeyPassword").getOrElse(""))
+		publishing.publications.configureEach { sign(this) }
 	}
 }
