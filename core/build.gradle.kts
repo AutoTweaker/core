@@ -100,7 +100,7 @@ dependencies {
 	
 	implementation("com.github.docker-java:docker-java-core:3.7.1")
 	implementation("com.github.docker-java:docker-java-transport-httpclient5:3.7.1")
-	implementation("org.apache.httpcomponents.client5:httpclient5:5.6.3")
+	implementation("org.apache.httpcomponents.client5:httpclient5:5.6.4")
 	implementation("org.apache.httpcomponents.core5:httpcore5:5.4.3")
 	implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
 	implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
