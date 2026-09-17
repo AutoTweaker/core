@@ -21,6 +21,7 @@ package io.github.autotweaker.core.application
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.CoreAPI
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.appVersion
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.i18n.I18nService
@@ -45,7 +46,6 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.container.ContainerService
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
-import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
@@ -107,7 +107,7 @@ object Wiring : Loggable {
 				shellRouter = get(),
 				adapter = adapter,
 				pathResolver = get(),
-				appVersion = ResourcesLoader.version
+				appVersion = this@Wiring.appVersion
 			)
 		}
 	}

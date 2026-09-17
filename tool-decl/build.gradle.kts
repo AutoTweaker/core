@@ -20,7 +20,7 @@ val toolgenHost = configurations.create("toolgenHost") {
 	isCanBeConsumed = false
 	isCanBeResolved = true
 }
-dependencies.add(toolgenHost.name, dependencies.project(":tool-gen"))
+dependencies.add(toolgenHost.name, dependencies.project(":autotweaker-tool-gen"))
 
 @CacheableTask
 abstract class GenerateToolArgsTask : DefaultTask() {

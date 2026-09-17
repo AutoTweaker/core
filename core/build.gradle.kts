@@ -60,7 +60,7 @@ tasks.named<JavaExec>("run") {
 }
 
 dependencies {
-	implementation(project(":api"))
+	implementation(project(":autotweaker-api"))
 	
 	implementation("io.ktor:ktor-client-core:3.5.2")
 	implementation("io.ktor:ktor-client-java:3.5.2")
@@ -148,20 +148,3 @@ if (inDocker) {
 		}
 	}
 }
-
-// region 版本资源
-
-tasks.jar {
-	archiveBaseName = "autotweaker-core"
-	if (System.getenv("AUTOTWEAKER_RELEASE") == "1") {
-		archiveVersion.set(provider { version.toString() })
-	} else {
-		archiveVersion.set("")
-	}
-}
-
-tasks.withType<AbstractArchiveTask>().matching { it.name != "jar" }.configureEach {
-	archiveVersion.set(provider { version.toString() })
-}
-
-// endregion

@@ -27,7 +27,7 @@ kotlin {
 	
 	sourceSets {
 		commonMain.dependencies {
-			implementation(project(":api"))
+			implementation(project(":autotweaker-api"))
 			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 		}
 	}

@@ -17,6 +17,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+APP_HOME=/usr/lib/autotweaker
 JVM_OPTS=$(grep -v '^#' /etc/autotweaker/jvm.options 2>/dev/null | tr '\n' ' ')
 export JAVA_OPTS="$JVM_OPTS $JAVA_OPTS"
-exec /usr/share/autotweaker/bin/autotweaker
+export AUTOTWEAKER_INSTALL_PATH="$APP_HOME"
+exec "$APP_HOME/bin/autotweaker"

@@ -18,12 +18,8 @@
 
 package io.github.autotweaker.core
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.PLUGIN_PATH
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.log
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import org.objectweb.asm.ClassReader
 import java.net.URL
 import java.net.URLClassLoader
@@ -31,90 +27,142 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.jar.JarFile
+import kotlin.system.exitProcess
 
 object PluginLoader : Loggable, Traceable {
-	@Volatile
-	var sharedClassLoader: URLClassLoader? = null
-	
-	fun getOrCreateClassLoader(apiClassLoader: ClassLoader): URLClassLoader? {
-		sharedClassLoader?.let { return it }
-		synchronized(this) {
-			sharedClassLoader?.let { return it }
-			if (!Files.isDirectory(PLUGIN_PATH)) return null
-			
-			val jars = Files.list(PLUGIN_PATH).use {
-				it.filter { path -> path.toString().endsWith(".jar") }.toList()
-			}
-			if (jars.isEmpty()) return null
-			
-			val urls = jars.mapNotNull { path ->
-				runCatching { //加载StartupHook时trace尚未准备好
-					JarFile(path.toFile()).use { jar ->
-						jar.entries().asSequence()
-							.filter { it.name.endsWith(".class") }
-							.forEach { entry ->
-								jar.getInputStream(entry).use { stream ->
-									ClassReader(stream.readAllBytes())
-								}
-							}
-						if (isApiCompatible(jar, path)) path.toUri().toURL() else null
-					}
-				}
-					.onFailure { log.warn("Skipping bad plugin jar  path={}  reason={}", path, it.message) }
-					.getOrNull()
-			}.toTypedArray()
-			val classLoader = PluginClassLoader(urls, apiClassLoader)
-			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", urls.size, classLoader)
-			sharedClassLoader = classLoader
-			return classLoader
+	private val sharedClassLoader: URLClassLoader by lazy {
+		val jars = scan()
+		if (jars.isEmpty()) {
+			log.error("No plugin loaded")
+			exitProcess(1)
+		}
+		val urls = jars.map { it.toUri().toURL() }.toTypedArray()
+		PluginClassLoader(urls, javaClass.classLoader).also {
+			log.info("Created shared plugin classLoader  jarCount={}  classLoader={}", urls.size, it)
 		}
 	}
 	
-	inline fun <reified T : Any> load(): List<T> {
-		val classLoader = getOrCreateClassLoader(T::class.java.classLoader) ?: return emptyList()
-		val plugins = ServiceLoader.load(T::class.java, classLoader).toList()
-		log.info("Loaded plugins  type={}  pluginCount={}", T::class.simpleName, plugins.size)
+	inline fun <reified T : Any> load(): List<T> = load(T::class.java)
+	
+	fun <T : Any> load(type: Class<T>): List<T> {
+		val plugins = ServiceLoader.load(type, sharedClassLoader).toList()
+		log.info("Loaded plugins  type={}  pluginCount={}", type.simpleName, plugins.size)
 		return plugins
 	}
 	
-	fun close() = sharedClassLoader?.close()
+	fun close() = sharedClassLoader.close()
 	
-	private fun isApiCompatible(jar: JarFile, path: Path): Boolean {
-		val raw = jar.getJarEntry("META-INF/autotweaker/plugin.properties")?.let { entry ->
-			jar.getInputStream(entry).use { stream ->
-				Properties().apply { load(stream) }.getProperty("apiVersion")
-			}
+	private fun scan(): List<Path> {
+		val accepted = mutableListOf<Path>()
+		val loadedIds = mutableSetOf<String>()
+		PLUGIN_PATH.forEach { dir ->
+			jarsOf(dir).asSequence()
+				.mapNotNull(::readMetadata)
+				.filter(::isApiCompatible)
+				.groupBy { it.id }
+				.map { (_, sameId) -> sameId.maxBy { it.version } }
+				.forEach { metadata ->
+					if (loadedIds.add(metadata.id)) {
+						accepted.add(metadata.path)
+					} else {
+						log.warn("Skipped shadowed plugin  path={}  id={}", metadata.path, metadata.id)
+					}
+				}
 		}
+		return accepted
+	}
+	
+	private fun jarsOf(dir: Path): List<Path> = if (Files.isDirectory(dir)) {
+		Files.list(dir).use { paths ->
+			paths.filter { it.toString().endsWith(".jar") }.sorted().toList()
+		}
+	} else emptyList()
+	
+	private fun readMetadata(path: Path): PluginMetadata? = runCatching { //加载StartupHook时trace尚未准备好
+		JarFile(path.toFile()).use { jar ->
+			jar.entries().asSequence()
+				.filter { it.name.endsWith(".class") }
+				.forEach { entry ->
+					jar.getInputStream(entry).use { stream ->
+						ClassReader(stream.readAllBytes())
+					}
+				}
+			parseMetadata(jar, path)
+		}
+	}
+		.onFailure { log.warn("Skipping bad plugin jar  path={}  reason={}", path, it.message()) }
+		.getOrNull()
+	
+	private fun parseMetadata(jar: JarFile, path: Path): PluginMetadata? {
+		val properties = jar.getJarEntry("META-INF/autotweaker/plugin.properties")?.let { entry ->
+			jar.getInputStream(entry).use { stream -> Properties().apply { load(stream) } }
+		}
+		if (properties == null) {
+			log.warn("Skipped plugin jar missing metadata  path={}", path)
+			return null
+		}
+		val id = properties.getProperty("id")
+		if (id == null) {
+			log.warn("Skipped plugin jar missing id  path={}", path)
+			return null
+		}
+		val version = readVersion(properties, "version", path) ?: return null
+		val apiVersion = readVersion(properties, "apiVersion", path) ?: return null
+		return PluginMetadata(path, id, version, apiVersion)
+	}
+	
+	private fun readVersion(properties: Properties, key: String, path: Path): SemVer? {
+		val raw = properties.getProperty(key)
 		if (raw == null) {
-			log.warn("Skipped plugin jar missing api version  path={}", path)
-			return false
+			log.warn("Skipped plugin jar missing {}  path={}", key, path)
+			return null
 		}
-		val declared = SemVer.parse(raw)
-		val core = ResourcesLoader.version
-		val sameVersion = declared.major == core.major && declared.minor == core.minor && declared.patch == core.patch
-		if (sameVersion && core.preRelease.singleOrNull() == "dev") return true
-		if (declared > core) {
-			log.warn("Skipped plugin jar newer than core  path={}  apiVersion={}  coreVersion={}", path, declared, core)
-			return false
-		}
-		if (declared == core) return true
-		if (core.major > 0 && declared.major == core.major) {
+		val parsed = runCatching { SemVer.parse(raw) }.getOrNull()
+		if (parsed == null) log.warn("Skipped plugin jar with malformed {}  path={}  value={}", key, path, raw)
+		return parsed
+	}
+	
+	private fun isApiCompatible(metadata: PluginMetadata): Boolean {
+		val declared = metadata.apiVersion
+		val application = appVersion
+		val sameVersion = declared.major == application.major &&
+				declared.minor == application.minor &&
+				declared.patch == application.patch
+		if (sameVersion && application.preRelease.singleOrNull() == "dev") return true
+		if (declared > application) {
 			log.warn(
-				"Plugin jar built against a different api version  path={}  apiVersion={}  coreVersion={}",
-				path,
+				"Skipped plugin jar newer than the application  path={}  apiVersion={}  appVersion={}",
+				metadata.path,
 				declared,
-				core
+				application
+			)
+			return false
+		}
+		if (declared == application) return true
+		if (application.major > 0 && declared.major == application.major) {
+			log.warn(
+				"Plugin jar built against a different api version  path={}  apiVersion={}  appVersion={}",
+				metadata.path,
+				declared,
+				application
 			)
 			return true
 		}
 		log.warn(
-			"Skipped plugin jar incompatible with core  path={}  apiVersion={}  coreVersion={}",
-			path,
+			"Skipped plugin jar incompatible with the application  path={}  apiVersion={}  appVersion={}",
+			metadata.path,
 			declared,
-			core
+			application
 		)
 		return false
 	}
+	
+	private data class PluginMetadata(
+		val path: Path,
+		val id: String,
+		val version: SemVer,
+		val apiVersion: SemVer,
+	)
 	
 	private class PluginClassLoader(urls: Array<URL>, parent: ClassLoader) : URLClassLoader(urls, parent) {
 		override fun getResources(name: String): Enumeration<URL> =

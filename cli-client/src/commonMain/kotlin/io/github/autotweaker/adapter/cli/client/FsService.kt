@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.adapter.cli.client
 
-import io.github.autotweaker.adapter.cli.client.expect.createSymbolicLink
 import io.github.autotweaker.adapter.cli.client.expect.env
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.orNull
@@ -30,16 +29,6 @@ import kotlinx.io.writeString
 object FsService {
 	val configDir = Path(env("HOME"), ".config", APP_NAME_LOWERCASE)
 	val fs = SystemFileSystem
-	
-	fun syncPlugins() {
-		val pluginsDir = Path(configDir, "plugins")
-		fs.createDirectories(pluginsDir)
-		val target = Path(pluginsDir, "cli-adapter.jar")
-		val source = Path("/", "usr", "share", APP_NAME_LOWERCASE, "cli-adapter.jar")
-		if (target.isRegularFile()) return
-		fs.delete(target, mustExist = false)
-		createSymbolicLink(link = target, source = source)
-	}
 	
 	fun writeProxyEnv() {
 		val proxyVars = listOf(

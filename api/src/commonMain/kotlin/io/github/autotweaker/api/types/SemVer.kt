@@ -124,6 +124,13 @@ data class SemVer(
 		)
 		
 		/**
+		 * 从字符串解析一个符合 SemVer 规范的版本号，[parse] 的别名。
+		 *
+		 * @throws IllegalArgumentException 版本号不符合 SemVer 规范。
+		 */
+		fun String.toSemVer() = parse(this)
+		
+		/**
 		 * 从字符串解析一个符合 SemVer 规范的版本号。
 		 *
 		 * @throws IllegalArgumentException 版本号不符合 SemVer 规范。

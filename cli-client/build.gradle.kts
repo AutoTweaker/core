@@ -33,7 +33,7 @@ kotlin {
 	
 	sourceSets {
 		commonMain.dependencies {
-			implementation(project(":api"))
+			implementation(project(":autotweaker-api"))
 			implementation(project(":cli-protocol"))
 			implementation("io.ktor:ktor-network:3.5.1")
 			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")

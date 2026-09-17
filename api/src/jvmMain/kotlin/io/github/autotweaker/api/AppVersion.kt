@@ -16,10 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure
+package io.github.autotweaker.api
 
-import io.github.autotweaker.core.PluginLoader
-import java.util.*
+import io.github.autotweaker.api.types.SemVer
+import io.github.autotweaker.api.types.SemVer.Companion.toSemVer
 
-inline fun <reified T : Any> loadClass() =
-	ServiceLoader.load(T::class.java) + PluginLoader.load<T>()
+/**
+ * 取所在包的 `Implementation-Version` 元数据。
+ *
+ * 配合 gradle 插件 `io.github.autotweaker.plugin.versioning` 使用，更丝滑。
+ *
+ * @throws IllegalStateException 取不到 `Implementation-Version`。
+ * @throws IllegalArgumentException 取到的版本号字符串不符合 SemVer 规范。
+ */
+inline val <T : Any> T.appVersion: SemVer
+	get() = javaClass.getPackage().implementationVersion?.toSemVer() ?: error("Missing Implementation-Version")

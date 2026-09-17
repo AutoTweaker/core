@@ -65,7 +65,7 @@ if [ ! -f "$HOME/.gradle-docker/.bootstrapped" ]; then
 fi
 
 if [ "$#" -gt 0 ]; then
-    TEST_TASK=":core:test"
+    TEST_TASK=":autotweaker-core:test"
 else
     TEST_TASK="test"
 fi

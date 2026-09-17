@@ -20,6 +20,4 @@ package io.github.autotweaker.adapter.cli.client.expect
 
 import kotlinx.io.files.Path
 
-expect fun createSymbolicLink(link: Path, source: Path)
-
 expect fun Path.isSocket(): Boolean

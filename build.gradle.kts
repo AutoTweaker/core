@@ -25,17 +25,15 @@ plugins {
 tasks.register<Exec>("buildDeb") {
 	description = "构建 .deb 包"
 	dependsOn(
-		":core:installDist",
+		":autotweaker-core:installDist",
 		":cli-adapter:jar",
-		":cli-client:linkReleaseExecutableLinuxX64",
-		":generateVersionProperties"
+		":cli-client:linkReleaseExecutableLinuxX64"
 	)
 	workingDir = projectDir
 	val cliAdapterJar = project(":cli-adapter").tasks.named("jar").get().outputs.files.singleFile.absolutePath
-	val versionFile = layout.buildDirectory.file("generated/versioning/resources/version.properties")
+	val debVersion = version.toString()
 	doFirst {
-		val version = versionFile.get().asFile.readText().removePrefix("version=").trim()
-		commandLine("bash", "scripts/build-deb.sh", version, cliAdapterJar)
+		commandLine("bash", "scripts/build-deb.sh", debVersion, cliAdapterJar)
 	}
 }
 

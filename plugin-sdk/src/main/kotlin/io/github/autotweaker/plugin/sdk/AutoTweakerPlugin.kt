@@ -22,6 +22,8 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.language.jvm.tasks.ProcessResources
@@ -30,6 +32,9 @@ import org.gradle.language.jvm.tasks.ProcessResources
 class AutoTweakerPlugin : Plugin<Project> {
 	override fun apply(project: Project) {
 		val version = sdkVersion()
+		val extension = project.extensions.create("pluginSdk", PluginSdkExtension::class.java)
+		val pluginId = extension.id
+		val pluginVersion = extension.version.orElse(project.provider { project.version.toString() })
 		project.pluginManager.withPlugin("java") {
 			val provided = ProvidedDependencies.load()
 			project.logger.lifecycle(
@@ -38,9 +43,9 @@ class AutoTweakerPlugin : Plugin<Project> {
 				provided.size
 			)
 			alignProvidedVersions(project, provided)
-			project.dependencies.add("compileOnly", "io.github.autotweaker:api:$version")
-			injectApiVersion(project, version)
-			configureShading(project, provided)
+			project.dependencies.add("compileOnly", "io.github.autotweaker:autotweaker-api:$version")
+			injectPluginMetadata(project, version, pluginId, pluginVersion)
+			configureShading(project, provided, pluginVersion)
 			configureToolgen(project, version)
 		}
 	}
@@ -52,7 +57,7 @@ class AutoTweakerPlugin : Plugin<Project> {
 			configuration.isCanBeConsumed = false
 			configuration.isCanBeResolved = true
 			configuration.defaultDependencies { dependencies ->
-				dependencies.add(project.dependencies.create("io.github.autotweaker:tool-gen:$version"))
+				dependencies.add(project.dependencies.create("io.github.autotweaker:autotweaker-tool-gen:$version"))
 			}
 		}
 		val generatedDir = project.layout.buildDirectory.dir("generated/toolgen/args")
@@ -88,16 +93,35 @@ class AutoTweakerPlugin : Plugin<Project> {
 		}
 	}
 	
-	private fun injectApiVersion(project: Project, version: String) {
+	private fun injectPluginMetadata(
+		project: Project,
+		version: String,
+		pluginId: Property<String>,
+		pluginVersion: Provider<String>,
+	) {
 		val outputDir = project.layout.buildDirectory.dir("generated/plugin-metadata")
+		project.afterEvaluate {
+			require(pluginId.isPresent) {
+				"AutoTweaker plugin must declare its id in the pluginSdk extension, e.g. pluginSdk { id = \"com.example.myplugin\" }"
+			}
+			require(
+				Regex(
+					"""^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"""
+				).matches(pluginVersion.get())
+			) {
+				"AutoTweaker plugin version must be a valid SemVer, got '${pluginVersion.get()}'"
+			}
+		}
 		val generateTask = project.tasks.register("generatePluginMetadata") { task ->
 			val target = outputDir.map { it.file("META-INF/autotweaker/plugin.properties") }
+			task.inputs.property("pluginId", pluginId)
+			task.inputs.property("pluginVersion", pluginVersion)
 			task.inputs.property("apiVersion", version)
 			task.outputs.file(target)
 			task.doLast {
 				target.get().asFile.apply {
 					parentFile.mkdirs()
-					writeText("apiVersion=$version")
+					writeText("id=${pluginId.get()}\nversion=${pluginVersion.get()}\napiVersion=$version")
 				}
 			}
 		}
@@ -109,7 +133,7 @@ class AutoTweakerPlugin : Plugin<Project> {
 		}
 	}
 	
-	private fun configureShading(project: Project, provided: Map<String, String>) {
+	private fun configureShading(project: Project, provided: Map<String, String>, pluginVersion: Provider<String>) {
 		project.pluginManager.apply("com.gradleup.shadow")
 		project.tasks.named("jar", Jar::class.java) { jar ->
 			jar.enabled = false
@@ -127,6 +151,7 @@ class AutoTweakerPlugin : Plugin<Project> {
 		val relocate = project.providers.gradleProperty("autotweaker.relocate").getOrElse("true") != "false"
 		project.tasks.named("shadowJar", ShadowJar::class.java) { shadowJar ->
 			shadowJar.archiveClassifier.set("")
+			shadowJar.manifest.attributes["Implementation-Version"] = pluginVersion
 			shadowJar.enableAutoRelocation.set(relocate)
 			shadowJar.relocationPrefix.set(relocationPrefix(project))
 			shadowJar.mergeServiceFiles()

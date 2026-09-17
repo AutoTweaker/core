@@ -25,7 +25,6 @@ import io.github.autotweaker.adapter.cli.client.DaemonManager.systemctl
 import io.github.autotweaker.adapter.cli.client.DaemonManager.waitForReady
 import io.github.autotweaker.adapter.cli.client.FsService.configDir
 import io.github.autotweaker.adapter.cli.client.FsService.fs
-import io.github.autotweaker.adapter.cli.client.FsService.syncPlugins
 import io.github.autotweaker.adapter.cli.client.FsService.writeProxyEnv
 import io.github.autotweaker.adapter.cli.client.expect.*
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
@@ -51,7 +50,7 @@ fun main(args: Array<String>) {
 	val sockPath = Path(configDir, "cli.sock")
 	val lockPath = Path(configDir, "autotweaker.lock")
 	
-	syncPlugins(); writeProxyEnv()
+	writeProxyEnv()
 	
 	fun buildRequest(): String {
 		val prog = APP_NAME_LOWERCASE

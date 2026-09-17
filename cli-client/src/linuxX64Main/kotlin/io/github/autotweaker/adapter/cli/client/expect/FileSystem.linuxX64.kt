@@ -23,17 +23,9 @@ import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.io.files.Path
-import platform.posix.*
-
-actual fun createSymbolicLink(link: Path, source: Path) {
-	val linkStr = link.toString()
-	val sourceStr = source.toString()
-	
-	unlink(linkStr)
-	
-	if (symlink(sourceStr, linkStr) == -1)
-		perror("symlink")
-}
+import platform.posix.S_IFMT
+import platform.posix.S_IFSOCK
+import platform.posix.stat
 
 @OptIn(ExperimentalForeignApi::class)
 actual fun Path.isSocket(): Boolean {

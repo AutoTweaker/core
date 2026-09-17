@@ -22,19 +22,17 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.appVersion
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.adapter.AdapterInfo
-import java.util.*
 
 @AutoService(Adapter::class)
 class CliAdapter : Adapter, Loggable {
 	private val info = AdapterInfo(
 		name = "cli-adapter".toKebab(),
 		description = "AutoTweaker CLI Adapter",
-		version = version,
 		source = "https://github.com/AutoTweaker/core".toUrl(),
 	)
 	
@@ -47,19 +45,11 @@ class CliAdapter : Adapter, Loggable {
 	override suspend fun start() {
 		val router = CommandRouter(core)
 		CliServer.start(router)
-		log.info("Started CliAdapter  version={}", info.version)
+		log.info("Started CliAdapter  version={}", appVersion)
 	}
 	
 	override suspend fun stop() {
 		CliServer.stop()
 		log.info("Stopped CliAdapter")
-	}
-	
-	companion object {
-		private val version: SemVer by lazy {
-			val props = Properties()
-			javaClass.classLoader.getResourceAsStream("version.properties")?.use { props.load(it) }
-			SemVer.parse(props.getProperty("version"))
-		}
 	}
 }

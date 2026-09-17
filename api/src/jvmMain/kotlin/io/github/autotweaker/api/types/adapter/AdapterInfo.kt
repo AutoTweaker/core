@@ -19,12 +19,10 @@
 package io.github.autotweaker.api.types.adapter
 
 import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.SemVer
 import io.github.autotweaker.api.types.Url
 
 data class AdapterInfo(
 	val name: KebabCase,
 	val description: String,
-	val version: SemVer,
 	val source: Url,
 )

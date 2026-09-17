@@ -22,7 +22,7 @@ plugins {
 }
 
 dependencies {
-	implementation(project(":api"))
+	implementation(project(":autotweaker-api"))
 	implementation(project(":cli-adapter"))
 	
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
@@ -39,15 +39,16 @@ afterEvaluate {
 val pluginMetadataDir = layout.buildDirectory.dir("generated/plugin-metadata")
 
 val generatePluginMetadata = tasks.register("generatePluginMetadata") {
-	description = "生成 plugin.properties，内含本插件声明的 api 版本"
+	description = "生成 plugin.properties，内含本插件的 id、版本号与声明的 api 版本"
 	val outputDir = pluginMetadataDir
-	val apiVersion = version.toString()
-	inputs.property("apiVersion", apiVersion)
+	val pluginVersion = version.toString()
+	inputs.property("pluginVersion", pluginVersion)
+	inputs.property("apiVersion", pluginVersion)
 	outputs.dir(outputDir)
 	doLast {
 		outputDir.get().file("META-INF/autotweaker/plugin.properties").asFile.apply {
 			parentFile.mkdirs()
-			writeText("apiVersion=$apiVersion")
+			writeText("id=io.github.autotweaker.adapter.cli.debugger\nversion=$pluginVersion\napiVersion=$pluginVersion")
 		}
 	}
 }

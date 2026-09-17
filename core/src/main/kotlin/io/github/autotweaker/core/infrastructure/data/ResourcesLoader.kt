@@ -18,16 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.data
 
-import io.github.autotweaker.api.types.SemVer
-import java.util.*
-
 object ResourcesLoader {
 	fun loadPrompt(name: String): String =
 		javaClass.classLoader.getResourceAsStream("prompt/$name")!!.bufferedReader().use { it.readText() }
-	
-	val version: SemVer by lazy {
-		val props = Properties()
-		javaClass.classLoader.getResourceAsStream("version.properties")?.use { props.load(it) }
-		SemVer.parse(props.getProperty("version"))
-	}
 }

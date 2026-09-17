@@ -70,18 +70,18 @@ object Launcher : Loggable, Traceable {
 			log.info("Initialized debugger  class={}", debugger::class.java.name)
 		}
 		
-		val all = PluginLoader.load<Adapter>().map { it to it.init(lazyCore()) }
-		val adapters = all.groupBy { (_, info) -> info.name }
-			.map { (_, pairs) -> pairs.maxBy { (_, info) -> info.version } }
+		val adapters = PluginLoader.load<Adapter>()
+			.map { it to it.init(lazyCore()) }
+			.groupBy { (_, info) -> info.name }
+			.map { (_, pairs) -> pairs.first() }
 		
 		if (adapters.isNotEmpty()) {
 			log.info("Found adapters to start  count={}", adapters.size)
 			adapters.forEach { (adapter, info) ->
 				registry[info.name] = adapter to info
 				log.info(
-					"Loaded adapter  name={}  version={}  description={}",
+					"Loaded adapter  name={}  description={}",
 					info.name,
-					info.version,
 					info.description
 				)
 				trace.catching { adapter.start() }

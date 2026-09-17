@@ -26,6 +26,11 @@ import java.nio.file.Path
 val Path.length get() = toString().length
 
 /**
+ * 系统根目录，也就是 `/`。
+ */
+val ROOT: Path = Path.of("/")
+
+/**
  * 用户家目录。
  */
 val HOME: Path = Path.of(System.getProperty("user.home"))
@@ -36,11 +41,22 @@ val HOME: Path = Path.of(System.getProperty("user.home"))
 val CONFIG_PATH: Path = HOME.resolve(".config", APP_NAME_LOWERCASE)
 
 /**
+ * 程序的安装路径，如果启动时没有传，此属性就为 null。
+ */
+val INSTALL_PATH: Path? = System.getenv("AUTOTWEAKER_INSTALL_PATH")?.let(Path::of)
+
+/**
  * 用于加载插件 jar 的目录，此目录中只有以 `.jar` 结尾的文件会被加载，jar 或 class 损坏的文件不会被加载。
+ *
+ * 在插件 id 冲突时的优先级为 `CONFIG_PATH` 最高，`INSTALL_PATH` 最低。
  *
  * 被 AutoTweaker 加载的插件实现可以通过 `ServiceLoader.load(T::class.java, this::class.java.classLoader)` 加载其他插件的类，不要直接从目录加载 jar。
  */
-val PLUGIN_PATH: Path = CONFIG_PATH.resolve("plugins")
+val PLUGIN_PATH: List<Path> = listOfNotNull(
+	CONFIG_PATH.resolve("plugins"),
+	ROOT.resolve("usr", "local", "lib", APP_NAME_LOWERCASE, "plugins"),
+	INSTALL_PATH?.resolve("plugins"),
+)
 
 /**
  * 存放临时文件的目录，通常为 `/tmp/autotweaker`。

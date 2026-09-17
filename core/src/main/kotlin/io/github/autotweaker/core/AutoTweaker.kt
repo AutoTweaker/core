@@ -29,7 +29,6 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.exception.notfound.AdapterNotFoundException
 import io.github.autotweaker.core.application.Launcher
 import io.github.autotweaker.core.application.Wiring
-import io.github.autotweaker.core.infrastructure.data.ResourcesLoader
 import io.github.autotweaker.core.infrastructure.loadClass
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -56,16 +55,16 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	
 	suspend fun start() {
 		withContext(Dispatchers.IO) {
-			Files.createDirectories(PLUGIN_PATH)
+			PLUGIN_PATH.forEach { runCatching { Files.createDirectories(it) } }
 			acquireLock()
 		}
 		
 		loadClass<StartupHook>().forEach { hook ->
-			hook.execute(ResourcesLoader.version)
+			hook.execute(appVersion)
 			log.info("Executed startup hook  class={}", hook::class.java.name)
 		}
 		
-		log.info("Started AutoTweaker  version={}", ResourcesLoader.version)
+		log.info("Started AutoTweaker  version={}", appVersion)
 		
 		Launcher.start(koin, registry) { core }
 	}

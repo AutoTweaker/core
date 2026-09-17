@@ -35,7 +35,7 @@ dependencyResolutionManagement {
 
 plugins {
 	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-	id("io.github.autotweaker.plugin.versioning") version "2.0.1"
+	id("io.github.autotweaker.plugin.versioning") version "3.0.0"
 	id("com.gradleup.nmcp.settings") version "1.6.2"
 }
 
@@ -50,17 +50,21 @@ nmcpSettings {
 rootProject.name = "AutoTweaker"
 
 include("core")
+project(":core").name = "autotweaker-core"
 include("api")
+project(":api").name = "autotweaker-api"
 include("cli-adapter")
 include("cli-debugger")
 include("cli-client")
 include("cli-protocol")
 include("tool-decl")
 include("tool-gen")
+project(":tool-gen").name = "autotweaker-tool-gen"
 include("plugin-sdk")
+project(":plugin-sdk").name = "autotweaker-plugin-sdk"
 
 versioning {
-	versionMode.set(
+	mode.set(
 		if (System.getenv("AUTOTWEAKER_RELEASE") == "1") VersionMode.RELEASE else VersionMode.DEV
 	)
 }

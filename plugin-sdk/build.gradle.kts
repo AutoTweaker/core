@@ -86,7 +86,10 @@ val coreRuntimeClasspath = configurations.register("coreRuntimeClasspath") {
 	isCanBeConsumed = false
 	isCanBeResolved = true
 }
-dependencies.add(coreRuntimeClasspath.name, dependencies.project(path = ":core", configuration = "runtimeElements"))
+dependencies.add(
+	coreRuntimeClasspath.name,
+	dependencies.project(path = ":autotweaker-core", configuration = "runtimeElements")
+)
 
 val providedDependencies = coreRuntimeClasspath.map { configuration ->
 	val result = configuration.incoming.resolutionResult

@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure
+package io.github.autotweaker.plugin.sdk
 
-import io.github.autotweaker.core.PluginLoader
-import java.util.*
+import org.gradle.api.provider.Property
 
-inline fun <reified T : Any> loadClass() =
-	ServiceLoader.load(T::class.java) + PluginLoader.load<T>()
+abstract class PluginSdkExtension {
+	abstract val id: Property<String>
+	abstract val version: Property<String>
+}

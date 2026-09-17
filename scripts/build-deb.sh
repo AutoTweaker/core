@@ -29,15 +29,15 @@ PKG_ROOT="${PROJECT_DIR}/.temp/deb/autotweaker_${DEB_VERSION}_amd64"
 
 rm -rf "$PKG_ROOT"
 mkdir -p "$PKG_ROOT/DEBIAN"
-mkdir -p "$PKG_ROOT/usr/share/autotweaker"
+mkdir -p "$PKG_ROOT/usr/lib/autotweaker"
 mkdir -p "$PKG_ROOT/usr/share/doc/autotweaker"
 mkdir -p "$PKG_ROOT/usr/share/metainfo"
 mkdir -p "$PKG_ROOT/usr/share/icons/hicolor/256x256/apps"
 mkdir -p "$PKG_ROOT/usr/bin"
 
-cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/share/autotweaker/"
+cp -r core/build/install/autotweaker/* "$PKG_ROOT/usr/lib/autotweaker/"
 
-install -m 644 "$CLI_ADAPTER_JAR" "$PKG_ROOT/usr/share/autotweaker/cli-adapter.jar"
+install -m 644 -D "$CLI_ADAPTER_JAR" "$PKG_ROOT/usr/lib/autotweaker/plugins/cli-adapter.jar"
 
 install -m 755 -D "$PROJECT_DIR/cli-client/build/bin/linuxX64/releaseExecutable/autotweaker.kexe" "$PKG_ROOT/usr/bin/autotweaker"
 #ln -sf autotweaker "$PKG_ROOT/usr/bin/at"
