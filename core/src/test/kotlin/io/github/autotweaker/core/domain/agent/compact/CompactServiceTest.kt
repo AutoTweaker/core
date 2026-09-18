@@ -22,13 +22,13 @@ import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow

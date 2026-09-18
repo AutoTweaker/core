@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core
+package io.github.autotweaker.core.test
 
 import io.github.autotweaker.api.ServiceRegistry
 import io.github.autotweaker.api.config.SettingDef

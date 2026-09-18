@@ -22,8 +22,8 @@ import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.tool.ToolMeta
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.tool.ToolCallParser.ValidationResult
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking

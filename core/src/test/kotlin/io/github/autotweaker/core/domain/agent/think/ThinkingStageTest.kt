@@ -26,7 +26,6 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
@@ -37,6 +36,7 @@ import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow

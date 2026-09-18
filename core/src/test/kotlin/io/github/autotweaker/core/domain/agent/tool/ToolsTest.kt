@@ -25,10 +25,10 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persist.json
 
 import io.github.autotweaker.api.store.JsonStore
-import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest

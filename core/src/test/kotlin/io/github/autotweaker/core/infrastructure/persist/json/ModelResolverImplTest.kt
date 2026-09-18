@@ -25,8 +25,8 @@ import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundExcept
 import io.github.autotweaker.api.types.llm.ModelData
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.ProviderData
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.port.SecretStore
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking

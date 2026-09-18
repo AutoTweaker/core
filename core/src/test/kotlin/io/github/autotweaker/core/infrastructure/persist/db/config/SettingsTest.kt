@@ -20,8 +20,8 @@ package io.github.autotweaker.core.infrastructure.persist.db.config
 
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.config.SettingValue
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.every
 import io.mockk.mockk
 import org.jetbrains.exposed.v1.core.eq

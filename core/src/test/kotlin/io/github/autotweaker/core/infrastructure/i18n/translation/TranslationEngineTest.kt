@@ -21,9 +21,9 @@ package io.github.autotweaker.core.infrastructure.i18n.translation
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.Localizations
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.infrastructure.i18n.I18nRegistry
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject

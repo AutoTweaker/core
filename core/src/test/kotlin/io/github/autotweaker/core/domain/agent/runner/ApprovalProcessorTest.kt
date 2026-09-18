@@ -26,10 +26,10 @@ import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

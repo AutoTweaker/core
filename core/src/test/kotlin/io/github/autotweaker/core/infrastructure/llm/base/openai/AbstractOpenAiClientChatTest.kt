@@ -24,9 +24,9 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ContentPart
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.provider.deepseek.DeepSeekClient
+import io.github.autotweaker.core.test.TestServices
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.contentnegotiation.*

@@ -28,7 +28,6 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.toContentPart
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
@@ -38,6 +37,7 @@ import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.*
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

@@ -27,10 +27,10 @@ import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.bash.BashOutput
 import io.github.autotweaker.api.types.tool.bash.BashRequest
 import io.github.autotweaker.api.types.tool.bash.BashResult
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.BashService
 import io.github.autotweaker.core.domain.tool.port.TruncationService
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

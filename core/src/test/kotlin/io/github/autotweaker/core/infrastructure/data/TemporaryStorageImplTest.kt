@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.data
 
 import io.github.autotweaker.api.TMP_HOST_PATH
-import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.test.TestServices
 import java.nio.file.Files
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText

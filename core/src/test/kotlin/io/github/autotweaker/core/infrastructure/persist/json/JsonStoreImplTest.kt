@@ -17,11 +17,10 @@
  */
 
 package io.github.autotweaker.core.infrastructure.persist.json
-
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
+import io.github.autotweaker.core.test.TestServices
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.serialization.json.JsonPrimitive

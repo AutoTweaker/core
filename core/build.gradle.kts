@@ -16,6 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
+
 plugins {
 	kotlin("jvm")
 	kotlin("kapt")
@@ -124,10 +127,31 @@ afterEvaluate {
 
 val inDocker = System.getenv("DOCKER_TEST") == "true"
 
+val testPluginInstallDir: File = layout.buildDirectory.dir("test-plugin-install").get().asFile
+
+val prepareTestPlugins = tasks.register("prepareTestPlugins") {
+	description = "生成测试 JVM 的插件环境：PluginLoader 无插件时直接退出进程"
+	val appVersion = version.toString()
+	val pluginJar = File(testPluginInstallDir, "plugins/test-fixture.jar")
+	outputs.file(pluginJar)
+	doLast {
+		pluginJar.parentFile.mkdirs()
+		JarOutputStream(pluginJar.outputStream()).use { jar ->
+			jar.putNextEntry(JarEntry("META-INF/autotweaker/plugin.properties"))
+			jar.write("id=test.fixture\nversion=1.0.0\napiVersion=$appVersion\n".toByteArray())
+			jar.closeEntry()
+		}
+	}
+}
+
 if (inDocker) {
 	tasks.test {
 		useJUnitPlatform()
 		maxHeapSize = "2g"
+		classpath = files(tasks.jar) + classpath
+		dependsOn(tasks.jar)
+		dependsOn(prepareTestPlugins)
+		environment("AUTOTWEAKER_INSTALL_PATH", testPluginInstallDir.absolutePath)
 		jvmArgs(
 			"-Dnet.bytebuddy.experimental=true",
 			"-Djava.security.egd=file:/dev/./urandom",

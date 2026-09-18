@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.i18n.translation
 
-import io.github.autotweaker.core.TestServices
+import io.github.autotweaker.core.test.TestServices
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

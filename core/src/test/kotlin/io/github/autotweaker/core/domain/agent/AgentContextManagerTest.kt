@@ -24,9 +24,9 @@ import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings
+import io.github.autotweaker.core.test.TestServices
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*

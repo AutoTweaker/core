@@ -23,8 +23,8 @@ import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.TestServices
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.test.TestServices
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
