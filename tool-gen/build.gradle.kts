@@ -17,7 +17,7 @@
  */
 
 plugins {
-	kotlin("jvm") version "2.4.10"
+	kotlin("jvm") version "2.4.20"
 	id("org.jetbrains.dokka")
 	`maven-publish`
 	signing
