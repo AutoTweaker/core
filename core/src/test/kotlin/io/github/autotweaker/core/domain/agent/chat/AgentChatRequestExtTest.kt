@@ -21,10 +21,10 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Url.Companion.toUrl
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.AgentModel

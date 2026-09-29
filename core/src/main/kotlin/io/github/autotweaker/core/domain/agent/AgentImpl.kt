@@ -20,9 +20,9 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
-import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
 import io.github.autotweaker.core.domain.agent.compact.CompactService

@@ -38,10 +38,13 @@ import io.github.autotweaker.api.base.ShortIdMapper
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.session.diff
 import io.github.autotweaker.api.base.unifiedDiff
-import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex.Turn
+import io.github.autotweaker.api.types.agent.AgentOutput
+import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.*
 import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.tool.ToolApprove
@@ -267,7 +270,7 @@ class SessionCmd : Command, Traceable, Loggable {
 			}
 			val messages = core.persistence.loadMessages(result.take(limit).toSet())
 			messages.forEachBetween({ msg ->
-				val agent = core.persistence.loadAgent(msg.origin.single()) ?: return@forEachBetween
+				val agent = core.persistence.loadAgent(msg.origin) ?: return@forEachBetween
 				val session = core.persistence.loadSession(agent.sessionId) ?: return@forEachBetween
 				val workspace = session.workspaceId.let { core.workspace.get(it) } ?: return@forEachBetween
 				out(
@@ -423,15 +426,15 @@ class SessionCmd : Command, Traceable, Loggable {
 						diff.addedMessages()?.loadToCache(core)
 						with(core) {
 							suspend fun List<Turn>.printIfNew() = forEach { turn ->
-								turn.assistantMessage.ifNew { printMsg<AgentMessage.Assistant>() }
+								turn.assistantMsgRef.ifNew { printMsg<AgentMessage.Assistant>() }
 								turn.tools.forEach { tool ->
-									tool.result.ifNew { printMsg<AgentMessage.Tool.Result>() }
+									tool.resultRef.ifNew { printMsg<AgentMessage.Tool.Result>() }
 								}
 							}
 							diff.addedHistoryRounds()?.forEach { round ->
-								round.userMessage.ifNew { printMsg<AgentMessage.User>() }
+								round.userMsgRef.ifNew { printMsg<AgentMessage.User>() }
 								round.turns?.printIfNew()
-								round.finalAssistantMessage?.ifNew { printMsg<AgentMessage.Assistant>() }
+								round.assistantMsgRef?.ifNew { printMsg<AgentMessage.Assistant>() }
 							}
 							diff.startedRound()?.let { current ->
 								current.userMessage.ifNew { printMsg<AgentMessage.User>() }
@@ -450,7 +453,7 @@ class SessionCmd : Command, Traceable, Loggable {
 									printMsg<AgentMessage.Assistant>()
 								}
 								it.addedFinishedCalls()?.forEach { tool ->
-									tool.result.ifNew { printMsg<AgentMessage.Tool.Result>() }
+									tool.resultRef.ifNew { printMsg<AgentMessage.Tool.Result>() }
 								}
 								it.addedPendingCalls()?.forEach { tool ->
 									tool.ifNew { printMsg<AgentMessage.Tool.Call>() }
@@ -506,11 +509,11 @@ class SessionCmd : Command, Traceable, Loggable {
 		ids.loadToCache(core)
 		
 		suspend fun List<Turn.Tool>.print() = forEach { tool ->
-			tool.result.printMsg<AgentMessage.Tool.Result>()
+			tool.resultRef.printMsg<AgentMessage.Tool.Result>()
 		}
 		
 		suspend fun List<Turn>.print() = forEach { turn ->
-			turn.assistantMessage.printMsg<AgentMessage.Assistant>()
+			turn.assistantMsgRef.printMsg<AgentMessage.Assistant>()
 			turn.tools.print()
 		}
 		context.index.compactedRounds?.toList()?.forEach { (summarizedMessage, rounds) ->
@@ -525,26 +528,26 @@ class SessionCmd : Command, Traceable, Loggable {
 				} else msg.printMsg()
 			}
 			rounds.forEach { round ->
-				round.userMessage.printIf { it is AgentMessage.User }
+				round.userMsgRef.printIf { it is AgentMessage.User }
 				round.turns?.forEach { turn ->
-					turn.assistantMessage.printIf { it is AgentMessage.Assistant }
+					turn.assistantMsgRef.printIf { it is AgentMessage.Assistant }
 					turn.tools.forEach { tool ->
-						tool.result.printIf { it is AgentMessage.Tool.Result }
+						tool.resultRef.printIf { it is AgentMessage.Tool.Result }
 					}
 				}
-				round.finalAssistantMessage?.printIf { it is AgentMessage.Assistant }
+				round.assistantMsgRef?.printIf { it is AgentMessage.Assistant }
 			}
 			summarizedMessage.printIf { it is AgentMessage.Compact }
 		}
 		context.index.historyRounds?.forEach { round ->
-			round.userMessage.printMsg<AgentMessage.User>()
+			round.userMsgRef.printMsg<AgentMessage.User>()
 			round.turns?.print()
-			round.finalAssistantMessage?.printMsg<AgentMessage.Assistant>()
+			round.assistantMsgRef?.printMsg<AgentMessage.Assistant>()
 		}
 		context.index.currentRound?.let { current ->
-			current.userMessage.printMsg<AgentMessage.User>()
+			current.userMsgRef.printMsg<AgentMessage.User>()
 			current.turns?.print()
-			current.assistantMessage?.printMsg<AgentMessage.Assistant>()
+			current.assistantMsgRef?.printMsg<AgentMessage.Assistant>()
 			current.finishedToolCalls?.print()
 			current.pendingToolCalls?.forEach { call ->
 				call.printMsg<AgentMessage.Tool.Call>()

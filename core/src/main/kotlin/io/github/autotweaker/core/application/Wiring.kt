@@ -25,6 +25,7 @@ import io.github.autotweaker.api.appVersion
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.debug.DbDebugAPI
 import io.github.autotweaker.api.i18n.I18nService
+import io.github.autotweaker.api.store.MessageCache
 import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.application.impl.CoreAPIImpl
@@ -61,10 +62,7 @@ import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.objstore.ObjectStorageImpl
-import io.github.autotweaker.core.infrastructure.persist.db.session.AgentDataDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.AgentMessageDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.SessionDataDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
+import io.github.autotweaker.core.infrastructure.persist.db.session.*
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceCleanup
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
@@ -107,7 +105,7 @@ object Wiring : Loggable {
 				shellRouter = get(),
 				adapter = adapter,
 				pathResolver = get(),
-				appVersion = this@Wiring.appVersion
+				appVersion = Wiring.appVersion
 			)
 		}
 	}
@@ -151,6 +149,7 @@ object Wiring : Loggable {
 		singleOf(::ObjectStorageImpl).bind<ObjectStorage>()
 		singleOf(::TraceStore)
 		singleOf(::SessionRepositoryImpl).bind<SessionRepository>()
+		singleOf(::MessageCacheImpl).bind<MessageCache>()
 		singleOf(::UsageRepositoryImpl).bind<UsageRepository>()
 		singleOf(::SettingDbApi)
 		singleOf(::JsonStoreDbApi)

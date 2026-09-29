@@ -22,7 +22,7 @@ import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
-import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.message.ContextInjection
 import java.util.*
 
 infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
@@ -52,32 +52,32 @@ infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
 			return injections.filterNot { it.id in nextIds }.orNull()
 		}
 		
-		override fun addedCompactedRounds(): PairList<UUID, List<AgentContextIndex.CompletedRound>>? {
+		override fun addedCompactedRounds(): PairList<UUID, List<AgentContextIndex.Round>>? {
 			if (index.compactedRounds == null) return next.index.compactedRounds?.toList()
 			if (next.index.compactedRounds == null) return null
 			val oldIds = mutableSetOf<UUID>()
-			index.compactedRounds.forEach { oldIds.add(it.summarizedMessage) }
+			index.compactedRounds.forEach { oldIds.add(it.summaryMsgRef) }
 			return next.index.compactedRounds.toList().filterNot { it.first in oldIds }.orNull()
 		}
 		
-		override fun addedHistoryRounds(): List<AgentContextIndex.CompletedRound>? {
+		override fun addedHistoryRounds(): List<AgentContextIndex.Round>? {
 			if (index.historyRounds == null) return next.index.historyRounds
 			if (next.index.historyRounds == null) return null
-			val oldIds = index.historyRounds.mapTo(mutableSetOf()) { it.userMessage }
-			return next.index.historyRounds.filterNot { it.userMessage in oldIds }.orNull()
+			val oldIds = index.historyRounds.mapTo(mutableSetOf()) { it.userMsgRef }
+			return next.index.historyRounds.filterNot { it.userMsgRef in oldIds }.orNull()
 		}
 		
-		override fun removedHistoryRounds(): List<AgentContextIndex.CompletedRound>? {
+		override fun removedHistoryRounds(): List<AgentContextIndex.Round>? {
 			if (index.historyRounds == null) return null
 			if (next.index.historyRounds == null) return index.historyRounds
-			val nextIds = next.index.historyRounds.mapTo(mutableSetOf()) { it.userMessage }
-			return index.historyRounds.filterNot { it.userMessage in nextIds }.orNull()
+			val nextIds = next.index.historyRounds.mapTo(mutableSetOf()) { it.userMsgRef }
+			return index.historyRounds.filterNot { it.userMsgRef in nextIds }.orNull()
 		}
 		
 		override fun startedRound(): AgentContextIndex.CurrentRound? {
 			if (index.currentRound == null) return next.index.currentRound
 			if (next.index.currentRound == null) return null
-			if (index.currentRound.userMessage != next.index.currentRound.userMessage)
+			if (index.currentRound.userMsgRef != next.index.currentRound.userMsgRef)
 				return next.index.currentRound
 			return null
 		}
@@ -85,7 +85,7 @@ infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
 		override fun finishedRound(): AgentContextIndex.CurrentRound? {
 			if (index.currentRound == null) return null
 			if (next.index.currentRound == null) return index.currentRound
-			if (index.currentRound.userMessage != next.index.currentRound.userMessage)
+			if (index.currentRound.userMsgRef != next.index.currentRound.userMsgRef)
 				return index.currentRound
 			return null
 		}
@@ -109,22 +109,22 @@ infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
 			if (index.currentRound == null || next.index.currentRound == null) return null
 			with(index.currentRound) {
 				val next = next.index.currentRound
-				if (userMessage != next.userMessage) return null
+				if (userMsgRef != next.userMsgRef) return null
 				return object : ContextDiff.CurrentDiff {
 					override fun addedTurns(): List<AgentContextIndex.Turn>? {
 						if (turns == null) return next.turns
 						if (next.turns == null) return null
-						val oldIds = turns.mapTo(mutableSetOf()) { it.assistantMessage }
-						return next.turns.filterNot { it.assistantMessage in oldIds }.orNull()
+						val oldIds = turns.mapTo(mutableSetOf()) { it.assistantMsgRef }
+						return next.turns.filterNot { it.assistantMsgRef in oldIds }.orNull()
 					}
 					
 					override fun newAssistantMessage(): UUID? {
-						if (assistantMessage == null) return next.assistantMessage
+						if (assistantMsgRef == null) return next.assistantMsgRef
 						return null
 					}
 					
 					override fun cleanedAssistantMessage(): UUID? {
-						if (next.assistantMessage == null) return assistantMessage
+						if (next.assistantMsgRef == null) return assistantMsgRef
 						return null
 					}
 					

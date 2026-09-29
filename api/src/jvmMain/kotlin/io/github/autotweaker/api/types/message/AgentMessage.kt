@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.types.message
 
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.llm.ContentPart
@@ -37,9 +37,10 @@ sealed class AgentMessage {
 	/**
 	 * 消息 id，每种消息都有。
 	 *
-	 * 同样的消息 id 可能出现在不同 Agent 或不同会话中，除非是 [UUID.randomUUID] 撞了，否则代表它们同根同源。
+	 * 同样的消息 id 可能出现在不同 Agent 或不同会话中。
+	 *
+	 * 同样的消息 id 不可能存在多个版本的 AgentMessage。
 	 */
-	@Serializable(with = UuidSerializer::class)
 	abstract val id: UUID
 	
 	/**
@@ -49,10 +50,13 @@ sealed class AgentMessage {
 	
 	/**
 	 * 包含这条消息的 agent id，适用于从一条消息反查所属会话。
-	 *
-	 * 如 [id] 的文档所述，一条消息可能出现在多个会话中。
 	 */
-	abstract val origin: Set<@Serializable(with = UuidSerializer::class) UUID>
+	abstract val origin: UUID
+	
+	/**
+	 * 取这条消息的正文文本，在 AutoTweaker 内部用于建立全文搜索的索引。
+	 */
+	abstract fun content(): String?
 	
 	/**
 	 * 表示一条用户消息。
@@ -62,14 +66,18 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
+		@Serializable(with = UuidSerializer::class)
+		override val origin: UUID,
 		/**
 		 * 用户消息的内容，也可能包含系统注入。
 		 *
 		 * @see MessageContent
 		 */
 		val content: MessageContent,
-	) : AgentMessage()
+	) : AgentMessage() {
+		override fun content(): String? = content.content?.filterIsInstance<ContentPart.Text>()
+			?.joinToString("\n") { it.content }?.ifBlank { null }
+	}
 	
 	/**
 	 * 表示一条 LLM 返回的消息。
@@ -79,7 +87,8 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
+		@Serializable(with = UuidSerializer::class)
+		override val origin: UUID,
 		/**
 		 * LLM 思维链。
 		 */
@@ -97,7 +106,9 @@ sealed class AgentMessage {
 		 * 用量信息。
 		 */
 		val usage: Usage?,
-	) : AgentMessage()
+	) : AgentMessage() {
+		override fun content(): String? = content?.orNull()
+	}
 	
 	/**
 	 * 表示一次工具调用。
@@ -117,7 +128,8 @@ sealed class AgentMessage {
 			@Serializable(with = UuidSerializer::class)
 			override val id: UUID,
 			override val timestamp: Instant,
-			override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
+			@Serializable(with = UuidSerializer::class)
+			override val origin: UUID,
 			override val callId: String,
 			/**
 			 * 工具调用的请求名称，可能同时包含工具名称和 function 名称。
@@ -159,7 +171,9 @@ sealed class AgentMessage {
 			 * @see io.github.autotweaker.api.types.tool.UiBlock
 			 */
 			val presentation: ToolPresentation?,
-		) : Tool()
+		) : Tool() {
+			override fun content(): String = arguments
+		}
 		
 		/**
 		 * 工具调用响应，来自程序。
@@ -169,7 +183,8 @@ sealed class AgentMessage {
 			@Serializable(with = UuidSerializer::class)
 			override val id: UUID,
 			override val timestamp: Instant,
-			override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
+			@Serializable(with = UuidSerializer::class)
+			override val origin: UUID,
 			override val callId: String,
 			/**
 			 * 响应内容，不一定是结构化数据。
@@ -189,7 +204,9 @@ sealed class AgentMessage {
 			 * @see ToolResultStatus
 			 */
 			val status: ToolResultStatus
-		) : Tool()
+		) : Tool() {
+			override fun content(): String = content
+		}
 	}
 	
 	/**
@@ -200,9 +217,10 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
+		@Serializable(with = UuidSerializer::class)
+		override val origin: UUID,
 		/**
-		 * 上下文压缩的结果，不同于 [AgentOutput.Compact]，这里没有 XML 标签，是纯净的总结内容。
+		 * 上下文压缩的结果，不同于 [io.github.autotweaker.api.types.agent.AgentOutput.Compact]，这里没有 XML 标签，是纯净的总结内容。
 		 */
 		val content: String,
 		/**
@@ -214,7 +232,9 @@ sealed class AgentMessage {
 		 * 上下文压缩的用量信息。
 		 */
 		val usage: Usage?,
-	) : AgentMessage()
+	) : AgentMessage() {
+		override fun content(): String = content
+	}
 	
 	/**
 	 * 用于跟踪不属于任何 [AgentMessage] 的 LLM 开销，例如 Agent 调用的工具调用了 LLM，或最终失败的上下文压缩（不会产生 [AgentMessage.Compact] 来跟踪开销）。
@@ -226,20 +246,12 @@ sealed class AgentMessage {
 		@Serializable(with = UuidSerializer::class)
 		override val id: UUID,
 		override val timestamp: Instant,
-		override val origin: Set<@Serializable(with = UuidSerializer::class) UUID>,
+		@Serializable(with = UuidSerializer::class)
+		override val origin: UUID,
 		@Serializable(with = UuidSerializer::class)
 		val model: UUID,
 		val usage: Usage,
-	) : AgentMessage()
-}
-
-fun AgentMessage.content(): String? = when (this) {
-	is AgentMessage.User -> content.content?.filterIsInstance<ContentPart.Text>()
-		?.joinToString("\n") { it.content }?.ifBlank { null }
-	
-	is AgentMessage.Assistant -> content?.orNull()
-	is AgentMessage.Tool.Call -> arguments
-	is AgentMessage.Tool.Result -> content
-	is AgentMessage.Compact -> content
-	is AgentMessage.UsageRecord -> null
+	) : AgentMessage() {
+		override fun content(): String? = null
+	}
 }

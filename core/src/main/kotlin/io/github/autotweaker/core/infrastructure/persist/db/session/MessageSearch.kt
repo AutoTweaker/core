@@ -19,7 +19,7 @@
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
 import io.github.autotweaker.api.discard
-import io.github.autotweaker.api.types.agent.AgentMessageType
+import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

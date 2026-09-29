@@ -27,8 +27,8 @@ import io.github.autotweaker.api.get
 import io.github.autotweaker.api.orNow
 import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.MessageContent
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import kotlinx.serialization.json.JsonNull
@@ -66,33 +66,33 @@ class RuntimeContextBuilder(
 				null
 			},
 			rounds = rounds.map { it.transform() },
-			summarizedMessage = summarizedMessage(summarizedMessage)
+			summarizedMessage = summarizedMessage(summaryMsgRef)
 		)
 	
-	private suspend fun AgentContextIndex.CompletedRound.transform() = RuntimeContext.CompletedRound(
-		userMessage = userMessage(userMessage),
+	private suspend fun AgentContextIndex.Round.transform() = RuntimeContext.CompletedRound(
+		userMessage = userMessage(userMsgRef),
 		turns = turns?.map { it.transform() },
-		finalAssistantMessage = finalAssistantMessage?.let { assistantMessage(it) }
+		finalAssistantMessage = assistantMsgRef?.let { assistantMessage(it) }
 	)
 	
 	private suspend fun AgentContextIndex.CurrentRound.transform() = RuntimeContext.CurrentRound(
 		userMessage = userMessage(userMessage),
 		turns = turns?.map { it.transform() },
-		assistantMessage = assistantMessage?.let { assistantMessage(it) },
+		assistantMessage = assistantMessage.let { assistantMessage(it) },
 		finishedToolCalls = finishedToolCalls?.map { it.transform() },
 		pendingToolCalls = pendingToolCalls?.map { pendingToolCall(it) }
 	)
 	
 	private suspend fun AgentContextIndex.Turn.transform() = RuntimeContext.Turn(
-		assistantMessage = assistantMessage(assistantMessage),
+		assistantMessage = assistantMessage(assistantMsgRef),
 		tools = tools.map { it.transform() }
 	)
 	
-	private suspend fun AgentContextIndex.Turn.Tool.transform() = message<AgentMessage.Tool.Call>(call).let {
+	private suspend fun AgentContextIndex.Turn.Tool.transform() = message<AgentMessage.Tool.Call>(callRef).let {
 		RuntimeContext.Message.Tool(
-			call = toolCall(call),
+			call = toolCall(callRef),
 			callId = it?.callId.orEmpty(),
-			result = toolResult(result)
+			result = toolResult(resultRef)
 		)
 	}
 	

@@ -21,11 +21,16 @@ package io.github.autotweaker.api.types.agent
 import java.util.*
 
 /**
- * 一个通过 [UUID] 索引某些数据的数据类。
+ * 一个通过 [UUID] 索引数据的数据类。
  */
-interface UuidIndex {
+abstract class UuidIndex {
 	/**
 	 * 整个索引结构中引用的全部 [UUID]。
 	 */
-	fun ids(): Set<UUID>
+	fun ids(): Set<UUID> = idsTo(HashSet())
+	
+	/**
+	 * 将整个索引结构中引用的全部 [UUID] add 到 [destination]。
+	 */
+	abstract fun <C : MutableCollection<UUID>> idsTo(destination: C): C
 }

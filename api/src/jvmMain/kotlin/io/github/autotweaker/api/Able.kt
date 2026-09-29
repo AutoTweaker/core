@@ -110,4 +110,4 @@ inline val ObjectStorable.objects: ObjectStorage get() = services.objects
 inline val I18nable.i18n: I18nService get() = services.i18n
 
 @PublishedApi
-internal inline val services get() = ServiceRegistry.servicesOrError()
+internal inline val services get() = ServiceRegistry.get()

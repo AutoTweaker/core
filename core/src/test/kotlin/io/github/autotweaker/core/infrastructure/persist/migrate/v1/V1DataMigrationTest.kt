@@ -21,9 +21,13 @@ package io.github.autotweaker.core.infrastructure.persist.migrate.v1
 import io.github.autotweaker.api.CONFIG_PATH
 import io.github.autotweaker.api.json
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContext
+import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.WorkspaceData
 import io.github.autotweaker.api.types.tool.ToolResultStatus

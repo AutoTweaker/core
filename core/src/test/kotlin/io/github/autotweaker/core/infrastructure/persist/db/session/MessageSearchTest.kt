@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.types.agent.AgentMessageType
+import io.github.autotweaker.api.types.message.AgentMessageType
 import kotlinx.coroutines.runBlocking
 import java.util.*
 import kotlin.test.Test

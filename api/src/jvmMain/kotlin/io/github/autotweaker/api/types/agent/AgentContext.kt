@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
+import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -31,9 +32,10 @@ data class AgentContext(
 ) {
 	companion object {
 		fun emptyContext(systemPrompt: String) = AgentContext(
-			systemPrompt = systemPrompt, index = AgentContextIndex(
-				compactedRounds = null, historyRounds = null, currentRound = null
-			), droppedMessages = null, injections = null
+			systemPrompt = systemPrompt,
+			index = AgentContextIndex.EMPTY,
+			droppedMessages = null,
+			injections = null
 		)
 	}
 }

@@ -51,9 +51,10 @@ object Launcher : Loggable, Traceable {
 			ServiceRegistry(
 				trace = koin.get<TraceRecorderImpl>()::recorder,
 				store = koin.get<JsonStoreImpl>()::namespace,
-				lazyObjects = { koin.get() },
-				lazySetting = { koin.get() },
-				lazyI18n = { koin.get() },
+				lazyObjects = lazy { koin.get() },
+				lazySetting = lazy { koin.get() },
+				lazyMessage = lazy { koin.get() },
+				lazyI18n = lazy { koin.get() },
 			)
 		)
 		

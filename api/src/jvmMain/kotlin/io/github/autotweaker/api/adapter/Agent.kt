@@ -25,6 +25,8 @@ import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.exception.notfound.ModelNotFoundException
 import io.github.autotweaker.api.types.exception.notfound.ProviderNotFoundException
 import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import kotlinx.coroutines.flow.SharedFlow
@@ -110,7 +112,14 @@ interface Agent {
 	val context: StateFlow<AgentContext>
 	
 	/**
-	 * first 为 agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.agent.AgentMessage.Tool.Call.callId]。
+	 * 表示一组正在处理的工具调用，对应上下文 `currentRound` 中的 `assistantMessage`，也就是最新一条 Assistant 消息。
+	 *
+	 * first 为调用这些工具的对应 [io.github.autotweaker.api.types.message.AgentMessage.Assistant] 消息，second 为这条消息发起的所有工具调用。
+	 */
+	val toolCalls: Pair<UUID, List<AgentToolCall>>?
+	
+	/**
+	 * first 为 agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.message.AgentMessage.Tool.Call.callId]。
 	 *
 	 * second 为用于调用过程中展示的 i18n 信息。
 	 *
@@ -133,12 +142,12 @@ interface Agent {
 	 *
 	 * 无论队列中有多少条消息，消费时都会将它们合并，这之中也可能包含由 AutoTweaker 自动发送的系统消息。
 	 *
-	 * 使用 `send(content).await()` 来挂起等待 agent 消费这条消息，并获取合并后的那条 [io.github.autotweaker.api.types.agent.AgentMessage.User] 的 id 用于前端展示。
+	 * 使用 `send(content).await()` 来挂起等待 agent 消费这条消息，并获取合并后的那条 [io.github.autotweaker.api.types.message.AgentMessage.User] 的 id 用于前端展示。
 	 *
-	 * 发送一条只包含 [MessageContent.injections] 的消息可以注入一些即时信息。
+	 * 发送一条只包含 [io.github.autotweaker.api.types.message.MessageContent.injections] 的消息可以注入一些即时信息。
 	 *
 	 * @throws AgentDeadException
-	 * @see MessageContent
+	 * @see io.github.autotweaker.api.types.message.MessageContent
 	 * @see Delivery
 	 */
 	suspend fun send(content: MessageContent): Delivery

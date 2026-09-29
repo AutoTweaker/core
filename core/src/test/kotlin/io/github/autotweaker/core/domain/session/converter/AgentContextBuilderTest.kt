@@ -19,8 +19,12 @@
 package io.github.autotweaker.core.domain.session.converter
 
 import io.github.autotweaker.api.now
-import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContext
+import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -158,7 +162,7 @@ class AgentContextBuilderTest {
 			index = AgentContextIndex(
 				compactedRounds = null,
 				historyRounds = listOf(
-					AgentContextIndex.CompletedRound(oldUser.id, null, null)
+					AgentContextIndex.Round(oldUser.id, null, null)
 				),
 				currentRound = null,
 			)
@@ -184,7 +188,7 @@ class AgentContextBuilderTest {
 		val old = AgentContext.emptyContext("prompt").copy(
 			index = AgentContextIndex(
 				null,
-				listOf(AgentContextIndex.CompletedRound(oldUser.id, null, null)),
+				listOf(AgentContextIndex.Round(oldUser.id, null, null)),
 				null,
 			)
 		)
@@ -284,8 +288,8 @@ class AgentContextBuilderTest {
 		for (i in depth - 1 downTo 0) {
 			node = AgentContextIndex.CompactedRounds(
 				compactedRounds = node,
-				rounds = listOf(AgentContextIndex.CompletedRound(users[i].id, null, null)),
-				summarizedMessage = compacts[i].id,
+				rounds = listOf(AgentContextIndex.Round(users[i].id, null, null)),
+				summaryMsgRef = compacts[i].id,
 			)
 		}
 		val context = AgentContext.emptyContext("prompt").copy(

@@ -24,12 +24,12 @@ import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.agent.ContextInjection
 import io.github.autotweaker.api.types.agent.Delivery
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.exception.AgentDeadException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all

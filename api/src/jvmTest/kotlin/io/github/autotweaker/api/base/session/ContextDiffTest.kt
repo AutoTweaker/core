@@ -20,7 +20,7 @@ package io.github.autotweaker.api.base.session
 
 import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
-import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.message.ContextInjection
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,11 +37,11 @@ class ContextDiffTest {
 	
 	private fun compacted(
 		summary: UUID,
-		rounds: List<AgentContextIndex.CompletedRound> = emptyList(),
+		rounds: List<AgentContextIndex.Round> = emptyList(),
 		inner: AgentContextIndex.CompactedRounds? = null,
 	) = AgentContextIndex.CompactedRounds(inner, rounds, summary)
 	
-	private fun completed(userId: UUID) = AgentContextIndex.CompletedRound(userId, null, null)
+	private fun completed(userId: UUID) = AgentContextIndex.Round(userId, null, null)
 	
 	private fun current(
 		userId: UUID,

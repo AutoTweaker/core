@@ -61,7 +61,6 @@ class DbDebugAPIImpl(
 				"session_data" to SessionDataTable.selectAll().count(),
 				"agent_data" to AgentDataTable.selectAll().count(),
 				"agent_message" to AgentMessageTable.selectAll().count(),
-				"message_ownership" to MessageOwnershipTable.selectAll().count(),
 			)
 		},
 		"Usages" to usageDb.transaction {

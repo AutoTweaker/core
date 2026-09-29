@@ -18,4 +18,29 @@
 
 package io.github.autotweaker.api.types.agent
 
-enum class AgentMessageType { USER, ASSISTANT, TOOL_CALL, TOOL_RESULT, COMPACT, USAGE_RECORD }
+/**
+ * 表示一个未完成的工具调用的当前状态，这些工具调用的相关状态只存在于内存中。
+ */
+enum class ToolCallStatus {
+	/**
+	 * 正在等待用户审批。
+	 */
+	PENDING,
+	
+	/**
+	 * 已通过审批，正在等待执行。
+	 *
+	 * 工具调用是串行的，所以需要排队。
+	 */
+	WAITING,
+	
+	/**
+	 * 正在调用工具。
+	 */
+	CALLING,
+	
+	/**
+	 * 工具调用已经完成（或者解析失败未执行），等待合入一个新的 Turn。
+	 */
+	FINISHED
+}

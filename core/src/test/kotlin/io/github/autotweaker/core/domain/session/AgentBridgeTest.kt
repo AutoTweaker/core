@@ -23,11 +23,15 @@ import io.github.autotweaker.api.now
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContext
+import io.github.autotweaker.api.types.agent.AgentData
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
@@ -183,7 +187,7 @@ class AgentBridgeTest {
 			Unit.also { saveCount.incrementAndGet() }
 		}
 		val b = bridge()
-		val injection = ContextInjection(tag = "ctx", content = "data")
+		val injection = io.github.autotweaker.api.types.message.ContextInjection(tag = "ctx", content = "data")
 		b.inject(injection)
 		awaitUntil { b.agent.context.value.injections?.contains(injection) == true }
 		awaitUntil { saveCount.get() >= 1 }

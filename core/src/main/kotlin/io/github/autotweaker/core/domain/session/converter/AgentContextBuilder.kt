@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.session.converter
 
 import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
-import io.github.autotweaker.api.types.agent.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import java.util.*
 
@@ -30,7 +30,7 @@ class AgentContextBuilder(
 	private val new: RuntimeContext,
 	private val droppedCompacted: AgentContextIndex.CompactedRounds?
 ) {
-	private val agentId = setOf(id)
+	private val agentId = id
 	private val oldMessages = old.index.ids()
 	private val messages = mutableMapOf<UUID, AgentMessage>()
 	
@@ -53,13 +53,13 @@ class AgentContextBuilder(
 		AgentContextIndex.CompactedRounds(
 			compactedRounds = compactedRounds?.transform() ?: droppedCompacted,
 			rounds = rounds.map { it.transform() },
-			summarizedMessage = summarizedMessage.id()
+			summaryMsgRef = summarizedMessage.id()
 		)
 	
-	private fun RuntimeContext.CompletedRound.transform() = AgentContextIndex.CompletedRound(
-		userMessage = userMessage.id(),
+	private fun RuntimeContext.CompletedRound.transform() = AgentContextIndex.Round(
+		userMsgRef = userMessage.id(),
 		turns = turns?.map { it.transform() },
-		finalAssistantMessage = finalAssistantMessage?.id()
+		assistantMsgRef = finalAssistantMessage?.id()
 	)
 	
 	private fun RuntimeContext.CurrentRound.transform() = AgentContextIndex.CurrentRound(
@@ -71,13 +71,13 @@ class AgentContextBuilder(
 	)
 	
 	private fun RuntimeContext.Turn.transform() = AgentContextIndex.Turn(
-		assistantMessage = assistantMessage.id(),
+		assistantMsgRef = assistantMessage.id(),
 		tools = tools.map { it.transform() }
 	)
 	
 	private fun RuntimeContext.Message.Tool.transform() = AgentContextIndex.Turn.Tool(
-		call = call(),
-		result = result()
+		callRef = call(),
+		resultRef = result()
 	)
 	
 	private fun RuntimeContext.Message.User.id(): UUID =

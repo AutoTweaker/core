@@ -20,8 +20,8 @@ package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.AgentOutput
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel

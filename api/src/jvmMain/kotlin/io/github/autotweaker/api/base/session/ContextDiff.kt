@@ -20,7 +20,7 @@ package io.github.autotweaker.api.base.session
 
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentContextIndex.*
-import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.message.ContextInjection
 import java.util.*
 
 interface ContextDiff {
@@ -44,21 +44,21 @@ interface ContextDiff {
 	/**
 	 * 新增的 [io.github.autotweaker.api.types.agent.AgentContextIndex.CompactedRounds]。
 	 *
-	 * 这些 [CompletedRound] 必然从 historyRounds 中消失。
+	 * 这些 [Round] 必然从 historyRounds 中消失。
 	 *
 	 * @return Pair 的 A 为 summarizedMessage，B 为此次总结的所有轮次。
 	 */
-	fun addedCompactedRounds(): PairList<UUID, List<CompletedRound>>?
+	fun addedCompactedRounds(): PairList<UUID, List<Round>>?
 	
 	/**
-	 * 新增的 [CompletedRound]，必然来自 currentRound。
+	 * 新增的 [Round]，必然来自 currentRound。
 	 */
-	fun addedHistoryRounds(): List<CompletedRound>?
+	fun addedHistoryRounds(): List<Round>?
 	
 	/**
 	 * 减少的 historyRounds，必然出现在 [addedCompactedRounds] 中。
 	 */
-	fun removedHistoryRounds(): List<CompletedRound>?
+	fun removedHistoryRounds(): List<Round>?
 	
 	/**
 	 * 新增的 [CurrentRound]，全新创建。

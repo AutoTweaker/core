@@ -114,6 +114,7 @@ dependencies {
 	implementation("tools.jackson.core:jackson-core:3.2.2")
 	implementation("tools.jackson.core:jackson-databind:3.2.2")
 	
+	implementation("com.github.ben-manes.caffeine:caffeine:3.3.0")
 	implementation("com.google.guava:guava:33.7.1-jre")
 	implementation("com.ibm.icu:icu4j:78.3")
 	implementation("io.insert-koin:koin-core:4.2.2")

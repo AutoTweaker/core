@@ -25,8 +25,6 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.*
 import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.api.types.agent.AgentData
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.AgentMessageType
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingEntry
@@ -41,6 +39,8 @@ import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.log.ExceptionInfo
 import io.github.autotweaker.api.types.log.LogEvent
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionSort

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.types.message
 
 import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.types.serializer.UuidSerializer
@@ -49,11 +49,11 @@ data class ContextInjection(
 )
 
 /**
- * 快速构造 [io.github.autotweaker.api.types.agent.ContextInjection] 而无需将名称添加到调用实参或手动传递 [UUID]。
+ * 快速构造 [io.github.autotweaker.api.types.message.ContextInjection] 而无需将名称添加到调用实参或手动传递 [UUID]。
  *
  * 自动对 [content] 进行 [toString]。
  *
- * @param tag XML 标签名称，参见 [io.github.autotweaker.api.types.agent.ContextInjection]。
+ * @param tag XML 标签名称，参见 [io.github.autotweaker.api.types.message.ContextInjection]。
  * @param content XML 标签内容，只有在确保对象 [toString] 格式友好的情况下才可直接传递对象，否则应当手动构造 [String]。
  */
 fun ContextInjection(

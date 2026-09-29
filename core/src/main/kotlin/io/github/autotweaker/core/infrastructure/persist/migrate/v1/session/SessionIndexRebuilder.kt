@@ -21,7 +21,7 @@ package io.github.autotweaker.core.infrastructure.persist.migrate.v1.session
 import io.github.autotweaker.api.json
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
-import io.github.autotweaker.api.types.agent.AgentMessageType
+import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.core.infrastructure.persist.db.session.MessageSearch
 import io.github.autotweaker.core.infrastructure.persist.migrate.MigratorBase
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0ContentPart

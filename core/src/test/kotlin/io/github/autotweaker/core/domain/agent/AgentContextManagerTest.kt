@@ -20,8 +20,9 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.now
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
@@ -519,7 +520,7 @@ class AgentContextManagerTest {
 	@Test
 	fun `updateInjections sets and clears injections`() = runTest {
 		val manager = ctx()
-		val injection = io.github.autotweaker.api.types.agent.ContextInjection(
+		val injection = ContextInjection(
 			tag = "context", content = "workspace data"
 		)
 		

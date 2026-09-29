@@ -18,30 +18,23 @@
 
 package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.message.MessageContent
-import java.util.*
+import io.github.autotweaker.api.types.message.AgentMessage
+import kotlinx.coroutines.flow.StateFlow
 
 /**
- * 用于追踪消息何时被 agent 消费。
+ * 表示一条正在处理的工具调用，可能有这些状态：[ToolCallStatus]。
+ *
+ * 这些工具调用的相关状态只存在于内存中。
+ *
+ * @property call 工具调用的请求消息。
+ * @property result 工具调用的响应消息，待 [status] 为 [ToolCallStatus.FINISHED] 后将可取到非空值。
+ * @property status 工具调用的当前状态。
+ * @property id [call] 的 id 可以用来区分一个 [AgentToolCall]。
  */
-interface Delivery {
-	/**
-	 * 消息是否仍未被消费。
-	 */
-	val isActive: Boolean
-	
-	/**
-	 * 等待消息被消费，并得到消息的 id 和最终内容。
-	 *
-	 * @return 如果消息为空而被丢弃，返回 null。
-	 * @throws kotlin.coroutines.cancellation.CancellationException 消息被取消
-	 */
-	suspend fun await(): Pair<UUID, MessageContent>?
-	
-	/**
-	 * 如果消息仍未被消费，取消消息处理。
-	 *
-	 * 不保证消息一定被取消，[isActive] 为 false 时可通过 [await] 查询状态。
-	 */
-	suspend fun cancel()
+class AgentToolCall(
+	val call: AgentMessage.Tool.Call,
+	val result: AgentMessage.Tool.Result?,
+	val status: StateFlow<ToolCallStatus>
+) {
+	val id = call.id
 }

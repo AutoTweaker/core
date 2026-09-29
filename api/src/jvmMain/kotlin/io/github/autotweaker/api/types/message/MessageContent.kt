@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.types.message
 
 import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.toContentPart

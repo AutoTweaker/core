@@ -16,32 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.agent
+package io.github.autotweaker.api.store
 
-import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.AgentMessage
 import java.util.*
 
 /**
- * 用于追踪消息何时被 agent 消费。
+ * [AgentMessage] 的内存缓存，缺失会自动从硬盘加载，硬盘也没有会返回 null。
  */
-interface Delivery {
+interface MessageCache {
 	/**
-	 * 消息是否仍未被消费。
+	 * 根据 [UUID] 获取一条 [AgentMessage]。
 	 */
-	val isActive: Boolean
-	
-	/**
-	 * 等待消息被消费，并得到消息的 id 和最终内容。
-	 *
-	 * @return 如果消息为空而被丢弃，返回 null。
-	 * @throws kotlin.coroutines.cancellation.CancellationException 消息被取消
-	 */
-	suspend fun await(): Pair<UUID, MessageContent>?
-	
-	/**
-	 * 如果消息仍未被消费，取消消息处理。
-	 *
-	 * 不保证消息一定被取消，[isActive] 为 false 时可通过 [await] 查询状态。
-	 */
-	suspend fun cancel()
+	fun get(id: UUID): AgentMessage?
 }

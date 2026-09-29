@@ -19,9 +19,15 @@
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
-import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContext
+import io.github.autotweaker.api.types.agent.AgentData
+import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessageType
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.mockk.*

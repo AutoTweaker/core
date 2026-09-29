@@ -23,7 +23,7 @@ import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.orNull
-import io.github.autotweaker.api.types.agent.ContextInjection
+import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.RuntimeContext

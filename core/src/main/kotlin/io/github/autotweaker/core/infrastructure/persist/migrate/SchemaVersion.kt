@@ -20,7 +20,7 @@ package io.github.autotweaker.core.infrastructure.persist.migrate
 
 import org.jetbrains.exposed.v1.core.Table
 
-const val CURRENT_SCHEMA_VERSION = 1
+const val CURRENT_SCHEMA_VERSION = 1 // 不要忘了密封类移动会破坏序列化type
 
 const val SCHEMA_VERSION_KEY = "schema_version"
 

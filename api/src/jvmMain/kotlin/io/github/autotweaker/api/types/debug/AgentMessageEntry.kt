@@ -18,8 +18,8 @@
 
 package io.github.autotweaker.api.types.debug
 
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.AgentMessageType
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessageType
 import java.util.*
 import kotlin.time.Instant
 

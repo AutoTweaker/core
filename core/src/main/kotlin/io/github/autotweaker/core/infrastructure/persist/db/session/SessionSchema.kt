@@ -18,7 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
-import io.github.autotweaker.api.types.agent.*
+import io.github.autotweaker.api.types.agent.AgentContext
+import io.github.autotweaker.api.types.agent.AgentIndex
+import io.github.autotweaker.api.types.agent.ModelConfig
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessageType
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
@@ -67,18 +71,12 @@ object AgentMessageTable : Table("agent_message") {
 		toDb = { it.name }
 	)
 	val timestamp = timestamp("timestamp")
+	val origin = javaUUID("origin")
 	val content = jsonb<AgentMessage>("content", Json)
 	
 	override val primaryKey = PrimaryKey(id)
-}
-
-object MessageOwnershipTable : Table("message_ownership") {
-	val messageId = reference("message_id", AgentMessageTable.id, onDelete = ReferenceOption.CASCADE)
-	val agentId = reference("agent_id", AgentDataTable.id, onDelete = ReferenceOption.CASCADE)
-	
-	override val primaryKey = PrimaryKey(messageId, agentId)
 	
 	init {
-		index(false, agentId)
+		index(false, origin)
 	}
 }

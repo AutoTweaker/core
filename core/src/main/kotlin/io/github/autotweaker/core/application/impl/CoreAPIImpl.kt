@@ -25,12 +25,12 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.SemVer
-import io.github.autotweaker.api.types.agent.AgentMessageType
 import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.config.EnvType
 import io.github.autotweaker.api.types.config.SettingValue
 import io.github.autotweaker.api.types.i18n.TranslationStatus
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.api.types.shell.ShellEvent

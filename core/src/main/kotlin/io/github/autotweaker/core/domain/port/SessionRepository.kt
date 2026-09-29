@@ -19,8 +19,8 @@
 package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.types.agent.AgentData
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.AgentMessageType
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.api.types.session.SessionCursor
 import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.api.types.session.SessionSort
@@ -51,4 +51,6 @@ interface SessionRepository {
 		from: Instant?,
 		to: Instant?,
 	): Set<UUID>
+	
+	fun loadMessage(id: UUID): AgentMessage?
 }

@@ -18,9 +18,9 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import kotlinx.serialization.json.JsonElement
@@ -110,6 +110,7 @@ data class RuntimeContext(
 		val turns: List<Turn>?,
 		val assistantMessage: Message.Assistant?,
 		val finishedToolCalls: List<Message.Tool>?,
+		val approvedToolCalls: List<PendingToolCall>?,
 		val pendingToolCalls: List<PendingToolCall>?,
 	) {
 		data class PendingToolCall(

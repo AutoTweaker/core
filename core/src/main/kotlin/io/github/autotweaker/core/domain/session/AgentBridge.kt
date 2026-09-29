@@ -31,6 +31,9 @@ import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
 import io.github.autotweaker.api.types.llm.UsageEntry
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.PluginLoader
@@ -261,7 +264,7 @@ class AgentBridge(
 			val record = AgentMessage.UsageRecord(
 				id = usage.id,
 				timestamp = usage.timestamp,
-				origin = setOf(id),
+				origin = id,
 				model = usage.modelId,
 				usage = usage.usage,
 			)

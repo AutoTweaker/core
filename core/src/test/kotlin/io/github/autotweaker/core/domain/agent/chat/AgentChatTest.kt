@@ -20,10 +20,10 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Url.Companion.toUrl
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
@@ -68,7 +68,7 @@ class AgentChatTest {
 		id = UUID.randomUUID()
 	)
 	private val agentModel = AgentModel(testModel, ReasoningEffort(false), testModel, testModel, null)
-
+	
 	private fun userMsg(content: String = "hello") =
 		RuntimeContext.Message.User(
 			id = UUID.randomUUID(),

@@ -22,10 +22,10 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrDefault
-import io.github.autotweaker.api.types.agent.ContextInjection
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.port.GitStatusService
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.SystemInfoService

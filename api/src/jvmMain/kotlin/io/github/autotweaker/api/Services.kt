@@ -22,6 +22,7 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.i18n.I18nService
 import io.github.autotweaker.api.store.JsonStore
+import io.github.autotweaker.api.store.MessageCache
 import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.api.trace.TraceRecorder
 import io.github.autotweaker.api.types.config.SettingValue
@@ -33,18 +34,20 @@ import kotlin.reflect.KClass
 class ServiceRegistry(
 	val trace: (KClass<*>) -> TraceRecorder,
 	val store: (KClass<*>) -> JsonStore,
-	lazyObjects: () -> ObjectStorage,
-	lazySetting: () -> SettingService,
-	lazyI18n: () -> I18nService,
+	lazyObjects: Lazy<ObjectStorage>,
+	lazySetting: Lazy<SettingService>,
+	lazyMessage: Lazy<MessageCache>,
+	lazyI18n: Lazy<I18nService>,
 ) {
-	val objects: ObjectStorage by lazy { lazyObjects() }
-	val setting: SettingService by lazy { lazySetting() }
-	val i18n: I18nService by lazy { lazyI18n() }
+	val objects: ObjectStorage by lazyObjects
+	val setting: SettingService by lazySetting
+	val message: MessageCache by lazyMessage
+	val i18n: I18nService by lazyI18n
 	
 	@PublishedApi
 	internal companion object {
-		var services: ServiceRegistry? = null
-		fun servicesOrError() = services ?: error("Services not initialized")
+		var registry: ServiceRegistry? = null
+		fun get() = registry ?: error("Services not initialized")
 	}
 }
 
@@ -52,8 +55,8 @@ class ServiceRegistry(
  * 请不要调用此方法。
  */
 fun initServices(services: ServiceRegistry) {
-	check(ServiceRegistry.services == null) { "Services already initialized" }
-	ServiceRegistry.services = services
+	check(ServiceRegistry.registry == null) { "Services already initialized" }
+	ServiceRegistry.registry = services
 }
 
 /**
@@ -64,13 +67,13 @@ fun initServices(services: ServiceRegistry) {
  * @see io.github.autotweaker.api.config.SettingService.get
  */
 fun <V : SettingValue<T>, T> SettingDef<V>.get(): T =
-	ServiceRegistry.servicesOrError().setting.get(this)
+	ServiceRegistry.get().setting.get(this)
 
 /**
  * 获取一个字符串 [SettingDef] 的当前值，并通过 [java.lang.String.format] 填充字符串占位符。
  */
 fun SettingDef<SettingValue.ValString>.format(vararg args: Any?): String =
-	ServiceRegistry.servicesOrError().setting.get(this).format(*args)
+	ServiceRegistry.get().setting.get(this).format(*args)
 
 /**
  * 对一个 [SettingDef] 调用 [set] 可以更新配置值。
@@ -80,4 +83,4 @@ fun SettingDef<SettingValue.ValString>.format(vararg args: Any?): String =
  * @see io.github.autotweaker.api.config.SettingService.set
  */
 fun <V : SettingValue<T>, T> SettingDef<V>.set(value: T) =
-	ServiceRegistry.servicesOrError().setting.set(this, value)
+	ServiceRegistry.get().setting.set(this, value)

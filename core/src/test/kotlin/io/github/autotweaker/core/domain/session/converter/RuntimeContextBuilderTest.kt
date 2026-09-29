@@ -20,9 +20,9 @@ package io.github.autotweaker.core.domain.session.converter
 
 import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
-import io.github.autotweaker.api.types.agent.AgentMessage
-import io.github.autotweaker.api.types.agent.MessageContent
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.test.TestServices
@@ -59,7 +59,7 @@ class RuntimeContextBuilderTest {
 		val context = AgentContext.emptyContext("prompt").copy(
 			index = AgentContextIndex(
 				null,
-				listOf(AgentContextIndex.CompletedRound(id, null, null)),
+				listOf(AgentContextIndex.Round(id, null, null)),
 				null,
 			)
 		)
@@ -77,7 +77,7 @@ class RuntimeContextBuilderTest {
 		val context = AgentContext.emptyContext("prompt").copy(
 			index = AgentContextIndex(
 				null,
-				listOf(AgentContextIndex.CompletedRound(UUID.randomUUID(), null, id)),
+				listOf(AgentContextIndex.Round(UUID.randomUUID(), null, id)),
 				null,
 			)
 		)
@@ -96,7 +96,7 @@ class RuntimeContextBuilderTest {
 			index = AgentContextIndex(
 				null,
 				listOf(
-					AgentContextIndex.CompletedRound(
+					AgentContextIndex.Round(
 						UUID.randomUUID(),
 						listOf(
 							AgentContextIndex.Turn(
@@ -172,7 +172,7 @@ class RuntimeContextBuilderTest {
 			index = AgentContextIndex(
 				null,
 				listOf(
-					AgentContextIndex.CompletedRound(
+					AgentContextIndex.Round(
 						UUID.randomUUID(),
 						listOf(
 							AgentContextIndex.Turn(
@@ -220,9 +220,9 @@ class RuntimeContextBuilderTest {
 		assertNull(deepestKept.compactedRounds)
 		// 被丢弃的子树返回给调用方，供持久化补全
 		assertNotNull(dropped)
-		assertEquals(chain.compactIds[5], dropped.summarizedMessage)
-		assertEquals(chain.userIds[5], dropped.rounds.single().userMessage)
-		assertEquals(chain.compactIds[6], dropped.compactedRounds!!.summarizedMessage)
+		assertEquals(chain.compactIds[5], dropped.summaryMsgRef)
+		assertEquals(chain.userIds[5], dropped.rounds.single().userMsgRef)
+		assertEquals(chain.compactIds[6], dropped.compactedRounds!!.summaryMsgRef)
 		assertNull(dropped.compactedRounds!!.compactedRounds)
 	}
 	
@@ -257,8 +257,8 @@ class RuntimeContextBuilderTest {
 		for (i in depth - 1 downTo 0) {
 			node = AgentContextIndex.CompactedRounds(
 				compactedRounds = node,
-				rounds = listOf(AgentContextIndex.CompletedRound(users[i].id, null, null)),
-				summarizedMessage = compacts[i].id,
+				rounds = listOf(AgentContextIndex.Round(users[i].id, null, null)),
+				summaryMsgRef = compacts[i].id,
 			)
 		}
 		val context = AgentContext.emptyContext("prompt").copy(
