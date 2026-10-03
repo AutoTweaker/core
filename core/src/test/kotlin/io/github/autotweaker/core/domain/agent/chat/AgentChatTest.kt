@@ -99,9 +99,9 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		assertTrue(results.any { it is AgentChatStreamResult.Assembled })
+		assertTrue(results.any { it is AgentChatResult.Assembled })
 		
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals("hello world", assembled.message.content)
 	}
 	
@@ -132,11 +132,11 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		val delta = results.filterIsInstance<AgentChatStreamResult.Delta>().first()
+		val delta = results.filterIsInstance<AgentChatResult.Delta>().first()
 		assertEquals("let me think", delta.delta.reasoningContent)
 		assertEquals("answer", delta.delta.content)
 		
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals("let me think", assembled.message.reasoning)
 		assertEquals("answer", assembled.message.content)
 	}
@@ -186,12 +186,12 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		val deltas = results.filterIsInstance<AgentChatStreamResult.Delta>()
+		val deltas = results.filterIsInstance<AgentChatResult.Delta>()
 		assertEquals(2, deltas.size)
 		assertEquals("hello ", deltas[0].delta.content)
 		assertEquals("world", deltas[1].delta.content)
 		
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals("hello world", assembled.message.content)
 	}
 	
@@ -213,7 +213,7 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		val failings = results.filterIsInstance<AgentChatStreamResult.Failing>()
+		val failings = results.filterIsInstance<AgentChatResult.Failing>()
 		assertEquals(1, failings.size)
 		assertEquals("service down", failings[0].error)
 		assertEquals(503, failings[0].statusCode)
@@ -241,7 +241,7 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals(Usage(100, 50, 50), assembled.message.usage)
 	}
 	
@@ -266,7 +266,7 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().first()
+		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals("thinking...", assembled.message.reasoning)
 	}
 	
@@ -310,7 +310,7 @@ class AgentChatTest {
 		
 		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
 		
-		val assembled = results.filterIsInstance<AgentChatStreamResult.Assembled>().last()
+		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().last()
 		assertEquals(1, assembled.toolCalls?.size)
 		assertEquals("call1", assembled.toolCalls?.first()?.id)
 	}

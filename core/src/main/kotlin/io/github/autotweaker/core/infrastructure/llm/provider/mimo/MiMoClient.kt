@@ -112,7 +112,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					})
 				
 				is ChatMessage.ToolResult -> MiMoMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.toolCallId
+					content = msg.content, toolCallId = msg.id
 				)
 			}
 		}

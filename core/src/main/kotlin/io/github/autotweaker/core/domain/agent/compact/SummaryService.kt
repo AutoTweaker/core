@@ -41,12 +41,7 @@ class SummaryService(
 			chat.execute(
 				model = model.model,
 				fallbackModels = model.fallback,
-				messages = listOf(
-					ChatMessage.User(
-						request.toContentPart(),
-						now()
-					)
-				),
+				messages = listOf(ChatMessage.User(request.toContentPart())),
 				reasoning = ReasoningEffort(thinking)
 			).toList()
 		}.rethrowCancellation()
@@ -59,7 +54,7 @@ class SummaryService(
 			UsageEntry(
 				UUID(),
 				lastModel,
-				lastResult.message.timestamp,
+				now(),
 				it
 			)
 		}

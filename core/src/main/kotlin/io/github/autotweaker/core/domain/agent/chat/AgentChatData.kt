@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import java.util.*
@@ -31,20 +32,20 @@ data class AgentChatRequest(
 	val context: RuntimeContext,
 )
 
-sealed class AgentChatStreamResult {
+sealed class AgentChatResult {
 	data class Delta(
 		val delta: AgentOutput.LlmDelta
-	) : AgentChatStreamResult()
+	) : AgentChatResult()
 	
 	data class Failing(
 		val error: String?,
 		val statusCode: Int?,
 		val exception: Throwable?,
 		val model: UUID,
-	) : AgentChatStreamResult()
+	) : AgentChatResult()
 	
 	data class Assembled(
-		val message: RuntimeContext.Message.Assistant,
+		val message: AgentMessage.Assistant,
 		val toolCalls: List<ChatMessage.Assistant.ToolCall>?,
-	) : AgentChatStreamResult()
+	) : AgentChatResult()
 }

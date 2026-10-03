@@ -58,9 +58,4 @@ object ToolI18n {
 	class ActiveNotFound : I18nBase(
 		zh("激活 %s 工具失败，不存在的工具"),
 	)
-	
-	@AutoService(I18nDef::class)
-	class Cancelled : I18nBase(
-		zh("调用 %s 工具被取消"),
-	)
 }

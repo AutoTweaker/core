@@ -187,7 +187,7 @@ sealed class AgentMessage {
 			override val origin: UUID,
 			override val callId: String,
 			/**
-			 * 响应内容，不一定是结构化数据。
+			 * 进入 LLM 上下文的响应内容，不一定是结构化数据。
 			 */
 			val content: String,
 			/**

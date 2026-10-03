@@ -390,7 +390,7 @@ class ToolsTest {
 		)
 		
 		val activation = assertIs<ResolveResult.Activation>(result)
-		assertEquals("bash", activation.toolName)
+		assertEquals("bash", activation.targetName)
 		assertTrue(activation.message.contains("包含这些子函数：[bash]"))
 		assertEquals(JsonPrimitive("bash"), activation.validatedArgs.jsonObject["tool_name"])
 	}

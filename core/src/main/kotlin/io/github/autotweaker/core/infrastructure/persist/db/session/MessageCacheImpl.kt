@@ -45,11 +45,12 @@ class MessageCacheImpl(private val sessionRepository: SessionRepository) : Messa
 			sessionRepository.loadMessage(id)
 		}
 	
-	fun put(message: AgentMessage) {
+	fun remove(ids: Set<UUID>) = cache.invalidateAll(ids)
+	
+	suspend fun save(message: AgentMessage) {
+		sessionRepository.saveMessage(message)
 		cache[message.id] = message
 	}
-	
-	fun remove(ids: Set<UUID>) = cache.invalidateAll(ids)
 	
 	suspend fun preload(ids: Set<UUID>) {
 		val missing = ids - cache.asMap().keys

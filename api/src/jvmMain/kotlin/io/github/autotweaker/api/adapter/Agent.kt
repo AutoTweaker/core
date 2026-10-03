@@ -119,13 +119,15 @@ interface Agent {
 	val toolCalls: Pair<UUID, List<AgentToolCall>>?
 	
 	/**
-	 * first 为 agent 正在调用工具的 callId，也就是 [io.github.autotweaker.api.types.message.AgentMessage.Tool.Call.callId]。
+	 * 表示一个 agent 正在进行的工具调用。
+	 *
+	 * first 工具调用的消息 id，可从 [toolCalls] 中找到对应项。
 	 *
 	 * second 为用于调用过程中展示的 i18n 信息。
 	 *
 	 * 当没有正在进行的工具调用时，此属性为 null。
 	 */
-	val toolCalling: StateFlow<Pair<String, ToolPresentation>?>
+	val toolCalling: StateFlow<Pair<UUID, ToolPresentation>?>
 	
 	/**
 	 * 实时的已激活工具名称列表，未激活的工具可能被 agent 激活，已激活的工具也可能被 AutoTweaker 取消激活。

@@ -30,7 +30,7 @@ import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.chat.merge
-import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -49,7 +49,7 @@ class CompactService(
 	
 	suspend fun execute(
 		model: AgentModel,
-		ctx: AgentContextManager,
+		ctx: ContextManager,
 	) {
 		val context = ctx.get()
 		val rounds = context.historyRounds ?: return
@@ -248,7 +248,7 @@ class CompactService(
 	) = ChatMessage.ToolResult(
 		content = maybeSummarize(msg.result.content, model),
 		timestamp = msg.result.timestamp,
-		toolCallId = msg.callId
+		id = msg.callId
 	)
 	
 	

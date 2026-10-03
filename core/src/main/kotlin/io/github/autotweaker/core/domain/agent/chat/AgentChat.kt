@@ -18,22 +18,32 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
+import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
+import io.github.autotweaker.api.base.StringSetting
+import io.github.autotweaker.api.base.zh
+import io.github.autotweaker.api.config.SettingDef
+import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.agent.AgentOutput
+import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.TimeZone
 import java.util.*
 
 class AgentChat(
 	private val chat: ResilientChat,
+	private val msg: MessageBuilder
 ) : Loggable, I18nable {
 	fun execute(
 		request: AgentChatRequest, agentId: UUID
-	): Flow<AgentChatStreamResult> = flow {
-		val messages = request.toChatMessages(i18n.getLanguage())
+	): Flow<AgentChatResult> = flow {
+		val messages = request.context.toChatMessages()
 		
 		log.debug(
 			"Agent chat started  agentId={}  model={}  fallbackModels={}  reasoning={}  messages={}",
@@ -57,7 +67,7 @@ class AgentChat(
 		results.collect {
 			when (val result = it.result) {
 				is ChatResult.Chunk -> emit(
-					AgentChatStreamResult.Delta(
+					AgentChatResult.Delta(
 						AgentOutput.LlmDelta(
 							content = result.content,
 							reasoningContent = result.reasoningContent,
@@ -67,7 +77,7 @@ class AgentChat(
 				)
 				
 				is ChatResult.Failed -> emit(
-					AgentChatStreamResult.Failing(
+					AgentChatResult.Failing(
 						error = result.message,
 						statusCode = result.statusCode,
 						exception = result.exception,
@@ -83,24 +93,126 @@ class AgentChat(
 				}
 				
 				
-				is ChatResult.Assembled -> {
-					val msg = result.message
-					val assistantMessage = RuntimeContext.Message.Assistant(
-						id = UUID(),
-						timestamp = msg.timestamp,
-						reasoning = msg.reasoningContent,
-						content = msg.content,
-						modelId = it.model,
-						usage = result.usage
+				is ChatResult.Assembled -> emit(
+					AgentChatResult.Assembled(
+						message = msg.assistant(
+							reasoning = result.message.reasoningContent,
+							content = result.message.content,
+							model = it.model,
+							usage = result.usage
+						),
+						toolCalls = result.message.toolCalls,
 					)
-					emit(
-						AgentChatStreamResult.Assembled(
-							message = assistantMessage,
-							toolCalls = msg.toolCalls,
-						)
-					)
-				}
+				)
 			}
 		}
 	}
+	
+	private val placeholder by lazy { CorruptedPlaceholder().get() }
+	
+	fun RuntimeContext.toChatMessages(): List<ChatMessage> = buildList {
+		buildList {
+			historyRounds?.let { addAll(it) }
+			currentRound?.let { add(it) }
+		}.ifEmpty { error("No round to send request") }.forEach { round ->
+			add(round.userMessage())
+			round.turns?.forEach { addTurn(it) }
+			round.assistantMessage()?.let { add(it) }
+		}
+	}.inject(
+		injections, compactedRounds?.summaryMessage?.fold(
+			onIntact = { it.content },
+			onCorrupted = { placeholder }
+		)
+	)
+	
+	private fun AgentContextIndex.Round.userMessage() = userMessage.fold(
+		onIntact = {
+			ChatMessage.User(
+				it.content.injectContext(
+					it.timestamp,
+					TimeZone.currentSystemDefault(),
+					i18n.getLanguage()
+				).inject(),
+			)
+		},
+		onCorrupted = { ChatMessage.User(placeholder.toContentPart()) }
+	)
+	
+	private fun MutableList<ChatMessage>.addTurn(turn: AgentContextIndex.Turn) {
+		val calls = mutableListOf<ChatMessage.Assistant.ToolCall>()
+		val results = mutableListOf<ChatMessage.ToolResult>()
+		turn.tools.forEach { tool ->
+			var callId: String? = null
+			calls += tool.call.fold(
+				onIntact = {
+					callId = it.callId
+					ChatMessage.Assistant.ToolCall(
+						id = it.callId,
+						name = it.callName,
+						arguments = it.arguments
+					)
+				},
+				onCorrupted = {
+					callId = it.id.toString()
+					ChatMessage.Assistant.ToolCall(
+						id = it.id.toString(),
+						name = "unknown",
+						arguments = placeholder
+					)
+				}
+			)
+			results += tool.result.fold(
+				onIntact = {
+					ChatMessage.ToolResult(
+						id = it.callId,
+						content = it.content
+					)
+				},
+				onCorrupted = {
+					ChatMessage.ToolResult(
+						id = callId ?: unreachable(),
+						content = placeholder
+					)
+				}
+			)
+		}
+		
+		this += turn.assistantMessage.fold(
+			onIntact = {
+				ChatMessage.Assistant(
+					content = it.content,
+					reasoningContent = it.reasoning,
+					toolCalls = calls
+				)
+			},
+			onCorrupted = {
+				ChatMessage.Assistant(
+					content = placeholder,
+					toolCalls = calls
+				)
+			}
+		)
+		addAll(results)
+	}
+	
+	private fun AgentContextIndex.Round.assistantMessage() = assistantMessage?.fold(
+		onIntact = {
+			ChatMessage.Assistant(
+				content = it.content,
+				reasoningContent = it.reasoning
+			)
+		},
+		onCorrupted = {
+			ChatMessage.Assistant(
+				content = placeholder
+			)
+		}
+	)
+	
+	@AutoService(SettingDef::class)
+	class CorruptedPlaceholder : StringSetting(
+		"[损坏的消息]",
+		zh("上下文中的消息无法从硬盘中加载时的占位内容")
+	)
 }

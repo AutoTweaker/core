@@ -92,7 +92,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				)
 				
 				is ChatMessage.ToolResult -> DeepSeekMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.toolCallId
+					content = msg.content, toolCallId = msg.id
 				)
 			}
 		}

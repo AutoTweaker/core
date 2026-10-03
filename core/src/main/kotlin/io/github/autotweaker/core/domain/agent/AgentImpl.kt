@@ -26,7 +26,7 @@ import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
 import io.github.autotweaker.core.domain.agent.compact.CompactService
-import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
@@ -70,7 +70,7 @@ class AgentImpl(
 		_output.tryEmit(it)
 	}
 	
-	private val ctx = AgentContextManager(context.copy(currentRound = null))
+	private val ctx = ContextManager(context.copy(currentRound = null))
 	val context: StateFlow<RuntimeContext> = ctx.context
 	
 	private val toolManager = Tools(workspace, tools, activeTools, agentId)

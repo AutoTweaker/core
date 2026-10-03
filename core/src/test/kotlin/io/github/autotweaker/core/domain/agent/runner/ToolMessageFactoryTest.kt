@@ -23,6 +23,7 @@ import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.runner.helper.ToolMessageFactory
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
 import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.test.TestServices
@@ -142,7 +143,7 @@ class ToolMessageFactoryTest {
 	fun `buildImmediateResults activation returns success with message`() {
 		val call = rawCall()
 		val activation = call to ResolveResult.Activation(
-			toolName = "bash",
+			targetName = "bash",
 			reason = "activate",
 			validatedArgs = JsonPrimitive("{}"),
 			presentation = presentation(),
@@ -170,7 +171,7 @@ class ToolMessageFactoryTest {
 			"bash", "rejected", JsonPrimitive("{}"), "resolve error", presentation()
 		)
 		val activation = call3 to ResolveResult.Activation(
-			toolName = "bash",
+			targetName = "bash",
 			reason = "activate",
 			validatedArgs = JsonPrimitive("{}"),
 			presentation = presentation(),
@@ -272,7 +273,7 @@ class ToolMessageFactoryTest {
 		val message = ToolMessageFactory.buildActivation(
 			timestamp,
 			call to ResolveResult.Activation(
-				toolName = "bash",
+				targetName = "bash",
 				reason = "please activate",
 				validatedArgs = JsonPrimitive("{}"),
 				presentation = presentation(),

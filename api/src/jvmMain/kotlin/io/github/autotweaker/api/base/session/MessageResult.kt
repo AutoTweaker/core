@@ -39,21 +39,24 @@ inline fun <reified T : AgentMessage> getMessage(id: UUID): MessageResult<T> {
 }
 
 @JvmInline
-value class MessageResult<out T : AgentMessage> private constructor(private val value: Any) {
+value class MessageResult<out T : AgentMessage> private constructor(
+	@PublishedApi
+	internal val value: Any
+) {
 	val isIntact get() = value !is CorruptedMessage
 	val isCorrupted get() = value is CorruptedMessage
 	fun getOrNull() = if (isCorrupted) null else value as T
 	fun corruptedOrNull() = value as? CorruptedMessage
 	
-	fun onIntact(action: (T) -> Unit): MessageResult<T> = also {
+	inline fun onIntact(action: (T) -> Unit): MessageResult<T> = also {
 		if (isIntact) action(value as T)
 	}
 	
-	fun onCorrupted(action: (CorruptedMessage) -> Unit): MessageResult<T> = also {
+	inline fun onCorrupted(action: (CorruptedMessage) -> Unit): MessageResult<T> = also {
 		corruptedOrNull()?.let { action(it) }
 	}
 	
-	fun <R> fold(onIntact: (T) -> R, onCorrupted: (CorruptedMessage) -> R): R {
+	inline fun <R> fold(onIntact: (T) -> R, onCorrupted: (CorruptedMessage) -> R): R {
 		val corrupted = corruptedOrNull()
 		return if (corrupted == null) onIntact(value as T)
 		else onCorrupted(corrupted)

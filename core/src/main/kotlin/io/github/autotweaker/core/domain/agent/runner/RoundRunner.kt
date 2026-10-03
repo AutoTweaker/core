@@ -22,14 +22,14 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.config.SettingDef
-import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.Delivery
+import io.github.autotweaker.api.types.agent.ToolCallStatus
 import io.github.autotweaker.api.types.exception.AgentDeadException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
-import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.core.domain.agent.AgentCommand
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.all
@@ -51,7 +51,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class RoundRunner(
-	private val ctx: AgentContextManager,
+	private val ctx: ContextManager,
 	private val workspace: () -> Path,
 	private val tools: Tools,
 	private val thinkingStage: ThinkingStage,
@@ -238,7 +238,7 @@ class RoundRunner(
 			shouldBreak.value = false
 			
 			status.value = AgentStatus.PROCESSING
-			ctx.beginRound(msg)
+			ctx.beginRound(msg.ref())
 			executeRound()
 			status.value = AgentStatus.PROCESSING
 			ctx.archiveCurrentRound()
@@ -274,31 +274,21 @@ class RoundRunner(
 			status.value = AgentStatus.PROCESSING
 			
 			roundCtx.applyThinking(result)
-			result.activations?.let { activeAll(it) }
-			
-			suspend fun cancelPending() = ctx.cancelPending { callId ->
-				// pending 必然校验成功，而校验成功必然有 resolveResult
-				requireNotNull(result.needsApproval?.find {
-					it.first.callId == callId
-				}) { "No needsApproval for cancelled callId: $callId" }.second.cancelled()
+			result.toolCalls?.forEach { (_, resolved) ->
+				if (resolved is ResolveResult.Activation)
+					tools.activate(resolved.targetName, true)
 			}
 			
 			if (shouldBreak.value) {
-				cancelPending()
+				ctx.cancelPending()
 				break
 			}
 			
-			if (allNull(
-					result.activations,
-					result.parseFailures,
-					result.resolveFailures,
-					result.needsApproval
-				)
-			) { // 无 tool call
+			if (result.toolCalls == null) { // 无 tool call
 				messages.drainPrimary()?.let { // 尝试消费消息，若有直接继续，防止闪FREE
 					status.value = AgentStatus.PROCESSING
 					ctx.archiveCurrentRound()
-					ctx.beginRound(it)
+					ctx.beginRound(it.ref())
 					continue
 				}
 				
@@ -314,7 +304,7 @@ class RoundRunner(
 						)
 					)
 					ctx.archiveCurrentRound()
-					ctx.beginRound(messages.receive())
+					ctx.beginRound(messages.receive().ref())
 					continue
 				}
 				
@@ -322,18 +312,15 @@ class RoundRunner(
 			}
 			
 			
-			if (result.needsApproval != null) { // 开始审批
-				val reasons = approval.process(
-					result.needsApproval,
-					currentModel,
-				)
+			if (ctx.toolCalls?.second?.any { it.status.value == ToolCallStatus.PENDING } == true) { // 开始审批
+				val reasons = approval.process(currentModel)
 				messages.send(reasons)
 			}
 			
 			status.value = AgentStatus.PROCESSING
 			
 			if (shouldBreak.value) {
-				cancelPending()
+				ctx.cancelPending()
 				break
 			}
 			
@@ -349,7 +336,7 @@ class RoundRunner(
 			messages.drainAll()?.let {
 				status.value = AgentStatus.PROCESSING
 				ctx.archiveCurrentRound()
-				ctx.beginRound(it)
+				ctx.beginRound(it.ref())
 			}
 		}
 		log.info("Completed round execution  agentId={}", agentId)
@@ -403,7 +390,7 @@ class RoundRunner(
 			context.currentRound?.assistantMessage
 				?: context.currentRound?.turns?.lastOrNull()?.assistantMessage
 				?: context.historyRounds?.lastOrNull()?.finalAssistantMessage
-		} ?: return@withLock
+		}
 		val usage = assistantMessage.usage ?: return@withLock
 		val contextWindow = currentModel.model.modelInfo.contextWindow
 		val config = currentModel.all().find { it.id == assistantMessage.modelId }?.config
@@ -429,9 +416,6 @@ class RoundRunner(
 				)
 			}
 	}
-	
-	private fun activeAll(activations: PairList<ToolCall, ResolveResult.Activation>) =
-		activations.forEach { tools.activate(it.second.toolName, true) }
 	
 	private suspend fun launchCompact() = compactLock.withLock {
 		throwFailure()

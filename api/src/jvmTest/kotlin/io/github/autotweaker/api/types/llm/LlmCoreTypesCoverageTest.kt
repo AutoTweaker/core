@@ -95,7 +95,7 @@ class LlmCoreTypesCoverageTest {
 	fun `ChatMessage ToolResult all fields`() {
 		val msg = ChatMessage.ToolResult("result", now, "call-1")
 		assertEquals("result", msg.content)
-		assertEquals("call-1", msg.toolCallId)
+		assertEquals("call-1", msg.id)
 	}
 	
 	@Test

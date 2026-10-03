@@ -26,7 +26,7 @@ import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
@@ -65,8 +65,8 @@ class CompactServiceTest {
 		onOutput: (RuntimeOutput) -> Unit = {},
 	) = CompactService(agentId, chat, SummaryService(chat), onOutput)
 	
-	private fun managerWithHistory(): AgentContextManager {
-		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null))
+	private fun managerWithHistory(): ContextManager {
+		val manager = ContextManager(RuntimeContext(null, null, null, null, null))
 		runBlocking {
 			manager.beginRound(
 				RuntimeContext.Message.User(
@@ -127,7 +127,7 @@ class CompactServiceTest {
 	@Test
 	fun `no history rounds returns without calling llm`() = runTest {
 		val (chat, callCount) = mockResilientChat()
-		val manager = AgentContextManager(RuntimeContext(null, null, null, null, null))
+		val manager = ContextManager(RuntimeContext(null, null, null, null, null))
 		
 		compactService(chat).execute(model, manager)
 		
