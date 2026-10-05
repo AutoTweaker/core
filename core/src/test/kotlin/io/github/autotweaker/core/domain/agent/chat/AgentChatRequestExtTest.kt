@@ -21,17 +21,23 @@ package io.github.autotweaker.core.domain.agent.chat
 import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.Url.Companion.toUrl
+import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.RuntimeProvider
+import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.test.TestServices
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
@@ -64,48 +70,55 @@ class AgentChatRequestExtTest {
 	)
 	private val agentModel = AgentModel(testModel, ReasoningEffort(false), testModel, testModel, null)
 	
-	private fun userMsg(content: String = "hello") =
-		RuntimeContext.Message.User(
-			id = UUID.randomUUID(),
-			content = MessageContent(content = content.toContentPart()),
-			timestamp = now()
+	private val agentId = UUID.randomUUID()
+	private val messageBuilder = TestServices.messageBuilder(agentId)
+	
+	// toChatMessages 现为 AgentChat 的成员扩展，语言来自 i18n 服务而非入参，因此需要一个实例承载
+	private val chat = AgentChat(mockk<ResilientChat>(relaxed = true), messageBuilder)
+	
+	private fun convert(context: RuntimeContext): List<ChatMessage> = with(chat) { context.toChatMessages() }
+	
+	private suspend fun userMsg(content: String = "hello") =
+		messageBuilder.user(MessageContent(content = content.toContentPart()))
+	
+	private suspend fun assistantMsg(content: String = "response") =
+		messageBuilder.assistant(
+			reasoning = null,
+			content = content,
+			model = testModel.id,
+			usage = null,
 		)
 	
-	private fun assistantMsg(content: String = "response") = RuntimeContext.Message.Assistant(
-		id = UUID.randomUUID(),
-		reasoning = null,
-		content = content,
-		modelId = testModel.id,
-		timestamp = now(),
-		usage = null,
+	private suspend fun toolTurn(
+		callId: String = "call-1",
+		callName: String = "read",
+		content: String = "file content",
+	) = AgentContextIndex.Turn.Tool(
+		callRef = messageBuilder.toolCall(
+			timestamp = now(),
+			callId = callId,
+			callName = callName,
+			arguments = "{}",
+			reason = null,
+			validatedToolName = null,
+			validatedArgs = JsonPrimitive("{}"),
+			resolvedRequest = null,
+			presentation = null,
+		).ref(),
+		resultRef = messageBuilder.toolResult(
+			callId = callId,
+			content = content,
+			data = null,
+			presentation = listOf(UiBlock.Text("读取了文件")),
+			status = ToolResultStatus.SUCCESS
+		).ref(),
 	)
 	
-	private fun toolResult() =
-		RuntimeContext.Message.Tool(
-			call = RuntimeContext.Message.Tool.Call(
-				id = UUID.randomUUID(),
-				callName = "read",
-				arguments = "{}",
-				reason = null,
-				timestamp = now(),
-				validatedToolName = null,
-				validatedArgs = JsonPrimitive("{}"),
-				resolvedRequest = null,
-				presentation = null,
-			),
-			callId = "call-1",
-			result = RuntimeContext.Message.Tool.Result(
-				id = UUID.randomUUID(),
-				content = "file content",
-				data = null,
-				presentation = listOf(UiBlock.Text("读取了文件")),
-				timestamp = now(),
-				status = ToolResultStatus.SUCCESS
-			),
-		)
-	
-	private fun currentRound(userMsg: RuntimeContext.Message.User) =
-		RuntimeContext.CurrentRound(userMsg, null, null, null, null)
+	private fun round(
+		user: AgentMessage.User,
+		turns: List<AgentContextIndex.Turn>? = null,
+		assistant: AgentMessage.Assistant? = null,
+	) = AgentContextIndex.Round(user.ref(), turns, assistant?.ref())
 	
 	private fun request(
 		context: RuntimeContext,
@@ -113,12 +126,12 @@ class AgentChatRequestExtTest {
 	) = AgentChatRequest(agentModel, tools, context)
 	
 	@Test
-	fun `basic user message conversion`() {
+	fun `basic user message conversion`() = runTest {
 		val user = userMsg("hello world")
-		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
+		val ctx = RuntimeContext(null, null, null, null, round(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		assertEquals(1, messages.size)
 		val msg = messages[0] as ChatMessage.User
@@ -127,24 +140,24 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `system prompt included`() {
+	fun `system prompt included`() = runTest {
 		val user = userMsg("hello")
-		val ctx = RuntimeContext("you are a helpful assistant", null, null, null, currentRound(user))
+		val ctx = RuntimeContext("you are a helpful assistant", null, null, null, round(user))
 		val req = request(context = ctx)
 		
 		// 系统提示现在通过 instructions 传给 provider，不再注入消息列表
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		assertEquals(1, messages.size)
-		val userMsg = messages[0] as ChatMessage.User
-		assertTrue(userMsg.content.merge().contains("hello"))
-		assertFalse(userMsg.content.merge().contains("you are a helpful assistant"))
+		val userChatMsg = messages[0] as ChatMessage.User
+		assertTrue(userChatMsg.content.merge().contains("hello"))
+		assertFalse(userChatMsg.content.merge().contains("you are a helpful assistant"))
 	}
 	
 	@Test
-	fun `tools parameter passed through`() {
+	fun `tools parameter passed through`() = runTest {
 		val user = userMsg("hello")
-		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
+		val ctx = RuntimeContext(null, null, null, null, round(user))
 		val tool = ChatRequest.Tool("read", "read a file", Json.parseToJsonElement("{}"))
 		val req = request(context = ctx, tools = listOf(tool))
 		
@@ -153,23 +166,22 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `summarized message included in user content`() {
+	fun `summarized message included in user content`() = runTest {
 		val user = userMsg("continue")
-		val compactedRounds = RuntimeContext.CompactedRounds(
+		val summary = messageBuilder.compact(
+			content = "previous summary",
+			model = UUID.randomUUID(),
+			usage = null,
+		)
+		val compactedRounds = AgentContextIndex.CompactedRounds(
 			compactedRounds = null,
 			rounds = emptyList(),
-			summarizedMessage = RuntimeContext.SummarizedMessage(
-				id = UUID.randomUUID(),
-				timestamp = now(),
-				content = "previous summary",
-				modelId = UUID.randomUUID(),
-				usage = null,
-			)
+			summaryMsgRef = summary.ref(),
 		)
-		val ctx = RuntimeContext(null, null, compactedRounds, null, currentRound(user))
+		val ctx = RuntimeContext(null, null, compactedRounds, null, round(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		val msg = messages[0] as ChatMessage.User
 		assertTrue(msg.content.merge().contains("<summary>"))
@@ -179,30 +191,29 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `summarized message mounted on first history round when history exists`() {
+	fun `summarized message mounted on first history round when history exists`() = runTest {
 		val user = userMsg("current question")
 		val histUser = userMsg("previous question")
 		val histAsst = assistantMsg("previous answer")
-		val histRound = RuntimeContext.CompletedRound(histUser, null, histAsst)
-		val compactedRounds = RuntimeContext.CompactedRounds(
+		val histRound = round(histUser, assistant = histAsst)
+		val summary = messageBuilder.compact(
+			content = "compacted summary of old rounds",
+			model = UUID.randomUUID(),
+			usage = null,
+		)
+		val compactedRounds = AgentContextIndex.CompactedRounds(
 			compactedRounds = null,
 			rounds = emptyList(),
-			summarizedMessage = RuntimeContext.SummarizedMessage(
-				id = UUID.randomUUID(),
-				timestamp = now(),
-				content = "compacted summary of old rounds",
-				modelId = UUID.randomUUID(),
-				usage = null,
-			)
+			summaryMsgRef = summary.ref(),
 		)
 		val ctx = RuntimeContext(
 			null, null, compactedRounds,
 			historyRounds = listOf(histRound),
-			currentRound = currentRound(user),
+			currentRound = round(user),
 		)
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		val histUserMsg = messages[0] as ChatMessage.User
 		assertTrue(histUserMsg.content.merge().contains("<summary>"))
@@ -215,19 +226,17 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `images in user message`() {
+	fun `images in user message`() = runTest {
 		val img = Sha256(ByteArray(32) { it.toByte() })
-		val user = RuntimeContext.Message.User(
-			id = UUID.randomUUID(),
-			content = MessageContent(
+		val user = messageBuilder.user(
+			MessageContent(
 				content = listOf(ContentPart.Text("look at this"), ContentPart.Image("image/png", img)),
-			),
-			timestamp = now()
+			)
 		)
-		val ctx = RuntimeContext(null, null, null, null, currentRound(user))
+		val ctx = RuntimeContext(null, null, null, null, round(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		val msg = messages[0] as ChatMessage.User
 		assertTrue(msg.content.any { it is ContentPart.Image && it.data == img })
@@ -235,62 +244,55 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `throws when no current round`() {
+	fun `throws when no current round`() = runTest {
 		val ctx = RuntimeContext(null, null, null, null, null)
 		val req = request(context = ctx)
 		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages(Locale.ENGLISH) }
-		assertTrue(ex.message!!.contains("No current round"))
+		val ex = assertFailsWith<IllegalStateException> { convert(req.context) }
+		assertTrue(ex.message!!.contains("No round to send request"))
 	}
 	
 	@Test
-	fun `throws when current round has assistant message set`() {
+	fun `current round with assistant message is appended`() = runTest {
 		val user = userMsg("hello")
 		val asst = assistantMsg("I replied")
-		val round = RuntimeContext.CurrentRound(user, null, asst, null, null)
-		val ctx = RuntimeContext(null, null, null, null, round)
+		val ctx = RuntimeContext(null, null, null, null, round(user, assistant = asst))
 		val req = request(context = ctx)
 		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages(Locale.ENGLISH) }
-		assertTrue(ex.message!!.contains("Last message is an assistant message"))
+		// 新模型中当前轮次可以持有已生成、等待归档的 assistant 消息，不再视为非法状态，直接在用户消息之后追加
+		val messages = convert(req.context)
+		
+		assertEquals(2, messages.size)
+		val asstChatMsg = messages[1] as ChatMessage.Assistant
+		assertEquals("I replied", asstChatMsg.content)
 	}
 	
 	@Test
-	fun `throws when pending tool calls exist`() {
+	fun `current round with finished tool turn is appended`() = runTest {
 		val user = userMsg("hello")
-		val pending = listOf(
-			RuntimeContext.CurrentRound.PendingToolCall(
-				id = UUID.randomUUID(),
-				callId = "id1",
-				callName = "read",
-				arguments = "{}",
-				reason = "test",
-				timestamp = now(),
-				validatedToolName = "read",
-				validatedArgs = JsonPrimitive("{}"),
-				resolvedRequest = JsonPrimitive("{}"),
-				presentation = listOf(UiBlock.Text("请求读取文件")),
-			)
-		)
-		val round = RuntimeContext.CurrentRound(user, null, null, null, pending)
-		val ctx = RuntimeContext(null, null, null, null, round)
+		val asst = assistantMsg("calling read")
+		val turn = AgentContextIndex.Turn(asst.ref(), listOf(toolTurn()))
+		val ctx = RuntimeContext(null, null, null, null, round(user, turns = listOf(turn)))
 		val req = request(context = ctx)
 		
-		val ex = assertFailsWith<IllegalStateException> { req.toChatMessages(Locale.ENGLISH) }
-		assertTrue(ex.message!!.contains("Pending tool calls exist"))
+		// 新模型中工具调用与响应成对存储在 Turn 中，不存在“挂起的工具调用”，转换不再抛异常
+		val messages = convert(req.context)
+		
+		assertEquals(3, messages.size)
+		val toolChatMsg = messages[2] as ChatMessage.ToolResult
+		assertEquals("file content", toolChatMsg.content)
+		assertEquals("call-1", toolChatMsg.id)
 	}
 	
 	@Test
-	fun `turns with tool calls included in messages`() {
+	fun `turns with tool calls included in messages`() = runTest {
 		val user = userMsg("read file")
 		val asst = assistantMsg("I will read it")
-		val tool = toolResult()
-		val turn = RuntimeContext.Turn(asst, listOf(tool))
-		val round = RuntimeContext.CurrentRound(user, listOf(turn), null, null, null)
-		val ctx = RuntimeContext(null, null, null, null, round)
+		val turn = AgentContextIndex.Turn(asst.ref(), listOf(toolTurn()))
+		val ctx = RuntimeContext(null, null, null, null, round(user, turns = listOf(turn)))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		assertEquals(3, messages.size)
 		val userChatMsg = messages[0] as ChatMessage.User
@@ -308,19 +310,19 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `history rounds included in messages`() {
+	fun `history rounds included in messages`() = runTest {
 		val user = userMsg("current question")
 		val histUser = userMsg("previous question")
 		val histAsst = assistantMsg("previous answer")
-		val histRound = RuntimeContext.CompletedRound(histUser, null, histAsst)
+		val histRound = round(histUser, assistant = histAsst)
 		val ctx = RuntimeContext(
 			null, null, null,
 			historyRounds = listOf(histRound),
-			currentRound = currentRound(user),
+			currentRound = round(user),
 		)
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		assertEquals(3, messages.size)
 		val histUserMsg = messages[0] as ChatMessage.User
@@ -332,35 +334,33 @@ class AgentChatRequestExtTest {
 	}
 	
 	@Test
-	fun `multiple history rounds`() {
+	fun `multiple history rounds`() = runTest {
 		val user = userMsg("current")
 		val hist1User = userMsg("q1")
 		val hist1Asst = assistantMsg("a1")
 		val hist2User = userMsg("q2")
 		val hist2Asst = assistantMsg("a2")
 		val histRounds = listOf(
-			RuntimeContext.CompletedRound(hist1User, null, hist1Asst),
-			RuntimeContext.CompletedRound(hist2User, null, hist2Asst),
+			round(hist1User, assistant = hist1Asst),
+			round(hist2User, assistant = hist2Asst),
 		)
-		val ctx = RuntimeContext(null, null, null, histRounds, currentRound(user))
+		val ctx = RuntimeContext(null, null, null, histRounds, round(user))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		
 		assertEquals(5, messages.size)
 	}
 	
 	@Test
-	fun `tool result as last message allows conversion`() {
+	fun `tool result as last message allows conversion`() = runTest {
 		val user = userMsg("read file")
 		val asst = assistantMsg("calling tool")
-		val tool = toolResult()
-		val turn = RuntimeContext.Turn(asst, listOf(tool))
-		val round = RuntimeContext.CurrentRound(user, listOf(turn), null, null, null)
-		val ctx = RuntimeContext(null, null, null, null, round)
+		val turn = AgentContextIndex.Turn(asst.ref(), listOf(toolTurn()))
+		val ctx = RuntimeContext(null, null, null, null, round(user, turns = listOf(turn)))
 		val req = request(context = ctx)
 		
-		val messages = req.toChatMessages(Locale.ENGLISH)
+		val messages = convert(req.context)
 		assertNotNull(messages)
 	}
 }

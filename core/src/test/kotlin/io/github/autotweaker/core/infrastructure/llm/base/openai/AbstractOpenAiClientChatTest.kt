@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.infrastructure.llm.base.openai
 
-import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
@@ -39,7 +38,6 @@ import kotlinx.serialization.json.Json
 import kotlin.test.*
 
 class AbstractOpenAiClientChatTest {
-	private val now = now()
 	private val serializationJson = Json {
 		ignoreUnknownKeys = true
 		isLenient = true
@@ -80,7 +78,7 @@ class AbstractOpenAiClientChatTest {
 	private fun userRequest() = ChatRequest(
 		model = "deepseek-v4-pro",
 		instructions = null,
-		messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hello")), now)),
+		messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hello")))),
 		reasoning = null,
 		stream = false,
 		maxTokens = null,

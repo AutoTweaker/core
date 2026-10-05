@@ -19,12 +19,17 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.now
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
+import io.github.autotweaker.core.domain.agent.AgentToolCallImpl
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.test.TestServices
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -45,74 +50,66 @@ class ToolCallHistoryImplTest {
 	@Serializable
 	private data class BashRequest(val command: String)
 	
-	private fun tool(
+	private val msg = TestServices.messageBuilder()
+	
+	private fun ready() = Tool.ResolveResult.Ready(
+		result = JsonPrimitive("{}"),
+		request = { listOf(UiBlock.Text("request")) },
+		executing = { listOf(UiBlock.Text("executing")) },
+		cancelled = { listOf(UiBlock.Text("cancelled")) },
+		rejected = { listOf(UiBlock.Text("rejected")) },
+		failed = { listOf(UiBlock.Text("failed")) },
+		timeout = { listOf(UiBlock.Text("timeout")) },
+	)
+	
+	private suspend fun call(
+		callId: String,
+		resolvedRequest: JsonElement? = Json.parseToJsonElement("""{"command":"echo hi"}"""),
+	) = msg.toolCall(
+		timestamp = now(),
+		callId = callId,
+		callName = "bash-run",
+		arguments = """{"cmd":"echo hi","reason":"because"}""",
+		reason = "because",
+		validatedToolName = "bash",
+		validatedArgs = JsonPrimitive("{}"),
+		resolvedRequest = resolvedRequest,
+		presentation = null,
+	)
+	
+	private suspend fun tool(
 		callId: String,
 		resolvedRequest: JsonElement? = Json.parseToJsonElement("""{"command":"echo hi"}"""),
 		content: String = "done",
-	) = RuntimeContext.Message.Tool(
-		callId = callId,
-		call = RuntimeContext.Message.Tool.Call(
-			id = UUID.randomUUID(),
-			timestamp = now(),
-			callName = "bash-run",
-			arguments = """{"cmd":"echo hi","reason":"because"}""",
-			reason = "because",
-			validatedToolName = "bash",
-			validatedArgs = JsonPrimitive("{}"),
-			resolvedRequest = resolvedRequest,
-			presentation = null,
-		),
-		result = RuntimeContext.Message.Tool.Result(
-			id = UUID.randomUUID(),
+	) = AgentContextIndex.Turn.Tool(
+		call(callId, resolvedRequest).ref(),
+		msg.toolResult(
+			callId = callId,
 			content = content,
 			data = JsonPrimitive(content),
-			presentation = listOf(UiBlock.Text("执行了命令")),
-			timestamp = now(),
+			presentation = listOf(UiBlock.Text("executed command")),
 			status = ToolResultStatus.SUCCESS,
-		),
+		).ref(),
 	)
 	
-	private fun completedRound(tools: List<RuntimeContext.Message.Tool>) =
-		RuntimeContext.CompletedRound(
-			userMessage = RuntimeContext.Message.User(
-				id = UUID.randomUUID(),
-				content = MessageContent(content = "q".toContentPart()),
-				timestamp = now(),
-			),
-			turns = listOf(RuntimeContext.Turn(assistant(), tools)),
-			finalAssistantMessage = null,
-		)
+	private suspend fun assistant() =
+		msg.assistant(reasoning = null, content = "calling", model = UUID.randomUUID(), usage = null)
 	
-	private fun assistant() = RuntimeContext.Message.Assistant(
-		id = UUID.randomUUID(),
-		reasoning = null,
-		content = "calling",
-		modelId = UUID.randomUUID(),
-		timestamp = now(),
-		usage = null,
+	private suspend fun round(tools: List<AgentContextIndex.Turn.Tool>) = AgentContextIndex.Round(
+		userMsgRef = msg.user(MessageContent(content = "q".toContentPart())).ref(),
+		turns = listOf(AgentContextIndex.Turn(assistant().ref(), tools)),
+		assistantMsgRef = null,
 	)
 	
 	@Test
-	fun `getAll returns entries from history and current rounds`() {
-		val historyTool = tool("c1", content = "history result")
-		val currentTool = tool("c2", content = "current result")
+	fun `getAll returns entries from history and current rounds`() = runTest {
 		val context = RuntimeContext(
 			null, null, null,
-			historyRounds = listOf(completedRound(listOf(historyTool))),
-			currentRound = RuntimeContext.CurrentRound(
-				userMessage = RuntimeContext.Message.User(
-					UUID.randomUUID(),
-					MessageContent(content = "q".toContentPart()),
-					now(),
-				),
-				turns = listOf(RuntimeContext.Turn(assistant(), listOf(currentTool))),
-				assistantMessage = null,
-				finishedToolCalls = null,
-				pendingToolCalls = null,
-			),
+			historyRounds = listOf(round(listOf(tool("c1", content = "history result")))),
+			currentRound = round(listOf(tool("c2", content = "current result"))),
 		)
 		
-		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer())
+		val entries = ToolCallHistoryImpl(context, emptyList()).getAll(BashRequest.serializer(), String.serializer())
 		
 		assertEquals(2, entries.size)
 		assertEquals(BashRequest("echo hi"), entries[0].first)
@@ -122,31 +119,49 @@ class ToolCallHistoryImplTest {
 	}
 	
 	@Test
-	fun `getAll skips tools without resolved request`() {
+	fun `getAll returns entries from unarchived tool calls`() = runTest {
+		val context = RuntimeContext(null, null, null, null, round(emptyList()))
+		val toolCall = AgentToolCallImpl(
+			call("c1", Json.parseToJsonElement("""{"command":"echo hi"}""")), null,
+			msg.toolResult(
+				callId = "c1",
+				content = "unarchived result",
+				data = JsonPrimitive("unarchived result"),
+				presentation = listOf(UiBlock.Text("executed command")),
+				status = ToolResultStatus.SUCCESS,
+			)
+		)
+		
+		val entries =
+			ToolCallHistoryImpl(context, listOf(toolCall)).getAll(BashRequest.serializer(), String.serializer())
+		
+		assertEquals(1, entries.size)
+		assertEquals(BashRequest("echo hi"), entries[0].first)
+		assertEquals("unarchived result", entries[0].second)
+	}
+	
+	@Test
+	fun `getAll skips tools without resolved request`() = runTest {
 		val context = RuntimeContext(
 			null, null, null,
-			historyRounds = listOf(
-				completedRound(listOf(tool("c1", resolvedRequest = null)))
-			),
+			historyRounds = listOf(round(listOf(tool("c1", resolvedRequest = null)))),
 			null,
 		)
 		
-		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer())
+		val entries = ToolCallHistoryImpl(context, emptyList()).getAll(BashRequest.serializer(), String.serializer())
 		
 		assertTrue(entries.isEmpty())
 	}
 	
 	@Test
-	fun `getAll skips undecodable resolved requests`() {
+	fun `getAll skips undecodable resolved requests`() = runTest {
 		val context = RuntimeContext(
 			null, null, null,
-			historyRounds = listOf(
-				completedRound(listOf(tool("c1", resolvedRequest = JsonPrimitive("""{"wrong":"shape"}"""))))
-			),
+			historyRounds = listOf(round(listOf(tool("c1", resolvedRequest = JsonPrimitive("""{"wrong":"shape"}"""))))),
 			null,
 		)
 		
-		val entries = ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer())
+		val entries = ToolCallHistoryImpl(context, emptyList()).getAll(BashRequest.serializer(), String.serializer())
 		
 		assertTrue(entries.isEmpty())
 	}
@@ -155,6 +170,8 @@ class ToolCallHistoryImplTest {
 	fun `getAll returns empty for empty context`() {
 		val context = RuntimeContext(null, null, null, null, null)
 		
-		assertTrue(ToolCallHistoryImpl(context).getAll(BashRequest.serializer(), String.serializer()).isEmpty())
+		assertTrue(
+			ToolCallHistoryImpl(context, emptyList()).getAll(BashRequest.serializer(), String.serializer()).isEmpty()
+		)
 	}
 }

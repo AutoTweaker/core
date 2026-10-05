@@ -44,7 +44,9 @@ object TestServices {
 	}
 	
 	val jsonStore = mockk<JsonStoreImpl>(relaxed = true)
-	val messageCache = mockk<MessageCacheImpl>(relaxed = true)
+	
+	// 构造 MessageCacheImpl 需要读取设置，必须等 initServices 之后再实例化
+	val messageCache by lazy { MessageCacheImpl(mockk(relaxed = true), mockk(relaxed = true)) }
 	
 	fun messageBuilder(agentId: UUID = UUID.randomUUID()) = MessageBuilder(agentId, messageCache)
 	
@@ -72,7 +74,7 @@ object TestServices {
 					jsonStore::namespace,
 					lazy { mockk(relaxed = true) },
 					lazy { settingService },
-					lazy { mockk(relaxed = true) },
+					lazy { messageCache },
 					lazy { mockk(relaxed = true) }
 				)
 			)

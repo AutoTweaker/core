@@ -19,17 +19,18 @@
 package io.github.autotweaker.core.domain.agent.think
 
 import io.github.autotweaker.api.adapter.PathResolver
-import io.github.autotweaker.api.now
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
+import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -56,6 +57,8 @@ class ThinkingStageTest {
 		}
 	}
 	
+	private val msg = TestServices.messageBuilder()
+	
 	private val provider = ToolProvider(
 		shellExecutor = mockk<ShellExecutor>(),
 		rawFileSystem = mockk<RawFileSystem>(),
@@ -75,12 +78,10 @@ class ThinkingStageTest {
 	)
 	private val context = RuntimeContext(null, null, null, null, null)
 	
-	private val assistant = RuntimeContext.Message.Assistant(
-		id = UUID.randomUUID(),
+	private suspend fun assistant() = msg.assistant(
 		reasoning = null,
 		content = "I will call a tool",
-		modelId = UUID.randomUUID(),
-		timestamp = now(),
+		model = UUID.randomUUID(),
 		usage = null,
 	)
 	
@@ -90,20 +91,20 @@ class ThinkingStageTest {
 		val type: String = "run",
 	) : ToolArgs
 	
-	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
+	private fun presentation(text: String = "tool call") = listOf(UiBlock.Text(text))
 	
 	private fun ready(result: JsonElement = JsonPrimitive("{}")) = Tool.ResolveResult.Ready(
 		result = result,
-		request = { presentation("请求执行命令") },
-		executing = { presentation("正在执行命令") },
-		cancelled = { presentation("执行命令被取消") },
-		rejected = { presentation("执行命令被拒绝") },
-		failed = { presentation("执行命令失败") },
-		timeout = { presentation("执行命令超时") },
+		request = { presentation("requested command") },
+		executing = { presentation("executing command") },
+		cancelled = { presentation("cancelled command") },
+		rejected = { presentation("rejected command") },
+		failed = { presentation("failed command") },
+		timeout = { presentation("timed out command") },
 	)
 	
 	private fun rejected(reason: String) = Tool.ResolveResult.Rejected(
-		reason, presentation("执行命令被拒绝")
+		reason, presentation("rejected command")
 	)
 	
 	private fun mockTool(
@@ -138,6 +139,7 @@ class ThinkingStageTest {
 			tools = toolMap,
 			activeTools = activeToolNames,
 			agentId = UUID.randomUUID(),
+			msg = msg,
 		).also { it.assembleTools() }
 	}
 	
@@ -163,10 +165,18 @@ class ThinkingStageTest {
 		onOutput = {},
 	)
 	
-	private fun success(toolCalls: List<ChatMessage.Assistant.ToolCall>?) = LlmService.CallResult(
-		assistantMessage = assistant,
+	private suspend fun success(toolCalls: List<ChatMessage.Assistant.ToolCall>?) =
+		success(toolCalls, assistant())
+	
+	private fun success(
+		toolCalls: List<ChatMessage.Assistant.ToolCall>?,
+		assistantMessage: AgentMessage.Assistant,
+	) = LlmService.CallResult(
+		assistantMessage = assistantMessage,
 		toolCalls = toolCalls,
 	)
+	
+	private fun ThinkingStage.Result.resolved() = toolCalls!!.single().second
 	
 	// region 无工具调用
 	
@@ -180,15 +190,14 @@ class ThinkingStageTest {
 	}
 	
 	@Test
-	fun `success without tool calls returns Result with empty buckets`() = runTest {
+	fun `success without tool calls returns Result without tool calls`() = runTest {
 		val tools = makeTools(emptyList(), emptySet())
-		val result = stage(llmService(success(null)), tools).execute(model, emptyList(), context)
+		val expected = assistant()
+		val result = stage(llmService(success(null, expected)), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(assistant, result.assistantMessage)
-		assertTrue(result.activations.isNullOrEmpty())
-		assertTrue(result.parseFailures.isNullOrEmpty())
-		assertTrue(result.resolveFailures.isNullOrEmpty())
+		assertEquals(expected, result.assistantMessage)
+		assertNull(result.toolCalls)
 	}
 	
 	@Test
@@ -197,7 +206,7 @@ class ThinkingStageTest {
 		val result = stage(llmService(success(emptyList())), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertTrue(result.activations.isNullOrEmpty())
+		assertNull(result.toolCalls)
 	}
 	
 	// endregion
@@ -208,28 +217,18 @@ class ThinkingStageTest {
 	fun `activating an inactive tool returns Activation`() = runTest {
 		val tool = mockTool("bash")
 		val tools = makeTools(listOf(tool), emptySet())
-		val result = stage(
-			llmService(
-				success(
-					listOf(
-						call(
-							"c1",
-							name = "active",
-							arguments = """{"tool_name":"bash","reason":"activate the bash tool"}"""
-						)
-					)
-				)
-			),
-			tools
-		).execute(model, emptyList(), context)
+		val rawCall = call(
+			"c1",
+			name = "active",
+			arguments = """{"tool_name":"bash","reason":"activate the bash tool"}"""
+		)
+		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(1, result.activations!!.size)
-		assertEquals("c1", result.activations[0].first.id)
-		assertEquals("bash", result.activations[0].second.toolName)
-		assertTrue(result.activations[0].second.message.contains("工具已激活"))
-		assertTrue(result.parseFailures.isNullOrEmpty())
-		assertTrue(result.resolveFailures.isNullOrEmpty())
+		val activation = result.resolved() as ResolveResult.Activation
+		assertEquals(rawCall, result.toolCalls!!.single().first)
+		assertEquals("bash", activation.targetName)
+		assertTrue(activation.message.contains("工具已激活"))
 	}
 	
 	@Test
@@ -240,11 +239,9 @@ class ThinkingStageTest {
 		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(1, result.parseFailures!!.size)
-		assertEquals(rawCall, result.parseFailures[0].first)
-		assertTrue(result.parseFailures[0].second.errorMessage.contains("reason"))
-		assertTrue(result.activations.isNullOrEmpty())
-		assertTrue(result.resolveFailures.isNullOrEmpty())
+		val failure = result.resolved() as ResolveResult.ParseFailure
+		assertEquals(rawCall, result.toolCalls!!.single().first)
+		assertTrue(failure.errorMessage.contains("reason"))
 	}
 	
 	@Test
@@ -255,14 +252,12 @@ class ThinkingStageTest {
 		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(1, result.resolveFailures!!.size)
-		val failure = result.resolveFailures[0]
-		assertEquals(rawCall, failure.first)
-		assertEquals("tests", failure.second.reason)
-		assertEquals("bash", failure.second.toolName)
-		assertEquals("文件test.txt不存在或访问被拒绝", failure.second.errorMessage)
-		assertNotNull(failure.second.validatedArgs)
-		assertTrue(result.activations.isNullOrEmpty())
+		val failure = result.resolved() as ResolveResult.ResolveFailure
+		assertEquals(rawCall, result.toolCalls!!.single().first)
+		assertEquals("tests", failure.reason)
+		assertEquals("bash", failure.toolName)
+		assertEquals("文件test.txt不存在或访问被拒绝", failure.errorMessage)
+		assertNotNull(failure.validatedArgs)
 	}
 	
 	@Test
@@ -273,31 +268,24 @@ class ThinkingStageTest {
 		val result = stage(llmService(success(listOf(call("c1")))), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(1, result.resolveFailures!!.size)
-		val failure = result.resolveFailures[0]
-		assertTrue(failure.second.errorMessage.contains("调用参数在解析时出错"))
-		assertTrue(failure.second.errorMessage.contains("RuntimeException: boom"))
+		val failure = result.resolved() as ResolveResult.ResolveFailure
+		assertTrue(failure.errorMessage.contains("调用参数在解析时出错"))
+		assertTrue(failure.errorMessage.contains("RuntimeException: boom"))
 	}
 	
 	@Test
-	fun `ready resolve becomes needsApproval with mapped pending call`() = runTest {
+	fun `ready resolve becomes NeedsApproval`() = runTest {
 		val tool = mockTool("bash")
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		val rawCall = call("c1")
 		val result = stage(llmService(success(listOf(rawCall))), tools).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(1, result.needsApproval!!.size)
-		val resolved = result.needsApproval[0]
-		val pending = resolved.first
-		assertEquals("c1", pending.callId)
-		assertEquals("bash-run", pending.callName)
-		assertEquals(rawCall.arguments, pending.arguments)
-		assertEquals("tests", pending.reason)
-		assertEquals("bash", pending.validatedToolName)
-		assertEquals(JsonPrimitive("{}"), pending.resolvedRequest)
-		assertEquals(assistant.timestamp, pending.timestamp)
-		assertEquals(JsonPrimitive("{}"), resolved.second.result)
+		val approval = result.resolved() as ResolveResult.NeedsApproval
+		assertEquals(rawCall, result.toolCalls!!.single().first)
+		assertEquals("bash", approval.toolName)
+		assertEquals("tests", approval.reason)
+		assertEquals(JsonPrimitive("{}"), approval.resolveResult.result)
 	}
 	
 	// endregion
@@ -305,7 +293,7 @@ class ThinkingStageTest {
 	// region 多调用混合
 	
 	@Test
-	fun `mixed calls route to correct buckets`() = runTest {
+	fun `mixed calls keep their order and results`() = runTest {
 		val bash = mockTool("bash")
 		val read = mockTool("read", rejected("文件不存在"))
 		val edit = mockTool("edit")
@@ -324,15 +312,13 @@ class ThinkingStageTest {
 		).execute(model, emptyList(), context)
 		
 		assertNotNull(result)
-		assertEquals(1, result.activations!!.size)
-		assertEquals("c1", result.activations[0].first.id)
-		assertEquals(1, result.parseFailures!!.size)
-		assertEquals("c2", result.parseFailures[0].first.id)
-		assertEquals(1, result.resolveFailures!!.size)
-		assertEquals("c4", result.resolveFailures[0].first.id)
-		assertEquals("read", result.resolveFailures[0].second.toolName)
-		assertEquals(1, result.needsApproval!!.size)
-		assertEquals("c3", result.needsApproval[0].first.callId)
+		val calls = result.toolCalls!!
+		assertEquals(listOf("c1", "c2", "c3", "c4"), calls.map { it.first.id })
+		assertIs<ResolveResult.Activation>(calls[0].second)
+		assertIs<ResolveResult.ParseFailure>(calls[1].second)
+		assertIs<ResolveResult.NeedsApproval>(calls[2].second)
+		assertIs<ResolveResult.ResolveFailure>(calls[3].second)
+		assertEquals("read", (calls[3].second as ResolveResult.ResolveFailure).toolName)
 	}
 	
 	// endregion

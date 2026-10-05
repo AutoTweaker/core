@@ -326,18 +326,21 @@ class ContextDiffTest {
 	@Test
 	fun `current diff no added turns when unchanged`() {
 		val userId = UUID.randomUUID()
+		val asst = UUID.randomUUID()
 		val t1 = turn(UUID.randomUUID())
 		val diff = context(AgentContextIndex(null, null, current(userId, turns = listOf(t1)))) diff
 				context(
 					AgentContextIndex(
 						null,
 						null,
-						current(userId, assistant = UUID.randomUUID(), turns = listOf(t1))
+						current(userId, assistant = asst, turns = listOf(t1))
 					)
 				)
-		
+
 		val currentDiff = diff?.updatedCurrent()
-		assertNull(currentDiff)
+		assertNotNull(currentDiff)
+		assertNull(currentDiff.addedTurns())
+		assertEquals(asst, currentDiff.newAssistantMessage())
 	}
 	
 	@Test

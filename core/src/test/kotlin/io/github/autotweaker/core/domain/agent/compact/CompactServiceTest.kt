@@ -18,10 +18,10 @@
 
 package io.github.autotweaker.core.domain.agent.compact
 
-import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
@@ -33,7 +33,6 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -50,6 +49,7 @@ class CompactServiceTest {
 	}
 	
 	private val agentId = UUID.randomUUID()
+	private val msg = TestServices.messageBuilder(agentId)
 	private val model = AgentModel(
 		model = mockk<RuntimeModel>(relaxed = true),
 		reasoning = null,
@@ -63,33 +63,16 @@ class CompactServiceTest {
 	private fun compactService(
 		chat: ResilientChat = mockk(relaxed = true),
 		onOutput: (RuntimeOutput) -> Unit = {},
-	) = CompactService(agentId, chat, SummaryService(chat), onOutput)
+	) = CompactService(agentId, chat, onOutput, TestServices.messageCache, msg)
 	
-	private fun managerWithHistory(): ContextManager {
-		val manager = ContextManager(RuntimeContext(null, null, null, null, null))
-		runBlocking {
-			manager.beginRound(
-				RuntimeContext.Message.User(
-					id = UUID.randomUUID(),
-					content = MessageContent(content = "question".toContentPart()),
-					timestamp = now(),
-				)
-			)
-			manager.applyThinking(
-				RuntimeContext.Message.Assistant(
-					id = UUID.randomUUID(),
-					reasoning = null,
-					content = "answer",
-					modelId = UUID.randomUUID(),
-					timestamp = now(),
-					usage = null,
-				),
-				emptyList(),
-				emptyList(),
-			)
-			manager.finalizeToolTurn()
-			manager.archiveCurrentRound()
-		}
+	private suspend fun managerWithHistory(): ContextManager {
+		val manager = ContextManager(RuntimeContext(null, null, null, null, null), msg)
+		manager.beginRound(msg.user(MessageContent(content = "question".toContentPart())).ref())
+		manager.applyThinking(
+			msg.assistant(reasoning = null, content = "answer", model = UUID.randomUUID(), usage = null).ref(),
+			null,
+		)
+		manager.archiveCurrentRound()
 		return manager
 	}
 	
@@ -97,7 +80,7 @@ class CompactServiceTest {
 		emit(
 			LlmResult(
 				ChatResult.Assembled(
-					message = ChatMessage.Assistant(content, now()),
+					message = ChatMessage.Assistant(content = content),
 					usage = usage,
 				),
 				model = UUID.randomUUID(),
@@ -127,7 +110,7 @@ class CompactServiceTest {
 	@Test
 	fun `no history rounds returns without calling llm`() = runTest {
 		val (chat, callCount) = mockResilientChat()
-		val manager = ContextManager(RuntimeContext(null, null, null, null, null))
+		val manager = ContextManager(RuntimeContext(null, null, null, null, null), msg)
 		
 		compactService(chat).execute(model, manager)
 		
@@ -147,7 +130,7 @@ class CompactServiceTest {
 		
 		val context = manager.context.value
 		assertNull(context.historyRounds)
-		assertEquals(longSummary(), context.compactedRounds?.summarizedMessage?.content)
+		assertEquals(longSummary(), context.compactedRounds?.summaryMessage?.getOrNull()?.content)
 		assertEquals(1, context.compactedRounds?.rounds?.size)
 	}
 	
@@ -182,7 +165,7 @@ class CompactServiceTest {
 		compactService(chat).execute(model, manager)
 		
 		assertEquals(2, callCount.get())
-		assertEquals(longSummary(), manager.context.value.compactedRounds?.summarizedMessage?.content)
+		assertEquals(longSummary(), manager.context.value.compactedRounds?.summaryMessage?.getOrNull()?.content)
 	}
 	
 	@Test
@@ -196,7 +179,7 @@ class CompactServiceTest {
 		
 		compactService(chat).execute(model, manager)
 		
-		val usage = manager.context.value.compactedRounds?.summarizedMessage?.usage
+		val usage = manager.context.value.compactedRounds?.summaryMessage?.getOrNull()?.usage
 		assertEquals(Usage(100, 50, 50), usage)
 	}
 	

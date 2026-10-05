@@ -34,7 +34,6 @@ import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
-import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
@@ -93,7 +92,8 @@ class AgentBridgeTest {
 		chat: ResilientChat = mockk(relaxed = true),
 	): AgentBridge {
 		val deps = AgentDeps(
-			agentChat = AgentChat(chat),
+			// AgentChat 由 AgentImpl 用 deps.resilientChat 自建，消息保存进 MessageCache 以便经 getMessage 读回
+			messageCacheImpl = TestServices.messageCache,
 			resilientChat = chat,
 			summaryService = SummaryService(chat),
 			messageConverts = MessageConverts(
@@ -207,7 +207,7 @@ class AgentBridgeTest {
 			emit(
 				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.Assistant("answer", now()),
+						message = ChatMessage.Assistant("answer"),
 					),
 					model = UUID.randomUUID(),
 				)
@@ -219,9 +219,12 @@ class AgentBridgeTest {
 		awaitUntil { b.agent.context.value.historyRounds?.size == 1 }
 		
 		val completed = b.agent.context.value.historyRounds!!.single()
-		assertEquals("hello\n", completed.userMessage.content.content?.merge())
-		assertEquals("answer", completed.finalAssistantMessage?.content)
-		coVerify(atLeast = 1) { store.saveMessages(any()) }
+		// 消息经 MessageBuilder 存入 MessageCache 后可从轮次引用的 Msg 读回，读不到即为损坏消息
+		val userMessage = assertNotNull(completed.userMessage.getOrNull(), "user message was not persisted")
+		assertEquals("hello\n", userMessage.content.content?.merge())
+		val assistantMessage =
+			assertNotNull(completed.assistantMessage?.getOrNull(), "assistant message was not persisted")
+		assertEquals("answer", assistantMessage.content)
 		
 		b.shutdown()
 	}

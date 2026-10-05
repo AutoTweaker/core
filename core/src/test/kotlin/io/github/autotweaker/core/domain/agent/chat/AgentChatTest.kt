@@ -18,16 +18,14 @@
 
 package io.github.autotweaker.core.domain.agent.chat
 
-import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Url.Companion.toUrl
+import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.message.MessageContent
-import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeModel
-import io.github.autotweaker.core.domain.agent.RuntimeProvider
+import io.github.autotweaker.api.types.message.ref
+import io.github.autotweaker.core.domain.agent.*
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.test.TestServices
 import io.mockk.every
@@ -69,20 +67,36 @@ class AgentChatTest {
 	)
 	private val agentModel = AgentModel(testModel, ReasoningEffort(false), testModel, testModel, null)
 	
-	private fun userMsg(content: String = "hello") =
-		RuntimeContext.Message.User(
-			id = UUID.randomUUID(),
-			content = MessageContent(content = content.toContentPart()),
-			timestamp = now()
+	/**
+	 * 构造一个仅包含当前轮次的请求，用户消息经 [MessageBuilder] 落盘后以 ref 索引。
+	 *
+	 * @return 请求，以及供 [AgentChat] 写入响应消息的 [MessageBuilder]（须与请求同属一个 agent）。
+	 */
+	private suspend fun request(
+		agentId: UUID,
+		content: String = "hello",
+	): Pair<AgentChatRequest, MessageBuilder> {
+		val msg = TestServices.messageBuilder(agentId)
+		val user = msg.user(MessageContent(content = content.toContentPart()))
+		val context = RuntimeContext(
+			systemPrompt = null,
+			injections = null,
+			compactedRounds = null,
+			historyRounds = null,
+			currentRound = AgentContextIndex.Round(
+				userMsgRef = user.ref(),
+				turns = null,
+				assistantMsgRef = null
+			),
 		)
-	
-	private fun ctx(user: RuntimeContext.Message.User) =
-		RuntimeContext(null, null, null, null, RuntimeContext.CurrentRound(user, null, null, null, null))
+		return AgentChatRequest(agentModel, null, context) to msg
+	}
 	
 	@Test
 	fun `collects assembled message with content and finish reason`() = runTest {
+		val agentId = UUID.randomUUID()
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.Assistant("hello world", now(), null, null),
+			message = ChatMessage.Assistant("hello world"),
 		)
 		
 		val chat = mockk<ResilientChat>()
@@ -94,10 +108,9 @@ class AgentChatTest {
 			emit(LlmResult(chatResult, model = UUID.randomUUID()))
 		}
 		
-		val user = userMsg("hello")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "hello")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		assertTrue(results.any { it is AgentChatResult.Assembled })
 		
@@ -107,14 +120,14 @@ class AgentChatTest {
 	
 	@Test
 	fun `emits delta with reasoning when reasoning content arrives`() = runTest {
-		val now = now()
+		val agentId = UUID.randomUUID()
 		val chunkResult = ChatResult.Chunk(
 			content = "answer",
 			reasoningContent = "let me think",
 			toolCalls = null,
 		)
 		val assembledResult = ChatResult.Assembled(
-			message = ChatMessage.Assistant("answer", now, reasoningContent = "let me think"),
+			message = ChatMessage.Assistant("answer", reasoningContent = "let me think"),
 		)
 		
 		val chat = mockk<ResilientChat>()
@@ -127,10 +140,9 @@ class AgentChatTest {
 			emit(LlmResult(assembledResult, model = UUID.randomUUID()))
 		}
 		
-		val user = userMsg("question")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "question")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		val delta = results.filterIsInstance<AgentChatResult.Delta>().first()
 		assertEquals("let me think", delta.delta.reasoningContent)
@@ -143,7 +155,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `passes through deltas from multiple chunks`() = runTest {
-		val now = now()
+		val agentId = UUID.randomUUID()
 		
 		val chat = mockk<ResilientChat>()
 		every {
@@ -174,17 +186,16 @@ class AgentChatTest {
 			emit(
 				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.Assistant("hello world", now, null, null),
+						message = ChatMessage.Assistant("hello world"),
 					),
 					UUID.randomUUID(),
 				)
 			)
 		}
 		
-		val user = userMsg("greet")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "greet")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		val deltas = results.filterIsInstance<AgentChatResult.Delta>()
 		assertEquals(2, deltas.size)
@@ -197,6 +208,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `emits Failing for error message`() = runTest {
+		val agentId = UUID.randomUUID()
 		val errorChatResult = ChatResult.Failed("service down", 503)
 		
 		val chat = mockk<ResilientChat>()
@@ -208,10 +220,9 @@ class AgentChatTest {
 			emit(LlmResult(errorChatResult, model = UUID.randomUUID()))
 		}
 		
-		val user = userMsg("help")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "help")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		val failings = results.filterIsInstance<AgentChatResult.Failing>()
 		assertEquals(1, failings.size)
@@ -221,9 +232,9 @@ class AgentChatTest {
 	
 	@Test
 	fun `assembled message carries usage`() = runTest {
-		val now = now()
+		val agentId = UUID.randomUUID()
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.Assistant("ok", now, null, null),
+			message = ChatMessage.Assistant("ok"),
 			usage = Usage(100, 50, 50),
 		)
 		
@@ -236,10 +247,9 @@ class AgentChatTest {
 			emit(LlmResult(chatResult, model = UUID.randomUUID()))
 		}
 		
-		val user = userMsg("test")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "test")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals(Usage(100, 50, 50), assembled.message.usage)
@@ -247,9 +257,9 @@ class AgentChatTest {
 	
 	@Test
 	fun `assembled message with reasoning content is included`() = runTest {
-		val now = now()
+		val agentId = UUID.randomUUID()
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.Assistant(null, now, "thinking...", null),
+			message = ChatMessage.Assistant(null, reasoningContent = "thinking..."),
 		)
 		
 		val chat = mockk<ResilientChat>()
@@ -261,10 +271,9 @@ class AgentChatTest {
 			emit(LlmResult(chatResult, model = UUID.randomUUID()))
 		}
 		
-		val user = userMsg("question")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "question")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().first()
 		assertEquals("thinking...", assembled.message.reasoning)
@@ -272,7 +281,7 @@ class AgentChatTest {
 	
 	@Test
 	fun `assembled message with tool calls creates pending tool calls`() = runTest {
-		val now = now()
+		val agentId = UUID.randomUUID()
 		val toolCalls = listOf(
 			ChatMessage.Assistant.ToolCall(
 				id = "call1", name = "read_file",
@@ -280,7 +289,7 @@ class AgentChatTest {
 			)
 		)
 		val chatResult = ChatResult.Assembled(
-			message = ChatMessage.Assistant("done", now, null, toolCalls),
+			message = ChatMessage.Assistant("done", toolCalls = toolCalls),
 		)
 		
 		val chat = mockk<ResilientChat>()
@@ -292,7 +301,7 @@ class AgentChatTest {
 			emit(
 				LlmResult(
 					ChatResult.Assembled(
-						message = ChatMessage.Assistant(null, now, null, null),
+						message = ChatMessage.Assistant(null),
 					),
 					UUID.randomUUID(),
 				)
@@ -305,10 +314,9 @@ class AgentChatTest {
 			)
 		}
 		
-		val user = userMsg("read test")
-		val request = AgentChatRequest(agentModel, null, ctx(user))
+		val (req, msg) = request(agentId, content = "read test")
 		
-		val results = AgentChat(chat).execute(request, UUID.randomUUID()).toList()
+		val results = AgentChat(chat, msg).execute(req, agentId).toList()
 		
 		val assembled = results.filterIsInstance<AgentChatResult.Assembled>().last()
 		assertEquals(1, assembled.toolCalls?.size)

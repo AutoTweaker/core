@@ -23,10 +23,12 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.api.types.tool.ToolApprove
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.AgentModel
+import io.github.autotweaker.core.domain.agent.AgentToolCallImpl
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
 import io.github.autotweaker.core.test.TestServices
@@ -34,7 +36,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
@@ -42,7 +43,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@Suppress("UNCHECKED_CAST")
 class ApprovalProcessorTest {
 	companion object {
 		init {
@@ -51,33 +51,21 @@ class ApprovalProcessorTest {
 	}
 	
 	private val model = mockk<AgentModel>()
+	private val msg = TestServices.messageBuilder()
 	
-	private fun manager(pendingCalls: List<String> = listOf("c1", "c2")) = ContextManager(
-		initial = RuntimeContext(null, null, null, null, null),
-	).also { manager ->
-		runBlocking {
-			manager.beginRound(
-				RuntimeContext.Message.User(
-					id = UUID.randomUUID(),
-					content = MessageContent(content = "hello".toContentPart()),
-					timestamp = now(),
-				)
-			)
-			manager.applyThinking(assistant(), pendingCalls.map { pendingCall(it) }, emptyList())
-		}
-	}
+	private fun presentation(text: String = "requested command") = listOf(UiBlock.Text(text))
 	
-	private fun assistant() = RuntimeContext.Message.Assistant(
-		id = UUID.randomUUID(),
-		reasoning = null,
-		content = "calling tools",
-		modelId = UUID.randomUUID(),
-		timestamp = now(),
-		usage = null,
+	private fun ready() = Tool.ResolveResult.Ready(
+		result = JsonPrimitive("{}"),
+		request = { presentation("requested command") },
+		executing = { presentation("executing command") },
+		cancelled = { presentation("cancelled command") },
+		rejected = { presentation("rejected command") },
+		failed = { presentation("failed command") },
+		timeout = { presentation("timed out command") },
 	)
 	
-	private fun pendingCall(callId: String) = RuntimeContext.CurrentRound.PendingToolCall(
-		id = UUID.randomUUID(),
+	private suspend fun call(callId: String) = msg.toolCall(
 		timestamp = now(),
 		callId = callId,
 		callName = "bash-run",
@@ -86,26 +74,41 @@ class ApprovalProcessorTest {
 		validatedToolName = "bash",
 		validatedArgs = JsonPrimitive("{}"),
 		resolvedRequest = JsonPrimitive("{}"),
-		presentation = listOf(UiBlock.Text("请求执行命令")),
+		presentation = presentation(),
 	)
 	
-	private fun resolvedCall(callId: String) = pendingCall(callId) to Tool.ResolveResult.Ready(
-		result = JsonPrimitive("{}"),
-		request = { listOf(UiBlock.Text("请求执行命令")) },
-		executing = { listOf(UiBlock.Text("正在执行命令")) },
-		cancelled = { listOf(UiBlock.Text("执行命令被取消")) },
-		rejected = { listOf(UiBlock.Text("执行命令被拒绝")) },
-		failed = { listOf(UiBlock.Text("执行命令失败")) },
-		timeout = { listOf(UiBlock.Text("执行命令超时")) },
-	)
+	private suspend fun pendingCall(callId: String) = AgentToolCallImpl(call(callId), ready(), null)
 	
-	private fun toolResult(content: String = "tool done") = RuntimeContext.Message.Tool.Result(
-		id = UUID.randomUUID(),
-		content = content,
-		data = null,
-		presentation = listOf(UiBlock.Text("执行了命令")),
-		timestamp = now(),
-		status = ToolResultStatus.SUCCESS,
+	private suspend fun manager(callIds: List<String> = listOf("c1", "c2")): ContextManager {
+		val manager = ContextManager(RuntimeContext(null, null, null, null, null), msg)
+		manager.beginRound(msg.user(MessageContent(content = "hello".toContentPart())).ref())
+		val assistant =
+			msg.assistant(reasoning = null, content = "calling tools", model = UUID.randomUUID(), usage = null)
+		manager.applyThinking(assistant.ref(), callIds.map { pendingCall(it) })
+		return manager
+	}
+	
+	private fun toolMock() = mockk<ToolCallingStage>().also { tool ->
+		coEvery { tool.execute(any(), any(), any(), any()) } coAnswers {
+			val call = firstArg<AgentToolCallImpl>()
+			call.finish(
+				msg.toolResult(
+					callId = call.call.callId,
+					content = "tool done",
+					data = null,
+					presentation = presentation("executed command"),
+					status = ToolResultStatus.SUCCESS,
+				)
+			)
+		}
+	}
+	
+	private fun processor(
+		ctx: ContextManager,
+		tool: ToolCallingStage,
+		shouldBreak: Boolean = false,
+	) = ApprovalProcessor(
+		ctx, tool, msg, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(shouldBreak)
 	)
 	
 	// region 批准
@@ -113,14 +116,11 @@ class ApprovalProcessorTest {
 	@Test
 	fun `approved call executes tool and returns reason`() = runTest {
 		val ctx = manager(listOf("c1"))
-		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(
-			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
-		)
+		val tool = toolMock()
+		val processor = processor(ctx, tool)
 		
-		processor.approvalChannel.send(ToolApprove("c1", reason = "go ahead"))
-		val reasons = processor.process(listOf(resolvedCall("c1")), model)
+		processor.approvalChannel.send(ToolApprove(ctx.toolCalls!!.second.single().call.id, reason = "go ahead"))
+		val reasons = processor.process(model)
 		
 		assertEquals(listOf("go ahead"), reasons)
 		coVerify(exactly = 1) { tool.execute(any(), any(), any(), any()) }
@@ -128,21 +128,18 @@ class ApprovalProcessorTest {
 		ctx.finalizeToolTurn()
 		val tools = ctx.context.value.currentRound?.turns?.single()?.tools
 		assertEquals(1, tools?.size)
-		assertEquals(ToolResultStatus.SUCCESS, tools!![0].result.status)
-		assertEquals("tool done", tools[0].result.content)
+		assertEquals(ToolResultStatus.SUCCESS, tools!![0].result.getOrNull()?.status)
+		assertEquals("tool done", tools[0].result.getOrNull()?.content)
 	}
 	
 	@Test
 	fun `approved call without reason returns empty reasons`() = runTest {
-		val ctx = manager()
-		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(
-			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
-		)
+		val ctx = manager(listOf("c1"))
+		val tool = toolMock()
+		val processor = processor(ctx, tool)
 		
-		processor.approvalChannel.send(ToolApprove("c1", reason = null))
-		val reasons = processor.process(listOf(resolvedCall("c1")), model)
+		processor.approvalChannel.send(ToolApprove(ctx.toolCalls!!.second.single().call.id, reason = null))
+		val reasons = processor.process(model)
 		
 		assertTrue(reasons.isEmpty())
 	}
@@ -154,20 +151,19 @@ class ApprovalProcessorTest {
 	@Test
 	fun `rejected call records rejected result without executing`() = runTest {
 		val ctx = manager(listOf("c1"))
-		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(
-			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
-		)
+		val tool = toolMock()
+		val processor = processor(ctx, tool)
 		
-		processor.approvalChannel.send(ToolApprove("c1", reason = "no thanks", approved = false))
-		val reasons = processor.process(listOf(resolvedCall("c1")), model)
+		processor.approvalChannel.send(
+			ToolApprove(ctx.toolCalls!!.second.single().call.id, reason = "no thanks", approved = false)
+		)
+		val reasons = processor.process(model)
 		
 		assertTrue(reasons.isEmpty())
 		coVerify(exactly = 0) { tool.execute(any(), any(), any(), any()) }
 		
 		ctx.finalizeToolTurn()
-		val result = ctx.context.value.currentRound?.turns?.single()?.tools?.single()?.result
+		val result = ctx.context.value.currentRound?.turns?.single()?.tools?.single()?.result?.getOrNull()
 		assertEquals(ToolResultStatus.REJECTED, result?.status)
 		assertTrue(result!!.content.contains("no thanks"))
 	}
@@ -179,20 +175,16 @@ class ApprovalProcessorTest {
 	@Test
 	fun `out-of-order approvals are stashed until their turn`() = runTest {
 		val ctx = manager()
-		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(
-			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(false)
-		)
+		val tool = toolMock()
+		val processor = processor(ctx, tool)
+		val calls = ctx.toolCalls!!.second
 		
-		processor.approvalChannel.send(ToolApprove("c2", reason = "second first"))
-		processor.approvalChannel.send(ToolApprove("c1", reason = "first"))
-		val reasons = processor.process(
-			listOf(resolvedCall("c1"), resolvedCall("c2")),
-			model,
-		)
+		processor.approvalChannel.send(ToolApprove(calls[1].call.id, reason = "second first"))
+		processor.approvalChannel.send(ToolApprove(calls[0].call.id, reason = "first"))
+		val reasons = processor.process(model)
 		
-		assertEquals(listOf("first", "second first"), reasons)
+		// 审批结果收集在 ConcurrentHashMap 中，reasons 的顺序不做保证
+		assertEquals(setOf("first", "second first"), reasons.toSet())
 		coVerify(exactly = 2) { tool.execute(any(), any(), any(), any()) }
 		
 		ctx.finalizeToolTurn()
@@ -206,16 +198,10 @@ class ApprovalProcessorTest {
 	@Test
 	fun `shouldBreak stops processing without executing`() = runTest {
 		val ctx = manager()
-		val tool = mockk<ToolCallingStage>()
-		coEvery { tool.execute(any(), any(), any(), any()) } returns toolResult()
-		val processor = ApprovalProcessor(
-			ctx, tool, this, MutableStateFlow(AgentStatus.FREE), MutableStateFlow(true)
-		)
+		val tool = toolMock()
+		val processor = processor(ctx, tool, shouldBreak = true)
 		
-		val reasons = processor.process(
-			listOf(resolvedCall("c1"), resolvedCall("c2")),
-			model,
-		)
+		val reasons = processor.process(model)
 		
 		assertTrue(reasons.isEmpty())
 		coVerify(exactly = 0) { tool.execute(any(), any(), any(), any()) }

@@ -64,7 +64,7 @@ class SessionRepositorySearchTest {
 		coEvery { MessageSearch.delete(any()) } returns Unit
 		repo = SessionRepositoryImpl(databaseStore)
 		
-		// saveMessages 会向 message_ownership 插入外键行，需要先存在 session 与 agent
+		// saveMessage 会通过消息的 origin 引用 agent_data，需要先存在 session 与 agent
 		repo.saveSessions(
 			listOf(
 				SessionData(
@@ -106,14 +106,14 @@ class SessionRepositorySearchTest {
 	private fun userMessage(id: UUID, text: String, time: Instant) = AgentMessage.User(
 		id = id,
 		timestamp = time,
-		origin = setOf(agentId),
+		origin = agentId,
 		content = MessageContent(content = text.toContentPart()),
 	)
-	
+
 	private fun assistantMessage(id: UUID, text: String, time: Instant) = AgentMessage.Assistant(
 		id = id,
 		timestamp = time,
-		origin = setOf(agentId),
+		origin = agentId,
 		reasoning = null,
 		content = text,
 		model = UUID.randomUUID(),
@@ -121,25 +121,25 @@ class SessionRepositorySearchTest {
 	)
 	
 	@Test
-	fun `saveMessages mirrors messages into search index`() = runBlocking {
+	fun `saveMessage mirrors messages into search index`() = runBlocking {
 		val message = userMessage(UUID.randomUUID(), "hello world", baseTime)
-		repo.saveMessages(listOf(message))
-		
+		repo.saveMessage(message)
+
 		coVerify(exactly = 1) {
 			MessageSearch.upsert(message.id, AgentMessageType.USER, baseTime, "hello world")
 		}
 	}
-	
+
 	@Test
-	fun `saveMessages mirrors usage records without search text`() = runBlocking {
+	fun `saveMessage mirrors usage records without search text`() = runBlocking {
 		val message = AgentMessage.UsageRecord(
 			id = UUID.randomUUID(),
 			timestamp = baseTime,
-			origin = setOf(agentId),
+			origin = agentId,
 			model = UUID.randomUUID(),
 			usage = Usage.ZERO,
 		)
-		repo.saveMessages(listOf(message))
+		repo.saveMessage(message)
 		
 		coVerify(exactly = 1) {
 			MessageSearch.upsert(message.id, AgentMessageType.USAGE_RECORD, baseTime, null)
@@ -170,7 +170,7 @@ class SessionRepositorySearchTest {
 	@Test
 	fun `deleteSessions removes orphan messages from search index`() = runBlocking {
 		val message = userMessage(UUID.randomUUID(), "stale content", baseTime)
-		repo.saveMessages(listOf(message))
+		repo.saveMessage(message)
 		
 		repo.deleteSessions(setOf(sessionId))
 		

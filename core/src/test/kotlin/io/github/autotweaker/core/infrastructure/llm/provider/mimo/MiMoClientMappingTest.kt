@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
-import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
@@ -31,7 +30,6 @@ import kotlin.test.*
 
 class MiMoClientMappingTest {
 	
-	private val now = now()
 	private val client = MiMoClient()
 	
 	// transform/usage 是 MiMoClient 的成员扩展，类外部不可见，通过反射调用编译后的实例方法
@@ -114,7 +112,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps messages correctly`() {
-		val userMsg = ChatMessage.User("hello".toContentPart(), now)
+		val userMsg = ChatMessage.User("hello".toContentPart())
 		val request = chatRequest(model = "mimo-v2-pro", messages = listOf(userMsg))
 		
 		val body = createRequestBody(request)
@@ -133,7 +131,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `createRequestBody maps AssistantMessage with tool calls`() {
 		val assistant = ChatMessage.Assistant(
-			content = "using tool", timestamp = now,
+			content = "using tool",
 			toolCalls = listOf(ChatMessage.Assistant.ToolCall("id1", "func1", "{}"))
 		)
 		val request = chatRequest(model = "test", messages = listOf(assistant))
@@ -147,7 +145,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps ToolMessage`() {
-		val tool = ChatMessage.ToolResult("result", now, "call-1")
+		val tool = ChatMessage.ToolResult(id = "call-1", content = "result")
 		val request = chatRequest(model = "test", messages = listOf(tool))
 		val body = createRequestBody(request)
 		
@@ -158,7 +156,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody includes tools and thinking`() {
-		val userMsg = ChatMessage.User("hi".toContentPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart())
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
 		val request = chatRequest(
 			model = "test", messages = listOf(userMsg),
@@ -177,7 +175,7 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody thinking false disabled`() {
-		val userMsg = ChatMessage.User("hi".toContentPart(), now)
+		val userMsg = ChatMessage.User("hi".toContentPart())
 		val request = chatRequest(model = "test", messages = listOf(userMsg), reasoning = ReasoningEffort(false))
 		val body = createRequestBody(request)
 		assertEquals(OpenAiThinking.Type.DISABLED, body.thinking?.type)
@@ -190,7 +188,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapToChatResult maps response correctly`() {
 		val response = MiMoResponse(
-			id = "resp-1", created = now,
+			id = "resp-1",
 			choices = listOf(
 				MiMoResponse.Choice(
 					index = 0,
@@ -223,7 +221,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapToChatResult handles empty choices`() {
 		val response = MiMoResponse(
-			id = "r1", created = now,
+			id = "r1",
 			choices = emptyList(),
 			usage = MiMoUsage(0, 0, 0)
 		)
@@ -234,7 +232,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapToChatResult usage with null details`() {
 		val response = MiMoResponse(
-			id = "r1", created = now,
+			id = "r1",
 			choices = listOf(
 				MiMoResponse.Choice(
 					index = 0,
@@ -256,7 +254,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapChunkToChatResult maps stream chunk`() {
 		val chunk = MiMoStreamChunk(
-			id = "chunk-1", created = now,
+			id = "chunk-1",
 			choices = listOf(
 				OpenAiChunkChoice(
 					index = 0,
@@ -274,7 +272,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `mapChunkToChatResult includes usage from chunk`() {
 		val chunk = MiMoStreamChunk(
-			id = "chunk-1", created = now,
+			id = "chunk-1",
 			choices = listOf(
 				OpenAiChunkChoice(
 					index = 0,
@@ -300,7 +298,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `extractToolCalls extracts fragments from chunk`() {
 		val chunk = MiMoStreamChunk(
-			id = "c1", created = now,
+			id = "c1",
 			choices = listOf(
 				OpenAiChunkChoice(
 					index = 0,
@@ -325,7 +323,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `extractToolCalls returns null for empty tool calls`() {
 		val chunk = MiMoStreamChunk(
-			id = "c1", created = now,
+			id = "c1",
 			choices = listOf(
 				OpenAiChunkChoice(
 					index = 0,
@@ -339,7 +337,7 @@ class MiMoClientMappingTest {
 	@Test
 	fun `extractToolCalls returns null for empty choices`() {
 		val chunk = MiMoStreamChunk(
-			id = "c1", created = now,
+			id = "c1",
 			choices = emptyList()
 		)
 		assertNull(extractToolCalls(chunk))

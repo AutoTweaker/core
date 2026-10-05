@@ -20,18 +20,11 @@ package io.github.autotweaker.core.infrastructure.persist.migrate.v1
 
 import io.github.autotweaker.api.CONFIG_PATH
 import io.github.autotweaker.api.json
-import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.llm.ContentPart
-import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.WorkspaceData
-import io.github.autotweaker.api.types.tool.ToolResultStatus
-import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
 import io.github.autotweaker.core.infrastructure.persist.db.session.MessageSearch
@@ -39,8 +32,14 @@ import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent.
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent.V0AgentContextIndex
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent.V0AgentIndex
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent.V0ModelConfig
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0ContentPart
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0Sha256
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0Usage
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.session.V0AgentTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.session.V0SessionTable
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.tool.V0ToolResultStatus
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.tool.V0UiBlock
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.agent.V1AgentMessage
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.config.V1SettingsTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.session.V1AgentDataTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.session.V1AgentMessageTable
@@ -155,18 +154,18 @@ class V1DataMigrationTest {
 		assertEquals(AgentMessageType.USER.name, user[V1AgentMessageTable.type].name)
 		assertEquals(fixture.t1, user[V1AgentMessageTable.timestamp])
 		val decodedUser = decodeMessage(user)
-		assertIs<AgentMessage.User>(decodedUser)
+		assertIs<V1AgentMessage.User>(decodedUser)
 		assertEquals(setOf(fixture.a1), decodedUser.origin)
 		assertEquals(
 			V1MigrationTestEnv.MARKER,
-			decodedUser.content.content!!.filterIsInstance<ContentPart.Text>().single().content,
+			decodedUser.content.content!!.filterIsInstance<V0ContentPart.Text>().single().content,
 		)
 		
 		val assistant = messages.getValue(fixture.m2)
 		assertEquals(AgentMessageType.ASSISTANT.name, assistant[V1AgentMessageTable.type].name)
 		assertEquals(fixture.t2, assistant[V1AgentMessageTable.timestamp])
 		val decodedAssistant = decodeMessage(assistant)
-		assertIs<AgentMessage.Assistant>(decodedAssistant)
+		assertIs<V1AgentMessage.Assistant>(decodedAssistant)
 		assertEquals("reply", decodedAssistant.content)
 		assertEquals(fixture.modelId, decodedAssistant.model)
 		assertEquals(setOf(fixture.a1), decodedAssistant.origin)
@@ -202,7 +201,7 @@ class V1DataMigrationTest {
 		val callRow = messages.getValue(fixture.tc1)
 		assertEquals(AgentMessageType.TOOL_CALL.name, callRow[V1AgentMessageTable.type].name)
 		val call = decodeMessage(callRow)
-		assertIs<AgentMessage.Tool.Call>(call)
+		assertIs<V1AgentMessage.Tool.Call>(call)
 		assertEquals("toolu_1", call.callId)
 		assertEquals("bash", call.callName)
 		assertEquals("""{"command":"toolcallmarker"}""", call.arguments)
@@ -210,33 +209,33 @@ class V1DataMigrationTest {
 		assertEquals("bash", call.validatedToolName)
 		assertEquals("""{"command":"toolcallmarker"}""", call.validatedArgs.toString())
 		assertEquals(setOf(fixture.a1), call.origin)
-		assertIs<UiBlock.Command>(call.presentation!!.single())
+		assertIs<V0UiBlock.Command>(call.presentation!!.single())
 		
 		val resultRow = messages.getValue(fixture.tr1)
 		assertEquals(AgentMessageType.TOOL_RESULT.name, resultRow[V1AgentMessageTable.type].name)
 		val result = decodeMessage(resultRow)
-		assertIs<AgentMessage.Tool.Result>(result)
+		assertIs<V1AgentMessage.Tool.Result>(result)
 		assertEquals("toolresultmarker", result.content)
 		assertEquals("file.txt", result.data!!.jsonObject.getValue("name").jsonPrimitive.content)
-		assertEquals(ToolResultStatus.SUCCESS, result.status)
-		assertIs<UiBlock.Output>(result.presentation.single())
+		assertEquals(V0ToolResultStatus.SUCCESS, result.status)
+		assertIs<V0UiBlock.Output>(result.presentation.single())
 		
 		val compactRow = messages.getValue(fixture.cp1)
 		assertEquals(AgentMessageType.COMPACT.name, compactRow[V1AgentMessageTable.type].name)
 		val compact = decodeMessage(compactRow)
-		assertIs<AgentMessage.Compact>(compact)
+		assertIs<V1AgentMessage.Compact>(compact)
 		assertEquals("compactsummarymarker", compact.content)
 		assertEquals(fixture.modelId, compact.model)
 		assertEquals(
-			Usage(promptTokens = 11, completionTokens = 22, reasoningTokens = 3, cacheHitTokens = 4),
+			V0Usage(promptTokens = 11, completionTokens = 22, reasoningTokens = 3, cacheHitTokens = 4),
 			compact.usage,
 		)
 		
 		val usageRow = messages.getValue(fixture.ur1)
 		assertEquals(AgentMessageType.USAGE_RECORD.name, usageRow[V1AgentMessageTable.type].name)
 		val usage = decodeMessage(usageRow)
-		assertIs<AgentMessage.UsageRecord>(usage)
-		assertEquals(Usage(promptTokens = 5, completionTokens = 6), usage.usage)
+		assertIs<V1AgentMessage.UsageRecord>(usage)
+		assertEquals(V0Usage(promptTokens = 5, completionTokens = 6), usage.usage)
 	}
 	
 	@Test
@@ -245,15 +244,15 @@ class V1DataMigrationTest {
 		V1DataMigration().migrate()
 		
 		val message = decodeMessage(readMessages().getValue(fixture.m5))
-		assertIs<AgentMessage.User>(message)
+		assertIs<V1AgentMessage.User>(message)
 		assertEquals("ctx", message.content.injections!!.single().tag)
-		assertEquals("injected", message.content.injections!!.single().content)
+		assertEquals("injected", message.content.injections.single().content)
 		
 		val parts = message.content.content!!
-		assertEquals("mixed", (parts[0] as ContentPart.Text).content)
-		assertEquals("image/png", (parts[1] as ContentPart.Image).mimeType)
-		assertEquals(Sha256("a".repeat(64)), (parts[1] as ContentPart.Image).data)
-		assertEquals("https://example.com/a.png", (parts[2] as ContentPart.ImageUrl).url.value)
+		assertEquals("mixed", (parts[0] as V0ContentPart.Text).content)
+		assertEquals("image/png", (parts[1] as V0ContentPart.Image).mimeType)
+		assertEquals(V0Sha256("a".repeat(64)), (parts[1] as V0ContentPart.Image).data)
+		assertEquals("https://example.com/a.png", (parts[2] as V0ContentPart.ImageUrl).url.value)
 	}
 	
 	@Test
@@ -480,12 +479,15 @@ class V1DataMigrationTest {
 				lastAccessTime = row[V1AgentDataTable.lastAccessTime],
 				activeTools = row[V1AgentDataTable.activeTools],
 				model = json.decodeFromJsonElement(row[V1AgentDataTable.model]),
-				context = json.decodeFromJsonElement(row[V1AgentDataTable.context]),
+				context = json.decodeFromJsonElement<V0AgentContext>(row[V1AgentDataTable.context]),
 			)
 		}
 	}
 	
-	private fun decodeMessage(row: ResultRow): AgentMessage =
+	// 迁移写入的是 v1 时期的序列化格式（V1AgentMessage 的 @SerialName 保留旧包名，
+	// 且 agent_data.context 是 v0 JSON 原样搬运），因此用 v1 模型解码；
+	// 让当前模型读回这些数据需要递增 schema 版本并重写，见 SchemaVersion.kt 的注释
+	private fun decodeMessage(row: ResultRow): V1AgentMessage =
 		json.decodeFromJsonElement(row[V1AgentMessageTable.content])
 	
 	private suspend fun tablesOf(dbName: String): Set<String> = V1MigrationTestEnv.inDatabase(dbName) {
@@ -552,7 +554,7 @@ class V1DataMigrationTest {
 		val lastAccessTime: Instant,
 		val activeTools: List<String>,
 		val model: ModelConfig,
-		val context: AgentContext,
+		val context: V0AgentContext,
 	)
 	
 	private companion object {
