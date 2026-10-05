@@ -18,17 +18,13 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
-import io.github.autotweaker.core.infrastructure.llm.openai.InstantAsLongSerializer
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 @Serializable
 data class MiMoResponse(
 	val choices: List<Choice>,
 	val usage: MiMoUsage,
 	val id: String,
-	@Serializable(with = InstantAsLongSerializer::class)
-	val created: Instant,
 ) {
 	@Serializable
 	data class Choice(

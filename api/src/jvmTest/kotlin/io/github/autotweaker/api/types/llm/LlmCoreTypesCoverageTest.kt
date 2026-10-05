@@ -18,7 +18,6 @@
 
 package io.github.autotweaker.api.types.llm
 
-import io.github.autotweaker.api.now
 import io.github.autotweaker.api.types.Sha256
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -28,14 +27,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class LlmCoreTypesCoverageTest {
-	private val now = now()
-	
 	@Test
 	fun `ChatMessage sealed subtypes coverage`() {
 		val messages = listOf<ChatMessage>(
-			ChatMessage.User(listOf(ContentPart.Text("hi")), now),
-			ChatMessage.Assistant("reply", now),
-			ChatMessage.ToolResult("result", now, "call-1")
+			ChatMessage.User(listOf(ContentPart.Text("hi"))),
+			ChatMessage.Assistant("reply"),
+			ChatMessage.ToolResult("call-1", "result")
 		)
 		assertEquals(
 			listOf("user", "assistant", "tool"),
@@ -52,7 +49,7 @@ class LlmCoreTypesCoverageTest {
 	@Test
 	fun `ChatMessage User with image part`() {
 		val pic = Sha256(ByteArray(32) { it.toByte() })
-		val msg = ChatMessage.User(listOf(ContentPart.Text("hi"), ContentPart.Image("image/jpeg", pic)), now)
+		val msg = ChatMessage.User(listOf(ContentPart.Text("hi"), ContentPart.Image("image/jpeg", pic)))
 		assertEquals(2, msg.content.size)
 		val image = msg.content[1] as ContentPart.Image
 		assertEquals("image/jpeg", image.mimeType)
@@ -61,7 +58,7 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatMessage User with text part`() {
-		val msg = ChatMessage.User(listOf(ContentPart.Text("hi")), now)
+		val msg = ChatMessage.User(listOf(ContentPart.Text("hi")))
 		assertEquals(1, msg.content.size)
 		assertEquals(ContentPart.Text("hi"), msg.content[0])
 	}
@@ -71,7 +68,6 @@ class LlmCoreTypesCoverageTest {
 		val tc = ChatMessage.Assistant.ToolCall("id1", "read", "{}")
 		val msg = ChatMessage.Assistant(
 			content = "reply",
-			timestamp = now,
 			reasoningContent = "thinking",
 			toolCalls = listOf(tc)
 		)
@@ -85,7 +81,7 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatMessage Assistant minimal fields`() {
-		val msg = ChatMessage.Assistant(content = null, timestamp = now)
+		val msg = ChatMessage.Assistant(content = null)
 		assertNull(msg.content)
 		assertNull(msg.reasoningContent)
 		assertNull(msg.toolCalls)
@@ -93,7 +89,7 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatMessage ToolResult all fields`() {
-		val msg = ChatMessage.ToolResult("result", now, "call-1")
+		val msg = ChatMessage.ToolResult("call-1", "result")
 		assertEquals("result", msg.content)
 		assertEquals("call-1", msg.id)
 	}
@@ -119,7 +115,7 @@ class LlmCoreTypesCoverageTest {
 		val req = ChatRequest(
 			model = "test-model",
 			instructions = "be helpful",
-			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")), now)),
+			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")))),
 			reasoning = ReasoningEffort.MEDIUM,
 			stream = true,
 			maxTokens = 500,
@@ -143,7 +139,7 @@ class LlmCoreTypesCoverageTest {
 		val req = ChatRequest(
 			model = "m",
 			instructions = null,
-			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")), now)),
+			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")))),
 			reasoning = null,
 			stream = false,
 			maxTokens = null,
@@ -173,7 +169,7 @@ class LlmCoreTypesCoverageTest {
 	@Test
 	fun `ChatResult Assembled all fields`() {
 		val result = ChatResult.Assembled(
-			message = ChatMessage.Assistant("ok", now),
+			message = ChatMessage.Assistant("ok"),
 			usage = Usage(promptTokens = 40, completionTokens = 60, reasoningTokens = 10, cacheHitTokens = 5)
 		)
 		assertEquals("ok", result.message.content)

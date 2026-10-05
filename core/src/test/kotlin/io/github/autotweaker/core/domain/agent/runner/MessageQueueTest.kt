@@ -38,7 +38,7 @@ class MessageQueueTest {
 		}
 	}
 	
-	private fun queue() = MessageQueue(UUID.randomUUID())
+	private fun queue() = MessageQueue(UUID.randomUUID(), TestServices.messageBuilder())
 	
 	private fun text(content: String) = MessageContent(content = content.toContentPart())
 	

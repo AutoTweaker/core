@@ -23,8 +23,10 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.config.SettingService
 import io.github.autotweaker.api.initServices
 import io.github.autotweaker.api.types.config.SettingValue
+import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.session.MessageCacheImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.mockk.mockk
 import org.koin.core.context.GlobalContext
@@ -42,6 +44,9 @@ object TestServices {
 	}
 	
 	val jsonStore = mockk<JsonStoreImpl>(relaxed = true)
+	val messageCache = mockk<MessageCacheImpl>(relaxed = true)
+	
+	fun messageBuilder(agentId: UUID = UUID.randomUUID()) = MessageBuilder(agentId, messageCache)
 	
 	val secretMap = mutableMapOf<UUID, String>()
 	val removedSecrets = mutableListOf<UUID>()
@@ -65,9 +70,10 @@ object TestServices {
 				ServiceRegistry(
 					TraceRecorderImpl(mockk(), mockk())::recorder,
 					jsonStore::namespace,
-					{ mockk(relaxed = true) },
-					{ settingService },
-					{ mockk(relaxed = true) }
+					lazy { mockk(relaxed = true) },
+					lazy { settingService },
+					lazy { mockk(relaxed = true) },
+					lazy { mockk(relaxed = true) }
 				)
 			)
 		} catch (_: IllegalStateException) {

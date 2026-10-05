@@ -20,7 +20,7 @@ package io.github.autotweaker.api.base.session
 
 import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentContextIndex
-import io.github.autotweaker.api.types.message.ContextInjection
+import io.github.autotweaker.api.types.message.*
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,27 +39,25 @@ class ContextDiffTest {
 		summary: UUID,
 		rounds: List<AgentContextIndex.Round> = emptyList(),
 		inner: AgentContextIndex.CompactedRounds? = null,
-	) = AgentContextIndex.CompactedRounds(inner, rounds, summary)
+	) = AgentContextIndex.CompactedRounds(inner, rounds, CompactRef(summary))
 	
-	private fun completed(userId: UUID) = AgentContextIndex.Round(userId, null, null)
+	private fun completed(userId: UUID) = AgentContextIndex.Round(UserRef(userId), null, null)
 	
 	private fun current(
 		userId: UUID,
 		turns: List<AgentContextIndex.Turn>? = null,
 		assistant: UUID? = null,
-		finished: List<AgentContextIndex.Turn.Tool>? = null,
-		pending: List<UUID>? = null,
-	) = AgentContextIndex.CurrentRound(userId, turns, assistant, finished, pending)
+	) = AgentContextIndex.Round(UserRef(userId), turns, assistant?.let { AssistantRef(it) })
 	
 	private fun turn(
 		asst: UUID,
 		tools: List<AgentContextIndex.Turn.Tool> = emptyList(),
-	) = AgentContextIndex.Turn(asst, tools)
+	) = AgentContextIndex.Turn(AssistantRef(asst), tools)
 	
 	private fun tool(
 		call: UUID = UUID.randomUUID(),
 		result: UUID = UUID.randomUUID(),
-	) = AgentContextIndex.Turn.Tool(call, result)
+	) = AgentContextIndex.Turn.Tool(ToolCallRef(call), ToolResultRef(result))
 	
 	private fun injection(id: UUID = UUID.randomUUID()) =
 		ContextInjection(id = id, tag = "tag", content = "content")
@@ -246,7 +244,7 @@ class ContextDiffTest {
 	fun `updated current when same user message`() {
 		val userId = UUID.randomUUID()
 		val oldRound = current(userId)
-		val newRound = current(userId, pending = listOf(UUID.randomUUID()))
+		val newRound = current(userId, turns = listOf(turn(UUID.randomUUID())))
 		val diff = context(AgentContextIndex(null, null, oldRound)) diff
 				context(AgentContextIndex(null, null, newRound))
 		
@@ -302,71 +300,57 @@ class ContextDiffTest {
 	}
 	
 	@Test
-	fun `current diff added finished calls`() {
+	fun `current diff added turns from null`() {
 		val userId = UUID.randomUUID()
-		val f1 = tool()
-		val f2 = tool()
-		val diff = context(AgentContextIndex(null, null, current(userId, finished = listOf(f1)))) diff
-				context(AgentContextIndex(null, null, current(userId, finished = listOf(f1, f2))))
-		
-		val currentDiff = diff!!.updatedCurrent()
-		assertNotNull(currentDiff)
-		assertEquals(listOf(f2), currentDiff.addedFinishedCalls())
-		assertNull(currentDiff.removedFinishedCalls())
-	}
-	
-	@Test
-	fun `current diff removed finished calls`() {
-		val userId = UUID.randomUUID()
-		val f1 = tool()
-		val f2 = tool()
-		val diff = context(AgentContextIndex(null, null, current(userId, finished = listOf(f1, f2)))) diff
-				context(AgentContextIndex(null, null, current(userId, finished = listOf(f1))))
-		
-		val currentDiff = diff!!.updatedCurrent()
-		assertNotNull(currentDiff)
-		assertEquals(listOf(f2), currentDiff.removedFinishedCalls())
-		assertNull(currentDiff.addedFinishedCalls())
-	}
-	
-	@Test
-	fun `current diff added pending calls`() {
-		val userId = UUID.randomUUID()
-		val p1 = UUID.randomUUID()
+		val t1 = turn(UUID.randomUUID())
 		val diff = context(AgentContextIndex(null, null, current(userId))) diff
-				context(AgentContextIndex(null, null, current(userId, pending = listOf(p1))))
+				context(AgentContextIndex(null, null, current(userId, turns = listOf(t1))))
 		
 		val currentDiff = diff!!.updatedCurrent()
 		assertNotNull(currentDiff)
-		assertEquals(listOf(p1), currentDiff.addedPendingCalls())
-		assertNull(currentDiff.removedPendingCalls())
+		assertEquals(listOf(t1), currentDiff.addedTurns())
 	}
 	
 	@Test
-	fun `current diff removed pending calls`() {
+	fun `current diff no added turns when new null`() {
 		val userId = UUID.randomUUID()
-		val p1 = UUID.randomUUID()
-		val diff = context(AgentContextIndex(null, null, current(userId, pending = listOf(p1)))) diff
+		val t1 = turn(UUID.randomUUID())
+		val diff = context(AgentContextIndex(null, null, current(userId, turns = listOf(t1)))) diff
 				context(AgentContextIndex(null, null, current(userId)))
 		
 		val currentDiff = diff!!.updatedCurrent()
 		assertNotNull(currentDiff)
-		assertEquals(listOf(p1), currentDiff.removedPendingCalls())
-		assertNull(currentDiff.addedPendingCalls())
+		assertNull(currentDiff.addedTurns())
+	}
+	
+	@Test
+	fun `current diff no added turns when unchanged`() {
+		val userId = UUID.randomUUID()
+		val t1 = turn(UUID.randomUUID())
+		val diff = context(AgentContextIndex(null, null, current(userId, turns = listOf(t1)))) diff
+				context(
+					AgentContextIndex(
+						null,
+						null,
+						current(userId, assistant = UUID.randomUUID(), turns = listOf(t1))
+					)
+				)
+		
+		val currentDiff = diff?.updatedCurrent()
+		assertNull(currentDiff)
 	}
 	
 	@Test
 	fun `full round progression diff`() {
 		val userId = UUID.randomUUID()
 		val asst = UUID.randomUUID()
-		val f1 = tool()
-		val p1 = UUID.randomUUID()
+		val t1 = turn(UUID.randomUUID(), tools = listOf(tool()))
 		val old = context(AgentContextIndex(null, null, current(userId)))
 		val new = context(
 			AgentContextIndex(
 				null,
 				null,
-				current(userId, assistant = asst, finished = listOf(f1), pending = listOf(p1))
+				current(userId, assistant = asst, turns = listOf(t1))
 			)
 		)
 		val diff = old diff new
@@ -374,9 +358,7 @@ class ContextDiffTest {
 		assertNotNull(diff)
 		val currentDiff = diff.updatedCurrent()!!
 		assertEquals(asst, currentDiff.newAssistantMessage())
-		assertEquals(listOf(f1), currentDiff.addedFinishedCalls())
-		assertEquals(listOf(p1), currentDiff.addedPendingCalls())
-		assertNull(currentDiff.addedTurns())
+		assertEquals(listOf(t1), currentDiff.addedTurns())
 	}
 	
 	// endregion

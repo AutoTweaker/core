@@ -113,6 +113,7 @@ class ToolsTest {
 			tools = toolMap,
 			activeTools = activeToolNames,
 			agentId = agentId,
+			msg = TestServices.messageBuilder(agentId),
 		)
 	}
 	

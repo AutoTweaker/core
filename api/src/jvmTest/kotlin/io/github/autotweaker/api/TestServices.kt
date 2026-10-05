@@ -34,9 +34,10 @@ object TestServices {
 				ServiceRegistry(
 					trace = { traceRecorder },
 					store = { error("Test base not configured") },
-					lazyObjects = { error("Test objects not configured") },
-					lazySetting = { error("Test setting not configured") },
-					lazyI18n = { error("Test i18n not configured") },
+					lazyObjects = lazy { error("Test objects not configured") },
+					lazySetting = lazy { error("Test setting not configured") },
+					lazyMessage = lazy { error("Test message not configured") },
+					lazyI18n = lazy { error("Test i18n not configured") },
 				)
 			)
 		} catch (_: IllegalStateException) {

@@ -18,16 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
-import io.github.autotweaker.core.infrastructure.llm.openai.InstantAsLongSerializer
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 @Serializable
 data class DeepSeekResponse(
 	val choices: List<Choice>,
 	val usage: DeepSeekUsage,
-	@Serializable(with = InstantAsLongSerializer::class)
-	val created: Instant,
 ) {
 	@Serializable
 	data class Choice(
