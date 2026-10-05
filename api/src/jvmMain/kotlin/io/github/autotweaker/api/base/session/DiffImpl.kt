@@ -56,25 +56,25 @@ infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
 			if (index.compactedRounds == null) return next.index.compactedRounds?.toList()
 			if (next.index.compactedRounds == null) return null
 			val oldIds = mutableSetOf<UUID>()
-			index.compactedRounds.forEach { oldIds.add(it.summaryMsgRef) }
+			index.compactedRounds.forEach { oldIds.add(it.summaryMsgRef.id) }
 			return next.index.compactedRounds.toList().filterNot { it.first in oldIds }.orNull()
 		}
 		
 		override fun addedHistoryRounds(): List<AgentContextIndex.Round>? {
 			if (index.historyRounds == null) return next.index.historyRounds
 			if (next.index.historyRounds == null) return null
-			val oldIds = index.historyRounds.mapTo(mutableSetOf()) { it.userMsgRef }
-			return next.index.historyRounds.filterNot { it.userMsgRef in oldIds }.orNull()
+			val oldIds = index.historyRounds.mapTo(mutableSetOf()) { it.userMsgRef.id }
+			return next.index.historyRounds.filterNot { it.userMsgRef.id in oldIds }.orNull()
 		}
 		
 		override fun removedHistoryRounds(): List<AgentContextIndex.Round>? {
 			if (index.historyRounds == null) return null
 			if (next.index.historyRounds == null) return index.historyRounds
-			val nextIds = next.index.historyRounds.mapTo(mutableSetOf()) { it.userMsgRef }
-			return index.historyRounds.filterNot { it.userMsgRef in nextIds }.orNull()
+			val nextIds = next.index.historyRounds.mapTo(mutableSetOf()) { it.userMsgRef.id }
+			return index.historyRounds.filterNot { it.userMsgRef.id in nextIds }.orNull()
 		}
 		
-		override fun startedRound(): AgentContextIndex.CurrentRound? {
+		override fun startedRound(): AgentContextIndex.Round? {
 			if (index.currentRound == null) return next.index.currentRound
 			if (next.index.currentRound == null) return null
 			if (index.currentRound.userMsgRef != next.index.currentRound.userMsgRef)
@@ -82,7 +82,7 @@ infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
 			return null
 		}
 		
-		override fun finishedRound(): AgentContextIndex.CurrentRound? {
+		override fun finishedRound(): AgentContextIndex.Round? {
 			if (index.currentRound == null) return null
 			if (next.index.currentRound == null) return index.currentRound
 			if (index.currentRound.userMsgRef != next.index.currentRound.userMsgRef)
@@ -114,44 +114,18 @@ infix fun AgentContext.diff(next: AgentContext): ContextDiff? {
 					override fun addedTurns(): List<AgentContextIndex.Turn>? {
 						if (turns == null) return next.turns
 						if (next.turns == null) return null
-						val oldIds = turns.mapTo(mutableSetOf()) { it.assistantMsgRef }
-						return next.turns.filterNot { it.assistantMsgRef in oldIds }.orNull()
+						val oldIds = turns.mapTo(mutableSetOf()) { it.assistantMsgRef.id }
+						return next.turns.filterNot { it.assistantMsgRef.id in oldIds }.orNull()
 					}
 					
 					override fun newAssistantMessage(): UUID? {
-						if (assistantMsgRef == null) return next.assistantMsgRef
+						if (assistantMsgRef == null) return next.assistantMsgRef?.id
 						return null
 					}
 					
 					override fun cleanedAssistantMessage(): UUID? {
-						if (next.assistantMsgRef == null) return assistantMsgRef
+						if (next.assistantMsgRef == null) return assistantMsgRef?.id
 						return null
-					}
-					
-					override fun addedFinishedCalls(): List<AgentContextIndex.Turn.Tool>? {
-						if (finishedToolCalls == null) return next.finishedToolCalls
-						if (next.finishedToolCalls == null) return null
-						val oldIds = finishedToolCalls.mapTo(mutableSetOf()) { it.call }
-						return next.finishedToolCalls.filterNot { it.call in oldIds }.orNull()
-					}
-					
-					override fun removedFinishedCalls(): List<AgentContextIndex.Turn.Tool>? {
-						if (finishedToolCalls == null) return null
-						if (next.finishedToolCalls == null) return finishedToolCalls
-						val nextIds = next.finishedToolCalls.mapTo(mutableSetOf()) { it.call }
-						return finishedToolCalls.filterNot { it.call in nextIds }.orNull()
-					}
-					
-					override fun addedPendingCalls(): List<UUID>? {
-						if (pendingToolCalls == null) return next.pendingToolCalls
-						if (next.pendingToolCalls == null) return null
-						return (next.pendingToolCalls - pendingToolCalls.toSet()).orNull()
-					}
-					
-					override fun removedPendingCalls(): List<UUID>? {
-						if (pendingToolCalls == null) return null
-						if (next.pendingToolCalls == null) return pendingToolCalls
-						return (pendingToolCalls - next.pendingToolCalls.toSet()).orNull()
 					}
 				}
 			}

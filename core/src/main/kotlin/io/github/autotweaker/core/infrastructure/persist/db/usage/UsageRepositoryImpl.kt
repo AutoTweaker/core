@@ -34,18 +34,16 @@ import kotlin.time.Instant
 
 class UsageRepositoryImpl(store: DatabaseStore) : UsageRepository,
 	DbStore(store, "Usages", UsageTable) {
-	override suspend fun save(usages: List<UsageEntry>) {
+	override suspend fun save(entry: UsageEntry) {
 		db.transaction {
-			usages.forEach { entry ->
-				UsageTable.upsert {
-					it[id] = entry.id
-					it[modelId] = entry.modelId
-					it[timestamp] = entry.timestamp
-					it[promptTokens] = entry.usage.promptTokens
-					it[completionTokens] = entry.usage.completionTokens
-					it[reasoningTokens] = entry.usage.reasoningTokens
-					it[cacheHitTokens] = entry.usage.cacheHitTokens
-				}
+			UsageTable.upsert {
+				it[id] = entry.id
+				it[modelId] = entry.modelId
+				it[timestamp] = entry.timestamp
+				it[promptTokens] = entry.usage.promptTokens
+				it[completionTokens] = entry.usage.completionTokens
+				it[reasoningTokens] = entry.usage.reasoningTokens
+				it[cacheHitTokens] = entry.usage.cacheHitTokens
 			}
 		}
 	}

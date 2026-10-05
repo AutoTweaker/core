@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent.tool
 
 import io.github.autotweaker.api.adapter.PathResolver
+import io.github.autotweaker.api.types.agent.AgentToolCall
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
@@ -43,6 +44,7 @@ class ToolProvider(
 		workspace: () -> Path,
 		model: AgentModel,
 		context: RuntimeContext,
+		toolCalls: List<AgentToolCall>,
 		onOutput: (RuntimeOutput) -> Unit,
 		truncation: TruncationService,
 	): DependencyProvider = ServiceContainer()
@@ -53,7 +55,7 @@ class ToolProvider(
 		).register<BashService>(
 			BashServiceImpl(shellExecutor, pathResolver, workspace)
 		).register<ToolCallHistory>(
-			ToolCallHistoryImpl(context)
+			ToolCallHistoryImpl(context, toolCalls)
 		).register<TruncationService>(
 			truncation
 		).register<ClipboardService>(

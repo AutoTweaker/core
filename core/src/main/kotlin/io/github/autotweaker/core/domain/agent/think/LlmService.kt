@@ -26,12 +26,13 @@ import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
-import io.github.autotweaker.core.domain.agent.chat.AgentChatStreamResult
+import io.github.autotweaker.core.domain.agent.chat.AgentChatResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.*
 
@@ -72,16 +73,16 @@ class LlmService(
 	}
 	
 	private suspend fun runStream(request: AgentChatRequest): CallResult {
-		var assembled: AgentChatStreamResult.Assembled? = null
+		var assembled: AgentChatResult.Assembled? = null
 		
 		status.value = AgentStatus.THINKING
 		chat.execute(request, agentId).collect { result ->
 			when (result) {
-				is AgentChatStreamResult.Delta -> {
+				is AgentChatResult.Delta -> {
 					onOutput(RuntimeOutput.Output(result.delta))
 				}
 				
-				is AgentChatStreamResult.Failing -> {
+				is AgentChatResult.Failing -> {
 					onOutput(
 						RuntimeOutput.Output(
 							AgentOutput.LlmError(
@@ -94,7 +95,7 @@ class LlmService(
 					)
 				}
 				
-				is AgentChatStreamResult.Assembled -> {
+				is AgentChatResult.Assembled -> {
 					assembled = result
 				}
 			}
@@ -104,17 +105,17 @@ class LlmService(
 		
 		log.info(
 			"Completed LLM call  agentId={}  model={}  charCount={}",
-			agentId, final.message.modelId, final.message.content?.length ?: 0
+			agentId, final.message.model, final.message.content?.length ?: 0
 		)
 		
 		return CallResult(
 			assistantMessage = final.message,
-			toolCalls = final.toolCalls,
+			toolCalls = final.toolCalls?.orNull(),
 		)
 	}
 	
 	data class CallResult(
-		val assistantMessage: RuntimeContext.Message.Assistant,
+		val assistantMessage: AgentMessage.Assistant,
 		val toolCalls: List<ChatMessage.Assistant.ToolCall>?,
 	)
 }

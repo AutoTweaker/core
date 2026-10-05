@@ -101,7 +101,7 @@ class TranslationEngine(
 			fallbackModels = null,
 			instructions = job.systemPrompt,
 			messages = listOf(
-				ChatMessage.User(userPrompt.toContentPart(), now()),
+				ChatMessage.User(userPrompt.toContentPart()),
 			),
 			stream = false,
 			reasoning = ReasoningEffort(TranslateSettings.Thinking().get()),

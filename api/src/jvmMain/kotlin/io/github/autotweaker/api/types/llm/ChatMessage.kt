@@ -18,33 +18,27 @@
 
 package io.github.autotweaker.api.types.llm
 
-import kotlin.time.Instant
-
 sealed class ChatMessage {
 	abstract val content: Any?
-	abstract val timestamp: Instant
 	
 	data class User(
 		override val content: List<ContentPart>,
-		override val timestamp: Instant,
 	) : ChatMessage()
 	
 	data class Assistant(
 		override val content: String?,
-		override val timestamp: Instant,
 		val reasoningContent: String? = null,
 		val toolCalls: List<ToolCall>? = null,
 	) : ChatMessage() {
 		data class ToolCall(
 			val id: String,
 			val name: String,
-			val arguments: String
+			val arguments: String,
 		)
 	}
 	
 	data class ToolResult(
+		val id: String,
 		override val content: String,
-		override val timestamp: Instant,
-		val toolCallId: String
 	) : ChatMessage()
 }

@@ -31,10 +31,8 @@ import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
 import kotlin.time.Instant
 
@@ -100,13 +98,11 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			val agentIds = AgentDataTable.selectAll()
 				.where { AgentDataTable.sessionId inList id }
 				.mapTo(mutableSetOf()) { it[AgentDataTable.id] }
-			SessionDataTable.deleteWhere { SessionDataTable.id inList id }
-			if (agentIds.isEmpty()) return@transaction emptySet()
-			val removed = AgentMessageTable.selectAll()
+			val removed = if (agentIds.isEmpty()) emptySet()
+			else AgentMessageTable.selectAll()
 				.where { AgentMessageTable.origin inList agentIds }
 				.mapTo(mutableSetOf()) { it[AgentMessageTable.id] }
-			if (removed.isNotEmpty())
-				AgentMessageTable.deleteWhere { AgentMessageTable.id inList removed }
+			SessionDataTable.deleteWhere { SessionDataTable.id inList id }
 			return@transaction removed
 		}
 		MessageSearch.delete(removed)
@@ -159,21 +155,17 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			activeTools = this[AgentDataTable.activeTools].toSet(),
 		)
 	
-	override suspend fun saveMessages(messages: List<AgentMessage>) {
+	override suspend fun saveMessage(message: AgentMessage) {
 		db.transaction {
-			messages.forEach { msg ->
-				AgentMessageTable.upsert {
-					it[id] = msg.id
-					it[type] = msg.type()
-					it[timestamp] = msg.timestamp
-					it[origin] = msg.origin
-					it[content] = msg
-				}
+			AgentMessageTable.insert { // 不用upsert，我们不希望一个已存在的消息会发生变化
+				it[id] = message.id
+				it[type] = message.type()
+				it[timestamp] = message.timestamp
+				it[origin] = message.origin
+				it[content] = message
 			}
 		}
-		messages.forEach { msg ->
-			MessageSearch.upsert(msg.id, msg.type(), msg.timestamp, msg.content())
-		}
+		MessageSearch.upsert(message.id, message.type(), message.timestamp, message.content())
 	}
 	
 	override suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage> =
@@ -181,6 +173,13 @@ class SessionRepositoryImpl(store: DatabaseStore) : SessionRepository,
 			AgentMessageTable.selectAll()
 				.where { AgentMessageTable.id inList ids }
 				.map { it[AgentMessageTable.content] }
+		}
+	
+	override suspend fun loadMessageIds(origin: UUID): Set<UUID> =
+		db.transaction {
+			AgentMessageTable.select(AgentMessageTable.id)
+				.where { AgentMessageTable.origin eq origin }
+				.mapTo(mutableSetOf()) { it[AgentMessageTable.id] }
 		}
 	
 	override suspend fun searchMessages(

@@ -21,17 +21,20 @@ package io.github.autotweaker.core.domain.agent.compact
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.AgentOutput.Compact.Status
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeContext.SummarizedMessage
+import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.chat.merge
-import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.infrastructure.persist.db.session.MessageCacheImpl
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.util.*
@@ -39,17 +42,16 @@ import java.util.*
 class CompactService(
 	private val agentId: UUID,
 	private val chat: ResilientChat,
-	private val summary: SummaryService,
 	private val onOutput: (RuntimeOutput) -> Unit,
+	private val cache: MessageCacheImpl,
+	private val msg: MessageBuilder,
 ) : Loggable, Traceable {
 	private val thinking = CompactSettings.Thinking().get()
 	private val compactPrompt = CompactSettings.Prompt().get()
-	private val maxMessageChars = CompactSettings.MaxMessageChars().get()
-	private val messageSummarizePrompt = CompactSettings.MessageSummarizePrompt().get()
 	
 	suspend fun execute(
 		model: AgentModel,
-		ctx: AgentContextManager,
+		ctx: ContextManager,
 	) {
 		val context = ctx.get()
 		val rounds = context.historyRounds ?: return
@@ -59,22 +61,33 @@ class CompactService(
 			agentId, rounds.size, model.summarize.id
 		)
 		
+		val corrupted = cache.preload(
+			buildSet { rounds.forEach { it.idsTo(this) } }
+		)
+		if (corrupted.isNotEmpty()) {
+			log.warn("Failed to load messages for compact  agentId={}  corruptedMessages={}", agentId, corrupted.size)
+			onOutput(
+				RuntimeOutput.Output(
+					AgentOutput.Error(
+						"Compact failed: ${corrupted.size} corrupted messages could not be loaded",
+						AgentOutput.Error.Type.COMPACT
+					)
+				)
+			)
+			return
+		}
+		
+		val messages = rounds.toChatMessages().inject(
+			null, context.compactedRounds?.summaryMessage?.getOrNull()?.content
+		) + ChatMessage.User(compactPrompt.toContentPart())
+		
 		val maxRetries = CompactSettings.MaxCompactRetries().get()
 		
-		val processedMessages = preprocessMessages(
-			rounds, model,
-		).inject(
-			null, context.compactedRounds?.summarizedMessage?.content
-		) + ChatMessage.User(
-			compactPrompt.toContentPart(),
-			now()
-		)
-		
 		var attempt = 0
-		var finalResult: SummarizedMessage?
+		var finalResult: AgentMessage.Compact?
 		do {
 			finalResult = runCompactRequest(
-				model, processedMessages
+				model, messages
 			)
 			attempt++
 		} while (finalResult == null && attempt < maxRetries)
@@ -98,35 +111,34 @@ class CompactService(
 			agentId, rounds.size, attempt, finalResult.content.length
 		)
 		
-		ctx.applyCompact(finalResult, rounds)
+		ctx.applyCompact(finalResult.ref(), rounds)
 	}
 	
 	private suspend fun runCompactRequest(
 		model: AgentModel,
 		messages: List<ChatMessage>,
-	): SummarizedMessage? {
-		var streamContent = ""
+	): AgentMessage.Compact? {
+		val streamContent = StringBuilder()
 		var lastResult: Pair<UUID, ChatMessage.Assistant>? = null
 		var lastUsage: Usage? = null
 		trace.catching {
-			val results = chat.execute(
+			chat.execute(
 				model = model.summarize,
 				fallbackModels = model.fallback,
 				messages = messages,
 				stream = true,
 				reasoning = ReasoningEffort(thinking)
-			)
-			results.collect { resilientResult ->
+			).collect { llmResult ->
 				currentCoroutineContext().ensureActive()
-				when (val result = resilientResult.result) {
+				when (val result = llmResult.result) {
 					is ChatResult.Chunk -> if (!result.content.isNullOrEmpty()) {
-						streamContent += result.content
+						streamContent.append(result.content)
 						output(Status.OUTPUTTING, result.content!!, null)
 					}
 					
 					is ChatResult.Assembled -> {
 						result.usage?.let { lastUsage = it }
-						lastResult = resilientResult.model to result.message
+						lastResult = llmResult.model to result.message
 					}
 					
 					else -> {}
@@ -136,36 +148,32 @@ class CompactService(
 			log.debug("Cancelled compact  agentId={}", agentId)
 		}.getOrElse { e ->
 			log.warn("Failed compact request send  agentId={}  reason={}", agentId, e.message)
-			output(Status.FAILED, streamContent, null)
+			output(Status.FAILED, streamContent.toString(), null)
 			return null
 		}
 		
-		val extracted = lastResult?.second?.content?.extractSummary()
 		val minSummaryLength = CompactSettings.MinSummaryLength().get()
-		val valid = extracted?.let { it.length >= minSummaryLength } ?: false
+		val extracted = lastResult?.second?.content?.extractSummary()?.takeIf { it.length >= minSummaryLength }
 		
-		if (valid) {
+		if (extracted != null) {
 			output(Status.FINISHED, extracted, lastUsage)
-			return SummarizedMessage(
-				id = UUID(),
-				timestamp = lastResult.second.timestamp,
+			return msg.compact(
 				content = extracted,
-				modelId = lastResult.first,
+				model = lastResult.first,
 				usage = lastUsage
 			)
 		} else {
-			log.warn("Found compact summary too short  agentId={}  length={}", agentId, extracted?.length ?: 0)
-			if (lastUsage != null && lastResult != null)
-				onOutput(
-					RuntimeOutput.UsageConsumed(
-						UsageEntry(
-							modelId = lastResult.first,
-							timestamp = lastResult.second.timestamp,
-							usage = lastUsage
-						)
+			log.warn("Found compact summary too short  agentId={}  content={}", agentId, lastResult?.second?.content)
+			if (lastUsage != null && lastResult != null) onOutput(
+				RuntimeOutput.UsageConsumed(
+					UsageEntry(
+						modelId = lastResult.first,
+						timestamp = now(),
+						usage = lastUsage
 					)
 				)
-			output(Status.FAILED, streamContent, lastUsage)
+			)
+			output(Status.FAILED, streamContent.toString(), lastUsage)
 			return null
 		}
 	}
@@ -182,86 +190,55 @@ class CompactService(
 		)
 	)
 	
-	private suspend fun preprocessMessages(
-		rounds: List<RuntimeContext.CompletedRound>,
-		model: AgentModel,
-	): List<ChatMessage> = buildList {
-		rounds.forEach { round ->
-			add(
-				convertUserMessage(
-					round.userMessage,
-					model,
-				)
-			)
-			
-			round.turns?.forEach { turn ->
-				val toolCalls = turn.tools.map { tool ->
-					ChatMessage.Assistant.ToolCall(
-						id = tool.callId, name = tool.call.callName, arguments = tool.call.arguments
-					)
-				}
+	private fun List<AgentContextIndex.Round>.toChatMessages(): List<ChatMessage> = buildList {
+		this@toChatMessages.forEach { round ->
+			round.userMessage.onIntact {
 				add(
-					convertAssistantMessage(
-						turn.assistantMessage, toolCalls, model
+					ChatMessage.User(
+						content = it.content.inject().merge().toContentPart()
 					)
 				)
-				turn.tools.forEach {
+			}
+			round.turns?.forEach { turn ->
+				val calls = turn.tools.mapNotNull { tool ->
+					tool.call.getOrNull()?.let {
+						ChatMessage.Assistant.ToolCall(
+							id = it.callId,
+							name = it.callName,
+							arguments = it.arguments
+						)
+					}
+				}
+				turn.assistantMessage.onIntact {
 					add(
-						convertToolMessage(
-							it, model
+						ChatMessage.Assistant(
+							reasoningContent = it.reasoning,
+							content = it.content,
+							toolCalls = calls.orNull()
 						)
 					)
 				}
+				turn.tools.forEach { tool ->
+					tool.result.onIntact {
+						add(
+							ChatMessage.ToolResult(
+								id = it.callId,
+								content = it.content
+							)
+						)
+					}
+				}
 			}
-			round.finalAssistantMessage?.let {
+			round.assistantMessage?.onIntact {
 				add(
-					convertAssistantMessage(
-						it, null, model
+					ChatMessage.Assistant(
+						reasoningContent = it.reasoning,
+						content = it.content
 					)
 				)
 			}
 		}
 	}
-	
-	private suspend fun convertUserMessage(
-		msg: RuntimeContext.Message.User,
-		model: AgentModel,
-	): ChatMessage.User {
-		val content = msg.content.inject().merge()
-		val final = maybeSummarize(content, model)
-		return ChatMessage.User(final.toContentPart(), msg.timestamp)
-	}
-	
-	private suspend fun convertAssistantMessage(
-		msg: RuntimeContext.Message.Assistant,
-		toolCalls: List<ChatMessage.Assistant.ToolCall>?,
-		model: AgentModel,
-	) = ChatMessage.Assistant(
-		content = maybeSummarize(msg.content.orEmpty(), model),
-		timestamp = msg.timestamp,
-		reasoningContent = msg.reasoning, toolCalls = toolCalls,
-	)
-	
-	private suspend fun convertToolMessage(
-		msg: RuntimeContext.Message.Tool,
-		model: AgentModel,
-	) = ChatMessage.ToolResult(
-		content = maybeSummarize(msg.result.content, model),
-		timestamp = msg.result.timestamp,
-		toolCallId = msg.callId
-	)
-	
-	
-	private suspend fun maybeSummarize(
-		content: String,
-		model: AgentModel,
-	): String = if (content.length > maxMessageChars)
-		summary.summarizeMessage(messageSummarizePrompt.format(content), model, thinking).also {
-			it.second?.let { usage ->
-				onOutput(RuntimeOutput.UsageConsumed(usage))
-			}
-		}.first ?: content
-	else content
 	
 	private fun String.extractSummary(): String =
 		substringAfter("<summary>").substringBefore("</summary>").trim()

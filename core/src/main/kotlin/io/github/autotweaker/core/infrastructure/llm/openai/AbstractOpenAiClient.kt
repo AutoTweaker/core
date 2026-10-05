@@ -65,7 +65,6 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	protected abstract fun Response.transform(): ChatResult
 	protected abstract fun Chunk.transform(): ChatResult.Chunk
 	protected abstract fun Chunk.usage(): Usage?
-	protected abstract fun Chunk.timestamp(): Instant?
 	
 	override fun chat(
 		request: ChatRequest,
@@ -147,7 +146,6 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			val content: StringBuilder = StringBuilder()
 			val reasoning: StringBuilder = StringBuilder()
 			var lastUsage: Usage? = null
-			var lastTimestamp: Instant? = null
 			
 			while (!channel.isClosedForRead) {
 				val line = readLineWithChunkTimeout(channel, chunkTimeout, idleDeadline) ?: break
@@ -180,7 +178,6 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 						}
 						
 						chunk.usage()?.let { lastUsage = it }
-						chunk.timestamp()?.let { lastTimestamp = it }
 					}
 				}
 			}
@@ -194,7 +191,6 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 						content = content.toString(),
 						reasoningContent = reasoning.toString(),
 						toolCalls = toolCalls,
-						timestamp = lastTimestamp.orNow(),
 					),
 					usage = lastUsage,
 				)

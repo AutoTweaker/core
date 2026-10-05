@@ -32,7 +32,6 @@ import io.github.autotweaker.core.application.impl.CoreAPIImpl
 import io.github.autotweaker.core.application.impl.DbDebugAPIImpl
 import io.github.autotweaker.core.application.impl.ShellRouter
 import io.github.autotweaker.core.domain.agent.AgentDeps
-import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
@@ -119,7 +118,6 @@ object Wiring : Loggable {
 		single<GitStatusService> { GitStatusServiceImpl }
 		singleOf(::LocalShellExecutor)
 		singleOf(::ResilientChat)
-		singleOf(::AgentChat)
 		singleOf(::SummaryService)
 		singleOf(::MessageConverts)
 		singleOf(::ToolProvider)

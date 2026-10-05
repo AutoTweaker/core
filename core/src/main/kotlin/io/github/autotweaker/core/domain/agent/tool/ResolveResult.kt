@@ -44,7 +44,7 @@ sealed class ResolveResult {
 	) : ResolveResult()
 	
 	data class Activation(
-		val toolName: String,
+		val targetName: String,
 		val reason: String,
 		val validatedArgs: JsonElement,
 		val presentation: ToolPresentation,

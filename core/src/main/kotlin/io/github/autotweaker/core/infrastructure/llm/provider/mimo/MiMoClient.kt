@@ -112,7 +112,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					})
 				
 				is ChatMessage.ToolResult -> MiMoMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.toolCallId
+					content = msg.content, toolCallId = msg.id
 				)
 			}
 		}
@@ -146,7 +146,6 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
 				toolCalls = msg?.toolCalls?.transform(),
-				timestamp = created,
 			),
 			usage = usage.transform(),
 		)
@@ -162,8 +161,6 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			toolCalls = delta?.toolCalls?.transform()
 		)
 	}
-	
-	override fun MiMoStreamChunk.timestamp() = created
 	
 	override fun MiMoStreamChunk.usage() = usage?.transform()
 	

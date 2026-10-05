@@ -25,7 +25,7 @@ import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import io.github.autotweaker.core.test.TestServices
 import kotlinx.coroutines.test.runTest
@@ -33,7 +33,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
 import kotlin.test.*
 
-class AgentContextManagerTest {
+class ContextManagerTest {
 	companion object {
 		init {
 			TestServices.init()
@@ -42,7 +42,7 @@ class AgentContextManagerTest {
 	
 	private fun presentation(text: String = "工具调用") = listOf(UiBlock.Text(text))
 	
-	private fun ctx() = AgentContextManager(
+	private fun ctx() = ContextManager(
 		initial = RuntimeContext(null, null, null, null, null),
 	)
 	
@@ -98,7 +98,7 @@ class AgentContextManagerTest {
 	)
 	
 	private suspend fun completeRound(
-		manager: AgentContextManager,
+		manager: ContextManager,
 		userMsg: RuntimeContext.Message.User = user(),
 		assistantMsg: RuntimeContext.Message.Assistant = assistant(),
 	) {

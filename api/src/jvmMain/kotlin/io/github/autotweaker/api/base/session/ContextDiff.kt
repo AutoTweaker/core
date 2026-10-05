@@ -19,7 +19,8 @@
 package io.github.autotweaker.api.base.session
 
 import io.github.autotweaker.api.types.PairList
-import io.github.autotweaker.api.types.agent.AgentContextIndex.*
+import io.github.autotweaker.api.types.agent.AgentContextIndex.Round
+import io.github.autotweaker.api.types.agent.AgentContextIndex.Turn
 import io.github.autotweaker.api.types.message.ContextInjection
 import java.util.*
 
@@ -61,29 +62,29 @@ interface ContextDiff {
 	fun removedHistoryRounds(): List<Round>?
 	
 	/**
-	 * 新增的 [CurrentRound]，全新创建。
+	 * 新增的 [Round]，全新创建。
 	 *
-	 * [CurrentRound] 在新旧都存在，但实际不是同一个，将返回当前版本。
+	 * [Round] 在新旧都存在，但实际不是同一个，将返回当前版本。
 	 *
 	 * 这也是 [finishedRound] 与 [startedRound] 同时返回非空的唯一情况。
 	 */
-	fun startedRound(): CurrentRound?
+	fun startedRound(): Round?
 	
 	/**
-	 * 更新了 [CurrentRound]，无 [CurrentRound] 返回 null。
+	 * 更新了 [Round]，无 [Round] 返回 null。
 	 *
-	 * [CurrentRound] 在新旧都存在，但实际不是同一个，也返回 null。
+	 * [Round] 在新旧都存在，但实际不是同一个，也返回 null。
 	 */
 	fun updatedCurrent(): CurrentDiff?
 	
 	/**
-	 * 完成的 [CurrentRound]，除非因为轮次为空被丢弃，必然进入 historyRounds。
+	 * 完成的 [Round]，除非因为轮次为空被丢弃，必然进入 historyRounds。
 	 *
-	 * [CurrentRound] 在新旧都存在，但实际不是同一个，将返回旧版本。
+	 * [Round] 在新旧都存在，但实际不是同一个，将返回旧版本。
 	 *
 	 * 这也是 [finishedRound] 与 [startedRound] 同时返回非空的唯一情况。
 	 */
-	fun finishedRound(): CurrentRound?
+	fun finishedRound(): Round?
 	
 	/**
 	 * 新增的消息。
@@ -96,7 +97,7 @@ interface ContextDiff {
 	fun droppedMessages(): Set<UUID>?
 	
 	/**
-	 * 参考 [io.github.autotweaker.api.types.agent.AgentContextIndex] 的 [CurrentRound]。
+	 * 参考 [io.github.autotweaker.api.types.agent.AgentContextIndex] 的 [Round]。
 	 */
 	interface CurrentDiff {
 		/**
@@ -113,10 +114,5 @@ interface ContextDiff {
 		 * assistantMessage 被归档至 turns。
 		 */
 		fun cleanedAssistantMessage(): UUID?
-		
-		fun addedFinishedCalls(): List<Turn.Tool>?
-		fun removedFinishedCalls(): List<Turn.Tool>?
-		fun addedPendingCalls(): List<UUID>?
-		fun removedPendingCalls(): List<UUID>?
 	}
 }

@@ -25,8 +25,9 @@ import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
+import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.compact.CompactService
-import io.github.autotweaker.core.domain.agent.runner.AgentContextManager
+import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
@@ -58,7 +59,7 @@ class AgentImpl(
 	private val _compacting = MutableStateFlow(false)
 	val compacting = _compacting.asStateFlow()
 	
-	private val _toolCalling = MutableStateFlow<Pair<String, ToolPresentation>?>(null)
+	private val _toolCalling = MutableStateFlow<Pair<UUID, ToolPresentation>?>(null)
 	val toolCalling = _toolCalling.asStateFlow()
 	
 	private val _output = MutableSharedFlow<RuntimeOutput>(
@@ -70,14 +71,19 @@ class AgentImpl(
 		_output.tryEmit(it)
 	}
 	
-	private val ctx = AgentContextManager(context.copy(currentRound = null))
+	private val msg = MessageBuilder(agentId, deps.messageCacheImpl)
+	
+	private val ctx = ContextManager(context.copy(currentRound = null), msg)
 	val context: StateFlow<RuntimeContext> = ctx.context
 	
-	private val toolManager = Tools(workspace, tools, activeTools, agentId)
+	val toolCalls get() = ctx.toolCalls
+	
+	private val toolManager = Tools(workspace, tools, activeTools, agentId, msg)
 	val activeTools: StateFlow<Set<String>> = toolManager.activeTools
 	
 	private val truncation = TruncationImpl(workspace, deps.pathResolver, deps.temporaryStorage)
-	private val llmService = LlmService(deps.agentChat, agentId, _status, onOutput)
+	private val agentChat = AgentChat(deps.resilientChat, msg)
+	private val llmService = LlmService(agentChat, agentId, _status, onOutput)
 	private val thinkingStage by lazy {
 		ThinkingStage(llmService, toolManager, deps.toolProvider, workspace, truncation, _status, onOutput)
 	}
@@ -85,6 +91,7 @@ class AgentImpl(
 		ToolCallingStage(
 			agentId = agentId,
 			tools = toolManager,
+			msg = msg,
 			provider = deps.toolProvider,
 			workspace = workspace,
 			truncation = truncation,
@@ -92,7 +99,7 @@ class AgentImpl(
 			onOutput = onOutput,
 			onToolCall = { _toolCalling.value = it })
 	}
-	private val compact = CompactService(agentId, deps.resilientChat, deps.summaryService, onOutput)
+	private val compact = CompactService(agentId, deps.resilientChat, onOutput, deps.messageCacheImpl, msg)
 	private val digestService = DigestService(deps.resilientChat) { onOutput(RuntimeOutput.UsageConsumed(it)) }
 	private val runner = RoundRunner(
 		ctx = ctx,
@@ -106,6 +113,8 @@ class AgentImpl(
 		compacting = _compacting,
 		agentId = agentId,
 		converts = deps.messageConverts,
+		cache = deps.messageCacheImpl,
+		msg = msg,
 	)
 	
 	val exception get() = runner.exception

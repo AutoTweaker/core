@@ -21,7 +21,6 @@ package io.github.autotweaker.core.domain.session
 import com.google.auto.service.AutoService
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.adapter.Agent
-import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.zh
@@ -30,7 +29,6 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
-import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
@@ -44,8 +42,6 @@ import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.cacheMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.domain.port.UsageRepository
-import io.github.autotweaker.core.domain.session.converter.AgentContextBuilder
-import io.github.autotweaker.core.domain.session.converter.RuntimeContextBuilder
 import io.github.autotweaker.core.domain.tool.CoreTool
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -70,13 +66,10 @@ class AgentBridge(
 	workspace: Path,
 ) : Agent, Loggable, Traceable {
 	/* 初始化 */
-	private val contextLock = ReentrantMutex()
-	
 	private lateinit var tools: ToolMap
 	
 	private val _context = MutableStateFlow(initialData.context)
 	override val context = _context.asStateFlow()
-	private var droppedCompacted: AgentContextIndex.CompactedRounds? = null
 	
 	private var cwd = workspace
 	
@@ -94,7 +87,8 @@ class AgentBridge(
 	override val status: StateFlow<AgentStatus> get() = _agent.status
 	override val compacting: StateFlow<Boolean> get() = _agent.compacting
 	override val activeTools: StateFlow<Set<String>> get() = _agent.activeTools
-	override val toolCalling: StateFlow<Pair<String, ToolPresentation>?> get() = _agent.toolCalling
+	override val toolCalls: Pair<UUID, List<AgentToolCall>>? get() = _agent.toolCalls
+	override val toolCalling: StateFlow<Pair<UUID, ToolPresentation>?> get() = _agent.toolCalling
 	
 	override val model: ModelConfig get() = _agent.model
 	
@@ -117,15 +111,21 @@ class AgentBridge(
 	private var saveJob: Job? = null
 	
 	suspend fun init() = also {
+		val ids = _context.value.index.ids()
+		val all = sessionRepo.loadMessageIds(id)
+		_context.update {
+			it.copy(droppedMessages = all - ids)
+		}
+		
 		initTools(); createAgent()
 		collectJob = scope.launch {
 			_agent.context.collect { saveChannel.send(Unit) }
 		}
 		saveJob = scope.launch {
 			saveChannel.consumeEach {
-				trace.catching { _agent.context.value.save() }
+				trace.catching { _agent.context.value.sync() }
 					.onFailure { e ->
-						log.error("Failed to save agent context  agentId={}", _agent.agentId, e)
+						log.error("Failed to save agent context  agentId={}", id, e)
 					}
 			}
 		}
@@ -133,7 +133,7 @@ class AgentBridge(
 			_agent.activeTools.drop(1).collect {
 				trace.catching { saveAgent() }
 					.onFailure { e ->
-						log.error("Failed to save agent data  agentId={}", _agent.agentId, e)
+						log.error("Failed to save agent data  agentId={}", id, e)
 					}
 			}
 		}
@@ -144,7 +144,7 @@ class AgentBridge(
 						_output.tryEmit(result)
 					}
 				}.onFailure { e ->
-					log.error("Failed to process agent output  agentId={}", _agent.agentId, e)
+					log.error("Failed to process agent output  agentId={}", id, e)
 				}
 			}
 		}
@@ -156,7 +156,7 @@ class AgentBridge(
 						collectJob?.cancelAndJoin()
 						saveChannel.close()
 						saveJob?.join()
-						log.info("Agent died  agentId={}", _agent.agentId)
+						log.info("Agent died  agentId={}", id)
 						scope().launch {
 							scope.join()
 							onShutdown()
@@ -168,7 +168,7 @@ class AgentBridge(
 				}
 			}
 		}
-		log.info("Initialized agent bridge  agentId={}  cwd={}", _agent.agentId, cwd)
+		log.info("Initialized agent bridge  agentId={}  cwd={}", id, cwd)
 	}
 	
 	private suspend fun initTools(): MetaCache {
@@ -183,7 +183,7 @@ class AgentBridge(
 	suspend fun shutdown() {
 		_agent.shutdown()
 		scope.join()
-		log.info("Completed agent bridge shutdown  agentId={}", _agent.agentId)
+		log.info("Completed agent bridge shutdown  agentId={}", id)
 	}
 	
 	suspend fun title() = summary(TitlePrompt().get(), "title")
@@ -198,12 +198,12 @@ class AgentBridge(
 	
 	override suspend fun send(content: MessageContent) =
 		_agent.send(content).andLog(log) {
-			info("Sent user message  agentId={}  contents={}", _agent.agentId, content.content?.count())
+			info("Sent user message  agentId={}  contents={}", id, content.content?.count())
 		}
 	
 	override suspend fun sendCoalescing(content: MessageContent) =
 		_agent.sendCoalescing(content).andLog(log) {
-			info("Queued coalescing message  agentId={}  contents={}", _agent.agentId, content.content?.count())
+			info("Queued coalescing message  agentId={}  contents={}", id, content.content?.count())
 		}
 	
 	override suspend fun inject(injection: ContextInjection) = also {
@@ -248,14 +248,14 @@ class AgentBridge(
 			)
 		)
 		saveAgent()
-		log.info("Updated agent model  agentId={}", _agent.agentId)
+		log.info("Updated agent model  agentId={}", id)
 	}
 	
 	override suspend fun stop() = also {
-		log.info("Initiated agent stop  agentId={}", _agent.agentId)
+		log.info("Initiated agent stop  agentId={}", id)
 		_agent.execute(AgentCommand.Stop)
 		saveAgent()
-		log.info("Stopped agent  agentId={}", _agent.agentId)
+		log.info("Stopped agent  agentId={}", id)
 	}
 	
 	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
@@ -268,8 +268,8 @@ class AgentBridge(
 				model = usage.modelId,
 				usage = usage.usage,
 			)
-			sessionRepo.saveMessages(listOf(record))
-			usageRepo.save(listOf(usage))
+			sessionRepo.saveMessage(record)
+			usageRepo.save(usage)
 			
 			updateContext {
 				it.copy(droppedMessages = it.droppedMessages.orEmpty() + record.id)
@@ -282,9 +282,14 @@ class AgentBridge(
 		_agent = AgentImpl(
 			deps = deps,
 			agentId = initialData.id,
-			context = RuntimeContextBuilder(_context.value, sessionRepo::loadMessages)().let {
-				droppedCompacted = it.second
-				return@let it.first
+			context = _context.value.let { ctx ->
+				RuntimeContext(
+					systemPrompt = ctx.systemPrompt,
+					injections = ctx.injections,
+					compactedRounds = ctx.index.compactedRounds,
+					historyRounds = ctx.index.historyRounds,
+					currentRound = ctx.index.currentRound
+				)
 			},
 			workspace = { cwd },
 			model = initialData.model.toAgentModel(),
@@ -295,17 +300,19 @@ class AgentBridge(
 		)
 	}
 	
-	private suspend fun RuntimeContext.save() = contextLock.withLock {
-		val builder = AgentContextBuilder(id, _context.value, this, droppedCompacted)
-		val (context, messages) = builder()
-		
-		messages.save()
-		updateContext {
-			val droppedMessages = it.droppedMessages.orEmpty() + context.droppedMessages.orEmpty()
-			context.copy(
-				droppedMessages = droppedMessages.orNull()
-			)
-		}
+	private suspend fun RuntimeContext.sync() = updateContext {
+		val oldIds = it.index.ids() + it.droppedMessages.orEmpty()
+		val newIds = ids()
+		AgentContext(
+			systemPrompt = systemPrompt ?: it.systemPrompt,
+			injections = injections,
+			index = AgentContextIndex(
+				compactedRounds = compactedRounds,
+				historyRounds = historyRounds,
+				currentRound = currentRound
+			),
+			droppedMessages = (oldIds - newIds).orNull()
+		)
 	}
 	
 	private suspend fun updateContext(function: (AgentContext) -> AgentContext) {
@@ -313,29 +320,7 @@ class AgentBridge(
 		saveAgent()
 	}
 	
-	private suspend fun List<AgentMessage>.save() {
-		sessionRepo.saveMessages(this)
-		usageRepo.save(mapNotNull { message ->
-			when (message) {
-				is AgentMessage.Assistant -> message.usage?.let {
-					UsageEntry(message.id, message.model, message.timestamp, it)
-				}
-				
-				is AgentMessage.Compact -> message.usage?.let {
-					UsageEntry(message.id, message.model, message.timestamp, it)
-				}
-				
-				is AgentMessage.UsageRecord ->
-					UsageEntry(message.id, message.model, message.timestamp, message.usage)
-				
-				else -> null
-			}
-		})
-	}
-	
-	private suspend fun saveAgent() = contextLock.withLock {
-		sessionRepo.saveAgent(agentData)
-	}
+	private suspend fun saveAgent() = sessionRepo.saveAgent(agentData)
 	
 	private suspend fun ModelConfig.toAgentModel() = AgentModel(
 		model = resolveModel(model),

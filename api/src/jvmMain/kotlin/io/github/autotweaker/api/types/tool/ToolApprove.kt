@@ -18,8 +18,10 @@
 
 package io.github.autotweaker.api.types.tool
 
+import java.util.*
+
 data class ToolApprove(
-	val callId: String,
+	val call: UUID,
 	val reason: String? = null,
 	val approved: Boolean = true,
 )

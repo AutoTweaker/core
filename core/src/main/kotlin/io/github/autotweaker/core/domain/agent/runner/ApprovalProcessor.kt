@@ -18,88 +18,91 @@
 
 package io.github.autotweaker.core.domain.agent.runner
 
-import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.discard
-import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.PairList
+import io.github.autotweaker.api.format
+import io.github.autotweaker.api.get
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.ToolCallStatus
 import io.github.autotweaker.api.types.tool.ToolApprove
+import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.AgentToolCallImpl
+import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
+import io.github.autotweaker.core.domain.agent.tool.ToolSettings
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class ApprovalProcessor(
-	private val ctx: AgentContextManager,
+	private val ctx: ContextManager,
 	private val tool: ToolCallingStage,
-	private val scope: CoroutineScope,
+	private val msg: MessageBuilder,
 	private val status: MutableStateFlow<AgentStatus>,
 	private val shouldBreak: StateFlow<Boolean>,
-) : Traceable {
+) {
 	val approvalChannel = Channel<ToolApprove>(Channel.BUFFERED)
 	
 	fun shutdown() = approvalChannel.close().discard()
 	
 	suspend fun process(
-		needsApproval: PairList<RuntimeContext.CurrentRound.PendingToolCall, Tool.ResolveResult.Ready>,
 		model: AgentModel,
-	): List<String> {
-		val reasons = mutableListOf<String>()
-		val stashed = mutableMapOf<String, ToolApprove>()
+	): List<String> = coroutineScope {
+		val approvals = ConcurrentHashMap<UUID, ToolApprove>()
+		val router = launch { route(approvals) }
 		
-		for ((call, resolved) in needsApproval) {
+		for (call in ctx.toolCalls!!.second) {
+			if (call.status.value == ToolCallStatus.FINISHED) continue
 			if (shouldBreak.value) break
 			
 			status.value = AgentStatus.WAITING
-			var approval = stashed.remove(call.callId)
-			while (approval == null) {
-				val deferred = scope.async {
-					approvalChannel.receive()
-				}
-				val watcher = scope.launch {
-					shouldBreak.first { it }
-					deferred.cancel()
-				}
-				val next = trace.catching {
-					deferred.await()
-				}.also {
-					watcher.cancel()
-				}.getOrElse { return reasons }
-				
-				if (next.callId == call.callId)
-					approval = next
-				else stashed[next.callId] = next
-			}
-			
+			call.awaitWaiting()
 			status.value = AgentStatus.PROCESSING
 			
 			if (shouldBreak.value) break
 			
-			if (approval.approved) {
-				approval.reason?.let { reasons.add(it) }
-				val deferred = scope.async {
-					tool.execute(call, resolved, model, ctx.get())
-				}
-				val toolResult = deferred.await()
-				status.value = AgentStatus.PROCESSING
-				ctx.recordToolMessage(ToolMessageFactory.buildToolMessage(call, toolResult))
-			} else ctx.recordToolMessage(
-				ToolMessageFactory.buildRejected(
-					call,
-					approval.reason,
-					resolved.rejected(approval.reason)
-				)
-			)
+			val approval = approvals[call.call.id]!!
+			if (approval.approved) tool.execute(call, model, ctx.get(), ctx.toolCalls!!.second)
+			else call.reject(approval.reason)
 		}
-		return reasons
+		
+		router.cancel()
+		approvals.values.mapNotNull { if (it.approved) it.reason else null }
 	}
+	
+	private suspend fun route(
+		approvals: MutableMap<UUID, ToolApprove>,
+	) {
+		for (approval in approvalChannel) {
+			val target = ctx.toolCalls?.second?.find { it.call.id == approval.call } ?: continue
+			if (target.status.value != ToolCallStatus.PENDING) continue
+			approvals[target.call.id] = approval
+			target.waiting()
+		}
+	}
+	
+	private suspend fun AgentToolCallImpl.awaitWaiting() {
+		combine(status, shouldBreak) { status, broken ->
+			status == ToolCallStatus.WAITING || broken
+		}.first { it }
+	}
+	
+	private suspend fun AgentToolCallImpl.reject(
+		reason: String?,
+	) = finish(
+		msg.toolResult(
+			callId = call.callId,
+			content = if (reason != null) ToolSettings.RejectedWithFeedback().format(reason)
+			else ToolSettings.Rejected().get(),
+			data = null,
+			presentation = resolved!!.rejected(reason),
+			status = ToolResultStatus.REJECTED
+		)
+	)
 }

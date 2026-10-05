@@ -26,10 +26,10 @@ import io.github.autotweaker.api.types.message.AgentMessageType
 import io.github.autotweaker.api.types.message.type
 import java.util.*
 
-inline fun <reified T : AgentMessage> getMessage(id: UUID): MessageResult<T> {
+inline fun <reified T : AgentMessage> getMessage(id: UUID): Msg<T> {
 	val msg = ServiceRegistry.get().message.get(id)
-	return if (msg is T) MessageResult.of(msg)
-	else MessageResult.Companion.of(
+	return if (msg is T) Msg.of(msg)
+	else Msg.Companion.of(
 		CorruptedMessage(
 			id = id,
 			expected = T::class.type(),
@@ -39,29 +39,32 @@ inline fun <reified T : AgentMessage> getMessage(id: UUID): MessageResult<T> {
 }
 
 @JvmInline
-value class MessageResult<out T : AgentMessage> private constructor(private val value: Any) {
+value class Msg<out T : AgentMessage> private constructor(
+	@PublishedApi
+	internal val value: Any
+) {
 	val isIntact get() = value !is CorruptedMessage
 	val isCorrupted get() = value is CorruptedMessage
 	fun getOrNull() = if (isCorrupted) null else value as T
 	fun corruptedOrNull() = value as? CorruptedMessage
 	
-	fun onIntact(action: (T) -> Unit): MessageResult<T> = also {
+	inline fun onIntact(action: (T) -> Unit): Msg<T> = also {
 		if (isIntact) action(value as T)
 	}
 	
-	fun onCorrupted(action: (CorruptedMessage) -> Unit): MessageResult<T> = also {
+	inline fun onCorrupted(action: (CorruptedMessage) -> Unit): Msg<T> = also {
 		corruptedOrNull()?.let { action(it) }
 	}
 	
-	fun <R> fold(onIntact: (T) -> R, onCorrupted: (CorruptedMessage) -> R): R {
+	inline fun <R> fold(onIntact: (T) -> R, onCorrupted: (CorruptedMessage) -> R): R {
 		val corrupted = corruptedOrNull()
 		return if (corrupted == null) onIntact(value as T)
 		else onCorrupted(corrupted)
 	}
 	
 	companion object {
-		fun <T : AgentMessage> of(message: T) = MessageResult<T>(message)
-		fun <T : AgentMessage> of(corrupted: CorruptedMessage) = MessageResult<T>(corrupted)
+		fun <T : AgentMessage> of(message: T) = Msg<T>(message)
+		fun <T : AgentMessage> of(corrupted: CorruptedMessage) = Msg<T>(corrupted)
 	}
 }
 

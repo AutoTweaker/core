@@ -71,7 +71,7 @@ object AgentMessageTable : Table("agent_message") {
 		toDb = { it.name }
 	)
 	val timestamp = timestamp("timestamp")
-	val origin = javaUUID("origin")
+	val origin = reference("origin", AgentDataTable.id, onDelete = ReferenceOption.CASCADE)
 	val content = jsonb<AgentMessage>("content", Json)
 	
 	override val primaryKey = PrimaryKey(id)

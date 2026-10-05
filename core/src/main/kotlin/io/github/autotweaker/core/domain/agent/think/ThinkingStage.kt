@@ -18,15 +18,13 @@
 
 package io.github.autotweaker.core.domain.agent.think
 
-import io.github.autotweaker.api.orNull
-import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
-import io.github.autotweaker.core.domain.agent.runner.ToolMessageFactory.buildPending
 import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
@@ -55,10 +53,7 @@ class ThinkingStage(
 		val rawCalls = callResult.toolCalls
 		if (rawCalls.isNullOrEmpty()) return Result(
 			assistantMessage = callResult.assistantMessage,
-			activations = null,
-			parseFailures = null,
-			resolveFailures = null,
-			needsApproval = null
+			toolCalls = null
 		)
 		
 		val provider = provider.build(
@@ -66,6 +61,7 @@ class ThinkingStage(
 			onOutput = onOutput,
 			model = model,
 			context = context,
+			toolCalls = emptyList(),
 			truncation = truncation,
 		)
 		val calls = buildList {
@@ -77,30 +73,12 @@ class ThinkingStage(
 		
 		return Result(
 			assistantMessage = callResult.assistantMessage,
-			activations = calls.ofType(),
-			parseFailures = calls.ofType(),
-			resolveFailures = calls.ofType(),
-			needsApproval = calls.mapNotNull { (call, resolved) ->
-				if (resolved !is ResolveResult.NeedsApproval) return@mapNotNull null
-				buildPending(
-					callResult.assistantMessage.timestamp,
-					call, resolved
-				) to resolved.resolveResult
-			}.orNull()
+			toolCalls = calls
 		)
 	}
 	
-	
-	private inline fun <reified T : ResolveResult> PairList<RawCall, ResolveResult>.ofType(): PairList<RawCall, T>? =
-		mapNotNull { (call, resolved) ->
-			(resolved as? T)?.let { call to it }
-		}.orNull()
-	
 	data class Result(
-		val assistantMessage: RuntimeContext.Message.Assistant,
-		val activations: PairList<RawCall, ResolveResult.Activation>?,
-		val parseFailures: PairList<RawCall, ResolveResult.ParseFailure>?,
-		val resolveFailures: PairList<RawCall, ResolveResult.ResolveFailure>?,
-		val needsApproval: PairList<RuntimeContext.CurrentRound.PendingToolCall, Tool.ResolveResult.Ready>?,
+		val assistantMessage: AgentMessage.Assistant,
+		val toolCalls: PairList<RawCall, ResolveResult>?,
 	)
 }

@@ -92,7 +92,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				)
 				
 				is ChatMessage.ToolResult -> DeepSeekMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.toolCallId
+					content = msg.content, toolCallId = msg.id
 				)
 			}
 		}
@@ -137,7 +137,6 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
 				toolCalls = msg?.toolCalls?.transform(),
-				timestamp = created,
 			),
 			usage = usage.transform()
 		)
@@ -153,8 +152,6 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			toolCalls = delta?.toolCalls?.transform()
 		)
 	}
-	
-	override fun DeepSeekStreamChunk.timestamp() = created
 	
 	override fun DeepSeekStreamChunk.usage() = usage?.transform()
 	

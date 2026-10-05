@@ -25,8 +25,10 @@ import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.store.MessageCache
+import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.infrastructure.caffeine
 import io.github.autotweaker.core.infrastructure.expireAfterAccess
 import io.github.autotweaker.core.infrastructure.getOrPut
@@ -34,7 +36,10 @@ import io.github.autotweaker.core.infrastructure.set
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
-class MessageCacheImpl(private val sessionRepository: SessionRepository) : MessageCache {
+class MessageCacheImpl(
+	private val sessionRepository: SessionRepository,
+	private val usageRepository: UsageRepository
+) : MessageCache {
 	private val cache = caffeine<UUID, AgentMessage> {
 		maximumSize(CacheSize().get())
 		expireAfterAccess(CacheExpireSeconds().get().seconds)
@@ -45,18 +50,35 @@ class MessageCacheImpl(private val sessionRepository: SessionRepository) : Messa
 			sessionRepository.loadMessage(id)
 		}
 	
-	fun put(message: AgentMessage) {
+	fun remove(ids: Set<UUID>) = cache.invalidateAll(ids)
+	
+	suspend fun save(message: AgentMessage) {
+		sessionRepository.saveMessage(message)
+		when (message) {
+			is AgentMessage.Assistant -> message.usage?.let {
+				UsageEntry(message.id, message.model, message.timestamp, it)
+			}
+			
+			is AgentMessage.Compact -> message.usage?.let {
+				UsageEntry(message.id, message.model, message.timestamp, it)
+			}
+			
+			is AgentMessage.UsageRecord ->
+				UsageEntry(message.id, message.model, message.timestamp, message.usage)
+			
+			else -> null
+		}?.let {
+			usageRepository.save(it)
+		}
 		cache[message.id] = message
 	}
 	
-	fun remove(ids: Set<UUID>) = cache.invalidateAll(ids)
-	
-	suspend fun preload(ids: Set<UUID>) {
+	suspend fun preload(ids: Set<UUID>): Set<UUID> {
 		val missing = ids - cache.asMap().keys
-		if (missing.isEmpty()) return
-		sessionRepository.loadMessages(missing).forEach {
-			cache[it.id] = it
-		}
+		if (missing.isEmpty()) return emptySet()
+		val loaded = sessionRepository.loadMessages(missing).associateBy { it.id }
+		cache.putAll(loaded)
+		return missing - loaded.keys // corrupted
 	}
 	
 	@AutoService(SettingDef::class)

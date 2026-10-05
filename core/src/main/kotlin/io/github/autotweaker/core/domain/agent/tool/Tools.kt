@@ -30,11 +30,12 @@ import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.exception.notfound.ToolNotFoundException
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.buildPresentation
 import io.github.autotweaker.api.types.tool.text
-import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.DEFAULT_FUNCTION
@@ -64,6 +65,7 @@ class Tools(
 	private val tools: ToolMap,
 	activeTools: Set<String>,
 	private val agentId: UUID,
+	private val msg: MessageBuilder
 ) : Loggable, Traceable, I18nable {
 	private val _activeTools = MutableStateFlow(activeTools)
 	val activeTools: StateFlow<Set<String>> = _activeTools.asStateFlow()
@@ -194,7 +196,7 @@ class Tools(
 		provider: DependencyProvider,
 		truncation: TruncationService,
 		onToolOutput: (RuntimeOutput) -> Unit,
-	): RuntimeContext.Message.Tool.Result {
+	): AgentMessage.Tool.Result {
 		val tool = requireNotNull(tools[toolName])
 		check(isActive(toolName)) { "Tool $toolName is not active" }
 		
@@ -215,9 +217,8 @@ class Tools(
 			}.also { outputChannel.close() }.getOrThrow()
 		}
 		
-		return RuntimeContext.Message.Tool.Result(
-			id = UUID(),
-			timestamp = now(),
+		return msg.toolResult(
+			callId = callId,
 			content = truncation(output.result, ToolSettings.MaxOutput().get()),
 			data = output.data,
 			presentation = output.presentation,

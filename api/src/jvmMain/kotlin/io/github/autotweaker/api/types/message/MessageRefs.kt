@@ -26,35 +26,50 @@ import kotlin.reflect.KProperty
 
 @Serializable
 @JvmInline
-value class UserRef(@Serializable(with = UuidSerializer::class) val id: UUID)
+value class UserRef(@Serializable(with = UuidSerializer::class) val id: UUID) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = getMessage<AgentMessage.User>(id)
+}
 
-operator fun UserRef?.getValue(thisRef: Any?, property: KProperty<*>) =
-	this?.let { getMessage<AgentMessage.User>(it.id) }
+fun AgentMessage.User.ref() = UserRef(id)
 
-@Serializable
-@JvmInline
-value class AssistantRef(@Serializable(with = UuidSerializer::class) val id: UUID)
-
-operator fun AssistantRef?.getValue(thisRef: Any?, property: KProperty<*>) =
-	this?.let { getMessage<AgentMessage.Assistant>(it.id) }
+operator fun UserRef?.getValue(thisRef: Any?, property: KProperty<*>) = this?.getValue(thisRef, property)
 
 @Serializable
 @JvmInline
-value class ToolCallRef(@Serializable(with = UuidSerializer::class) val id: UUID)
+value class AssistantRef(@Serializable(with = UuidSerializer::class) val id: UUID) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = getMessage<AgentMessage.Assistant>(id)
+}
 
-operator fun ToolCallRef?.getValue(thisRef: Any?, property: KProperty<*>) =
-	this?.let { getMessage<AgentMessage.Tool.Call>(it.id) }
+fun AgentMessage.Assistant.ref() = AssistantRef(id)
 
-@Serializable
-@JvmInline
-value class ToolResultRef(@Serializable(with = UuidSerializer::class) val id: UUID)
-
-operator fun ToolResultRef?.getValue(thisRef: Any?, property: KProperty<*>) =
-	this?.let { getMessage<AgentMessage.Tool.Result>(it.id) }
+operator fun AssistantRef?.getValue(thisRef: Any?, property: KProperty<*>) = this?.getValue(thisRef, property)
 
 @Serializable
 @JvmInline
-value class CompactRef(@Serializable(with = UuidSerializer::class) val id: UUID)
+value class ToolCallRef(@Serializable(with = UuidSerializer::class) val id: UUID) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = getMessage<AgentMessage.Tool.Call>(id)
+}
 
-operator fun CompactRef?.getValue(thisRef: Any?, property: KProperty<*>) =
-	this?.let { getMessage<AgentMessage.Compact>(it.id) }
+fun AgentMessage.Tool.Call.ref() = ToolCallRef(id)
+
+operator fun ToolCallRef?.getValue(thisRef: Any?, property: KProperty<*>) = this?.getValue(thisRef, property)
+
+@Serializable
+@JvmInline
+value class ToolResultRef(@Serializable(with = UuidSerializer::class) val id: UUID) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = getMessage<AgentMessage.Tool.Result>(id)
+}
+
+fun AgentMessage.Tool.Result.ref() = ToolResultRef(id)
+
+operator fun ToolResultRef?.getValue(thisRef: Any?, property: KProperty<*>) = this?.getValue(thisRef, property)
+
+@Serializable
+@JvmInline
+value class CompactRef(@Serializable(with = UuidSerializer::class) val id: UUID) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = getMessage<AgentMessage.Compact>(id)
+}
+
+fun AgentMessage.Compact.ref() = CompactRef(id)
+
+operator fun CompactRef?.getValue(thisRef: Any?, property: KProperty<*>) = this?.getValue(thisRef, property)

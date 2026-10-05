@@ -19,7 +19,10 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import com.google.auto.service.AutoService
-import io.github.autotweaker.api.base.*
+import io.github.autotweaker.api.base.BooleanSetting
+import io.github.autotweaker.api.base.DoubleSetting
+import io.github.autotweaker.api.base.IntSetting
+import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
 
@@ -33,23 +36,9 @@ object CompactSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class MaxMessageChars : IntSetting(
-		10000, zh(
-			"上下文压缩前对字符数大于此值的消息进行单独总结"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class MessageSummarizePrompt : StringSetting(
-		"请对以下消息内容进行概括，输出不要太长\n\n<message>\n%s\n</message>", zh(
-			"上下文压缩前对字符数过多的消息进行单独总结时的提示词"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
 	class MaxCompactRetries : IntSetting(
 		5, zh(
-			"上下文压缩的最大重试次数"
+			"上下文压缩的最大重试次数，可能因为总结无效，可能因为LLM错误"
 		)
 	)
 	
@@ -63,7 +52,7 @@ object CompactSettings {
 	@AutoService(SettingDef::class)
 	class Thinking : BooleanSetting(
 		false, zh(
-			"上下文压缩时是否启用思考"
+			"上下文压缩时是否启用思考，不建议启用"
 		)
 	)
 	

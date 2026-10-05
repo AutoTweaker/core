@@ -22,16 +22,12 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.base.recoverException
-import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.AgentStatus
+import io.github.autotweaker.api.types.agent.AgentToolCall
 import io.github.autotweaker.api.types.exception.I18nableException
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
-import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeContext.Message.Tool.Result
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
+import io.github.autotweaker.core.domain.agent.*
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,12 +40,13 @@ import kotlin.time.TimeSource
 class ToolCallingStage(
 	private val agentId: UUID,
 	private val tools: Tools,
+	private val msg: MessageBuilder,
 	private val provider: ToolProvider,
 	private val workspace: () -> Path,
 	private val truncation: TruncationService,
 	private val status: MutableStateFlow<AgentStatus>,
 	private val onOutput: (RuntimeOutput) -> Unit,
-	private val onToolCall: (Pair<String, List<UiBlock>>?) -> Unit
+	private val onToolCall: (Pair<UUID, ToolPresentation>?) -> Unit
 ) : Loggable, Traceable {
 	@Volatile
 	private var toolJob: Job? = null
@@ -60,19 +57,33 @@ class ToolCallingStage(
 	}
 	
 	suspend fun execute(
-		call: RuntimeContext.CurrentRound.PendingToolCall,
-		resolved: Tool.ResolveResult.Ready,
+		toolCall: AgentToolCallImpl,
 		model: AgentModel,
 		context: RuntimeContext,
-	): Result {
-		val timeoutSeconds = ToolSettings.TimeoutSeconds().get()
+		toolCalls: List<AgentToolCall>
+	) {
+		val call = toolCall.call
+		val resolved = toolCall.resolved!!
+		suspend fun toolResult(
+			content: String,
+			presentation: ToolPresentation,
+			status: ToolResultStatus,
+		) = msg.toolResult(
+			callId = call.callId,
+			content = content,
+			data = null,
+			presentation = presentation,
+			status = status
+		)
 		
+		val timeoutSeconds = ToolSettings.TimeoutSeconds().get()
 		val startTime = TimeSource.Monotonic.markNow()
-		return trace.catching {
+		val result = trace.catching {
 			coroutineScope {
 				toolJob = coroutineContext[Job]
+				toolCall.calling()
+				onToolCall(call.id to resolved.executing())
 				status.value = AgentStatus.TOOL_CALLING
-				onToolCall(call.callId to resolved.executing())
 				withTimeout(timeoutSeconds.seconds) {
 					val provider = provider.build(
 						workspace = workspace,
@@ -80,10 +91,11 @@ class ToolCallingStage(
 						model = model,
 						context = context,
 						truncation = truncation,
+						toolCalls = toolCalls
 					)
 					
 					tools.executeTool(
-						toolName = call.validatedToolName,
+						toolName = call.validatedToolName ?: unreachable(),
 						callId = call.callId,
 						request = resolved.result,
 						provider = provider,
@@ -110,7 +122,7 @@ class ToolCallingStage(
 					"Failed tool execution  agentId={}  tool={}  reason=TIMEOUT  elapsed={}",
 					agentId, call.validatedToolName, elapsed
 				)
-				buildToolResult(
+				toolResult(
 					ToolSettings.TimeoutMessage().format(elapsed),
 					resolved.timeout(elapsed),
 					ToolResultStatus.TIMEOUT
@@ -121,7 +133,7 @@ class ToolCallingStage(
 					agentId,
 					call.validatedToolName
 				)
-				buildToolResult(
+				toolResult(
 					ToolSettings.CancelledExecuting().get(),
 					resolved.cancelled(),
 					ToolResultStatus.CANCELLED
@@ -135,24 +147,13 @@ class ToolCallingStage(
 				else log.error(
 					"Failed tool execution  agentId={}  tool={}", agentId, call.validatedToolName, e
 				)
-				buildToolResult(
+				toolResult(
 					ToolSettings.ToolExecutionError().format(e.message()),
 					resolved.failed(e),
 					ToolResultStatus.FAILURE
 				)
 			}
+		
+		toolCall.finish(result)
 	}
-	
-	private fun buildToolResult(
-		content: String,
-		presentation: ToolPresentation,
-		status: ToolResultStatus,
-	): Result = Result(
-		id = UUID(),
-		timestamp = now(),
-		content = content,
-		data = null,
-		presentation = presentation,
-		status = status
-	)
 }

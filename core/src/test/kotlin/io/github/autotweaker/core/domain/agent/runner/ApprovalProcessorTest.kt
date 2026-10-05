@@ -52,7 +52,7 @@ class ApprovalProcessorTest {
 	
 	private val model = mockk<AgentModel>()
 	
-	private fun manager(pendingCalls: List<String> = listOf("c1", "c2")) = AgentContextManager(
+	private fun manager(pendingCalls: List<String> = listOf("c1", "c2")) = ContextManager(
 		initial = RuntimeContext(null, null, null, null, null),
 	).also { manager ->
 		runBlocking {

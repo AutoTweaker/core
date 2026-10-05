@@ -72,7 +72,7 @@ class RoundRunnerTest {
 	private val model = mockk<AgentModel>()
 	
 	private data class Harness(
-		val ctx: AgentContextManager,
+		val ctx: ContextManager,
 		val runner: RoundRunner,
 		val status: MutableStateFlow<AgentStatus>,
 	)
@@ -157,7 +157,7 @@ class RoundRunnerTest {
 		tools: Tools,
 		thinking: ThinkingStage,
 	): Harness {
-		val ctx = AgentContextManager(RuntimeContext(null, null, null, null, null))
+		val ctx = ContextManager(RuntimeContext(null, null, null, null, null))
 		val status = MutableStateFlow(AgentStatus.FREE)
 		val toolCalling = mockk<ToolCallingStage>()
 		coEvery { toolCalling.cancelToolJob() } returns Unit
@@ -278,7 +278,7 @@ class RoundRunnerTest {
 				"activate",
 				activations = listOf(
 					activationCall to ResolveResult.Activation(
-						toolName = "bash",
+						targetName = "bash",
 						reason = "activate me",
 						validatedArgs = JsonPrimitive("""{"tool_name":"bash"}"""),
 						presentation = listOf(UiBlock.Text("激活了 bash 工具")),

@@ -43,14 +43,14 @@ interface SessionRepository {
 	suspend fun saveAgent(agentData: AgentData)
 	suspend fun loadAgent(agentId: UUID): AgentData?
 	
-	suspend fun saveMessages(messages: List<AgentMessage>)
+	suspend fun saveMessage(message: AgentMessage)
+	fun loadMessage(id: UUID): AgentMessage?
 	suspend fun loadMessages(ids: Set<UUID>): List<AgentMessage>
+	suspend fun loadMessageIds(origin: UUID): Set<UUID>
 	suspend fun searchMessages(
 		query: String,
 		type: AgentMessageType?,
 		from: Instant?,
 		to: Instant?,
 	): Set<UUID>
-	
-	fun loadMessage(id: UUID): AgentMessage?
 }

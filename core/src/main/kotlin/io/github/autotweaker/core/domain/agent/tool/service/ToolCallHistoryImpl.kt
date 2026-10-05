@@ -20,48 +20,48 @@ package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.api.Traceable
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.PairList
+import io.github.autotweaker.api.types.agent.AgentToolCall
+import io.github.autotweaker.api.types.agent.ToolCallStatus
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 
 class ToolCallHistoryImpl(
 	private val context: RuntimeContext,
+	private val toolCalls: List<AgentToolCall>
 ) : ToolCallHistory, Traceable {
-	@Suppress("NestedLambdaShadowedImplicitParameter")
 	override fun <Request, Result> getAll(
 		requestSerializer: KSerializer<Request>,
 		resultSerializer: KSerializer<Result>,
 	): PairList<Request, Result> = buildList {
-		fun RuntimeContext.Message.Tool.tryDeserialize() {
-			val request = call.resolvedRequest ?: return
-			val result = result.data ?: return
-			trace.catching {
-				Pair(
-					Json.decodeFromJsonElement(requestSerializer, request),
-					Json.decodeFromJsonElement(resultSerializer, result)
-				)
-			}.getOrNull()?.let { add(it) }
-		}
+		fun tryDeserialize(request: JsonElement, result: JsonElement) = trace.catching {
+			Pair(
+				Json.decodeFromJsonElement(requestSerializer, request),
+				Json.decodeFromJsonElement(resultSerializer, result)
+			)
+		}.onSuccess { add(it) }.discard()
 		
-		context.historyRounds?.forEach {
-			it.turns?.forEach {
-				it.tools.forEach {
-					it.tryDeserialize()
+		context.rounds().forEach { round ->
+			round.turns?.forEach { turn ->
+				turn.tools.forEach { tool ->
+					val request = tool.call.getOrNull()?.resolvedRequest ?: return@forEach
+					val result = tool.result.getOrNull()?.data ?: return@forEach
+					tryDeserialize(request, result)
 				}
 			}
 		}
 		
-		context.currentRound?.turns?.forEach {
-			it.tools.forEach {
-				it.tryDeserialize()
+		toolCalls.forEach {
+			if (it.status.value == ToolCallStatus.FINISHED) {
+				val request = it.call.resolvedRequest ?: return@forEach
+				val result = it.result?.data ?: return@forEach
+				tryDeserialize(request, result)
 			}
-		}
-		
-		context.currentRound?.finishedToolCalls?.forEach {
-			it.tryDeserialize()
 		}
 	}
 }

@@ -22,9 +22,10 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
-import io.github.autotweaker.core.domain.agent.RuntimeContext
+import io.github.autotweaker.core.domain.agent.MessageBuilder
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -32,7 +33,7 @@ import kotlinx.coroutines.channels.SendChannel
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class MessageQueue(private val agentId: UUID) : Loggable {
+class MessageQueue(private val agentId: UUID, private val msg: MessageBuilder) : Loggable {
 	private val channel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
 	private val coalescingChannel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
 	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<Pair<UUID, MessageContent>?>>()
@@ -49,7 +50,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		deliveries.values.forEach { it.cancel() }
 	}
 	
-	suspend fun receive(): RuntimeContext.Message.User {
+	suspend fun receive(): AgentMessage.User {
 		while (true) {
 			val all = mutableMapOf<UUID, MessageContent>()
 			
@@ -76,7 +77,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		}
 	}
 	
-	suspend fun drainPrimary(): RuntimeContext.Message.User? {
+	suspend fun drainPrimary(): AgentMessage.User? {
 		val all = mutableMapOf<UUID, MessageContent>()
 		all += channel.tryReceive().getOrNull() ?: return null
 		while (true) {
@@ -90,7 +91,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		return merge(all)
 	}
 	
-	suspend fun drainAll(): RuntimeContext.Message.User? {
+	suspend fun drainAll(): AgentMessage.User? {
 		val all = mutableMapOf<UUID, MessageContent>()
 		drainInto(all)
 		return merge(all)
@@ -101,7 +102,7 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 		while (true) all += coalescingChannel.tryReceive().getOrNull() ?: break
 	}
 	
-	suspend fun merge(all: Map<UUID, MessageContent>): RuntimeContext.Message.User? {
+	suspend fun merge(all: Map<UUID, MessageContent>): AgentMessage.User? {
 		if (all.isEmpty()) return null
 		val cancelQueued = lock.withLock {
 			cancelled.toSet().also { cancelled.clear() }
@@ -119,17 +120,12 @@ class MessageQueue(private val agentId: UUID) : Loggable {
 			}
 			return null
 		}
-		return RuntimeContext.Message.User(
-			id = UUID(),
-			content = MessageContent(
-				injections, content
-			),
-			timestamp = now()
-		).also { message ->
+		return msg.user(MessageContent(injections, content)).also { message ->
 			filtered.keys.forEach {
 				deliveries.remove(it)?.complete(message.id to message.content)
 			}
-		}.andLog(log) { info("Merged queued messages  count={}  agentId={}", filtered.count(), agentId) }
+			log.info("Merged queued messages  count={}  agentId={}", filtered.count(), agentId)
+		}
 	}
 	
 	fun send(content: List<String>) = content.map {

@@ -18,11 +18,8 @@
 
 package io.github.autotweaker.core.application.impl
 
-import io.github.autotweaker.api.Loggable
-import io.github.autotweaker.api.Traceable
+import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.llm.LlmResult
@@ -68,7 +65,7 @@ class ChatService(
 				result.usage?.let {
 					lastUsage = UsageEntry(
 						modelId = chunk.model,
-						timestamp = result.message.timestamp,
+						timestamp = now(),
 						usage = it
 					)
 				}
@@ -76,7 +73,7 @@ class ChatService(
 				if (cause == null)
 					lastUsage?.let {
 						trace.catching {
-							usageRepo.save(listOf(it))
+							usageRepo.save(it)
 						}.rethrowCancellation()
 							.onFailure { e ->
 								log.error("Failed usage record save  recordId={}", it.id, e)

@@ -20,7 +20,9 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.session.Msg
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -32,17 +34,24 @@ class DigestService(
 ) : Traceable, Loggable {
 	suspend fun summary(prompt: String, context: RuntimeContext, model: AgentModel): JsonElement? {
 		val messages = buildList {
-			fun RuntimeContext.Message.User.add() = add(transform())
-			fun RuntimeContext.Message.Assistant.add() = add(transform())
+			fun Msg<AgentMessage.User>.add() = onIntact {
+				add(
+					ChatMessage.User(
+						content = it.content.content?.merge().orEmpty().toContentPart()
+					)
+				)
+			}.discard()
 			
-			context.historyRounds?.forEach { round ->
-				round.userMessage.add()
-				round.turns?.forEach { turn ->
-					turn.assistantMessage.add()
-				}
-				round.finalAssistantMessage?.add()
-			}
-			context.currentRound?.let { round ->
+			fun Msg<AgentMessage.Assistant>.add() = onIntact {
+				add(
+					ChatMessage.Assistant(
+						reasoningContent = it.reasoning,
+						content = it.content,
+					)
+				)
+			}.discard()
+			
+			context.rounds().forEach { round ->
 				round.userMessage.add()
 				round.turns?.forEach { turn ->
 					turn.assistantMessage.add()
@@ -54,11 +63,10 @@ class DigestService(
 			
 			add(
 				ChatMessage.User(
-					timestamp = now(),
 					content = prompt.toContentPart()
 				)
 			)
-		}.inject(null, context.compactedRounds?.summarizedMessage?.content)
+		}.inject(null, context.compactedRounds?.summaryMessage?.getOrNull()?.content)
 		
 		var resultContent: String? = null
 		
@@ -78,7 +86,7 @@ class DigestService(
 							UsageEntry(
 								modelId = it.model,
 								usage = usage,
-								timestamp = result.message.timestamp
+								timestamp = now()
 							)
 						)
 					}
@@ -104,14 +112,4 @@ class DigestService(
 			}
 		}.getOrNull()
 	}
-	
-	fun RuntimeContext.Message.User.transform() = ChatMessage.User(
-		timestamp = timestamp,
-		content = content.content?.merge().orEmpty().toContentPart(),
-	)
-	
-	fun RuntimeContext.Message.Assistant.transform() = ChatMessage.Assistant(
-		content = content,
-		timestamp = timestamp
-	)
 }

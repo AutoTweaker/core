@@ -26,15 +26,14 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * 这些工具调用的相关状态只存在于内存中。
  *
+ * [call] 的 id 可以用来区分一个 [AgentToolCall]。
+ *
  * @property call 工具调用的请求消息。
  * @property result 工具调用的响应消息，待 [status] 为 [ToolCallStatus.FINISHED] 后将可取到非空值。
  * @property status 工具调用的当前状态。
- * @property id [call] 的 id 可以用来区分一个 [AgentToolCall]。
  */
-class AgentToolCall(
-	val call: AgentMessage.Tool.Call,
-	val result: AgentMessage.Tool.Result?,
+interface AgentToolCall {
+	val call: AgentMessage.Tool.Call
+	val result: AgentMessage.Tool.Result?
 	val status: StateFlow<ToolCallStatus>
-) {
-	val id = call.id
 }

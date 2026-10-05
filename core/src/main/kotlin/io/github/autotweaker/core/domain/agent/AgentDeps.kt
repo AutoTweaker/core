@@ -19,15 +19,15 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.adapter.PathResolver
-import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.TemporaryStorage
+import io.github.autotweaker.core.infrastructure.persist.db.session.MessageCacheImpl
 
 class AgentDeps(
-	val agentChat: AgentChat,
+	val messageCacheImpl: MessageCacheImpl,
 	val resilientChat: ResilientChat,
 	val summaryService: SummaryService,
 	val messageConverts: MessageConverts,

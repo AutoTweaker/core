@@ -18,15 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
-import io.github.autotweaker.core.infrastructure.llm.openai.InstantAsLongSerializer
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 @Serializable
 data class DeepSeekStreamChunk(
 	val choices: List<OpenAiChunkChoice>,
 	val usage: DeepSeekUsage? = null,
-	@Serializable(with = InstantAsLongSerializer::class)
-	val created: Instant,
 )

@@ -18,117 +18,25 @@
 
 package io.github.autotweaker.core.domain.agent
 
-import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.agent.AgentContextIndex.CompactedRounds
+import io.github.autotweaker.api.types.agent.AgentContextIndex.Round
 import io.github.autotweaker.api.types.message.ContextInjection
-import io.github.autotweaker.api.types.message.MessageContent
-import io.github.autotweaker.api.types.tool.ToolPresentation
-import io.github.autotweaker.api.types.tool.ToolResultStatus
-import kotlinx.serialization.json.JsonElement
-import java.util.*
-import kotlin.time.Instant
 
 data class RuntimeContext(
 	val systemPrompt: String?,
 	val injections: List<ContextInjection>?,
 	val compactedRounds: CompactedRounds?,
-	val historyRounds: List<CompletedRound>?,
-	val currentRound: CurrentRound?,
+	val historyRounds: List<Round>?,
+	val currentRound: Round?,
 ) {
-	data class SummarizedMessage(
-		val id: UUID,
-		val timestamp: Instant,
-		val content: String,
-		val modelId: UUID,
-		val usage: Usage?,
-	)
-	
-	sealed class Message {
-		data class User(
-			val id: UUID,
-			val content: MessageContent,
-			val timestamp: Instant,
-		) : Message()
-		
-		data class Assistant(
-			val id: UUID,
-			val reasoning: String?,
-			val content: String?,
-			val modelId: UUID,
-			val timestamp: Instant,
-			val usage: Usage?,
-		) : Message()
-		
-		data class Tool(
-			val call: Call,
-			val callId: String,
-			val result: Result,
-		) : Message() {
-			data class Call(
-				val id: UUID,
-				val timestamp: Instant,
-				val callName: String,
-				val arguments: String,
-				val reason: String?,
-				val validatedToolName: String?,
-				val validatedArgs: JsonElement?,
-				val resolvedRequest: JsonElement?,
-				val presentation: ToolPresentation?,
-			)
-			
-			data class Result(
-				val id: UUID,
-				val content: String,
-				val data: JsonElement?,
-				val presentation: ToolPresentation,
-				val timestamp: Instant,
-				val status: ToolResultStatus,
-			)
-		}
+	fun ids() = buildSet {
+		compactedRounds?.forEach { it.idsTo(this) }
+		historyRounds?.forEach { it.idsTo(this) }
+		currentRound?.idsTo(this)
 	}
 	
-	data class CompactedRounds(
-		val compactedRounds: CompactedRounds?,
-		val rounds: List<CompletedRound>,
-		val summarizedMessage: SummarizedMessage
-	) {
-		fun completedRounds(): List<CompletedRound> = compactedRounds?.completedRounds().orEmpty() + rounds
-		
-		fun forEach(block: (CompactedRounds) -> Unit) {
-			compactedRounds?.forEach(block)
-			block(this)
-		}
+	fun rounds() = buildList {
+		historyRounds?.let { addAll(it) }
+		currentRound?.let { add(it) }
 	}
-	
-	data class CompletedRound(
-		val userMessage: Message.User,
-		val turns: List<Turn>?,
-		val finalAssistantMessage: Message.Assistant?,
-	)
-	
-	data class CurrentRound(
-		val userMessage: Message.User,
-		val turns: List<Turn>?,
-		val assistantMessage: Message.Assistant?,
-		val finishedToolCalls: List<Message.Tool>?,
-		val approvedToolCalls: List<PendingToolCall>?,
-		val pendingToolCalls: List<PendingToolCall>?,
-	) {
-		data class PendingToolCall(
-			val id: UUID,
-			val timestamp: Instant,
-			val callId: String,
-			val callName: String,
-			val arguments: String,
-			val reason: String,
-			val validatedToolName: String,
-			val validatedArgs: JsonElement,
-			val resolvedRequest: JsonElement,
-			val presentation: ToolPresentation,
-		)
-	}
-	
-	data class Turn(
-		val assistantMessage: Message.Assistant,
-		val tools: List<Message.Tool>,
-	)
 }

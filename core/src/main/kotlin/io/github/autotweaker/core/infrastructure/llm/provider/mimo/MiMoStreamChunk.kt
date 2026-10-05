@@ -18,16 +18,12 @@
 
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
-import io.github.autotweaker.core.infrastructure.llm.openai.InstantAsLongSerializer
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 @Serializable
 data class MiMoStreamChunk(
 	val choices: List<OpenAiChunkChoice>,
 	val usage: MiMoUsage? = null,
 	val id: String,
-	@Serializable(with = InstantAsLongSerializer::class)
-	val created: Instant,
 )
