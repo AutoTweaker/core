@@ -38,12 +38,6 @@ dependencies {
 	implementation("com.google.guava:guava:33.7.1-jre")
 	implementation("com.ibm.icu:icu4j:78.3")
 	implementation("io.github.java-diff-utils:java-diff-utils:4.17")
-	
-	testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
-	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
-	testImplementation(kotlin("test"))
-	testImplementation("io.mockk:mockk:1.14.11")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 afterEvaluate {
@@ -52,20 +46,11 @@ afterEvaluate {
 	}
 }
 
-val inDocker = System.getenv("DOCKER_TEST") == "true"
-
-if (inDocker) {
-	tasks.test {
-		useJUnitPlatform()
-		jvmArgs(
-			"-Dnet.bytebuddy.experimental=true",
-			"--add-opens", "java.base/java.util=ALL-UNNAMED",
-			"--add-opens", "java.base/java.lang=ALL-UNNAMED",
-			"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
-		)
-	}
-} else {
-	tasks.test { enabled = false }
+val exportRuntime = tasks.register<Sync>("exportRuntime") {
+	description = "导出生产运行时产物集合（cli-adapter jar + 全部依赖 jar），供 AutoTweaker/test 仓库引用"
+	from(tasks.named("jar"))
+	from(configurations.named("runtimeClasspath")) { include("*.jar") }
+	into(layout.buildDirectory.dir("runtime"))
 }
 
 val cliProtocolJar = configurations.register("cliProtocolJar") {

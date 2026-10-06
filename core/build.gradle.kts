@@ -16,15 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.util.jar.JarEntry
-import java.util.jar.JarOutputStream
-
 plugins {
 	kotlin("jvm")
 	kotlin("kapt")
 	id("org.jetbrains.kotlin.plugin.serialization")
 	application
-	jacoco
 }
 
 val toolgenMeta = configurations.register("toolgenMeta") {
@@ -73,14 +69,7 @@ dependencies {
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 	
-	
-	testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
-	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
-	testImplementation(kotlin("test"))
-	testImplementation("io.mockk:mockk:1.14.11")
-	testImplementation("io.ktor:ktor-client-mock:3.6.0")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	
+
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 	kapt("com.google.auto.service:auto-service:1.1.1")
 	
@@ -111,8 +100,8 @@ dependencies {
 	implementation("org.ow2.asm:asm:9.10.1")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.22.3")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
-	implementation("tools.jackson.core:jackson-core:3.2.2")
-	implementation("tools.jackson.core:jackson-databind:3.2.2")
+	implementation("tools.jackson.core:jackson-core:3.2.3")
+	implementation("tools.jackson.core:jackson-databind:3.2.3")
 	
 	implementation("com.github.ben-manes.caffeine:caffeine:3.3.0")
 	implementation("com.google.guava:guava:33.7.1-jre")
@@ -126,50 +115,9 @@ afterEvaluate {
 	}
 }
 
-val inDocker = System.getenv("DOCKER_TEST") == "true"
-
-val testPluginInstallDir: File = layout.buildDirectory.dir("test-plugin-install").get().asFile
-
-val prepareTestPlugins = tasks.register("prepareTestPlugins") {
-	description = "生成测试 JVM 的插件环境：PluginLoader 无插件时直接退出进程"
-	val appVersion = version.toString()
-	val pluginJar = File(testPluginInstallDir, "plugins/test-fixture.jar")
-	outputs.file(pluginJar)
-	doLast {
-		pluginJar.parentFile.mkdirs()
-		JarOutputStream(pluginJar.outputStream()).use { jar ->
-			jar.putNextEntry(JarEntry("META-INF/autotweaker/plugin.properties"))
-			jar.write("id=test.fixture\nversion=1.0.0\napiVersion=$appVersion\n".toByteArray())
-			jar.closeEntry()
-		}
-	}
-}
-
-if (inDocker) {
-	tasks.test {
-		useJUnitPlatform()
-		maxHeapSize = "2g"
-		classpath = files(tasks.jar) + classpath
-		dependsOn(tasks.jar)
-		dependsOn(prepareTestPlugins)
-		environment("AUTOTWEAKER_INSTALL_PATH", testPluginInstallDir.absolutePath)
-		jvmArgs(
-			"-Dnet.bytebuddy.experimental=true",
-			"-Djava.security.egd=file:/dev/./urandom",
-			"--add-opens", "java.base/java.util=ALL-UNNAMED",
-			"--add-opens", "java.base/java.lang=ALL-UNNAMED",
-			"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
-		)
-		finalizedBy(tasks.jacocoTestReport)
-	}
-} else {
-	tasks.test { enabled = false }
-	tasks.check { dependsOn(":testInDocker") }
-	tasks.jacocoTestReport {
-		dependsOn(":testInDocker")
-		reports {
-			xml.required = true
-			html.required = true
-		}
-	}
+val exportRuntime = tasks.register<Sync>("exportRuntime") {
+	description = "导出生产运行时产物集合（core jar + 全部依赖 jar），供 AutoTweaker/test 仓库引用"
+	from(tasks.named("jar"))
+	from(configurations.named("runtimeClasspath")) { include("*.jar") }
+	into(layout.buildDirectory.dir("runtime"))
 }

@@ -32,8 +32,6 @@ jobs:
 
       - name: Build
         run: ./gradlew build
-        env:
-          DOCKER_TEST: "true"
 
       - name: Upload distZip (dev snapshot)
         uses: actions/upload-artifact@v7

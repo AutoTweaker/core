@@ -31,9 +31,6 @@ build/
 .gradle-wrapper.jar
 .gradle-wrapper.properties
 
-
-CLAUDE.md
-/AGENTS.md
 bin/
 .claude
 .kotlin
