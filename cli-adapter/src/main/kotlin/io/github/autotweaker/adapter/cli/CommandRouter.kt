@@ -135,16 +135,16 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 			return 1
 		}
 		
-		log.debug("Dispatched command  command={} requestId={}  args={}", command.name, requestId, args)
+		log.debug("Dispatched command  command={}  requestId={}  args={}", command.name, requestId, args)
 		val parsed = argParser.parse(args, command.syntax)
 			?: run {
-				log.debug("Rejected invalid arguments for command  command={} requestId={}", requestId, command.name)
+				log.debug("Rejected invalid arguments for command  command={}  requestId={}", command.name, requestId)
 				i18n(CmdI18n.InvalidArgs(), request.command(), request.prog).error()
 				return 1
 			}
 		
 		if (command.requiresKeystore && !core.secret.isUnlocked.value) {
-			log.debug("Rejected command, keystore locked  command={} requestId={}", requestId, command.name)
+			log.debug("Rejected command, keystore locked  command={}  requestId={}", command.name, requestId)
 			
 			i18n(CmdI18n.KeystoreLocked(), request.prog).error()
 			return 1

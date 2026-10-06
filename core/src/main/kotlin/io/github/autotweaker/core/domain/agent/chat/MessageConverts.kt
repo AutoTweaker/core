@@ -40,18 +40,20 @@ class MessageConverts(
 	private val pathResolver: PathResolver,
 	private val systemInfo: SystemInfoService,
 	private val gitService: GitStatusService
-) : Traceable, I18nable {
+) : Traceable, I18nable, Loggable {
 	suspend fun environmentInjection(workspace: Path) = buildList {
 		val inContainer = pathResolver.inContainer(workspace)
 		val cwd = if (inContainer) pathResolver.toContainerPath(workspace) else workspace
 		trace.catching {
 			fileSystem.read(CONFIG_PATH.resolve("AGENTS.md"))
 		}.getOrNull()?.let {
+			log.debug("Loaded user AGENTS.md  length={}  workspace={}", it.content.length, workspace)
 			add(buildInjection("user_instructions", it.content))
 		}
 		trace.catching {
 			fileSystem.read(workspace.resolve("AGENTS.md"))
 		}.getOrNull()?.let {
+			log.debug("Loaded project AGENTS.md  length={}  workspace={}", it.content.length, workspace)
 			add(buildInjection("project_instructions", it.content))
 		}
 		if (!inContainer) trace.catching {
