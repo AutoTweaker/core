@@ -90,7 +90,7 @@ dependencies {
 	implementation("org.jetbrains.exposed:exposed-json:1.5.0")
 	implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.5.0")
 	
-	implementation("com.h2database:h2:2.4.240")
+	implementation("com.h2database:h2:2.5.252")
 	
 	implementation("org.apache.lucene:lucene-core:10.5.1")
 	implementation("org.apache.lucene:lucene-analysis-common:10.5.1")
