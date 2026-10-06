@@ -39,6 +39,6 @@ sealed class ChatMessage {
 	
 	data class ToolResult(
 		val id: String,
-		override val content: String,
+		override val content: List<ContentPart>,
 	) : ChatMessage()
 }

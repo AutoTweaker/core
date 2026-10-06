@@ -187,9 +187,9 @@ sealed class AgentMessage {
 			override val origin: UUID,
 			override val callId: String,
 			/**
-			 * 进入 LLM 上下文的响应内容，不一定是结构化数据。
+			 * 进入 LLM 上下文的响应内容，可以是多模态内容。
 			 */
-			val content: String,
+			val content: List<ContentPart>,
 			/**
 			 * 结构化的响应数据，如 [io.github.autotweaker.api.types.tool.bash.BashOutput]。
 			 */
@@ -205,7 +205,8 @@ sealed class AgentMessage {
 			 */
 			val status: ToolResultStatus
 		) : Tool() {
-			override fun content(): String = content
+			override fun content(): String? = content.filterIsInstance<ContentPart.Text>()
+				.joinToString("\n") { it.content }.ifBlank { null }
 		}
 	}
 	
