@@ -1,0 +1,15 @@
+name: Dispatch test
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger AutoTweaker/test maintain
+        env:
+          GH_TOKEN: ${{ secrets.TEST_DISPATCH_TOKEN }}
+        run: gh api --method POST repos/AutoTweaker/test/dispatches -f event_type=core-push
