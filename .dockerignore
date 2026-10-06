@@ -1,6 +1,0 @@
-.gradle/
-.gradle-docker/
-**/build/
-.git/
-.temp/
-.idea/
