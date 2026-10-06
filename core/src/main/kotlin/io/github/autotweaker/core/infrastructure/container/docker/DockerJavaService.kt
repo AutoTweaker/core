@@ -105,7 +105,7 @@ object DockerJavaService : ContainerService, Loggable, Traceable {
 			val hostConfig = HostConfig().withBinds(
 				Bind(WORKSPACE_HOST_PATH.toString(), Volume(CONTAINER_WORK_PATH.toString())),
 				Bind(TMP_HOST_PATH.toString(), Volume(CONTAINER_TMP_PATH.toString()))
-			).withExtraHosts("host.docker.internal:host-gateway").withInit(true)
+			).withExtraHosts("host.docker.internal:host-gateway").withInit(true) // TODO 网络隔离
 				.withTmpFs(mapOf("/tmp" to tmpfsOptions()))
 			
 			val createResponse = client.createContainerCmd(image)
