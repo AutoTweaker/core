@@ -25,6 +25,8 @@ import kotlin.io.encoding.Base64
 
 /**
  * 生成一个符合 RFC 2397 的 data URL
+ *
+ * @param mediatype MIME 类型
  */
 suspend fun ObjectStorable.DataUrl(mediatype: String, data: Sha256) =
 	objects.get(data)?.let {
@@ -33,6 +35,8 @@ suspend fun ObjectStorable.DataUrl(mediatype: String, data: Sha256) =
 
 /**
  * 生成一个符合 RFC 2397 的 data URL
+ *
+ * @param mediatype MIME 类型
  */
 fun DataUrl(mediatype: String, data: ByteArray) =
 	"data:${mediatype};base64,${Base64.encode(data)}"
