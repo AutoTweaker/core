@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.core.infrastructure.git
+package io.github.autotweaker.core.infrastructure.system
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching

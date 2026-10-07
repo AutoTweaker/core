@@ -49,7 +49,6 @@ import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaServ
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
-import io.github.autotweaker.core.infrastructure.git.GitStatusServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationEngine
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
@@ -68,9 +67,7 @@ import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
-import io.github.autotweaker.core.infrastructure.system.LocalShellExecutor
-import io.github.autotweaker.core.infrastructure.system.RawFileSystemImpl
-import io.github.autotweaker.core.infrastructure.system.SystemInfoServiceImpl
+import io.github.autotweaker.core.infrastructure.system.*
 import org.koin.core.Koin
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.core.module.dsl.singleOf
@@ -116,6 +113,7 @@ object Wiring : Loggable {
 		single<TemporaryStorage> { TemporaryStorageImpl }
 		single<SystemInfoService> { SystemInfoServiceImpl }
 		single<GitStatusService> { GitStatusServiceImpl }
+		single<ImageService> { ImageServiceImpl }
 		singleOf(::LocalShellExecutor)
 		singleOf(::ResilientChat)
 		singleOf(::SummaryService)

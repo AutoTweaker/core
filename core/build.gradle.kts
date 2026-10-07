@@ -68,6 +68,13 @@ dependencies {
 	implementation("io.ktor:ktor-serialization-kotlinx-json:3.6.0")
 	
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+
+	implementation("com.twelvemonkeys.imageio:imageio-core:3.15.3")
+	implementation("com.twelvemonkeys.imageio:imageio-jpeg:3.15.3")
+	implementation("com.twelvemonkeys.imageio:imageio-tiff:3.15.3")
+	implementation("com.twelvemonkeys.imageio:imageio-bmp:3.15.3")
+	implementation("com.twelvemonkeys.imageio:imageio-webp:3.15.3")
+	implementation("com.twelvemonkeys.imageio:imageio-metadata:3.15.3")
 	
 
 	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
