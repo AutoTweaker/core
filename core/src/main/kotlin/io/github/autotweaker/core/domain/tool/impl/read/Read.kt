@@ -23,7 +23,10 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.generated.tool.args.ReadArgs
-import io.github.autotweaker.api.tool.*
+import io.github.autotweaker.api.tool.Ready
+import io.github.autotweaker.api.tool.Rejected
+import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.tool.buildOutput
 import io.github.autotweaker.api.types.tool.read.ReadRequest
 import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.api.types.tool.text
@@ -38,6 +41,7 @@ import io.github.autotweaker.core.domain.tool.port.ToolCallHistory
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 import java.nio.file.Path
 
 @AutoService(CoreTool::class)
@@ -87,7 +91,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 			fs.normalize(requestPath)
 		}.getOrElse {
 			return Rejected(ToolSettings.PathErrorMessage().get()) {
-				text(i18n(ReadI18n.InvalidPath(), requestPath))
+				text(ReadI18n.InvalidPath(), requestPath)
 			}
 		}
 		
@@ -122,11 +126,11 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		
 		if (request.startLine < 1)
 			return Rejected(ReadSettings.MessageStartLineError().get()) {
-				text(i18n(ReadI18n.InvalidArg()))
+				text(ReadI18n.InvalidArg())
 			}
 		if (request.endLine < request.startLine)
 			return Rejected(ReadSettings.MessageStartLineBiggerThanEnd().get()) {
-				text(i18n(ReadI18n.InvalidArg()))
+				text(ReadI18n.InvalidArg())
 			}
 		
 		val maxLines = when (request) {
@@ -136,53 +140,52 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 		val requestLines = request.endLine - request.startLine + 1
 		if (requestLines > maxLines)
 			return Rejected(ReadSettings.MessageTooManyLines().format(requestLines, maxLines)) {
-				text(i18n(ReadI18n.TooManyLines(), displayPath, requestLines))
+				text(ReadI18n.TooManyLines(), displayPath, requestLines)
 			}
 		
 		trace.catching {
 			if (!fs.exists(filePath))
 				return Rejected(ReadSettings.MessageFileNotFound().format(displayPath)) {
-					text(i18n(ReadI18n.FileNotFound(), displayPath))
+					text(ReadI18n.FileNotFound(), displayPath)
 				}
 			if (!fs.isRegularFile(filePath))
 				return Rejected(ReadSettings.MessageNotRegularFile().format(displayPath)) {
-					text(i18n(ReadI18n.FileNotRegular(), displayPath))
+					text(ReadI18n.FileNotRegular(), displayPath)
 				}
 		}.rethrowCancellation().getOrElse { e ->
 			return Rejected(
 				ReadSettings.MessageReadFailed().format(displayPath, e.message())
 			) {
-				text(i18n(ReadI18n.Failed(), displayPath, e.message()))
+				text(ReadI18n.Failed(), displayPath, e.message())
 			}
 		}
 		
 		return Ready(
-			requestSerializer,
-			request,
+			result = request,
 			request = { reason ->
 				when (request) {
-					is ReadRequest.File -> text(i18n(ReadI18n.Request(), displayPath, reason))
-					is ReadRequest.Summarize -> text(i18n(ReadI18n.RequestSummary(), displayPath, reason))
+					is ReadRequest.File -> text(ReadI18n.Request(), displayPath, reason)
+					is ReadRequest.Summarize -> text(ReadI18n.RequestSummary(), displayPath, reason)
 				}
 			},
 			executing = {
 				when (request) {
-					is ReadRequest.File -> text(i18n(ReadI18n.Executing(), displayPath))
-					is ReadRequest.Summarize -> text(i18n(ReadI18n.ExecutingSummary(), displayPath))
+					is ReadRequest.File -> text(ReadI18n.Executing(), displayPath)
+					is ReadRequest.Summarize -> text(ReadI18n.ExecutingSummary(), displayPath)
 				}
 			},
 			cancelled = {
-				text(i18n(ReadI18n.Cancelled(), displayPath))
+				text(ReadI18n.Cancelled(), displayPath)
 			},
 			rejected = { reason ->
-				if (reason == null) text(i18n(ReadI18n.Rejected(), displayPath))
-				else text(i18n(ReadI18n.RejectedWithReason(), displayPath, reason))
+				if (reason == null) text(ReadI18n.Rejected(), displayPath)
+				else text(ReadI18n.RejectedWithReason(), displayPath, reason)
 			},
 			failed = { e ->
-				text(i18n(ReadI18n.Failed(), displayPath, e.message()))
+				text(ReadI18n.Failed(), displayPath, e.message())
 			},
 			timeout = { elapsed ->
-				text(i18n(ReadI18n.Timeout(), displayPath, elapsed))
+				text(ReadI18n.Timeout(), displayPath, elapsed)
 			},
 		)
 	}
@@ -192,7 +195,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 	): Tool.ToolOutput {
 		//准备
 		val fs = dependency.get<FileSystemService>()
-		val request = Json.decodeFromJsonElement(requestSerializer, request)
+		val request = Json.decodeFromJsonElement<ReadRequest>(request)
 		
 		//读内容
 		val fileContent = trace.catching {
@@ -213,12 +216,16 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				unicodeEscape = request.unicodeEscape
 			)
 		}.rethrowCancellation().onException { e: StartLineException ->
-			return ReadSettings.MessageStartLineBiggerThanFile().format(e.lineCount).toolFail {
-				text(i18n(ReadI18n.StartLineError(), request.displayPath, e.request, e.lineCount))
+			return buildOutput {
+				success = false
+				content(ReadSettings.MessageStartLineBiggerThanFile().format(e.lineCount))
+				text(ReadI18n.StartLineError(), request.displayPath, e.request, e.lineCount)
 			}
 		}.getOrElse { e ->
-			return ReadSettings.MessageReadFailed().format(request.displayPath, e.message()).toolFail {
-				text(i18n(ReadI18n.Failed(), request.displayPath, e.message()))
+			return buildOutput {
+				success = false
+				content(ReadSettings.MessageReadFailed().format(request.displayPath, e.message()))
+				text(ReadI18n.Failed(), request.displayPath, e.message())
 			}
 		}
 		
@@ -237,29 +244,30 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 							&& req.endLine >= request.endLine
 				}
 			
-			if (duplicate) return ReadSettings.DuplicateMessage().format(fileContent.sha256).toolSuccess {
-				text(i18n(ReadI18n.Executed(), request.displayPath))
+			if (duplicate) return buildOutput {
+				success = true
+				content(ReadSettings.DuplicateMessage().format(fileContent.sha256))
+				text(ReadI18n.Executed(), request.displayPath)
 			}
 		}
 		
 		when (request) {
 			//read-file直接返回
-			is ReadRequest.File -> return "${fileContent.sha256}\n${fileContent.content}".toolSuccess(
-				resultSerializer, ReadResult(
-					fileContent.sha256, fileContent.content, fileContent.truncated
-				)
-			) {
-				text(i18n(ReadI18n.Executed(), request.displayPath))
+			is ReadRequest.File -> return buildOutput {
+				success = true
+				content("${fileContent.sha256}\n${fileContent.content}")
+				data(ReadResult(fileContent.sha256, fileContent.content, fileContent.truncated))
+				text(ReadI18n.Executed(), request.displayPath)
 			}
 			
 			is ReadRequest.Summarize -> {
 				//最小字符数检查
 				val summarizeMinChars = ReadSettings.SummarizeMinChars().get()
 				if (fileContent.content.length < summarizeMinChars)
-					return ReadSettings.MessageTooFew().format(
-						fileContent.content.length, summarizeMinChars
-					).toolFail {
-						text(i18n(ReadI18n.TooFewChars(), request.displayPath, fileContent.content.length))
+					return buildOutput {
+						success = false
+						content(ReadSettings.MessageTooFew().format(fileContent.content.length, summarizeMinChars))
+						text(ReadI18n.TooFewChars(), request.displayPath, fileContent.content.length)
 					}
 				//提示词构造
 				val summarizePrompt = ReadSettings.SummarizePrompt().get()
@@ -267,20 +275,27 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				//运行总结
 				val summarize = dependency.get<SummarizeService>()
 				val output = trace.catching { summarize(prompt + '\n' + fileContent.content) }.getOrElse { e ->
-					return ReadSettings.MessageSummarizeFailed().format(e.message()).toolFail {
-						text(i18n(ReadI18n.SummaryFailed(), request.displayPath, e.message()))
+					return buildOutput {
+						success = false
+						content(ReadSettings.MessageSummarizeFailed().format(e.message()))
+						text(ReadI18n.SummaryFailed(), request.displayPath, e.message())
 					}
 				}
-				if (output == null) return ReadSettings.SummarizeOutputEmptyMessage().get()
-					.toolFail { text(i18n(ReadI18n.SummaryEmpty(), request.displayPath)) }
+				if (output == null) return buildOutput {
+					success = false
+					content(ReadSettings.SummarizeOutputEmptyMessage().get())
+					text(ReadI18n.SummaryEmpty(), request.displayPath)
+				}
 				//输出截断
 				val summarizeMaxOutputChars = ReadSettings.SummarizeMaxOutputChars().get()
 				val result = if (output.length > summarizeMaxOutputChars)
 					output.take(summarizeMaxOutputChars) +
 							ReadSettings.SummarizeOutputTruncationMessage().format(output.length)
 				else output
-				return result.toolSuccess {
-					text(i18n(ReadI18n.ExecutedSummary(), request.displayPath))
+				return buildOutput {
+					success = true
+					content(result)
+					text(ReadI18n.ExecutedSummary(), request.displayPath)
 				}
 			}
 		}

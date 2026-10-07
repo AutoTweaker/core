@@ -78,26 +78,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		var mappedMessages = messages.map { msg ->
 			when (msg) {
 				is ChatMessage.User -> MiMoMessage.UserMessage(
-					content = msg.content.mapNotNull {
-						when (it) {
-							is ContentPart.Text -> MiMoMessage.Content.TextPart(it.content)
-							is ContentPart.Audio -> MiMoMessage.Content.AudioPart(
-								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
-							)
-							
-							is ContentPart.AudioUrl -> MiMoMessage.Content.AudioPart(it.url.toString())
-							is ContentPart.Image -> MiMoMessage.Content.ImagePart(
-								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
-							)
-							
-							is ContentPart.ImageUrl -> MiMoMessage.Content.ImagePart(it.url.toString())
-							is ContentPart.Video -> MiMoMessage.Content.VideoPart(
-								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
-							)
-							
-							is ContentPart.VideoUrl -> MiMoMessage.Content.VideoPart(it.url.toString())
-						}
-					}
+					content = msg.content.transform()
 				)
 				
 				is ChatMessage.Assistant -> MiMoMessage.AssistantMessage(
@@ -112,7 +93,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 					})
 				
 				is ChatMessage.ToolResult -> MiMoMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.id
+					content = msg.content.transform(), toolCallId = msg.id
 				)
 			}
 		}
@@ -135,6 +116,27 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 			maxCompletionTokens = maxTokens,
 			responseFormat = if (jsonOutput == true) OpenAiResponseFormat() else null,
 		)
+	}
+	
+	private suspend fun List<ContentPart>.transform(): List<MiMoMessage.Content> = mapNotNull {
+		when (it) {
+			is ContentPart.Text -> MiMoMessage.Content.TextPart(it.content)
+			is ContentPart.Audio -> MiMoMessage.Content.AudioPart(
+				DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+			)
+			
+			is ContentPart.AudioUrl -> MiMoMessage.Content.AudioPart(it.url.toString())
+			is ContentPart.Image -> MiMoMessage.Content.ImagePart(
+				DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+			)
+			
+			is ContentPart.ImageUrl -> MiMoMessage.Content.ImagePart(it.url.toString())
+			is ContentPart.Video -> MiMoMessage.Content.VideoPart(
+				DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+			)
+			
+			is ContentPart.VideoUrl -> MiMoMessage.Content.VideoPart(it.url.toString())
+		}
 	}
 	
 	override fun MiMoResponse.transform(): ChatResult {

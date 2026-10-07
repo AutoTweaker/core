@@ -72,17 +72,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		var mappedMessages = messages.map { msg ->
 			when (msg) {
 				is ChatMessage.User -> DeepSeekMessage.UserMessage(
-					content = msg.content.mapNotNull {
-						when (it) {
-							is ContentPart.Text -> DeepSeekMessage.UserMessage.Part.Text(it.content)
-							is ContentPart.Image -> DeepSeekMessage.UserMessage.Part.Image(
-								DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
-							)
-							
-							is ContentPart.ImageUrl -> DeepSeekMessage.UserMessage.Part.Image(it.url.toString())
-							else -> null
-						}
-					}
+					content = msg.content.transform()
 				)
 				
 				is ChatMessage.Assistant -> DeepSeekMessage.AssistantMessage(
@@ -92,7 +82,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 				)
 				
 				is ChatMessage.ToolResult -> DeepSeekMessage.ToolMessage(
-					content = msg.content, toolCallId = msg.id
+					content = msg.content.transform(), toolCallId = msg.id
 				)
 			}
 		}
@@ -126,6 +116,18 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 			responseFormat = if (jsonOutput == true) OpenAiResponseFormat() else null,
 			toolChoice = null
 		)
+	}
+	
+	private suspend fun List<ContentPart>.transform(): List<DeepSeekMessage.Content> = mapNotNull {
+		when (it) {
+			is ContentPart.Text -> DeepSeekMessage.Content.Text(it.content)
+			is ContentPart.Image -> DeepSeekMessage.Content.Image(
+				DataUrl(it.mimeType, it.data) ?: return@mapNotNull null
+			)
+			
+			is ContentPart.ImageUrl -> DeepSeekMessage.Content.Image(it.url.toString())
+			else -> null
+		}
 	}
 	
 	override fun DeepSeekResponse.transform(): ChatResult {

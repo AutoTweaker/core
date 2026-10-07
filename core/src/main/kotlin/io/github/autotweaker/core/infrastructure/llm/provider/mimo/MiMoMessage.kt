@@ -114,7 +114,7 @@ sealed class MiMoMessage {
 	@Serializable
 	data class ToolMessage(
 		override val role: String = "tool",
-		override val content: String,
+		override val content: List<Content>,
 		@SerialName("tool_call_id")
 		val toolCallId: String
 	) : MiMoMessage()

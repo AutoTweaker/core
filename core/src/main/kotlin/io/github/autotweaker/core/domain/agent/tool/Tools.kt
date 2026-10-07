@@ -219,7 +219,7 @@ class Tools(
 		
 		return msg.toolResult(
 			callId = callId,
-			content = truncation(output.result, ToolSettings.MaxOutput().get()),
+			content = truncation.truncate(output.result, ToolSettings.MaxOutput().get()),
 			data = output.data,
 			presentation = output.presentation,
 			status = if (output.success) ToolResultStatus.SUCCESS else ToolResultStatus.FAILURE,

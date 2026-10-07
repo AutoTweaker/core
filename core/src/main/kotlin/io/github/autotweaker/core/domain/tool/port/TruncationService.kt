@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.core.domain.tool.port
 
+import io.github.autotweaker.api.types.llm.ContentPart
+
 interface TruncationService {
-	operator fun invoke(content: String, threshold: Int, keepTail: Boolean = false): String
+	fun truncate(content: List<ContentPart>, threshold: Int, keepTail: Boolean = false): List<ContentPart>
+	fun truncate(content: String, threshold: Int, keepTail: Boolean = false): String
 }

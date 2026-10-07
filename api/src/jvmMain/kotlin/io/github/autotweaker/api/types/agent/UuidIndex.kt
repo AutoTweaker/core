@@ -27,7 +27,7 @@ abstract class UuidIndex {
 	/**
 	 * 整个索引结构中引用的全部 [UUID]。
 	 */
-	fun ids(): Set<UUID> = idsTo(HashSet())
+	fun ids(): Set<UUID> = idsTo(hashSetOf())
 	
 	/**
 	 * 将整个索引结构中引用的全部 [UUID] add 到 [destination]。

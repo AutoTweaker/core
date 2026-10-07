@@ -20,7 +20,9 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.now
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.Usage
+import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolPresentation
@@ -85,6 +87,14 @@ class MessageBuilder(
 	suspend fun toolResult(
 		callId: String,
 		content: String,
+		data: JsonElement?,
+		presentation: ToolPresentation,
+		status: ToolResultStatus
+	) = toolResult(callId, content.toContentPart(), data, presentation, status)
+	
+	suspend fun toolResult(
+		callId: String,
+		content: List<ContentPart>,
 		data: JsonElement?,
 		presentation: ToolPresentation,
 		status: ToolResultStatus

@@ -18,6 +18,9 @@
 
 package io.github.autotweaker.api.types.tool
 
+import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.i18n
+import io.github.autotweaker.api.i18n.I18nDef
 import io.github.autotweaker.api.types.serializer.PathSerializer
 import kotlinx.serialization.Serializable
 import java.nio.file.Path
@@ -72,8 +75,10 @@ sealed interface UiBlock {
  */
 typealias ToolPresentation = List<UiBlock>
 
-inline fun buildPresentation(block: MutableList<UiBlock>.() -> Unit) =
-	mutableListOf<UiBlock>().apply(block).toList()
+inline fun buildPresentation(block: MutableList<UiBlock>.() -> Unit) = buildList(block)
+
+context(self: I18nable)
+fun MutableList<UiBlock>.text(def: I18nDef, vararg args: Any?) = text(self.i18n(def, *args))
 
 fun MutableList<UiBlock>.text(content: String) = add(UiBlock.Text(content))
 fun MutableList<UiBlock>.command(command: String) = add(UiBlock.Command(command))

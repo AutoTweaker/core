@@ -22,14 +22,15 @@ import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.api.types.tool.buildPresentation
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import kotlin.time.Duration
 
 fun Rejected(reason: String, presentation: MutableList<UiBlock>.() -> Unit) =
 	Tool.ResolveResult.Rejected(reason, buildPresentation(presentation))
 
 
-inline fun <T> Ready(
-	serializer: KSerializer<T>, result: T,
+inline fun <reified T> Ready(
+	result: T, serializer: KSerializer<T>? = null,
 	crossinline request: MutableList<UiBlock>.(reason: String) -> Unit,
 	crossinline executing: MutableList<UiBlock>.() -> Unit,
 	crossinline cancelled: MutableList<UiBlock>.() -> Unit,
@@ -37,11 +38,11 @@ inline fun <T> Ready(
 	crossinline failed: MutableList<UiBlock>.(e: Throwable) -> Unit,
 	crossinline timeout: MutableList<UiBlock>.(elapsed: Duration) -> Unit,
 ) = Tool.ResolveResult.Ready(
-	Json.encodeToJsonElement(serializer, result),
-	{ mutableListOf<UiBlock>().apply { request(it) } },
-	{ mutableListOf<UiBlock>().apply(executing) },
-	{ mutableListOf<UiBlock>().apply(cancelled) },
-	{ mutableListOf<UiBlock>().apply { rejected(it) } },
-	{ mutableListOf<UiBlock>().apply { failed(it) } },
-	{ mutableListOf<UiBlock>().apply { timeout(it) } }
+	Json.encodeToJsonElement(serializer ?: serializer<T>(), result),
+	{ buildList { request(it) } },
+	{ buildList(executing) },
+	{ buildList(cancelled) },
+	{ buildList { rejected(it) } },
+	{ buildList { failed(it) } },
+	{ buildList { timeout(it) } }
 )

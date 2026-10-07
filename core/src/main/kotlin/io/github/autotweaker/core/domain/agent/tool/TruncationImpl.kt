@@ -24,6 +24,9 @@ import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.format
+import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import java.nio.file.Path
@@ -33,7 +36,30 @@ class TruncationImpl(
 	private val pathResolver: PathResolver,
 	private val temporaryStorage: TemporaryStorage
 ) : TruncationService {
-	override fun invoke(content: String, threshold: Int, keepTail: Boolean): String {
+	override fun truncate(content: List<ContentPart>, threshold: Int, keepTail: Boolean): List<ContentPart> {
+		var length = 0
+		content.forEach {
+			if (it is ContentPart.Text) length += it.content.length
+		}
+		
+		if (length <= threshold) return content
+		
+		content.singleOrNull()?.let {
+			if (it !is ContentPart.Text) return@let
+			val content = it.content
+			return truncate(content, threshold, keepTail).toContentPart()
+		}
+		
+		val truncated = truncate(content.merge(), threshold, keepTail)
+		return buildList {
+			add(ContentPart.Text(truncated))
+			content.forEach {
+				if (it !is ContentPart.Text) add(it)
+			}
+		}
+	}
+	
+	override fun truncate(content: String, threshold: Int, keepTail: Boolean): String {
 		if (content.length <= threshold) return content
 		val inContainer = pathResolver.inContainer(workspace())
 		val (_, hostPath) = temporaryStorage.save(content, inContainer)

@@ -57,7 +57,7 @@ class ToolMetaBuilder internal constructor(
 @ToolMetaDsl
 class FunctionBuilder internal constructor(
 	private val name: String,
-) : ParametersBuilder(true) {
+) : ParametersBuilder(variant = true, topLevel = true) {
 	internal fun toFunction() = ToolMeta.Function(
 		name = name.check(),
 		parameters = parameters
@@ -111,7 +111,8 @@ class VariantsBuilder internal constructor() {
 
 @ToolMetaDsl
 open class ParametersBuilder internal constructor(
-	val variant: Boolean
+	private val variant: Boolean,
+	private val topLevel: Boolean = false,
 ) {
 	internal val parameters = mutableListOf<ToolMeta.Prop>()
 	
@@ -198,6 +199,9 @@ open class ParametersBuilder internal constructor(
 	private fun prop(name: String, type: ToolMeta.Type, block: PropBuilder.() -> Unit) {
 		if (variant) require(name != "type") {
 			"Property name 'type' conflicts with the sealed class discriminator"
+		}
+		if (topLevel) require(name != "reason") {
+			"Property name 'reason' conflicts with the injected call reason"
 		}
 		parameters.add(PropBuilder(name.check(), type).apply(block).toProp())
 	}

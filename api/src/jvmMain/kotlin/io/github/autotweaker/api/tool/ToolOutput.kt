@@ -18,30 +18,52 @@
 
 package io.github.autotweaker.api.tool
 
-import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.api.types.tool.buildPresentation
+import io.github.autotweaker.api.I18nable
+import io.github.autotweaker.api.discard
+import io.github.autotweaker.api.i18n.I18nDef
+import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.tool.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.serializer
+import java.nio.file.Path
 
-fun String.toolFail(presentation: MutableList<UiBlock>.() -> Unit) = toolResult(false, presentation)
+fun buildOutput(block: ResultBuilder.() -> Unit) = ResultBuilder().apply(block).build()
 
-fun String.toolSuccess(presentation: MutableList<UiBlock>.() -> Unit) = toolResult(true, presentation)
-
-fun String.toolResult(success: Boolean, presentation: MutableList<UiBlock>.() -> Unit) =
-	Tool.ToolOutput(this, buildPresentation(presentation), null, success)
-
-fun <T> String.toolFail(serializer: KSerializer<T>, data: T, presentation: MutableList<UiBlock>.() -> Unit) =
-	toolResult(serializer, data, false, presentation)
-
-fun <T> String.toolSuccess(serializer: KSerializer<T>, data: T, presentation: MutableList<UiBlock>.() -> Unit) =
-	toolResult(serializer, data, true, presentation)
-
-fun <T> String.toolResult(
-	serializer: KSerializer<T>,
-	data: T,
-	success: Boolean,
-	presentation: MutableList<UiBlock>.() -> Unit
-) = Tool.ToolOutput(
-	this, buildPresentation(presentation),
-	Json.encodeToJsonElement(serializer, data), success
-)
+class ResultBuilder : I18nable {
+	var success: Boolean? = null
+	
+	private val content = mutableListOf<ContentPart>()
+	private val presentation = mutableListOf<UiBlock>()
+	private var data: JsonElement? = null
+	
+	fun content(content: String) = this.content.add(ContentPart.Text(content)).discard()
+	fun content(content: ContentPart) = this.content.add(content).discard()
+	fun content(content: List<ContentPart>) = this.content.addAll(content).discard()
+	
+	inline fun <reified T> data(data: T) = data(serializer<T>(), data)
+	
+	fun <T> data(serializer: KSerializer<T>, data: T) {
+		this.data = Json.encodeToJsonElement(serializer, data)
+	}
+	
+	fun text(content: String) = presentation.text(content)
+	fun text(def: I18nDef, vararg args: Any?) = presentation.text(def, *args)
+	
+	fun command(command: String) = presentation.command(command)
+	fun diff(filePath: Path, oldContent: String?, newContent: String) =
+		presentation.diff(filePath, oldContent, newContent)
+	
+	fun output(content: String) = presentation.output(content)
+	fun error(content: String) = presentation.error(content)
+	
+	internal fun build(): Tool.ToolOutput {
+		val success = checkNotNull(success)
+		check(content.isNotEmpty())
+		check(presentation.any { it is UiBlock.Text })
+		return Tool.ToolOutput(
+			content, presentation, data, success
+		)
+	}
+}

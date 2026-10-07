@@ -169,7 +169,7 @@ class AgentChat(
 				onCorrupted = {
 					ChatMessage.ToolResult(
 						id = callId ?: unreachable(),
-						content = placeholder
+						content = placeholder.toContentPart()
 					)
 				}
 			)

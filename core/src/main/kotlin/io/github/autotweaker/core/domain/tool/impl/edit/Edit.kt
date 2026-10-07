@@ -28,7 +28,7 @@ import io.github.autotweaker.api.generated.tool.args.UnescapeConfig
 import io.github.autotweaker.api.tool.Ready
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.toolSuccess
+import io.github.autotweaker.api.tool.buildOutput
 import io.github.autotweaker.api.types.tool.diff
 import io.github.autotweaker.api.types.tool.edit.EditRequest
 import io.github.autotweaker.api.types.tool.text
@@ -40,6 +40,7 @@ import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 
 @AutoService(CoreTool::class)
 class Edit : CoreTool<EditArgs>, Traceable {
@@ -66,8 +67,6 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		)
 	)
 	
-	private val requestSerializer = EditRequest.serializer()
-	
 	private class ParsedEdit(
 		val lineFrom: Int,
 		val lineTo: Int,
@@ -89,24 +88,24 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		val path = trace.catching { fileSystem.normalize(request.filePath) }
 			.getOrElse {
 				return Rejected(ToolSettings.PathErrorMessage().get()) {
-					text(i18n(EditI18n.InvalidPath(), request.filePath))
+					text(EditI18n.InvalidPath(), request.filePath)
 				}
 			}
 		
 		val displayPath = fileSystem.displayPath(path)
 		val shortHash = request.sha256
 		if (shortHash.length < 8) return Rejected(ToolSettings.InvalidHash().format(shortHash, shortHash.length)) {
-			text(i18n(EditI18n.InvalidArg(), displayPath))
+			text(EditI18n.InvalidArg(), displayPath)
 		}
 		val fileContent = trace.catching { fileSystem.read(path) }
 			.getOrElse { e ->
 				return Rejected(EditMessage.ReadFailed().format(e.message())) {
-					text(i18n(EditI18n.ReadFailed(), displayPath))
+					text(EditI18n.ReadFailed(), displayPath)
 				}
 			}
 		
 		if (fileContent.truncated) return Rejected(EditMessage.FileTooLarge().get()) {
-			text(i18n(EditI18n.FileTooLarge(), displayPath))
+			text(EditI18n.FileTooLarge(), displayPath)
 		}
 		
 		if (!fileContent.sha256.toString().startsWith(shortHash, ignoreCase = true))
@@ -117,13 +116,13 @@ class Edit : CoreTool<EditArgs>, Traceable {
 					append(ToolSettings.UseShortHash().format(shortHash.length))
 				}
 			}) {
-				text(i18n(EditI18n.UpdateFailedChanged(), displayPath))
+				text(EditI18n.UpdateFailedChanged(), displayPath)
 			}
 		
 		val oldContent = fileContent.content
 		
 		if (request.edits.isEmpty()) return Rejected(EditMessage.EditsEmpty().get()) {
-			text(i18n(EditI18n.InvalidArg(), displayPath))
+			text(EditI18n.InvalidArg(), displayPath)
 		}
 		
 		val lastLine = lastLineNumber(oldContent)
@@ -176,7 +175,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 				appendLine(it)
 			}
 		}) {
-			text(i18n(EditI18n.InvalidArg(), displayPath))
+			text(EditI18n.InvalidArg(), displayPath)
 		}
 		
 		val ordered = parsed.sortedBy { it.range.first }
@@ -191,7 +190,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 						"${current.lineFrom}-${current.lineTo}"
 					)
 				) {
-					text(i18n(EditI18n.InvalidArg(), displayPath))
+					text(EditI18n.InvalidArg(), displayPath)
 				}
 		}
 		
@@ -216,39 +215,38 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		
 		if (applied.isEmpty())
 			return Rejected(matchMessages(noMatch, notUnique)) {
-				text(i18n(EditI18n.MatchFailed(), displayPath))
+				text(EditI18n.MatchFailed(), displayPath)
 			}
 		
 		return Ready(
-			requestSerializer,
-			EditRequest(
-				path,
-				displayPath,
-				oldContent to fileContent.sha256,
-				newContent,
-				noMatch,
-				notUnique
+			result = EditRequest(
+				path = path,
+				displayPath = displayPath,
+				expected = oldContent to fileContent.sha256,
+				newContent = newContent,
+				skippedNoMatch = noMatch,
+				skippedNotUnique = notUnique
 			),
 			request = { reason ->
-				text(i18n(EditI18n.Request(), displayPath, reason))
+				text(EditI18n.Request(), displayPath, reason)
 				diff(path, oldContent, newContent)
 			},
 			executing = {
-				text(i18n(EditI18n.Executing(), displayPath))
+				text(EditI18n.Executing(), displayPath)
 			},
 			cancelled = {
-				text(i18n(EditI18n.Cancelled(), displayPath))
+				text(EditI18n.Cancelled(), displayPath)
 			},
 			rejected = { reason ->
-				if (reason == null) text(i18n(EditI18n.Rejected(), displayPath))
-				else text(i18n(EditI18n.RejectedWithReason(), displayPath, reason))
+				if (reason == null) text(EditI18n.Rejected(), displayPath)
+				else text(EditI18n.RejectedWithReason(), displayPath, reason)
 				diff(path, oldContent, newContent)
 			},
 			failed = { e ->
-				text(i18n(EditI18n.Failed(), displayPath, e.message()))
+				text(EditI18n.Failed(), displayPath, e.message())
 			},
 			timeout = { elapsed ->
-				text(i18n(EditI18n.Timeout(), displayPath, elapsed))
+				text(EditI18n.Timeout(), displayPath, elapsed)
 			}
 		)
 	}
@@ -300,7 +298,7 @@ class Edit : CoreTool<EditArgs>, Traceable {
 		request: JsonElement,
 		outputChannel: SendChannel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
-		val request = Json.decodeFromJsonElement(requestSerializer, request)
+		val request = Json.decodeFromJsonElement<EditRequest>(request)
 		val fileSystem = dependency.get<FileSystemService>()
 		val oldContent = request.expected.first
 		val expected = request.expected.second
@@ -311,8 +309,10 @@ class Edit : CoreTool<EditArgs>, Traceable {
 			val skipped = matchMessages(request.skippedNoMatch, request.skippedNotUnique)
 			if (skipped.isNotEmpty()) append("\n\n").append(skipped)
 		}
-		return result.toolSuccess {
-			text(i18n(EditI18n.Updated(), request.displayPath))
+		return buildOutput {
+			success = true
+			content(result)
+			text(EditI18n.Updated(), request.displayPath)
 			diff(request.path, oldContent, request.newContent)
 		}
 	}

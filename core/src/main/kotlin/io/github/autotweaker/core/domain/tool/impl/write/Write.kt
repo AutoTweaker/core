@@ -27,7 +27,7 @@ import io.github.autotweaker.api.generated.tool.args.WriteArgs
 import io.github.autotweaker.api.tool.Ready
 import io.github.autotweaker.api.tool.Rejected
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.tool.toolSuccess
+import io.github.autotweaker.api.tool.buildOutput
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import io.github.autotweaker.api.types.tool.diff
 import io.github.autotweaker.api.types.tool.text
@@ -40,6 +40,7 @@ import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 
 @AutoService(CoreTool::class)
 class Write : CoreTool<WriteArgs>, Traceable {
@@ -58,8 +59,6 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		)
 	)
 	
-	private val requestSerializer = WriteRequest.serializer()
-	
 	override suspend fun resolve(dependency: DependencyProvider, args: WriteArgs): Tool.ResolveResult {
 		val request = args as WriteArgs.Default
 		val fileSystem = dependency.get<FileSystemService>()
@@ -67,7 +66,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val path = trace.catching { fileSystem.normalize(request.filePath) }
 			.getOrElse {
 				return Rejected(ToolSettings.PathErrorMessage().get()) {
-					text(i18n(WriteI18n.InvalidPath(), request.filePath))
+					text(WriteI18n.InvalidPath(), request.filePath)
 				}
 			}
 		
@@ -75,7 +74,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		val shortHash = args.sha256
 		if (shortHash != null && shortHash.length < 8)
 			return Rejected(ToolSettings.InvalidHash().format(shortHash, shortHash.length)) {
-				text(i18n(WriteI18n.InvalidHashArg(), displayPath))
+				text(WriteI18n.InvalidHashArg(), displayPath)
 			}
 		val fileContent = trace.catching {
 			fileSystem.read(path)
@@ -83,7 +82,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		if (fileContent != null && shortHash == null) return Rejected(
 			WriteMessage.FileExists().format(displayPath)
 		) {
-			text(i18n(WriteI18n.CreateFailedExists(), displayPath))
+			text(WriteI18n.CreateFailedExists(), displayPath)
 		}
 		if (shortHash != null && fileContent != null && !fileContent.sha256.toString()
 				.startsWith(shortHash, ignoreCase = true)
@@ -94,7 +93,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 				append(ToolSettings.UseShortHash().format(shortHash.length))
 			}
 		}) {
-			text(i18n(WriteI18n.UpdateFailedChanged(), displayPath))
+			text(WriteI18n.UpdateFailedChanged(), displayPath)
 		}
 		val newContent = let {
 			val unescape = request.unescapeUnicode ?: false
@@ -104,7 +103,7 @@ class Write : CoreTool<WriteArgs>, Traceable {
 				request.content.unescapeUnicode(!lenient)
 			}.getOrElse { e ->
 				return Rejected(WriteMessage.InvalidEscape().format(e.message)) {
-					text(i18n(WriteI18n.InvalidEscape(), displayPath))
+					text(WriteI18n.InvalidEscape(), displayPath)
 				}
 			}
 		}
@@ -113,29 +112,32 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		}
 		val write = i18n(if (shortHash == null) WriteI18n.Create() else WriteI18n.Update())
 		return Ready(
-			requestSerializer,
-			WriteRequest(path, displayPath, fileContent?.let { oldContent to it.sha256 }, newContent),
+			result = WriteRequest(
+				path = path,
+				displayPath = displayPath,
+				expected = fileContent?.let { oldContent to it.sha256 },
+				content = newContent
+			),
 			request = { reason ->
-				text(i18n(WriteI18n.Request(), write, displayPath, reason))
+				text(WriteI18n.Request(), write, displayPath, reason)
 				diff(path, oldContent, newContent)
 			},
 			executing = {
-				text(i18n(WriteI18n.Executing(), write, displayPath))
+				text(WriteI18n.Executing(), write, displayPath)
 			},
 			cancelled = {
-				text(i18n(WriteI18n.Cancelled(), write, displayPath))
+				text(WriteI18n.Cancelled(), write, displayPath)
 			},
 			rejected = { reason ->
-				if (reason == null)
-					text(i18n(WriteI18n.Rejected(), write, displayPath))
-				else text(i18n(WriteI18n.RejectedWithReason(), write, displayPath, reason))
+				if (reason == null) text(WriteI18n.Rejected(), write, displayPath)
+				else text(WriteI18n.RejectedWithReason(), write, displayPath, reason)
 				diff(path, oldContent, newContent)
 			},
 			failed = { e ->
-				text(i18n(WriteI18n.Failed(), write, displayPath, e.message()))
+				text(WriteI18n.Failed(), write, displayPath, e.message())
 			},
 			timeout = { elapsed ->
-				text(i18n(WriteI18n.Timeout(), write, displayPath, elapsed))
+				text(WriteI18n.Timeout(), write, displayPath, elapsed)
 			}
 		)
 	}
@@ -145,31 +147,27 @@ class Write : CoreTool<WriteArgs>, Traceable {
 		request: JsonElement,
 		outputChannel: SendChannel<Tool.RuntimeOutput>
 	): Tool.ToolOutput {
-		val request = Json.decodeFromJsonElement(requestSerializer, request)
+		val request = Json.decodeFromJsonElement<WriteRequest>(request)
 		val fileSystem = dependency.get<FileSystemService>()
 		val sha256 = request.expected?.second
 		if (sha256 == null) {
 			val result = fileSystem.create(request.path, request.content)
-			return WriteMessage.Created().format(
-				request.displayPath,
-				result
-			).toolSuccess {
-				text(i18n(WriteI18n.Created(), request.displayPath))
+			return buildOutput {
+				success = true
+				content(WriteMessage.Created().format(request.displayPath, result))
+				text(WriteI18n.Created(), request.displayPath)
 				diff(request.path, null, request.content)
 			}
 		} else {
-			val result = fileSystem.update(request.path, sha256, request.content)
+			val updated = fileSystem.update(request.path, sha256, request.content)
 			val oldContent = request.expected?.first
-			return WriteMessage.Updated().format(
-				request.displayPath,
-				result,
-				if (oldContent != null) unifiedDiff(
-					oldContent,
-					request.content
-				) ?: WriteMessage.Unchanged().get()
-				else WriteMessage.TooLarge().get()
-			).toolSuccess {
-				text(i18n(WriteI18n.Updated(), request.displayPath))
+			return buildOutput {
+				success = true
+				val diff = if (oldContent != null) {
+					unifiedDiff(oldContent, request.content) ?: WriteMessage.Unchanged().get()
+				} else WriteMessage.TooLarge().get()
+				content(WriteMessage.Updated().format(request.displayPath, updated, diff))
+				text(WriteI18n.Updated(), request.displayPath)
 				diff(request.path, oldContent, request.content)
 			}
 		}

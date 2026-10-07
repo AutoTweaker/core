@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.api.tool
 
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import kotlinx.coroutines.channels.SendChannel
@@ -148,7 +149,7 @@ interface Tool<Args : ToolArgs> {
 		 *
 		 * 阈值由用户配置，默认 50 万字符，“字符”的语义是 [Char]。
 		 */
-		val result: String,
+		val result: List<ContentPart>,
 		/**
 		 * 用于前端显示会话中的已执行工具，格式应如 '读取了 README.md'。
 		 */

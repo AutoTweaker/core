@@ -32,6 +32,29 @@ sealed class DeepSeekMessage {
 	abstract val content: Any?
 	
 	@Serializable
+	sealed class Content {
+		@Serializable
+		@SerialName("text")
+		data class Text(
+			val text: String,
+		) : Content()
+		
+		@Serializable
+		@SerialName("image_url")
+		data class Image(
+			@SerialName("image_url")
+			val imageUrl: ImageUrl,
+		) : Content() {
+			constructor(url: String) : this(ImageUrl(url))
+			
+			@Serializable
+			data class ImageUrl(
+				val url: String
+			)
+		}
+	}
+	
+	@Serializable
 	data class SystemMessage(
 		override val role: String = "system",
 		override val content: String,
@@ -40,31 +63,8 @@ sealed class DeepSeekMessage {
 	@Serializable
 	data class UserMessage(
 		override val role: String = "user",
-		override val content: List<Part>,
-	) : DeepSeekMessage() {
-		@Serializable
-		sealed class Part {
-			@Serializable
-			@SerialName("text")
-			data class Text(
-				val text: String,
-			) : Part()
-			
-			@Serializable
-			@SerialName("image_url")
-			data class Image(
-				@SerialName("image_url")
-				val imageUrl: ImageUrl,
-			) : Part() {
-				constructor(url: String) : this(ImageUrl(url))
-				
-				@Serializable
-				data class ImageUrl(
-					val url: String
-				)
-			}
-		}
-	}
+		override val content: List<Content>,
+	) : DeepSeekMessage()
 	
 	@Serializable
 	data class AssistantMessage(
@@ -79,7 +79,7 @@ sealed class DeepSeekMessage {
 	@Serializable
 	data class ToolMessage(
 		override val role: String = "tool",
-		override val content: String,
+		override val content: List<Content>,
 		@SerialName("tool_call_id")
 		val toolCallId: String
 	) : DeepSeekMessage()
