@@ -91,7 +91,7 @@ dependencies {
 	implementation("org.apache.lucene:lucene-core:10.5.1")
 	implementation("org.apache.lucene:lucene-analysis-common:10.5.1")
 	
-	implementation("org.slf4j:slf4j-api:2.0.18")
+	implementation("org.slf4j:slf4j-api:2.0.20")
 	implementation("ch.qos.logback:logback-classic:1.6.5")
 	implementation("com.dgkncgty:logback-journal:0.5.1")
 	implementation("org.codehaus.janino:janino:3.1.12")
