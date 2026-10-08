@@ -51,7 +51,7 @@ object ImageServiceImpl : ImageService, Loggable {
 	private const val MIN_EDGE = 64
 	private const val DEFAULT_QUALITY = 0.85f
 	private const val MIN_QUALITY = 0.3f
-
+	
 	override suspend fun detect(path: Path): String = withContext(Dispatchers.IO) {
 		open(path).use { it.mimeType }
 	}
@@ -203,7 +203,7 @@ object ImageServiceImpl : ImageService, Loggable {
 			stream.close()
 		}
 	}
-
+	
 	@AutoService(SettingDef::class)
 	class MaxSizeKB : LongSetting(
 		1024, zh(
