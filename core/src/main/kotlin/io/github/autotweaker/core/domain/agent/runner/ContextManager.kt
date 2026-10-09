@@ -41,6 +41,7 @@ class ContextManager(
 ) : I18nable {
 	private val lock = ReentrantMutex()
 	
+	@Volatile
 	private var _toolCalls: Pair<UUID, List<AgentToolCallImpl>>? = null
 	val toolCalls get() = _toolCalls
 	

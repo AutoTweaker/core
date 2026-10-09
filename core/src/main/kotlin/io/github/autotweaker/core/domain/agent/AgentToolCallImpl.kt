@@ -30,6 +30,7 @@ class AgentToolCallImpl(
 	val resolved: Tool.ResolveResult.Ready?,
 	result: AgentMessage.Tool.Result?,
 ) : AgentToolCall {
+	@Volatile
 	private var _result = result
 	override val result get() = _result
 	private val _status = MutableStateFlow(
