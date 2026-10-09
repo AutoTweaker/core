@@ -100,12 +100,12 @@ object CliServer : Loggable, Traceable {
 				connectionLimit.acquire()
 				activeClients.add(client)
 				scope.launch {
-					trace.catching {
+					try {
 						handle(client, requestId, router)
-					}.also {
+					} finally {
 						activeClients.remove(client)
 						connectionLimit.release()
-					}.getOrThrow()
+					}
 				}
 			}
 		}
@@ -247,7 +247,7 @@ object CliServer : Loggable, Traceable {
 			if (count == 0L) null
 			else {
 				collected.close()
-				collected.readRemaining().readByteArray().decodeToString()
+				collected.readBuffer().readByteArray().decodeToString()
 			}
 		}.rethrowCancellation()
 			.getOrElse { throw ClientDisconnectedException(it) }

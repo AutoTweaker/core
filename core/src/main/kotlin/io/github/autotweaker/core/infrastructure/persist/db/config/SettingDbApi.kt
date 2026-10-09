@@ -42,7 +42,7 @@ class SettingDbApi(private val store: DatabaseStore) : AbstractDbApi<SettingEntr
 		charValue = this[ConfigTable.charValue],
 		stringValue = this[ConfigTable.stringValue],
 	)
-
+	
 	override fun UpsertStatement<Long>.fill(content: SettingEntry) {
 		this[ConfigTable.keyName] = content.key
 		this[ConfigTable.byteValue] = content.byteValue

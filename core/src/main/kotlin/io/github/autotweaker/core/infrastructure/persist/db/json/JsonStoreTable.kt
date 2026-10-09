@@ -26,6 +26,6 @@ import org.jetbrains.exposed.v1.json.jsonb
 object JsonStoreTable : Table("json_store") {
 	val namespace = varchar("namespace", 255)
 	val content = jsonb<JsonElement>("content", Json)
-
+	
 	override val primaryKey = PrimaryKey(namespace)
 }

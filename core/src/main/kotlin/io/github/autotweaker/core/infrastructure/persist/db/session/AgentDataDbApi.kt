@@ -41,7 +41,7 @@ class AgentDataDbApi(private val store: DatabaseStore) : AbstractDbApi<AgentData
 		context = this[AgentDataTable.context],
 		activeTools = this[AgentDataTable.activeTools],
 	)
-
+	
 	override fun UpsertStatement<Long>.fill(content: AgentDataEntry) {
 		this[AgentDataTable.id] = content.key
 		this[AgentDataTable.name] = content.name

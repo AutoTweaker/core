@@ -19,7 +19,7 @@
 package io.github.autotweaker.api.types.exception.notfound
 
 import io.github.autotweaker.api.i18n
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.ExceptionI18n
 import java.util.*
 
 class WorkspaceNotFoundException(override val id: UUID) :

@@ -20,9 +20,7 @@ package io.github.autotweaker.core.infrastructure.system
 
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import kotlinx.coroutines.*
@@ -38,7 +36,7 @@ import kotlin.time.measureTimedValue
 
 class LocalShellExecutor : Loggable, Traceable {
 	private val drainGrace: Duration = 5.seconds
-
+	
 	fun exec(
 		command: String, workDir: Path, env: Map<String, String>, timeout: Duration
 	): Flow<ShellEvent> = channelFlow {
@@ -99,7 +97,7 @@ class LocalShellExecutor : Loggable, Traceable {
 					stdoutJob.cancel()
 					stderrJob.cancel()
 				}
-
+				
 				finished to exitCode
 			}
 			val (finished, exitCode) = execDuration.value
@@ -122,7 +120,7 @@ class LocalShellExecutor : Loggable, Traceable {
 			killProcessTree(process)
 		}
 	}
-
+	
 	private fun killProcessTree(process: Process) {
 		process.descendants().forEach { it.destroyForcibly() }
 		process.destroyForcibly()

@@ -28,7 +28,7 @@ import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.types.I18nEntries
 import io.github.autotweaker.api.types.Localizations
-import io.github.autotweaker.api.types.exception.notfound.*
+import io.github.autotweaker.api.types.exception.notfound.I18nEntryNotFoundException
 import io.github.autotweaker.api.types.serializer.LocaleSerializer
 import kotlinx.serialization.Serializable
 import java.util.*

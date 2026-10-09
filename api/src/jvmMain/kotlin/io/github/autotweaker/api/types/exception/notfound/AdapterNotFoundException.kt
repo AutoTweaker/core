@@ -20,7 +20,7 @@ package io.github.autotweaker.api.types.exception.notfound
 
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.types.KebabCase
-import io.github.autotweaker.api.types.exception.*
+import io.github.autotweaker.api.types.exception.ExceptionI18n
 
 class AdapterNotFoundException(override val id: KebabCase) :
 	NotFoundException("Adapter not found", id) {
