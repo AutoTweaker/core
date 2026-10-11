@@ -123,7 +123,7 @@ class AgentImpl(
 	private val digestService = DigestService(
 		chat = deps.resilientChat,
 		usageRepo = deps.usageRepository,
-		agenId = agentId
+		agentId = agentId
 	)
 	private val runner = RoundRunner(
 		ctx = ctx,

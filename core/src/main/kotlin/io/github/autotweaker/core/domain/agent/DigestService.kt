@@ -33,7 +33,7 @@ import java.util.*
 class DigestService(
 	private val chat: ResilientChat,
 	private val usageRepo: UsageRepository,
-	private val agenId: UUID,
+	private val agentId: UUID,
 ) : Traceable, Loggable {
 	suspend fun summary(prompt: String, context: RuntimeContext, model: AgentModel): JsonElement? {
 		val messages = buildList {
@@ -87,7 +87,7 @@ class DigestService(
 					result.usage?.let { usage ->
 						usageRepo.save(
 							UsageEntry(
-								agentId = agenId,
+								agentId = agentId,
 								modelId = it.model,
 								usage = usage,
 								timestamp = now()
@@ -99,7 +99,7 @@ class DigestService(
 				if (result is ChatResult.Failed) {
 					log.warn(
 						"Failed digest request  agentId={}  model={}  statusCode={}  reason={}  exception={}",
-						agenId,
+						agentId,
 						it.model,
 						result.statusCode,
 						result.message,
