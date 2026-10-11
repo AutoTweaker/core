@@ -21,8 +21,6 @@ package io.github.autotweaker.core.infrastructure.persist.migrate.v1.session
 import io.github.autotweaker.api.json
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
-import io.github.autotweaker.api.types.message.AgentMessageType
-import io.github.autotweaker.core.infrastructure.persist.db.session.MessageSearch
 import io.github.autotweaker.core.infrastructure.persist.migrate.MigratorBase
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0ContentPart
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.agent.V1AgentMessage
@@ -36,7 +34,9 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.util.*
 
 object SessionIndexRebuilder : MigratorBase() {
-	suspend fun rebuild() {
+	suspend fun rebuild() = rebuildIndex().also { MessageIndex.close() }
+	
+	private suspend fun rebuildIndex() {
 		var lastId: UUID? = null
 		var count = 0L
 		while (true) {
@@ -52,9 +52,9 @@ object SessionIndexRebuilder : MigratorBase() {
 			count += batch.size
 			val ownership = batch.map { (id, content) ->
 				val message = json.decodeFromJsonElement<V1AgentMessage>(content)
-				MessageSearch.upsert(
+				MessageIndex.upsert(
 					id,
-					AgentMessageType.valueOf(typeOfV1(message).name),
+					typeOfV1(message).name,
 					message.timestamp,
 					searchTextOf(message),
 				)
