@@ -64,7 +64,7 @@ kotlin {
 			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 		}
 		jvmMain.dependencies {
-			implementation("org.slf4j:slf4j-api:2.0.18")
+			implementation("org.slf4j:slf4j-api:2.0.20")
 			implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 			implementation("com.google.guava:guava:33.7.1-jre")
 			implementation("io.github.java-diff-utils:java-diff-utils:4.17")

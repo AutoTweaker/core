@@ -34,7 +34,7 @@ dependencies {
 	kapt("com.google.auto.service:auto-service:1.1.1")
 	
 	implementation("io.ktor:ktor-network:3.6.0")
-	implementation("org.slf4j:slf4j-api:2.0.18")
+	implementation("org.slf4j:slf4j-api:2.0.20")
 	implementation("com.google.guava:guava:33.7.1-jre")
 	implementation("com.ibm.icu:icu4j:78.3")
 	implementation("io.github.java-diff-utils:java-diff-utils:4.17")
