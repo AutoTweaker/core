@@ -21,22 +21,49 @@ package io.github.autotweaker.core.infrastructure.persist.migrate.v1.session
 import io.github.autotweaker.api.json
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.orNull
+import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.migrate.MigratorBase
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.llm.V0ContentPart
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.agent.V1AgentMessage
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.agent.typeOfV1
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.session.V1AgentMessageTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.session.V1MessageOwnershipTable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.decodeFromJsonElement
+import org.apache.lucene.analysis.cjk.CJKAnalyzer
+import org.apache.lucene.document.Field
+import org.apache.lucene.document.LongPoint
+import org.apache.lucene.document.StringField
+import org.apache.lucene.document.TextField
+import org.apache.lucene.index.IndexWriter
+import org.apache.lucene.index.IndexWriterConfig
+import org.apache.lucene.index.Term
+import org.apache.lucene.store.FSDirectory
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
+import kotlin.time.Instant
 
 object SessionIndexRebuilder : MigratorBase() {
-	suspend fun rebuild() = rebuildIndex().also { MessageIndex.close() }
+	private val INDEX_PATH: Path = DB_PATH.resolve("message_search")
 	
-	private suspend fun rebuildIndex() {
+	suspend fun rebuild() = withContext(Dispatchers.IO) {
+		Files.createDirectories(INDEX_PATH)
+		val directory = FSDirectory.open(INDEX_PATH)
+		val analyzer = CJKAnalyzer()
+		val writer = IndexWriter(directory, IndexWriterConfig(analyzer))
+		rebuildIndex(writer).also {
+			writer.close()
+			analyzer.close()
+			directory.close()
+		}
+	}
+	
+	private suspend fun rebuildIndex(writer: IndexWriter) {
 		var lastId: UUID? = null
 		var count = 0L
 		while (true) {
@@ -52,12 +79,7 @@ object SessionIndexRebuilder : MigratorBase() {
 			count += batch.size
 			val ownership = batch.map { (id, content) ->
 				val message = json.decodeFromJsonElement<V1AgentMessage>(content)
-				MessageIndex.upsert(
-					id,
-					typeOfV1(message).name,
-					message.timestamp,
-					searchTextOf(message),
-				)
+				writeDocument(writer, id, typeOfV1(message).name, message.timestamp, searchTextOf(message))
 				id to message.origin.single()
 			}
 			transaction(SESSIONS_DB) {
@@ -68,6 +90,17 @@ object SessionIndexRebuilder : MigratorBase() {
 			}
 		}
 		log.info("Rebuilt message index  count={}", count)
+	}
+	
+	private fun writeDocument(writer: IndexWriter, id: UUID, type: String, timestamp: Instant, searchText: String?) {
+		val fields = arrayListOf(
+			StringField("id", id.toString(), Field.Store.YES),
+			StringField("type", type, Field.Store.NO),
+			LongPoint("timestamp", timestamp.toEpochMilliseconds()),
+		)
+		if (searchText != null)
+			fields.add(TextField("searchText", searchText, Field.Store.NO))
+		writer.updateDocument(Term("id", id.toString()), fields)
 	}
 	
 	private fun searchTextOf(message: V1AgentMessage): String? = when (message) {
