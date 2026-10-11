@@ -274,7 +274,7 @@ class Read : CoreTool<ReadArgs>, Loggable, Traceable {
 				val prompt = request.prompt?.let { "$summarizePrompt\n$it" } ?: summarizePrompt
 				//运行总结
 				val summarize = dependency.get<SummarizeService>()
-				val output = trace.catching { summarize(prompt + '\n' + fileContent.content) }.getOrElse { e ->
+				val output = trace.catching { summarize(prompt + "\n\n" + fileContent.content) }.getOrElse { e ->
 					return buildOutput {
 						success = false
 						content(ReadSettings.MessageSummarizeFailed().format(e.message()))

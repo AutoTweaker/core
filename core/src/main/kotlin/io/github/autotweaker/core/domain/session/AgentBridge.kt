@@ -29,7 +29,6 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.KebabCase
 import io.github.autotweaker.api.types.agent.*
-import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.tool.ToolApprove
@@ -41,7 +40,6 @@ import io.github.autotweaker.core.domain.agent.tool.ToolMap
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.cacheMeta
 import io.github.autotweaker.core.domain.agent.tool.Tools.Companion.name
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.domain.tool.CoreTool
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -60,7 +58,6 @@ class AgentBridge(
 	private val host: AgentHost,
 	private val onShutdown: () -> Unit,
 	private val sessionRepo: SessionRepository,
-	private val usageRepo: UsageRepository,
 	private val initialData: AgentData,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
 	workspace: Path,
@@ -76,15 +73,11 @@ class AgentBridge(
 	private lateinit var _agent: AgentImpl
 	val agent get() = _agent
 	
-	private val _output = MutableSharedFlow<AgentOutput>(
-		extraBufferCapacity = 64
-	)
-	override val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
-	
 	override val id = initialData.id
 	override val sessionId = initialData.sessionId
 	override val name: KebabCase get() = _agent.name
 	override val status: StateFlow<AgentStatus> get() = _agent.status
+	override val output: SharedFlow<AgentOutput> get() = _agent.output
 	override val compacting: StateFlow<Boolean> get() = _agent.compacting
 	override val activeTools: StateFlow<Set<String>> get() = _agent.activeTools
 	override val toolCalls: Pair<UUID, List<AgentToolCall>>? get() = _agent.toolCalls
@@ -135,17 +128,6 @@ class AgentBridge(
 					.onFailure { e ->
 						log.error("Failed to save agent data  agentId={}", id, e)
 					}
-			}
-		}
-		scope.launch {
-			_agent.output.collect {
-				trace.catching {
-					it.toSessionOutput()?.let { result ->
-						_output.tryEmit(result)
-					}
-				}.onFailure { e ->
-					log.error("Failed to process agent output  agentId={}", id, e)
-				}
 			}
 		}
 		scope.launch {
@@ -257,26 +239,6 @@ class AgentBridge(
 		saveAgent()
 		log.info("Stopped agent  agentId={}", id)
 	}
-	
-	private suspend fun RuntimeOutput.toSessionOutput(): AgentOutput? = when (this) {
-		is RuntimeOutput.Output -> output
-		is RuntimeOutput.UsageConsumed -> {
-			val record = AgentMessage.UsageRecord(
-				id = usage.id,
-				timestamp = usage.timestamp,
-				origin = id,
-				model = usage.modelId,
-				usage = usage.usage,
-			)
-			sessionRepo.saveMessage(record)
-			usageRepo.save(usage)
-			
-			updateContext {
-				it.copy(droppedMessages = it.droppedMessages.orEmpty() + record.id)
-			}.discard(null)
-		}
-	}
-	
 	
 	private suspend fun createAgent() {
 		_agent = AgentImpl(

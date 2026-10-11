@@ -156,10 +156,11 @@ class CoreAPIImpl(
 		
 		override suspend fun loadAgent(id: UUID) = sessionRepository.loadAgent(id)
 		override suspend fun loadUsage(ids: Set<UUID>) = usageRepository.load(ids)
-		override suspend fun loadUsage(limit: Int, before: UsageCursor?) = usageRepository.load(limit, before)
+		override suspend fun loadUsage(agentId: UUID?, modelId: UUID?, limit: Int, before: UsageCursor?) =
+			usageRepository.load(agentId, modelId, limit, before)
 		override suspend fun mergeUsage(ids: Set<UUID>) = usageRepository.summarize(ids)
-		override suspend fun mergeUsage(modelId: UUID?, from: Instant?, to: Instant?) =
-			usageRepository.summarize(modelId, from, to)
+		override suspend fun mergeUsage(agentId: UUID?, modelId: UUID?, from: Instant?, to: Instant?) =
+			usageRepository.summarize(agentId, modelId, from, to)
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {

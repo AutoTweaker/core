@@ -38,6 +38,7 @@ class UsageRepositoryImpl(store: DatabaseStore) : UsageRepository,
 		db.transaction {
 			UsageTable.upsert {
 				it[id] = entry.id
+				it[agentId] = entry.agentId
 				it[modelId] = entry.modelId
 				it[timestamp] = entry.timestamp
 				it[promptTokens] = entry.usage.promptTokens
@@ -55,13 +56,18 @@ class UsageRepositoryImpl(store: DatabaseStore) : UsageRepository,
 				.map { it.toUsageEntry() }
 		}
 	
-	override suspend fun load(limit: Int, before: UsageCursor?): List<UsageEntry> =
+	override suspend fun load(agentId: UUID?, modelId: UUID?, limit: Int, before: UsageCursor?): List<UsageEntry> =
 		db.transaction {
 			UsageTable.selectAll()
 				.where {
-					if (before == null) Op.TRUE
-					else (UsageTable.timestamp less before.timestamp) or
-							((UsageTable.timestamp eq before.timestamp) and (UsageTable.id less before.id))
+					buildList {
+						agentId?.let { add(UsageTable.agentId eq it) }
+						modelId?.let { add(UsageTable.modelId eq it) }
+						if (before != null) add(
+							(UsageTable.timestamp less before.timestamp) or
+									((UsageTable.timestamp eq before.timestamp) and (UsageTable.id less before.id))
+						)
+					}.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
 				}.orderBy(UsageTable.timestamp to SortOrder.DESC, UsageTable.id to SortOrder.DESC)
 				.limit(limit)
 				.map { it.toUsageEntry() }
@@ -69,8 +75,9 @@ class UsageRepositoryImpl(store: DatabaseStore) : UsageRepository,
 	
 	override suspend fun summarize(ids: Set<UUID>): Usage? = aggregate(UsageTable.id inList ids)
 	
-	override suspend fun summarize(modelId: UUID?, from: Instant?, to: Instant?): Usage? = aggregate(
+	override suspend fun summarize(agentId: UUID?, modelId: UUID?, from: Instant?, to: Instant?): Usage? = aggregate(
 		buildList {
+			agentId?.let { add(UsageTable.agentId eq it) }
 			modelId?.let { add(UsageTable.modelId eq it) }
 			from?.let { add(UsageTable.timestamp greaterEq it) }
 			to?.let { add(UsageTable.timestamp lessEq it) }
@@ -97,6 +104,7 @@ class UsageRepositoryImpl(store: DatabaseStore) : UsageRepository,
 	
 	private fun ResultRow.toUsageEntry(): UsageEntry = UsageEntry(
 		id = this[UsageTable.id],
+		agentId = this[UsageTable.agentId],
 		modelId = this[UsageTable.modelId],
 		timestamp = this[UsageTable.timestamp],
 		usage = Usage(

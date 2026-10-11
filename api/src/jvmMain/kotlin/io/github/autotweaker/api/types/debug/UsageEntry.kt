@@ -23,6 +23,7 @@ import kotlin.time.Instant
 
 data class UsageEntry(
 	override val key: UUID,
+	val agentId: UUID?,
 	val modelId: UUID,
 	val timestamp: Instant,
 	val promptTokens: Int,

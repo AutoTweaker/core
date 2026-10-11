@@ -39,9 +39,9 @@ class SessionUsage : Command {
 	
 	override suspend fun Console.execute(core: CoreAPI): Nothing {
 		val usage = if (getPositional().size == 2)
-			core.persistence.mergeUsage(findModel(core), null, null)
+			core.persistence.mergeUsage(null, findModel(core), null, null)
 		else
-			core.persistence.mergeUsage(null, null, null)
+			core.persistence.mergeUsage(null, null, null, null)
 		if (usage == null) error(SessionUsageI18n.NoUsage())
 		
 		out(SessionUsageI18n.TotalTokens(), usage.totalTokens)

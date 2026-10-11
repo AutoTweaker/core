@@ -22,16 +22,19 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.base.recoverException
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.AgentToolCall
 import io.github.autotweaker.api.types.exception.I18nableException
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
-import io.github.autotweaker.core.domain.agent.*
+import io.github.autotweaker.core.domain.agent.AgentModel
+import io.github.autotweaker.core.domain.agent.AgentToolCallImpl
+import io.github.autotweaker.core.domain.agent.MessageBuilder
+import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
@@ -42,10 +45,9 @@ class ToolCallingStage(
 	private val tools: Tools,
 	private val msg: MessageBuilder,
 	private val provider: ToolProvider,
-	private val workspace: () -> Path,
 	private val truncation: TruncationService,
 	private val status: MutableStateFlow<AgentStatus>,
-	private val onOutput: (RuntimeOutput) -> Unit,
+	private val onOutput: (AgentOutput) -> Unit,
 	private val onToolCall: (Pair<UUID, ToolPresentation>?) -> Unit
 ) : Loggable, Traceable {
 	@Volatile
@@ -86,11 +88,8 @@ class ToolCallingStage(
 				status.value = AgentStatus.TOOL_CALLING
 				withTimeout(timeoutSeconds.seconds) {
 					val provider = provider.build(
-						workspace = workspace,
-						onOutput = onOutput,
 						model = model,
 						context = context,
-						truncation = truncation,
 						toolCalls = toolCalls
 					)
 					
@@ -99,7 +98,7 @@ class ToolCallingStage(
 						callId = call.callId,
 						request = resolved.result,
 						provider = provider,
-						onToolOutput = onOutput,
+						onOutput = onOutput,
 						truncation = truncation,
 					).andLog(log) {
 						info(

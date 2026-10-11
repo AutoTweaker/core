@@ -29,7 +29,6 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.chat.AgentChatRequest
 import io.github.autotweaker.core.domain.agent.chat.AgentChatResult
@@ -40,7 +39,7 @@ class LlmService(
 	private val chat: AgentChat,
 	private val agentId: UUID,
 	private val status: MutableStateFlow<AgentStatus>,
-	private val onOutput: (RuntimeOutput) -> Unit,
+	private val onOutput: (AgentOutput) -> Unit,
 ) : Loggable, Traceable {
 	suspend fun execute(
 		model: AgentModel,
@@ -61,11 +60,9 @@ class LlmService(
 			}.getOrElse { e ->
 				log.error("Failed LLM call  agentId={}", agentId, e)
 				onOutput(
-					RuntimeOutput.Output(
-						AgentOutput.Error(
-							e.message(),
-							AgentOutput.Error.Type.LLM,
-						)
+					AgentOutput.Error(
+						e.message(),
+						AgentOutput.Error.Type.LLM,
 					)
 				)
 				return@getOrElse null
@@ -79,18 +76,16 @@ class LlmService(
 		chat.execute(request, agentId).collect { result ->
 			when (result) {
 				is AgentChatResult.Delta -> {
-					onOutput(RuntimeOutput.Output(result.delta))
+					onOutput(result.delta)
 				}
 				
 				is AgentChatResult.Failing -> {
 					onOutput(
-						RuntimeOutput.Output(
-							AgentOutput.LlmError(
-								result.error,
-								result.statusCode,
-								result.exception,
-								result.model
-							)
+						AgentOutput.LlmError(
+							result.error,
+							result.statusCode,
+							result.exception,
+							result.model
 						)
 					)
 				}

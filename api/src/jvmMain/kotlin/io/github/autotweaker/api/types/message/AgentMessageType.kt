@@ -20,7 +20,7 @@ package io.github.autotweaker.api.types.message
 
 import kotlin.reflect.KClass
 
-enum class AgentMessageType { USER, ASSISTANT, TOOL_CALL, TOOL_RESULT, COMPACT, USAGE_RECORD }
+enum class AgentMessageType { USER, ASSISTANT, TOOL_CALL, TOOL_RESULT, COMPACT }
 
 fun AgentMessage.type() = when (this) {
 	is AgentMessage.User -> AgentMessageType.USER
@@ -28,7 +28,6 @@ fun AgentMessage.type() = when (this) {
 	is AgentMessage.Tool.Call -> AgentMessageType.TOOL_CALL
 	is AgentMessage.Tool.Result -> AgentMessageType.TOOL_RESULT
 	is AgentMessage.Compact -> AgentMessageType.COMPACT
-	is AgentMessage.UsageRecord -> AgentMessageType.USAGE_RECORD
 }
 
 fun KClass<out AgentMessage>.type() = when (this) {
@@ -37,6 +36,5 @@ fun KClass<out AgentMessage>.type() = when (this) {
 	AgentMessage.Tool.Call::class -> AgentMessageType.TOOL_CALL
 	AgentMessage.Tool.Result::class -> AgentMessageType.TOOL_RESULT
 	AgentMessage.Compact::class -> AgentMessageType.COMPACT
-	AgentMessage.UsageRecord::class -> AgentMessageType.USAGE_RECORD
 	else -> error("Unknown AgentMessage type: $this")
 }

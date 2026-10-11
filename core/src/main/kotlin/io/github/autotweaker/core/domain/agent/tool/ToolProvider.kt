@@ -22,7 +22,6 @@ import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.agent.AgentToolCall
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.tool.service.*
 import io.github.autotweaker.core.domain.port.RawFileSystem
@@ -39,19 +38,18 @@ class ToolProvider(
 	private val pathResolver: PathResolver,
 	private val temporaryStorage: TemporaryStorage,
 	private val summaryService: SummaryService,
+	private val truncation: TruncationService,
+	private val workspace: () -> Path,
 ) {
 	fun build(
-		workspace: () -> Path,
 		model: AgentModel,
 		context: RuntimeContext,
 		toolCalls: List<AgentToolCall>,
-		onOutput: (RuntimeOutput) -> Unit,
-		truncation: TruncationService,
 	): DependencyProvider = ServiceContainer()
 		.register<FileSystemService>(
 			FileSystemServiceImpl(rawFileSystem, pathResolver, workspace)
 		).register<SummarizeService>(
-			SummarizeServiceImpl(model, summaryService, onOutput)
+			SummarizeServiceImpl(model, summaryService)
 		).register<BashService>(
 			BashServiceImpl(shellExecutor, pathResolver, workspace)
 		).register<ToolCallHistory>(

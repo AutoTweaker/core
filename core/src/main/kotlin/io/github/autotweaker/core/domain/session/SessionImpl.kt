@@ -37,7 +37,6 @@ import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.AgentImpl
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +55,6 @@ class SessionImpl(
 	initialData: SessionData,
 	private val deps: AgentDeps,
 	private val sessionRepo: SessionRepository,
-	private val usageRepo: UsageRepository,
 	private val resolveModel: suspend (UUID) -> RuntimeModel,
 	override val workspaceId: UUID,
 	private val workspacePath: Path,
@@ -274,7 +272,6 @@ class SessionImpl(
 		host = getHost(data.id),
 		onShutdown = { bridges.remove(data.id) },
 		sessionRepo = sessionRepo,
-		usageRepo = usageRepo,
 		resolveModel = resolveModel,
 		workspace = workspacePath,
 		initialData = data

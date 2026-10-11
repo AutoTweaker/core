@@ -37,7 +37,6 @@ import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.infrastructure.data.PromptSetting
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager
 import kotlinx.coroutines.Job
@@ -51,7 +50,6 @@ import java.util.concurrent.ConcurrentHashMap
 class SessionManager(
 	private val agentDeps: AgentDeps,
 	private val sessionRepo: SessionRepository,
-	private val usageRepo: UsageRepository,
 	private val modelRepo: ModelResolver,
 	private val secretStore: SecretStore,
 ) : Loggable, Traceable {
@@ -113,7 +111,6 @@ class SessionManager(
 			deps = agentDeps,
 			initialData = data,
 			sessionRepo = sessionRepo,
-			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
 			workspaceId = workspace.id,
 			workspacePath = workspace.path
@@ -174,7 +171,6 @@ class SessionManager(
 			deps = agentDeps,
 			initialData = data,
 			sessionRepo = sessionRepo,
-			usageRepo = usageRepo,
 			resolveModel = ::resolveModel,
 			workspaceId = workspaceId,
 			workspacePath = workspace.path

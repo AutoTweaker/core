@@ -54,7 +54,7 @@ class AgentChat(
 			messages.size,
 		)
 		
-		val results = chat.execute(
+		chat.execute(
 			model = request.model.model,
 			fallbackModels = request.model.fallback,
 			instructions = request.context.systemPrompt,
@@ -62,9 +62,7 @@ class AgentChat(
 			tools = request.tools,
 			stream = true,
 			reasoning = request.model.reasoning
-		)
-		
-		results.collect {
+		).collect {
 			when (val result = it.result) {
 				is ChatResult.Chunk -> emit(
 					AgentChatResult.Delta(

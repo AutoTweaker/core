@@ -24,6 +24,7 @@ import org.jetbrains.exposed.v1.datetime.timestamp
 
 object UsageTable : Table("usage_record") {
 	val id = javaUUID("id")
+	val agentId = javaUUID("agent_id").nullable()
 	val modelId = javaUUID("model_id")
 	val timestamp = timestamp("timestamp")
 	val promptTokens = integer("prompt_tokens")
@@ -34,6 +35,7 @@ object UsageTable : Table("usage_record") {
 	override val primaryKey = PrimaryKey(id)
 	
 	init {
+		index(false, agentId)
 		index(false, modelId)
 		index(false, timestamp)
 	}

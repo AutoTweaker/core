@@ -24,23 +24,17 @@ import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.tool.ResolveResult
 import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.tool.port.TruncationService
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.nio.file.Path
 import io.github.autotweaker.api.types.llm.ChatMessage.Assistant.ToolCall as RawCall
 
 class ThinkingStage(
 	private val llmService: LlmService,
 	private val tools: Tools,
 	private val provider: ToolProvider,
-	private val workspace: () -> Path,
-	private val truncation: TruncationService,
 	private val status: MutableStateFlow<AgentStatus>,
-	private val onOutput: (RuntimeOutput) -> Unit,
 ) {
 	suspend fun execute(
 		model: AgentModel,
@@ -57,12 +51,9 @@ class ThinkingStage(
 		)
 		
 		val provider = provider.build(
-			workspace = workspace,
-			onOutput = onOutput,
 			model = model,
 			context = context,
 			toolCalls = emptyList(),
-			truncation = truncation,
 		)
 		val calls = buildList {
 			rawCalls.forEach { rawCall ->

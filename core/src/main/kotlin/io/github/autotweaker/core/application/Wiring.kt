@@ -33,8 +33,6 @@ import io.github.autotweaker.core.application.impl.DbDebugAPIImpl
 import io.github.autotweaker.core.application.impl.ShellRouter
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
-import io.github.autotweaker.core.domain.agent.compact.SummaryService
-import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.*
 import io.github.autotweaker.core.domain.session.SessionManager
@@ -116,9 +114,7 @@ object Wiring : Loggable {
 		single<ImageService> { ImageServiceImpl }
 		singleOf(::LocalShellExecutor)
 		singleOf(::ResilientChat)
-		singleOf(::SummaryService)
 		singleOf(::MessageConverts)
-		singleOf(::ToolProvider)
 		singleOf(::AgentDeps)
 		singleOf(::SessionManager)
 		singleOf(::ChatService)

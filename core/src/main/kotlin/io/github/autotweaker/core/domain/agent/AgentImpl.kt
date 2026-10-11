@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.types.KebabCase
+import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.agent.Delivery
 import io.github.autotweaker.api.types.message.ContextInjection
@@ -27,14 +28,12 @@ import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.core.domain.agent.AgentModel.Companion.toModelConfig
 import io.github.autotweaker.core.domain.agent.chat.AgentChat
 import io.github.autotweaker.core.domain.agent.compact.CompactService
+import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.agent.runner.RoundRunner
 import io.github.autotweaker.core.domain.agent.think.LlmService
 import io.github.autotweaker.core.domain.agent.think.ThinkingStage
-import io.github.autotweaker.core.domain.agent.tool.ToolCallingStage
-import io.github.autotweaker.core.domain.agent.tool.ToolMap
-import io.github.autotweaker.core.domain.agent.tool.Tools
-import io.github.autotweaker.core.domain.agent.tool.TruncationImpl
+import io.github.autotweaker.core.domain.agent.tool.*
 import io.github.autotweaker.core.domain.session.AgentHost
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.JsonElement
@@ -42,14 +41,14 @@ import java.nio.file.Path
 import java.util.*
 
 class AgentImpl(
-	private val deps: AgentDeps,
+	deps: AgentDeps,
 	context: RuntimeContext,
+	model: AgentModel,
+	activeTools: Set<String>,
 	val agentId: UUID,
 	val name: KebabCase,
-	model: AgentModel,
 	private val workspace: () -> Path,
 	private val tools: ToolMap,
-	activeTools: Set<String>,
 	@Suppress("unused")
 	private val host: AgentHost,
 ) {
@@ -62,12 +61,12 @@ class AgentImpl(
 	private val _toolCalling = MutableStateFlow<Pair<UUID, ToolPresentation>?>(null)
 	val toolCalling = _toolCalling.asStateFlow()
 	
-	private val _output = MutableSharedFlow<RuntimeOutput>(
+	private val _output = MutableSharedFlow<AgentOutput>(
 		extraBufferCapacity = 64
 	)
-	val output: SharedFlow<RuntimeOutput> = _output.asSharedFlow()
+	val output: SharedFlow<AgentOutput> = _output.asSharedFlow()
 	
-	private val onOutput: (RuntimeOutput) -> Unit = {
+	private val onOutput: (AgentOutput) -> Unit = {
 		_output.tryEmit(it)
 	}
 	
@@ -81,26 +80,51 @@ class AgentImpl(
 	private val toolManager = Tools(workspace, tools, activeTools, agentId, msg)
 	val activeTools: StateFlow<Set<String>> = toolManager.activeTools
 	
+	private val summaryService = SummaryService(deps.resilientChat, deps.usageRepository, agentId)
 	private val truncation = TruncationImpl(workspace, deps.pathResolver, deps.temporaryStorage)
+	private val toolProvider = ToolProvider(
+		shellExecutor = deps.shellExecutor,
+		rawFileSystem = deps.rawFileSystem,
+		pathResolver = deps.pathResolver,
+		temporaryStorage = deps.temporaryStorage,
+		summaryService = summaryService,
+		truncation = truncation,
+		workspace = workspace
+	)
 	private val agentChat = AgentChat(deps.resilientChat, msg)
 	private val llmService = LlmService(agentChat, agentId, _status, onOutput)
 	private val thinkingStage by lazy {
-		ThinkingStage(llmService, toolManager, deps.toolProvider, workspace, truncation, _status, onOutput)
+		ThinkingStage(
+			llmService = llmService,
+			tools = toolManager,
+			provider = toolProvider,
+			status = _status
+		)
 	}
 	private val toolCallingStage by lazy {
 		ToolCallingStage(
 			agentId = agentId,
 			tools = toolManager,
 			msg = msg,
-			provider = deps.toolProvider,
-			workspace = workspace,
+			provider = toolProvider,
 			truncation = truncation,
 			status = _status,
 			onOutput = onOutput,
 			onToolCall = { _toolCalling.value = it })
 	}
-	private val compact = CompactService(agentId, deps.resilientChat, onOutput, deps.messageCacheImpl, msg)
-	private val digestService = DigestService(deps.resilientChat) { onOutput(RuntimeOutput.UsageConsumed(it)) }
+	private val compact = CompactService(
+		agentId = agentId,
+		chat = deps.resilientChat,
+		onOutput = onOutput,
+		cache = deps.messageCacheImpl,
+		usage = deps.usageRepository,
+		msg = msg
+	)
+	private val digestService = DigestService(
+		chat = deps.resilientChat,
+		usageRepo = deps.usageRepository,
+		agenId = agentId
+	)
 	private val runner = RoundRunner(
 		ctx = ctx,
 		workspace = workspace,

@@ -19,22 +19,16 @@
 package io.github.autotweaker.core.domain.agent.tool.service
 
 import io.github.autotweaker.core.domain.agent.AgentModel
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.compact.SummaryService
 import io.github.autotweaker.core.domain.tool.port.SummarizeService
 
 class SummarizeServiceImpl(
 	private val model: AgentModel,
 	private val summary: SummaryService,
-	private val onOutput: (RuntimeOutput) -> Unit,
 ) : SummarizeService {
-	override suspend fun invoke(request: String): String? {
-		val (result, usage) = summary.summarizeMessage(
-			request = request,
-			model = model,
-			thinking = false,
-		)
-		usage?.let { onOutput(RuntimeOutput.UsageConsumed(it)) }
-		return result
-	}
+	override suspend fun invoke(request: String): String? = summary.summarizeMessage(
+		request = request,
+		model = model,
+		thinking = false,
+	)
 }

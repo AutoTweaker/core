@@ -64,6 +64,7 @@ class ChatService(
 				val result = chunk.result as? ChatResult.Assembled ?: return@onEach
 				result.usage?.let {
 					lastUsage = UsageEntry(
+						agentId = null,
 						modelId = chunk.model,
 						timestamp = now(),
 						usage = it

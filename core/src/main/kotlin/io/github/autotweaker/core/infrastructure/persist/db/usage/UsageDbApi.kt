@@ -33,6 +33,7 @@ class UsageDbApi(private val store: DatabaseStore) : AbstractDbApi<UsageEntry, U
 	
 	override fun ResultRow.toEntry() = UsageEntry(
 		key = this[UsageTable.id],
+		agentId = this[UsageTable.agentId],
 		modelId = this[UsageTable.modelId],
 		timestamp = this[UsageTable.timestamp],
 		promptTokens = this[UsageTable.promptTokens],
@@ -43,6 +44,7 @@ class UsageDbApi(private val store: DatabaseStore) : AbstractDbApi<UsageEntry, U
 	
 	override fun UpsertStatement<Long>.fill(content: UsageEntry) {
 		this[UsageTable.id] = content.key
+		this[UsageTable.agentId] = content.agentId
 		this[UsageTable.modelId] = content.modelId
 		this[UsageTable.timestamp] = content.timestamp
 		this[UsageTable.promptTokens] = content.promptTokens

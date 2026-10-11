@@ -19,7 +19,6 @@
 package io.github.autotweaker.core.domain.agent.compact
 
 import io.github.autotweaker.api.Traceable
-import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.now
@@ -27,16 +26,20 @@ import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.coroutines.flow.toList
+import java.util.*
 
 class SummaryService(
-	private val chat: ResilientChat
+	private val chat: ResilientChat,
+	private val usageRepo: UsageRepository,
+	private val agentId: UUID,
 ) : Traceable {
 	suspend fun summarizeMessage(
 		request: String,
 		model: AgentModel,
 		thinking: Boolean,
-	): Pair<String?, UsageEntry?> {
+	): String? {
 		val results = trace.catching {
 			chat.execute(
 				model = model.model,
@@ -45,18 +48,21 @@ class SummaryService(
 				reasoning = ReasoningEffort(thinking)
 			).toList()
 		}.rethrowCancellation()
-			.getOrElse { return null to null }
+			.getOrElse { return null }
 		
 		val (lastResult, lastModel) = results.mapNotNull {
 			(it.result as? ChatResult.Assembled ?: return@mapNotNull null) to it.model
-		}.lastOrNull() ?: return null to null
-		return lastResult.message.content to lastResult.usage?.let {
-			UsageEntry(
-				UUID(),
-				lastModel,
-				now(),
-				it
+		}.lastOrNull() ?: return null
+		lastResult.usage?.let {
+			usageRepo.save(
+				UsageEntry(
+					agentId = agentId,
+					modelId = lastModel,
+					timestamp = now(),
+					usage = it
+				)
 			)
 		}
+		return lastResult.message.content
 	}
 }

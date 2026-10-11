@@ -31,6 +31,7 @@ import kotlin.time.Instant
  */
 data class UsageEntry(
 	val id: UUID = UUID(),
+	val agentId: UUID?,
 	val modelId: UUID,
 	val timestamp: Instant,
 	val usage: Usage,

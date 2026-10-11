@@ -36,7 +36,6 @@ import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.buildPresentation
 import io.github.autotweaker.api.types.tool.text
 import io.github.autotweaker.core.domain.agent.MessageBuilder
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.ACTIVE_TOOL_NAME
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.DEFAULT_FUNCTION
 import io.github.autotweaker.core.domain.tool.CoreTool
@@ -195,7 +194,7 @@ class Tools(
 		request: JsonElement,
 		provider: DependencyProvider,
 		truncation: TruncationService,
-		onToolOutput: (RuntimeOutput) -> Unit,
+		onOutput: (AgentOutput) -> Unit,
 	): AgentMessage.Tool.Result {
 		val tool = requireNotNull(tools[toolName])
 		check(isActive(toolName)) { "Tool $toolName is not active" }
@@ -206,7 +205,7 @@ class Tools(
 		val output = supervisorScope {
 			launch {
 				outputChannel.consumeEach {
-					onToolOutput(RuntimeOutput.Output(AgentOutput.Tool(toolName, callId, it.content, it.type)))
+					onOutput(AgentOutput.Tool(toolName, callId, it.content, it.type))
 				}
 			}
 			trace.catching {

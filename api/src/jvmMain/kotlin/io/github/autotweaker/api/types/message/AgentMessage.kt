@@ -236,23 +236,4 @@ sealed class AgentMessage {
 	) : AgentMessage() {
 		override fun content(): String = content
 	}
-	
-	/**
-	 * 用于跟踪不属于任何 [AgentMessage] 的 LLM 开销，例如 Agent 调用的工具调用了 LLM，或最终失败的上下文压缩（不会产生 [AgentMessage.Compact] 来跟踪开销）。
-	 *
-	 * 这并非能够索引所有类型的未跟踪开销，例如 [io.github.autotweaker.api.adapter.CoreAPI.chat] 就会直接存储到全局的 Usage 数据库。
-	 */
-	@Serializable
-	data class UsageRecord(
-		@Serializable(with = UuidSerializer::class)
-		override val id: UUID,
-		override val timestamp: Instant,
-		@Serializable(with = UuidSerializer::class)
-		override val origin: UUID,
-		@Serializable(with = UuidSerializer::class)
-		val model: UUID,
-		val usage: Usage,
-	) : AgentMessage() {
-		override fun content(): String? = null
-	}
 }

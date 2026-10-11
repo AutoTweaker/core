@@ -26,11 +26,14 @@ import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.domain.port.UsageRepository
 import kotlinx.serialization.json.JsonElement
+import java.util.*
 
 class DigestService(
 	private val chat: ResilientChat,
-	private val usageConsumed: (UsageEntry) -> Unit
+	private val usageRepo: UsageRepository,
+	private val agenId: UUID,
 ) : Traceable, Loggable {
 	suspend fun summary(prompt: String, context: RuntimeContext, model: AgentModel): JsonElement? {
 		val messages = buildList {
@@ -82,8 +85,9 @@ class DigestService(
 				val result = it.result
 				if (result is ChatResult.Assembled) {
 					result.usage?.let { usage ->
-						usageConsumed(
+						usageRepo.save(
 							UsageEntry(
+								agentId = agenId,
 								modelId = it.model,
 								usage = usage,
 								timestamp = now()
@@ -94,7 +98,8 @@ class DigestService(
 				}
 				if (result is ChatResult.Failed) {
 					log.warn(
-						"Failed digest request  model={}  statusCode={}  reason={}  exception={}",
+						"Failed digest request  agentId={}  model={}  statusCode={}  reason={}  exception={}",
+						agenId,
 						it.model,
 						result.statusCode,
 						result.message,

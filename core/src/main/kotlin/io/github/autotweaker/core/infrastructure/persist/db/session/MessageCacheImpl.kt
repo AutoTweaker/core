@@ -56,15 +56,12 @@ class MessageCacheImpl(
 		sessionRepository.saveMessage(message)
 		when (message) {
 			is AgentMessage.Assistant -> message.usage?.let {
-				UsageEntry(message.id, message.model, message.timestamp, it)
+				UsageEntry(message.id, message.origin, message.model, message.timestamp, it)
 			}
 			
 			is AgentMessage.Compact -> message.usage?.let {
-				UsageEntry(message.id, message.model, message.timestamp, it)
+				UsageEntry(message.id, message.origin, message.model, message.timestamp, it)
 			}
-			
-			is AgentMessage.UsageRecord ->
-				UsageEntry(message.id, message.model, message.timestamp, message.usage)
 			
 			else -> null
 		}?.let {

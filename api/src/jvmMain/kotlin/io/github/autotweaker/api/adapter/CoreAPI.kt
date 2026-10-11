@@ -549,7 +549,7 @@ interface CoreAPI {
 		 * @param before 加载比这更早的 Usage 数据，不包含 [before]。
 		 * @see UsageEntry
 		 */
-		suspend fun loadUsage(limit: Int, before: UsageCursor?): List<UsageEntry>
+		suspend fun loadUsage(agentId: UUID?, modelId: UUID?, limit: Int, before: UsageCursor?): List<UsageEntry>
 		
 		/**
 		 * 从数据库加载 Usage 数据，用于统计。
@@ -563,11 +563,11 @@ interface CoreAPI {
 		/**
 		 * 从数据库获取合并后的 Usage 数据（[Usage.plus] 语义），无匹配项时返回 null。
 		 *
-		 * 三个字段均为 null 时返回历史的全部 Usage 数据之和。
+		 * 所有字段均为 null 时返回历史的全部 Usage 数据之和。
 		 *
 		 * @param modelId 按模型过滤 Usage。
 		 */
-		suspend fun mergeUsage(modelId: UUID?, from: Instant?, to: Instant?): Usage?
+		suspend fun mergeUsage(agentId: UUID?, modelId: UUID?, from: Instant?, to: Instant?): Usage?
 		
 		/**
 		 * 从数据库获取合并后的 Usage 数据（[Usage.plus] 语义），无匹配项时返回 null。
