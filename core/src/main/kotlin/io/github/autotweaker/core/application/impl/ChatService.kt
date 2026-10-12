@@ -70,16 +70,16 @@ class ChatService(
 						usage = it
 					)
 				}
-			}.onCompletion { cause ->
-				if (cause == null)
-					lastUsage?.let {
-						trace.catching {
-							usageRepo.save(it)
-						}.rethrowCancellation()
-							.onFailure { e ->
-								log.error("Failed usage record save  recordId={}", it.id, e)
-							}
-					}
-			})
+			}.onCompletion {
+				lastUsage?.let {
+					trace.catching {
+						usageRepo.save(it)
+					}.rethrowCancellation()
+						.onFailure { e ->
+							log.error("Failed usage record save  recordId={}", it.id, e)
+						}
+				}
+			}
+		)
 	}
 }
