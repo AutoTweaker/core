@@ -25,6 +25,7 @@ import io.github.autotweaker.api.types.llm.ChatRequest.Tool
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.LlmGateway
+import io.github.autotweaker.core.infrastructure.config.ProviderRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -33,7 +34,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class ResilientChat(
-	private val gateway: LlmGateway
+	private val gateway: LlmGateway,
+	private val provider: ProviderRepository
 ) : Loggable {
 	fun execute(
 		model: RuntimeModel,
@@ -52,7 +54,6 @@ class ResilientChat(
 		jsonOutput: Boolean? = null,
 	): Flow<LlmResult> = flow {
 		val maxRetries = ResilientChatSettings.MaxRetries().get()
-		val llmChatRetries = ResilientChatSettings.LlmChatRetries().get()
 		val effectiveTimeout = timeout ?: ChatTimeout(
 			requestTimeout = ResilientChatSettings.ChatRequestTimeout().get().seconds,
 			connectTimeout = ResilientChatSettings.ChatConnectTimeout().get().seconds,
@@ -60,12 +61,11 @@ class ResilientChat(
 		)
 		
 		log.debug(
-			"Started chat  provider={}  model={}  candidates={}  maxRetries={}  llmChatRetries={}",
+			"Started chat  provider={}  model={}  candidates={}  maxRetries={}",
 			model.provider.name,
 			model.modelInfo.modelId,
 			(fallbackModels?.size ?: 0) + 1,
 			maxRetries,
-			llmChatRetries
 		)
 		
 		fun buildRequest(model: RuntimeModel): ChatRequest {
@@ -153,88 +153,84 @@ class ResilientChat(
 			return Pair(statusCode, hasError)
 		}
 		
-		for (round in 0..llmChatRetries) {
-			var candidates = buildList {
-				add(model)
-				addAll(fallbackModels.orEmpty())
-			}
+		val availableProviders = provider.listAvailable()
+		var candidates = buildList {
+			add(model)
+			addAll(fallbackModels.orEmpty())
+		}.filter { it.provider.name in availableProviders }
+		
+		while (candidates.isNotEmpty()) {
+			val current = candidates.first()
+			val rules = current.provider.errorHandlingRules
 			
-			while (candidates.isNotEmpty()) {
-				val current = candidates.first()
-				val rules = current.provider.errorHandlingRules
+			suspend fun handle(result: Pair<Int?, Boolean>, retriesUsed: Int): Boolean {
+				val (statusCode, hasError) = result
+				if (!hasError) return true
 				
-				suspend fun handle(result: Pair<Int?, Boolean>, retriesUsed: Int): Boolean {
-					val (statusCode, hasError) = result
-					if (!hasError) return true
-					
-					when (rules.find { it.statusCode == statusCode }?.strategy) {
-						RecoveryStrategy.RETRY, null -> {
-							if (retriesUsed >= maxRetries - 1) {
-								log.debug(
-									"Exhausted chat retries  model={}  strategy=RETRY", current.modelInfo.modelId
-								)
-								candidates = candidates.drop(1)
-								return false
-							}
+				when (rules.find { it.statusCode == statusCode }?.strategy) {
+					RecoveryStrategy.RETRY, null -> {
+						if (retriesUsed >= maxRetries - 1) {
 							log.debug(
-								"Retried chat  model={}  attempt={}  strategy=RETRY  statusCode={}",
-								current.modelInfo.modelId,
-								retriesUsed + 1,
-								statusCode
-							)
-							val baseDelay = ResilientChatSettings.RetryBaseDelaySeconds().get()
-							val maxDelay = ResilientChatSettings.MaxRetryDelaySeconds().get()
-							val jitterEnabled = ResilientChatSettings.RetryJitterEnabled().get()
-							val scale = 1L shl retriesUsed
-							val capped = if (scale < 0) maxDelay.seconds
-							else minOf(scale.seconds * baseDelay, maxDelay.seconds)
-							val finalDelay = if (jitterEnabled)
-								Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
-							else capped
-							delay(finalDelay)
-							
-							return handle(attempt(current), retriesUsed + 1)
-						}
-						
-						RecoveryStrategy.CONTEXT_FALLBACK -> {
-							log.debug(
-								"Fell back to larger context window  currentModel={}  statusCode={}",
-								current.modelInfo.modelId,
-								statusCode
-							)
-							candidates =
-								candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
-							return false
-						}
-						
-						RecoveryStrategy.PROVIDER_FALLBACK -> {
-							log.debug(
-								"Fell back to different provider  currentModel={}  currentProvider={}  statusCode={}",
-								current.modelInfo.modelId,
-								current.provider.id,
-								statusCode
-							)
-							candidates = candidates.filter { it.provider.id != current.provider.id }
-							return false
-						}
-						
-						RecoveryStrategy.FALLBACK -> {
-							log.debug(
-								"Fell back to next model  currentModel={}  statusCode={}",
-								current.modelInfo.modelId,
-								statusCode
+								"Exhausted chat retries  model={}  strategy=RETRY", current.modelInfo.modelId
 							)
 							candidates = candidates.drop(1)
 							return false
 						}
+						log.debug(
+							"Retried chat  model={}  attempt={}  strategy=RETRY  statusCode={}",
+							current.modelInfo.modelId,
+							retriesUsed + 1,
+							statusCode
+						)
+						val baseDelay = ResilientChatSettings.RetryBaseDelaySeconds().get()
+						val maxDelay = ResilientChatSettings.MaxRetryDelaySeconds().get()
+						val jitterEnabled = ResilientChatSettings.RetryJitterEnabled().get()
+						val scale = 1L shl retriesUsed
+						val capped = if (scale < 0) maxDelay.seconds
+						else minOf(scale.seconds * baseDelay, maxDelay.seconds)
+						val finalDelay = if (jitterEnabled)
+							Random.nextLong(capped.inWholeMilliseconds + 1).milliseconds
+						else capped
+						delay(finalDelay)
+						
+						return handle(attempt(current), retriesUsed + 1)
+					}
+					
+					RecoveryStrategy.CONTEXT_FALLBACK -> {
+						log.debug(
+							"Fell back to larger context window  currentModel={}  statusCode={}",
+							current.modelInfo.modelId,
+							statusCode
+						)
+						candidates =
+							candidates.filter { it.modelInfo.contextWindow > current.modelInfo.contextWindow }
+						return false
+					}
+					
+					RecoveryStrategy.PROVIDER_FALLBACK -> {
+						log.debug(
+							"Fell back to different provider  currentModel={}  currentProvider={}  statusCode={}",
+							current.modelInfo.modelId,
+							current.provider.id,
+							statusCode
+						)
+						candidates = candidates.filter { it.provider.id != current.provider.id }
+						return false
+					}
+					
+					RecoveryStrategy.FALLBACK -> {
+						log.debug(
+							"Fell back to next model  currentModel={}  statusCode={}",
+							current.modelInfo.modelId,
+							statusCode
+						)
+						candidates = candidates.drop(1)
+						return false
 					}
 				}
-				
-				if (handle(attempt(current), 0)) return@flow
 			}
 			
-			if (round < llmChatRetries)
-				log.info("Exhausted all candidate models and restarted  round={}", round + 1)
+			if (handle(attempt(current), 0)) return@flow
 		}
 		
 		log.warn("Exhausted all LLM chat retries  attempts={}", attempts)

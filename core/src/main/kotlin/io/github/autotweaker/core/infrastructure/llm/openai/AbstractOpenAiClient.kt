@@ -96,30 +96,28 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	@OptIn(ExperimentalCoroutinesApi::class)
 	private suspend fun ProducerScope<ChatResult>.streamChat(
 		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
-	) {
-		coroutineScope {
-			val chunkTimeout = timeout?.streamChunkTimeout
-			val headersArrived = CompletableDeferred<Unit>()
-			val responseJob = async(start = CoroutineStart.UNDISPATCHED) {
-				sharedHttpClient.preparePost {
-					configureRequest(request, apiKey, baseUrl, timeout)
-				}.execute { response ->
-					headersArrived.complete(Unit)
-					collectStream(response, chunkTimeout)
-				}
+	) = coroutineScope {
+		val chunkTimeout = timeout?.streamChunkTimeout
+		val headersArrived = CompletableDeferred<Unit>()
+		val responseJob = async(start = CoroutineStart.UNDISPATCHED) {
+			sharedHttpClient.preparePost {
+				configureRequest(request, apiKey, baseUrl, timeout)
+			}.execute { response ->
+				headersArrived.complete(Unit)
+				collectStream(response, chunkTimeout)
 			}
-			if (chunkTimeout != null) {
-				select {
-					headersArrived.onAwait { }
-					responseJob.onAwait { }
-					onTimeout(chunkTimeout) {
-						responseJob.cancel()
-						chunkTimeoutFailed(chunkTimeout, null)
-					}
-				}
-			}
-			responseJob.await()
 		}
+		if (chunkTimeout != null) {
+			select {
+				headersArrived.onAwait { }
+				responseJob.onAwait { }
+				onTimeout(chunkTimeout) {
+					responseJob.cancel()
+					chunkTimeoutFailed(chunkTimeout, null)
+				}
+			}
+		}
+		responseJob.await()
 	}
 	
 	private suspend fun ProducerScope<ChatResult>.collectStream(

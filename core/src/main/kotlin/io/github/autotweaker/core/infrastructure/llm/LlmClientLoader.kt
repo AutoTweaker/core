@@ -57,7 +57,13 @@ object LlmClientLoader : Loggable, Traceable {
 		if (!initialized) return
 		all.forEachParallel {
 			trace.catching { it.shutdown() }
-				.onFailure { _ -> log.warn("Failed LlmClient shutdown  name={}", it.providerInfo.name) }
+				.onFailure { e ->
+					log.warn(
+						"Failed LlmClient shutdown  name={}  reasom={}",
+						it.providerInfo.name,
+						e.message
+					)
+				}
 		}
 	}
 }

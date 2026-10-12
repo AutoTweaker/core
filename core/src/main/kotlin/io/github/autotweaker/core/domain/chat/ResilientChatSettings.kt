@@ -34,13 +34,6 @@ object ResilientChatSettings {
 	)
 	
 	@AutoService(SettingDef::class)
-	class LlmChatRetries : IntSetting(
-		2, zh(
-			"大模型请求的重试/回退策略耗尽后重头开始的最大次数"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
 	class RetryBaseDelaySeconds : IntSetting(
 		1, zh(
 			"大模型请求重试前的基础等待时间（秒），多次重试会在此基础上累加（指数退避）"
