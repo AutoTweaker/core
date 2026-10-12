@@ -27,14 +27,17 @@ import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.UsageRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
 
 class ChatService(
 	private val modelRepo: ModelResolver,
 	private val usageRepo: UsageRepository,
 	private val chat: ResilientChat,
 ) : Loggable, Traceable {
-	fun chat(request: LlmRequest): Flow<LlmResult> = flow {
+	fun chat(request: LlmRequest): Flow<LlmResult> = flow { // 模型解析需要 suspend 上下文，这里借用冷流的
 		val model = modelRepo.resolve(request.model)
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it)
@@ -45,7 +48,6 @@ class ChatService(
 			fallbacks?.size ?: 0,
 			request.stream
 		)
-		var lastUsage: UsageEntry? = null
 		emitAll(
 			chat.execute(
 				model = model,
@@ -61,22 +63,20 @@ class ChatService(
 				temperature = request.temperature,
 				jsonOutput = request.jsonOutput
 			).onEach { chunk ->
-				val result = chunk.result as? ChatResult.Assembled ?: return@onEach
-				result.usage?.let {
-					lastUsage = UsageEntry(
-						agentId = null,
-						modelId = chunk.model,
-						timestamp = now(),
-						usage = it
-					)
-				}
-			}.onCompletion {
-				lastUsage?.let {
+				val final = chunk.result as? ChatResult.Assembled ?: return@onEach
+				final.usage?.let {
 					trace.catching {
-						usageRepo.save(it)
+						usageRepo.save(
+							UsageEntry(
+								agentId = null,
+								modelId = chunk.model,
+								timestamp = now(),
+								usage = it
+							)
+						)
 					}.rethrowCancellation()
 						.onFailure { e ->
-							log.error("Failed usage record save  recordId={}", it.id, e)
+							log.error("Failed usage record save", e)
 						}
 				}
 			}
