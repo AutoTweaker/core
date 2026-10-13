@@ -50,6 +50,8 @@ class ReentrantMutex : Traceable {
 	 *
 	 * 请注意，[block] 内不可使用非局部返回（如 `return`）。
 	 *
+	 * 如果确实需要非局部返回但又需要用这一把锁，可以在确认无重入场景的情况下直接调用 [mutex] 的 `withLock`。
+	 *
 	 * @throws Throwable 当 [block] 抛出异常。
 	 * @return [block] 的返回值。
 	 */
