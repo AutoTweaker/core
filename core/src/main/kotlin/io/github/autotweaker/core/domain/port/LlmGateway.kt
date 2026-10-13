@@ -19,17 +19,17 @@
 package io.github.autotweaker.core.domain.port
 
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ChatTimeout
+import io.github.autotweaker.api.types.llm.LlmRequest
+import io.github.autotweaker.api.types.llm.LlmResult
 import kotlinx.coroutines.flow.Flow
 
 interface LlmGateway {
 	fun send(
-		request: ChatRequest,
+		request: LlmRequest,
 		apiKey: String,
 		baseUrl: Url,
 		providerType: String,
 		timeout: ChatTimeout
-	): Flow<ChatResult>
+	): Flow<LlmResult>
 }

@@ -19,7 +19,6 @@
 package io.github.autotweaker.api.types.message
 
 import io.github.autotweaker.api.orNull
-import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.tool.ToolPresentation

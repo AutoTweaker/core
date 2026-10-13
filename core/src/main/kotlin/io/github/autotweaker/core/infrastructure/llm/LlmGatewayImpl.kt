@@ -22,9 +22,9 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.UpperSnakeCase.Companion.toUpperSnake
 import io.github.autotweaker.api.types.Url
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ChatTimeout
+import io.github.autotweaker.api.types.llm.LlmRequest
+import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.core.domain.port.LlmGateway
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -32,12 +32,12 @@ import kotlinx.coroutines.flow.onEach
 
 object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 	override fun send(
-		request: ChatRequest,
+		request: LlmRequest,
 		apiKey: String,
 		baseUrl: Url,
 		providerType: String,
 		timeout: ChatTimeout,
-	): Flow<ChatResult> {
+	): Flow<LlmResult> {
 		val chatId = UUID()
 		log.info(
 			"Sent LLM request  providerType={}  model={}  stream={}  chatId={}",
@@ -69,7 +69,7 @@ object LlmGatewayImpl : LlmGateway, Loggable, Traceable {
 			}
 			.catch {
 				emit(
-					ChatResult.Failed(
+					LlmResult.Failed(
 						message = it.message(),
 						exception = it,
 						statusCode = null

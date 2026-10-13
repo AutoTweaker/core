@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.domain.tool.port
 
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 
 interface TruncationService {
 	fun truncate(content: List<ContentPart>, threshold: Int, keepTail: Boolean = false): List<ContentPart>

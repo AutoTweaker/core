@@ -54,11 +54,11 @@ interface LlmClient {
 	 * 开始一次 LLM 请求。
 	 */
 	fun chat(
-		request: ChatRequest,
+		request: LlmRequest,
 		apiKey: String,
 		baseUrl: Url? = null,
 		timeout: ChatTimeout? = null
-	): Flow<ChatResult>
+	): Flow<LlmResult>
 	
 	/**
 	 * AutoTweaker 会在程序关闭前调用所有 [LlmClient] 的 [shutdown]。

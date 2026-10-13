@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.agent.think
 
 import io.github.autotweaker.api.types.PairList
 import io.github.autotweaker.api.types.agent.AgentStatus
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -38,7 +38,7 @@ class ThinkingStage(
 ) {
 	suspend fun execute(
 		model: AgentModel,
-		assembledTools: List<ChatRequest.Tool>?,
+		assembledTools: List<LlmRequest.Tool>?,
 		context: RuntimeContext,
 	): Result? {
 		val callResult = llmService.execute(model, assembledTools, context) ?: return null

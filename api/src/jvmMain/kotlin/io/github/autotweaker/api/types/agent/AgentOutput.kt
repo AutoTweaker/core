@@ -19,7 +19,7 @@
 package io.github.autotweaker.api.types.agent
 
 import io.github.autotweaker.api.tool.Tool.RuntimeOutput.OutputType
-import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.Usage
 import java.util.*
 
@@ -27,7 +27,7 @@ sealed class AgentOutput {
 	data class LlmDelta(
 		val content: String?,
 		val reasoningContent: String?,
-		val toolCallFragments: List<ChatResult.ChunkToolCall>?,
+		val toolCallFragments: List<LlmResult.ChunkToolCall>?,
 	) : AgentOutput()
 	
 	data class LlmError(

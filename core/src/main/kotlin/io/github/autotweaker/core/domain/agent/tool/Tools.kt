@@ -29,7 +29,7 @@ import io.github.autotweaker.api.types.exception.I18nableException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.exception.notfound.ToolNotFoundException
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
@@ -173,7 +173,7 @@ class Tools(
 		}
 	}
 	
-	suspend fun assembleTools(): List<ChatRequest.Tool>? {
+	suspend fun assembleTools(): List<LlmRequest.Tool>? {
 		//缓存meta，此处为请求LLM前，确保每次请求前刷新
 		metaCache = cacheMeta(tools)
 		return ToolAssembler.assemble(buildMeta())

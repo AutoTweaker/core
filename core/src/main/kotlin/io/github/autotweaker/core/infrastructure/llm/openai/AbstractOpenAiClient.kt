@@ -61,17 +61,17 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		fun toToolCall() = ChatMessage.Assistant.ToolCall(id.toString(), name.toString(), arguments.toString())
 	}
 	
-	protected abstract suspend fun ChatRequest.transform(): Request
-	protected abstract fun Response.transform(): ChatResult
-	protected abstract fun Chunk.transform(): ChatResult.Chunk
+	protected abstract suspend fun LlmRequest.transform(): Request
+	protected abstract fun Response.transform(): LlmResult
+	protected abstract fun Chunk.transform(): LlmResult.Chunk
 	protected abstract fun Chunk.usage(): Usage?
 	
 	override fun chat(
-		request: ChatRequest,
+		request: LlmRequest,
 		apiKey: String,
 		baseUrl: Url?,
 		timeout: ChatTimeout?
-	): Flow<ChatResult> = channelFlow {
+	): Flow<LlmResult> = channelFlow {
 		val effectiveBaseUrl = baseUrl ?: providerInfo.baseUrl
 		trace.catching {
 			if (request.stream) {
@@ -86,7 +86,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		}.getOrElse { e ->
 			log.error("Failed LLM request execution  provider={}  model={}", providerInfo.name, request.model, e)
 			send(
-				ChatResult.Failed(
+				LlmResult.Failed(
 					message = e.message(), statusCode = null, exception = e
 				)
 			)
@@ -94,8 +94,8 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	}
 	
 	@OptIn(ExperimentalCoroutinesApi::class)
-	private suspend fun ProducerScope<ChatResult>.streamChat(
-		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
+	private suspend fun ProducerScope<LlmResult>.streamChat(
+		request: LlmRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) = coroutineScope {
 		val chunkTimeout = timeout?.streamChunkTimeout
 		val headersArrived = CompletableDeferred<Unit>()
@@ -120,13 +120,13 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		responseJob.await()
 	}
 	
-	private suspend fun ProducerScope<ChatResult>.collectStream(
+	private suspend fun ProducerScope<LlmResult>.collectStream(
 		response: HttpResponse, chunkTimeout: Duration?
 	) {
 		if (!response.status.isSuccess()) {
 			val errorBody = response.bodyAsText()
 			throw LlmFailedException(
-				ChatResult.Failed(
+				LlmResult.Failed(
 					message = "LLM API Error (${response.status}): $errorBody",
 					statusCode = response.status.value
 				),
@@ -184,7 +184,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 			else pendingToolCalls.toSortedMap().values.map { it.toToolCall() }
 			
 			send(
-				ChatResult.Assembled(
+				LlmResult.Assembled(
 					message = ChatMessage.Assistant(
 						content = content.toString(),
 						reasoningContent = reasoning.toString(),
@@ -198,8 +198,8 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		}
 	}
 	
-	private suspend fun ProducerScope<ChatResult>.nonStreamChat(
-		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
+	private suspend fun ProducerScope<LlmResult>.nonStreamChat(
+		request: LlmRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
 		val response = sharedHttpClient.post {
 			configureRequest(request, apiKey, baseUrl, timeout)
@@ -208,7 +208,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		if (!response.status.isSuccess()) {
 			val errorBody = response.bodyAsText()
 			throw LlmFailedException(
-				ChatResult.Failed(
+				LlmResult.Failed(
 					message = "LLM API Error (${response.status}): $errorBody",
 					statusCode = response.status.value
 				),
@@ -232,7 +232,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	}
 	
 	private suspend fun HttpRequestBuilder.configureRequest(
-		request: ChatRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
+		request: LlmRequest, apiKey: String, baseUrl: Url, timeout: ChatTimeout?
 	) {
 		url("${baseUrl.value}/chat/completions")
 		header(HttpHeaders.Authorization, "Bearer $apiKey")
@@ -248,7 +248,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 	
 	private fun chunkTimeoutFailed(timeout: Duration, cause: Throwable?): Nothing {
 		throw LlmFailedException(
-			ChatResult.Failed(
+			LlmResult.Failed(
 				message = "LLM stream chunk timeout after=${timeout.inWholeSeconds} seconds",
 				statusCode = null,
 				exception = cause
@@ -256,7 +256,7 @@ abstract class AbstractOpenAiClient<Request : Any, Response : Any, Chunk : Any>(
 		)
 	}
 	
-	private class LlmFailedException(val result: ChatResult.Failed) : Exception()
+	private class LlmFailedException(val result: LlmResult.Failed) : Exception()
 	
 	companion object {
 		private val json = Json {

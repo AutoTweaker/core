@@ -18,6 +18,8 @@
 
 package io.github.autotweaker.api.types.llm
 
+import io.github.autotweaker.api.types.message.ContentPart
+
 sealed class ChatMessage {
 	abstract val content: Any?
 	

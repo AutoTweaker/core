@@ -23,7 +23,11 @@ import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.now
 import io.github.autotweaker.api.trace
-import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.LlmResult
+import io.github.autotweaker.api.types.llm.ReasoningEffort
+import io.github.autotweaker.api.types.llm.UsageEntry
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.UsageRepository
@@ -51,7 +55,7 @@ class SummaryService(
 			.getOrElse { return null }
 		
 		val (lastResult, lastModel) = results.mapNotNull {
-			(it.result as? ChatResult.Assembled ?: return@mapNotNull null) to it.model
+			(it.result as? LlmResult.Assembled ?: return@mapNotNull null) to it.model
 		}.lastOrNull() ?: return null
 		lastResult.usage?.let {
 			usageRepo.save(

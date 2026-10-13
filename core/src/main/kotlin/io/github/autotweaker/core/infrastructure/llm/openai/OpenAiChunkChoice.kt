@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.openai
 
-import io.github.autotweaker.api.types.llm.ChatResult
+import io.github.autotweaker.api.types.llm.LlmResult
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -52,7 +52,7 @@ data class OpenAiChunkChoice(
 }
 
 fun List<OpenAiChunkChoice.ChunkCall>.transform() = map {
-	ChatResult.ChunkToolCall(
+	LlmResult.ChunkToolCall(
 		index = it.index, id = it.id, name = it.function?.name, arguments = it.function?.arguments
 	)
 }

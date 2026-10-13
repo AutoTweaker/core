@@ -21,10 +21,10 @@ package io.github.autotweaker.core.domain.agent.runner
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.ReentrantMutex
 import io.github.autotweaker.api.types.agent.Delivery
-import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.MessageBuilder
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi

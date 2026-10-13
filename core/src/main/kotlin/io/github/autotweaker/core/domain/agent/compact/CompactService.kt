@@ -27,6 +27,7 @@ import io.github.autotweaker.api.types.agent.AgentOutput.Compact.Status
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.ref
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.agent.chat.inject
@@ -128,12 +129,12 @@ class CompactService(
 			).collect { llmResult ->
 				currentCoroutineContext().ensureActive()
 				when (val result = llmResult.result) {
-					is ChatResult.Chunk -> if (!result.content.isNullOrEmpty()) {
+					is LlmResult.Chunk -> if (!result.content.isNullOrEmpty()) {
 						streamContent.append(result.content)
 						output(Status.OUTPUTTING, result.content!!, null)
 					}
 					
-					is ChatResult.Assembled -> {
+					is LlmResult.Assembled -> {
 						result.usage?.let { lastUsage = it }
 						lastResult = llmResult.model to result.message
 					}

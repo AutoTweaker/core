@@ -23,7 +23,7 @@ import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.port.GitStatusService

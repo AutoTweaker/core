@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.api.tool
 
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import kotlinx.coroutines.channels.SendChannel

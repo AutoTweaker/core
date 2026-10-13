@@ -20,8 +20,8 @@ package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -37,7 +37,7 @@ class ChatService(
 	private val usageRepo: UsageRepository,
 	private val chat: ResilientChat,
 ) : Loggable, Traceable {
-	fun chat(request: LlmRequest): Flow<LlmResult> = flow { // 模型解析需要 suspend 上下文，这里借用冷流的
+	fun chat(request: ChatRequest): Flow<ChatResult> = flow { // 模型解析需要 suspend 上下文，这里借用冷流的
 		val model = modelRepo.resolve(request.model)
 		val fallbacks = request.fallbackModels?.map {
 			modelRepo.resolve(it)
@@ -63,7 +63,7 @@ class ChatService(
 				temperature = request.temperature,
 				jsonOutput = request.jsonOutput
 			).onEach { chunk ->
-				val final = chunk.result as? ChatResult.Assembled ?: return@onEach
+				val final = chunk.result as? LlmResult.Assembled ?: return@onEach
 				final.usage?.let {
 					trace.catching {
 						usageRepo.save(

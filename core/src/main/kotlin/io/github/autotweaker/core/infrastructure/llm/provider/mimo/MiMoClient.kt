@@ -25,6 +25,7 @@ import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.core.infrastructure.llm.openai.*
 import io.ktor.util.reflect.*
 import kotlinx.serialization.serializer
@@ -74,7 +75,7 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		),
 	)
 	
-	override suspend fun ChatRequest.transform(): MiMoRequest {
+	override suspend fun LlmRequest.transform(): MiMoRequest {
 		var mappedMessages = messages.map { msg ->
 			when (msg) {
 				is ChatMessage.User -> MiMoMessage.UserMessage(
@@ -139,11 +140,11 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		}
 	}
 	
-	override fun MiMoResponse.transform(): ChatResult {
+	override fun MiMoResponse.transform(): LlmResult {
 		val choice = choices.firstOrNull()
 		val msg = choice?.message
 		
-		return ChatResult.Assembled(
+		return LlmResult.Assembled(
 			message = ChatMessage.Assistant(
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
@@ -153,11 +154,11 @@ class MiMoClient : AbstractOpenAiClient<MiMoRequest, MiMoResponse, MiMoStreamChu
 		)
 	}
 	
-	override fun MiMoStreamChunk.transform(): ChatResult.Chunk {
+	override fun MiMoStreamChunk.transform(): LlmResult.Chunk {
 		val choice = choices.firstOrNull()
 		val delta = choice?.delta
 		
-		return ChatResult.Chunk(
+		return LlmResult.Chunk(
 			content = delta?.content,
 			reasoningContent = delta?.reasoningContent,
 			toolCalls = delta?.toolCalls?.transform()

@@ -158,6 +158,7 @@ class CoreAPIImpl(
 		override suspend fun loadUsage(ids: Set<UUID>) = usageRepository.load(ids)
 		override suspend fun loadUsage(agentId: UUID?, modelId: UUID?, limit: Int, before: UsageCursor?) =
 			usageRepository.load(agentId, modelId, limit, before)
+		
 		override suspend fun mergeUsage(ids: Set<UUID>) = usageRepository.summarize(ids)
 		override suspend fun mergeUsage(agentId: UUID?, modelId: UUID?, from: Instant?, to: Instant?) =
 			usageRepository.summarize(agentId, modelId, from, to)
@@ -203,6 +204,6 @@ class CoreAPIImpl(
 			LogStore.readLogs(start, end)
 	}
 	
-	override fun chat(request: LlmRequest): Flow<LlmResult> = chatService.chat(request)
+	override fun chat(request: ChatRequest): Flow<ChatResult> = chatService.chat(request)
 	override fun bash(arg: ShellExec): Flow<ShellEvent> = shellRouter.exec(arg)
 }

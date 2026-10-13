@@ -21,7 +21,7 @@ package io.github.autotweaker.api.tool
 import io.github.autotweaker.api.I18nable
 import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.i18n.I18nDef
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.tool.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json

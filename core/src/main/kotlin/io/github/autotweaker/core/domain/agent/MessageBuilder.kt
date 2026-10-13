@@ -20,11 +20,11 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.UUID
 import io.github.autotweaker.api.now
-import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.llm.Usage
-import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.message.MessageContent
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.api.types.tool.ToolPresentation
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.core.infrastructure.persist.db.session.MessageCacheImpl

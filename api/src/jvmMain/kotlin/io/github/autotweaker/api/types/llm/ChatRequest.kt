@@ -18,24 +18,21 @@
 
 package io.github.autotweaker.api.types.llm
 
-import kotlinx.serialization.json.JsonElement
+import java.util.*
 
 data class ChatRequest(
-	val model: String,
-	val instructions: String?,
+	val model: UUID,
+	val fallbackModels: List<UUID>?,
+	val timeout: ChatTimeout? = null,
+	
+	val instructions: String? = null,
 	val messages: List<ChatMessage>,
-	val reasoning: ReasoningEffort?,
-	val stream: Boolean,
+	val reasoning: ReasoningEffort? = null,
+	val stream: Boolean = false,
 	
-	val maxTokens: Int?,
-	val tools: List<Tool>?,
+	val maxTokens: Int? = null,
+	val tools: List<LlmRequest.Tool>? = null,
 	
-	val temperature: Double?,
-	val jsonOutput: Boolean?,
-) {
-	data class Tool(
-		val name: String,
-		val description: String,
-		val parameters: JsonElement
-	)
-}
+	val temperature: Double? = null,
+	val jsonOutput: Boolean? = null,
+)

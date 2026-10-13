@@ -26,8 +26,8 @@ import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.types.agent.AgentContextIndex
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.llm.LlmResult
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.MessageBuilder
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -64,7 +64,7 @@ class AgentChat(
 			reasoning = request.model.reasoning
 		).collect {
 			when (val result = it.result) {
-				is ChatResult.Chunk -> emit(
+				is LlmResult.Chunk -> emit(
 					AgentChatResult.Delta(
 						AgentOutput.LlmDelta(
 							content = result.content,
@@ -74,7 +74,7 @@ class AgentChat(
 					)
 				)
 				
-				is ChatResult.Failed -> emit(
+				is LlmResult.Failed -> emit(
 					AgentChatResult.Failing(
 						error = result.message,
 						statusCode = result.statusCode,
@@ -91,7 +91,7 @@ class AgentChat(
 				}
 				
 				
-				is ChatResult.Assembled -> emit(
+				is LlmResult.Assembled -> emit(
 					AgentChatResult.Assembled(
 						message = msg.assistant(
 							reasoning = result.message.reasoningContent,

@@ -23,7 +23,11 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.types.Localizations
-import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmResult
+import io.github.autotweaker.api.types.llm.ReasoningEffort
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.application.impl.ChatService
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.ModelResolver
@@ -96,7 +100,7 @@ class TranslationEngine(
 			"{{target_language}}", job.target.displayName
 		).replace("{{content_to_translate}}", contentJson)
 		
-		val request = LlmRequest(
+		val request = ChatRequest(
 			model = job.model.id,
 			fallbackModels = null,
 			instructions = job.systemPrompt,
@@ -110,7 +114,7 @@ class TranslationEngine(
 		val results = trace.catching { chat.chat(request).toList() }
 			.rethrowCancellation().getOrElse { return null }
 		
-		val finalResult = results.lastOrNull()?.result as? ChatResult.Assembled ?: return null
+		val finalResult = results.lastOrNull()?.result as? LlmResult.Assembled ?: return null
 		
 		val text = finalResult.message.content ?: return null
 		return parseResponse(text)?.let { BatchResult(it, job.batch, job.target) }

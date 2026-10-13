@@ -21,8 +21,12 @@ package io.github.autotweaker.core.domain.agent
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.session.Msg
-import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.LlmResult
+import io.github.autotweaker.api.types.llm.ReasoningEffort
+import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.chat.inject
 import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.chat.ResilientChat
@@ -83,7 +87,7 @@ class DigestService(
 				jsonOutput = true
 			).collect {
 				val result = it.result
-				if (result is ChatResult.Assembled) {
+				if (result is LlmResult.Assembled) {
 					result.usage?.let { usage ->
 						usageRepo.save(
 							UsageEntry(
@@ -96,7 +100,7 @@ class DigestService(
 					}
 					resultContent = result.message.content
 				}
-				if (result is ChatResult.Failed) {
+				if (result is LlmResult.Failed) {
 					log.warn(
 						"Failed digest request  agentId={}  model={}  statusCode={}  reason={}  exception={}",
 						agentId,

@@ -18,9 +18,28 @@
 
 package io.github.autotweaker.api.types.llm
 
-import java.util.*
-
-data class LlmResult(
-	val result: ChatResult,
-	val model: UUID,
-)
+sealed class LlmResult {
+	data class Chunk(
+		val content: String?,
+		val reasoningContent: String?,
+		val toolCalls: List<ChunkToolCall>?,
+	) : LlmResult()
+	
+	data class ChunkToolCall(
+		val index: Int,
+		val id: String?,
+		val name: String?,
+		val arguments: String?,
+	)
+	
+	data class Assembled(
+		val message: ChatMessage.Assistant,
+		val usage: Usage? = null,
+	) : LlmResult()
+	
+	data class Failed(
+		val message: String?,
+		val statusCode: Int?,
+		val exception: Throwable? = null
+	) : LlmResult()
+}

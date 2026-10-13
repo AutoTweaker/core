@@ -88,7 +88,7 @@ interface CoreAPI {
 	/**
 	 * 调用 LLM，模型、提供商必须来自配置的模型和提供商。
 	 *
-	 * 请求结束后必然返回一次 [ChatResult.Assembled] 或 [ChatResult.Failed]。由于重试机制，即使请求仍未结束也有可能在中途返回 [ChatResult.Failed]。
+	 * 请求结束后必然返回一次 [LlmResult.Assembled] 或 [LlmResult.Failed]。由于重试机制，即使请求仍未结束也有可能在中途返回 [LlmResult.Failed]。
 	 *
 	 * @throws ModelNotFoundException
 	 * @throws ProviderNotFoundException
@@ -97,7 +97,7 @@ interface CoreAPI {
 	 * @throws ChatRetriesExhaustedException
 	 * @throws UnknownProviderTypeException
 	 */
-	fun chat(request: LlmRequest): Flow<LlmResult>
+	fun chat(request: ChatRequest): Flow<ChatResult>
 	
 	/**
 	 * 执行一条 Bash 命令，支持在容器内执行。

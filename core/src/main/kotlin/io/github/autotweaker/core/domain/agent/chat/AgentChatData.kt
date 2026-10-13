@@ -20,7 +20,7 @@ package io.github.autotweaker.core.domain.agent.chat
 
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -28,7 +28,7 @@ import java.util.*
 
 data class AgentChatRequest(
 	val model: AgentModel,
-	val tools: List<ChatRequest.Tool>?,
+	val tools: List<LlmRequest.Tool>?,
 	val context: RuntimeContext,
 )
 

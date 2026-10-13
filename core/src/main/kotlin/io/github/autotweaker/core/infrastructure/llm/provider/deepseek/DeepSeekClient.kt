@@ -25,6 +25,7 @@ import io.github.autotweaker.api.llm.LlmClient
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiResponseFormat
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
@@ -68,7 +69,7 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		)
 	)
 	
-	override suspend fun ChatRequest.transform(): DeepSeekRequest {
+	override suspend fun LlmRequest.transform(): DeepSeekRequest {
 		var mappedMessages = messages.map { msg ->
 			when (msg) {
 				is ChatMessage.User -> DeepSeekMessage.UserMessage(
@@ -130,11 +131,11 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		}
 	}
 	
-	override fun DeepSeekResponse.transform(): ChatResult {
+	override fun DeepSeekResponse.transform(): LlmResult {
 		val choice = choices.firstOrNull()
 		val msg = choice?.message
 		
-		return ChatResult.Assembled(
+		return LlmResult.Assembled(
 			message = ChatMessage.Assistant(
 				content = msg?.content,
 				reasoningContent = msg?.reasoningContent,
@@ -144,11 +145,11 @@ class DeepSeekClient : AbstractOpenAiClient<DeepSeekRequest, DeepSeekResponse, D
 		)
 	}
 	
-	override fun DeepSeekStreamChunk.transform(): ChatResult.Chunk {
+	override fun DeepSeekStreamChunk.transform(): LlmResult.Chunk {
 		val choice = choices.firstOrNull()
 		val delta = choice?.delta
 		
-		return ChatResult.Chunk(
+		return LlmResult.Chunk(
 			content = delta?.content,
 			reasoningContent = delta?.reasoningContent,
 			toolCalls = delta?.toolCalls?.transform()

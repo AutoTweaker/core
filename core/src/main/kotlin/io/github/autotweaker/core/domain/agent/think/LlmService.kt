@@ -25,7 +25,7 @@ import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.agent.AgentStatus
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
@@ -43,7 +43,7 @@ class LlmService(
 ) : Loggable, Traceable {
 	suspend fun execute(
 		model: AgentModel,
-		assembledTools: List<ChatRequest.Tool>?,
+		assembledTools: List<LlmRequest.Tool>?,
 		context: RuntimeContext,
 	): CallResult? { // null == failed
 		val request = AgentChatRequest(

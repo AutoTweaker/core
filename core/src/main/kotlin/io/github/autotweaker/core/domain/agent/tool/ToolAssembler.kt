@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.agent.tool
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.get
 import io.github.autotweaker.api.log
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolMeta.Prop
 import io.github.autotweaker.core.domain.agent.tool.ToolSettings.DEFAULT_FUNCTION
@@ -30,14 +30,14 @@ import kotlinx.serialization.json.*
 object ToolAssembler : Loggable {
 	fun assemble(
 		tools: MetaCache
-	): List<ChatRequest.Tool>? {
+	): List<LlmRequest.Tool>? {
 		if (tools.isEmpty()) return null
 		
 		log.debug("Started tool assembly  toolCount={}", tools.size)
 		
 		return tools.flatMap { (name, entry) ->
 			entry.first.functions.map { func ->
-				ChatRequest.Tool(
+				LlmRequest.Tool(
 					name = if (func.name == DEFAULT_FUNCTION) name else "$name-${func.name}",
 					description = func.description,
 					parameters = func.parameters.toJsonSchema(),

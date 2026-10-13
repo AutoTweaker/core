@@ -21,8 +21,9 @@ package io.github.autotweaker.core.domain.chat
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.types.exception.ChatRetriesExhaustedException
 import io.github.autotweaker.api.types.llm.*
-import io.github.autotweaker.api.types.llm.ChatRequest.Tool
+import io.github.autotweaker.api.types.llm.LlmRequest.Tool
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.LlmGateway
 import io.github.autotweaker.core.infrastructure.config.ProviderRepository
@@ -52,7 +53,7 @@ class ResilientChat(
 		
 		temperature: Double? = null,
 		jsonOutput: Boolean? = null,
-	): Flow<LlmResult> = flow {
+	): Flow<ChatResult> = flow {
 		val maxRetries = ResilientChatSettings.MaxRetries().get()
 		val effectiveTimeout = timeout ?: ChatTimeout(
 			requestTimeout = ResilientChatSettings.ChatRequestTimeout().get().seconds,
@@ -68,11 +69,11 @@ class ResilientChat(
 			maxRetries,
 		)
 		
-		fun buildRequest(model: RuntimeModel): ChatRequest {
+		fun buildRequest(model: RuntimeModel): LlmRequest {
 			val info = model.modelInfo
 			val thinkingDisabled = !info.supportsReasoning || reasoning == ReasoningEffort.NONE
 			
-			return ChatRequest(
+			return LlmRequest(
 				model = info.modelId,
 				instructions = instructions,
 				messages = messages.map { msg ->
@@ -134,7 +135,7 @@ class ResilientChat(
 			var hasError = false
 			
 			results.collect { result ->
-				if (result is ChatResult.Failed) {
+				if (result is LlmResult.Failed) {
 					log.warn(
 						"Failed LLM chat, maybe retry  provider={}  model={}  statusCode={}  reason={}  exception={}",
 						target.provider.name,
@@ -143,10 +144,10 @@ class ResilientChat(
 						result.message,
 						result.exception?.message()
 					)
-					emit(LlmResult(result, model = target.id))
+					emit(ChatResult(result, model = target.id))
 					statusCode = result.statusCode
 					hasError = true
-				} else emit(LlmResult(result.normalizeEmpty(), model = target.id))
+				} else emit(ChatResult(result.normalizeEmpty(), model = target.id))
 			}
 			attempts++
 			
@@ -237,13 +238,13 @@ class ResilientChat(
 		throw ChatRetriesExhaustedException(attempts)
 	}
 	
-	private fun ChatResult.normalizeEmpty(): ChatResult = when (this) {
-		is ChatResult.Chunk -> copy(
+	private fun LlmResult.normalizeEmpty(): LlmResult = when (this) {
+		is LlmResult.Chunk -> copy(
 			reasoningContent = reasoningContent?.orNull(),
 			content = content?.orNull()
 		)
 		
-		is ChatResult.Assembled -> copy(
+		is LlmResult.Assembled -> copy(
 			message = message.copy(
 				reasoningContent = message.reasoningContent?.orNull(),
 				content = message.content?.orNull()

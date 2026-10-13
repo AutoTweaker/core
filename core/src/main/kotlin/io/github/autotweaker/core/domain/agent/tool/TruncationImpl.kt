@@ -24,8 +24,8 @@ import io.github.autotweaker.api.base.StringSetting
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import io.github.autotweaker.api.format
-import io.github.autotweaker.api.types.llm.ContentPart
-import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.ContentPart
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.chat.merge
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.tool.port.TruncationService

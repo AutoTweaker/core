@@ -18,7 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.llm.openai
 
-import io.github.autotweaker.api.types.llm.ChatRequest
+import io.github.autotweaker.api.types.llm.LlmRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -36,7 +36,7 @@ data class OpenAiTool(
 	)
 }
 
-fun List<ChatRequest.Tool>.transform() = map {
+fun List<LlmRequest.Tool>.transform() = map {
 	OpenAiTool(
 		function = OpenAiTool.Function(
 			name = it.name, description = it.description, parameters = it.parameters

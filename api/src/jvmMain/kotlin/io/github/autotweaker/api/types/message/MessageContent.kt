@@ -18,8 +18,6 @@
 
 package io.github.autotweaker.api.types.message
 
-import io.github.autotweaker.api.types.llm.ContentPart
-import io.github.autotweaker.api.types.llm.toContentPart
 import kotlinx.serialization.Serializable
 
 /**
