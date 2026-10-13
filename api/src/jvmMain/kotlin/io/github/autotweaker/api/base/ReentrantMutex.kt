@@ -35,8 +35,7 @@ import kotlin.coroutines.CoroutineContext
  * 如果手动修改子协程上下文，或使用当前协程上下文启动外部协程，重入行为可能发生改变。
  */
 class ReentrantMutex : Traceable {
-	@PublishedApi
-	internal val mutex = Mutex()
+	val mutex = Mutex()
 	
 	@PublishedApi
 	internal val lockKey = object : CoroutineContext.Key<CoroutineContext.Element> {}
