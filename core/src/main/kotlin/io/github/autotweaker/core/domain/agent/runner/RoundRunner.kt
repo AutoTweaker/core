@@ -48,7 +48,6 @@ import kotlinx.serialization.json.Json
 import java.nio.file.Path
 import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class RoundRunner(
@@ -113,36 +112,35 @@ class RoundRunner(
 				status.value = AgentStatus.FAILED
 				compactJob?.cancel("workLoop failed", e)
 				compacting.value = false
+				messages.failed(e)
 				log.error("Agent failed  agentId={}", agentId, e)
 			}
 		}
 		val idleShutdownDelay = IdleShutdownDelay().get()
 		if (idleShutdownDelay > 0)
 			shutdownScope.launch {
-				status.collectLatest { status ->
-					if (status == AgentStatus.FREE) {
-						delay(idleShutdownDelay.seconds)
-						while (true) {
-							compacting.first { !it }
-							lock.withLock {
-								if (shutdownStarted) {
-									shutdownScope.cancel()
-									return@withLock
-								}
-								if (!messages.isEmpty()) return@withLock
-								if (compactJob?.isActive == true) return@withLock
-								delay(5.milliseconds)
-								withContext(NonCancellable) {
-									shutdownStarted = true
-									scope.cancelAndJoin()
-									messages.shutdown()
-									approval.shutdown()
-									this@RoundRunner.status.value = AgentStatus.DEAD
-									shutdownScope.cancel()
-								}
+				status.collectLatest { state -> // 状态更新取消计时
+					if (state == AgentStatus.FREE) while (true) { // FREE之后开始计时
+						compacting.first { !it } // 等上下文压缩结束
+						delay(idleShutdownDelay.seconds) // 开始计时，新的status会取消它
+						lock.withLock {
+							if (status.value != AgentStatus.FREE) return@withLock
+							if (shutdownStarted) {
+								shutdownScope.cancel() // cancel自己
+								return@withLock // return之后下面的ensureActive直接CE，不CE循环开始的delay也会CE
 							}
-							currentCoroutineContext().ensureActive()
+							if (!messages.isEmpty()) return@withLock // 如果还有消息，主循环可能马上就启动或正在启动
+							if (compactJob?.isActive == true) return@withLock
+							withContext(NonCancellable) { // 检查都通过，进入不可逆的关闭进程
+								shutdownStarted = true
+								scope.cancelAndJoin()
+								messages.shutdown()
+								approval.shutdown()
+								status.value = AgentStatus.DEAD
+								shutdownScope.cancel() // 最后取消自身协程
+							}
 						}
+						currentCoroutineContext().ensureActive()
 					}
 				}
 			}
@@ -172,7 +170,7 @@ class RoundRunner(
 	suspend fun execute(command: AgentCommand) {
 		throwFailure()
 		throwDead()
-		when (command) {
+		when (command) { // 前几种不需要加锁
 			is AgentCommand.Stop -> stop()
 			
 			is AgentCommand.Pause -> {
@@ -190,7 +188,7 @@ class RoundRunner(
 			is AgentCommand.UpdateModel ->
 				currentModel = command.model
 			
-			else -> lock.withLock {
+			else -> lock.withLock { // 与关机串行
 				throwDead()
 				throwFailure()
 				when (command) {
@@ -252,6 +250,7 @@ class RoundRunner(
 			
 			status.value = AgentStatus.PROCESSING
 			ctx.beginRound(msg.ref())
+			messages.completeAll(msg)
 			executeRound()
 			status.value = AgentStatus.PROCESSING
 			ctx.archiveCurrentRound()
@@ -302,6 +301,7 @@ class RoundRunner(
 					status.value = AgentStatus.PROCESSING
 					ctx.archiveCurrentRound()
 					ctx.beginRound(it.ref())
+					messages.completeAll(it)
 					continue
 				}
 				
@@ -316,8 +316,10 @@ class RoundRunner(
 							EmptyResponseFeedbackPrompt().get()
 						)
 					)
+					val msg = messages.receive() // 刚刚send，这里不会挂起
 					ctx.archiveCurrentRound()
-					ctx.beginRound(messages.receive().ref())
+					ctx.beginRound(msg.ref())
+					messages.completeAll(msg)
 					continue
 				}
 				
@@ -350,6 +352,7 @@ class RoundRunner(
 				status.value = AgentStatus.PROCESSING
 				ctx.archiveCurrentRound()
 				ctx.beginRound(it.ref())
+				messages.completeAll(it)
 			}
 		}
 		log.info("Completed round execution  agentId={}", agentId)

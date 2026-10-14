@@ -159,6 +159,8 @@ interface Agent {
 	 *
 	 * [sendCoalescing] 入队的消息仅会在每次 THINKING 开始前被合并到请求中，适用于发送 [MessageContent.injections] 来注入提示。
 	 *
+	 * 需要注意，[sendCoalescing] 发送的消息如果迟迟不被消费，会一直阻止 agent 关闭，从而永久占用内存。
+	 *
 	 * @throws AgentDeadException
 	 * @see send
 	 * @see Delivery

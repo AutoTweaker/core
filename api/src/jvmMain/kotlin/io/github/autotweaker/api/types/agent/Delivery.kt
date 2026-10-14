@@ -18,8 +18,7 @@
 
 package io.github.autotweaker.api.types.agent
 
-import io.github.autotweaker.api.types.message.MessageContent
-import java.util.*
+import io.github.autotweaker.api.types.message.AgentMessage
 
 /**
  * 用于追踪消息何时被 agent 消费。
@@ -31,17 +30,27 @@ interface Delivery {
 	val isActive: Boolean
 	
 	/**
-	 * 等待消息被消费，并得到消息的 id 和最终内容。
+	 * 消息是否已经被消费。
+	 */
+	val isCompleted: Boolean
+	
+	/**
+	 * 消息是否已经被取消。
+	 */
+	val isCancelled: Boolean
+	
+	/**
+	 * 等待消息被消费，并得到最终消息内容。
 	 *
 	 * @return 如果消息为空而被丢弃，返回 null。
 	 * @throws kotlin.coroutines.cancellation.CancellationException 消息被取消
 	 */
-	suspend fun await(): Pair<UUID, MessageContent>?
+	suspend fun await(): AgentMessage.User?
 	
 	/**
-	 * 如果消息仍未被消费，取消消息处理。
+	 * 如果消息仍未被消费，取消消息处理，取消成功返回 true。
 	 *
-	 * 不保证消息一定被取消，[isActive] 为 false 时可通过 [await] 查询状态。
+	 * 不保证消息一定被取消，如果消息已经被消费，返回 false。
 	 */
-	suspend fun cancel()
+	suspend fun cancel(): Boolean
 }

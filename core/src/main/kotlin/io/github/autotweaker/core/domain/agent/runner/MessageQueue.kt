@@ -27,7 +27,6 @@ import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.MessageBuilder
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import java.util.*
@@ -36,13 +35,14 @@ import java.util.concurrent.ConcurrentHashMap
 class MessageQueue(private val agentId: UUID, private val msg: MessageBuilder) : Loggable {
 	private val channel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
 	private val coalescingChannel = Channel<Pair<UUID, MessageContent>>(Channel.UNLIMITED)
-	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<Pair<UUID, MessageContent>?>>()
+	private val deliveries = ConcurrentHashMap<UUID, CompletableDeferred<AgentMessage.User?>>()
 	
 	private val cancelled = mutableSetOf<UUID>()
+	private var merging: Set<UUID>? = null
+	
 	private val lock = ReentrantMutex()
 	
-	@OptIn(ExperimentalCoroutinesApi::class)
-	fun isEmpty() = channel.isEmpty && coalescingChannel.isEmpty
+	fun isEmpty() = deliveries.isEmpty()
 	
 	fun shutdown() {
 		channel.close()
@@ -50,64 +50,67 @@ class MessageQueue(private val agentId: UUID, private val msg: MessageBuilder) :
 		deliveries.values.forEach { it.cancel() }
 	}
 	
+	fun failed(exception: Throwable) {
+		channel.close(exception)
+		coalescingChannel.close(exception)
+		deliveries.values.forEach {
+			it.completeExceptionally(exception)
+		}
+	}
+	
 	suspend fun receive(): AgentMessage.User {
 		while (true) {
-			val all = mutableMapOf<UUID, MessageContent>()
-			
+			var first: Pair<UUID, MessageContent>
 			while (true) {
-				all += channel.receive()
-				val cancelQueued = lock.withLock { cancelled.toSet() }
-				if (all.all { it.key in cancelQueued }) {
-					all.clear()
-				} else break
+				first = channel.receive() // 取一条，可能挂起
+				val cancelled = lock.withLock { first.first in cancelled } // 这条是否已经取消
+				if (!cancelled) break // 这条没有取消，有效
+				// 这条取消了，回到开头重取
 			}
 			
-			drainInto(all)
-			
-			merge(all)?.let {
-				return it.andLog(log) { message ->
-					info(
-						"Received message  injections={}  contents={}  agentId={}",
-						message.content.injections?.count(),
-						message.content.content?.count(),
-						agentId
-					)
-				}
-			}
+			val all = mutableMapOf(first)
+			val message = drainInto(all) ?: continue // 消息都是空的，或者都取消了，重来
+			log.info(
+				"Received message  injections={}  contents={}  agentId={}",
+				message.content.injections?.count(),
+				message.content.content?.count(),
+				agentId
+			)
+			return message
 		}
 	}
 	
 	suspend fun drainPrimary(): AgentMessage.User? {
-		val all = mutableMapOf<UUID, MessageContent>()
-		all += channel.tryReceive().getOrNull() ?: return null
+		var first: Pair<UUID, MessageContent>
 		while (true) {
-			val cancelQueued = lock.withLock { cancelled.toSet() }
-			if (all.all { it.key in cancelQueued }) {
-				all.clear()
-				all += channel.tryReceive().getOrNull() ?: return null
-			} else break
+			first = channel.tryReceive().getOrNull() ?: return null // 空的，return
+			val cancelled = lock.withLock { first.first in cancelled }
+			if (!cancelled) break
 		}
-		drainInto(all)
-		return merge(all)
+		val all = mutableMapOf(first)
+		return drainInto(all)
 	}
 	
-	suspend fun drainAll(): AgentMessage.User? {
-		val all = mutableMapOf<UUID, MessageContent>()
-		drainInto(all)
-		return merge(all)
-	}
+	suspend fun drainAll(): AgentMessage.User? = drainInto(mutableMapOf())
 	
-	private fun drainInto(all: MutableMap<UUID, MessageContent>) {
+	private suspend fun drainInto(all: MutableMap<UUID, MessageContent>): AgentMessage.User? {
 		while (true) all += channel.tryReceive().getOrNull() ?: break
 		while (true) all += coalescingChannel.tryReceive().getOrNull() ?: break
+		return merge(all)
 	}
 	
 	suspend fun merge(all: Map<UUID, MessageContent>): AgentMessage.User? {
+		check(merging == null) { "merging must be null" }
 		if (all.isEmpty()) return null
-		val cancelQueued = lock.withLock {
-			cancelled.toSet().also { cancelled.clear() }
+		val cancelQueued: Set<UUID>
+		val filtered: Map<UUID, MessageContent>
+		lock.withLock {
+			cancelQueued = cancelled.toSet()
+			cancelled.clear()
+			filtered = all.filterNot { it.key in cancelQueued }
+			merging = filtered.keys.orNull()
 		}
-		val filtered = all.filterNot { it.key in cancelQueued }
+		if (filtered.isEmpty()) return null
 		val injections = filtered.values.flatMap { it.injections.orEmpty() }.orNull()
 		val content = buildList {
 			filtered.values.forEach { msg ->
@@ -115,16 +118,19 @@ class MessageQueue(private val agentId: UUID, private val msg: MessageBuilder) :
 			}
 		}.orNull()
 		if (allNull(injections, content)) {
-			filtered.keys.forEach {
-				deliveries.remove(it)?.complete(null)
-			}
+			completeAll(null)
 			return null
 		}
-		return msg.user(MessageContent(injections, content)).also { message ->
-			filtered.keys.forEach {
-				deliveries.remove(it)?.complete(message.id to message.content)
-			}
-			log.info("Merged queued messages  count={}  agentId={}", filtered.count(), agentId)
+		return msg.user(MessageContent(injections, content)).andLog(log) {
+			info("Merged queued messages  count={}  agentId={}", filtered.count(), agentId)
+		}
+	}
+	
+	suspend fun completeAll(msg: AgentMessage.User?) = lock.withLock {
+		val ids = checkNotNull(merging) { "merging is null" }
+		merging = null
+		ids.forEach {
+			deliveries.remove(it)?.complete(msg)
 		}
 	}
 	
@@ -146,17 +152,24 @@ class MessageQueue(private val agentId: UUID, private val msg: MessageBuilder) :
 	
 	private fun send(msg: MessageContent, channel: SendChannel<Pair<UUID, MessageContent>>): Delivery {
 		val token = UUID()
-		val deferred = CompletableDeferred<Pair<UUID, MessageContent>?>()
+		val deferred = CompletableDeferred<AgentMessage.User?>()
 		deliveries[token] = deferred
-		channel.trySend(token to msg)
+		channel.trySend(token to msg) // channel是UNLIMITED，send只会在close时失败，相比之下trySend不用suspend
 		return object : Delivery {
 			override val isActive get() = deferred.isActive
+			override val isCompleted get() = deferred.isCompleted
+			override val isCancelled get() = deferred.isCancelled
 			override suspend fun await() = deferred.await()
 			override suspend fun cancel() = lock.withLock {
+				if (deferred.isCancelled) return@withLock true
+				if (deferred.isCompleted) return@withLock false
+				val merging = merging
+				if (merging != null && token in merging) return@withLock false
 				deferred.cancel()
 				deliveries.remove(token)
 				cancelled.add(token)
-			}.discard()
+				return@withLock true
+			}
 		}
 	}
 }
