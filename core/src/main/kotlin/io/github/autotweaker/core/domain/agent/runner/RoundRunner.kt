@@ -287,8 +287,9 @@ class RoundRunner(
 			
 			roundCtx.applyThinking(result)
 			result.toolCalls?.forEach { (_, resolved) ->
-				if (resolved is ResolveResult.Activation)
+				if (resolved is ResolveResult.Activation) {
 					tools.activate(resolved.targetName, true)
+				}
 			}
 			
 			if (shouldBreak.value) {

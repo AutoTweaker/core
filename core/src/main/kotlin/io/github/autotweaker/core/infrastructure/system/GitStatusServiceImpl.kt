@@ -28,13 +28,13 @@ object GitStatusServiceImpl : GitStatusService, Loggable, Traceable {
 		runGit(workspace, "rev-parse", "--git-dir") != null
 	
 	override fun head(workspace: Path): String? =
-		runGit(workspace, "rev-parse", "HEAD")
+		runGit(workspace, "rev-parse", "HEAD")?.trim()
 	
 	override fun branch(workspace: Path): String? =
-		runGit(workspace, "branch", "--show-current")?.orNull()
+		runGit(workspace, "branch", "--show-current")?.trim()?.orNull()
 	
 	override fun remote(workspace: Path): String? =
-		runGit(workspace, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+		runGit(workspace, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")?.trim()
 	
 	override fun staged(workspace: Path): List<String> =
 		porcelain(workspace) { index, _ -> index != ' ' && index != '?' }
@@ -44,7 +44,8 @@ object GitStatusServiceImpl : GitStatusService, Loggable, Traceable {
 	
 	override fun log(workspace: Path, count: Int): List<String> =
 		if (count <= 0) emptyList()
-		else runGit(workspace, "log", "--oneline", "--decorate", "-n", count.toString())?.lines().orEmpty()
+		else runGit(workspace, "log", "--oneline", "--decorate", "-n", count.toString())
+			?.trimEnd()?.lines().orEmpty()
 	
 	private fun porcelain(workspace: Path, filter: (Char, Char) -> Boolean): List<String> =
 		runGit(workspace, "status", "--porcelain")?.lineSequence()
@@ -59,7 +60,7 @@ object GitStatusServiceImpl : GitStatusService, Loggable, Traceable {
 			.redirectErrorStream(true)
 			.start()
 		val output = process.inputStream.bufferedReader().readText()
-		if (process.waitFor() == 0) output.trim() else null
+		if (process.waitFor() == 0) output else null
 	}.onFailure {
 		log.warn(
 			"Failed to run git  args={}  workspace={}  reason={}",
