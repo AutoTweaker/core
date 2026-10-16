@@ -27,14 +27,19 @@ if [ -z "$2" ] || [ ! -f /etc/autotweaker/jvm.options ]; then
     MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     MEM_MB=$((MEM_KB / 1024))
 
-    if   [ "$MEM_MB" -lt 1024 ]; then
-        XMX=512m
+    if   [ "$MEM_MB" -lt 512 ]; then
+        XMX=256m
+        GC_OPTS="-XX:+UseSerialGC"
+    elif [ "$MEM_MB" -lt 1024 ]; then
+        XMX=384m
         GC_OPTS="-XX:+UseSerialGC"
     elif [ "$MEM_MB" -lt 2048 ]; then
-        XMX=1g
+        XMX=768m
     elif [ "$MEM_MB" -lt 4096 ]; then
-        XMX=2g
+        XMX=1g
     elif [ "$MEM_MB" -lt 8192 ]; then
+        XMX=2g
+    elif [ "$MEM_MB" -lt 16384 ]; then
         XMX=4g
     else
         XMX=6g
