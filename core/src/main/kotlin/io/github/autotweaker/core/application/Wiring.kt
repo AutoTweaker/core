@@ -45,7 +45,6 @@ import io.github.autotweaker.core.infrastructure.container.ContainerService
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
-import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationEngine
@@ -58,6 +57,7 @@ import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.objstore.ObjectStorageImpl
+import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.session.*
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceCleanup
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl

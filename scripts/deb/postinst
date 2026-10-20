@@ -49,7 +49,6 @@ if [ -z "$2" ] || [ ! -f /etc/autotweaker/jvm.options ]; then
     cat > /etc/autotweaker/jvm.options << EOF
 -Xmx${XMX}
 -XX:+DisableAttachMechanism
---enable-native-access=ALL-UNNAMED
 EOF
     [ -n "$GC_OPTS" ] && echo "$GC_OPTS" >> /etc/autotweaker/jvm.options
 fi

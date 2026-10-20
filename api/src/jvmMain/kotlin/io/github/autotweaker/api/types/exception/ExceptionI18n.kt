@@ -176,12 +176,6 @@ internal object ExceptionI18n {
 	)
 	
 	@AutoService(I18nDef::class)
-	class GpgException : I18nBase(
-		zh("GPG 命令 '%s' 执行失败: %s"),
-		en("GPG command '%s' failed: %s"),
-	)
-	
-	@AutoService(I18nDef::class)
 	class WorkspaceNotEmptyException : I18nBase(
 		zh("工作区 '%s' 中包含会话, 无法删除"),
 		en("Workspace '%s' contains sessions and cannot be deleted"),

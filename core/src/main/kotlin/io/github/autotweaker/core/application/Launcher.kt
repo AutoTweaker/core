@@ -30,14 +30,15 @@ import io.github.autotweaker.api.types.adapter.AdapterInfo
 import io.github.autotweaker.core.PluginLoader
 import io.github.autotweaker.core.domain.session.SessionManager
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
+import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.session.MessageSearch
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
+import io.github.autotweaker.core.infrastructure.system.ProcessSecurity
 import org.koin.core.Koin
 
 object Launcher : Loggable, Traceable {
@@ -58,23 +59,25 @@ object Launcher : Loggable, Traceable {
 			)
 		)
 		
-		//密钥库
+		trace.catching { ProcessSecurity.disablePtrace() }
+			.onFailure { log.warn("Failed to disable ptrace  reason={}", it.message) }
+		
+		// 密钥库
 		SecretManager.init()
-		//Trace服务，会启动协程
+		// Trace服务，会启动协程
 		koin.get<TraceRecorderImpl>().init()
 		
-		//创建目录、检查权限、开始拉镜像
+		// 创建目录、检查权限、开始拉镜像
 		koin.get<ContainerManager>().init()
 		
-		PluginLoader.load<Debugger>().forEachParallel { debugger ->
-			debugger.init(koin.get())
-			log.info("Initialized debugger  class={}", debugger::class.java.name)
+		PluginLoader.load<Debugger>().forEach {
+			it.init(koin.get())
+			log.info("Initialized debugger  class={}", it::class.java.name)
 		}
 		
 		val adapters = PluginLoader.load<Adapter>()
 			.map { it to it.init(lazyCore()) }
-			.groupBy { (_, info) -> info.name }
-			.map { (_, pairs) -> pairs.first() }
+			.distinctBy { (_, info) -> info.name }
 		
 		if (adapters.isNotEmpty()) {
 			log.info("Found adapters to start  count={}", adapters.size)
@@ -120,8 +123,6 @@ object Launcher : Loggable, Traceable {
 		
 		LlmClientLoader.shutdown()
 		
-		trace.catching { koin.get<SecretManager>().killGpgAgent() }
-			.onFailure { log.warn("Failed GPG agent kill") }
 		trace.catching { koin.get<TraceRecorderImpl>().shutdown() }
 			.onFailure { log.warn("Failed TraceRecorderImpl shutdown") }
 		trace.catching { MessageSearch.close() }

@@ -45,11 +45,11 @@ import io.github.autotweaker.core.infrastructure.config.EnvRepository
 import io.github.autotweaker.core.infrastructure.config.ModelConfigRepository
 import io.github.autotweaker.core.infrastructure.config.ProviderRepository
 import io.github.autotweaker.core.infrastructure.container.ContainerManager
-import io.github.autotweaker.core.infrastructure.data.SecretManager
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.persist.LogStore
 import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
+import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.persist.json.WorkspaceManager

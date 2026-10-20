@@ -18,9 +18,7 @@
 
 package io.github.autotweaker.core.application.impl
 
-import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.debug.DbDebugAPI
-import io.github.autotweaker.core.domain.port.SecretStore
 import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
@@ -28,15 +26,17 @@ import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable
 import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
+import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretKeyTable
+import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretTable
 import io.github.autotweaker.core.infrastructure.persist.db.session.*
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageTable
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class DbDebugAPIImpl(
 	databaseStore: DatabaseStore,
-	private val secretStore: SecretStore,
 	override val setting: SettingDbApi,
 	override val jsonStore: JsonStoreDbApi,
 	override val sessionData: SessionDataDbApi,
@@ -48,28 +48,19 @@ class DbDebugAPIImpl(
 	private val configDb: Database = databaseStore.connect("AppConfig")
 	private val sessionDb: Database = databaseStore.connect("Sessions")
 	private val usageDb: Database = databaseStore.connect("Usages")
+	private val secretDb: Database = databaseStore.connect("Secrets")
 	
-	override suspend fun tables(): Map<String, Map<String, Long>> = mapOf(
-		"AppConfig" to configDb.transaction {
-			mapOf(
-				"settings" to ConfigTable.selectAll().count(),
-				"json_store" to JsonStoreTable.selectAll().count(),
-			)
-		},
-		"Sessions" to sessionDb.transaction {
-			mapOf(
-				"session_data" to SessionDataTable.selectAll().count(),
-				"agent_data" to AgentDataTable.selectAll().count(),
-				"agent_message" to AgentMessageTable.selectAll().count(),
-			)
-		},
-		"Usages" to usageDb.transaction {
-			mapOf(
-				"usage_record" to UsageTable.selectAll().count(),
-			)
-		},
-		"~/.config/$APP_NAME_LOWERCASE/secret" to mapOf(
-			"secrets" to secretStore.list().size.toLong(),
-		),
+	private val databases: Map<String, Pair<Database, List<Table>>> = mapOf(
+		"AppConfig" to (configDb to listOf(ConfigTable, JsonStoreTable)),
+		"Sessions" to (sessionDb to listOf(SessionDataTable, AgentDataTable, AgentMessageTable)),
+		"Usages" to (usageDb to listOf(UsageTable)),
+		"Secrets" to (secretDb to listOf(SecretTable, SecretKeyTable)),
 	)
+	
+	override suspend fun tables(): Map<String, Map<String, Long>> = databases.mapValues { (_, dbTables) ->
+		val (database, tables) = dbTables
+		database.transaction {
+			tables.associate { it.tableName to it.selectAll().count() }
+		}
+	}
 }

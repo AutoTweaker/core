@@ -327,7 +327,6 @@ interface CoreAPI {
 		 * 环境变量加密存储。
 		 *
 		 * @throws SecretStoreLockedException
-		 * @throws GpgException
 		 */
 		suspend fun setEnv(type: EnvType, id: String, value: String)
 		
@@ -449,7 +448,6 @@ interface CoreAPI {
 		 *
 		 * @throws DuplicateApiKeyException
 		 * @throws SecretStoreLockedException
-		 * @throws GpgException
 		 */
 		suspend fun addApiKey(name: String, key: String): UUID
 		
@@ -578,28 +576,32 @@ interface CoreAPI {
 	}
 	
 	/**
-	 * AutoTweaker 使用 GPG 加密存储密钥，私钥与密文放在一起，需要通过用户设置密码来保护密文。
+	 * AutoTweaker 使用对称加密存储密钥，需要用户设置密码来保护密文。
 	 *
-	 * AutoTweaker 在运行时将密码明文存储在内存之中，面对无 root 且不在同一用户下的进程，密码是安全的。
-	 * 同时，只要 AutoTweaker 不在运行或者 [isUnlocked] 为 false，密码就是绝对安全的——只存储在用户脑中。
+	 * 关于 AutoTweaker 使用的加密算法以及相关安全策略，请直接查看 [SecretManager](https://github.com/AutoTweaker/core/blob/main/core/src/main/kotlin/io/github/autotweaker/core/infrastructure/persist/db/secret/SecretManager.kt) 中的注释。
 	 *
 	 * 如果没有密码（[isPasswordEmpty]），那么加密毫无作用，[SecretAPI] 专门用来设置密码和接收密码。
 	 *
-	 * 在从用户接收密码时，请注意安全，AutoTweaker 接受同用户或 root 下任何进程带来的威胁，但插件不应该扩大这个威胁。
-	 * 如果不具备安全接收密码的能力，请不要向用户获取密码——将解密交给其他适配器。
+	 * 在从用户接收密码时，请注意安全。请避免让其他非 root 用户观察到密码，请避免将密码落盘；请尽量避免让同用户进程观察到密码。
+	 *
+	 * 如果无法安全地接收密码，请不要向用户获取密码（请不要实现 unlock 或者 changePassword 功能）。
 	 */
 	interface SecretAPI {
 		/**
 		 * 密钥库是否已经解锁，可订阅 flow 来等待密钥库解锁。
 		 *
-		 * 理论上此值为 true 后就再也不可能重新为 false。
+		 * 此值为 true 后就再也不可能重新为 false。
 		 */
 		val isUnlocked: StateFlow<Boolean>
 		
 		/**
-		 * 如果为 true，密码未设置。密码未设置时密钥库会自动解锁。
+		 * 如果为 true，密码未设置（空字符串）。
 		 *
-		 * @return 密码是否为空。
+		 * 密码未设置时密钥库会自动解锁。所以如果此方法抛出异常，或 [isUnlocked] 为 false，那么就代表密码已经设置。
+		 *
+		 * 如果要安全地调用此方法，请先等待 [isUnlocked] 变为 true。
+		 *
+		 * @return 密码是否为空字符串。
 		 * @throws SecretStoreLockedException
 		 */
 		fun isPasswordEmpty(): Boolean
@@ -607,8 +609,9 @@ interface CoreAPI {
 		/**
 		 * 解锁密钥库。在从用户接收密码时，请注意安全。
 		 *
+		 * AutoTweaker 会在启动时自动使用空字符串来尝试解锁。
+		 *
 		 * @throws PasswordInvalidException
-		 * @throws GpgException
 		 * @see SecretAPI
 		 */
 		suspend fun unlock(password: String)
@@ -618,8 +621,6 @@ interface CoreAPI {
 		 *
 		 * @throws SecretStoreLockedException
 		 * @throws PasswordInvalidException
-		 * @throws GpgException
-		 * @throws SecretNotFoundException
 		 * @see SecretAPI
 		 */
 		suspend fun changePassword(oldPassword: String, newPassword: String)

@@ -20,9 +20,31 @@
 
 package io.github.autotweaker.api
 
+import java.nio.ByteBuffer
 import java.util.*
 
 /**
  * `UUID.randomUUID()` 的别名。
  */
 inline fun UUID(): UUID = UUID.randomUUID()
+
+/**
+ * [UUID] 转 [ByteArray]。
+ */
+fun UUID.toByteArray(): ByteArray =
+	ByteBuffer.allocate(16)
+		.putLong(mostSignificantBits)
+		.putLong(leastSignificantBits)
+		.array()
+
+/**
+ * 用 16 位 [ByteArray] 构造 [UUID]。
+ *
+ * @throws IllegalArgumentException [bytes] 长度不是 16 位
+ */
+fun UUID(bytes: ByteArray): UUID {
+	require(bytes.size == 16) { "UUID requires exactly 16 bytes" }
+	
+	val buffer = ByteBuffer.wrap(bytes)
+	return UUID(buffer.long, buffer.long)
+}

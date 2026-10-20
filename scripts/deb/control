@@ -3,7 +3,7 @@ Version: ${DEB_VERSION}
 Section: devel
 Priority: optional
 Architecture: amd64
-Depends: default-jre-headless (>= 17) | java-runtime-headless (>= 17), bash, gnupg, git, curl, jq, systemd
+Depends: default-jre-headless (>= 22) | java-runtime-headless (>= 22), bash, git, curl, jq, systemd
 Recommends: docker.io
 Homepage: https://github.com/AutoTweaker/core
 Vcs-Git: https://github.com/AutoTweaker/core.git

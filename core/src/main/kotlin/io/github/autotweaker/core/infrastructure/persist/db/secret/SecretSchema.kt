@@ -16,19 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.exception
+package io.github.autotweaker.core.infrastructure.persist.db.secret
 
-import io.github.autotweaker.api.SPACE
-import io.github.autotweaker.api.i18n
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.java.javaUUID
 
-class GpgException(
-	val args: List<String>,
-	val stdout: String,
-	val stderr: String
-) : AutoTweakerException("GPG command failed (${args.joinToString(SPACE.toString())}): $stderr") {
-	override fun message() = i18n(
-		ExceptionI18n.GpgException(),
-		args.joinToString(SPACE.toString()),
-		stderr
-	)
+object SecretTable : Table("secret") {
+	val id = javaUUID("id")
+	val nonce = binary("nonce", 12)
+	val content = blob("content")
+	
+	override val primaryKey = PrimaryKey(id)
+}
+
+object SecretKeyTable : Table("secret_key") {
+	val salt = binary("salt", 16)
+	val nonce = binary("nonce", 12)
+	val wrappedMasterKey = blob("wrapped_master_key")
 }

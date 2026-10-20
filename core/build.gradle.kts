@@ -104,7 +104,7 @@ dependencies {
 	implementation("org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
 	implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.86")
-	implementation("org.ow2.asm:asm:9.10.1")
+	implementation("org.ow2.asm:asm:9.11.1")
 	implementation("com.fasterxml.jackson.core:jackson-core:2.22.3")
 	implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
 	implementation("tools.jackson.core:jackson-core:3.2.3")
