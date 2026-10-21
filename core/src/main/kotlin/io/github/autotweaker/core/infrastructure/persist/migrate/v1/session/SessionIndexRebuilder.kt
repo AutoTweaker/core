@@ -43,16 +43,17 @@ import org.apache.lucene.store.FSDirectory
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.createDirectories
+import kotlin.io.path.div
 import kotlin.time.Instant
 
 object SessionIndexRebuilder : MigratorBase() {
-	private val INDEX_PATH: Path = DB_PATH.resolve("message_search")
+	private val INDEX_PATH: Path = DB_PATH / "message_search"
 	
 	suspend fun rebuild() = withContext(Dispatchers.IO) {
-		Files.createDirectories(INDEX_PATH)
+		INDEX_PATH.createDirectories()
 		val directory = FSDirectory.open(INDEX_PATH)
 		val analyzer = CJKAnalyzer()
 		val writer = IndexWriter(directory, IndexWriterConfig(analyzer))

@@ -20,5 +20,6 @@ package io.github.autotweaker.core.infrastructure.persist.db.base
 
 import io.github.autotweaker.api.CONFIG_PATH
 import java.nio.file.Path
+import kotlin.io.path.div
 
-val DB_PATH: Path = CONFIG_PATH.resolve("database")
+val DB_PATH: Path = CONFIG_PATH / "database"

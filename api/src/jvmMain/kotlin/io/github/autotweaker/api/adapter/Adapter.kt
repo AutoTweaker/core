@@ -37,11 +37,11 @@ interface Adapter {
 	val isRunning: Boolean
 	
 	/**
-	 * 初始化适配器，请不要在此时启动适配器，只做初始化工作。
+	 * 初始化适配器，请不要在此时启动适配器，只做初始化工作（比如保存 CoreAPI）。
 	 *
 	 * 会且仅会在 AutoTweaker 启动后调用一次。
 	 */
-	suspend fun init(core: CoreAPI): AdapterInfo
+	suspend fun init(core: CoreAPI, database: DatabaseAPI): AdapterInfo
 	
 	/**
 	 * 启动适配器，请确保方法返回后 [isRunning] 为 true，请确保在启动后可以通过 [stop] 停止。

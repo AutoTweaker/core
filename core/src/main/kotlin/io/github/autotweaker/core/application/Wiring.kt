@@ -44,7 +44,6 @@ import io.github.autotweaker.core.infrastructure.container.ContainerManager
 import io.github.autotweaker.core.infrastructure.container.ContainerService
 import io.github.autotweaker.core.infrastructure.container.PathResolverImpl
 import io.github.autotweaker.core.infrastructure.container.docker.DockerJavaService
-import io.github.autotweaker.core.infrastructure.data.SecretDbApi
 import io.github.autotweaker.core.infrastructure.data.TemporaryStorageImpl
 import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationEngine
@@ -52,17 +51,15 @@ import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationMan
 import io.github.autotweaker.core.infrastructure.llm.LlmGatewayImpl
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.config.Settings
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.objstore.ObjectStorageImpl
 import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretManager
-import io.github.autotweaker.core.infrastructure.persist.db.session.*
+import io.github.autotweaker.core.infrastructure.persist.db.session.MessageCacheImpl
+import io.github.autotweaker.core.infrastructure.persist.db.session.SessionRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceCleanup
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceRecorderImpl
 import io.github.autotweaker.core.infrastructure.persist.db.trace.TraceStore
-import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
 import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageRepositoryImpl
 import io.github.autotweaker.core.infrastructure.persist.json.ModelResolverImpl
 import io.github.autotweaker.core.infrastructure.system.*
@@ -92,6 +89,7 @@ object Wiring : Loggable {
 				modelConfigRepository = get(),
 				modelResolverImpl = get(),
 				apiKeyRepository = get(),
+				secretManager = get(),
 				settings = get(),
 				translationManager = get(),
 				chatService = get(),
@@ -122,10 +120,8 @@ object Wiring : Loggable {
 	}
 	
 	val configModule = module {
-		single { SecretManager }.bind<SecretStore>()
-		single { I18nServiceImpl }.bind<I18nService>()
-		single { DockerJavaService }.bind<ContainerService>()
-		singleOf(::SecretDbApi)
+		single<I18nService> { I18nServiceImpl }
+		single<ContainerService> { DockerJavaService }
 		singleOf(::ContainerManager)
 		singleOf(::ApiKeyRepository)
 		singleOf(::EnvRepository)
@@ -138,17 +134,12 @@ object Wiring : Loggable {
 		single<DatabaseStore> { H2DatabaseStore }
 		singleOf(::Settings).bind<SettingService>()
 		singleOf(::JsonStoreImpl)
+		singleOf(::SecretManager).bind<SecretStore>()
 		singleOf(::ObjectStorageImpl).bind<ObjectStorage>()
 		singleOf(::TraceStore)
 		singleOf(::SessionRepositoryImpl).bind<SessionRepository>()
 		singleOf(::MessageCacheImpl).bind<MessageCache>()
 		singleOf(::UsageRepositoryImpl).bind<UsageRepository>()
-		singleOf(::SettingDbApi)
-		singleOf(::JsonStoreDbApi)
-		singleOf(::SessionDataDbApi)
-		singleOf(::AgentDataDbApi)
-		singleOf(::AgentMessageDbApi)
-		singleOf(::UsageDbApi)
 		singleOf(::TraceCleanup)
 		singleOf(::TraceRecorderImpl)
 	}

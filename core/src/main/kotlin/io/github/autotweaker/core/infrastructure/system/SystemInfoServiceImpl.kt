@@ -28,8 +28,9 @@ import io.github.autotweaker.core.domain.port.SystemInfoService
 import java.io.IOException
 import java.lang.management.ManagementFactory
 import java.net.InetAddress
-import java.nio.file.Files
-import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.readLines
+import kotlin.io.path.readText
 
 object SystemInfoServiceImpl : SystemInfoService, Loggable, Traceable {
 	private const val OS_RELEASE_PATH = "/etc/os-release"
@@ -49,12 +50,12 @@ object SystemInfoServiceImpl : SystemInfoService, Loggable, Traceable {
 	)
 	
 	private fun readHostname(): String = trace.catching {
-		Files.readString(Path.of(HOSTNAME_PATH)).trim().orNull()
+		Path(HOSTNAME_PATH).readText().trim().orNull()
 			?: InetAddress.getLocalHost().hostName
 	}.getOrDefault("")
 	
 	private fun readDistribution(): String = trace.catching {
-		Files.readAllLines(Path.of(OS_RELEASE_PATH))
+		Path(OS_RELEASE_PATH).readLines()
 			.firstOrNull { it.startsWith("PRETTY_NAME=") }
 			?.removePrefix("PRETTY_NAME=")
 			?.trim('"')

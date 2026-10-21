@@ -25,6 +25,7 @@ import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.tool.port.FileSystemService
 import java.nio.file.Path
+import kotlin.io.path.Path
 
 class FileSystemServiceImpl(
 	private val fs: RawFileSystem,
@@ -34,7 +35,7 @@ class FileSystemServiceImpl(
 	override fun normalize(filePath: String): Path =
 		pathResolver.toAbsolutePath(
 			workspace(),
-			Path.of(filePath)
+			Path(filePath)
 		)
 	
 	override fun displayPath(path: Path): Path {

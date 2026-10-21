@@ -19,6 +19,8 @@
 package io.github.autotweaker.api
 
 import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.div
 
 /**
  * 路径字符串长度。
@@ -28,22 +30,22 @@ val Path.length get() = toString().length
 /**
  * 系统根目录，也就是 `/`。
  */
-val ROOT: Path = Path.of("/")
+val ROOT: Path = Path("/")
 
 /**
  * 用户家目录。
  */
-val HOME: Path = Path.of(System.getProperty("user.home"))
+val HOME: Path = Path(System.getProperty("user.home"))
 
 /**
  * 存储配置及其他数据的目录，请使用提供的持久化 API 而不是直接在此路径下存放文件。
  */
-val CONFIG_PATH: Path = HOME.resolve(".config", APP_NAME_LOWERCASE)
+val CONFIG_PATH: Path = HOME / ".config" / APP_NAME_LOWERCASE
 
 /**
  * 程序的安装路径，如果启动时没有传，此属性就为 null。
  */
-val INSTALL_PATH: Path? = System.getenv("AUTOTWEAKER_INSTALL_PATH")?.let(Path::of)
+val INSTALL_PATH: Path? = System.getenv("AUTOTWEAKER_INSTALL_PATH")?.let(::Path)
 
 /**
  * 用于加载插件 jar 的目录，此目录中只有以 `.jar` 结尾的文件会被加载，jar 或 class 损坏的文件不会被加载。
@@ -53,24 +55,24 @@ val INSTALL_PATH: Path? = System.getenv("AUTOTWEAKER_INSTALL_PATH")?.let(Path::o
  * 被 AutoTweaker 加载的插件实现可以通过 `ServiceLoader.load(T::class.java, this::class.java.classLoader)` 加载其他插件的类，不要直接从目录加载 jar。
  */
 val PLUGIN_PATH: List<Path> = listOfNotNull(
-	CONFIG_PATH.resolve("plugins"),
-	ROOT.resolve("usr", "local", "lib", APP_NAME_LOWERCASE, "plugins"),
+	CONFIG_PATH / "plugins",
+	ROOT / "usr" / "local" / "lib" / APP_NAME_LOWERCASE / "plugins",
 	INSTALL_PATH?.resolve("plugins"),
 )
 
 /**
  * 存放临时文件的目录，通常为 `/tmp/autotweaker`。
  */
-val TMP_PATH: Path = Path.of(
+val TMP_PATH: Path = Path(
 	System.getProperty("java.io.tmpdir"), APP_NAME_LOWERCASE
 )
 
 /**
  * 容器内 `/tmp/autotweaker` 在宿主的挂载位置。
  */
-val TMP_HOST_PATH: Path = TMP_PATH.resolve("container")
+val TMP_HOST_PATH: Path = TMP_PATH / "container"
 
 /**
  * 容器内 `/workspace` 在宿主的挂载位置，位于此路径下的工作区会被视为容器内工作区。
  */
-val WORKSPACE_HOST_PATH: Path = CONFIG_PATH.resolve("container", "workspace")
+val WORKSPACE_HOST_PATH: Path = CONFIG_PATH / "container" / "workspace"

@@ -43,9 +43,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
-import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.io.path.isDirectory
 
 class SessionManager(
 	private val agentDeps: AgentDeps,
@@ -96,7 +96,7 @@ class SessionManager(
 	suspend fun create(workspaceId: UUID, model: ModelConfig): UUID = lock.withLock {
 		secretStore.requireUnlocked()
 		val workspace = wsm.getAndTouch(workspaceId) ?: throw WorkspaceNotFoundException(workspaceId)
-		if (!Files.isDirectory(workspace.path)) throw InvalidWorkspacePathException(workspace.path)
+		if (!workspace.path.isDirectory()) throw InvalidWorkspacePathException(workspace.path)
 		
 		val data = SessionData(
 			id = UUID(),
@@ -159,7 +159,7 @@ class SessionManager(
 					id, workspaceId
 				)
 			}
-		if (!Files.isDirectory(workspace.path))
+		if (!workspace.path.isDirectory())
 			throw InvalidWorkspacePathException(workspace.path).andLog(log) {
 				warn(
 					"Invalid workspace path while restoring session  sessionId={}  path={}",

@@ -22,6 +22,7 @@ import com.google.auto.service.AutoService
 import io.github.autotweaker.api.Loggable
 import io.github.autotweaker.api.adapter.Adapter
 import io.github.autotweaker.api.adapter.CoreAPI
+import io.github.autotweaker.api.adapter.DatabaseAPI
 import io.github.autotweaker.api.appVersion
 import io.github.autotweaker.api.log
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
@@ -40,7 +41,7 @@ class CliAdapter : Adapter, Loggable {
 	
 	override val isRunning get() = CliServer.isRunning
 	
-	override suspend fun init(core: CoreAPI) = info.also { this.core = core }
+	override suspend fun init(core: CoreAPI, database: DatabaseAPI) = info.also { this.core = core }
 	
 	override suspend fun start() {
 		val router = CommandRouter(core)

@@ -18,11 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.objstore
 
+import io.github.autotweaker.api.base.transaction
 import io.github.autotweaker.api.store.ObjectStorage
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.api.ExposedBlob
 import org.jetbrains.exposed.v1.jdbc.insertIgnore

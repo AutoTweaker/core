@@ -24,7 +24,8 @@ import io.github.autotweaker.api.get
 import io.github.autotweaker.api.log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.nio.file.Files
+import kotlin.io.path.div
+import kotlin.io.path.fileSize
 import kotlin.time.Duration.Companion.days
 
 class TraceCleanup(private val store: TraceStore) : Loggable {
@@ -43,7 +44,7 @@ class TraceCleanup(private val store: TraceStore) : Loggable {
 		cleanupCount += if (maxDbSizeMB > 0 && batchSize > 0) {
 			val maxSizeBytes = maxDbSizeMB * BYTES_PER_MB
 			if (withContext(Dispatchers.IO) {
-					Files.size(dbFilePath)
+					dbFilePath.fileSize()
 				} > maxSizeBytes) {
 				store.deleteOldestBatch(batchSize)
 			} else 0L
@@ -54,6 +55,6 @@ class TraceCleanup(private val store: TraceStore) : Loggable {
 	
 	companion object {
 		private const val BYTES_PER_MB = 1024 * 1024
-		private val dbFilePath = CONFIG_PATH.resolve("database", "Traces.mv.db")
+		private val dbFilePath = CONFIG_PATH / "database" / "Traces.mv.db"
 	}
 }

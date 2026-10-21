@@ -33,32 +33,17 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.readByteArray
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.path.deleteIfExists
+import kotlin.io.path.div
+import kotlin.io.path.setPosixFilePermissions
 import kotlin.time.Duration.Companion.seconds
 
 object CliServer : Loggable, Traceable {
-	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
-	
-	@AutoService(SettingDef::class)
-	class MaxLineLength : IntSetting(
-		10_485_760, zh(
-			"CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
-		)
-	)
-	
-	@AutoService(SettingDef::class)
-	class ReadTimeout : IntSetting(
-		15,
-		zh("读取stdin输入时，首块数据到达前的等待时间（秒）")
-	)
-	
-	
 	private val maxLineLength = MaxLineLength().get()
 	
 	private val scope = scope(IO)
@@ -71,18 +56,19 @@ object CliServer : Loggable, Traceable {
 	
 	private const val MAX_RESPONSE_CHUNK = 256 * 1024
 	
-	private val socketPath: Path = CONFIG_PATH.resolve("cli.sock")
+	private val socketPath: Path = CONFIG_PATH / "cli.sock"
 	
 	private val lock = ReentrantMutex()
 	
+	val isRunning get() = ::serverSocket.isInitialized && !serverSocket.isClosed
+	
 	suspend fun start(router: CommandRouter) = lock.withLock {
-		Files.createDirectories(socketPath.parent)
 		socketPath.deleteIfExists()
 		
 		selectorManager = SelectorManager(Dispatchers.IO)
 		serverSocket = aSocket(selectorManager).tcp().bind(UnixSocketAddress(socketPath.toString()))
 		
-		Files.setPosixFilePermissions(socketPath, PosixFilePermissions.fromString("rwx------"))
+		socketPath.setPosixFilePermissions(PosixFilePermissions.fromString("rwx------"))
 		log.info("Started CliServer  socketPath={}", socketPath)
 		
 		scope.launch {
@@ -263,6 +249,19 @@ object CliServer : Loggable, Traceable {
 			else this
 		}\n",
 		OutputChannel.STDERR
+	)
+	
+	@AutoService(SettingDef::class)
+	class MaxLineLength : IntSetting(
+		10_485_760, zh(
+			"CLI接收消息的最大行长度（字节），超出会断开连接，默认10_485_760即10MB"
+		)
+	)
+	
+	@AutoService(SettingDef::class)
+	class ReadTimeout : IntSetting(
+		15,
+		zh("读取stdin输入时，首块数据到达前的等待时间（秒）")
 	)
 	
 	private class ClientDisconnectedException(override val cause: Throwable? = null) :

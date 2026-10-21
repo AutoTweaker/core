@@ -20,27 +20,31 @@ package io.github.autotweaker.core.infrastructure.persist.db.base.h2
 
 import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.transaction
 import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.jdbc.Database
-import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.io.path.div
 
 object H2DatabaseStore : DatabaseStore, Loggable, Traceable {
 	private val databases = ConcurrentHashMap<String, Database>()
 	
-	override fun connect(dbName: String): Database = databases.computeIfAbsent(dbName) { name ->
-		Files.createDirectories(DB_PATH)
-		val url = url(name)
-		log.info("Connected database  db={}  url={}", name, url)
-		Database.connect(url, "org.h2.Driver")
+	override fun connect(dbName: String, pluginId: String?): Database {
+		// 不为空，不包含';'，不包含'..'
+		require(dbName.isNotBlank() && !dbName.contains(';') && !dbName.contains(".."))
+		val name = if (pluginId == null) dbName else "plugins/$pluginId/$dbName"
+		return databases.computeIfAbsent(name) {
+			val url = url(name)
+			log.info("Connected database  db={}  plugin={}  url={}", dbName, pluginId, url)
+			Database.connect(url, "org.h2.Driver")
+		}
 	}
 	
-	fun url(name: String): String =
-		"jdbc:h2:${DB_PATH.resolve(name)};DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0;COMPRESS=TRUE"
+	fun url(name: String): String = "jdbc:h2:${DB_PATH / name};" +
+			"DB_CLOSE_DELAY=-1;TRACE_LEVEL_FILE=0;COMPRESS=TRUE"
 	
-	override suspend fun shutdown() {
+	suspend fun shutdown() {
 		databases.values.forEachParallel { db ->
 			trace.catching { db.transaction { exec("SHUTDOWN") } }
 		}

@@ -21,7 +21,8 @@ package io.github.autotweaker.core.infrastructure.container
 import io.github.autotweaker.api.APP_NAME_LOWERCASE
 import io.github.autotweaker.api.ROOT
 import java.nio.file.Path
+import kotlin.io.path.div
 
 val CONTAINER_NAME: String = "$APP_NAME_LOWERCASE-workspace"
-val CONTAINER_WORK_PATH: Path = ROOT.resolve("workspace")
-val CONTAINER_TMP_PATH: Path = ROOT.resolve("tmp", APP_NAME_LOWERCASE)
+val CONTAINER_WORK_PATH: Path = ROOT / "workspace"
+val CONTAINER_TMP_PATH: Path = ROOT / "tmp" / APP_NAME_LOWERCASE

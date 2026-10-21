@@ -71,6 +71,7 @@ class CoreAPIImpl(
 	private val modelConfigRepository: ModelConfigRepository,
 	private val modelResolverImpl: ModelResolverImpl,
 	private val apiKeyRepository: ApiKeyRepository,
+	private val secretManager: SecretManager,
 	private val settings: Settings,
 	private val translationManager: TranslationManager,
 	private val chatService: ChatService,
@@ -165,11 +166,11 @@ class CoreAPIImpl(
 	}
 	
 	override val secret = object : CoreAPI.SecretAPI {
-		override val isUnlocked = SecretManager.isUnlocked
-		override fun isPasswordEmpty() = SecretManager.isPasswordEmpty
-		override suspend fun unlock(password: String) = SecretManager.unlock(password)
+		override val isUnlocked = secretManager.isUnlocked
+		override fun isPasswordEmpty() = secretManager.isPasswordEmpty
+		override suspend fun unlock(password: String) = secretManager.unlock(password)
 		override suspend fun changePassword(oldPassword: String, newPassword: String) =
-			SecretManager.changePassword(oldPassword, newPassword)
+			secretManager.changePassword(oldPassword, newPassword)
 	}
 	
 	override val i18n = object : CoreAPI.I18nAPI {

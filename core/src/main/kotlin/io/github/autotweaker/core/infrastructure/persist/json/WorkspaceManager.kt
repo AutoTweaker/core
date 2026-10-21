@@ -28,9 +28,11 @@ import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundExcep
 import io.github.autotweaker.api.types.serializer.MutableMapSerializer
 import io.github.autotweaker.api.types.serializer.UuidSerializer
 import io.github.autotweaker.api.types.session.WorkspaceData
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.createDirectories
+import kotlin.io.path.div
+import kotlin.io.path.isDirectory
 
 object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Loggable {
 	override val serializer = MutableMapSerializer(
@@ -94,7 +96,7 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 		if (workspaces.values.any { it.displayName == displayName })
 			throw DuplicateWorkspaceNameException(displayName)
 		val resolved = HOME.resolve(path).normalize()
-		if (!Files.isDirectory(resolved)) throw InvalidWorkspacePathException(resolved)
+		if (!resolved.isDirectory()) throw InvalidWorkspacePathException(resolved)
 		WorkspaceData(path = resolved, displayName = displayName).also {
 			workspaces[it.id] = it
 			log.info("Created workspace  id={}  name={}  path={}", it.id, it.displayName, it.path)
@@ -119,8 +121,8 @@ object WorkspaceManager : MutableStore<MutableMap<UUID, WorkspaceData>>(), Logga
 	private suspend fun ensureDefault() = transform { workspaces ->
 		if (workspaces.containsKey(defaultWorkspaceId)) return@transform
 		
-		val defaultPath = CONFIG_PATH.resolve("workspace")
-		Files.createDirectories(defaultPath)
+		val defaultPath = CONFIG_PATH / "workspace"
+		defaultPath.createDirectories()
 		
 		workspaces[defaultWorkspaceId] = WorkspaceData(
 			id = defaultWorkspaceId,

@@ -38,9 +38,11 @@ import org.koin.core.parameter.parametersOf
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import kotlin.io.path.createDirectories
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.div
 
 object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	private val registry: MutableMap<KebabCase, Pair<Adapter, AdapterInfo>> = mutableMapOf()
@@ -49,14 +51,15 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	private val koin: Koin by lazy { Wiring.createKoin() }
 	private val core: CoreAPI by lazy { koin.get { parametersOf(this) } }
 	
-	private val lockFile: Path = CONFIG_PATH.resolve("$APP_NAME_LOWERCASE.lock")
+	private val lockFile: Path = CONFIG_PATH / "$APP_NAME_LOWERCASE.lock"
 	private var lockChannel: FileChannel? = null
 	private var fileLock: FileLock? = null
 	
 	suspend fun start() {
 		withContext(Dispatchers.IO) {
-			PLUGIN_PATH.forEach { runCatching { Files.createDirectories(it) } }
+			CONFIG_PATH.createDirectories()
 			acquireLock()
+			PLUGIN_PATH.forEach { runCatching { it.createDirectories() } }
 		}
 		
 		loadClass<StartupHook>().forEach { hook ->
@@ -78,7 +81,6 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 	}
 	
 	private fun acquireLock() {
-		Files.createDirectories(lockFile.parent)
 		val channel = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)
 		lockChannel = channel
 		val lock = channel.tryLock()
@@ -125,7 +127,7 @@ object AutoTweaker : CoreAPI.AdapterAPI, Loggable, Traceable {
 		trace.catching {
 			fileLock?.release()
 			lockChannel?.close()
-			Files.deleteIfExists(lockFile)
+			lockFile.deleteIfExists()
 		}.onFailure { log.warn("Failed lock release  lockFile={}  reason={}", lockFile, it.message) }
 	}
 }

@@ -18,11 +18,11 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.trace
 
+import io.github.autotweaker.api.base.transaction
 import io.github.autotweaker.api.discard
 import io.github.autotweaker.api.now
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert

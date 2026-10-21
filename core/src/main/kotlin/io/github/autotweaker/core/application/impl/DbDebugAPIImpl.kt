@@ -19,48 +19,30 @@
 package io.github.autotweaker.core.application.impl
 
 import io.github.autotweaker.api.debug.DbDebugAPI
-import io.github.autotweaker.core.infrastructure.data.SecretDbApi
+import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
-import io.github.autotweaker.core.infrastructure.persist.db.config.ConfigTable
-import io.github.autotweaker.core.infrastructure.persist.db.config.SettingDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
-import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretKeyTable
-import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretTable
-import io.github.autotweaker.core.infrastructure.persist.db.session.*
-import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageDbApi
-import io.github.autotweaker.core.infrastructure.persist.db.usage.UsageTable
-import org.jetbrains.exposed.v1.core.Table
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import kotlin.io.path.exists
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 
-class DbDebugAPIImpl(
-	databaseStore: DatabaseStore,
-	override val setting: SettingDbApi,
-	override val jsonStore: JsonStoreDbApi,
-	override val sessionData: SessionDataDbApi,
-	override val agentData: AgentDataDbApi,
-	override val agentMessage: AgentMessageDbApi,
-	override val usage: UsageDbApi,
-	override val secrets: SecretDbApi,
-) : DbDebugAPI {
-	private val configDb: Database = databaseStore.connect("AppConfig")
-	private val sessionDb: Database = databaseStore.connect("Sessions")
-	private val usageDb: Database = databaseStore.connect("Usages")
-	private val secretDb: Database = databaseStore.connect("Secrets")
+class DbDebugAPIImpl(private val databaseStore: DatabaseStore) : DbDebugAPI {
+	override suspend fun list(): List<String> = withContext(Dispatchers.IO) {
+		if (!DB_PATH.exists()) return@withContext emptyList()
+		DB_PATH.listDirectoryEntries("*$DB_FILE_SUFFIX")
+			.map { it.name.removeSuffix(DB_FILE_SUFFIX) }
+			.sorted()
+	}
 	
-	private val databases: Map<String, Pair<Database, List<Table>>> = mapOf(
-		"AppConfig" to (configDb to listOf(ConfigTable, JsonStoreTable)),
-		"Sessions" to (sessionDb to listOf(SessionDataTable, AgentDataTable, AgentMessageTable)),
-		"Usages" to (usageDb to listOf(UsageTable)),
-		"Secrets" to (secretDb to listOf(SecretTable, SecretKeyTable)),
-	)
+	override suspend fun open(name: String): Database {
+		val file = DB_PATH.resolve(name + DB_FILE_SUFFIX)
+		require(file.parent == DB_PATH && file.exists()) { "Unknown database: $name" }
+		return databaseStore.connect(name)
+	}
 	
-	override suspend fun tables(): Map<String, Map<String, Long>> = databases.mapValues { (_, dbTables) ->
-		val (database, tables) = dbTables
-		database.transaction {
-			tables.associate { it.tableName to it.selectAll().count() }
-		}
+	companion object {
+		private const val DB_FILE_SUFFIX = ".mv.db"
 	}
 }

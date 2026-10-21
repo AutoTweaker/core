@@ -27,20 +27,20 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import kotlin.io.path.*
 import kotlin.time.measureTimedValue
 
 object SchemaMigrationEngine : MigratorBase() {
 	private const val DB_FILE_SUFFIX = ".mv.db"
 	
-	private val BACKUP_PATH: Path = DB_PATH.resolve("backup")
-	private val BACKUP_TMP_PATH: Path = DB_PATH.resolve("backup.tmp")
-	private val APP_CONFIG_FILE: Path = DB_PATH.resolve(APP_CONFIG + DB_FILE_SUFFIX)
+	private val BACKUP_PATH: Path = DB_PATH / "backup"
+	private val BACKUP_TMP_PATH: Path = DB_PATH / "backup.tmp"
+	private val APP_CONFIG_FILE: Path = DB_PATH / (APP_CONFIG + DB_FILE_SUFFIX)
 	
 	suspend fun run() {
-		if (!Files.exists(APP_CONFIG_FILE)) {
+		if (!APP_CONFIG_FILE.exists()) {
 			initSchemaVersion()
 			log.info(
 				"Initialized new database  db={}  schemaVersion={}",
@@ -72,7 +72,7 @@ object SchemaMigrationEngine : MigratorBase() {
 			"Started schema migration  from={}  to={}  databases={}",
 			diskVersion, CURRENT_SCHEMA_VERSION, listDbNames()
 		)
-		if (Files.isDirectory(BACKUP_TMP_PATH)) {
+		if (BACKUP_TMP_PATH.isDirectory()) {
 			log.warn("Discarded incomplete backup")
 			deleteDir(BACKUP_TMP_PATH)
 		}
@@ -119,19 +119,18 @@ object SchemaMigrationEngine : MigratorBase() {
 	
 	private suspend fun backupAll(dbNames: List<String>) = withContext(Dispatchers.IO) {
 		deleteDirIfEmpty(BACKUP_PATH)
-		Files.createDirectories(BACKUP_TMP_PATH)
+		BACKUP_TMP_PATH.createDirectories()
 		dbNames.forEach { dbName ->
 			val timed = measureTimedValue {
 				shutdown(dbName)
-				Files.copy(
-					DB_PATH.resolve(dbName + DB_FILE_SUFFIX),
+				DB_PATH.resolve(dbName + DB_FILE_SUFFIX).copyTo(
 					BACKUP_TMP_PATH.resolve(dbName + DB_FILE_SUFFIX),
-					StandardCopyOption.REPLACE_EXISTING,
+					overwrite = true,
 				)
 			}
 			log.info("Completed database backup  db={}  duration={}", dbName, timed.duration)
 		}
-		Files.move(BACKUP_TMP_PATH, BACKUP_PATH, StandardCopyOption.ATOMIC_MOVE)
+		BACKUP_TMP_PATH.moveTo(BACKUP_PATH, StandardCopyOption.ATOMIC_MOVE)
 	}
 	
 	private suspend fun checkpoint(dbName: String) =
@@ -141,9 +140,9 @@ object SchemaMigrationEngine : MigratorBase() {
 	
 	private suspend fun restoreAll() = withContext(Dispatchers.IO) {
 		listBackupFiles().forEach { backup ->
-			val dbName = backup.fileName.toString().removeSuffix(DB_FILE_SUFFIX)
+			val dbName = backup.name.removeSuffix(DB_FILE_SUFFIX)
 			runCatching { restore(dbName, backup) }
-				.onSuccess { Files.deleteIfExists(backup) }
+				.onSuccess { backup.deleteIfExists() }
 				.onFailure { log.error("Failed to restore database  db={}  backup={}", dbName, backup, it) }
 		}
 		deleteDirIfEmpty(BACKUP_PATH)
@@ -152,10 +151,9 @@ object SchemaMigrationEngine : MigratorBase() {
 	private suspend fun restore(dbName: String, backup: Path) = withContext(Dispatchers.IO) {
 		val timed = measureTimedValue {
 			shutdown(dbName)
-			Files.copy(
-				backup,
-				DB_PATH.resolve(dbName + DB_FILE_SUFFIX),
-				StandardCopyOption.REPLACE_EXISTING,
+			backup.copyTo(
+				DB_PATH / (dbName + DB_FILE_SUFFIX),
+				overwrite = true,
 			)
 		}
 		log.info("Completed database restore  db={}  duration={}", dbName, timed.duration)
@@ -167,32 +165,26 @@ object SchemaMigrationEngine : MigratorBase() {
 	}
 	
 	private suspend fun deleteDir(dir: Path) = withContext(Dispatchers.IO) {
-		if (!Files.isDirectory(dir)) return@withContext
-		Files.list(dir).use { it.forEach(Files::deleteIfExists) }
-		Files.deleteIfExists(dir)
+		if (!dir.isDirectory()) return@withContext
+		dir.listDirectoryEntries().forEach { it.deleteIfExists() }
+		dir.deleteIfExists()
 	}
 	
 	private suspend fun deleteDirIfEmpty(dir: Path) = withContext(Dispatchers.IO) {
-		if (!Files.isDirectory(dir)) return@withContext
-		Files.list(dir).use { stream ->
-			if (stream.findFirst().isEmpty) Files.deleteIfExists(dir)
-		}
+		if (!dir.isDirectory()) return@withContext
+		if (dir.listDirectoryEntries().isEmpty()) dir.deleteIfExists()
 	}
 	
 	private suspend fun listDbNames(): List<String> = withContext(Dispatchers.IO) {
-		Files.list(DB_PATH).use { stream ->
-			stream.filter { it.fileName.toString().endsWith(DB_FILE_SUFFIX) }
-				.map { it.fileName.toString().removeSuffix(DB_FILE_SUFFIX) }
-				.toList()
-		}
+		DB_PATH.listDirectoryEntries()
+			.filter { it.name.endsWith(DB_FILE_SUFFIX) }
+			.map { it.name.removeSuffix(DB_FILE_SUFFIX) }
 	}
 	
 	private suspend fun listBackupFiles(): List<Path> = withContext(Dispatchers.IO) {
-		if (!Files.isDirectory(BACKUP_PATH)) emptyList()
-		else Files.list(BACKUP_PATH).use { stream ->
-			stream.filter {
-				it.fileName.toString().endsWith(DB_FILE_SUFFIX)
-			}.toList()
+		if (!BACKUP_PATH.isDirectory()) emptyList()
+		else BACKUP_PATH.listDirectoryEntries().filter {
+			it.name.endsWith(DB_FILE_SUFFIX)
 		}
 	}
 	

@@ -34,13 +34,14 @@ import kotlinx.coroutines.withContext
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
-import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.IIOImage
 import javax.imageio.ImageIO
 import javax.imageio.ImageReader
 import javax.imageio.ImageWriteParam
 import javax.imageio.stream.ImageInputStream
+import kotlin.io.path.fileSize
+import kotlin.io.path.readBytes
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -59,8 +60,8 @@ object ImageServiceImpl : ImageService, Loggable {
 	override suspend fun read(path: Path): ImageContent = withContext(Dispatchers.IO) {
 		val limit = MaxSizeKB().get() * 1024
 		open(path).use { image ->
-			if (image.fits(Files.size(path), limit)) {
-				return@withContext ImageContent(image.mimeType, Files.readAllBytes(path))
+			if (image.fits(path.fileSize(), limit)) {
+				return@withContext ImageContent(image.mimeType, path.readBytes())
 			}
 			
 			val alpha = image.hasAlpha

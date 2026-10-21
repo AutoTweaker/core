@@ -16,18 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.autotweaker.api.types.debug
+package io.github.autotweaker.api.base
 
-import io.github.autotweaker.api.types.agent.AgentIndex
-import java.util.*
-import kotlin.time.Instant
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 
-data class SessionDataEntry(
-	override val key: UUID,
-	val title: String?,
-	val overview: String?,
-	val workspaceId: UUID,
-	val creationTime: Instant,
-	val lastAccessTime: Instant,
-	val agentIndex: AgentIndex
-) : DbEntry<UUID>()
+/**
+ * 普通 transaction，只是切换到 IO 线程池，可能仍然阻塞线程。
+ */
+suspend fun <T> Database.transaction(
+	dispatcher: CoroutineDispatcher = Dispatchers.IO,
+	block: suspend JdbcTransaction.() -> T
+): T = withContext(dispatcher) { suspendTransaction(this@transaction, statement = block) }

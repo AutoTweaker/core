@@ -18,6 +18,7 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.session
 
+import io.github.autotweaker.api.base.transaction
 import io.github.autotweaker.api.types.KebabCase.Companion.toKebab
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.message.AgentMessage
@@ -29,7 +30,6 @@ import io.github.autotweaker.api.types.session.SessionSort
 import io.github.autotweaker.core.domain.port.SessionRepository
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction

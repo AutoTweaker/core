@@ -27,12 +27,12 @@ import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.agent.
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.session.V0AgentTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.session.V0SessionTable
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import java.nio.file.Files
 import java.util.*
+import kotlin.io.path.exists
 
 object SessionPlanner : MigratorBase() {
 	suspend fun plan(): SessionPlan? {
-		if (!Files.exists(DB_PATH.resolve("$SESSIONS_DB.mv.db"))) return null
+		if (!DB_PATH.resolve("$SESSIONS_DB.mv.db").exists()) return null
 		val v0Sessions = V0SessionTable("session_data")
 		val v0Agents = V0AgentTable("agent_data")
 		

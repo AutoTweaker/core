@@ -23,10 +23,12 @@ import io.github.autotweaker.api.types.SemVer
 import org.objectweb.asm.ClassReader
 import java.net.URL
 import java.net.URLClassLoader
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.jar.JarFile
+import kotlin.io.path.extension
+import kotlin.io.path.isDirectory
+import kotlin.io.path.listDirectoryEntries
 import kotlin.system.exitProcess
 
 object PluginLoader : Loggable, Traceable {
@@ -72,10 +74,8 @@ object PluginLoader : Loggable, Traceable {
 		return accepted
 	}
 	
-	private fun jarsOf(dir: Path): List<Path> = if (Files.isDirectory(dir)) {
-		Files.list(dir).use { paths ->
-			paths.filter { it.toString().endsWith(".jar") }.sorted().toList()
-		}
+	private fun jarsOf(dir: Path): List<Path> = if (dir.isDirectory()) {
+		dir.listDirectoryEntries().filter { it.extension == "jar" }.sorted()
 	} else emptyList()
 	
 	private fun readMetadata(path: Path): PluginMetadata? = runCatching { //加载StartupHook时trace尚未准备好

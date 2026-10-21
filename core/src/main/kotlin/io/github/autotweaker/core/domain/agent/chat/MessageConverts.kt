@@ -33,6 +33,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.div
 import kotlin.time.Instant
 
 class MessageConverts(
@@ -45,13 +46,13 @@ class MessageConverts(
 		val inContainer = pathResolver.inContainer(workspace)
 		val cwd = if (inContainer) pathResolver.toContainerPath(workspace) else workspace
 		trace.catching {
-			fileSystem.read(CONFIG_PATH.resolve("AGENTS.md"))
+			fileSystem.read(CONFIG_PATH / "AGENTS.md")
 		}.getOrNull()?.let {
 			log.debug("Loaded user AGENTS.md  length={}  workspace={}", it.content.length, workspace)
 			add(buildInjection("user_instructions", it.content))
 		}
 		trace.catching {
-			fileSystem.read(workspace.resolve("AGENTS.md"))
+			fileSystem.read(workspace / "AGENTS.md")
 		}.getOrNull()?.let {
 			log.debug("Loaded project AGENTS.md  length={}  workspace={}", it.content.length, workspace)
 			add(buildInjection("project_instructions", it.content))

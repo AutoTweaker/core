@@ -19,10 +19,10 @@
 package io.github.autotweaker.core.infrastructure.persist.migrate
 
 import io.github.autotweaker.api.Loggable
+import io.github.autotweaker.api.base.transaction
 import io.github.autotweaker.api.json
 import io.github.autotweaker.core.infrastructure.persist.db.base.DB_PATH
 import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -34,9 +34,9 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import java.nio.file.Files
 import java.sql.DriverManager
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.io.path.exists
 
 abstract class MigratorBase : Loggable {
 	protected suspend fun <T> transaction(dbName: String, block: suspend JdbcTransaction.() -> T): T =
@@ -80,7 +80,7 @@ abstract class MigratorBase : Loggable {
 	
 	protected suspend fun shutdown(dbName: String) {
 		connections.remove(dbName)?.let { TransactionManager.closeAndUnregister(it) }
-		if (!Files.exists(DB_PATH.resolve("$dbName.mv.db"))) return
+		if (!DB_PATH.resolve("$dbName.mv.db").exists()) return
 		withContext(Dispatchers.IO) {
 			DriverManager.getConnection(H2DatabaseStore.url(dbName)).use { connection ->
 				connection.createStatement().use { it.execute("SHUTDOWN") }
@@ -89,7 +89,6 @@ abstract class MigratorBase : Loggable {
 	}
 	
 	private fun connect(dbName: String): Database = connections.computeIfAbsent(dbName) {
-		Files.createDirectories(DB_PATH)
 		Database.connect(H2DatabaseStore.url(dbName), "org.h2.Driver")
 	}
 	

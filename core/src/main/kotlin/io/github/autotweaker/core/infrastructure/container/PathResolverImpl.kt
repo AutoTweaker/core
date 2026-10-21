@@ -23,6 +23,8 @@ import io.github.autotweaker.api.WORKSPACE_HOST_PATH
 import io.github.autotweaker.api.adapter.PathResolver
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
 import java.nio.file.Path
+import kotlin.io.path.div
+import kotlin.io.path.relativeTo
 
 object PathResolverImpl : PathResolver {
 	override fun inContainer(workspace: Path): Boolean =
@@ -30,29 +32,29 @@ object PathResolverImpl : PathResolver {
 	
 	override fun toAbsolutePath(workspace: Path, path: Path): Path {
 		val base = if (inContainer(workspace)) toContainerPath(workspace) else workspace
-		return base.resolve(path).normalize()
+		return (base / path).normalize()
 	}
 	
 	override fun toRelativePath(workspace: Path, path: Path): Path {
 		val base = if (inContainer(workspace)) toContainerPath(workspace) else workspace
-		return base.relativize(toAbsolutePath(workspace, path))
+		return toAbsolutePath(workspace, path).relativeTo(base)
 	}
 	
 	override fun toContainerPath(path: Path): Path {
 		val normalized = path.normalize()
 		if (normalized.startsWith(WORKSPACE_HOST_PATH))
-			return CONTAINER_WORK_PATH.resolve(WORKSPACE_HOST_PATH.relativize(normalized))
+			return CONTAINER_WORK_PATH / normalized.relativeTo(WORKSPACE_HOST_PATH)
 		if (normalized.startsWith(TMP_HOST_PATH))
-			return CONTAINER_TMP_PATH.resolve(TMP_HOST_PATH.relativize(normalized))
+			return CONTAINER_TMP_PATH / normalized.relativeTo(TMP_HOST_PATH)
 		throw PathOutsideWorkspaceException(path)
 	}
 	
 	override fun toHostPath(path: Path): Path {
 		val normalized = path.normalize()
 		if (normalized.startsWith(CONTAINER_WORK_PATH))
-			return WORKSPACE_HOST_PATH.resolve(CONTAINER_WORK_PATH.relativize(normalized))
+			return WORKSPACE_HOST_PATH / normalized.relativeTo(CONTAINER_WORK_PATH)
 		if (normalized.startsWith(CONTAINER_TMP_PATH))
-			return TMP_HOST_PATH.resolve(CONTAINER_TMP_PATH.relativize(normalized))
+			return TMP_HOST_PATH / normalized.relativeTo(CONTAINER_TMP_PATH)
 		throw PathOutsideWorkspaceException(path)
 	}
 }

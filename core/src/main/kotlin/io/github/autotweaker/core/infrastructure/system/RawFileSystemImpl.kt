@@ -36,7 +36,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.FilterInputStream
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.*
@@ -44,6 +43,7 @@ import java.nio.file.attribute.AclFileAttributeView
 import java.nio.file.attribute.PosixFileAttributes
 import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.attribute.UserDefinedFileAttributeView
+import kotlin.io.path.*
 import kotlin.time.toKotlinInstant
 import java.nio.file.FileAlreadyExistsException as JvmFileAlreadyExistsException
 
@@ -52,17 +52,14 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	private val ownerOnly = PosixFilePermissions.fromString("rw-------")
 	private const val MAX_READ_CHARS = 10 * 1024 * 1024
 	private const val BUFFER_SIZE = 8192
-	override suspend fun exists(path: Path): Boolean = withContext(Dispatchers.IO) {
-		Files.exists(path)
-	}
 	
-	override suspend fun isRegularFile(path: Path): Boolean = withContext(Dispatchers.IO) {
-		Files.isRegularFile(path)
-	}
+	override suspend fun exists(path: Path): Boolean = path.exists()
+	
+	override suspend fun isRegularFile(path: Path): Boolean = path.isRegularFile()
 	
 	override suspend fun metadata(path: Path): FileMetadata = withContext(Dispatchers.IO) {
 		trace.catching {
-			with(Files.readAttributes(path, PosixFileAttributes::class.java)) {
+			with(path.readAttributes<PosixFileAttributes>()) {
 				FileMetadata(
 					size = size(),
 					lastModifiedTime = lastModifiedTime().toInstant().toKotlinInstant(),
@@ -83,7 +80,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	
 	override suspend fun lineCount(path: Path): Int = withContext(Dispatchers.IO) {
 		trace.catching {
-			Files.newInputStream(path).use { input ->
+			path.inputStream().use { input ->
 				var count = 0
 				var last = -1
 				val buffer = ByteArray(BUFFER_SIZE)
@@ -104,12 +101,12 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	@Suppress("UnstableApiUsage")
 	override suspend fun read(path: Path): FileContent = withContext(Dispatchers.IO) {
 		trace.catching {
-			Files.newInputStream(path).use { input ->
+			path.inputStream().use { input ->
 				val hasher = Hashing.sha256().newHasher()
 				val hashing = HashingInputStream(input, hasher)
-				val reader = InputStreamReader(hashing, Charsets.UTF_8)
+				val reader = hashing.reader(Charsets.UTF_8)
 				val initialSize = minOf(
-					maxOf(Files.size(path), BUFFER_SIZE.toLong()),
+					maxOf(path.fileSize(), BUFFER_SIZE.toLong()),
 					MAX_READ_CHARS.toLong()
 				).toInt()
 				var chars = CharArray(initialSize)
@@ -143,7 +140,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	override suspend fun sha256(path: Path): Sha256 = withContext(Dispatchers.IO) {
 		trace.catching {
 			val hasher = Hashing.sha256().newHasher()
-			Files.newInputStream(path).use { input ->
+			path.inputStream().use { input ->
 				val buffer = ByteArray(BUFFER_SIZE)
 				while (true) {
 					val read = input.read(buffer)
@@ -156,23 +153,23 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	}
 	
 	override suspend fun create(path: Path, content: String): Sha256 = withContext(Dispatchers.IO) {
-		val target = path.toAbsolutePath()
+		val target = path.absolute()
 		val bytes = content.toByteArray()
 		trace.catching {
 			pathLocks[target.hashCode() and 255].withLock {
-				target.parent?.let { Files.createDirectories(it) }
+				target.createParentDirectories()
 				var created = false
 				trace.catching {
 					FileChannel.open(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
 						.use { channel ->
 							created = true
-							trace.catching { Files.setPosixFilePermissions(target, ownerOnly) }
+							trace.catching { target.setPosixFilePermissions(ownerOnly) }
 							val buffer = ByteBuffer.wrap(bytes)
 							while (buffer.hasRemaining()) channel.write(buffer)
 							channel.force(true)
 						}
-				}.also { result ->
-					if (created && result.isFailure) trace.catching { Files.deleteIfExists(target) }
+				}.onFailure {
+					if (created) trace.catching { target.deleteIfExists() }
 				}.getOrThrow()
 				Sha256(Hashing.sha256().hashBytes(bytes))
 			}
@@ -184,7 +181,7 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		withContext(Dispatchers.IO) {
 			trace.catching {
 				val target = path.toRealPath()
-				if (!Files.isWritable(target)) throw FileNotWritableException()
+				if (!target.isWritable()) throw FileNotWritableException()
 				pathLocks[target.hashCode() and 255].withLock {
 					val current = sha256(target)
 					if (current != expected) throw FileChangedException()
@@ -194,21 +191,21 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		}
 	
 	private fun atomicReplace(path: Path, new: String): Sha256 {
-		val tmp = path.resolveSibling(".${path.fileName}.${UUID()}.tmp")
+		val tmp = path.resolveSibling(".${path.name}.${UUID()}.tmp")
 		val hash = trace.catching {
 			val bytes = new.toByteArray()
 			FileChannel.open(tmp, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
 				.use { channel ->
-					trace.catching { Files.setPosixFilePermissions(tmp, ownerOnly) }
+					trace.catching { tmp.setPosixFilePermissions(ownerOnly) }
 					val buffer = ByteBuffer.wrap(bytes)
 					while (buffer.hasRemaining()) channel.write(buffer)
 					channel.force(true)
 				}
 			copyMetadata(path, tmp)
-			Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+			tmp.moveTo(path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
 			Sha256(Hashing.sha256().hashBytes(bytes))
-		}.also { result ->
-			if (result.isFailure) trace.catching { Files.deleteIfExists(tmp) }
+		}.onFailure {
+			trace.catching { tmp.deleteIfExists() }
 		}.rethrowCancellation()
 			.onFailure { log.error("Failed to write file  path={}  reason={}", path, it.message, it) }
 			.getOrThrow()
@@ -221,18 +218,16 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 		trace.catching { ProcessBuilder("chown", "--reference=$from", "$to").start().waitFor() }
 		trace.catching { ProcessBuilder("chcon", "--reference=$from", "$to").start().waitFor() }
 		trace.catching {
-			val acl = Files.getFileAttributeView(from, AclFileAttributeView::class.java)?.acl
+			val acl = from.fileAttributesViewOrNull<AclFileAttributeView>()?.acl
 				?: return@catching
-			Files.getFileAttributeView(to, AclFileAttributeView::class.java)?.acl = acl
+			to.fileAttributesViewOrNull<AclFileAttributeView>()?.acl = acl
 		}
 		trace.catching {
-			val fromView = Files.getFileAttributeView(from, UserDefinedFileAttributeView::class.java)
-				?: return@catching
-			val toView = Files.getFileAttributeView(to, UserDefinedFileAttributeView::class.java)
-				?: return@catching
-			for (name in fromView.list()) {
+			val fromView = from.fileAttributesViewOrNull<UserDefinedFileAttributeView>() ?: return@catching
+			val toView = to.fileAttributesViewOrNull<UserDefinedFileAttributeView>() ?: return@catching
+			fromView.list().forEach { name ->
 				val size = fromView.size(name)
-				if (size <= 0) continue
+				if (size <= 0) return@forEach
 				val buffer = ByteBuffer.allocate(size)
 				fromView.read(name, buffer)
 				buffer.flip()
@@ -249,16 +244,16 @@ object RawFileSystemImpl : RawFileSystem, Loggable, Traceable {
 	
 	override suspend fun list(path: Path): List<Path> = withContext(Dispatchers.IO) {
 		trace.catching {
-			Files.list(path).use { stream -> stream.toList() }
+			path.listDirectoryEntries()
 		}.rethrowFileSystemException()
 	}
 	
 	override suspend fun glob(pattern: String, cwd: Path): List<Path> =
 		withContext(Dispatchers.IO) {
 			val matcher = cwd.fileSystem.getPathMatcher("glob:$pattern")
-			Files.walk(cwd).use { stream ->
-				stream.filter { matcher.matches(it) }.toList()
-			}
+			cwd.walk(PathWalkOption.INCLUDE_DIRECTORIES)
+				.filter { matcher.matches(it) }
+				.toList()
 		}
 	
 	private fun <T> CatchingResult<T>.rethrowFileSystemException(): T =

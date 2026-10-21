@@ -18,17 +18,9 @@
 
 package io.github.autotweaker.api.debug
 
-import io.github.autotweaker.api.types.debug.*
-import java.util.*
+import org.jetbrains.exposed.v1.jdbc.Database
 
 interface DbDebugAPI {
-	val setting: DbAPI<SettingEntry, String>
-	val jsonStore: DbAPI<JsonStoreEntry, String>
-	val sessionData: DbAPI<SessionDataEntry, UUID>
-	val agentMessage: DbAPI<AgentMessageEntry, UUID>
-	val agentData: DbAPI<AgentDataEntry, UUID>
-	val usage: DbAPI<UsageEntry, UUID>
-	val secrets: DbAPI<SecretEntry, UUID>
-	
-	suspend fun tables(): Map<String, Map<String, Long>>
+	suspend fun list(): List<String>
+	suspend fun open(name: String): Database
 }

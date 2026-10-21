@@ -60,13 +60,14 @@ kotlin {
 	
 	sourceSets {
 		commonMain.dependencies {
-			implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-			implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+			api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+			api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 		}
 		jvmMain.dependencies {
-			implementation("org.slf4j:slf4j-api:2.0.20")
+			api("org.jetbrains.exposed:exposed-jdbc:1.5.1")
+			api("org.slf4j:slf4j-api:2.0.20")
+			api("com.google.guava:guava:33.7.1-jre")
 			implementation("com.google.auto.service:auto-service-annotations:1.1.1")
-			implementation("com.google.guava:guava:33.7.1-jre")
 			implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 		}
 		jvmMain {

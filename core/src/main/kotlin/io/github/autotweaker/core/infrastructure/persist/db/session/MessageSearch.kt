@@ -35,10 +35,10 @@ import org.apache.lucene.index.Term
 import org.apache.lucene.search.*
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.FSDirectory
-import java.io.StringReader
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.createDirectories
+import kotlin.io.path.div
 import kotlin.time.Instant
 
 object MessageSearch {
@@ -47,9 +47,9 @@ object MessageSearch {
 	private const val FIELD_TIMESTAMP = "timestamp"
 	private const val FIELD_SEARCH_TEXT = "searchText"
 	
-	private val INDEX_PATH: Path = DB_PATH.resolve("message_search")
+	private val INDEX_PATH: Path = DB_PATH / "message_search"
 	private val directory: Directory by lazy {
-		Files.createDirectories(INDEX_PATH)
+		INDEX_PATH.createDirectories()
 		FSDirectory.open(INDEX_PATH)
 	}
 	private val analyzer by lazy { CJKAnalyzer() }
@@ -136,7 +136,7 @@ object MessageSearch {
 	
 	private fun tokenize(query: String): List<String> {
 		val terms = mutableListOf<String>()
-		analyzer.tokenStream(FIELD_SEARCH_TEXT, StringReader(query)).use { stream ->
+		analyzer.tokenStream(FIELD_SEARCH_TEXT, query.reader()).use { stream ->
 			val term = stream.addAttribute(CharTermAttribute::class.java)
 			stream.reset()
 			while (stream.incrementToken()) terms.add(term.toString())

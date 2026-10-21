@@ -21,6 +21,5 @@ package io.github.autotweaker.core.infrastructure.persist.db.base
 import org.jetbrains.exposed.v1.jdbc.Database
 
 interface DatabaseStore {
-	fun connect(dbName: String): Database
-	suspend fun shutdown() {}
+	fun connect(dbName: String, pluginId: String? = null): Database
 }

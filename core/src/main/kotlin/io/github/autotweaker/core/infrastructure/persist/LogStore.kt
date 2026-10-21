@@ -27,28 +27,25 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.*
 import kotlin.time.Instant
 
 object LogStore : Loggable, Traceable {
-	private val LOG_PATH: Path = CONFIG_PATH.resolve("logs")
+	private val LOG_PATH: Path = CONFIG_PATH / "logs"
 	
 	fun readLogs(start: Instant, end: Instant): List<LogEvent<ExceptionInfo.Stored>> {
 		val files = trace.catching {
-			Files.list(LOG_PATH).use { stream ->
-				stream.filter { it.fileName.toString().endsWith(".jsonl") }.toList()
-			}
-		}.getOrNull()?.sortedByDescending { it.fileName.toString() }.orEmpty()
+			LOG_PATH.listDirectoryEntries().filter { it.extension == "jsonl" }
+		}.getOrNull()?.sortedByDescending { it.name }.orEmpty()
 		
 		val startDate = start.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 		val result = mutableListOf<LogEvent<ExceptionInfo.Stored>>()
 		
 		for (file in files) {
-			val fileName = file.fileName.toString()
-			if (fileName.substringBeforeLast('.') < "$APP_NAME_LOWERCASE.$startDate") break
+			if (file.nameWithoutExtension < "$APP_NAME_LOWERCASE.$startDate") break
 			trace.catching {
-				Files.readAllLines(file)
+				file.readLines()
 			}.getOrNull()?.asReversed()?.forEach { line ->
 				val event = parseLine(line) ?: return@forEach
 				if (event.timestamp > end) return@forEach

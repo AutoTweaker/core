@@ -36,8 +36,8 @@ import io.github.autotweaker.api.base.getOrDefault
 import io.github.autotweaker.api.base.zh
 import io.github.autotweaker.api.config.SettingDef
 import kotlinx.coroutines.channels.ReceiveChannel
-import java.nio.file.Path
 import java.util.*
+import kotlin.io.path.Path
 
 
 class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
@@ -73,7 +73,7 @@ class CommandRouter(private val core: CoreAPI, commands: List<Command>) :
 		prompt: suspend (echo: Boolean) -> String?,
 		output: suspend (CmdOutput) -> Unit
 	): Int = try {
-		val cwd = trace.catching { Path.of(request.cwd) }
+		val cwd = trace.catching { Path(request.cwd) }
 			.onFailure { log.error("Failed to converting cwd", it) }
 			.getOrDefault(HOME)
 		

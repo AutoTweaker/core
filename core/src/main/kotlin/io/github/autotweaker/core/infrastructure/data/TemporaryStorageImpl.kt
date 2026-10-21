@@ -22,22 +22,17 @@ import io.github.autotweaker.api.*
 import io.github.autotweaker.api.base.catching
 import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.core.domain.port.TemporaryStorage
-import java.io.IOException
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
-import kotlin.streams.asSequence
+import kotlin.io.path.*
 
 object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
 	override fun save(content: String, container: Boolean): Pair<UUID, Path> {
-		require(content.isNotEmpty())
-		val base = baseDir(container)
-		createDir()
+		if (!TMP_HOST_PATH.exists()) TMP_HOST_PATH.createDirectories()
 		
 		val id = UUID()
-		val path = base.resolve(id.toString())
+		val base = baseDir(container)
+		val path = base / id.toString()
 		path.writeText(content)
 		
 		return id to path
@@ -45,36 +40,32 @@ object TemporaryStorageImpl : TemporaryStorage, Loggable, Traceable {
 	
 	override fun list(container: Boolean): Map<UUID, Path> {
 		val base = baseDir(container)
-		if (!Files.exists(base)) return emptyMap()
+		if (!base.exists()) return emptyMap()
 		
 		val files = trace.catching {
-			Files.list(base).use { stream ->
-				stream.asSequence().toList()
+			base.listDirectoryEntries()
+		}.getOrElse { return emptyMap() }
+		
+		return buildMap {
+			files.forEach {
+				val id = trace.catching {
+					UUID.fromString(it.name)
+				}.getOrElse { return@forEach }
+				
+				this[id] = it
 			}
-		}.rethrowNot<IOException>()
-			.getOrElse { return emptyMap() }
-		val map = mutableMapOf<UUID, Path>()
-		files.forEach {
-			val id = trace.catching {
-				UUID.fromString(it.fileName.toString())
-			}.getOrElse { return@forEach }
-			map[id] = it
 		}
-		return map.toMap()
 	}
 	
 	override fun read(id: UUID, container: Boolean): String? {
 		val base = baseDir(container)
-		val path = base.resolve(id.toString())
-		if (!Files.exists(base) || Files.notExists(path)) return null
+		val path = base / id.toString()
+		if (base.notExists() || path.notExists()) return null
 		
 		return trace.catching {
 			path.readText()
-		}.rethrowNot<IOException>().getOrNull()
+		}.getOrNull()
 	}
 	
 	private fun baseDir(container: Boolean) = if (container) TMP_HOST_PATH else TMP_PATH
-	private fun createDir() {
-		if (!Files.exists(TMP_HOST_PATH)) Files.createDirectories(TMP_HOST_PATH)
-	}
 }

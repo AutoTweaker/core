@@ -19,7 +19,11 @@
 package io.github.autotweaker.toolgen
 
 import kotlinx.coroutines.runBlocking
-import java.io.File
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.createDirectories
+import kotlin.io.path.name
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.script.experimental.api.ScriptEvaluationConfiguration
 import kotlin.script.experimental.host.toScriptSource
@@ -27,15 +31,15 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 import kotlin.system.exitProcess
 
-fun executeScripts(outputDir: File, scripts: List<File>): Boolean {
+fun executeScripts(outputDir: Path, scripts: List<Path>): Boolean {
 	val host = BasicJvmScriptingHost()
 	var failed = false
 	for (script in scripts) {
-		System.setProperty("toolgen.outputDir", outputDir.absolutePath)
+		System.setProperty("toolgen.outputDir", outputDir.absolutePathString())
 		print("executing ${script.name}... ")
 		val result = runBlocking {
 			host.eval(
-				script.toScriptSource(),
+				script.toFile().toScriptSource(),
 				createJvmCompilationConfigurationFromTemplate<ToolgenScript>(),
 				ScriptEvaluationConfiguration()
 			)
@@ -58,7 +62,7 @@ fun main(args: Array<String>) {
 		System.err.println("usage: <outputDir> <script>...")
 		exitProcess(2)
 	}
-	val outputDir = File(args[0]).apply { mkdirs() }
-	val scripts = args.drop(1).map(::File).sortedBy { it.name }
+	val outputDir = Path(args[0]).createDirectories()
+	val scripts = args.drop(1).map(::Path).sortedBy { it.name }
 	if (!executeScripts(outputDir, scripts)) exitProcess(1)
 }

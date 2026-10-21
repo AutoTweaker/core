@@ -34,6 +34,7 @@ import io.github.autotweaker.core.infrastructure.i18n.I18nServiceImpl
 import io.github.autotweaker.core.infrastructure.i18n.translation.TranslationManager
 import io.github.autotweaker.core.infrastructure.llm.LlmClientLoader
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.json.JsonStoreImpl
 import io.github.autotweaker.core.infrastructure.persist.db.secret.SecretManager
 import io.github.autotweaker.core.infrastructure.persist.db.session.MessageSearch
@@ -63,7 +64,7 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed to disable ptrace  reason={}", it.message) }
 		
 		// 密钥库
-		SecretManager.init()
+		koin.get<SecretManager>().init()
 		// Trace服务，会启动协程
 		koin.get<TraceRecorderImpl>().init()
 		
@@ -75,9 +76,13 @@ object Launcher : Loggable, Traceable {
 			log.info("Initialized debugger  class={}", it::class.java.name)
 		}
 		
+		val db = koin.get<DatabaseStore>()
 		val adapters = PluginLoader.load<Adapter>()
-			.map { it to it.init(lazyCore()) }
-			.distinctBy { (_, info) -> info.name }
+			.map { adapter ->
+				adapter to adapter.init(lazyCore()) {
+					db.connect(it, adapter::class.qualifiedName ?: unreachable())
+				}
+			}.distinctBy { it.second.name }
 		
 		if (adapters.isNotEmpty()) {
 			log.info("Found adapters to start  count={}", adapters.size)
@@ -112,7 +117,7 @@ object Launcher : Loggable, Traceable {
 			trace.catching { it.shutdown() }
 		}
 		
-		trace.catching { koin.get<I18nServiceImpl>().shutdown() }
+		trace.catching { I18nServiceImpl.shutdown() }
 			.onFailure { log.warn("Failed I18nServiceImpl shutdown") }
 		trace.catching { koin.get<SessionManager>().shutdown() }
 			.onFailure { log.warn("Failed SessionManager shutdown") }
@@ -127,8 +132,8 @@ object Launcher : Loggable, Traceable {
 			.onFailure { log.warn("Failed TraceRecorderImpl shutdown") }
 		trace.catching { MessageSearch.close() }
 			.onFailure { log.warn("Failed MessageSearch close") }
-		trace.catching { koin.get<DatabaseStore>().shutdown() }
-			.onFailure { log.warn("Failed DatabaseStore shutdown") }
+		trace.catching { H2DatabaseStore.shutdown() }
+			.onFailure { log.warn("Failed H2DatabaseStore shutdown") }
 		
 		koin.close()
 		

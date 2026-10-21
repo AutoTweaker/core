@@ -30,8 +30,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.time.Duration
 
 class ContainerManager(
@@ -53,7 +53,7 @@ class ContainerManager(
 	val isRunning: Boolean get() = containerId != null
 	
 	fun init() {
-		Files.createDirectories(WORKSPACE_HOST_PATH)
+		WORKSPACE_HOST_PATH.createDirectories()
 		
 		if (service.checkAccess()) containerAccess = true
 		else log.warn("Denied container access, features disabled").also { return }
@@ -83,14 +83,14 @@ class ContainerManager(
 	
 	suspend fun stop() = lock.withLock {
 		val id = containerId ?: return@withLock
-		trace.catching {
+		try {
 			log.debug("Initiated container stop  containerId={}", id)
 			service.stop(id)
-		}.also {
+		} finally {
 			containerId = null
 			service.shutdown()
 			log.info("Stopped container  containerId={}", id)
-		}.getOrThrow()
+		}
 	}
 	
 	

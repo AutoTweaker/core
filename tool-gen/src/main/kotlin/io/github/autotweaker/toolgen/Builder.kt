@@ -20,13 +20,13 @@
 
 package io.github.autotweaker.toolgen
 
-import java.nio.file.Path
+import kotlin.io.path.Path
 
 fun tool(name: String, block: ToolMetaBuilder.() -> Unit) =
 	ToolMetaBuilder(name.check()).apply(block).toMeta()
 
 fun ToolMeta.gen(argsPackage: String, toolPackage: String) {
-	val dir = Path.of(System.getProperty("toolgen.outputDir", "build/generated/args"))
+	val dir = Path(System.getProperty("toolgen.outputDir", "build/generated/args"))
 	ArgsCodeGen(this, argsPackage, toolPackage)(dir)
 }
 

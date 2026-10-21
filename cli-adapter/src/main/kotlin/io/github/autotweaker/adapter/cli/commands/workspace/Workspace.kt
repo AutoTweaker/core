@@ -31,6 +31,7 @@ import io.github.autotweaker.api.base.getOrElse
 import io.github.autotweaker.api.i18n
 import io.github.autotweaker.api.trace
 import io.github.autotweaker.api.types.exception.notfound.WorkspaceNotFoundException
+import kotlin.io.path.div
 
 @AutoService(Command::class)
 class Workspace : Command, Traceable {
@@ -68,7 +69,7 @@ class Workspace : Command, Traceable {
 			}
 		}
 		handleValue("create") { displayName ->
-			val path = trace.catching { getValueOrNull("directory")?.let { cwd.resolve(it) } }
+			val path = trace.catching { getValueOrNull("directory")?.let { cwd / it } }
 				.getOrElse { error(WorkspaceI18n.InvalidPath()) } ?: cwd
 			val data = core.workspace.create(
 				displayName = displayName,

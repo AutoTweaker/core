@@ -28,18 +28,21 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.sun.security.auth.module.UnixSystem
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.*
+import io.github.autotweaker.api.base.ReentrantMutex
+import io.github.autotweaker.api.base.catching
+import io.github.autotweaker.api.base.getOrElse
+import io.github.autotweaker.api.base.recoverException
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.core.infrastructure.container.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.io.path.createDirectories
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
@@ -76,8 +79,7 @@ object DockerJavaService : ContainerService, Loggable, Traceable {
 	
 	override fun checkAccess(): Boolean = trace.catching {
 		client.pingCmd().exec()
-		return true
-	}.getOrDefault(false)
+	}.isSuccess
 	
 	override suspend fun pull(image: String) = withContext(Dispatchers.IO) {
 		client.pullImageCmd(image).exec(object : PullImageResultCallback() {}).awaitCompletion()
@@ -88,8 +90,8 @@ object DockerJavaService : ContainerService, Loggable, Traceable {
 		image: String,
 	): String = withContext(Dispatchers.IO) {
 		trace.catching {
-			Files.createDirectories(WORKSPACE_HOST_PATH)
-			Files.createDirectories(TMP_HOST_PATH)
+			WORKSPACE_HOST_PATH.createDirectories()
+			TMP_HOST_PATH.createDirectories()
 			
 			val existing = findContainerByName(CONTAINER_NAME)
 			if (existing != null) {

@@ -19,17 +19,13 @@
 package io.github.autotweaker.core.infrastructure.persist.db.secret
 
 import io.github.autotweaker.api.*
-import io.github.autotweaker.api.base.ReentrantMutex
-import io.github.autotweaker.api.base.catching
-import io.github.autotweaker.api.base.getOrElse
-import io.github.autotweaker.api.base.recoverException
+import io.github.autotweaker.api.base.*
 import io.github.autotweaker.api.types.exception.PasswordInvalidException
 import io.github.autotweaker.api.types.exception.SecretStoreLockedException
 import io.github.autotweaker.api.types.exception.notfound.SecretNotFoundException
 import io.github.autotweaker.core.domain.port.SecretStore
+import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.h2.H2DatabaseStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,12 +49,8 @@ import javax.crypto.spec.SecretKeySpec
  * 解密主密钥必须要DK，派生DK需要盐（明文）以及用户密码
  * 最终能够在使用用户密码保护secret的同时保护用户的密码原文
  */
-object SecretManager : SecretStore, Loggable, Traceable,
-	DbStore(H2DatabaseStore, "Secrets", SecretTable, SecretKeyTable) {
-	private const val SALT_LENGTH = 16
-	private const val NONCE_LENGTH = 12
-	private const val KEY_LENGTH = 32
-	
+class SecretManager(store: DatabaseStore) : SecretStore, Loggable, Traceable,
+	DbStore(store, "Secrets", SecretTable, SecretKeyTable) {
 	private val lock = ReentrantMutex()
 	private val random = SecureRandom()
 	
@@ -257,6 +249,12 @@ object SecretManager : SecretStore, Loggable, Traceable,
 	
 	// 获取明文主密钥或抛出SecretStoreLockedException
 	private fun getMasterKey(): ByteArray = masterKey ?: throw SecretStoreLockedException()
+	
+	companion object {
+		private const val SALT_LENGTH = 16
+		private const val NONCE_LENGTH = 12
+		private const val KEY_LENGTH = 32
+	}
 	
 	private class SecretKeyRecord(
 		val salt: ByteArray, // 密钥派生使用的盐

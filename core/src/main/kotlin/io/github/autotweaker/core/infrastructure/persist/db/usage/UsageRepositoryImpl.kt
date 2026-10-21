@@ -18,13 +18,13 @@
 
 package io.github.autotweaker.core.infrastructure.persist.db.usage
 
+import io.github.autotweaker.api.base.transaction
 import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.UsageCursor
 import io.github.autotweaker.api.types.llm.UsageEntry
 import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.infrastructure.persist.db.base.DatabaseStore
 import io.github.autotweaker.core.infrastructure.persist.db.base.DbStore
-import io.github.autotweaker.core.infrastructure.persist.db.base.transaction
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
