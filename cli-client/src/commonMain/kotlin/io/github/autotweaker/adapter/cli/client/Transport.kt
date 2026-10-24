@@ -1,5 +1,4 @@
 /*
- * AutoTweaker
  * Copyright (C) 2026  WhiteElephant-abc
  *
  * This program is free software: you can redistribute it and/or modify
@@ -41,7 +40,7 @@ class Transport private constructor(
 		val count = readChannel.readUntil(ByteString('\n'.code.toByte()), collected, ignoreMissing = true)
 		if (count == 0L) return null
 		collected.close()
-		return collected.readRemaining().readByteArray().decodeToString()
+		return collected.readBuffer().readByteArray().decodeToString()
 	}
 	
 	suspend fun sendLine(line: String) = writeLock.withLock {

@@ -1,5 +1,4 @@
 /*
- * AutoTweaker
  * Copyright (C) 2026  WhiteElephant-abc
  *
  * This program is free software: you can redistribute it and/or modify
