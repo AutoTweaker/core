@@ -63,7 +63,7 @@ kotlin {
 			api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 		}
 		jvmMain.dependencies {
-			api("org.jetbrains.exposed:exposed-jdbc:1.5.1")
+			api("org.jetbrains.exposed:exposed-jdbc:1.6.0")
 			api("org.slf4j:slf4j-api:2.0.20")
 			api("com.google.guava:guava:33.7.1-jre")
 			implementation("com.google.auto.service:auto-service-annotations:1.1.1")
