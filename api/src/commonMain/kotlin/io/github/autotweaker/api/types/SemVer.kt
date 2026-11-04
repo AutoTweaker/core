@@ -44,7 +44,7 @@ data class SemVer(
 			require(id.all { it in '0'..'9' || it in 'A'..'Z' || it in 'a'..'z' || it == '-' }) {
 				"Pre-release identifier must consist of [0-9A-Za-z-], got: \"$id\""
 			}
-			if (id.all { it in '0'..'9' }) {
+			if (id.isNumeric()) {
 				require(id == "0" || !id.startsWith('0')) {
 					"Numeric pre-release identifier must not have leading zeros, got: \"$id\""
 				}
@@ -87,13 +87,12 @@ data class SemVer(
 			val a = preRelease[i]
 			val b = other.preRelease[i]
 			
-			val aNum = a.toIntOrNull()
-			val bNum = b.toIntOrNull()
+			val aNumeric = a.isNumeric()
+			val bNumeric = b.isNumeric()
 			
 			val cmp = when {
-				aNum != null && bNum != null -> aNum.compareTo(bNum)
-				aNum != null -> -1
-				bNum != null -> 1
+				aNumeric && bNumeric -> if (a.length != b.length) a.length.compareTo(b.length) else a.compareTo(b)
+				aNumeric != bNumeric -> if (aNumeric) -1 else 1
 				else -> a.compareTo(b)
 			}
 			if (cmp != 0) return cmp
@@ -101,7 +100,9 @@ data class SemVer(
 		
 		return preRelease.size.compareTo(other.preRelease.size)
 	}
-	
+
+	private fun String.isNumeric() = all { it in '0'..'9' }
+
 	override fun toString(): String = buildString {
 		append(major); append('.'); append(minor); append('.'); append(patch)
 		if (preRelease.isNotEmpty()) {
